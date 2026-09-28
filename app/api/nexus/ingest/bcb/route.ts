@@ -11,7 +11,7 @@ import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
 import { buscarComRetentativa } from '@/lib/nexusRede'
-import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirMoedasBce, ingerirCommodities, ingerirIbge, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
+import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirMoedasBce, ingerirCommodities, ingerirIbge, ingerirAnp, ingerirComex, ingerirOcde, COMBUSTIVEIS_ANP, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -307,13 +307,14 @@ export async function GET(request: NextRequest) {
     if (fonteAntes && fonteEmPausa(fonteAntes.last_success as string | null, fonteAntes.last_failure as string | null)) return Promise.resolve('em pausa (tenta a cada 3 dias)')
     return f().catch((err) => `erro: ${err instanceof Error ? err.message : String(err)}`)
   }
-  const [brent, bancoMundial, yuan, commodities, ibge, gdelt, noticias] = await Promise.all([
+  const [brent, bancoMundial, yuan, commodities, ibge, gdelt, anp, comex, ocde, noticias] = await Promise.all([
     tentar('IPEA Data', () => ingerirBrent(supabase)), tentar('Banco Mundial', () => ingerirBancoMundial(supabase)),
     tentar('Banco Central Europeu', () => ingerirMoedasBce(supabase)), tentar('FMI', () => ingerirCommodities(supabase)),
     tentar('IBGE Dados Abertos', () => ingerirIbge(supabase)), tentar('GDELT', () => ingerirGdelt(supabase)),
+    tentar('ANP', () => ingerirAnp(supabase)), tentar('Comex Stat', () => ingerirComex(supabase)), tentar('OCDE', () => ingerirOcde(supabase)),
     ingestaoNoticias(supabase),
   ])
-  const mundo = { brent, bancoMundial, yuan, commodities, ibge, gdelt }
+  const mundo = { brent, bancoMundial, yuan, commodities, ibge, gdelt, anp, comex, ocde }
   // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
   const limpeza = await limparDadosVencidos(supabase)
   const notasFontes = await atualizarNotasFontes(supabase)
@@ -377,6 +378,7 @@ const SERIES_EXTERNAS = new Map<string, string>([
   [SERIE_BRENT, "http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='EIA366_PBRENT366')"],
   [SERIE_YUAN, 'https://data.ecb.europa.eu/data/datasets/EXR'],
   ...COMMODITIES_FMI.map((c) => [c.codigo, 'https://data.imf.org/en/datasets/IMF.RES:PCPS'] as [string, string]),
+  ...COMBUSTIVEIS_ANP.map((c) => [c.codigo, 'https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas'] as [string, string]),
   ...SERIES_IBGE.map((s) => [s.codigo, `https://servicodados.ibge.gov.br/api/v3/agregados/${s.q}`] as [string, string]),
 ])
 

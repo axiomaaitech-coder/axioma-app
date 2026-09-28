@@ -11,7 +11,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcularFreshness } from './nexusFreshness'
 import { buscarComRetentativa } from './nexusRede'
-import { moedasEmReais, lerCsvFmi, fimDoMes, type Ponto } from './nexusLeitoresFontes'
+import * as XLSX from 'xlsx'
+import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
 
 type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
@@ -224,6 +225,115 @@ export async function ingerirIbge(supabase: SupabaseClient): Promise<string> {
   }
   await marcar(supabase, sourceId, erros.length === 0)
   return erros.length ? `${total} pontos; erros: ${erros.join(' | ')}` : `${total} pontos`
+}
+
+// ─── ANP (preço médio nos postos do Brasil, semanal) ───
+const PAGINA_ANP = 'https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas'
+export const COMBUSTIVEIS_ANP = [
+  { codigo: 'ANP:GASOLINA', produto: 'GASOLINA COMUM', nome: 'Gasolina comum (R$/litro, média Brasil, ANP)', unidade: 'R$/l' },
+  { codigo: 'ANP:DIESEL', produto: 'OLEO DIESEL S10', nome: 'Óleo diesel S10 (R$/litro, média Brasil, ANP)', unidade: 'R$/l' },
+  { codigo: 'ANP:ETANOL', produto: 'ETANOL HIDRATADO', nome: 'Etanol hidratado (R$/litro, média Brasil, ANP)', unidade: 'R$/l' },
+  { codigo: 'ANP:GLP', produto: 'GLP', nome: 'Gás de cozinha GLP (R$/botijão 13 kg, média Brasil, ANP)', unidade: 'R$/13kg' },
+] as const
+
+export async function ingerirAnp(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'ANP', tipo: 'regulatory_source', provedor: 'Agência Nacional do Petróleo, Gás Natural e Biocombustíveis (ANP)',
+    endpoint: PAGINA_ANP, frequencia: 'weekly', licenca: 'dados abertos (ANP)',
+  })
+  try {
+    const pag = await buscarComRetentativa(PAGINA_ANP, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AxiomaNexus/1.0)' } })
+    if (!pag.ok) throw new Error(`página HTTP ${pag.status}`)
+    // 4 semanas mais recentes por coleta (~300 KB cada); o histórico vai se acumulando no banco.
+    const links = linksResumoAnp(await pag.text()).slice(0, 4)
+    if (links.length === 0) throw new Error('nenhum resumo semanal na página')
+    const porCodigo = new Map<string, Ponto[]>()
+    for (const url of links) {
+      const res = await buscarComRetentativa(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AxiomaNexus/1.0)' }, timeoutMs: 30000 })
+      if (!res.ok) continue
+      const wb = XLSX.read(Buffer.from(await res.arrayBuffer()), { type: 'buffer' })
+      const aba = wb.Sheets['BRASIL']
+      if (!aba) continue
+      const precos = lerResumoAnp(XLSX.utils.sheet_to_json<unknown[]>(aba, { header: 1 }))
+      for (const c of COMBUSTIVEIS_ANP) {
+        const p = precos.get(c.produto)
+        if (p) porCodigo.set(c.codigo, [...(porCodigo.get(c.codigo) ?? []), p])
+      }
+    }
+    let total = 0
+    for (const c of COMBUSTIVEIS_ANP) {
+      const pts = porCodigo.get(c.codigo) ?? []
+      await gravarSerie(supabase, sourceId, { codigo: c.codigo, nome: c.nome, categoria: 'energy', country: 'BR', moeda: 'BRL', unidade: c.unidade, frequencia: 'semanal' }, pts)
+      total += pts.length
+    }
+    await marcar(supabase, sourceId, true)
+    return `${total} pontos`
+  } catch (err) {
+    await marcar(supabase, sourceId, false)
+    return `erro: ${err instanceof Error ? err.message : String(err)}`
+  }
+}
+
+// ─── Comex Stat (MDIC) — exportações e importações do Brasil, mensal ───
+export const SERIES_COMEX = [
+  { codigo: 'COMEX:EXPORT', flow: 'export', nome: 'Exportações do Brasil (US$ bilhões no mês, Comex Stat/MDIC)' },
+  { codigo: 'COMEX:IMPORT', flow: 'import', nome: 'Importações do Brasil (US$ bilhões no mês, Comex Stat/MDIC)' },
+] as const
+
+export async function ingerirComex(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'Comex Stat', tipo: 'trade_data', provedor: 'Ministério do Desenvolvimento, Indústria, Comércio e Serviços (MDIC)',
+    endpoint: 'https://api-comexstat.mdic.gov.br/general', frequencia: 'monthly', licenca: 'dados abertos (MDIC)',
+  })
+  const ano = new Date().getUTCFullYear()
+  let total = 0
+  const erros: string[] = []
+  for (const s of SERIES_COMEX) {
+    try {
+      const res = await buscarComRetentativa('https://api-comexstat.mdic.gov.br/general', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, timeoutMs: 30000,
+        body: JSON.stringify({ flow: s.flow, monthDetail: true, period: { from: `${ano - 1}-01`, to: `${ano}-12` }, metrics: ['metricFOB'] }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const pts = lerComex(await res.json())
+      await gravarSerie(supabase, sourceId, { codigo: s.codigo, nome: s.nome, categoria: 'trade', country: 'BR', moeda: 'USD', unidade: 'US$ bi', frequencia: 'mensal_defasada' }, pts)
+      total += pts.length
+    } catch (err) {
+      erros.push(`${s.codigo}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+  await marcar(supabase, sourceId, erros.length === 0)
+  return erros.length ? `${total} pontos; erros: ${erros.join(' | ')}` : `${total} pontos`
+}
+
+// ─── OCDE — indicador antecedente composto (ciclo econômico), mensal ───
+// Acima de 100 = economia tende a crescer acima da tendência nos próximos meses.
+export const PAISES_OCDE = [
+  { area: 'BRA', nome: 'Brasil' }, { area: 'CHN', nome: 'China' }, { area: 'USA', nome: 'EUA' }, { area: 'G20', nome: 'G20' },
+] as const
+const URL_OCDE = () => `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI,/${PAISES_OCDE.map((p) => p.area).join('+')}.M.LI...AA...H?startPeriod=${new Date().getUTCFullYear() - 2}-01`
+
+export async function ingerirOcde(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'OCDE', tipo: 'international_org', provedor: 'Organização para a Cooperação e Desenvolvimento Econômico (OCDE)',
+    endpoint: 'https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI', frequencia: 'monthly', licenca: 'uso livre com citação (OCDE)',
+  })
+  try {
+    const res = await buscarComRetentativa(URL_OCDE(), { headers: { Accept: 'application/vnd.sdmx.data+csv', 'Accept-Encoding': 'gzip' }, timeoutMs: 30000 }) // OCDE às vezes dá 500 com br/zstd
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const series = lerCsvOcde(await res.text())
+    let total = 0
+    for (const p of PAISES_OCDE) {
+      const pts = series.get(p.area) ?? []
+      await gravarSerie(supabase, sourceId, { codigo: `OCDE:CLI:${p.area}`, nome: `Indicador antecedente da OCDE — ${p.nome} (100 = tendência; acima = aceleração à frente)`, categoria: 'leading_indicator', country: p.area, unidade: 'índice', frequencia: 'mensal_defasada' }, pts)
+      total += pts.length
+    }
+    await marcar(supabase, sourceId, true)
+    return `${total} pontos`
+  } catch (err) {
+    await marcar(supabase, sourceId, false)
+    return `erro: ${err instanceof Error ? err.message : String(err)}`
+  }
 }
 
 // ─── GDELT (conflitos, sanções, tarifas, acordos comerciais) ───

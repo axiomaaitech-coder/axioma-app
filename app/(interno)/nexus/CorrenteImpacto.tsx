@@ -73,6 +73,15 @@ const CORRENTES: Record<RegraEvento, { elos: Elo[]; nota?: Nome3 }> = {
     ],
     nota: ['Se você produz, vende ou exporta essa matéria-prima, o efeito se inverte: a receita sobe junto. O Brasil é grande exportador de soja, café e minério.', 'If you produce, sell or export this commodity, the effect flips: revenue rises too. Brazil is a major exporter of soy, coffee and iron ore.', 'Si produce, vende o exporta esta materia prima, el efecto se invierte: el ingreso también sube. Brasil es gran exportador de soja, café y mineral de hierro.'],
   },
+  combustivel_semana: {
+    elos: [
+      { icone: '⛽', nome: ['Combustível nos postos', 'Fuel at the pump', 'Combustible en las estaciones'], sinal: 1 },
+      { icone: '🚚', nome: ['Frete e entregas', 'Freight and deliveries', 'Flete y entregas'], sinal: 1 },
+      { icone: '🏭', nome: ['Custo da sua empresa', 'Your company’s cost', 'Costo de su empresa'], sinal: 1 },
+      { ...MARGEM, sinal: -1 },
+    ],
+    nota: ['Pesa mais para quem tem frota, faz entregas ou depende de transporte rodoviário.', 'Matters most if you run a fleet, deliver goods or rely on road transport.', 'Pesa más para quien tiene flota, hace entregas o depende del transporte por carretera.'],
+  },
   setor_variacao: {
     elos: [
       { icone: '🏬', nome: ['Setor', 'Sector', 'Sector'], sinal: 1 },

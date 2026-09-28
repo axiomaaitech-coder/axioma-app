@@ -26,6 +26,9 @@ const SITE: Record<string, string> = {
   'GDELT': 'https://www.gdeltproject.org/',
   'Banco Central Europeu': 'https://data.ecb.europa.eu/',
   'FMI': 'https://data.imf.org/',
+  'ANP': 'https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos',
+  'Comex Stat': 'https://comexstat.mdic.gov.br/',
+  'OCDE': 'https://data-explorer.oecd.org/',
 }
 
 const ROTULO: Record<SaudeFonte, [string, string, string]> = {

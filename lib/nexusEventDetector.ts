@@ -16,7 +16,7 @@
 
 export type PontoSerieEvento = { data: string; valor: number } // data ISO yyyy-mm-dd
 
-export type RegraEvento = "fx_5d" | "petroleo_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao" | "commodity_mes" | "setor_variacao"
+export type RegraEvento = "fx_5d" | "petroleo_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao" | "commodity_mes" | "setor_variacao" | "combustivel_semana"
 
 export type PayloadEvento = {
   serie: string
@@ -54,12 +54,15 @@ export const LIMIARES = {
   petroleoVariacao5d: 8, // % — petróleo é bem mais volátil que câmbio
   commodityMes: 8, // % no mês (média mensal do FMI já suaviza o dia a dia)
   setorPct: 1.5, // % no mês — comércio/serviços/indústria oscilam mais que o IBC-Br
+  combustivelSemana: 3, // % na semana — preço na bomba anda devagar; 3% já pesa no frete
 }
 
 const SERIES_CAMBIO = ["1", "21619", "21623", "21621", "BCE:CNY"]
 // Matérias-primas (FMI, mensal) e setores do IBGE (mensal) — variação mês a mês.
 const COMMODITIES = ["FMI:SOJA", "FMI:MILHO", "FMI:CAFE", "FMI:MINERIO"]
 const SETORES = ["IBGE:VAREJO", "IBGE:SERVICOS", "IBGE:INDUSTRIA"]
+// Preço nos postos (ANP, semanal) — só os que pesam no custo de empresa.
+const COMBUSTIVEIS = ["ANP:GASOLINA", "ANP:DIESEL"]
 const BRENT = "IPEA:BRENT"
 const SELIC = "432"
 const IPCA = "433"
@@ -164,6 +167,12 @@ export function detectarEventosSerie(serie: string, historico: PontoSerieEvento[
         out.push(evento(serie, "commodity_mes", "signal", "commodity", 35 + Math.abs(pct) * 3, atual, anterior, pct, `${serie.toLowerCase()}:commodity_mes:${atual.data}`))
       }
     }
+    if (COMBUSTIVEIS.includes(serie) && anterior.valor) {
+      const pct = (dif / anterior.valor) * 100
+      if (Math.abs(pct) >= LIMIARES.combustivelSemana) {
+        out.push(evento(serie, "combustivel_semana", "fact", "energy", 45 + Math.abs(pct) * 8, atual, anterior, pct, `${serie.toLowerCase()}:combustivel_semana:${atual.data}`))
+      }
+    }
     if (SETORES.includes(serie) && anterior.valor) {
       const pct = (dif / anterior.valor) * 100
       if (Math.abs(pct) >= LIMIARES.setorPct) {
@@ -222,6 +231,8 @@ const NOME_SERIE: Record<string, Record<Lang, string>> = {
   "IBGE:VAREJO": { pt: "Vendas do comércio", en: "Retail sales", es: "Ventas del comercio" },
   "IBGE:SERVICOS": { pt: "Setor de serviços", en: "Services sector", es: "Sector servicios" },
   "IBGE:INDUSTRIA": { pt: "Produção industrial", en: "Industrial output", es: "Producción industrial" },
+  "ANP:GASOLINA": { pt: "Gasolina", en: "Gasoline", es: "Gasolina" },
+  "ANP:DIESEL": { pt: "Diesel", en: "Diesel", es: "Diésel" },
 }
 export const nomeSerie = (serie: string, lang: Lang) => NOME_SERIE[serie]?.[lang] ?? serie
 // Quem publica a série (pelo prefixo do código; sem prefixo = SGS do Banco Central).
@@ -231,6 +242,9 @@ export function fonteDaSerie(serie: string, lang: Lang): string {
   if (serie.startsWith("BCE:")) return T("Banco Central Europeu", "European Central Bank", "Banco Central Europeo")
   if (serie.startsWith("FMI:")) return T("FMI", "IMF", "FMI")
   if (serie.startsWith("IBGE:")) return "IBGE"
+  if (serie.startsWith("ANP:")) return "ANP"
+  if (serie.startsWith("COMEX:")) return T("Comex Stat (MDIC)", "Comex Stat (Brazil trade ministry)", "Comex Stat (MDIC)")
+  if (serie.startsWith("OCDE:")) return T("OCDE", "OECD", "OCDE")
   return T("Banco Central do Brasil", "Central Bank of Brazil", "Banco Central de Brasil")
 }
 // Unidade de preço das matérias-primas do FMI, pro texto do evento.
@@ -334,6 +348,17 @@ export function textoEvento(p: PayloadEvento, lang: Lang): { titulo: string; des
         ),
       }
     }
+    case "combustivel_semana":
+      return {
+        titulo: sobe
+          ? T(`${nome} sobe ${num(abs, 1, lang)}% nos postos`, `${nome} up ${num(abs, 1, lang)}% at the pump`, `${nome} sube ${num(abs, 1, lang)}% en las estaciones`)
+          : T(`${nome} cai ${num(abs, 1, lang)}% nos postos`, `${nome} down ${num(abs, 1, lang)}% at the pump`, `${nome} baja ${num(abs, 1, lang)}% en las estaciones`),
+        descricao: T(
+          `Preço médio no Brasil foi de R$ ${num(p.valor_anterior, 2, lang)} para R$ ${num(p.valor_atual, 2, lang)} por litro em uma semana (pesquisa da ANP). Mexe com frete e entregas.`,
+          `Average price in Brazil went from R$ ${num(p.valor_anterior, 2, lang)} to R$ ${num(p.valor_atual, 2, lang)} per liter in one week (ANP survey). Affects freight and deliveries.`,
+          `El precio medio en Brasil pasó de R$ ${num(p.valor_anterior, 2, lang)} a R$ ${num(p.valor_atual, 2, lang)} por litro en una semana (encuesta de la ANP). Afecta el flete y las entregas.`,
+        ),
+      }
     case "setor_variacao":
       return {
         titulo: sobe

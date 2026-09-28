@@ -94,3 +94,20 @@ assert.deepEqual(moedas.get('EUR'), [{ data: '2026-09-25', valor: 5.9091 }])
 const csvFmi = 'DATAFLOW,COUNTRY,INDICATOR,DATA_TRANSFORMATION,FREQUENCY,TIME_PERIOD,OBS_VALUE,X\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M08,449.04392,0,"texto, com vírgula"\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M02,420,0'
 assert.deepEqual(lerCsvFmi(csvFmi).get('PSOYB'), [{ data: '2026-02-28', valor: 420 }, { data: '2026-08-31', valor: 449.04 }])
 console.log('OK — leitores BCE e FMI')
+
+// Combustível nos postos: ±3% na semana vira fato
+const diesel = detectarEventosSerie('ANP:DIESEL', [{ data: '2026-09-19', valor: 7.0 }, { data: '2026-09-26', valor: 7.33 }])
+assert.equal(diesel[0].event_type, 'combustivel_semana')
+assert.match(textoEvento(diesel[0].payload, 'pt').titulo, /Diesel sobe 4,7% nos postos/)
+assert.equal(detectarEventosSerie('ANP:GASOLINA', [{ data: '2026-09-19', valor: 6.5 }, { data: '2026-09-26', valor: 6.55 }]).length, 0)
+console.log('OK — combustíveis nos postos')
+
+// Leitores ANP, OCDE e Comex
+const { linksResumoAnp, lerResumoAnp, lerCsvOcde, lerComex } = await import('../lib/nexusLeitoresFontes.ts')
+assert.deepEqual(linksResumoAnp('<a href="https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx">a</a><a href="https://x/revendas_lpc_1.xlsx">b</a><a href="https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx">c</a>'), ['https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx'])
+const anp = lerResumoAnp([['DATA INICIAL', 'DATA FINAL', 'BRASIL', 'PRODUTO'], [46285, 46291, 'BRASIL', 'OLEO DIESEL S10', 3147, 'R$/l', 7.33]])
+assert.deepEqual(anp.get('OLEO DIESEL S10'), { data: '2026-09-26', valor: 7.33 })
+const ocde = lerCsvOcde('DATAFLOW,REF_AREA,FREQ,TIME_PERIOD,OBS_VALUE\nX,BRA,M,2026-08,102.6276\nX,BRA,M,2026-07,102.5')
+assert.deepEqual(ocde.get('BRA'), [{ data: '2026-07-31', valor: 102.5 }, { data: '2026-08-31', valor: 102.63 }])
+assert.deepEqual(lerComex({ data: { list: [{ year: '2026', monthNumber: '08', metricFOB: '33157804370' }] } }), [{ data: '2026-08-31', valor: 33.16 }])
+console.log('OK — leitores ANP, OCDE e Comex')

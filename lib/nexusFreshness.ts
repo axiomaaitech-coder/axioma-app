@@ -16,6 +16,13 @@ export function calcularFreshness(dataReferenciaISO: string, frequencia: string 
     if (dias <= 30) return "stale"
     return "expired"
   }
+  // semanal (ANP): pesquisa de domingo a sábado, publicada na semana seguinte.
+  if (frequencia === "semanal") {
+    if (dias <= 9) return "live"
+    if (dias <= 16) return "recent"
+    if (dias <= 30) return "stale"
+    return "expired"
+  }
   // anual (Banco Mundial): o dado de um ano sai só no meio do ano seguinte —
   // referência de até ~2 anos atrás ainda é o mais recente disponível.
   if (frequencia === "anual") {

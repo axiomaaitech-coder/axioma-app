@@ -103,6 +103,8 @@ ECONOMIA MUNDIAL (fontes oficiais gratuitas):
 ${mundo?.brent?.valor != null ? `- Petróleo Brent: US$ ${mundo.brent.valor} (ref. ${mundo.brent.dataReferencia}; ~30 pregões antes: US$ ${mundo.brent.historico[0]?.valor ?? '?'}) — IPEA/EIA` : '- Petróleo: ainda sem dado'}
 ${(mundo?.paises ?? []).filter((p) => p.ano).map((p) => `- ${p.iso}: PIB ${p.pib ?? '?'}% e inflação ${p.inflacao ?? '?'}% em ${p.ano} — Banco Mundial`).join('\n') || '- Parceiros: ainda sem dado'}
 ${(mundo?.materias ?? []).filter((m) => m.valor != null).map((m) => `- ${m.nome.pt}: ${m.valor} ${m.codigo === 'FMI:CAFE' ? 'US¢/lb' : 'US$/t'} (média de ${m.dataReferencia?.slice(0, 7)}; 12 meses antes: ${m.historico.at(-13)?.valor ?? '?'}) — FMI`).join('\n') || '- Matérias-primas: ainda sem dado'}
+${(mundo?.combustiveis ?? []).filter((m) => m.valor != null).map((m) => `- ${m.nome.pt} nos postos: R$ ${m.valor} (semana até ${m.dataReferencia}; 4 semanas antes: ${m.historico.at(-5)?.valor ?? '?'}) — ANP`).join('\n') || '- Combustíveis: ainda sem dado'}
+${(mundo?.comercio ?? []).filter((m) => m.valor != null).map((m) => `- ${m.nome.pt}: ${m.valor}${m.codigo.startsWith('COMEX:') ? ' US$ bi no mês' : ' (100 = tendência; acima = aceleração à frente)'} (ref. ${m.dataReferencia?.slice(0, 7)}; 12 meses antes: ${m.historico.at(-13)?.valor ?? '?'}) — ${m.codigo.startsWith('COMEX:') ? 'Comex Stat' : 'OCDE'}`).join('\n') || '- Comércio exterior: ainda sem dado'}
 
 EVENTOS DETECTADOS PELO RADAR GLOBAL:
 ${evs || '- nenhum'}

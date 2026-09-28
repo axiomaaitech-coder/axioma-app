@@ -250,7 +250,7 @@ export async function listarPlanosSalvos(empresaId: string, limite = 12): Promis
 
 // ─── Economia mundial (IPEA Brent + Banco Mundial) — cards e contexto do José ───
 export type PaisMundo = { iso: string; pib: number | null; inflacao: number | null; ano: string | null };
-export type EconomiaMundial = { brent: IndicadorNexus | null; paises: PaisMundo[]; materias: IndicadorNexus[] };
+export type EconomiaMundial = { brent: IndicadorNexus | null; paises: PaisMundo[]; materias: IndicadorNexus[]; combustiveis: IndicadorNexus[]; comercio: IndicadorNexus[] };
 
 // Matérias-primas do FMI (mensal) — ordem dos cards.
 const MATERIAS: { codigo: string; nome: IndicadorNexus["nome"]; emoji: string }[] = [
@@ -259,6 +259,35 @@ const MATERIAS: { codigo: string; nome: IndicadorNexus["nome"]; emoji: string }[
   { codigo: "FMI:CAFE", nome: { pt: "Café", en: "Coffee", es: "Café" }, emoji: "☕" },
   { codigo: "FMI:MINERIO", nome: { pt: "Minério de ferro", en: "Iron ore", es: "Mineral de hierro" }, emoji: "⛏️" },
 ];
+// Preço médio nos postos do Brasil (ANP, semanal).
+const COMBUSTIVEIS: typeof MATERIAS = [
+  { codigo: "ANP:GASOLINA", nome: { pt: "Gasolina comum", en: "Regular gasoline", es: "Gasolina común" }, emoji: "⛽" },
+  { codigo: "ANP:DIESEL", nome: { pt: "Diesel S10", en: "Diesel S10", es: "Diésel S10" }, emoji: "🚚" },
+  { codigo: "ANP:ETANOL", nome: { pt: "Etanol", en: "Ethanol", es: "Etanol" }, emoji: "🌿" },
+  { codigo: "ANP:GLP", nome: { pt: "Gás de cozinha (13 kg)", en: "Cooking gas (13 kg)", es: "Gas de cocina (13 kg)" }, emoji: "🔥" },
+];
+// Comércio exterior (Comex Stat, mensal) e ciclo econômico (OCDE, mensal).
+const COMERCIO: typeof MATERIAS = [
+  { codigo: "COMEX:EXPORT", nome: { pt: "Exportações", en: "Exports", es: "Exportaciones" }, emoji: "🚢" },
+  { codigo: "COMEX:IMPORT", nome: { pt: "Importações", en: "Imports", es: "Importaciones" }, emoji: "📦" },
+  { codigo: "OCDE:CLI:BRA", nome: { pt: "Ciclo do Brasil (OCDE)", en: "Brazil cycle (OECD)", es: "Ciclo de Brasil (OCDE)" }, emoji: "🇧🇷" },
+  { codigo: "OCDE:CLI:CHN", nome: { pt: "Ciclo da China (OCDE)", en: "China cycle (OECD)", es: "Ciclo de China (OCDE)" }, emoji: "🇨🇳" },
+];
+const PONTOS_CARD = 24;
+
+// Monta cards a partir das linhas (mais novas primeiro) de várias séries.
+function cardsDeSeries(defs: typeof MATERIAS, linhas: { serie_codigo: unknown; valor: unknown; data_referencia: unknown; frequencia: unknown }[]): IndicadorNexus[] {
+  return defs.map((m) => {
+    const da = linhas.filter((l) => l.serie_codigo === m.codigo && l.valor != null).slice(0, PONTOS_CARD);
+    const r = da[0];
+    return {
+      codigo: m.codigo, nome: m.nome, emoji: m.emoji, formato: "indice", casas: 2,
+      valor: r ? Number(r.valor) : null, dataReferencia: (r?.data_referencia as string) ?? null,
+      freshness: r ? calcularFreshness(r.data_referencia as string, r.frequencia as string | null) : null,
+      historico: [...da].reverse().map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })),
+    };
+  });
+}
 
 const ISOS_MUNDO = ["USA", "CHN", "EMU", "ARG", "JPN", "GBR", "IND", "MEX"];
 
@@ -266,7 +295,9 @@ export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
   const [brentRes, bmRes, fmiRes] = await Promise.all([
     supabase.from("nexus_economic_series").select("valor, data_referencia, frequencia").eq("serie_codigo", "IPEA:BRENT").order("data_referencia", { ascending: false }).limit(30),
     supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia").like("serie_codigo", "WB:%").order("data_referencia", { ascending: false }).limit(200),
-    supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia, frequencia").like("serie_codigo", "FMI:%").order("data_referencia", { ascending: false }).limit(MATERIAS.length * 24),
+    supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia, frequencia")
+      .in("serie_codigo", [...MATERIAS, ...COMBUSTIVEIS, ...COMERCIO].map((m) => m.codigo))
+      .order("data_referencia", { ascending: false }).limit((MATERIAS.length + COMBUSTIVEIS.length + COMERCIO.length) * PONTOS_CARD * 2),
   ]);
   const pontos = (brentRes.data ?? []).filter((l) => l.valor != null);
   const brent: IndicadorNexus | null = pontos.length ? {
@@ -283,17 +314,8 @@ export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
     const pib = ultimo.get(`WB:${iso}:NY.GDP.MKTP.KD.ZG`), inf = ultimo.get(`WB:${iso}:FP.CPI.TOTL.ZG`);
     return { iso, pib: pib?.valor ?? null, inflacao: inf?.valor ?? null, ano: pib?.ano ?? inf?.ano ?? null };
   });
-  const materias: IndicadorNexus[] = MATERIAS.map((m) => {
-    const linhas = (fmiRes.data ?? []).filter((l) => l.serie_codigo === m.codigo && l.valor != null);
-    const r = linhas[0];
-    return {
-      codigo: m.codigo, nome: m.nome, emoji: m.emoji, formato: "indice", casas: 2,
-      valor: r ? Number(r.valor) : null, dataReferencia: (r?.data_referencia as string) ?? null,
-      freshness: r ? calcularFreshness(r.data_referencia as string, r.frequencia as string | null) : null,
-      historico: [...linhas].reverse().map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })),
-    };
-  });
-  return { brent, paises, materias };
+  const extras = fmiRes.data ?? [];
+  return { brent, paises, materias: cardsDeSeries(MATERIAS, extras), combustiveis: cardsDeSeries(COMBUSTIVEIS, extras), comercio: cardsDeSeries(COMERCIO, extras) };
 }
 
 // ─── Saúde das fontes (nexus_source, pública, só leitura) ───

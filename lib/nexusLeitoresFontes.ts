@@ -53,3 +53,54 @@ export function lerCsvFmi(csv: string): Map<string, Ponto[]> {
   return out
 }
 
+
+// ─── ANP — resumo semanal de preços nos postos (planilha, aba BRASIL) ───
+// Links "resumo_semanal_lpc_*.xlsx" da página da ANP, do mais novo pro mais antigo
+// (a página já lista nessa ordem; o nome do arquivo não tem padrão fixo de data).
+export function linksResumoAnp(html: string): string[] {
+  const vistos = new Set<string>()
+  for (const m of html.matchAll(/href="([^"]*resumo_semanal_lpc_[^"]+\.xlsx)"/g)) vistos.add(m[1])
+  return [...vistos]
+}
+
+// Linhas da aba BRASIL (sheet_to_json header:1): DATA INICIAL, DATA FINAL, BRASIL,
+// PRODUTO, Nº POSTOS, UNIDADE, PREÇO MÉDIO REVENDA, ... Datas vêm como número serial
+// do Excel. Devolve produto → ponto (data = fim da semana, valor = preço médio).
+export function lerResumoAnp(linhas: unknown[][]): Map<string, Ponto> {
+  const out = new Map<string, Ponto>()
+  for (const l of linhas) {
+    const fim = Number(l[1]), produto = String(l[3] ?? '').trim(), preco = Number(l[6])
+    if (l[2] !== 'BRASIL' || !produto || !Number.isFinite(fim) || !Number.isFinite(preco) || preco <= 0) continue
+    const data = new Date(Date.UTC(1899, 11, 30) + fim * 86400000).toISOString().slice(0, 10)
+    out.set(produto, { data, valor: preco })
+  }
+  return out
+}
+
+// ─── OCDE — indicador antecedente composto (CLI), CSV SDMX ───
+// Colunas: DATAFLOW,REF_AREA,FREQ,...,TIME_PERIOD(2026-08),OBS_VALUE,... — posição
+// achada pelo cabeçalho. Data = último dia do mês.
+export function lerCsvOcde(csv: string): Map<string, Ponto[]> {
+  const [cab, ...linhas] = csv.split('\n')
+  const col = cab.split(',')
+  const iArea = col.indexOf('REF_AREA'), iPer = col.indexOf('TIME_PERIOD'), iVal = col.indexOf('OBS_VALUE')
+  const out = new Map<string, Ponto[]>()
+  if (iArea < 0 || iPer < 0 || iVal < 0) return out
+  for (const linha of linhas) {
+    const c = linha.split(',')
+    const m = /^(\d{4})-(\d{2})$/.exec(c[iPer] ?? '')
+    const v = Number(c[iVal])
+    if (!m || !Number.isFinite(v)) continue
+    out.set(c[iArea], [...(out.get(c[iArea]) ?? []), { data: fimDoMes(Number(m[1]), Number(m[2])), valor: Math.round(v * 100) / 100 }])
+  }
+  for (const pts of out.values()) pts.sort((a, b) => a.data.localeCompare(b.data))
+  return out
+}
+
+// ─── Comex Stat (MDIC) — total mensal exportado/importado, US$ FOB ───
+export function lerComex(json: { data?: { list?: { year: string; monthNumber: string; metricFOB: string }[] } }): Ponto[] {
+  return (json.data?.list ?? [])
+    .map((l) => ({ data: fimDoMes(Number(l.year), Number(l.monthNumber)), valor: Math.round(Number(l.metricFOB) / 1e7) / 100 })) // US$ bilhões
+    .filter((p) => Number.isFinite(p.valor) && p.valor > 0)
+    .sort((a, b) => a.data.localeCompare(b.data))
+}

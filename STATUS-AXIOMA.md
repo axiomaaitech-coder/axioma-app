@@ -1345,6 +1345,12 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 **Pausa automática:** fonte mundial fora do ar há 3+ dias (ou que nunca funcionou) só é tentada a cada 3 dias; aparece em Saúde das fontes. Self-checks em check-nexus-eventos e check-nexus-saude-fontes. Sem SQL.
 **Pendente (dado, não código):** Currents é paga e segue cadastrada como ativa — desligar precisa de ok do Elias.
 
+## 3-BV. Nexus — visual padronizado + ANP, Comex e OCDE (2026-09-28)
+**Visual (pedido do Elias):** título de seção único em todo o Nexus (TITULO_SECAO em fonteJose.ts, Cinzel do Painel executivo); seção nova "Indicadores do Brasil" nos 12 primeiros cards; Escuro sem letra azul sobre fundo azul (PALETA.dark texto quase branco, selo Fato branco); Claro: confiança do painel, mini-cards do placar, selos do Radar, mini-corrente e bloco "Pergunte ao José"+sugestões em azul-marinho com letra branca (cartões internos brancos), borda de cima dos cards do Radar = linha fina verde-menta escura. Conferido no Chrome.
+**Fontes novas (grátis, sem cadastro, sem SQL):** ANP (resumo semanal nos postos: gasolina, diesel S10, etanol, GLP — planilha da página da ANP, 4 semanas por coleta), Comex Stat/MDIC (exportações e importações mensais, US$ bi), OCDE (indicador antecedente composto: Brasil, China, EUA, G20). Seções "Combustíveis nos postos" e "Comércio exterior e ciclo econômico". Detector: diesel/gasolina ±3% na semana (combustivel_semana) com corrente própria. José vê tudo. Leitores puros em nexusLeitoresFontes.ts + self-check. OCDE às vezes devolve 500 — Accept-Encoding gzip + nova tentativa.
+**Tesouro Nacional: fora** — só existe arquivo completo de 14 MB (sem consulta filtrada gratuita); Selic/inflação já cobrem juros.
+**Falta do Nexus:** coleta mais de 1x por dia (Vercel Hobby = 1 cron/dia).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

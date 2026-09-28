@@ -73,6 +73,26 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
           <CardPreco key={m.codigo} ind={m} rotulo={`${m.emoji} ${m.nome[lang]}`} valor={precoMateria(m, lang)} mensal lang={lang} temaClaro={temaClaro} />
         ))}
       </div>
+
+      <div className="mt-6 mb-3 px-1">
+        <h2 className={TITULO_SECAO} style={{ color: TITULO }}>⛽ {L('Combustíveis nos postos', 'Fuel at the pump', 'Combustibles en las estaciones')}</h2>
+        <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Preço médio pago no Brasil na última semana pesquisada — pesa no frete, nas entregas e no custo de quem tem frota (ANP).', 'Average price paid in Brazil in the latest surveyed week — weighs on freight, deliveries and fleet costs (ANP).', 'Precio medio pagado en Brasil en la última semana relevada — pesa en el flete, las entregas y el costo de quien tiene flota (ANP).')}</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {(dados?.combustiveis ?? []).map((m) => (
+          <CardPreco key={m.codigo} ind={m} rotulo={`${m.emoji} ${m.nome[lang]}`} valor={m.valor == null ? '—' : m.codigo === 'ANP:GLP' ? `R$ ${num(m.valor, lang)}` : `R$ ${num(m.valor, lang)}/l`} mensal={false} lang={lang} temaClaro={temaClaro} />
+        ))}
+      </div>
+
+      <div className="mt-6 mb-3 px-1">
+        <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🚢 {L('Comércio exterior e ciclo econômico', 'Foreign trade and business cycle', 'Comercio exterior y ciclo económico')}</h2>
+        <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Quanto o Brasil vendeu e comprou lá fora no mês (Comex Stat) e o indicador da OCDE que antecipa o ritmo da economia: acima de 100, tende a acelerar nos próximos meses; abaixo, a frear.', 'How much Brazil sold and bought abroad in the month (Comex Stat) and the OECD indicator that anticipates the economy’s pace: above 100, it tends to speed up in the coming months; below, to slow down.', 'Cuánto Brasil vendió y compró afuera en el mes (Comex Stat) y el indicador de la OCDE que anticipa el ritmo de la economía: arriba de 100, tiende a acelerar en los próximos meses; abajo, a frenar.')}</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {(dados?.comercio ?? []).map((m) => (
+          <CardPreco key={m.codigo} ind={m} rotulo={`${m.emoji} ${m.nome[lang]}`} valor={m.valor == null ? '—' : m.codigo.startsWith('COMEX:') ? `US$ ${num(m.valor, lang)} bi` : num(m.valor, lang)} mensal lang={lang} temaClaro={temaClaro} />
+        ))}
+      </div>
     </section>
   )
 }
