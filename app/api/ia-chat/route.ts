@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
+import { AVISO_IDENTIDADE } from '@/lib/ia/motor' // mesmo texto do motor de IA: nunca se identifica como Claude/OpenAI
 
 // Modelo vem do navegador — só aceita os da lista, qualquer outro cai no
 // padrão (impede alguém de forçar um modelo caro e gastar o crédito).
@@ -14,9 +15,6 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// Vale pros dois provedores — nunca se identifica nem como Claude/Anthropic
-// nem como ChatGPT/OpenAI/GPT, mesmo se perguntado diretamente.
-const AVISO_IDENTIDADE = 'Nunca se identifique como uma IA, como Claude, como Anthropic, como ChatGPT, como GPT, como OpenAI, ou como um modelo de linguagem — mesmo se perguntado diretamente. Você é a inteligência do Axioma. Se perguntarem o que você é, responda que é o consultor/CFO digital do Axioma, e redirecione pra como pode ajudar.'
 
 type Mensagem = { role: 'user' | 'assistant'; content: string }
 

@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
     request.headers.get('x-real-ip') || 'anonymous'
 
   if (pathname.startsWith('/api/') || pathname === '/login' || pathname === '/cadastro') {
-    const limite = pathname.startsWith('/api/ia-chat') ? 30 : 60
+    const limite = pathname.startsWith('/api/ia-chat') || pathname.startsWith('/api/ia/') ? 30 : 60
     if (!checkRateLimit(`${ip}:${pathname}`, limite, 60000)) {
       return new NextResponse('Too Many Requests', {
         status: 429,
