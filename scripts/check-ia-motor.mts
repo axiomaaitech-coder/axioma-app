@@ -23,7 +23,20 @@ const base = 'Receita R$ 50.000/mês · custo fixo R$ 12.345/mês'
 assert.deepEqual(conferirNumeros('Sua receita é R$ 50.000 e o fixo R$ 12.345.', base), [])
 assert.deepEqual(conferirNumeros('Seu lucro foi R$ 99.999.', base), ['R$ 99.999'])
 assert.deepEqual(conferirNumeros('Economia estimada de R$ 1.234 por mês.', base), [])
-console.log('OK — conferência de números')
+// Valores vindos das ferramentas de consulta (números puros) passam na conferência
+const { reaisDasConsultas } = await import('../lib/ia/motor')
+const consulta = reaisDasConsultas(['{"itens":[{"saldo":4321.5}]}'])
+assert.deepEqual(conferirNumeros('A maior conta é de R$ 4.321,50.', `${base}\n${consulta}`), [])
+console.log('OK — conferência de números (inclusive vindos das ferramentas)')
+
+// Ferramentas: esquema estrito válido (todo campo obrigatório, nada extra)
+const { FERRAMENTAS } = await import('../lib/ia/ferramentas')
+for (const f of FERRAMENTAS) {
+  assert.equal(f.input_schema.additionalProperties, false, f.name)
+  assert.deepEqual([...f.input_schema.required].sort(), Object.keys(f.input_schema.properties).sort(), f.name)
+}
+assert.equal(new Set(FERRAMENTAS.map((f) => f.name)).size, FERRAMENTAS.length)
+console.log(`OK — ${FERRAMENTAS.length} ferramentas de consulta com esquema estrito`)
 
 // Setores: todas as divisões CNAE de 01 a 99 que existem caem em algum setor
 const DIVISOES = [1,2,3,5,6,7,8,9,...Array.from({length:24},(_,i)=>10+i),35,36,37,38,39,41,42,43,45,46,47,49,50,51,52,53,55,56,58,59,60,61,62,63,64,65,66,68,69,70,71,72,73,74,75,77,78,79,80,81,82,84,85,86,87,88,90,91,92,93,94,95,96,97,99]

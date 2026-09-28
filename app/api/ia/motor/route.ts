@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Auditoria: quem, qual empresa, qual nível/IA e quanto texto saiu — nunca o conteúdo.
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
-      parametros: { tela: tela ?? null, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta },
+      parametros: { tela: tela ?? null, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta },
     }))
     return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou })
   } catch (err) {

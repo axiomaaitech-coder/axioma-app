@@ -21,6 +21,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoEmpresa'
 import { escolherManuais } from './manuais'
 import { montarContextoMundo } from '../nexusBriefing'
+import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 
 export type Nivel = 'rotina' | 'analise' | 'estrategica'
 export type Idioma = 'pt' | 'en' | 'es'
@@ -82,12 +83,13 @@ Regras invioláveis:
 - Leve em conta o SETOR da empresa (manual do setor) e os ALERTAS DA SITUAÇÃO — comece pelo mais urgente.
 - Termine com 1 a 3 ações práticas, com impacto esperado quando der pra estimar.
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável. Não recomende compra/venda de investimento específico.
+- Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
 - Escreva em texto simples (a tela não lê markdown): nada de **, #, tabelas ou crases; listas com "1." ou "-" em linhas separadas; parágrafos curtos.
 - ${AVISO_IDENTIDADE}`
 
-const REGRA_ROTINA = `- Você responde perguntas DIRETAS e rápidas (um número, uma data, uma definição) em até 4 frases. Se a pergunta pedir análise, diagnóstico, comparação, plano ou recomendação que exija raciocínio sobre vários números, responda APENAS ${SINAL_ESCALAR} e nada mais.`
+const REGRA_ROTINA = `- Você responde perguntas DIRETAS e rápidas (um número, uma data, uma definição) em até 4 frases. Se a pergunta pedir análise, diagnóstico, comparação, plano ou recomendação que exija raciocínio sobre vários números — ou uma LISTA/detalhe que não aparece nos dados acima (quais contas, quais clientes, quais produtos) —, responda APENAS ${SINAL_ESCALAR} e nada mais.`
 
 type Contexto = { retrato: Retrato; manuais: string; mundo: string | null }
 function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: string; empresa: string } {
@@ -116,29 +118,61 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
   return null
 }
 
-async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel): Promise<string | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null
+// Claude com as ferramentas de consulta (fase 3): até MAX_CONSULTAS rodadas; na
+// última, tool_choice "none" obriga a responder com o que já tem. O conteúdo de
+// cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
+const MAX_CONSULTAS = 4
+type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
+async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string }): Promise<ConsultaClaude> {
+  const dadosConsultados: string[] = []
+  if (!process.env.ANTHROPIC_API_KEY) return { texto: null, dadosConsultados }
   const cfg = MODELOS[nivel]
+  const client = new Anthropic()
+  const conversa: Anthropic.Beta.BetaMessageParam[] = msgs.map((m) => ({ role: m.role, content: m.content }))
   try {
-    const params = {
-      model: cfg.modelo, max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', // recusa do modelo → a Anthropic reroda em outro modelo
-      output_config: { effort: cfg.esforco ?? 'medium' },
-      system: [
-        { type: 'text', text: sistema.fixo, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: sistema.empresa, cache_control: { type: 'ephemeral' } },
-      ],
-      messages: msgs,
+    for (let rodada = 0; rodada <= MAX_CONSULTAS; rodada++) {
+      const params = {
+        model: cfg.modelo, max_tokens: 16000,
+        betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', // recusa do modelo → a Anthropic reroda em outro modelo
+        output_config: { effort: cfg.esforco ?? 'medium' },
+        tools: FERRAMENTAS,
+        tool_choice: { type: rodada === MAX_CONSULTAS ? 'none' : 'auto' },
+        system: [
+          { type: 'text', text: sistema.fixo, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: sistema.empresa, cache_control: { type: 'ephemeral' } },
+        ],
+        messages: conversa,
+      }
+      // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão do plano do José).
+      const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
+      if (r.stop_reason === 'refusal') return { texto: null, dadosConsultados }
+      const pedidos = r.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use')
+      if (r.stop_reason !== 'tool_use' || !pedidos.length) {
+        const texto = r.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('\n').trim()
+        return { texto: texto || null, dadosConsultados }
+      }
+      conversa.push({ role: 'assistant', content: r.content })
+      // Consultas em paralelo; todos os resultados voltam numa mensagem só.
+      const resultados = await Promise.all(pedidos.map(async (p) => {
+        const saida = await executarFerramenta(consulta.supabase, consulta.empresaId, p.name, (p.input ?? {}) as Record<string, unknown>)
+        dadosConsultados.push(saida)
+        return { type: 'tool_result' as const, tool_use_id: p.id, content: saida, is_error: saida.startsWith('{"erro"') }
+      }))
+      conversa.push({ role: 'user', content: resultados })
     }
-    // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão do plano do José).
-    const r = await new Anthropic().beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
-    if (r.stop_reason === 'refusal') return null
-    const bloco = r.content.find((b) => b.type === 'text')
-    return bloco && bloco.type === 'text' && bloco.text.trim() ? bloco.text.trim() : null
+    return { texto: null, dadosConsultados }
   } catch (err) {
     console.error('[motor-ia] Anthropic', cfg.modelo, err instanceof Error ? err.message : err)
-    return null
+    return { texto: null, dadosConsultados }
   }
+}
+
+// Números puros vindos das ferramentas viram "R$ x" conhecidos na conferência.
+const RE_NUMERO_JSON = /-?\d+(?:\.\d+)?/g
+export function reaisDasConsultas(dados: string[]): string {
+  return dados.flatMap((d) => [...d.matchAll(RE_NUMERO_JSON)].map((m) => Number(m[0])))
+    .filter((v) => Number.isFinite(v) && Math.abs(v) >= 1)
+    .map((v) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`).join(' ')
 }
 
 // Triagem por IA barata quando a regra fica em dúvida. Falha → 'analise' (lado seguro).
@@ -157,6 +191,7 @@ export type RespostaMotor = {
   escalou: boolean
   triagem: 'regra' | 'ia'
   valoresNaoConferidos: number
+  consultas: number // quantas ferramentas de consulta a IA usou
   setor: string | null
   caracteresEnviados: number
 }
@@ -186,12 +221,12 @@ export async function perguntarAoMotor(args: {
   const textoConferencia = [retrato.texto, mundo ?? '', ...msgs.map((m) => m.content)].join('\n')
   let escalou = false
 
-  const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number }> => {
+  const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number; consultas?: string[] }> => {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
-    const texto = await chamarClaude(sistema, msgs, n)
-    if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados }
+    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId })
+    if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
     // Anthropic fora do ar: a OpenAI responde no lugar (sem a regra de escalar), melhor que nada.
     const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_RESERVA, 3000)
     return { texto: reserva, provedor: 'openai', modelo: OPENAI_RESERVA, enviados }
@@ -204,6 +239,7 @@ export async function perguntarAoMotor(args: {
     r = await executar(nivel)
   }
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
-  const naoConferidos = r.texto ? conferirNumeros(r.texto, textoConferencia) : []
-  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, caracteresEnviados: r.enviados }
+  // Valores trazidos pelas ferramentas de consulta também contam como dado real.
+  const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`) : []
+  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados }
 }
