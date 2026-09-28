@@ -23,6 +23,7 @@ import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -304,22 +305,9 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
   async function analisarComIA() {
     setAnalisandoIA(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: lang === 'en' ? 'Analyze my MEI pricing based on the data below.' : lang === 'es' ? 'Analice mi precificación MEI con base en los datos abajo.' : 'Analise minha precificação MEI com base nos dados abaixo.',
-          historico: [],
-          contexto: montarContextoIAPrecificacao(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: lang === 'en' ? 'Analyze my MEI pricing based on the data below.' : lang === 'es' ? 'Analice mi precificación MEI con base en los datos abajo.' : 'Analise minha precificação MEI com base nos dados abaixo.', empresaId: await obterEmpresaAtiva(), tela: 'mei-precificacao', lang, contextoTela: montarContextoIAPrecificacao() })
+    if (ia) resposta = ia.resposta
     if (!resposta) resposta = gerarAnaliseFallback()
     setAnaliseIA(resposta)
     setAnalisandoIA(false)

@@ -18,6 +18,7 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import {
@@ -330,22 +331,9 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
   async function analisarComIA() {
     setAnalisandoIA(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: lang === 'en' ? 'Analyze my MEI revenue this year based on the data below.' : lang === 'es' ? 'Analice mi facturación MEI de este año con base en los datos abajo.' : 'Analise meu faturamento MEI deste ano com base nos dados abaixo.',
-          historico: [],
-          contexto: montarContextoIAFaturamento(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: lang === 'en' ? 'Analyze my MEI revenue this year based on the data below.' : lang === 'es' ? 'Analice mi facturación MEI de este año con base en los datos abajo.' : 'Analise meu faturamento MEI deste ano com base nos dados abaixo.', empresaId: await obterEmpresaAtiva(), tela: 'mei-faturamento', lang, contextoTela: montarContextoIAFaturamento() })
+    if (ia) resposta = ia.resposta
     if (!resposta) resposta = gerarAnaliseFallback()
     setAnaliseIA(resposta)
     setAnalisandoIA(false)

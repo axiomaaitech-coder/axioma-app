@@ -36,6 +36,8 @@ export const MANUAIS_DA_TELA: Record<string, string[]> = {
   'contas-pagar': ['caixa', 'divida'], 'contas-receber': ['cobranca', 'caixa'], 'inadimplencia': ['cobranca'],
   'fornecedores': ['custos'], 'centros-custo': ['custos'], 'tesouraria': ['caixa'], 'estoque': ['estoque'],
   'precificacao': ['precificacao'], 'endividamento': ['divida'], 'mei': ['tributario', 'caixa'],
+  'mei-das': ['tributario'], 'mei-reforma': ['tributario'], 'mei-imposto-renda': ['tributario'], 'mei-faturamento': ['vendas', 'tributario'],
+  'mei-precificacao': ['precificacao'], 'mei-ia-advisor': ['tributario', 'caixa'], 'nexus-simulacoes': ['economia'], 'clientes': ['vendas', 'cobranca'],
 }
 
 // Até 3 manuais: os que a pergunta cita (na ordem do catálogo) + os da tela.

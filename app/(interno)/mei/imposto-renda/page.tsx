@@ -16,6 +16,7 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import {
   listarDocumentosFiscais, uploadDocumentoFiscal, atualizarDocumentoFiscal, excluirDocumentoFiscal, urlDocumentoFiscal,
   TIPOS_DOCUMENTO_FISCAL, TIPOS_ESPERADOS_IRPF, type TipoDocumentoFiscal, type DocumentoFiscal,
@@ -266,22 +267,9 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
   async function analisarComIA() {
     setAnalisandoIA(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: lang === 'en' ? 'Analyze my MEI IRPF situation based on the data below.' : lang === 'es' ? 'Analice mi situación de IRPF MEI con base en los datos abajo.' : 'Analise minha situação de IRPF MEI com base nos dados abaixo.',
-          historico: [],
-          contexto: montarContextoIAIRPF(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: lang === 'en' ? 'Analyze my MEI IRPF situation based on the data below.' : lang === 'es' ? 'Analice mi situación de IRPF MEI con base en los datos abajo.' : 'Analise minha situação de IRPF MEI com base nos dados abaixo.', empresaId: await obterEmpresaAtiva(), tela: 'mei-imposto-renda', lang, contextoTela: montarContextoIAIRPF() })
+    if (ia) resposta = ia.resposta
     if (!resposta) resposta = gerarAnaliseFallbackIRPF()
     setAnaliseIA(resposta)
     setAnalisandoIA(false)

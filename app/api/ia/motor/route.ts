@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { perguntarAoMotor, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
 
-// POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang? }
+// POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang?, contexto_tela? }
 // Porta única do motor de IA (docs/MOTOR-IA.md). A tela manda só a pergunta:
 // provedor, modelo e nível são decididos pelo motor (trava — ninguém força
 // modelo caro pelo navegador). Empresa: a RLS decide — pedir retrato de
@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
   const lang: Idioma = corpo?.lang === 'en' || corpo?.lang === 'es' ? corpo.lang : 'pt'
   const tela = typeof corpo?.tela === 'string' ? corpo.tela.slice(0, 40) : undefined
   const historico: MensagemHistorico[] = Array.isArray(corpo?.historico) ? corpo.historico : []
+  const contextoTela = typeof corpo?.contexto_tela === 'string' ? corpo.contexto_tela : undefined
   if (!pergunta || !UUID.test(empresaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
   try {
-    const r = await perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang })
+    const r = await perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela })
     // Auditoria: quem, qual empresa, qual nível/IA e quanto texto saiu — nunca o conteúdo.
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',

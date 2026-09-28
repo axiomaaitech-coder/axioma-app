@@ -21,6 +21,7 @@ import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -234,22 +235,9 @@ DADOS REAIS DESTE MEI:
     setChatLoading(true)
 
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: msg,
-          historico: historicoAntes.slice(-10).map(m => ({ role: m.role, content: m.content })),
-          contexto: montarContextoIA(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: msg, empresaId: await obterEmpresaAtiva(), tela: 'mei-ia-advisor', lang, historico: historicoAntes.slice(-10).map(m => ({ role: m.role, content: m.content })), contextoTela: montarContextoIA() })
+    if (ia) resposta = ia.resposta
 
     if (!resposta) {
       setToast(mx.iaRespondendoPorRegra)

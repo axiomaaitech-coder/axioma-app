@@ -91,11 +91,14 @@ Regras invioláveis:
 
 const REGRA_ROTINA = `- Você responde perguntas DIRETAS e rápidas (um número, uma data, uma definição) em até 4 frases. Se a pergunta pedir análise, diagnóstico, comparação, plano ou recomendação que exija raciocínio sobre vários números — ou uma LISTA/detalhe que não aparece nos dados acima (quais contas, quais clientes, quais produtos) —, responda APENAS ${SINAL_ESCALAR} e nada mais.`
 
-type Contexto = { retrato: Retrato; manuais: string; mundo: string | null }
+type Contexto = { retrato: Retrato; manuais: string; mundo: string | null; tela: string | null }
 function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: string; empresa: string } {
+  // Dados/instruções da tela vêm DEPOIS de tudo que é estável (não quebram o cache
+  // da parte da empresa) e nunca derrubam as regras invioláveis.
+  const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
   return {
     fixo: `${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
-    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}\n\nHoje: ${new Date().toISOString().slice(0, 10)}. Responda em ${NOME_IDIOMA[lang]}.`,
+    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${new Date().toISOString().slice(0, 10)}. Responda em ${NOME_IDIOMA[lang]}.`,
   }
 }
 
@@ -198,6 +201,7 @@ export type RespostaMotor = {
 
 export async function perguntarAoMotor(args: {
   supabase: SupabaseClient; empresaId: string; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
+  contextoTela?: string // números e formato pedidos pela tela de origem (ex.: dados do DAS no MEI)
 }): Promise<RespostaMotor> {
   const lang = args.lang ?? 'pt'
   const pergunta = args.pergunta.trim().slice(0, 4000)
@@ -213,12 +217,13 @@ export async function perguntarAoMotor(args: {
   ])
   // Pergunta tributária leva a comparação de regimes (mesma simulação da tela IA Tributária).
   const fiscal = manuais.some((m) => m.id === 'tributario') ? `\n${textoFiscal(retrato)}` : ''
-  const ctx: Contexto = { retrato, manuais: (manuais.map((m) => m.texto).join('\n') || 'nenhum específico — responda como CFO generalista') + fiscal, mundo }
+  const contextoTela = args.contextoTela?.trim().slice(0, 12000) || null
+  const ctx: Contexto = { retrato, manuais: (manuais.map((m) => m.texto).join('\n') || 'nenhum específico — responda como CFO generalista') + fiscal, mundo, tela: contextoTela }
   // Histórico: só texto, últimas 8 falas, sem a pergunta atual (vai no fim, uma vez só).
   const msgs: MensagemHistorico[] = [...(args.historico ?? []).filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()).slice(-8), { role: 'user', content: pergunta }]
   const base = { triagem, setor: retrato.setor?.nome.pt ?? null } as const
   // Base da conferência: retrato + economia + o que o próprio usuário citou.
-  const textoConferencia = [retrato.texto, mundo ?? '', ...msgs.map((m) => m.content)].join('\n')
+  const textoConferencia = [retrato.texto, mundo ?? '', contextoTela ?? '', ...msgs.map((m) => m.content)].join('\n')
   let escalou = false
 
   const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number; consultas?: string[] }> => {

@@ -18,6 +18,7 @@ import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import { buscarIndicadoresMacro, type IndicadoresMacro } from '../../../../lib/bcbApi'
@@ -319,22 +320,9 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
   async function analisarComIA() {
     setAnalisandoIA(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: lang === 'en' ? 'Analyze my MEI DAS and obligations situation based on the data below.' : lang === 'es' ? 'Analice mi situación de DAS y obligaciones MEI con base en los datos abajo.' : 'Analise minha situação de DAS e obrigações MEI com base nos dados abaixo.',
-          historico: [],
-          contexto: montarContextoIADas(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: lang === 'en' ? 'Analyze my MEI DAS and obligations situation based on the data below.' : lang === 'es' ? 'Analice mi situación de DAS y obligaciones MEI con base en los datos abajo.' : 'Analise minha situação de DAS e obrigações MEI com base nos dados abaixo.', empresaId: await obterEmpresaAtiva(), tela: 'mei-das', lang, contextoTela: montarContextoIADas() })
+    if (ia) resposta = ia.resposta
     if (!resposta) resposta = gerarAnaliseFallbackDas()
     setAnaliseIA(resposta)
     setAnalisandoIA(false)

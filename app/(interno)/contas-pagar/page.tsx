@@ -12,6 +12,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
@@ -828,17 +829,9 @@ export default function ContasPagarPage() {
 
     setCarregandoRespostaCfo(true);
     let resposta = "";
-    try {
-      const res = await fetch("/api/ia-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagem: pergunta, historico: [], contexto: montarContextoCfoIa(), provedor: "openai" }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.resposta) resposta = data.resposta;
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados de contas a pagar desta tela.
+    const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "contas-pagar", lang: idioma as "pt" | "en" | "es", contextoTela: montarContextoCfoIa() });
+    if (ia) resposta = ia.resposta;
 
     if (!resposta) {
       showToast(L("Respondendo com base em regras — a inteligência do Axioma está indisponível no momento.", "Answering based on rules — Axioma's intelligence is unavailable right now.", "Respondiendo con base en reglas — la inteligencia de Axioma está indisponible en este momento."), "erro");

@@ -22,6 +22,7 @@ import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -266,22 +267,9 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
   async function analisarComIA() {
     setAnalisandoIA(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: lang === 'en' ? 'Explain how the Tax Reform specifically affects my MEI based on the data below.' : lang === 'es' ? 'Explique cómo la Reforma Tributaria afecta específicamente a mi MEI con base en los datos abajo.' : 'Explique como a Reforma Tributária afeta especificamente o meu MEI com base nos dados abaixo.',
-          historico: [],
-          contexto: montarContextoIAReforma(),
-          modelo: 'claude-sonnet-5',
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
+    const ia = await perguntarAoAxioma({ pergunta: lang === 'en' ? 'Explain how the Tax Reform specifically affects my MEI based on the data below.' : lang === 'es' ? 'Explique cómo la Reforma Tributaria afecta específicamente a mi MEI con base en los datos abajo.' : 'Explique como a Reforma Tributária afeta especificamente o meu MEI com base nos dados abaixo.', empresaId: await obterEmpresaAtiva(), tela: 'mei-reforma', lang, contextoTela: montarContextoIAReforma() })
+    if (ia) resposta = ia.resposta
     if (!resposta) resposta = gerarAnaliseFallbackReforma()
     setAnaliseIA(resposta)
     setAnalisandoIA(false)

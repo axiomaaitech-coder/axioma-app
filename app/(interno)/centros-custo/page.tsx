@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -632,16 +633,13 @@ export default function CentrosCustoPage() {
       oportunidades, score: scoreModulo, periodo, lang: langF2,
     };
     let resposta = "";
-    try {
-      const res = await fetch("/api/ia-chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mensagem: `Você é o copiloto do módulo Centro de Custos da Axioma AI.Tech. Responda só com base nestes dados reais: ${JSON.stringify(ctx)}. Pergunta: ${texto}`,
-          historico: novas.slice(-8).map(m => ({ role: m.role, content: m.texto })),
-        }),
-      });
-      if (res.ok) { const data = await res.json(); resposta = data.resposta || ""; }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados dos centros de custo desta tela.
+    const ia = await perguntarAoAxioma({
+      pergunta: texto, empresaId, tela: "centros-custo", lang: langF2,
+      historico: chatMensagens.slice(-8).map(m => ({ role: m.role as "user" | "assistant", content: m.texto })),
+      contextoTela: `Copiloto do módulo Centro de Custos. Dados reais dos centros (JSON): ${JSON.stringify(ctx)}`,
+    });
+    if (ia) resposta = ia.resposta;
     if (!resposta) resposta = respostaPorRegrasCentro(texto, ctx);
     setChatMensagens([...novas, { role: "assistant", texto: resposta }]);
     setChatCarregando(false);

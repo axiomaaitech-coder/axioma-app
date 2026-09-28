@@ -19,6 +19,7 @@ import {
 } from '../../../lib/tesourariaHelpers'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -162,17 +163,9 @@ export default function TesourariaPage() {
 
     setCarregandoRespostaZia(true)
     let resposta = ''
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: pergunta, historico: [], contexto: montarContextoZiaIa(), provedor: 'openai' }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.resposta) resposta = data.resposta
-      }
-    } catch {}
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados da tesouraria desta tela.
+    const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: 'tesouraria', lang, contextoTela: montarContextoZiaIa() })
+    if (ia) resposta = ia.resposta
 
     if (!resposta) {
       resposta = responderZiaTesourariaPorRegra(pergunta, { lang, posicao, fluxo, score, idle, alertas, reservaMinima })
