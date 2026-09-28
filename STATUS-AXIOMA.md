@@ -1354,6 +1354,16 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 ## 3-BW. Nexus — coleta pela visita (2026-09-28)
 Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não dá pra ver; trocar exigiria redeploy) — agendamento do GitHub criado e removido. Solução: **coleta pela visita** — POST /api/nexus/atualizar (só logado): se o último sucesso do BCB tem mais de 3h, roda a mesma coleta do cron **sem IA** (sem análises/painel) e a tela recarrega os números em silêncio. Lógica da coleta movida pra lib/nexusColeta.ts (executarColeta({ comIA })); a rota do cron ficou só com a checagem do CRON_SECRET. Limite: sem visita, sem coleta extra (o cron das 6h continua).
 
+## 4-ROTEIRO. ROTEIRO FINAL ATÉ TERMINAR O AXIOMA (definido pelo Elias em 2026-09-28)
+Ordem de execução (decisão técnica minha, explicada ao Elias):
+**A. Fechar Nexus/José** — (1) setor da empresa no cruzamento (peso por ramo no evento, chat e plano); (2) "Exportar PDF" do Nexus com todas as seções (hoje só os 12 indicadores); (3) conferir coleta pela visita, GDELT estável, 1ª conferência do placar em 28/10.
+**B. IA de verdade nos módulos (CFO real)** — auditar IA Financeira e IA Tributária (hoje usam IA real ou regra?), ligar IA real (roteamento: OpenAI frequente, Anthropic complexo) e cruzar os dados do cliente entre módulos (DRE, caixa, contas a pagar/receber, estoque, fiscal, Nexus) onde fizer sentido, módulo a módulo, sem inventar número.
+**C. Padronizar o tema Escuro em todo o Axioma** — mesmo padrão aplicado no Nexus (sem azul sobre azul, títulos e selos consistentes); confirmar paleta com o Elias antes.
+**D. Manual de usabilidade** — todos os módulos: o que faz, como funciona, passo a passo, bem detalhado, pt/en/es. Depois do C, pra não fotografar tela que ainda vai mudar.
+**E. Políticas** — política de uso do software, política de privacidade (LGPD: dados enviados a Anthropic/OpenAI, Pluggy, Stripe, Supabase; retenção 90/180/365 dias), termos de uso. Depois do B, pra descrever os fluxos de dados finais.
+**F. Virada pra produção** — Stripe em modo real, Pluggy em modo produção (precisa SUPABASE_SERVICE_ROLE_KEY no webhook e aprovação da Pluggy), Supabase Pro, trava do Nexus por plano pago, planos/preços e landing page. Por último, pra não haver cobrança real enquanto o sistema ainda muda.
+Obs.: agendamento no GitHub não é mais necessário (coleta pela visita resolve); se o Elias ainda quiser, recriar .github/workflows/nexus-coleta.yml e trocar o CRON_SECRET na Vercel.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
