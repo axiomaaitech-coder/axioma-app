@@ -34,7 +34,7 @@ const DIRECAO: Record<string, { simbolo: string; escuro: string; claro: string }
 // nunca "pesquisando em outros países": o José não consulta fonte
 // estrangeira, ele interpreta o impacto global a partir dos dados oficiais.
 const ETAPAS: { texto: Nome3; ms: number; paises?: boolean }[] = [
-  { texto: ['José lendo o evento oficial do Banco Central', 'José reading the official Central Bank event', 'José leyendo el evento oficial del Banco Central'], ms: 3000 },
+  { texto: ['José lendo o evento oficial', 'José reading the official event', 'José leyendo el evento oficial'], ms: 3000 },
   { texto: ['José cruzando dados com os indicadores do Brasil', 'José cross-checking with Brazil\u2019s indicators', 'José cruzando datos con los indicadores de Brasil'], ms: 3500 },
   { texto: ['José reunindo informações', 'José gathering information', 'José reuniendo información'], ms: 3000 },
   { texto: ['José analisando reflexos em', 'José analyzing ripple effects in', 'José analizando reflejos en'], ms: 7200, paises: true },

@@ -1327,6 +1327,10 @@ Painel diário (PT) recebe "SEU PLACAR ATÉ AQUI" por série × prazo e regra de
 Conferido no Chrome logado: SQL da Etapa 9 rodado (placar com 12 previsões aguardando, 1ª conferência 28/10/26); chat responde "dá pra confiar?" com o placar real (honesto: nada conferido ainda). GDELT ainda não aparece em Saúde das fontes porque o cron de hoje (06:33) rodou antes do deploy — roda sozinho no próximo cron. **Corrigido:** Saúde das fontes mostrava InfoMoney/Agência Senado como "sem nenhuma coleta" mesmo com o feed respondendo (só marcava sucesso de quem entrava no corte do canal) — agora marca ao ler o feed.
 **Falta do José:** confirmar GDELT após o próximo cron; esperar o placar (28/10); trava por plano pago (fica pro final).
 
+## 3-BS. Nexus — corrente de causa e efeito (2026-09-27)
+Modal de cada evento ganhou "Como isso chega até a sua empresa" (app/(interno)/nexus/CorrenteImpacto.tsx): corrente por regra, sem IA — ex.: Petróleo ▼ → Combustível ▼ → Frete ▼ → Custo ▼ → Margem ▲ (só a margem tem cor bom/ruim). Cobre câmbio, petróleo, Selic, IPCA/deflação, desemprego e atividade, com nota do caso que inverte (exportador, repasse com atraso, reajuste de preço). 3 idiomas. Conferido no Chrome (Escuro). **Corrigido:** eventos do petróleo diziam "série oficial do Banco Central" no modal e no pedido ao José — agora IPEA/EIA.
+**Falta do Nexus (plano original):** IBGE (cadastrado, nunca coletou), yuan, soja/café/minério; Tesouro/Comex/ANP/FMI/OCDE (só se grátis e sem cadastro); tentativa automática + fonte reserva + confirmação cruzada; nota de confiança da fonte automática; cota por fonte; coleta mais frequente que 1x/dia; setor da empresa no cruzamento.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

@@ -743,7 +743,9 @@ export default function NexusPage() {
                     {trava.texto}
                   </p>
                   {ev.confidence != null && (
-                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`}</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && (ev.payload?.serie.startsWith('IPEA:')
+                      ? ` — ${L('série oficial do IPEA (dado da EIA), uma fonte.', 'official IPEA series (EIA data), single source.', 'serie oficial del IPEA (dato de la EIA), una fuente.')}`
+                      : ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`)}</p>
                   )}
                   {ev.publicadoEm && (
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>
