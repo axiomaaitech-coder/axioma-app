@@ -14,7 +14,7 @@ import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
-import { CorrenteImpacto } from './CorrenteImpacto'
+import { CorrenteImpacto, CorrenteMini } from './CorrenteImpacto'
 import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
@@ -463,6 +463,7 @@ export default function NexusPage() {
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
                       </div>
                       <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{texto.titulo}</h4>
+                      {ev.payload && <CorrenteMini payload={ev.payload} lang={lang} temaClaro={temaClaro} />}
                       <div className="flex items-center justify-between gap-2 mt-auto pt-2">
                         <span className="flex items-center gap-1 text-[10px] font-semibold min-w-0" style={{ color: corTrava(trava.nivel).texto }}>
                           {trava.nivel === 'oficial' ? <ShieldCheck size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}

@@ -73,10 +73,34 @@ const CORRENTES: Record<RegraEvento, { elos: Elo[]; nota?: Nome3 }> = {
   },
 }
 
+// Direção de cada elo = direção do evento × sinais acumulados.
+function elosDoEvento(payload: PayloadEvento) {
+  const corrente = CORRENTES[payload.regra]
+  if (!corrente) return null
+  let dir = payload.direcao === 'alta' ? 1 : -1
+  return { ...corrente, elos: corrente.elos.map((e) => ({ ...e, sobe: (dir *= e.sinal) > 0 })) }
+}
+
+// Versão de bolso pro card do Radar: só os ícones + a seta da margem.
+export function CorrenteMini({ payload, lang, temaClaro }: { payload: PayloadEvento; lang: Lang; temaClaro: boolean }) {
+  const c = elosDoEvento(payload)
+  if (!c) return null
+  const L = (n: Nome3) => (lang === 'en' ? n[1] : lang === 'es' ? n[2] : n[0])
+  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  const margem = c.elos[c.elos.length - 1]
+  const cor = margem.sobe ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#dc3545' : '#f87171')
+  return (
+    <p className="text-[11px] mt-2 leading-snug" style={{ color: SEC }} title={c.elos.map((e) => L(e.nome)).join(' → ')}>
+      <span aria-hidden>{c.elos.slice(0, -1).map((e) => e.icone).join(' → ')} → </span>
+      <span className="font-bold" style={{ color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
+    </p>
+  )
+}
+
 export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
   payload: PayloadEvento; lang: Lang; temaClaro: boolean; fundo: string; borda: string
 }) {
-  const corrente = CORRENTES[payload.regra]
+  const corrente = elosDoEvento(payload)
   if (!corrente) return null
   const L = (n: Nome3) => (lang === 'en' ? n[1] : lang === 'es' ? n[2] : n[0])
   const TIT = temaClaro ? '#101b3d' : '#e2ecf7'
@@ -84,9 +108,7 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
   const SOBE = temaClaro ? '#16a97d' : '#34d399'
   const CAI = temaClaro ? '#dc3545' : '#f87171'
 
-  // Direção de cada elo = direção do evento × sinais acumulados.
-  let dir = payload.direcao === 'alta' ? 1 : -1
-  const elos = corrente.elos.map((e) => ({ ...e, sobe: (dir *= e.sinal) > 0 }))
+  const elos = corrente.elos
 
   return (
     <div className="mt-3 rounded-xl p-3" style={{ background: fundo, border: `1px solid ${borda}` }}>

@@ -75,7 +75,7 @@ export function FuncoesNexus({ lang, temaClaro, eventoRecente, onAbrirEvento }: 
           {BARRA}
           <TopoCard cores={cores} icone={<Brain size={16} style={{ color: ACENTO }} aria-hidden />} titulo={L('José lê cada evento', 'José reads every event', 'José lee cada evento')} />
           <TextoCard cores={cores} rotuloComo={rotuloComo}
-            oque={L('Explica o que mudou, o impacto no Brasil e na sua empresa, os cenários com probabilidade e o que fazer — e mostra por que pensa assim.', 'Explains what changed, the impact on Brazil and on your company, scenarios with probabilities and what to do — and why.', 'Explica qué cambió, el impacto en Brasil y en su empresa, escenarios con probabilidad y qué hacer — y por qué.')}
+            oque={L('Mostra o caminho até a sua margem (ex.: petróleo → combustível → frete → custo → margem), explica o que mudou, o impacto no Brasil e na sua empresa, os cenários com probabilidade e o que fazer — e mostra por que pensa assim.', 'Shows the path to your margin (e.g. oil → fuel → freight → cost → margin), explains what changed, the impact on Brazil and on your company, scenarios with probabilities and what to do — and why.', 'Muestra el camino hasta su margen (ej.: petróleo → combustible → flete → costo → margen), explica qué cambió, el impacto en Brasil y en su empresa, escenarios con probabilidad y qué hacer — y por qué.')}
             como={L('clique em qualquer card do Radar Global acima.', 'click any Global Radar card above.', 'haga clic en cualquier tarjeta del Radar Global arriba.')}
           />
           <button onClick={() => eventoRecente && onAbrirEvento(eventoRecente)} disabled={!eventoRecente} className={classeBotao + ' disabled:opacity-50'} style={botao}>
