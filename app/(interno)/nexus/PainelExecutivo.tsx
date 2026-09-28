@@ -83,7 +83,8 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
   const dataFmt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
   const chipConfianca = (c: number): CSSProperties => {
     const cor = c >= 60 ? (temaClaro ? '#16a97d' : '#34d399') : c >= 40 ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#374151' : '#8aa4c2')
-    return temaClaro ? { background: cor, color: '#fff', border: `1px solid ${cor}` } : { color: cor, border: `1px solid ${cor}80` }
+    // Claro: sempre azul-marinho com letra branca (padrão pedido pelo Elias); Escuro mantém a cor por faixa.
+    return temaClaro ? { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' } : { color: cor, border: `1px solid ${cor}80` }
   }
 
   return (

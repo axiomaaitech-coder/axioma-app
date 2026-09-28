@@ -115,7 +115,7 @@ export function CorrenteMini({ payload, lang, temaClaro }: { payload: PayloadEve
   return (
     <p className="text-[11px] mt-2 leading-snug" style={{ color: SEC }} title={c.elos.map((e) => L(e.nome)).join(' → ')}>
       <span aria-hidden>{c.elos.slice(0, -1).map((e) => e.icone).join(' → ')} → </span>
-      <span className="font-bold" style={temaClaro ? { background: cor, color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
+      <span className="font-bold" style={temaClaro ? { background: '#101b3d', color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
     </p>
   )
 }

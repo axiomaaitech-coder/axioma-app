@@ -66,11 +66,11 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
           { rotulo: L('Aguardando prazo', 'Awaiting deadline', 'Esperando plazo'), valor: placar ? String(placar.abertas) : '—', sub: proxima ? L(`próxima em ${data(proxima)}`, `next on ${data(proxima)}`, `próxima el ${data(proxima)}`) : '' },
           { rotulo: L('Erros', 'Wrong', 'Errores'), valor: placar ? String(placar.erros) : '—', sub: L('mostrados sem esconder', 'shown, never hidden', 'mostrados sin ocultar') },
         ].map((c) => (
-          <div key={c.rotulo} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+          <div key={c.rotulo} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={temaClaro ? { background: '#101b3d', border: '1px solid #101b3d' } : { background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                 <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
-            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{c.rotulo}</p>
-            <p className="text-xl font-black leading-tight" style={{ color: TITULO }}>{c.valor}</p>
-            <p className="text-[10px]" style={{ color: CINZA }}>{c.sub}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: temaClaro ? '#ffffff' : CINZA }}>{c.rotulo}</p>
+            <p className="text-xl font-black leading-tight" style={{ color: temaClaro ? '#ffffff' : TITULO }}>{c.valor}</p>
+            <p className="text-[10px]" style={{ color: temaClaro ? '#dbe4f0' : CINZA }}>{c.sub}</p>
           </div>
         ))}
       </div>

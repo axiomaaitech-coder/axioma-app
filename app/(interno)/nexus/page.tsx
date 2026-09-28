@@ -153,9 +153,9 @@ function impactoEvento(severity: number | null): EstiloSelo {
 function estiloSelo(s: EstiloSelo, temaClaro: boolean, alpha = '1f'): CSSProperties {
   // Escuro: azul sobre fundo azul não lê — Fato leva letra branca (pedido do Elias).
   if (!temaClaro) return { background: `${s.cor}${s.escuroTexto ? '40' : alpha}`, color: s.escuroTexto ?? s.cor }
-  return s.claroFundo === 'transparent'
-    ? { background: 'transparent', color: s.claroTexto, border: `1px solid ${s.claroTexto}` }
-    : { background: s.claroFundo, color: s.claroTexto }
+  // Claro: todo selo (natureza e impacto) em azul-marinho com letra branca — padrão
+  // do "Decisão oficial", sem marrom/âmbar sobre o bege (pedido do Elias, 2026-09-28).
+  return { background: '#101b3d', color: '#ffffff' }
 }
 
 // Selo de atualidade do indicador: no Claro, preenchido com par de tema-tokens.
@@ -462,7 +462,7 @@ export default function NexusPage() {
                       key={ev.id}
                       onClick={() => setEventoAberto(ev)}
                       className={`${CARD_NEXUS} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2${hoverCard}`}
-                      style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
+                      style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30`, borderTop: temaClaro ? '2px solid #16a97d' : `3px solid ${nat.cor}` }}
                     >
                       {BARRA_EFEITO}
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -731,7 +731,7 @@ export default function NexusPage() {
                 initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
                 transition={{ duration: 0.22 }}
                 className="w-full max-w-2xl rounded-2xl p-5 h-[85vh] overflow-y-auto"
-                style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
+                style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: temaClaro ? '2px solid #16a97d' : `3px solid ${nat.cor}` }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">

@@ -154,7 +154,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
 
   const bolhaUser: CSSProperties = temaClaro ? { background: '#101b3d', color: '#ffffff' } : { background: `${CIANO}22`, color: '#e2ecf7', border: `1px solid ${CIANO}40` }
   const bolhaJoseph: CSSProperties = temaClaro ? { background: 'rgba(255,255,255,0.7)', color: '#101b3d', border: '1px solid rgba(16,27,61,0.12)' } : { background: NESTED_BG, color: TEXTO, border: '1px solid rgba(255,255,255,0.08)' }
-  const chip: CSSProperties = temaClaro ? { background: 'rgba(16,27,61,0.06)', color: '#101b3d', border: '1px solid rgba(16,27,61,0.14)' } : { background: 'rgba(255,255,255,0.05)', color: TEXTO, border: '1px solid rgba(255,255,255,0.1)' }
+  const chip: CSSProperties = temaClaro ? { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' } : { background: 'rgba(255,255,255,0.05)', color: TEXTO, border: '1px solid rgba(255,255,255,0.1)' }
   const qtdLeituras = leituras.filter((l) => l.leitura).length
 
   return (

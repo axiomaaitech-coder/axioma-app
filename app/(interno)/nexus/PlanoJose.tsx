@@ -145,28 +145,33 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
     </div>
   )
 
+  // Bloco "Pergunte ao José" no Claro: azul-marinho com letra branca (pedido do Elias, 2026-09-28).
+  const CX_TIT = temaClaro ? '#ffffff' : TITULO
+  const CX_TXT = temaClaro ? '#e6edf5' : TEXTO
+  const CX_CIN = temaClaro ? '#cfd9e5' : CINZA
+
   return (
-    <div className="mt-3 rounded-xl p-3" style={{ background: temaClaro ? 'rgba(46,204,155,0.10)' : 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
-      <p className="text-sm font-bold mb-0.5" style={{ color: TITULO }}>🔮 {L('Pergunte ao José: como sua empresa pode estar em…', 'Ask José: where could your company be in…', 'Pregunte a José: ¿cómo puede estar su empresa en…')}</p>
-      <p className="text-[11px] mb-2.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>
+    <div className="mt-3 rounded-xl p-3" style={temaClaro ? { background: '#101b3d', border: '1px solid #101b3d' } : { background: 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
+      <p className="text-sm font-bold mb-0.5" style={{ color: CX_TIT }}>🔮 {L('Pergunte ao José: como sua empresa pode estar em…', 'Ask José: where could your company be in…', 'Pregunte a José: ¿cómo puede estar su empresa en…')}</p>
+      <p className="text-[11px] mb-2.5" style={{ color: CX_TXT, opacity: temaClaro ? 1 : 0.85 }}>
         {L('Ele lê o seu caixa e os seus custos, cruza com a economia do Brasil e do mundo e monta um plano para sobreviver, economizar e crescer.', 'He reads your cash and costs, cross-checks with the Brazilian and world economy and builds a plan to survive, save and grow.', 'Lee su caja y sus costos, cruza con la economía de Brasil y del mundo y arma un plan para sobrevivir, ahorrar y crecer.')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {HORIZONTES.map((h) => (
           <button key={h.id} onClick={() => pedir(h.id)} disabled={!empresaId}
             className="relative overflow-hidden rounded-xl p-3 text-left axi-card-premium3d disabled:opacity-50"
-            style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.14)' } : { background: 'rgba(10,22,40,0.9)', border: `1px solid ${CIANO}30` }}>
+            style={temaClaro ? { background: '#122b54', border: '1px solid rgba(255,255,255,0.18)' } : { background: 'rgba(10,22,40,0.9)', border: `1px solid ${CIANO}30` }}>
             <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
             <p className="text-lg leading-none mb-1">{h.emoji}</p>
-            <p className="text-sm font-black" style={{ color: TITULO }}>{L3(h.titulo)}</p>
-            <p className="text-[11px]" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L3(h.sub)}</p>
+            <p className="text-sm font-black" style={{ color: CX_TIT }}>{L3(h.titulo)}</p>
+            <p className="text-[11px]" style={{ color: CX_TXT, opacity: temaClaro ? 1 : 0.85 }}>{L3(h.sub)}</p>
           </button>
         ))}
       </div>
       {vencendo.length > 0 && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(251,191,36,0.10)', border: `1px solid ${temaClaro ? '#b45309' : '#fbbf24'}` }} role="alert">
-          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#b45309' : '#fbbf24' }} aria-hidden />
-          <p className="text-xs font-semibold" style={{ color: TITULO }}>
+        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(251,191,36,0.10)', border: `1px solid ${temaClaro ? '#f5a623' : '#fbbf24'}` }} role="alert">
+          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#f5a623' : '#fbbf24' }} aria-hidden />
+          <p className="text-xs font-semibold" style={{ color: CX_TIT }}>
             {L(`${vencendo.length} plano(s) serão apagados em até ${DIAS_AVISO_ANTES} dias. Salve em PDF para guardar — o Axioma mantém os planos por ${DIAS_GUARDA_PLANO} dias.`, `${vencendo.length} plan(s) will be deleted within ${DIAS_AVISO_ANTES} days. Save as PDF to keep them — Axioma keeps plans for ${DIAS_GUARDA_PLANO} days.`, `${vencendo.length} plan(es) se borrarán en hasta ${DIAS_AVISO_ANTES} días. Guárdelos en PDF — Axioma mantiene los planes por ${DIAS_GUARDA_PLANO} días.`)}
           </p>
         </div>
@@ -174,9 +179,9 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
 
       {salvos.length > 0 && (
         <div className="mt-3">
-          <p className="flex items-center gap-1.5 text-xs font-bold mb-1.5" style={{ color: TITULO }}>
+          <p className="flex items-center gap-1.5 text-xs font-bold mb-1.5" style={{ color: CX_TIT }}>
             <FolderOpen size={13} aria-hidden />{L('Meus planos salvos', 'My saved plans', 'Mis planes guardados')}
-            <span className="font-normal" style={{ color: CINZA }}>— {L(`guardados por ${DIAS_GUARDA_PLANO} dias`, `kept for ${DIAS_GUARDA_PLANO} days`, `guardados por ${DIAS_GUARDA_PLANO} días`)}</span>
+            <span className="font-normal" style={{ color: CX_CIN }}>— {L(`guardados por ${DIAS_GUARDA_PLANO} dias`, `kept for ${DIAS_GUARDA_PLANO} days`, `guardados por ${DIAS_GUARDA_PLANO} días`)}</span>
           </p>
           <ul className="space-y-1.5">
             {salvos.map((p) => {
@@ -184,14 +189,14 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
               const urgente = dias <= DIAS_AVISO_ANTES
               const r = { data: p.data, ...(p.conteudo as { plano: TipoPlano; numeros: NumerosEmpresa }) }
               return (
-                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-1.5" style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.12)' } : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <span className="text-xs font-bold" style={{ color: TITULO }}>{nomeHorizonte(p.horizonte)}</span>
-                  <span className="text-[11px]" style={{ color: CINZA }}>{new Date(p.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}</span>
-                  <span className="text-[11px] font-semibold" style={{ color: urgente ? (temaClaro ? '#dc3545' : '#f87171') : CINZA }}>
+                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-1.5" style={temaClaro ? { background: '#122b54', border: '1px solid rgba(255,255,255,0.18)' } : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span className="text-xs font-bold" style={{ color: CX_TIT }}>{nomeHorizonte(p.horizonte)}</span>
+                  <span className="text-[11px]" style={{ color: CX_CIN }}>{new Date(p.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}</span>
+                  <span className="text-[11px] font-semibold" style={{ color: urgente ? (temaClaro ? '#ffb3bb' : '#f87171') : CX_CIN }}>
                     {L(`apaga em ${dias} dia(s)`, `deleted in ${dias} day(s)`, `se borra en ${dias} día(s)`)}
                   </span>
                   <span className="ml-auto flex gap-1.5">
-                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={{ color: temaClaro ? '#122b54' : ACENTO, border: `1px solid ${ACENTO}` }}>{L('Abrir', 'Open', 'Abrir')}</button>
+                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={{ color: temaClaro ? '#ffffff' : ACENTO, border: `1px solid ${temaClaro ? 'rgba(255,255,255,0.6)' : ACENTO}` }}>{L('Abrir', 'Open', 'Abrir')}</button>
                     <button onClick={() => baixarPdfPlano(r, nomeHorizonte(p.horizonte), lang)} className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md" style={VERDE_SOLIDO}>
                       <FileDown size={11} aria-hidden />PDF
                     </button>
@@ -202,7 +207,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
           </ul>
         </div>
       )}
-      {!empresaId && <p className="text-[11px] mt-2" style={{ color: CINZA }}>{L('Cadastre sua empresa para receber o plano.', 'Register your company to get the plan.', 'Registre su empresa para recibir el plan.')}</p>}
+      {!empresaId && <p className="text-[11px] mt-2" style={{ color: CX_CIN }}>{L('Cadastre sua empresa para receber o plano.', 'Register your company to get the plan.', 'Registre su empresa para recibir el plan.')}</p>}
 
       {montado && createPortal(
         <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
