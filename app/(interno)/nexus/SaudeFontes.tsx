@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
+import { TITULO_SECAO } from './fonteJose'
 import { obterSaudeFontes, type FonteSaude } from '../../../lib/nexusHelpers'
 import type { SaudeFonte } from '../../../lib/nexusFreshness'
 
@@ -62,7 +63,7 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
       <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
-          <h2 className="text-base font-bold" style={{ color: TITULO }}>🩺 {L('Saúde das fontes', 'Source health', 'Salud de las fuentes')}</h2>
+          <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🩺 {L('Saúde das fontes', 'Source health', 'Salud de las fuentes')}</h2>
           <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
             {L('Confira se cada fonte oficial atualizou hoje e quanto dá pra confiar nela (quem publica, se está em dia e se bate com outra fonte oficial). Se uma cair, o sistema tenta de novo sozinho e usa a fonte reserva quando existe.',
               'Check whether each official source updated today and how much to trust it (who publishes it, whether it is current and whether it matches another official source). If one fails, the system retries on its own and uses a backup source when there is one.',

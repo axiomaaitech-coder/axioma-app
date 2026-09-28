@@ -27,6 +27,7 @@ import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
+import { TITULO_SECAO } from './fonteJose'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
@@ -132,9 +133,9 @@ function CardMiniNoticia({ noticia, lang, localeData, onClick, temaClaro, compac
 // tema-tokens.md: sucesso #16a97d/#fff, alerta #f5a623/#2b1900, bloco
 // estrutural #101b3d/#fff (decisão oficial = institucional).
 type Nome3 = [string, string, string]
-type EstiloSelo = { cor: string; claroFundo: string; claroTexto: string; nome: Nome3 }
+type EstiloSelo = { cor: string; escuroTexto?: string; claroFundo: string; claroTexto: string; nome: Nome3 }
 const NATUREZA_EVENTO: Record<string, EstiloSelo> = {
-  fact: { cor: '#6ab0ff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
+  fact: { cor: '#6ab0ff', escuroTexto: '#ffffff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
   signal: { cor: '#fbbf24', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
   official_decision: { cor: '#a78bfa', claroFundo: '#101b3d', claroTexto: '#ffffff', nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
 }
@@ -150,7 +151,8 @@ function impactoEvento(severity: number | null): EstiloSelo {
 }
 
 function estiloSelo(s: EstiloSelo, temaClaro: boolean, alpha = '1f'): CSSProperties {
-  if (!temaClaro) return { background: `${s.cor}${alpha}`, color: s.cor }
+  // Escuro: azul sobre fundo azul não lê — Fato leva letra branca (pedido do Elias).
+  if (!temaClaro) return { background: `${s.cor}${s.escuroTexto ? '40' : alpha}`, color: s.escuroTexto ?? s.cor }
   return s.claroFundo === 'transparent'
     ? { background: 'transparent', color: s.claroTexto, border: `1px solid ${s.claroTexto}` }
     : { background: s.claroFundo, color: s.claroTexto }
@@ -378,7 +380,11 @@ export default function NexusPage() {
             </div>
           )}
 
-          {/* 8 INDICADORES — dado real de nexus_economic_series, com mini-histórico (grade 2x4, mesma caixa dos cards de notícia) */}
+          {/* 12 INDICADORES — dado real de nexus_economic_series, com mini-histórico (grade 3x4, mesma caixa dos cards de notícia) */}
+          <div className="px-1">
+            <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🇧🇷 {L('Indicadores do Brasil', 'Brazil indicators', 'Indicadores de Brasil')}</h2>
+            <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Câmbio, juros, inflação, emprego e atividade — dados oficiais do Banco Central, do IBGE e do Banco Central Europeu, atualizados todo dia.', 'Exchange rates, interest, inflation, jobs and activity — official data from the Central Bank, IBGE and the European Central Bank, updated daily.', 'Cambio, tasas, inflación, empleo y actividad — datos oficiales del Banco Central, del IBGE y del Banco Central Europeo, actualizados a diario.')}</p>
+          </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {indicadores.map((ind) => {
               const fresh = traduzirFreshness(ind.freshness, lang)
@@ -431,7 +437,7 @@ export default function NexusPage() {
               indicadores e das notícias — mesma largura e altura (CARD_NEXUS). */}
           <section>
             <div className="mb-3 px-1">
-              <h2 className="flex items-center gap-2 text-base font-bold" style={{ color: TITULO }}>
+              <h2 className={TITULO_SECAO} style={{ color: TITULO }}>
                 <Globe2 size={17} style={{ color: temaClaro ? '#16a97d' : CIANO }} aria-hidden />
                 José · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}
               </h2>
@@ -507,7 +513,7 @@ export default function NexusPage() {
             <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Radio size={16} style={{ color: CIANO }} />
-                <p className="text-sm font-black tracking-wide" style={{ color: TITULO }}>{L('Central Nexus', 'Nexus Center', 'Central Nexus')}</p>
+                <h2 className={TITULO_SECAO} style={{ color: TITULO }}>{L('Central Nexus', 'Nexus Center', 'Central Nexus')}</h2>
               </div>
               {/* só depois de carregar — senão o selo pisca em toda abertura, mesmo com notícia real */}
               {noticiasIsDemo && !semNoticiaAinda && (
@@ -657,9 +663,9 @@ export default function NexusPage() {
             const cardsInline = outras.slice(0, MAX_CARDS_INLINE)
             return (
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wide px-1" style={{ color: CINZA }}>
-                  {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
-                </p>
+                <h2 className={`${TITULO_SECAO} px-1`} style={{ color: TITULO }}>
+                  📰 {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
+                </h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {cardsInline.map((n) => (
                     <CardMiniNoticia key={n.id} noticia={n} lang={lang} localeData={localeData} temaClaro={temaClaro} onClick={() => setNoticiaAberta(n)} />

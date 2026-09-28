@@ -5,6 +5,7 @@
 // a lista de previsões abre no clique.
 import { useEffect, useState } from 'react'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
+import { TITULO_SECAO } from './fonteJose'
 import { obterPlacarJose, type PlacarJose as TipoPlacar, type PrevisaoJose } from '../../../lib/nexusHelpers'
 import { SERIES_PREVISAO } from '../../../lib/nexusPrevisoes'
 
@@ -45,7 +46,7 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
       <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
-          <h2 className="text-base font-bold" style={{ color: TITULO }}>🎯 {L('Placar do José', 'José’s scorecard', 'Marcador de José')}</h2>
+          <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🎯 {L('Placar do José', 'José’s scorecard', 'Marcador de José')}</h2>
           <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
             {L('Toda semana o José diz se dólar, euro, Selic, IPCA, desemprego e petróleo vão subir, cair ou ficar estáveis em 30 e 90 dias. Quando o prazo vence, conferimos com o dado oficial — assim você sabe quanto confiar nele.',
               'Every week José says whether the dollar, euro, Selic, IPCA, unemployment and oil will rise, fall or stay stable in 30 and 90 days. When the deadline arrives, we check it against official data — so you know how much to trust him.',

@@ -1,11 +1,12 @@
 // Paleta do Nexus por tema — compartilhada entre /nexus e /nexus/simulacoes.
-// dark = valores de sempre (fundação, intocada). xms = tema Claro, valores de
+// dark = fundação do Escuro; texto passou de azul-acinzentado pra quase branco em
+// 2026-09-28 (azul sobre fundo azul não lia — pedido do Elias). xms = tema Claro, valores de
 // public/referencias/tema-tokens.md: verde-menta no lugar de ciano/roxo (roxo
 // não é da paleta), texto azul-marinho, secundário #374151 sobre o creme,
 // card creme #f6f7c4 (aprovado no rollout MEI).
 export const PALETA = {
   dark: {
-    AZULC: '#6ab0ff', CIANO: '#22d3ee', ROXOTV: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    AZULC: '#6ab0ff', CIANO: '#22d3ee', ROXOTV: '#a78bfa', CINZA: '#d7e0ea', TEXTO: '#e6edf5', TITULO: '#ffffff',
     PAINEL_BG: 'rgba(10,20,36,0.7)', MODAL_BG: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)',
     NESTED_BG: 'rgba(255,255,255,0.04)', NESTED_BORDA: 'transparent',
   },

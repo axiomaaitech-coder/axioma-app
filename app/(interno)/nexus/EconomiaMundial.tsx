@@ -3,6 +3,7 @@
 // diário), PIB/inflação de China, EUA e Zona do Euro (Banco Mundial, anual) e
 // matérias-primas soja/milho/café/minério (FMI, mensal). Fontes gratuitas.
 import { PALETA } from '../../../lib/nexusTema'
+import { TITULO_SECAO } from './fonteJose'
 import { traduzirFreshness, type EconomiaMundial as TipoEconomia, type PaisMundo, type IndicadorNexus } from '../../../lib/nexusHelpers'
 
 type Lang = 'pt' | 'en' | 'es'
@@ -38,7 +39,7 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
   return (
     <section>
       <div className="mb-3 px-1">
-        <h2 className="text-base font-bold" style={{ color: TITULO }}>🌐 {L('Economia mundial', 'World economy', 'Economía mundial')}</h2>
+        <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🌐 {L('Economia mundial', 'World economy', 'Economía mundial')}</h2>
         <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
           {L('Petróleo diário (IPEA/EIA), crescimento e inflação dos principais parceiros do Brasil (Banco Mundial, dado anual) e preço das matérias-primas que o Brasil mais exporta (FMI).', 'Daily oil (IPEA/EIA), growth and inflation of Brazil’s main partners (World Bank, annual data) and prices of Brazil’s top export commodities (IMF).', 'Petróleo diario (IPEA/EIA), crecimiento e inflación de los principales socios de Brasil (Banco Mundial, dato anual) y precio de las materias primas que Brasil más exporta (FMI).')}
         </p>
@@ -63,9 +64,10 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
         })}
       </div>
 
-      <p className="text-xs font-bold mt-4 mb-2 px-1" style={{ color: TITULO }}>
-        {L('Matérias-primas — preço internacional médio do mês (FMI)', 'Commodities — monthly average international price (IMF)', 'Materias primas — precio internacional medio del mes (FMI)')}
-      </p>
+      <div className="mt-6 mb-3 px-1">
+        <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🌾 {L('Matérias-primas', 'Commodities', 'Materias primas')}</h2>
+        <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Preço internacional médio do mês — soja, milho, café e minério, o que o Brasil mais exporta (FMI).', 'Monthly average international price — soybeans, corn, coffee and iron ore, Brazil’s top exports (IMF).', 'Precio internacional medio del mes — soja, maíz, café y mineral de hierro, lo que Brasil más exporta (FMI).')}</p>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {(dados?.materias ?? []).map((m) => (
           <CardPreco key={m.codigo} ind={m} rotulo={`${m.emoji} ${m.nome[lang]}`} valor={precoMateria(m, lang)} mensal lang={lang} temaClaro={temaClaro} />

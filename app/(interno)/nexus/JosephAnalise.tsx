@@ -71,8 +71,8 @@ function JosephPensando({ lang, temaClaro }: { lang: Lang; temaClaro: boolean })
   }, [atual.paises])
 
   const ACENTO = temaClaro ? '#16a97d' : '#22d3ee'
-  const TXT = temaClaro ? '#101b3d' : '#c8d8f0'
-  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  const TXT = temaClaro ? '#101b3d' : '#e6edf5'
+  const SEC = temaClaro ? '#374151' : '#d7e0ea'
   return (
     <div className="flex items-center gap-3 py-2" role="status">
       <motion.span
@@ -139,8 +139,8 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
   }, [eventId, lang, tentativa])
 
   const TIT = temaClaro ? '#101b3d' : '#e2ecf7'
-  const TXT = temaClaro ? '#101b3d' : '#c8d8f0'
-  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  const TXT = temaClaro ? '#101b3d' : '#e6edf5'
+  const SEC = temaClaro ? '#374151' : '#d7e0ea'
   const ACENTO = temaClaro ? '#16a97d' : '#22d3ee'
   const caixa: CSSProperties = temaClaro
     ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' }

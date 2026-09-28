@@ -10,6 +10,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Brain, FlaskConical, FolderOpen, Globe2 } from 'lucide-react'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
+import { TITULO_SECAO } from './fonteJose'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { contarSimulacoes } from '../../../lib/nexusSimulacaoHelpers'
 import { radarLigado, definirRadar } from '../../../components/NexusEventStream'
@@ -65,7 +66,7 @@ export function FuncoesNexus({ lang, temaClaro, eventoRecente, onAbrirEvento }: 
   return (
     <section>
       <div className="mb-3 px-1">
-        <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('O que o Nexus faz por você', 'What Nexus does for you', 'Lo que Nexus hace por usted')}</h2>
+        <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🧭 {L('O que o Nexus faz por você', 'What Nexus does for you', 'Lo que Nexus hace por usted')}</h2>
         <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
           {L('Ferramentas que transformam o que acontece na economia em decisão para a sua empresa.', 'Tools that turn what happens in the economy into decisions for your company.', 'Herramientas que convierten lo que pasa en la economía en decisiones para su empresa.')}
         </p>

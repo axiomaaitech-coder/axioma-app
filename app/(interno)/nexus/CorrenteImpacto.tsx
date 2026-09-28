@@ -109,7 +109,7 @@ export function CorrenteMini({ payload, lang, temaClaro }: { payload: PayloadEve
   const c = elosDoEvento(payload)
   if (!c) return null
   const L = (n: Nome3) => (lang === 'en' ? n[1] : lang === 'es' ? n[2] : n[0])
-  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  const SEC = temaClaro ? '#374151' : '#d7e0ea'
   const margem = c.elos[c.elos.length - 1]
   const cor = margem.sobe ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#dc3545' : '#f87171')
   return (
@@ -127,7 +127,7 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
   if (!corrente) return null
   const L = (n: Nome3) => (lang === 'en' ? n[1] : lang === 'es' ? n[2] : n[0])
   const TIT = temaClaro ? '#101b3d' : '#e2ecf7'
-  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  const SEC = temaClaro ? '#374151' : '#d7e0ea'
   const SOBE = temaClaro ? '#16a97d' : '#34d399'
   const CAI = temaClaro ? '#dc3545' : '#f87171'
 

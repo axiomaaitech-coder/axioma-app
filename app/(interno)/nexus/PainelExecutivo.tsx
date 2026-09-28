@@ -9,7 +9,7 @@ import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import type { BriefingJose } from '../../../lib/nexusBriefing'
-import { cinzel } from './fonteJose'
+import { TITULO_SECAO } from './fonteJose'
 
 type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
@@ -90,7 +90,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
     <section>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-3 px-1">
         <div>
-          <h2 className={`${cinzel.className} flex items-center gap-2 text-lg md:text-xl font-bold tracking-wide`} style={{ color: TITULO }}>
+          <h2 className={TITULO_SECAO} style={{ color: TITULO }}>
             <JosephAvatar tamanho={26} estado={estado === 'carregando' ? 'pensando' : 'parado'} />
             {L('Painel executivo do José', "José's executive briefing", 'Panel ejecutivo de José')}
           </h2>
