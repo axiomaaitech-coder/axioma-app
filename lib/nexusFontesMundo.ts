@@ -12,7 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcularFreshness } from './nexusFreshness'
 import { buscarComRetentativa } from './nexusRede'
 import * as XLSX from 'xlsx'
-import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
+import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerDbnomicsOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
 
 type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
@@ -311,6 +311,7 @@ export async function ingerirComex(supabase: SupabaseClient): Promise<string> {
 export const PAISES_OCDE = [
   { area: 'BRA', nome: 'Brasil' }, { area: 'CHN', nome: 'China' }, { area: 'USA', nome: 'EUA' }, { area: 'G20', nome: 'G20' },
 ] as const
+const URL_DBNOMICS_OCDE = () => `https://api.db.nomics.world/v22/series/OECD/DSD_STES@DF_CLI?observations=1&limit=10&dimensions=${encodeURIComponent(JSON.stringify({ REF_AREA: PAISES_OCDE.map((p) => p.area), FREQ: ['M'], MEASURE: ['LI'], ADJUSTMENT: ['AA'], TRANSFORMATION: ['IX'], METHODOLOGY: ['H'] }))}`
 const URL_OCDE = () => `https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI,/${PAISES_OCDE.map((p) => p.area).join('+')}.M.LI...AA...H?startPeriod=${new Date().getUTCFullYear() - 2}-01`
 
 export async function ingerirOcde(supabase: SupabaseClient): Promise<string> {
@@ -319,9 +320,20 @@ export async function ingerirOcde(supabase: SupabaseClient): Promise<string> {
     endpoint: 'https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI', frequencia: 'monthly', licenca: 'uso livre com citação (OCDE)',
   })
   try {
-    const res = await buscarComRetentativa(URL_OCDE(), { headers: { Accept: 'application/vnd.sdmx.data+csv', 'Accept-Encoding': 'gzip' }, timeoutMs: 30000 }) // OCDE às vezes dá 500 com br/zstd
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const series = lerCsvOcde(await res.text())
+    // OCDE direta primeiro; ela costuma barrar IP de nuvem (Vercel nunca conseguiu) —
+    // aí o mesmo indicador vem do espelho DBnomics (gratuito, ~2-3 meses mais atrasado).
+    let series = new Map<string, Ponto[]>(), via = 'OCDE'
+    try {
+      const res = await buscarComRetentativa(URL_OCDE(), { headers: { Accept: 'application/vnd.sdmx.data+csv', 'Accept-Encoding': 'gzip' }, timeoutMs: 20000 }, [3000]) // OCDE às vezes dá 500 com br/zstd
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      series = lerCsvOcde(await res.text())
+      if (!series.size) throw new Error('resposta sem dados')
+    } catch (err) {
+      const res = await buscarComRetentativa(URL_DBNOMICS_OCDE(), { timeoutMs: 20000 })
+      if (!res.ok) throw new Error(`OCDE: ${err instanceof Error ? err.message : String(err)}; DBnomics: HTTP ${res.status}`)
+      series = lerDbnomicsOcde(await res.json(), new Date().getUTCFullYear() - 2)
+      via = `DBnomics (OCDE direta: ${err instanceof Error ? err.message : String(err)})`
+    }
     let total = 0
     for (const p of PAISES_OCDE) {
       const pts = series.get(p.area) ?? []
@@ -329,7 +341,7 @@ export async function ingerirOcde(supabase: SupabaseClient): Promise<string> {
       total += pts.length
     }
     await marcar(supabase, sourceId, true)
-    return `${total} pontos`
+    return `${total} pontos via ${via}`
   } catch (err) {
     await marcar(supabase, sourceId, false)
     return `erro: ${err instanceof Error ? err.message : String(err)}`

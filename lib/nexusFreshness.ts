@@ -82,13 +82,14 @@ export const concordanciaPct = (a: number, b: number) => {
 }
 
 // ─── Pausa automática ───
-// Fonte que não funciona há mais de 3 dias (ou nunca funcionou) só é tentada a
-// cada 3 dias — não gasta tempo da coleta nem martela quem limita pedidos.
+// Fonte que não funciona há mais de 1 dia (ou nunca funcionou) espera 6h entre
+// tentativas — não martela quem limita pedidos, mas o Nexus (premium) nunca
+// fica mais que algumas horas sem tentar recuperar o dado (decisão do Elias, 2026-09-28).
+export const HORAS_PAUSA = 6
 export function fonteEmPausa(ultimoSucesso: string | null, ultimaFalha: string | null, agora = new Date()): boolean {
   if (!ultimaFalha) return false
   const falhando = !ultimoSucesso || new Date(ultimaFalha) > new Date(ultimoSucesso)
   if (!falhando) return false
-  if (ultimoSucesso && agora.getTime() - new Date(ultimoSucesso).getTime() <= 3 * 86400000) return false
-  const dia = Math.floor(agora.getTime() / 86400000)
-  return dia % 3 !== 0
+  if (ultimoSucesso && agora.getTime() - new Date(ultimoSucesso).getTime() <= 86400000) return false
+  return agora.getTime() - new Date(ultimaFalha).getTime() < HORAS_PAUSA * 3600000
 }

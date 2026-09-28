@@ -292,11 +292,11 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
   // Fontes mundiais gratuitas, em paralelo (cada uma isolada; antes do detector,
   // pra ele já ver o dado do dia). Coleta e notícias vêm ANTES do José: a IA é a
   // parte lenta e, se estourar os 300s, não pode levar a coleta junto.
-  // Pausa automática (lib/nexusFreshness.ts): fonte fora do ar há 3+ dias só é tentada a cada 3 dias.
+  // Pausa automática (lib/nexusFreshness.ts): fonte fora do ar há 1+ dia espera 6h entre tentativas.
   const { data: fontesAntes } = await supabase.from('nexus_source').select('source_name, last_success, last_failure')
   const tentar = (nome: string, f: () => Promise<string>) => {
     const fonteAntes = fontesAntes?.find((x) => x.source_name === nome)
-    if (fonteAntes && fonteEmPausa(fonteAntes.last_success as string | null, fonteAntes.last_failure as string | null)) return Promise.resolve('em pausa (tenta a cada 3 dias)')
+    if (fonteAntes && fonteEmPausa(fonteAntes.last_success as string | null, fonteAntes.last_failure as string | null)) return Promise.resolve('em pausa (tenta de novo em até 6h)')
     return f().catch((err) => `erro: ${err instanceof Error ? err.message : String(err)}`)
   }
   const [brent, bancoMundial, yuan, commodities, ibge, gdelt, anp, comex, ocde, noticias] = await Promise.all([

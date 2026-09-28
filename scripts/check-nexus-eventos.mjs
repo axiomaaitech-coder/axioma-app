@@ -103,11 +103,13 @@ assert.equal(detectarEventosSerie('ANP:GASOLINA', [{ data: '2026-09-19', valor: 
 console.log('OK — combustíveis nos postos')
 
 // Leitores ANP, OCDE e Comex
-const { linksResumoAnp, lerResumoAnp, lerCsvOcde, lerComex } = await import('../lib/nexusLeitoresFontes.ts')
+const { linksResumoAnp, lerResumoAnp, lerCsvOcde, lerDbnomicsOcde, lerComex } = await import('../lib/nexusLeitoresFontes.ts')
 assert.deepEqual(linksResumoAnp('<a href="https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx">a</a><a href="https://x/revendas_lpc_1.xlsx">b</a><a href="https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx">c</a>'), ['https://x/resumo_semanal_lpc_2026-09-20_2026-09-26.xlsx'])
 const anp = lerResumoAnp([['DATA INICIAL', 'DATA FINAL', 'BRASIL', 'PRODUTO'], [46285, 46291, 'BRASIL', 'OLEO DIESEL S10', 3147, 'R$/l', 7.33]])
 assert.deepEqual(anp.get('OLEO DIESEL S10'), { data: '2026-09-26', valor: 7.33 })
 const ocde = lerCsvOcde('DATAFLOW,REF_AREA,FREQ,TIME_PERIOD,OBS_VALUE\nX,BRA,M,2026-08,102.6276\nX,BRA,M,2026-07,102.5')
 assert.deepEqual(ocde.get('BRA'), [{ data: '2026-07-31', valor: 102.5 }, { data: '2026-08-31', valor: 102.63 }])
 assert.deepEqual(lerComex({ data: { list: [{ year: '2026', monthNumber: '08', metricFOB: '33157804370' }] } }), [{ data: '2026-08-31', valor: 33.16 }])
+const dbn = lerDbnomicsOcde({ series: { docs: [{ dimensions: { REF_AREA: 'CHN' }, period: ['2023-12', '2026-04', '2026-05'], value: [99, 'NA', 98.9058] }] } }, 2024)
+assert.deepEqual(dbn.get('CHN'), [{ data: '2026-05-31', valor: 98.91 }]) // corta ano antigo e "NA"
 console.log('OK — leitores ANP, OCDE e Comex')

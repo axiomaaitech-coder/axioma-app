@@ -97,6 +97,24 @@ export function lerCsvOcde(csv: string): Map<string, Ponto[]> {
   return out
 }
 
+// ─── OCDE via DBnomics (espelho gratuito) — reserva quando a OCDE barra a nuvem ───
+// JSON: series.docs[] com dimensions.REF_AREA, period[] (2026-05) e value[] (número ou "NA").
+export function lerDbnomicsOcde(json: { series?: { docs?: { dimensions?: { REF_AREA?: string }; period?: string[]; value?: (number | string)[] }[] } }, desdeAno: number): Map<string, Ponto[]> {
+  const out = new Map<string, Ponto[]>()
+  for (const s of json.series?.docs ?? []) {
+    const area = s.dimensions?.REF_AREA
+    if (!area) continue
+    const pts: Ponto[] = []
+    ;(s.period ?? []).forEach((per, i) => {
+      const m = /^(\d{4})-(\d{2})$/.exec(per)
+      const v = Number(s.value?.[i])
+      if (m && Number(m[1]) >= desdeAno && typeof s.value?.[i] === 'number' && Number.isFinite(v)) pts.push({ data: fimDoMes(Number(m[1]), Number(m[2])), valor: Math.round(v * 100) / 100 })
+    })
+    out.set(area, pts)
+  }
+  return out
+}
+
 // ─── Comex Stat (MDIC) — total mensal exportado/importado, US$ FOB ───
 export function lerComex(json: { data?: { list?: { year: string; monthNumber: string; metricFOB: string }[] } }): Ponto[] {
   return (json.data?.list ?? [])

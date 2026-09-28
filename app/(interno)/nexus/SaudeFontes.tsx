@@ -31,7 +31,7 @@ const SITE: Record<string, string> = {
   'OCDE': 'https://data-explorer.oecd.org/',
 }
 
-const ROTULO: Record<SaudeFonte, [string, string, string]> = {
+export const ROTULO: Record<SaudeFonte, [string, string, string]> = {
   ok: ['Funcionando', 'Working', 'Funcionando'],
   falhou: ['Falhou na última tentativa', 'Last attempt failed', 'Falló en el último intento'],
   parada: ['Sem atualizar há mais de 1 dia', 'Not updated for over 1 day', 'Sin actualizar hace más de 1 día'],
@@ -105,7 +105,7 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                     <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
                     {f.ultimaFalha && <p className="text-[11px]" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
                     {f.nota != null && <p className="text-[11px]" style={{ color: CINZA }}>{L('Confiança da fonte', 'Source confidence', 'Confianza de la fuente')}: <span className="font-bold" style={{ color: TITULO }}>{Math.round(f.nota)}/100</span></p>}
-                    {f.emPausa && <p className="text-[11px] font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar há mais de 3 dias, tenta de novo a cada 3 dias.', 'Paused: down for over 3 days, retries every 3 days.', 'En pausa: caída hace más de 3 días, reintenta cada 3 días.')}</p>}
+                    {f.emPausa && <p className="text-[11px] font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar, tenta de novo em até 6 horas.', 'Paused: source down, retries within 6 hours.', 'En pausa: fuente caída, reintenta en hasta 6 horas.')}</p>}
                   </a>
                 ))}
               </div>

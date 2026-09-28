@@ -23,9 +23,9 @@ assert.equal(concordanciaPct(5.20, 5.25), 80)
 assert.equal(concordanciaPct(5.00, 5.30), 40)
 console.log('OK — nota de confiança da fonte')
 
-// Pausa: só quem falha há mais de 3 dias; volta a tentar a cada 3 dias
+// Pausa: só quem falha há mais de 1 dia (ou nunca funcionou); volta a tentar 6h depois da última falha
 assert.equal(fonteEmPausa('2026-09-27T06:00:00Z', null, agora), false)
 assert.equal(fonteEmPausa('2026-09-26T06:00:00Z', '2026-09-27T06:00:00Z', agora), false) // falhou há pouco: tenta
-const dias = [0, 1, 2].map((d) => fonteEmPausa(null, '2026-09-27T06:00:00Z', new Date(agora.getTime() + d * 86400000)))
-assert.equal(dias.filter((p) => !p).length, 1) // 1 tentativa a cada 3 dias
+assert.equal(fonteEmPausa(null, new Date(agora.getTime() - 2 * 3600000).toISOString(), agora), true) // nunca funcionou, falhou há 2h: espera
+assert.equal(fonteEmPausa(null, new Date(agora.getTime() - 7 * 3600000).toISOString(), agora), false) // 7h depois: tenta de novo
 console.log('OK — pausa automática')
