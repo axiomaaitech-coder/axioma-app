@@ -10,7 +10,7 @@ import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterIndicadoresNexus, obterEventosNexus, obterEventoNexus, obterEconomiaMundial, type EconomiaMundial as TipoEconomiaMundial, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
-import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
+import { textoEvento, travaDaVerdade, fonteDaSerie } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
@@ -744,9 +744,7 @@ export default function NexusPage() {
                     {trava.texto}
                   </p>
                   {ev.confidence != null && (
-                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && (ev.payload?.serie.startsWith('IPEA:')
-                      ? ` — ${L('série oficial do IPEA (dado da EIA), uma fonte.', 'official IPEA series (EIA data), single source.', 'serie oficial del IPEA (dato de la EIA), una fuente.')}`
-                      : ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`)}</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial', 'official series', 'serie oficial')}: ${fonteDaSerie(ev.payload?.serie ?? '', lang)}.`}</p>
                   )}
                   {ev.publicadoEm && (
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>

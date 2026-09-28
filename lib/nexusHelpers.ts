@@ -45,6 +45,11 @@ const CATALOGO: Omit<IndicadorNexus, "valor" | "dataReferencia" | "freshness" | 
   { codigo: "433", nome: { pt: "IPCA", en: "IPCA (Inflation)", es: "IPCA (Inflación)" }, emoji: "📈", formato: "percentual", casas: 2 },
   { codigo: "24369", nome: { pt: "Desemprego", en: "Unemployment", es: "Desempleo" }, emoji: "👷", formato: "percentual", casas: 1 },
   { codigo: "24363", nome: { pt: "Atividade Econômica (IBC-Br)", en: "Economic Activity (IBC-Br)", es: "Actividad Económica (IBC-Br)" }, emoji: "🏭", formato: "indice", casas: 1 },
+  // Fora do BCB: yuan via Banco Central Europeu; setores via IBGE (índice com ajuste sazonal, 2022=100).
+  { codigo: "BCE:CNY", nome: { pt: "Yuan", en: "Chinese Yuan", es: "Yuan" }, emoji: "🇨🇳", formato: "moeda", casas: 4 },
+  { codigo: "IBGE:VAREJO", nome: { pt: "Vendas do comércio", en: "Retail sales", es: "Ventas del comercio" }, emoji: "🛍️", formato: "indice", casas: 1 },
+  { codigo: "IBGE:SERVICOS", nome: { pt: "Serviços", en: "Services", es: "Servicios" }, emoji: "🧰", formato: "indice", casas: 1 },
+  { codigo: "IBGE:INDUSTRIA", nome: { pt: "Indústria", en: "Industry", es: "Industria" }, emoji: "⚙️", formato: "indice", casas: 1 },
 ];
 
 // 30 pontos bastam pro mini-gráfico e já trazem o valor mais recente (primeira
@@ -231,14 +236,23 @@ export async function listarPlanosSalvos(empresaId: string, limite = 12): Promis
 
 // ─── Economia mundial (IPEA Brent + Banco Mundial) — cards e contexto do José ───
 export type PaisMundo = { iso: string; pib: number | null; inflacao: number | null; ano: string | null };
-export type EconomiaMundial = { brent: IndicadorNexus | null; paises: PaisMundo[] };
+export type EconomiaMundial = { brent: IndicadorNexus | null; paises: PaisMundo[]; materias: IndicadorNexus[] };
+
+// Matérias-primas do FMI (mensal) — ordem dos cards.
+const MATERIAS: { codigo: string; nome: IndicadorNexus["nome"]; emoji: string }[] = [
+  { codigo: "FMI:SOJA", nome: { pt: "Soja", en: "Soybeans", es: "Soja" }, emoji: "🌱" },
+  { codigo: "FMI:MILHO", nome: { pt: "Milho", en: "Corn", es: "Maíz" }, emoji: "🌽" },
+  { codigo: "FMI:CAFE", nome: { pt: "Café", en: "Coffee", es: "Café" }, emoji: "☕" },
+  { codigo: "FMI:MINERIO", nome: { pt: "Minério de ferro", en: "Iron ore", es: "Mineral de hierro" }, emoji: "⛏️" },
+];
 
 const ISOS_MUNDO = ["USA", "CHN", "EMU", "ARG", "JPN", "GBR", "IND", "MEX"];
 
 export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
-  const [brentRes, bmRes] = await Promise.all([
+  const [brentRes, bmRes, fmiRes] = await Promise.all([
     supabase.from("nexus_economic_series").select("valor, data_referencia, frequencia").eq("serie_codigo", "IPEA:BRENT").order("data_referencia", { ascending: false }).limit(30),
     supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia").like("serie_codigo", "WB:%").order("data_referencia", { ascending: false }).limit(200),
+    supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia, frequencia").like("serie_codigo", "FMI:%").order("data_referencia", { ascending: false }).limit(MATERIAS.length * 24),
   ]);
   const pontos = (brentRes.data ?? []).filter((l) => l.valor != null);
   const brent: IndicadorNexus | null = pontos.length ? {
@@ -255,7 +269,17 @@ export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
     const pib = ultimo.get(`WB:${iso}:NY.GDP.MKTP.KD.ZG`), inf = ultimo.get(`WB:${iso}:FP.CPI.TOTL.ZG`);
     return { iso, pib: pib?.valor ?? null, inflacao: inf?.valor ?? null, ano: pib?.ano ?? inf?.ano ?? null };
   });
-  return { brent, paises };
+  const materias: IndicadorNexus[] = MATERIAS.map((m) => {
+    const linhas = (fmiRes.data ?? []).filter((l) => l.serie_codigo === m.codigo && l.valor != null);
+    const r = linhas[0];
+    return {
+      codigo: m.codigo, nome: m.nome, emoji: m.emoji, formato: "indice", casas: 2,
+      valor: r ? Number(r.valor) : null, dataReferencia: (r?.data_referencia as string) ?? null,
+      freshness: r ? calcularFreshness(r.data_referencia as string, r.frequencia as string | null) : null,
+      historico: [...linhas].reverse().map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })),
+    };
+  });
+  return { brent, paises, materias };
 }
 
 // ─── Saúde das fontes (nexus_source, pública, só leitura) ───

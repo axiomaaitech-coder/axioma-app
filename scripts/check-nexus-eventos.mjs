@@ -69,3 +69,26 @@ assert.equal(brentForte[0].payload.direcao, 'queda')
 assert.match(textoEvento(brentForte[0].payload, 'pt').titulo, /Petróleo despenca/)
 assert.equal(detectarEventosSerie('IPEA:BRENT', dias([100, 101, 102, 101, 103, 104])).length, 0)
 console.log('OK — alerta de petróleo')
+
+// Yuan entra na regra de câmbio
+assert.equal(detectarEventosSerie('BCE:CNY', dias([0.75, 0.76, 0.77, 0.775, 0.78, 0.785]))[0].event_type, 'fx_5d')
+
+// Matéria-prima: ±8% no mês vira sinal; 3% não
+const cafe = detectarEventosSerie('FMI:CAFE', [{ data: '2026-06-30', valor: 300 }, { data: '2026-07-31', valor: 330 }, { data: '2026-08-31', valor: 335 }])
+assert.equal(cafe.length, 1)
+assert.equal(cafe[0].category, 'commodity')
+assert.match(textoEvento(cafe[0].payload, 'pt').titulo, /Café dispara 10,0% no mês/)
+
+// Setor do IBGE: ±1,5% no mês vira fato
+const varejo = detectarEventosSerie('IBGE:VAREJO', [{ data: '2026-06-30', valor: 110 }, { data: '2026-07-31', valor: 108 }])
+assert.equal(varejo[0].event_type, 'setor_variacao')
+assert.match(textoEvento(varejo[0].payload, 'en').titulo, /Retail sales falls 1.8% in the month/)
+console.log('OK — yuan, matérias-primas e setores do IBGE')
+
+// Leitores das fontes novas
+const { yuanEmReais, lerCsvFmi } = await import('../lib/nexusLeitoresFontes.ts')
+const csvBce = 'KEY,FREQ,CURRENCY,CURRENCY_DENOM,EXR_TYPE,EXR_SUFFIX,TIME_PERIOD,OBS_VALUE\nEXR.D.BRL.EUR.SP00.A,D,BRL,EUR,SP00,A,2026-09-25,5.9091\nEXR.D.CNY.EUR.SP00.A,D,CNY,EUR,SP00,A,2026-09-25,7.6551\nEXR.D.CNY.EUR.SP00.A,D,CNY,EUR,SP00,A,2026-09-26,7.7'
+assert.deepEqual(yuanEmReais(csvBce), [{ data: '2026-09-25', valor: 0.7719 }])
+const csvFmi = 'DATAFLOW,COUNTRY,INDICATOR,DATA_TRANSFORMATION,FREQUENCY,TIME_PERIOD,OBS_VALUE,X\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M08,449.04392,0,"texto, com vírgula"\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M02,420,0'
+assert.deepEqual(lerCsvFmi(csvFmi).get('PSOYB'), [{ data: '2026-02-28', valor: 420 }, { data: '2026-08-31', valor: 449.04 }])
+console.log('OK — leitores BCE e FMI')

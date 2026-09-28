@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcularFreshness } from './nexusFreshness'
+import { yuanEmReais, lerCsvFmi, fimDoMes, type Ponto } from './nexusLeitoresFontes'
 
 type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
@@ -101,6 +102,110 @@ export async function ingerirBancoMundial(supabase: SupabaseClient): Promise<str
       total += linhas.length
     } catch (err) {
       erros.push(`${ind.codigo}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+  await marcar(supabase, sourceId, erros.length === 0)
+  return erros.length ? `${total} pontos; erros: ${erros.join(' | ')}` : `${total} pontos`
+}
+
+// Grava pontos de uma série (mesmo formato do Brent) — upsert idempotente.
+async function gravarSerie(
+  supabase: SupabaseClient, sourceId: string,
+  s: { codigo: string; nome: string; categoria: string; country: string; moeda?: string; unidade: string; frequencia: string },
+  pontos: Ponto[],
+) {
+  if (pontos.length === 0) throw new Error(`${s.codigo}: sem pontos`)
+  const { error } = await supabase.from('nexus_economic_series').upsert(pontos.map((p) => ({
+    source_id: sourceId, serie_codigo: s.codigo, serie_nome: s.nome, categoria: s.categoria, country: s.country, moeda: s.moeda ?? null,
+    unidade: s.unidade, frequencia: s.frequencia, valor: p.valor, data_referencia: p.data,
+    retrieved_at: new Date().toISOString(), freshness_status: calcularFreshness(p.data, s.frequencia),
+  })), { onConflict: 'source_id,serie_codigo,data_referencia' })
+  if (error) throw new Error(`${s.codigo}: ${error.message}`)
+}
+
+// ─── Yuan (Banco Central Europeu) ───
+// O BCB não publica o yuan; o BCE publica BRL e CNY contra o euro, todo dia útil.
+// R$ por yuan = (R$ por euro) ÷ (yuan por euro), na mesma data.
+export const SERIE_YUAN = 'BCE:CNY'
+const URL_BCE = 'https://data-api.ecb.europa.eu/service/data/EXR/D.CNY+BRL.EUR.SP00.A?format=csvdata&lastNObservations=90'
+
+export async function ingerirYuan(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'Banco Central Europeu', tipo: 'central_bank', provedor: 'European Central Bank (ECB Data Portal)',
+    endpoint: URL_BCE, frequencia: 'daily', licenca: 'reutilização livre com citação (BCE)',
+  })
+  try {
+    const res = await fetch(URL_BCE, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const pontos = yuanEmReais(await res.text())
+    await gravarSerie(supabase, sourceId, { codigo: SERIE_YUAN, nome: 'Yuan chinês (R$ por yuan, via BCE)', categoria: 'fx', country: 'CHN', moeda: 'BRL', unidade: 'R$', frequencia: 'diaria' }, pontos)
+    await marcar(supabase, sourceId, true)
+    return `${pontos.length} pontos`
+  } catch (err) {
+    await marcar(supabase, sourceId, false)
+    return `erro: ${err instanceof Error ? err.message : String(err)}`
+  }
+}
+
+// ─── Matérias-primas (FMI, Primary Commodity Prices — mensal) ───
+export const COMMODITIES_FMI = [
+  { codigo: 'FMI:SOJA', fmi: 'PSOYB', nome: 'Soja em grão (US$/tonelada, FMI)', unidade: 'US$/t' },
+  { codigo: 'FMI:MILHO', fmi: 'PMAIZMT', nome: 'Milho (US$/tonelada, FMI)', unidade: 'US$/t' },
+  { codigo: 'FMI:CAFE', fmi: 'PCOFFOTM', nome: 'Café arábica (centavos de US$ por libra-peso, FMI)', unidade: 'US¢/lb' },
+  { codigo: 'FMI:MINERIO', fmi: 'PIORECR', nome: 'Minério de ferro (US$/tonelada seca, FMI)', unidade: 'US$/t' },
+] as const
+const urlFmi = () => `https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS/G001.${COMMODITIES_FMI.map((c) => c.fmi).join('+')}.USD.M?startPeriod=${new Date().getUTCFullYear() - 2}-01`
+export async function ingerirCommodities(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'FMI', tipo: 'international_org', provedor: 'Fundo Monetário Internacional — Primary Commodity Prices',
+    endpoint: 'https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS', frequencia: 'monthly', licenca: 'uso livre com citação (FMI)',
+  })
+  try {
+    const res = await fetch(urlFmi(), { cache: 'no-store', headers: { Accept: 'application/vnd.sdmx.data+csv;version=1.0.0' }, signal: AbortSignal.timeout(30000) })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const series = lerCsvFmi(await res.text())
+    let total = 0
+    for (const c of COMMODITIES_FMI) {
+      const pts = series.get(c.fmi) ?? []
+      await gravarSerie(supabase, sourceId, { codigo: c.codigo, nome: c.nome, categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: c.unidade, frequencia: 'mensal_defasada' }, pts)
+      total += pts.length
+    }
+    await marcar(supabase, sourceId, true)
+    return `${total} pontos`
+  } catch (err) {
+    await marcar(supabase, sourceId, false)
+    return `erro: ${err instanceof Error ? err.message : String(err)}`
+  }
+}
+
+// ─── IBGE (vendas do comércio, serviços, indústria — índice com ajuste sazonal) ───
+export const SERIES_IBGE = [
+  { codigo: 'IBGE:VAREJO', nome: 'Vendas do comércio varejista (volume, índice 2022=100, IBGE/PMC)', q: '8880/periodos/-24/variaveis/7170?localidades=N1[all]&classificacao=11046[56734]' },
+  { codigo: 'IBGE:SERVICOS', nome: 'Volume de serviços (índice 2022=100, IBGE/PMS)', q: '5906/periodos/-24/variaveis/7168?localidades=N1[all]&classificacao=11046[56726]' },
+  { codigo: 'IBGE:INDUSTRIA', nome: 'Produção industrial (índice 2022=100, IBGE/PIM)', q: '8888/periodos/-24/variaveis/12607?localidades=N1[all]&classificacao=544[129314]' },
+] as const
+
+export async function ingerirIbge(supabase: SupabaseClient): Promise<string> {
+  // Mesmo nome da fonte cadastrada no Push 01 (estava "sem nenhuma coleta").
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'IBGE Dados Abertos', tipo: 'statistics_api', provedor: 'Instituto Brasileiro de Geografia e Estatística (IBGE)',
+    endpoint: 'https://servicodados.ibge.gov.br/api/v3/agregados', frequencia: 'monthly', licenca: 'dados abertos (IBGE)',
+  })
+  let total = 0
+  const erros: string[] = []
+  for (const s of SERIES_IBGE) {
+    try {
+      const res = await fetch(`https://servicodados.ibge.gov.br/api/v3/agregados/${s.q}`, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json() as { resultados?: { series?: { serie?: Record<string, string> }[] }[] }[]
+      const serie = json[0]?.resultados?.[0]?.series?.[0]?.serie ?? {}
+      const pts = Object.entries(serie)
+        .filter(([per, v]) => /^\d{6}$/.test(per) && v !== '' && Number.isFinite(Number(v)))
+        .map(([per, v]) => ({ data: fimDoMes(Number(per.slice(0, 4)), Number(per.slice(4, 6))), valor: Number(v) }))
+      await gravarSerie(supabase, sourceId, { codigo: s.codigo, nome: s.nome, categoria: 'economic_activity', country: 'BR', unidade: 'índice', frequencia: 'mensal_defasada' }, pts)
+      total += pts.length
+    } catch (err) {
+      erros.push(`${s.codigo}: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
   await marcar(supabase, sourceId, erros.length === 0)

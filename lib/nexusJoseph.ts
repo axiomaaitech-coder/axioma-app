@@ -14,7 +14,7 @@
 // ═══════════════════════════════════════════════════════════════
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { textoEvento, type PayloadEvento } from './nexusEventDetector'
+import { textoEvento, fonteDaSerie, type PayloadEvento } from './nexusEventDetector'
 
 export const MODELO_JOSEPH = 'claude-opus-5'
 export type IdiomaJoseph = 'pt' | 'en' | 'es'
@@ -85,7 +85,7 @@ const NOME_IDIOMA: Record<IdiomaJoseph, string> = { pt: 'português do Brasil', 
 // indicadores, data) vai só na mensagem do usuário.
 const SISTEMA = `Você é José, a inteligência interpretadora do Axioma Nexus — o módulo que observa a economia e traduz acontecimentos em decisões para donos de pequenas e médias empresas brasileiras.
 
-Sua tarefa: interpretar UM evento econômico detectado a partir de uma série oficial (Banco Central do Brasil ou IPEA) e explicar o que ele significa para o Brasil, para os setores e para uma empresa típica, com cenários e ações.
+Sua tarefa: interpretar UM evento econômico detectado a partir de uma série oficial (Banco Central do Brasil, IPEA, BCE, FMI ou IBGE) e explicar o que ele significa para o Brasil, para os setores e para uma empresa típica, com cenários e ações.
 
 Regras invioláveis:
 - Use SOMENTE os dados fornecidos na mensagem (o evento e os indicadores atuais). Nunca invente número, data, fonte, lei, notícia ou declaração de autoridade. Se precisar de algo que não foi fornecido, diga que é uma limitação.
@@ -129,7 +129,7 @@ export async function gerarAnaliseJoseph(
   const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
 Data de hoje: ${new Date().toISOString().slice(0, 10)}.
 
-EVENTO (natureza: ${evento.natureza}; categoria: ${evento.category ?? 'não informada'}; fonte: ${evento.payload.serie.startsWith('IPEA:') ? 'série oficial do IPEA (dado da EIA, EUA)' : 'série oficial do Banco Central do Brasil'})
+EVENTO (natureza: ${evento.natureza}; categoria: ${evento.category ?? 'não informada'}; fonte: série oficial — ${fonteDaSerie(evento.payload.serie, 'pt')})
 ${fato.titulo}. ${fato.descricao}
 Dados brutos: ${JSON.stringify(evento.payload)}
 

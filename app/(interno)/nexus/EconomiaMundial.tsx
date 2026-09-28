@@ -1,9 +1,9 @@
 'use client'
-// "Economia mundial" — 4 cards logo abaixo dos indicadores do Brasil: petróleo
-// Brent (IPEA, diário) e PIB/inflação de China, EUA e Zona do Euro (Banco
-// Mundial, anual). Mesmo tamanho/efeito dos cards do Nexus. Fontes gratuitas.
+// "Economia mundial" — abaixo dos indicadores do Brasil: petróleo Brent (IPEA,
+// diário), PIB/inflação de China, EUA e Zona do Euro (Banco Mundial, anual) e
+// matérias-primas soja/milho/café/minério (FMI, mensal). Fontes gratuitas.
 import { PALETA } from '../../../lib/nexusTema'
-import { traduzirFreshness, type EconomiaMundial as TipoEconomia, type PaisMundo } from '../../../lib/nexusHelpers'
+import { traduzirFreshness, type EconomiaMundial as TipoEconomia, type PaisMundo, type IndicadorNexus } from '../../../lib/nexusHelpers'
 
 type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
@@ -31,10 +31,8 @@ const pct = (v: number | null, lang: Lang) => v == null ? '—' : `${v > 0 ? '+'
 export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaClaro: boolean; dados: TipoEconomia | null }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG } = PALETA[temaClaro ? 'xms' : 'dark']
-  const ACENTO = temaClaro ? '#16a97d' : CIANO
   const estilo = { background: PAINEL_BG, border: `1px solid ${CIANO}30` }
   const brent = dados?.brent ?? null
-  const fresh = traduzirFreshness(brent?.freshness ?? null, lang)
   const pais = (iso: string): PaisMundo | undefined => dados?.paises.find((p) => p.iso === iso)
 
   return (
@@ -42,22 +40,11 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
       <div className="mb-3 px-1">
         <h2 className="text-base font-bold" style={{ color: TITULO }}>🌐 {L('Economia mundial', 'World economy', 'Economía mundial')}</h2>
         <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
-          {L('Petróleo diário (IPEA/EIA) e crescimento e inflação dos principais parceiros do Brasil (Banco Mundial, dado anual).', 'Daily oil (IPEA/EIA) and growth and inflation of Brazil’s main partners (World Bank, annual data).', 'Petróleo diario (IPEA/EIA) y crecimiento e inflación de los principales socios de Brasil (Banco Mundial, dato anual).')}
+          {L('Petróleo diário (IPEA/EIA), crescimento e inflação dos principais parceiros do Brasil (Banco Mundial, dado anual) e preço das matérias-primas que o Brasil mais exporta (FMI).', 'Daily oil (IPEA/EIA), growth and inflation of Brazil’s main partners (World Bank, annual data) and prices of Brazil’s top export commodities (IMF).', 'Petróleo diario (IPEA/EIA), crecimiento e inflación de los principales socios de Brasil (Banco Mundial, dato anual) y precio de las materias primas que Brasil más exporta (FMI).')}
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className={CARD} style={estilo}>
-          {BARRA}
-          <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>🛢️ {L('Petróleo Brent', 'Brent crude', 'Petróleo Brent')}</p>
-          <p className="text-2xl font-black leading-none mb-1" style={{ color: TITULO }}>{brent?.valor != null ? `US$ ${brent.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</p>
-          {brent && <Sparkline valores={brent.historico.map((p) => p.valor)} cor={ACENTO} />}
-          <div className="flex items-center justify-between mt-auto">
-            <span className="text-[10px]" style={{ color: CINZA }}>{brent?.dataReferencia ? new Date(brent.dataReferencia + 'T00:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR') : L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
-            {brent && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={temaClaro
-              ? (brent.freshness === 'live' || brent.freshness === 'fresh' ? { background: '#2ecc9b', color: '#101b3d' } : brent.freshness === 'recent' ? { background: '#f5a623', color: '#2b1900' } : { background: '#ff5a6b', color: '#2b0007' })
-              : { background: `${fresh.cor}20`, color: fresh.cor }}>{fresh.texto}</span>}
-          </div>
-        </div>
+        <CardPreco ind={brent} rotulo={`🛢️ ${L('Petróleo Brent', 'Brent crude', 'Petróleo Brent')}`} valor={brent?.valor != null ? `US$ ${num(brent.valor, lang)}` : '—'} mensal={false} lang={lang} temaClaro={temaClaro} />
 
         {PAISES_CARD.map((c) => {
           const p = pais(c.iso)
@@ -75,6 +62,42 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
           )
         })}
       </div>
+
+      <p className="text-xs font-bold mt-4 mb-2 px-1" style={{ color: TITULO }}>
+        {L('Matérias-primas — preço internacional médio do mês (FMI)', 'Commodities — monthly average international price (IMF)', 'Materias primas — precio internacional medio del mes (FMI)')}
+      </p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {(dados?.materias ?? []).map((m) => (
+          <CardPreco key={m.codigo} ind={m} rotulo={`${m.emoji} ${m.nome[lang]}`} valor={precoMateria(m, lang)} mensal lang={lang} temaClaro={temaClaro} />
+        ))}
+      </div>
     </section>
+  )
+}
+
+const num = (v: number, lang: Lang) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// Café vem em centavos de dólar por libra-peso; o resto em US$ por tonelada.
+const precoMateria = (m: IndicadorNexus, lang: Lang) => m.valor == null ? '—' : m.codigo === 'FMI:CAFE' ? `${num(m.valor, lang)} US¢/lb` : `US$ ${num(m.valor, lang)}/t`
+
+// Card de preço com mini-gráfico, data e selo de atualidade (Brent e matérias-primas).
+function CardPreco({ ind, rotulo, valor, mensal, lang, temaClaro }: { ind: IndicadorNexus | null; rotulo: string; valor: string; mensal: boolean; lang: Lang; temaClaro: boolean }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const { CIANO, CINZA, TITULO, PAINEL_BG } = PALETA[temaClaro ? 'xms' : 'dark']
+  const fresh = traduzirFreshness(ind?.freshness ?? null, lang)
+  const local = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
+  const data = ind?.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(local, mensal ? { month: 'short', year: 'numeric' } : undefined) : null
+  return (
+    <div className={CARD} style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
+      {BARRA}
+      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{rotulo}</p>
+      <p className="text-2xl font-black leading-none mb-1" style={{ color: TITULO }}>{valor}</p>
+      {ind && <Sparkline valores={ind.historico.map((p) => p.valor)} cor={temaClaro ? '#16a97d' : CIANO} />}
+      <div className="flex items-center justify-between mt-auto">
+        <span className="text-[10px]" style={{ color: CINZA }}>{data ?? L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
+        {ind?.valor != null && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={temaClaro
+          ? (ind.freshness === 'live' || ind.freshness === 'fresh' ? { background: '#2ecc9b', color: '#101b3d' } : ind.freshness === 'recent' ? { background: '#f5a623', color: '#2b1900' } : { background: '#ff5a6b', color: '#2b0007' })
+          : { background: `${fresh.cor}20`, color: fresh.cor }}>{fresh.texto}</span>}
+      </div>
+    </div>
   )
 }

@@ -16,7 +16,7 @@
 
 export type PontoSerieEvento = { data: string; valor: number } // data ISO yyyy-mm-dd
 
-export type RegraEvento = "fx_5d" | "petroleo_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao"
+export type RegraEvento = "fx_5d" | "petroleo_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao" | "commodity_mes" | "setor_variacao"
 
 export type PayloadEvento = {
   serie: string
@@ -32,7 +32,7 @@ export type PayloadEvento = {
 export type EventoDetectado = {
   source_event_ref: string
   natureza: "fact" | "signal" | "official_decision"
-  category: "financial" | "economic" | "energy"
+  category: "financial" | "economic" | "energy" | "commodity"
   event_type: RegraEvento
   subcategory: string // código da série
   severity: number // 0-100
@@ -50,9 +50,14 @@ export const LIMIARES = {
   desempregoPp: 0.3, // pontos percentuais
   atividadePct: 1, // %
   petroleoVariacao5d: 8, // % — petróleo é bem mais volátil que câmbio
+  commodityMes: 8, // % no mês (média mensal do FMI já suaviza o dia a dia)
+  setorPct: 1.5, // % no mês — comércio/serviços/indústria oscilam mais que o IBC-Br
 }
 
-const SERIES_CAMBIO = ["1", "21619", "21623", "21621"]
+const SERIES_CAMBIO = ["1", "21619", "21623", "21621", "BCE:CNY"]
+// Matérias-primas (FMI, mensal) e setores do IBGE (mensal) — variação mês a mês.
+const COMMODITIES = ["FMI:SOJA", "FMI:MILHO", "FMI:CAFE", "FMI:MINERIO"]
+const SETORES = ["IBGE:VAREJO", "IBGE:SERVICOS", "IBGE:INDUSTRIA"]
 const BRENT = "IPEA:BRENT"
 const SELIC = "432"
 const IPCA = "433"
@@ -151,6 +156,18 @@ export function detectarEventosSerie(serie: string, historico: PontoSerieEvento[
         out.push(evento(serie, "atividade_variacao", "fact", "economic", 40 + Math.abs(pct) * 15, atual, anterior, pct, ref("atividade_variacao")))
       }
     }
+    if (COMMODITIES.includes(serie) && anterior.valor) {
+      const pct = (dif / anterior.valor) * 100
+      if (Math.abs(pct) >= LIMIARES.commodityMes) {
+        out.push(evento(serie, "commodity_mes", "signal", "commodity", 35 + Math.abs(pct) * 3, atual, anterior, pct, `${serie.toLowerCase()}:commodity_mes:${atual.data}`))
+      }
+    }
+    if (SETORES.includes(serie) && anterior.valor) {
+      const pct = (dif / anterior.valor) * 100
+      if (Math.abs(pct) >= LIMIARES.setorPct) {
+        out.push(evento(serie, "setor_variacao", "fact", "economic", 40 + Math.abs(pct) * 10, atual, anterior, pct, `${serie.toLowerCase()}:setor_variacao:${atual.data}`))
+      }
+    }
   }
 
   // IPCA olha o valor do mês em si (variação mensal já é o dado), não a diferença.
@@ -182,7 +199,27 @@ const NOME_SERIE: Record<string, Record<Lang, string>> = {
   "24369": { pt: "Desemprego", en: "Unemployment", es: "Desempleo" },
   "24363": { pt: "Atividade econômica (IBC-Br)", en: "Economic activity (IBC-Br)", es: "Actividad económica (IBC-Br)" },
   "IPEA:BRENT": { pt: "Petróleo Brent", en: "Brent crude", es: "Petróleo Brent" },
+  "BCE:CNY": { pt: "Yuan", en: "Chinese yuan", es: "Yuan" },
+  "FMI:SOJA": { pt: "Soja", en: "Soybeans", es: "Soja" },
+  "FMI:MILHO": { pt: "Milho", en: "Corn", es: "Maíz" },
+  "FMI:CAFE": { pt: "Café", en: "Coffee", es: "Café" },
+  "FMI:MINERIO": { pt: "Minério de ferro", en: "Iron ore", es: "Mineral de hierro" },
+  "IBGE:VAREJO": { pt: "Vendas do comércio", en: "Retail sales", es: "Ventas del comercio" },
+  "IBGE:SERVICOS": { pt: "Setor de serviços", en: "Services sector", es: "Sector servicios" },
+  "IBGE:INDUSTRIA": { pt: "Produção industrial", en: "Industrial output", es: "Producción industrial" },
 }
+export const nomeSerie = (serie: string, lang: Lang) => NOME_SERIE[serie]?.[lang] ?? serie
+// Quem publica a série (pelo prefixo do código; sem prefixo = SGS do Banco Central).
+export function fonteDaSerie(serie: string, lang: Lang): string {
+  const T = (pt: string, en: string, es: string) => (lang === "pt" ? pt : lang === "en" ? en : es)
+  if (serie.startsWith("IPEA:")) return T("IPEA (dado da EIA, EUA)", "IPEA (EIA data, US)", "IPEA (dato de la EIA, EE. UU.)")
+  if (serie.startsWith("BCE:")) return T("Banco Central Europeu", "European Central Bank", "Banco Central Europeo")
+  if (serie.startsWith("FMI:")) return T("FMI", "IMF", "FMI")
+  if (serie.startsWith("IBGE:")) return "IBGE"
+  return T("Banco Central do Brasil", "Central Bank of Brazil", "Banco Central de Brasil")
+}
+// Unidade de preço das matérias-primas do FMI, pro texto do evento.
+const UNIDADE_FMI: Record<string, string> = { "FMI:SOJA": "US$/t", "FMI:MILHO": "US$/t", "FMI:CAFE": "US¢/lb", "FMI:MINERIO": "US$/t" }
 
 const num = (n: number, casas: number, lang: Lang) =>
   n.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })
@@ -195,7 +232,7 @@ export function textoEvento(p: PayloadEvento, lang: Lang): { titulo: string; des
 
   switch (p.regra) {
     case "fx_5d": {
-      const casas = p.serie === "21621" ? 4 : 2
+      const casas = p.serie === "21621" || p.serie === "BCE:CNY" ? 4 : 2
       return {
         titulo: sobe
           ? T(`${nome} dispara ${num(abs, 1, lang)}% em 5 dias`, `${nome} jumps ${num(abs, 1, lang)}% in 5 days`, `${nome} sube ${num(abs, 1, lang)}% en 5 días`)
@@ -267,6 +304,30 @@ export function textoEvento(p: PayloadEvento, lang: Lang): { titulo: string; des
           `IBC-Br, a prévia mensal do PIB feita pelo Banco Central, foi de ${num(p.valor_anterior, 1, lang)} para ${num(p.valor_atual, 1, lang)} pontos.`,
           `IBC-Br, the Central Bank's monthly GDP proxy, moved from ${num(p.valor_anterior, 1, lang)} to ${num(p.valor_atual, 1, lang)} points.`,
           `El IBC-Br, la estimación mensual del PIB del Banco Central, pasó de ${num(p.valor_anterior, 1, lang)} a ${num(p.valor_atual, 1, lang)} puntos.`,
+        ),
+      }
+    case "commodity_mes": {
+      const u = UNIDADE_FMI[p.serie] ?? "US$"
+      return {
+        titulo: sobe
+          ? T(`${nome} dispara ${num(abs, 1, lang)}% no mês`, `${nome} jumps ${num(abs, 1, lang)}% in the month`, `${nome} sube ${num(abs, 1, lang)}% en el mes`)
+          : T(`${nome} cai ${num(abs, 1, lang)}% no mês`, `${nome} drops ${num(abs, 1, lang)}% in the month`, `${nome} cae ${num(abs, 1, lang)}% en el mes`),
+        descricao: T(
+          `Preço internacional médio foi de ${num(p.valor_anterior, 2, lang)} para ${num(p.valor_atual, 2, lang)} ${u} (fonte: FMI). Mexe com quem compra, processa ou exporta.`,
+          `Average international price moved from ${num(p.valor_anterior, 2, lang)} to ${num(p.valor_atual, 2, lang)} ${u} (source: IMF). Affects buyers, processors and exporters.`,
+          `El precio internacional medio pasó de ${num(p.valor_anterior, 2, lang)} a ${num(p.valor_atual, 2, lang)} ${u} (fuente: FMI). Afecta a quien compra, procesa o exporta.`,
+        ),
+      }
+    }
+    case "setor_variacao":
+      return {
+        titulo: sobe
+          ? T(`${nome} avança ${num(abs, 1, lang)}% no mês`, `${nome} grows ${num(abs, 1, lang)}% in the month`, `${nome} avanza ${num(abs, 1, lang)}% en el mes`)
+          : T(`${nome} recua ${num(abs, 1, lang)}% no mês`, `${nome} falls ${num(abs, 1, lang)}% in the month`, `${nome} retrocede ${num(abs, 1, lang)}% en el mes`),
+        descricao: T(
+          `Índice do IBGE (com ajuste sazonal) foi de ${num(p.valor_anterior, 1, lang)} para ${num(p.valor_atual, 1, lang)} pontos.`,
+          `IBGE index (seasonally adjusted) moved from ${num(p.valor_anterior, 1, lang)} to ${num(p.valor_atual, 1, lang)} points.`,
+          `El índice del IBGE (con ajuste estacional) pasó de ${num(p.valor_anterior, 1, lang)} a ${num(p.valor_atual, 1, lang)} puntos.`,
         ),
       }
   }

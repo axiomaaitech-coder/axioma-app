@@ -9,7 +9,7 @@ import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
-import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, SERIE_BRENT } from '@/lib/nexusFontesMundo'
+import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirYuan, ingerirCommodities, ingerirIbge, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -299,6 +299,9 @@ export async function GET(request: NextRequest) {
   const mundo: Record<string, string> = {}
   try { mundo.brent = await ingerirBrent(supabase) } catch (err) { mundo.brent = `erro: ${err instanceof Error ? err.message : String(err)}` }
   try { mundo.bancoMundial = await ingerirBancoMundial(supabase) } catch (err) { mundo.bancoMundial = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  try { mundo.yuan = await ingerirYuan(supabase) } catch (err) { mundo.yuan = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  try { mundo.commodities = await ingerirCommodities(supabase) } catch (err) { mundo.commodities = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  try { mundo.ibge = await ingerirIbge(supabase) } catch (err) { mundo.ibge = `erro: ${err instanceof Error ? err.message : String(err)}` }
   try { mundo.gdelt = await ingerirGdelt(supabase) } catch (err) { mundo.gdelt = `erro: ${err instanceof Error ? err.message : String(err)}` }
   // Etapa 9 — confere as previsões do José com prazo vencido (dado do dia já coletado).
   const previsoes = await conferirPrevisoes(supabase)
@@ -358,6 +361,14 @@ async function preGerarAnalisesJoseph(supabase: SupabaseClient): Promise<{ gerad
 // da ingestão, só vira log/Sentry e aparece no resumo.
 const PONTOS_DETECCAO = 60
 
+// Série de outra fonte → URL oficial usada como evidência do evento.
+const SERIES_EXTERNAS = new Map<string, string>([
+  [SERIE_BRENT, "http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='EIA366_PBRENT366')"],
+  [SERIE_YUAN, 'https://data.ecb.europa.eu/data/datasets/EXR'],
+  ...COMMODITIES_FMI.map((c) => [c.codigo, 'https://data.imf.org/en/datasets/IMF.RES:PCPS'] as [string, string]),
+  ...SERIES_IBGE.map((s) => [s.codigo, `https://servicodados.ibge.gov.br/api/v3/agregados/${s.q}`] as [string, string]),
+])
+
 async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string, catalogo: SerieCatalogo[]): Promise<{ detectados: number; novos: number; erro?: string }> {
   try {
     const detectados: EventoDetectado[] = []
@@ -376,22 +387,25 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
       detectados.push(...detectarEventosSerie(serie.serie_codigo, historico))
     }
 
-    // Petróleo Brent (IPEA) — outra fonte, mesmo detector; evento e evidência apontam pro IPEA.
-    const { data: brent } = await supabase
-      .from('nexus_economic_series')
-      .select('data_referencia, valor, source_id')
-      .eq('serie_codigo', SERIE_BRENT)
-      .order('data_referencia', { ascending: false })
-      .limit(PONTOS_DETECCAO)
-    const fonteBrent = (brent?.[0]?.source_id as string | undefined) ?? null
-    if (fonteBrent) {
-      const hist = (brent ?? []).filter((l) => l.valor != null).map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) }))
-      detectados.push(...detectarEventosSerie(SERIE_BRENT, hist))
+    // Séries de outras fontes (IPEA, BCE, FMI, IBGE) — mesmo detector; evento e evidência
+    // apontam pra fonte de origem, não pro BCB.
+    const fonteExterna = new Map<string, string>()
+    for (const [codigo] of SERIES_EXTERNAS) {
+      const { data: linhas } = await supabase
+        .from('nexus_economic_series')
+        .select('data_referencia, valor, source_id')
+        .eq('serie_codigo', codigo)
+        .order('data_referencia', { ascending: false })
+        .limit(PONTOS_DETECCAO)
+      const fonte = (linhas?.[0]?.source_id as string | undefined) ?? null
+      if (!fonte) continue
+      fonteExterna.set(codigo, fonte)
+      const hist = (linhas ?? []).filter((l) => l.valor != null).map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) }))
+      detectados.push(...detectarEventosSerie(codigo, hist))
     }
-    const fonteDoEvento = (e: EventoDetectado) => (e.subcategory === SERIE_BRENT && fonteBrent ? fonteBrent : sourceId)
-    const urlEvidencia = (e: EventoDetectado) => e.subcategory === SERIE_BRENT
-      ? "http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='EIA366_PBRENT366')"
-      : `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${e.subcategory}/dados?formato=json`
+    const fonteDoEvento = (e: EventoDetectado) => fonteExterna.get(e.subcategory) ?? sourceId
+    const urlEvidencia = (e: EventoDetectado) => SERIES_EXTERNAS.get(e.subcategory)
+      ?? `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${e.subcategory}/dados?formato=json`
 
     if (detectados.length === 0) return { detectados: 0, novos: 0 }
 

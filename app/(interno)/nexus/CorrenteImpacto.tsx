@@ -4,7 +4,7 @@
 // grátis) — não é fato nem previsão; o tamanho do efeito fica com o simulador.
 import { Fragment } from 'react'
 import { motion } from 'framer-motion'
-import type { PayloadEvento, RegraEvento } from '../../../lib/nexusEventDetector'
+import { nomeSerie, type PayloadEvento, type RegraEvento } from '../../../lib/nexusEventDetector'
 
 type Lang = 'pt' | 'en' | 'es'
 type Nome3 = [string, string, string]
@@ -63,6 +63,25 @@ const CORRENTES: Record<RegraEvento, { elos: Elo[]; nota?: Nome3 }> = {
       MARGEM,
     ],
   },
+  // 1º elo troca pelo nome da série (soja, café, comércio...) em elosDoEvento.
+  commodity_mes: {
+    elos: [
+      { icone: '🌾', nome: ['Matéria-prima', 'Raw material', 'Materia prima'], sinal: 1 },
+      { icone: '📦', nome: ['Insumos e produtos que dependem dela', 'Inputs and goods that depend on it', 'Insumos y productos que dependen de ella'], sinal: 1 },
+      { icone: '🏭', nome: ['Custo da sua empresa', 'Your company’s cost', 'Costo de su empresa'], sinal: 1 },
+      { ...MARGEM, sinal: -1 },
+    ],
+    nota: ['Se você produz, vende ou exporta essa matéria-prima, o efeito se inverte: a receita sobe junto. O Brasil é grande exportador de soja, café e minério.', 'If you produce, sell or export this commodity, the effect flips: revenue rises too. Brazil is a major exporter of soy, coffee and iron ore.', 'Si produce, vende o exporta esta materia prima, el efecto se invierte: el ingreso también sube. Brasil es gran exportador de soja, café y mineral de hierro.'],
+  },
+  setor_variacao: {
+    elos: [
+      { icone: '🏬', nome: ['Setor', 'Sector', 'Sector'], sinal: 1 },
+      { icone: '🛒', nome: ['Demanda por produtos e serviços', 'Demand for goods and services', 'Demanda de productos y servicios'], sinal: 1 },
+      { icone: '💰', nome: ['Suas vendas', 'Your sales', 'Sus ventas'], sinal: 1 },
+      MARGEM,
+    ],
+    nota: ['Vale mais para quem vende nesse mesmo setor ou fornece para ele.', 'Matters most if you sell in this sector or supply it.', 'Vale más para quien vende en ese sector o le provee.'],
+  },
   atividade_variacao: {
     elos: [
       { icone: '🏗️', nome: ['Atividade econômica', 'Economic activity', 'Actividad económica'], sinal: 1 },
@@ -78,7 +97,11 @@ function elosDoEvento(payload: PayloadEvento) {
   const corrente = CORRENTES[payload.regra]
   if (!corrente) return null
   let dir = payload.direcao === 'alta' ? 1 : -1
-  return { ...corrente, elos: corrente.elos.map((e) => ({ ...e, sobe: (dir *= e.sinal) > 0 })) }
+  const elos = corrente.elos.map((e) => ({ ...e, sobe: (dir *= e.sinal) > 0 }))
+  if (payload.regra === 'commodity_mes' || payload.regra === 'setor_variacao') {
+    elos[0] = { ...elos[0], nome: [nomeSerie(payload.serie, 'pt'), nomeSerie(payload.serie, 'en'), nomeSerie(payload.serie, 'es')] }
+  }
+  return { ...corrente, elos }
 }
 
 // Versão de bolso pro card do Radar: só os ícones + a seta da margem.
