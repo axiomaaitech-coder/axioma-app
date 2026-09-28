@@ -14,6 +14,7 @@ import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
+import { CorrenteImpacto } from './CorrenteImpacto'
 import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
@@ -748,6 +749,7 @@ export default function NexusPage() {
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>
                   )}
                 </div>
+                {ev.payload && <CorrenteImpacto payload={ev.payload} lang={lang} temaClaro={temaClaro} fundo={NESTED_BG} borda={NESTED_BORDA} />}
                 {ev.payload && variaveisDoEvento(ev.payload.serie, ev.payload.variacao) && (
                   <Link
                     href={`/nexus/simulacoes?serie=${encodeURIComponent(ev.payload.serie)}&variacao=${ev.payload.variacao}&titulo=${encodeURIComponent(texto.titulo)}`}
