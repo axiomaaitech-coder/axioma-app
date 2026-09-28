@@ -84,6 +84,7 @@ Regras invioláveis:
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável. Não recomende compra/venda de investimento específico.
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
+- Escreva em texto simples (a tela não lê markdown): nada de **, #, tabelas ou crases; listas com "1." ou "-" em linhas separadas; parágrafos curtos.
 - ${AVISO_IDENTIDADE}`
 
 const REGRA_ROTINA = `- Você responde perguntas DIRETAS e rápidas (um número, uma data, uma definição) em até 4 frases. Se a pergunta pedir análise, diagnóstico, comparação, plano ou recomendação que exija raciocínio sobre vários números, responda APENAS ${SINAL_ESCALAR} e nada mais.`
