@@ -1323,6 +1323,10 @@ Medido no Chrome logado: (1) funções da Vercel rodavam em Washington (iad1) co
 ## 3-BQ. Nexus — José calibra pelo próprio placar (2026-09-27)
 Painel diário (PT) recebe "SEU PLACAR ATÉ AQUI" por série × prazo e regra de calibração (confiança nunca acima da taxa de acerto com 5+ conferidas). Chat recebe o mesmo placar e responde "dá pra confiar?" com os números, inclusive erros. Régua resumirPlacar em lib/nexusPrevisoes.ts (self-check no mesmo script). Elias decidiu: Supabase Pro antes dos primeiros clientes.
 
+## 3-BR. Nexus — conferência no ar do que faltava do José (2026-09-27)
+Conferido no Chrome logado: SQL da Etapa 9 rodado (placar com 12 previsões aguardando, 1ª conferência 28/10/26); chat responde "dá pra confiar?" com o placar real (honesto: nada conferido ainda). GDELT ainda não aparece em Saúde das fontes porque o cron de hoje (06:33) rodou antes do deploy — roda sozinho no próximo cron. **Corrigido:** Saúde das fontes mostrava InfoMoney/Agência Senado como "sem nenhuma coleta" mesmo com o feed respondendo (só marcava sucesso de quem entrava no corte do canal) — agora marca ao ler o feed.
+**Falta do José:** confirmar GDELT após o próximo cron; esperar o placar (28/10); trava por plano pago (fica pro final).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

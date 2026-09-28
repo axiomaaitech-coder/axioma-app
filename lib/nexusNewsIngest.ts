@@ -213,6 +213,9 @@ export async function buscarEGravarFeeds(supabase: SupabaseClient, canal: string
     try {
       const itens = await buscarFeedRSS(feed.url)
       algumFeedOk = true
+      // Feed respondeu = fonte funcionando, mesmo que nenhuma manchete dela
+      // entre no corte do canal (antes InfoMoney/Senado ficavam "sem coleta").
+      await garantirFonte(supabase, feed.fonte)
       for (const it of itens) brutos.push({ ...it, fonte: feed.fonte })
     } catch (err) {
       // Isolado por feed — um feed fora do ar não derruba o canal inteiro.
