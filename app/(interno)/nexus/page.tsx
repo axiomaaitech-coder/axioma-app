@@ -252,6 +252,22 @@ export default function NexusPage() {
   }
   useEffect(() => { carregarEventos(0) }, [])
 
+  // Coleta pela visita: se a última tem mais de 3h, o servidor coleta de novo
+  // (sem IA) e a tela recarrega os números em silêncio quando termina.
+  useEffect(() => {
+    fetch('/api/nexus/atualizar', { method: 'POST' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(async (j: { atualizou?: boolean } | null) => {
+        if (!j?.atualizou) return
+        obterEconomiaMundial().then(setMundo).catch(() => {})
+        const { indicadores: dados, erro } = await obterIndicadoresNexus()
+        if (!erro) setIndicadores(dados)
+        carregarEventos(0)
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Vindo do card flutuante (Radar Global): /nexus?evento=<id> abre direto no modal.
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('evento')

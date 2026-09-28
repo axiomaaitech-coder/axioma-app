@@ -1351,6 +1351,9 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 **Tesouro Nacional: fora** — só existe arquivo completo de 14 MB (sem consulta filtrada gratuita); Selic/inflação já cobrem juros.
 **Falta do Nexus:** coleta mais de 1x por dia (Vercel Hobby = 1 cron/dia).
 
+## 3-BW. Nexus — coleta pela visita (2026-09-28)
+Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não dá pra ver; trocar exigiria redeploy) — agendamento do GitHub criado e removido. Solução: **coleta pela visita** — POST /api/nexus/atualizar (só logado): se o último sucesso do BCB tem mais de 3h, roda a mesma coleta do cron **sem IA** (sem análises/painel) e a tela recarrega os números em silêncio. Lógica da coleta movida pra lib/nexusColeta.ts (executarColeta({ comIA })); a rota do cron ficou só com a checagem do CRON_SECRET. Limite: sem visita, sem coleta extra (o cron das 6h continua).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
