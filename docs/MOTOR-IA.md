@@ -5,7 +5,7 @@
 | Documento | Especificação técnica e operacional |
 | Sistema | Axioma AI.Tech — CFO digital |
 | Versão do motor | `motor-ia-1` |
-| Status | Fases 1 e 2 concluídas; fases 3 a 7 em andamento |
+| Status | Fases 1, 2 e 5 concluídas; fases 3, 4, 6 e 7 em andamento |
 | Responsável pelo produto | Elias Tavares (CEO) |
 | Última atualização | 2026-09-28 |
 
@@ -97,7 +97,7 @@ A parte fixa do prompt (regras) e a parte da empresa (retrato, setor e manuais) 
 | 2 | Triagem, executores, escalonamento, conferência, rota `/api/ia/motor`, auditoria, testes | ✅ 2026-09-28 |
 | 3 | Ferramentas de consulta (a IA pede o detalhe: maiores contas, fornecedores, clientes, itens de estoque), desenhadas para virar MCP depois | ⏳ |
 | 4 | Aprofundar os manuais por setor e área com exemplos de boa resposta | ⏳ |
-| 5 | IA Financeira e IA Tributária ligadas no motor | ⏳ |
+| 5 | IA Financeira e IA Tributária ligadas no motor (+ comparação de regimes em pergunta tributária) | ✅ 2026-09-28 — conferido no site |
 | 6 | Chat do José, Contas a Pagar, Fornecedores, Centro de Custos, Tesouraria, MEI | ⏳ |
 | 7 | Conjunto de perguntas-padrão por setor + painel de custo e qualidade | ⏳ |
 
@@ -108,3 +108,4 @@ Funções que vêm depois e usam o motor como base: **nota fiscal inteligente** 
 | Data | Versão | Mudança |
 |---|---|---|
 | 2026-09-28 | motor-ia-1 | Fases 1 e 2: setores, manuais, retrato, triagem, executores, escalonamento, conferência, rota e auditoria. Plano do José passa a usar o retrato e o imposto calculado no servidor (antes vinha do navegador). |
+| 2026-09-28 | motor-ia-1 | Fase 5: IA Financeira e IA Tributária usando o motor (conferido no site: resposta com números do retrato, custos pelo nome, alerta principal). Respostas em texto simples (as telas não leem markdown). |
