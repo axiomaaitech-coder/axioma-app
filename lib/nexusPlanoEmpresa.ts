@@ -127,7 +127,7 @@ export async function coletarEmpresa(supabase: SupabaseClient, empresaId: string
   }
   const e = emp.data as Record<string, unknown>
   const ramo = ramoDoCnae(e.cnae_principal as string | null)
-  const texto = `EMPRESA: ${e.nome_fantasia || e.razao_social || e.nome || 'sem nome'}${e.regime_tributario ? ` — regime ${e.regime_tributario}` : ''}${e.porte ? ` — porte ${e.porte}` : ''}${e.cnae_principal ? ` — CNAE ${e.cnae_principal}${e.cnae_descricao ? ` (${e.cnae_descricao})` : ''}` : ''}
+  const texto = `EMPRESA: ${e.nome_fantasia || e.razao_social || e.nome || 'sem nome'}${e.regime_tributario ? ` — regime ${e.regime_tributario}` : ''}${e.porte ? ` — porte ${e.porte}` : ''}${e.setor ? ` — setor ${e.setor}` : ''}${e.cnae_principal ? ` — CNAE ${e.cnae_principal}${e.cnae_descricao ? ` (${e.cnae_descricao})` : ''}` : ''}
 ${ramo ? `RAMO: ${ramo.nome} — indicadores que mais pesam nele: ${ramo.series.map((c) => nomeSerie(c, 'pt')).join(', ')}` : 'RAMO: CNAE não cadastrado — trate como empresa típica e liste isso nas limitações'}
 NÚMEROS CALCULADOS (médias dos últimos 12 meses):
 - Receita média: ${fBRL(receitaMensal)}/mês
