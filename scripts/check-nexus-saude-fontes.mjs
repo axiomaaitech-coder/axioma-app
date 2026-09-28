@@ -23,9 +23,11 @@ assert.equal(concordanciaPct(5.20, 5.25), 80)
 assert.equal(concordanciaPct(5.00, 5.30), 40)
 console.log('OK — nota de confiança da fonte')
 
-// Pausa: só quem falha há mais de 1 dia (ou nunca funcionou); volta a tentar 6h depois da última falha
+// Pausa: só quem funcionava e falha há mais de 1 dia; volta a tentar 6h depois da última falha
 assert.equal(fonteEmPausa('2026-09-27T06:00:00Z', null, agora), false)
 assert.equal(fonteEmPausa('2026-09-26T06:00:00Z', '2026-09-27T06:00:00Z', agora), false) // falhou há pouco: tenta
-assert.equal(fonteEmPausa(null, new Date(agora.getTime() - 2 * 3600000).toISOString(), agora), true) // nunca funcionou, falhou há 2h: espera
-assert.equal(fonteEmPausa(null, new Date(agora.getTime() - 7 * 3600000).toISOString(), agora), false) // 7h depois: tenta de novo
+const h = (n) => new Date(agora.getTime() - n * 3600000).toISOString()
+assert.equal(fonteEmPausa(null, h(1), agora), false) // nunca funcionou: tenta sempre
+assert.equal(fonteEmPausa(h(48), h(2), agora), true) // fora há 2 dias, falhou há 2h: espera
+assert.equal(fonteEmPausa(h(48), h(7), agora), false) // 7h depois: tenta de novo
 console.log('OK — pausa automática')
