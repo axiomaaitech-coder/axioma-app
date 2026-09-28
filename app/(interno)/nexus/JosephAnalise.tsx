@@ -92,7 +92,7 @@ function JosephPensando({ lang, temaClaro }: { lang: Lang; temaClaro: boolean })
             className="text-sm font-bold"
             style={{ color: TXT }}
           >
-            {L3(atual.texto)}{atual.paises ? <> <span style={{ color: ACENTO }}>{L3(PAISES[pais])}</span></> : null}
+            {L3(atual.texto)}{atual.paises ? <> <span style={{ color: temaClaro ? '#122b54' : ACENTO }}>{L3(PAISES[pais])}</span></> : null}
             <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.2, repeat: Infinity }}>…</motion.span>
           </motion.p>
         </AnimatePresence>
@@ -189,7 +189,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
                   const d = DIRECAO[s.direcao] ?? DIRECAO.misto
                   return (
                     <li key={i} className="text-xs leading-relaxed" style={{ color: TXT }}>
-                      <span className="font-bold" style={{ color: cor(d) }}>{d.simbolo} {s.setor}:</span> {s.efeito}
+                      <span className="font-bold" style={temaClaro ? { background: cor(d), color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor(d) }}>{d.simbolo} {s.setor}:</span> {s.efeito}
                     </li>
                   )
                 })}
@@ -214,7 +214,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
                 return (
                   <div key={i} className="rounded-xl p-3" style={{ ...caixa, borderTop: `3px solid ${cor(t)}` }}>
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[11px] font-bold" style={{ color: cor(t) }}>{L3(t.nome)}</span>
+                      <span className="text-[11px] font-bold" style={temaClaro ? { background: cor(t), color: '#fff', padding: '1px 8px', borderRadius: 999 } : { color: cor(t) }}>{L3(t.nome)}</span>
                       <span className="text-[11px] font-bold" style={{ color: TIT }}>{p}%</span>
                     </div>
                     <div className="h-1.5 rounded-full mb-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(255,255,255,0.08)' }} role="img" aria-label={`${p}%`}>
@@ -237,7 +237,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
                   <li key={i} className="rounded-xl p-3" style={caixa}>
                     <p className="text-xs font-bold leading-snug" style={{ color: TIT }}>{i + 1}. {a.acao}</p>
                     <p className="text-[10px] mt-1" style={{ color: SEC }}>
-                      <span className="font-bold" style={{ color: cor(pr) }}>{L3(pr.nome)}</span> · {a.horizonte}
+                      <span className="font-bold" style={temaClaro ? { background: cor(pr), color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor(pr) }}>{L3(pr.nome)}</span> · {a.horizonte}
                     </p>
                   </li>
                 )

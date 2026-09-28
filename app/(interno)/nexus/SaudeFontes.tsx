@@ -61,7 +61,7 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
           <h2 className="text-base font-bold" style={{ color: TITULO }}>🩺 {L('Saúde das fontes', 'Source health', 'Salud de las fuentes')}</h2>
-          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
             {L('Confira se cada fonte oficial (Banco Central, IPEA, Banco Mundial, notícias) atualizou hoje. Se alguma falhar, o José avisa que o dado pode estar velho.',
               'Check whether each official source (Central Bank, IPEA, World Bank, news) updated today. If one fails, José warns the data may be old.',
               'Verifique si cada fuente oficial (Banco Central, IPEA, Banco Mundial, noticias) se actualizó hoy. Si alguna falla, José avisa que el dato puede estar viejo.')}

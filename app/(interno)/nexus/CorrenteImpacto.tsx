@@ -92,7 +92,7 @@ export function CorrenteMini({ payload, lang, temaClaro }: { payload: PayloadEve
   return (
     <p className="text-[11px] mt-2 leading-snug" style={{ color: SEC }} title={c.elos.map((e) => L(e.nome)).join(' → ')}>
       <span aria-hidden>{c.elos.slice(0, -1).map((e) => e.icone).join(' → ')} → </span>
-      <span className="font-bold" style={{ color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
+      <span className="font-bold" style={temaClaro ? { background: cor, color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
     </p>
   )
 }
@@ -126,10 +126,10 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
               <motion.li
                 initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.12, duration: 0.25 }}
                 className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg"
-                style={{ color: cor, border: `1px solid ${ultimo ? cor + '80' : borda}`, background: ultimo ? cor + '14' : 'transparent' }}
+                style={ultimo && temaClaro ? { color: '#fff', background: cor, border: `1px solid ${cor}` } : { color: cor, border: `1px solid ${ultimo ? cor + '80' : borda}`, background: ultimo ? cor + '14' : 'transparent' }}
               >
                 <span aria-hidden>{e.icone}</span>{L(e.nome)}
-                <span style={{ color: ultimo ? cor : SEC }} aria-label={e.sobe ? L(['sobe', 'rises', 'sube']) : L(['cai', 'falls', 'baja'])}>{e.sobe ? '▲' : '▼'}</span>
+                <span style={{ color: ultimo ? (temaClaro ? '#fff' : cor) : SEC }} aria-label={e.sobe ? L(['sobe', 'rises', 'sube']) : L(['cai', 'falls', 'baja'])}>{e.sobe ? '▲' : '▼'}</span>
               </motion.li>
             </Fragment>
           )

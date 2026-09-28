@@ -83,7 +83,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
   const dataFmt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
   const chipConfianca = (c: number): CSSProperties => {
     const cor = c >= 60 ? (temaClaro ? '#16a97d' : '#34d399') : c >= 40 ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#374151' : '#8aa4c2')
-    return { color: cor, border: `1px solid ${cor}80` }
+    return temaClaro ? { background: cor, color: '#fff', border: `1px solid ${cor}` } : { color: cor, border: `1px solid ${cor}80` }
   }
 
   return (
@@ -94,7 +94,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
             <JosephAvatar tamanho={26} estado={estado === 'carregando' ? 'pensando' : 'parado'} />
             {L('Painel executivo do José', "José's executive briefing", 'Panel ejecutivo de José')}
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
             {L('Tudo o que mudou e o que fazer, resumido pelo José uma vez por dia a partir dos dados oficiais e das notícias coletadas.', 'Everything that changed and what to do, summarized by José once a day from official data and collected news.', 'Todo lo que cambió y qué hacer, resumido por José una vez al día a partir de datos oficiales y noticias recogidas.')}
           </p>
         </div>
@@ -113,7 +113,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
           <JosephAvatar tamanho={56} estado="pensando" />
           <div>
             <p className="text-sm font-bold" style={{ color: TITULO }}>{L('José preparando o painel de hoje…', "José preparing today's briefing…", 'José preparando el panel de hoy…')}</p>
-            <p className="text-xs mt-1" style={{ color: TEXTO, opacity: 0.8 }}>{L('Lendo indicadores, eventos e manchetes. Na primeira vez do dia leva até 1 minuto — depois fica pronto para todos.', 'Reading indicators, events and headlines. The first time each day takes up to a minute — then it is ready for everyone.', 'Leyendo indicadores, eventos y titulares. La primera vez del día tarda hasta un minuto — luego queda listo para todos.')}</p>
+            <p className="text-xs mt-1" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>{L('Lendo indicadores, eventos e manchetes. Na primeira vez do dia leva até 1 minuto — depois fica pronto para todos.', 'Reading indicators, events and headlines. The first time each day takes up to a minute — then it is ready for everyone.', 'Leyendo indicadores, eventos y titulares. La primera vez del día tarda hasta un minuto — luego queda listo para todos.')}</p>
           </div>
         </div>
       )}

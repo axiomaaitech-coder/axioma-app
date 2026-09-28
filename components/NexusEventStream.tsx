@@ -82,7 +82,7 @@ export default function NexusEventStream() {
         >
           <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
           <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: ACENTO }}>
+            <p className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>
               <Globe2 size={13} aria-hidden /> José · {L('Radar Global', 'Global Radar', 'Radar Global')}
             </p>
             <button onClick={fechar} aria-label={L('Fechar', 'Close', 'Cerrar')} className={`p-1 rounded-lg ${temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}>

@@ -7,7 +7,7 @@ import { traduzirFreshness, type EconomiaMundial as TipoEconomia, type PaisMundo
 
 type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
-const CARD = 'relative overflow-hidden rounded-2xl p-4 h-40 flex flex-col axi-card-premium3d'
+const CARD = 'relative overflow-hidden rounded-2xl p-4 min-h-40 flex flex-col axi-card-premium3d'
 
 const PAISES_CARD: { iso: string; bandeira: string; nome: [string, string, string] }[] = [
   { iso: 'CHN', bandeira: '🇨🇳', nome: ['China', 'China', 'China'] },
@@ -41,7 +41,7 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
     <section>
       <div className="mb-3 px-1">
         <h2 className="text-base font-bold" style={{ color: TITULO }}>🌐 {L('Economia mundial', 'World economy', 'Economía mundial')}</h2>
-        <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+        <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
           {L('Petróleo diário (IPEA/EIA) e crescimento e inflação dos principais parceiros do Brasil (Banco Mundial, dado anual).', 'Daily oil (IPEA/EIA) and growth and inflation of Brazil’s main partners (World Bank, annual data).', 'Petróleo diario (IPEA/EIA) y crecimiento e inflación de los principales socios de Brasil (Banco Mundial, dato anual).')}
         </p>
       </div>
@@ -66,7 +66,7 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
               {BARRA}
               <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{c.bandeira} {L(...c.nome)}</p>
               <p className="text-2xl font-black leading-none" style={{ color: TITULO }}>{pct(p?.pib ?? null, lang)}</p>
-              <p className="text-[11px] mt-1" style={{ color: TEXTO, opacity: 0.85 }}>{L('crescimento do PIB', 'GDP growth', 'crecimiento del PIB')}</p>
+              <p className="text-[11px] mt-1" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L('crescimento do PIB', 'GDP growth', 'crecimiento del PIB')}</p>
               <p className="text-xs mt-2" style={{ color: TEXTO }}>{L('Inflação', 'Inflation', 'Inflación')}: <span className="font-bold" style={{ color: TITULO }}>{pct(p?.inflacao ?? null, lang)}</span></p>
               <div className="flex items-center justify-between mt-auto">
                 <span className="text-[10px]" style={{ color: CINZA }}>{p?.ano ? `${L('ano', 'year', 'año')} ${p.ano} · Banco Mundial` : L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>

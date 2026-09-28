@@ -100,7 +100,7 @@ function sparklineOption(historico: PontoSerie[], cor: string, temaClaro: boolea
 // mesmo visual, sem duplicar JSX.
 // Mesma caixa dos cards de indicador (CARD_NEXUS) — as duas grades 2x4 da
 // tela ficam com a mesma largura e altura.
-const CARD_NEXUS = 'relative overflow-hidden rounded-2xl p-4 h-40 flex flex-col'
+const CARD_NEXUS = 'relative overflow-hidden rounded-2xl p-4 min-h-40 flex flex-col'
 // Faixa verde do efeito premium3d (aparece no hover) — em TODO card do Nexus, nos 2 temas.
 const BARRA_EFEITO = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 
@@ -181,7 +181,7 @@ export default function NexusPage() {
   const [montado, setMontado] = useState(false)
   useEffect(() => { setMontado(true) }, [])
   const naRaiz = (conteudo: ReactNode) => !montado ? null : createPortal(
-    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>,
+    <div data-theme={tema} className="nexus-escala" style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>,
     document.body,
   )
   const hoverCard = ' axi-card-premium3d'
@@ -345,7 +345,7 @@ export default function NexusPage() {
   }
 
   return (
-    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
+    <div data-theme={tema} className="nexus-escala" style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Nexus', 'Nexus', 'Nexus')}
       subtitulo={L('Inteligência econômica que atravessa toda a empresa — câmbio, juros e o cenário que move suas decisões.', "Economic intelligence that cuts across your whole company — FX, rates, and the backdrop shaping your decisions.", 'Inteligencia económica que atraviesa toda la empresa — cambio, tasas y el escenario que mueve sus decisiones.')}
@@ -434,7 +434,7 @@ export default function NexusPage() {
                 <Globe2 size={17} style={{ color: temaClaro ? '#16a97d' : CIANO }} aria-hidden />
                 José · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}
               </h2>
-              <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+              <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
                 {L('A inteligência mundial do seu CFO — mudanças relevantes nos indicadores oficiais, percebidas automaticamente. Clique num evento para ver a leitura do José.', "Your CFO's global intelligence — relevant changes in official indicators, picked up automatically. Click an event to see José's reading.", 'La inteligencia mundial de su CFO — cambios relevantes en los indicadores oficiales, detectados automáticamente. Haga clic en un evento para ver la lectura de José.')}
               </p>
             </div>

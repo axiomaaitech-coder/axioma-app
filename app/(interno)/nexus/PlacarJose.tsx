@@ -46,7 +46,7 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
           <h2 className="text-base font-bold" style={{ color: TITULO }}>🎯 {L('Placar do José', 'José’s scorecard', 'Marcador de José')}</h2>
-          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+          <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
             {L('Toda semana o José diz se dólar, euro, Selic, IPCA, desemprego e petróleo vão subir, cair ou ficar estáveis em 30 e 90 dias. Quando o prazo vence, conferimos com o dado oficial — assim você sabe quanto confiar nele.',
               'Every week José says whether the dollar, euro, Selic, IPCA, unemployment and oil will rise, fall or stay stable in 30 and 90 days. When the deadline arrives, we check it against official data — so you know how much to trust him.',
               'Cada semana José dice si el dólar, el euro, la Selic, el IPCA, el desempleo y el petróleo van a subir, bajar o quedarse estables en 30 y 90 días. Cuando vence el plazo, lo comparamos con el dato oficial — así sabe cuánto confiar en él.')}
@@ -88,7 +88,7 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
                   <p className="text-sm font-bold" style={{ color: TITULO }}>{nomeSerie(p.serie)} <span className="text-[11px] font-normal" style={{ color: CINZA }}>· {p.horizonte} {L('dias', 'days', 'días')}</span></p>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro ? { background: st.cor, color: st.sobre } : { background: `${st.cor}20`, color: st.cor }}>{L(...st.rotulo)}</span>
                 </div>
-                <p className="text-xs mt-1 font-bold" style={{ color: ACENTO }}>{L(...DIRECAO[p.direcao])}{p.confianca != null && <span className="font-normal" style={{ color: CINZA }}> · {L('confiança', 'confidence', 'confianza')} {p.confianca}%</span>}</p>
+                <p className="text-xs mt-1 font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>{L(...DIRECAO[p.direcao])}{p.confianca != null && <span className="font-normal" style={{ color: CINZA }}> · {L('confiança', 'confidence', 'confianza')} {p.confianca}%</span>}</p>
                 {p.motivo && <p className="text-[11px] mt-1" style={{ color: TEXTO }}>{p.motivo[lang]}</p>}
                 <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>
                   {L('Partida', 'Start', 'Partida')}: <span style={{ color: TEXTO }}>{num(p.valorBase)}</span> ({data(p.dataBase)})

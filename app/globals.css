@@ -225,3 +225,15 @@ body {
   .axi-beam-path { stroke-dasharray: none; opacity: .5; }
   .axi-meteor, .axi-falling-star { display: none; }
 }
+
+/* Nexus no tema Claro — escala de tema-tokens.md (seção 2): nada abaixo de
+   caption 12px; texto secundário body-sm 13px; título de seção h2 24px;
+   subtítulo h4 17px. Só no Claro e só onde a tela marca .nexus-escala — o
+   Escuro fica intocado. */
+[data-theme="xms"].nexus-escala .text-\[9px\],
+[data-theme="xms"].nexus-escala .text-\[10px\],
+[data-theme="xms"].nexus-escala .text-\[11px\] { font-size: 0.75rem; line-height: 1.4; }
+[data-theme="xms"].nexus-escala .text-xs { font-size: 0.8125rem; line-height: 1.5; }
+[data-theme="xms"].nexus-escala h2 { font-size: 1.5rem; line-height: 1.2; letter-spacing: -0.035em; }
+[data-theme="xms"].nexus-escala h3.text-sm,
+[data-theme="xms"].nexus-escala h4.text-sm { font-size: 1.0625rem; line-height: 1.35; }

@@ -105,7 +105,7 @@ export default function NexusSimulacoesPage() {
   const [confirmarExclusao, setConfirmarExclusao] = useState<SimulacaoSalva | null>(null)
   const [montado, setMontado] = useState(false)
   useEffect(() => { setMontado(true) }, [])
-  const naRaiz = (conteudo: ReactNode) => !montado ? null : createPortal(<div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>, document.body)
+  const naRaiz = (conteudo: ReactNode) => !montado ? null : createPortal(<div data-theme={tema} className="nexus-escala" style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>, document.body)
 
   useEffect(() => {
     (async () => {
@@ -219,7 +219,7 @@ export default function NexusSimulacoesPage() {
     : { background: ativo ? `${CIANO}25` : 'rgba(255,255,255,0.05)', color: ativo ? CIANO : CINZA, border: `1px solid ${ativo ? `${CIANO}50` : 'rgba(255,255,255,0.08)'}` }
 
   return (
-    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
+    <div data-theme={tema} className="nexus-escala" style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
       <ModuloLayout
         titulo={L('Minhas Simulações', 'My Simulations', 'Mis Simulaciones')}
         subtitulo={L('E se a economia mudar? Veja o efeito no lucro e no caixa da sua empresa, com os seus números reais.', 'What if the economy shifts? See the effect on your profit and cash, using your real numbers.', '¿Y si cambia la economía? Vea el efecto en su beneficio y caja, con sus números reales.')}
@@ -244,7 +244,7 @@ export default function NexusSimulacoesPage() {
             {/* PONTO DE PARTIDA */}
             <section>
               <h2 className="text-base font-bold mb-1" style={{ color: TITULO }}>{L('Sua empresa hoje', 'Your company today', 'Su empresa hoy')}</h2>
-              <p className="text-xs mb-3" style={{ color: TEXTO, opacity: 0.8 }}>{L('Média dos últimos 12 meses, puxada de Receitas, Custos, Dívidas e Fluxo de Caixa.', 'Last 12-month average, from Revenue, Costs, Debt and Cash Flow.', 'Promedio de los últimos 12 meses, de Ingresos, Costos, Deudas y Flujo de Caja.')}</p>
+              <p className="text-xs mb-3" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>{L('Média dos últimos 12 meses, puxada de Receitas, Custos, Dívidas e Fluxo de Caixa.', 'Last 12-month average, from Revenue, Costs, Debt and Cash Flow.', 'Promedio de los últimos 12 meses, de Ingresos, Costos, Deudas y Flujo de Caja.')}</p>
               {!ponto.temDados && <p className="text-xs mb-3 font-semibold" style={{ color: NEG }}>{L('Ainda não há receitas ou custos cadastrados — a simulação vai sair zerada.', 'No revenue or costs registered yet — the simulation will be empty.', 'Aún no hay ingresos o costos registrados — la simulación saldrá vacía.')}</p>}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[

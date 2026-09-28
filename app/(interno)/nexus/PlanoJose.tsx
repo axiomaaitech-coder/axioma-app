@@ -148,7 +148,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
   return (
     <div className="mt-3 rounded-xl p-3" style={{ background: temaClaro ? 'rgba(46,204,155,0.10)' : 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
       <p className="text-sm font-bold mb-0.5" style={{ color: TITULO }}>🔮 {L('Pergunte ao José: como sua empresa pode estar em…', 'Ask José: where could your company be in…', 'Pregunte a José: ¿cómo puede estar su empresa en…')}</p>
-      <p className="text-[11px] mb-2.5" style={{ color: TEXTO, opacity: 0.85 }}>
+      <p className="text-[11px] mb-2.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>
         {L('Ele lê o seu caixa e os seus custos, cruza com a economia do Brasil e do mundo e monta um plano para sobreviver, economizar e crescer.', 'He reads your cash and costs, cross-checks with the Brazilian and world economy and builds a plan to survive, save and grow.', 'Lee su caja y sus costos, cruza con la economía de Brasil y del mundo y arma un plan para sobrevivir, ahorrar y crecer.')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -159,7 +159,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
             <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
             <p className="text-lg leading-none mb-1">{h.emoji}</p>
             <p className="text-sm font-black" style={{ color: TITULO }}>{L3(h.titulo)}</p>
-            <p className="text-[11px]" style={{ color: TEXTO, opacity: 0.85 }}>{L3(h.sub)}</p>
+            <p className="text-[11px]" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L3(h.sub)}</p>
           </button>
         ))}
       </div>
@@ -191,7 +191,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
                     {L(`apaga em ${dias} dia(s)`, `deleted in ${dias} day(s)`, `se borra en ${dias} día(s)`)}
                   </span>
                   <span className="ml-auto flex gap-1.5">
-                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={{ color: ACENTO, border: `1px solid ${ACENTO}60` }}>{L('Abrir', 'Open', 'Abrir')}</button>
+                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={{ color: temaClaro ? '#122b54' : ACENTO, border: `1px solid ${ACENTO}` }}>{L('Abrir', 'Open', 'Abrir')}</button>
                     <button onClick={() => baixarPdfPlano(r, nomeHorizonte(p.horizonte), lang)} className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md" style={VERDE_SOLIDO}>
                       <FileDown size={11} aria-hidden />PDF
                     </button>
@@ -246,7 +246,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
                       <div className="flex gap-1 mt-3" aria-hidden>
                         {ETAPAS.map((_, i) => <span key={i} className="h-1 rounded-full transition-all" style={{ width: i === etapa ? 20 : 6, background: i <= etapa ? ACENTO : `${CINZA}40` }} />)}
                       </div>
-                      <p className="text-xs mt-3" style={{ color: TEXTO, opacity: 0.8 }}>{L('Uma análise completa leva até 1 minuto. Fica guardada pelo resto do dia.', 'A full analysis takes up to a minute. It stays saved for the rest of the day.', 'Un análisis completo tarda hasta un minuto. Queda guardado el resto del día.')}</p>
+                      <p className="text-xs mt-3" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>{L('Uma análise completa leva até 1 minuto. Fica guardada pelo resto do dia.', 'A full analysis takes up to a minute. It stays saved for the rest of the day.', 'Un análisis completo tarda hasta un minuto. Queda guardado el resto del día.')}</p>
                     </div>
                   )}
 
@@ -305,7 +305,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
                             <ul className="space-y-1.5">
                               {p.metas.map((m, i) => (
                                 <li key={i} className="text-xs" style={{ color: TEXTO }}>
-                                  <span className="font-bold" style={{ color: TITULO }}>{m.indicador}:</span> {m.hoje} → <span className="font-bold" style={{ color: ACENTO }}>{m.meta}</span> <span style={{ color: CINZA }}>({m.prazo})</span>
+                                  <span className="font-bold" style={{ color: TITULO }}>{m.indicador}:</span> {m.hoje} → <span className="font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>{m.meta}</span> <span style={{ color: CINZA }}>({m.prazo})</span>
                                 </li>
                               ))}
                             </ul>
@@ -315,7 +315,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
                             <ul className="space-y-1.5">
                               {p.gatilhos.map((g, i) => (
                                 <li key={i} className="text-xs leading-relaxed" style={{ color: TEXTO }}>
-                                  <span className="font-bold" style={{ color: TITULO }}>{L('Se', 'If', 'Si')}</span> {g.se} — <span className="font-bold" style={{ color: ACENTO }}>{L('então', 'then', 'entonces')}</span> {g.entao}
+                                  <span className="font-bold" style={{ color: TITULO }}>{L('Se', 'If', 'Si')}</span> {g.se} — <span className="font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>{L('então', 'then', 'entonces')}</span> {g.entao}
                                 </li>
                               ))}
                             </ul>
