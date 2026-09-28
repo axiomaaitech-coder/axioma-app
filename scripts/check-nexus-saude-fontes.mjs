@@ -11,3 +11,21 @@ assert.equal(calcularSaudeFonte(true, '2026-09-27T06:00:00Z', '2026-09-26T06:00:
 assert.equal(calcularSaudeFonte(true, '2026-09-26T06:00:00Z', '2026-09-27T06:00:00Z', agora), 'falhou')
 assert.equal(calcularSaudeFonte(true, '2026-09-25T06:00:00Z', null, agora), 'parada')
 console.log('ok — saúde das fontes')
+
+// Nota de confiança da fonte
+const { calcularConfiancaFonte, concordanciaPct, fonteEmPausa } = await import('../lib/nexusFreshness.ts')
+assert.equal(calcularConfiancaFonte('central_bank', '2026-09-27T06:00:00Z', null, 100, agora).nota, 98) // 47,5+30+20
+assert.equal(calcularConfiancaFonte('news_source', '2026-09-27T06:00:00Z', null, null, agora).nota, 76) // 30+30+16
+assert.equal(calcularConfiancaFonte('central_bank', '2026-09-26T06:00:00Z', '2026-09-27T06:00:00Z', null, agora).atualidade, 70) // falhou por último: -30
+assert.equal(calcularConfiancaFonte('international_org', null, '2026-09-27T06:00:00Z', null, agora).nota, 61) // nunca funcionou
+assert.equal(concordanciaPct(5.20, 5.21), 100)
+assert.equal(concordanciaPct(5.20, 5.25), 80)
+assert.equal(concordanciaPct(5.00, 5.30), 40)
+console.log('OK — nota de confiança da fonte')
+
+// Pausa: só quem falha há mais de 3 dias; volta a tentar a cada 3 dias
+assert.equal(fonteEmPausa('2026-09-27T06:00:00Z', null, agora), false)
+assert.equal(fonteEmPausa('2026-09-26T06:00:00Z', '2026-09-27T06:00:00Z', agora), false) // falhou há pouco: tenta
+const dias = [0, 1, 2].map((d) => fonteEmPausa(null, '2026-09-27T06:00:00Z', new Date(agora.getTime() + d * 86400000)))
+assert.equal(dias.filter((p) => !p).length, 1) // 1 tentativa a cada 3 dias
+console.log('OK — pausa automática')

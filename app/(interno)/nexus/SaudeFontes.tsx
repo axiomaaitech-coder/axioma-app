@@ -23,6 +23,8 @@ const SITE: Record<string, string> = {
   'Agência Senado': 'https://www12.senado.leg.br/noticias',
   'Currents': 'https://currentsapi.services/',
   'GDELT': 'https://www.gdeltproject.org/',
+  'Banco Central Europeu': 'https://data.ecb.europa.eu/',
+  'FMI': 'https://data.imf.org/',
 }
 
 const ROTULO: Record<SaudeFonte, [string, string, string]> = {
@@ -62,9 +64,9 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
         <div>
           <h2 className="text-base font-bold" style={{ color: TITULO }}>🩺 {L('Saúde das fontes', 'Source health', 'Salud de las fuentes')}</h2>
           <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.8 }}>
-            {L('Confira se cada fonte oficial (Banco Central, IPEA, Banco Mundial, notícias) atualizou hoje. Se alguma falhar, o José avisa que o dado pode estar velho.',
-              'Check whether each official source (Central Bank, IPEA, World Bank, news) updated today. If one fails, José warns the data may be old.',
-              'Verifique si cada fuente oficial (Banco Central, IPEA, Banco Mundial, noticias) se actualizó hoy. Si alguna falla, José avisa que el dato puede estar viejo.')}
+            {L('Confira se cada fonte oficial atualizou hoje e quanto dá pra confiar nela (quem publica, se está em dia e se bate com outra fonte oficial). Se uma cair, o sistema tenta de novo sozinho e usa a fonte reserva quando existe.',
+              'Check whether each official source updated today and how much to trust it (who publishes it, whether it is current and whether it matches another official source). If one fails, the system retries on its own and uses a backup source when there is one.',
+              'Verifique si cada fuente oficial se actualizó hoy y cuánto confiar en ella (quién la publica, si está al día y si coincide con otra fuente oficial). Si una falla, el sistema reintenta solo y usa la fuente de respaldo cuando existe.')}
           </p>
         </div>
         <button onClick={abrir} className="shrink-0 px-4 py-2 rounded-xl font-bold text-xs transition-all hover:scale-[1.02]"
@@ -98,6 +100,8 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                     </div>
                     <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
                     {f.ultimaFalha && <p className="text-[11px]" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
+                    {f.nota != null && <p className="text-[11px]" style={{ color: CINZA }}>{L('Confiança da fonte', 'Source confidence', 'Confianza de la fuente')}: <span className="font-bold" style={{ color: TITULO }}>{Math.round(f.nota)}/100</span></p>}
+                    {f.emPausa && <p className="text-[11px] font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar há mais de 3 dias, tenta de novo a cada 3 dias.', 'Paused: down for over 3 days, retries every 3 days.', 'En pausa: caída hace más de 3 días, reintenta cada 3 días.')}</p>}
                   </a>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { XMLParser } from 'fast-xml-parser'
+import { buscarComRetentativa } from './nexusRede'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — ingestão de notícia (RSS aberto, sem chave). Compartilhado
@@ -127,11 +128,11 @@ function resumoDeDescricao(html: string): string {
 }
 
 async function buscarFeedRSS(url: string): Promise<ItemFeed[]> {
-  const res = await fetch(url, {
+  // 1 nova tentativa curta: esta função também roda quando alguém abre a tela.
+  const res = await buscarComRetentativa(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AxiomaNexus/1.0; +https://axioma.ai.tech)' },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10000),
-  })
+    timeoutMs: 10000,
+  }, [1500])
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
   const xml = await res.text()

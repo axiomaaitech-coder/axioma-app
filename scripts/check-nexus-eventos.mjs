@@ -86,9 +86,11 @@ assert.match(textoEvento(varejo[0].payload, 'en').titulo, /Retail sales falls 1.
 console.log('OK — yuan, matérias-primas e setores do IBGE')
 
 // Leitores das fontes novas
-const { yuanEmReais, lerCsvFmi } = await import('../lib/nexusLeitoresFontes.ts')
+const { moedasEmReais, lerCsvFmi } = await import('../lib/nexusLeitoresFontes.ts')
 const csvBce = 'KEY,FREQ,CURRENCY,CURRENCY_DENOM,EXR_TYPE,EXR_SUFFIX,TIME_PERIOD,OBS_VALUE\nEXR.D.BRL.EUR.SP00.A,D,BRL,EUR,SP00,A,2026-09-25,5.9091\nEXR.D.CNY.EUR.SP00.A,D,CNY,EUR,SP00,A,2026-09-25,7.6551\nEXR.D.CNY.EUR.SP00.A,D,CNY,EUR,SP00,A,2026-09-26,7.7'
-assert.deepEqual(yuanEmReais(csvBce), [{ data: '2026-09-25', valor: 0.7719 }])
+const moedas = moedasEmReais(csvBce)
+assert.deepEqual(moedas.get('CNY'), [{ data: '2026-09-25', valor: 0.771917 }])
+assert.deepEqual(moedas.get('EUR'), [{ data: '2026-09-25', valor: 5.9091 }])
 const csvFmi = 'DATAFLOW,COUNTRY,INDICATOR,DATA_TRANSFORMATION,FREQUENCY,TIME_PERIOD,OBS_VALUE,X\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M08,449.04392,0,"texto, com vírgula"\nIMF.RES:PCPS(9.0.0),G001,PSOYB,USD,M,2026-M02,420,0'
 assert.deepEqual(lerCsvFmi(csvFmi).get('PSOYB'), [{ data: '2026-02-28', valor: 420 }, { data: '2026-08-31', valor: 449.04 }])
 console.log('OK — leitores BCE e FMI')

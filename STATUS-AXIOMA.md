@@ -1336,6 +1336,15 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 **Falta conferir no ar:** dados só aparecem depois do cron (6h) ou de "Run" manual no Vercel.
 **Falta do Nexus:** tentativa automática + fonte reserva + confirmação cruzada; nota de confiança automática; cota por fonte; coleta mais frequente; Tesouro/Comex/ANP/OCDE (só se grátis); setor da empresa no cruzamento.
 
+## 3-BU. Nexus — proteção contra falhas das fontes (2026-09-28)
+**Coleta reordenada:** "Run" do cron mostrou notícias de Moedas/Reforma sem rodar (Money Times parado, Senado nunca) — a coleta passava do limite de 300s porque a IA (análises + painel) vinha antes das notícias. Agora fontes mundiais + notícias rodam em paralelo e primeiro; limpeza e notas também antes da IA.
+**Nova tentativa:** lib/nexusRede.ts buscarComRetentativa (3 tentativas, espera 2s/5s; GDELT 6s/12s; RSS 1 extra de 1,5s) em BCB, IPEA, Banco Mundial, BCE, FMI, IBGE, GDELT e feeds.
+**Fonte reserva:** BCE agora traz dólar/euro/libra/iene (BCE:USD/EUR/GBP/JPY, R$ por unidade) além do yuan; card usa o BCE quando o BCB está 3+ dias atrás ("reserva BCE").
+**Confirmação cruzada:** evento de câmbio conferido com o BCE nas mesmas datas (mesma direção, diferença ≤1,5 p.p.) → confiança 99, 2ª evidência gravada, modal mostra "Confirmado também pelo Banco Central Europeu"; sem isso, "(uma fonte)".
+**Nota de confiança automática:** calcularConfiancaFonte (autoridade 50% + atualidade 30% + consistência 20%; consistência = dólar BCB × BCE) gravada em reliability/authority/freshness/evidence_score de nexus_source (colunas já existiam) — aparece em Saúde das fontes.
+**Pausa automática:** fonte mundial fora do ar há 3+ dias (ou que nunca funcionou) só é tentada a cada 3 dias; aparece em Saúde das fontes. Self-checks em check-nexus-eventos e check-nexus-saude-fontes. Sem SQL.
+**Pendente (dado, não código):** Currents é paga e segue cadastrada como ativa — desligar precisa de ok do Elias.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

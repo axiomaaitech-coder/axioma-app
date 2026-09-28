@@ -397,6 +397,7 @@ export default function NexusPage() {
                   <div className="flex items-center justify-between mt-auto">
                     <span className="text-[10px]" style={{ color: CINZA }}>
                       {ind.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData) : '—'}
+                      {ind.fonteReserva && <span title={L('O Banco Central do Brasil atrasou; valor do Banco Central Europeu (fonte reserva).', 'The Central Bank of Brazil is late; value from the European Central Bank (backup source).', 'El Banco Central de Brasil se atrasó; valor del Banco Central Europeo (fuente de respaldo).')}> · {L('reserva BCE', 'ECB backup', 'respaldo BCE')}</span>}
                     </span>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloFreshness(ind.freshness, fresh.cor, temaClaro)}>
                       {fresh.texto}
@@ -744,7 +745,13 @@ export default function NexusPage() {
                     {trava.texto}
                   </p>
                   {ev.confidence != null && (
-                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial', 'official series', 'serie oficial')}: ${fonteDaSerie(ev.payload?.serie ?? '', lang)}.`}</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial', 'official series', 'serie oficial')}: ${fonteDaSerie(ev.payload?.serie ?? '', lang)}${ev.payload?.confirmacao ? '' : ` ${L('(uma fonte)', '(single source)', '(una fuente)')}`}.`}</p>
+                  )}
+                  {ev.payload?.confirmacao && (
+                    <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: corTrava('oficial').texto }}>
+                      <ShieldCheck size={14} style={{ color: corTrava('oficial').icone }} aria-hidden />
+                      {L('Confirmado também pelo Banco Central Europeu', 'Also confirmed by the European Central Bank', 'Confirmado también por el Banco Central Europeo')}: {ev.payload.confirmacao.variacao.toLocaleString(localeData, { maximumFractionDigits: 1 })}% {L('no mesmo período', 'in the same period', 'en el mismo período')}
+                    </p>
                   )}
                   {ev.publicadoEm && (
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>

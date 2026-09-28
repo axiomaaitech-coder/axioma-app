@@ -3,13 +3,15 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as Sentry from '@sentry/nextjs'
 import crypto from 'crypto'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIngest'
-import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/nexusEventDetector'
-import { calcularFreshness } from '@/lib/nexusFreshness'
+import { detectarEventosSerie, textoEvento, confirmacaoCruzada, type EventoDetectado } from '@/lib/nexusEventDetector'
+import { RESERVA_BCE } from '@/lib/nexusLeitoresFontes'
+import { calcularFreshness, calcularConfiancaFonte, concordanciaPct, fonteEmPausa } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
-import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirYuan, ingerirCommodities, ingerirIbge, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
+import { buscarComRetentativa } from '@/lib/nexusRede'
+import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirMoedasBce, ingerirCommodities, ingerirIbge, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -206,7 +208,7 @@ export async function GET(request: NextRequest) {
     const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${serie.serie_codigo}/dados?formato=json&dataInicial=${dataInicial}&dataFinal=${dataFinal}`
 
     try {
-      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) })
+      const res = await buscarComRetentativa(url, { timeoutMs: 10000 })
       const httpStatus = res.status
       const bodyText = await res.text()
       const hash = crypto.createHash('sha256').update(bodyText).digest('hex')
@@ -295,14 +297,26 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fontes mundiais gratuitas (antes do detector, pra ele já ver o petróleo do dia).
-  const mundo: Record<string, string> = {}
-  try { mundo.brent = await ingerirBrent(supabase) } catch (err) { mundo.brent = `erro: ${err instanceof Error ? err.message : String(err)}` }
-  try { mundo.bancoMundial = await ingerirBancoMundial(supabase) } catch (err) { mundo.bancoMundial = `erro: ${err instanceof Error ? err.message : String(err)}` }
-  try { mundo.yuan = await ingerirYuan(supabase) } catch (err) { mundo.yuan = `erro: ${err instanceof Error ? err.message : String(err)}` }
-  try { mundo.commodities = await ingerirCommodities(supabase) } catch (err) { mundo.commodities = `erro: ${err instanceof Error ? err.message : String(err)}` }
-  try { mundo.ibge = await ingerirIbge(supabase) } catch (err) { mundo.ibge = `erro: ${err instanceof Error ? err.message : String(err)}` }
-  try { mundo.gdelt = await ingerirGdelt(supabase) } catch (err) { mundo.gdelt = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  // Fontes mundiais gratuitas, em paralelo (cada uma isolada; antes do detector,
+  // pra ele já ver o dado do dia). Coleta e notícias vêm ANTES do José: a IA é a
+  // parte lenta e, se estourar os 300s, não pode levar a coleta junto.
+  // Pausa automática (lib/nexusFreshness.ts): fonte fora do ar há 3+ dias só é tentada a cada 3 dias.
+  const { data: fontesAntes } = await supabase.from('nexus_source').select('source_name, last_success, last_failure')
+  const tentar = (nome: string, f: () => Promise<string>) => {
+    const fonteAntes = fontesAntes?.find((x) => x.source_name === nome)
+    if (fonteAntes && fonteEmPausa(fonteAntes.last_success as string | null, fonteAntes.last_failure as string | null)) return Promise.resolve('em pausa (tenta a cada 3 dias)')
+    return f().catch((err) => `erro: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  const [brent, bancoMundial, yuan, commodities, ibge, gdelt, noticias] = await Promise.all([
+    tentar('IPEA Data', () => ingerirBrent(supabase)), tentar('Banco Mundial', () => ingerirBancoMundial(supabase)),
+    tentar('Banco Central Europeu', () => ingerirMoedasBce(supabase)), tentar('FMI', () => ingerirCommodities(supabase)),
+    tentar('IBGE Dados Abertos', () => ingerirIbge(supabase)), tentar('GDELT', () => ingerirGdelt(supabase)),
+    ingestaoNoticias(supabase),
+  ])
+  const mundo = { brent, bancoMundial, yuan, commodities, ibge, gdelt }
+  // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
+  const limpeza = await limparDadosVencidos(supabase)
+  const notasFontes = await atualizarNotasFontes(supabase)
   // Etapa 9 — confere as previsões do José com prazo vencido (dado do dia já coletado).
   const previsoes = await conferirPrevisoes(supabase)
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
@@ -311,11 +325,8 @@ export async function GET(request: NextRequest) {
   let painel: string
   try { painel = (await obterOuGerarBriefing(supabase, 'pt'))?.data ?? 'sem dados' }
   catch (err) { painel = err instanceof Error ? err.message : String(err); console.error('[nexus/ingest/bcb] Falha no painel executivo:', painel) }
-  const noticias = await ingestaoNoticias(supabase)
-  // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
-  const limpeza = await limparDadosVencidos(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, mundo, previsoes, eventos, joseph, painel, noticias, limpeza })
+  return NextResponse.json({ sucesso, falha, detalhes, mundo, previsoes, eventos, joseph, painel, noticias, limpeza, notasFontes })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
@@ -409,6 +420,21 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
 
     if (detectados.length === 0) return { detectados: 0, novos: 0 }
 
+    // Confirmação cruzada do câmbio: o BCE viu o mesmo movimento? Sobe a confiança
+    // pra 99 e grava a 2ª evidência (só evento novo, como a 1ª).
+    const fonteConfirma = new Map<string, string>()
+    for (const e of detectados) {
+      const bce = e.event_type === 'fx_5d' ? RESERVA_BCE[e.subcategory] : undefined
+      if (!bce) continue
+      const { data: outra } = await supabase.from('nexus_economic_series').select('data_referencia, valor, source_id')
+        .eq('serie_codigo', bce).order('data_referencia', { ascending: false }).limit(PONTOS_DETECCAO)
+      const pct = confirmacaoCruzada(e.payload, (outra ?? []).map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })))
+      if (pct == null) continue
+      e.payload.confirmacao = { fonte: 'BCE', variacao: pct }
+      e.confidence = 99
+      fonteConfirma.set(e.source_event_ref, outra![0].source_id as string)
+    }
+
     const refs = detectados.map((e) => e.source_event_ref)
     const { data: existentes, error: erroExistentes } = await supabase
       .from('nexus_global_event')
@@ -465,6 +491,18 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
           verification_status: 'official',
         }
       })
+    // 2ª evidência: a série do BCE que confirmou o movimento.
+    for (const g of gravados ?? []) {
+      const e = porRef.get(g.source_event_ref)!
+      const fonteBce = fonteConfirma.get(g.source_event_ref)
+      if (jaExiste.has(g.source_event_ref) || !fonteBce || !e.payload.confirmacao) continue
+      evidencias.push({
+        event_id: g.event_id, source_id: fonteBce, evidence_type: 'official_series',
+        referencia: 'https://data.ecb.europa.eu/data/datasets/EXR',
+        excerpt: `BCE (R$ por unidade, via euro): ${e.payload.confirmacao.variacao}% no mesmo período`,
+        published_at: `${e.data_ref}T00:00:00Z`, retrieved_at: agora, confidence: 99, verification_status: 'official',
+      })
+    }
     if (evidencias.length > 0) {
       const { error: erroEvidencia } = await supabase.from('nexus_event_evidence').insert(evidencias)
       if (erroEvidencia) throw new Error(`gravação de evidências: ${erroEvidencia.message}`)
@@ -484,6 +522,32 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
 // o resumo do BCB acima. FeedError('sem_resultado') é esperado sempre que o
 // filtro de palavra-chave (moedas/reforma-tributária) não achar nada nessa
 // rodada — não é uma falha de verdade, só não tinha manchete nova agora.
+// Nota de confiança de cada fonte (lib/nexusFreshness.ts calcularConfiancaFonte),
+// gravada nas colunas *_score de nexus_source. Consistência: dólar do BCB × dólar
+// do BCE na última data em comum. Melhor-esforço.
+async function atualizarNotasFontes(supabase: SupabaseClient): Promise<string> {
+  try {
+    const [{ data: fontes }, { data: bcb }, { data: bce }] = await Promise.all([
+      supabase.from('nexus_source').select('source_id, source_name, source_type, last_success, last_failure'),
+      supabase.from('nexus_economic_series').select('data_referencia, valor').eq('serie_codigo', '1').order('data_referencia', { ascending: false }).limit(10),
+      supabase.from('nexus_economic_series').select('data_referencia, valor').eq('serie_codigo', RESERVA_BCE['1']).order('data_referencia', { ascending: false }).limit(10),
+    ])
+    const comum = (bcb ?? []).find((l) => (bce ?? []).some((r) => r.data_referencia === l.data_referencia))
+    const par = comum ? (bce ?? []).find((r) => r.data_referencia === comum.data_referencia) : undefined
+    const concordancia = comum && par ? concordanciaPct(Number(comum.valor), Number(par.valor)) : null
+    for (const f of fontes ?? []) {
+      const c = calcularConfiancaFonte(f.source_type as string, f.last_success as string | null, f.last_failure as string | null,
+        f.source_name === 'BCB SGS' || f.source_name === 'Banco Central Europeu' ? concordancia : null)
+      await supabase.from('nexus_source').update({
+        reliability_score: c.nota, authority_score: c.autoridade, freshness_score: c.atualidade, evidence_score: c.consistencia,
+      }).eq('source_id', f.source_id)
+    }
+    return `${fontes?.length ?? 0} fontes; concordância dólar BCB×BCE: ${concordancia ?? 'sem data em comum'}`
+  } catch (err) {
+    return `erro: ${err instanceof Error ? err.message : String(err)}`
+  }
+}
+
 async function ingestaoNoticias(supabase: SupabaseClient): Promise<Record<string, string>> {
   const resultado: Record<string, string> = {}
   for (const canal of Object.keys(CANAIS_FONTES)) {

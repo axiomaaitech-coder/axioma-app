@@ -13,7 +13,8 @@ const supabase = createBrowserClient(
 );
 
 import { resumirPlacar } from "./nexusPrevisoes";
-import { calcularFreshness, calcularSaudeFonte, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
+import { calcularFreshness, calcularSaudeFonte, fonteEmPausa, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
+import { RESERVA_BCE, usarReserva } from "./nexusLeitoresFontes";
 export type { FreshnessStatus };
 
 export type PontoSerie = { data: string; valor: number };
@@ -28,6 +29,7 @@ export type IndicadorNexus = {
   formato: "moeda" | "percentual" | "indice";
   casas: number; // casas decimais na tela (iene precisa de 4, o resto 2)
   historico: PontoSerie[]; // ascendente por data, pro mini-gráfico
+  fonteReserva?: boolean; // true = BCB atrasou, valor veio do Banco Central Europeu
 };
 
 // CDI (12) continua no catálogo/ingestão, mas fora da tela: repete a Selic
@@ -70,9 +72,20 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
       )
     );
 
+    // Fonte reserva do câmbio: mesma moeda pelo Banco Central Europeu.
+    const { data: reserva } = await supabase
+      .from("nexus_economic_series")
+      .select("serie_codigo, valor, data_referencia, frequencia")
+      .in("serie_codigo", Object.values(RESERVA_BCE))
+      .order("data_referencia", { ascending: false })
+      .limit(Object.keys(RESERVA_BCE).length * PONTOS_HISTORICO);
+
     const algumErro = resultados.some((r) => r.error);
     const indicadores: IndicadorNexus[] = CATALOGO.map((c, i) => {
-      const linhas = resultados[i].data ?? [];
+      const doBce = RESERVA_BCE[c.codigo] ? (reserva ?? []).filter((l) => l.serie_codigo === RESERVA_BCE[c.codigo]) : [];
+      const principal = resultados[i].data ?? [];
+      const fonteReserva = usarReserva((principal[0]?.data_referencia as string) ?? null, (doBce[0]?.data_referencia as string) ?? null);
+      const linhas = fonteReserva ? doBce : principal;
       const maisRecente = linhas[0];
       const historico: PontoSerie[] = linhas
         .filter((l) => l.valor != null)
@@ -85,6 +98,7 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
         // recalculado agora, não o valor gravado na coleta (ver lib/nexusFreshness.ts)
         freshness: maisRecente?.data_referencia ? calcularFreshness(maisRecente.data_referencia as string, maisRecente.frequencia as string | null) : null,
         historico,
+        fonteReserva,
       };
     });
 
@@ -283,15 +297,18 @@ export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
 }
 
 // ─── Saúde das fontes (nexus_source, pública, só leitura) ───
-export type FonteSaude = { nome: string; tipo: string; ultimoSucesso: string | null; ultimaFalha: string | null; saude: SaudeFonte };
+export type FonteSaude = { nome: string; tipo: string; ultimoSucesso: string | null; ultimaFalha: string | null; saude: SaudeFonte; nota: number | null; emPausa: boolean };
 
 export async function obterSaudeFontes(): Promise<FonteSaude[]> {
-  const { data, error } = await supabase.from("nexus_source").select("source_name, source_type, active, last_success, last_failure").order("source_name");
+  const { data, error } = await supabase.from("nexus_source").select("source_name, source_type, active, last_success, last_failure, reliability_score").order("source_name");
   if (error) throw error;
   return (data ?? []).map((f) => ({
     nome: f.source_name as string, tipo: f.source_type as string,
     ultimoSucesso: f.last_success as string | null, ultimaFalha: f.last_failure as string | null,
     saude: calcularSaudeFonte(f.active as boolean, f.last_success as string | null, f.last_failure as string | null),
+    nota: f.reliability_score == null ? null : Number(f.reliability_score),
+    // Só as fontes mundiais entram em pausa (BCB e notícias sempre tentam).
+    emPausa: f.source_name !== "BCB SGS" && f.source_type !== "news_source" && fonteEmPausa(f.last_success as string | null, f.last_failure as string | null),
   }));
 }
 

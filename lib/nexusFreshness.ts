@@ -46,3 +46,42 @@ export function calcularSaudeFonte(ativa: boolean, ultimoSucesso: string | null,
   if (ultimaFalha && new Date(ultimaFalha).getTime() > ok) return "falhou"
   return agora.getTime() - ok <= 36 * 3600000 ? "ok" : "parada"
 }
+
+// ─── Nota de confiança da fonte (0-100), recalculada a cada coleta ───
+// autoridade (quem publica) 50% + atualidade (última coleta boa) 30% +
+// consistência (bate com outra fonte oficial?) 20%. Sem 2ª fonte pra
+// comparar, consistência neutra (80). Grava nas colunas *_score de nexus_source.
+const AUTORIDADE: Record<string, number> = {
+  central_bank: 95, statistics_api: 95, government_api: 90, regulatory_source: 90,
+  international_org: 90, public_dataset: 85, news_source: 60,
+}
+export type ConfiancaFonte = { nota: number; autoridade: number; atualidade: number; consistencia: number }
+
+export function calcularConfiancaFonte(
+  tipo: string, ultimoSucesso: string | null, ultimaFalha: string | null, concordancia: number | null = null, agora = new Date(),
+): ConfiancaFonte {
+  const autoridade = AUTORIDADE[tipo] ?? 70
+  const horas = ultimoSucesso ? (agora.getTime() - new Date(ultimoSucesso).getTime()) / 3600000 : Infinity
+  let atualidade = horas <= 36 ? 100 : horas <= 72 ? 70 : horas <= 168 ? 40 : ultimoSucesso ? 10 : 0
+  if (ultimaFalha && (!ultimoSucesso || new Date(ultimaFalha) > new Date(ultimoSucesso))) atualidade = Math.max(0, atualidade - 30)
+  const consistencia = concordancia ?? 80
+  return { nota: Math.round(autoridade * 0.5 + atualidade * 0.3 + consistencia * 0.2), autoridade, atualidade, consistencia }
+}
+
+// Diferença entre o mesmo dado em duas fontes oficiais → nota de consistência.
+export const concordanciaPct = (a: number, b: number) => {
+  const dif = Math.abs(a - b) / Math.abs(b) * 100
+  return dif <= 0.5 ? 100 : dif <= 1.5 ? 80 : 40
+}
+
+// ─── Pausa automática ───
+// Fonte que não funciona há mais de 3 dias (ou nunca funcionou) só é tentada a
+// cada 3 dias — não gasta tempo da coleta nem martela quem limita pedidos.
+export function fonteEmPausa(ultimoSucesso: string | null, ultimaFalha: string | null, agora = new Date()): boolean {
+  if (!ultimaFalha) return false
+  const falhando = !ultimoSucesso || new Date(ultimaFalha) > new Date(ultimoSucesso)
+  if (!falhando) return false
+  if (ultimoSucesso && agora.getTime() - new Date(ultimoSucesso).getTime() <= 3 * 86400000) return false
+  const dia = Math.floor(agora.getTime() / 86400000)
+  return dia % 3 !== 0
+}

@@ -10,7 +10,8 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcularFreshness } from './nexusFreshness'
-import { yuanEmReais, lerCsvFmi, fimDoMes, type Ponto } from './nexusLeitoresFontes'
+import { buscarComRetentativa } from './nexusRede'
+import { moedasEmReais, lerCsvFmi, fimDoMes, type Ponto } from './nexusLeitoresFontes'
 
 type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
@@ -39,7 +40,7 @@ export async function ingerirBrent(supabase: SupabaseClient): Promise<string> {
     endpoint: URL_BRENT, frequencia: 'daily', licenca: 'dados abertos (IPEA)',
   })
   try {
-    const res = await fetch(URL_BRENT, { cache: 'no-store', signal: AbortSignal.timeout(30000) })
+    const res = await buscarComRetentativa(URL_BRENT, { timeoutMs: 30000 })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const json = await res.json() as { value?: { VALDATA: string; VALVALOR: number | null }[] }
     const pontos = (json.value ?? []).filter((p) => p.VALVALOR != null).slice(-90)
@@ -83,7 +84,7 @@ export async function ingerirBancoMundial(supabase: SupabaseClient): Promise<str
   for (const ind of INDICADORES_BM) {
     try {
       const url = `https://api.worldbank.org/v2/country/${PAISES_BM.map((p) => p.iso).join(';')}/indicator/${ind.codigo}?format=json&mrv=4&per_page=200`
-      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+      const res = await buscarComRetentativa(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json() as [unknown, { countryiso3code: string; date: string; value: number | null }[] | null]
       const linhas = (json[1] ?? []).filter((p) => p.value != null).map((p) => {
@@ -123,24 +124,37 @@ async function gravarSerie(
   if (error) throw new Error(`${s.codigo}: ${error.message}`)
 }
 
-// ─── Yuan (Banco Central Europeu) ───
-// O BCB não publica o yuan; o BCE publica BRL e CNY contra o euro, todo dia útil.
-// R$ por yuan = (R$ por euro) ÷ (yuan por euro), na mesma data.
+// ─── Moedas pelo Banco Central Europeu ───
+// Yuan: o BCB não publica. Dólar, euro, libra e iene: 2ª fonte oficial, usada
+// como reserva (se o BCB atrasar) e pra confirmar movimento forte de câmbio.
+// O BCE publica tudo contra o euro; R$ por X = (R$/EUR) ÷ (X/EUR), mesma data.
 export const SERIE_YUAN = 'BCE:CNY'
-const URL_BCE = 'https://data-api.ecb.europa.eu/service/data/EXR/D.CNY+BRL.EUR.SP00.A?format=csvdata&lastNObservations=90'
+const MOEDAS_BCE: { moeda: string; nome: string; country: string }[] = [
+  { moeda: 'CNY', nome: 'Yuan chinês (R$ por yuan, via BCE)', country: 'CHN' },
+  { moeda: 'USD', nome: 'Dólar (R$ por dólar, via BCE — fonte reserva)', country: 'USA' },
+  { moeda: 'EUR', nome: 'Euro (R$ por euro, via BCE — fonte reserva)', country: 'EMU' },
+  { moeda: 'GBP', nome: 'Libra (R$ por libra, via BCE — fonte reserva)', country: 'GBR' },
+  { moeda: 'JPY', nome: 'Iene (R$ por iene, via BCE — fonte reserva)', country: 'JPN' },
+]
+const URL_BCE = 'https://data-api.ecb.europa.eu/service/data/EXR/D.CNY+BRL+USD+GBP+JPY.EUR.SP00.A?format=csvdata&lastNObservations=90'
 
-export async function ingerirYuan(supabase: SupabaseClient): Promise<string> {
+export async function ingerirMoedasBce(supabase: SupabaseClient): Promise<string> {
   const sourceId = await garantirFonte(supabase, {
     nome: 'Banco Central Europeu', tipo: 'central_bank', provedor: 'European Central Bank (ECB Data Portal)',
     endpoint: URL_BCE, frequencia: 'daily', licenca: 'reutilização livre com citação (BCE)',
   })
   try {
-    const res = await fetch(URL_BCE, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+    const res = await buscarComRetentativa(URL_BCE)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const pontos = yuanEmReais(await res.text())
-    await gravarSerie(supabase, sourceId, { codigo: SERIE_YUAN, nome: 'Yuan chinês (R$ por yuan, via BCE)', categoria: 'fx', country: 'CHN', moeda: 'BRL', unidade: 'R$', frequencia: 'diaria' }, pontos)
+    const series = moedasEmReais(await res.text())
+    let total = 0
+    for (const m of MOEDAS_BCE) {
+      const pontos = series.get(m.moeda) ?? []
+      await gravarSerie(supabase, sourceId, { codigo: `BCE:${m.moeda}`, nome: m.nome, categoria: 'fx', country: m.country, moeda: 'BRL', unidade: 'R$', frequencia: 'diaria' }, pontos)
+      total += pontos.length
+    }
     await marcar(supabase, sourceId, true)
-    return `${pontos.length} pontos`
+    return `${total} pontos`
   } catch (err) {
     await marcar(supabase, sourceId, false)
     return `erro: ${err instanceof Error ? err.message : String(err)}`
@@ -161,7 +175,7 @@ export async function ingerirCommodities(supabase: SupabaseClient): Promise<stri
     endpoint: 'https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS', frequencia: 'monthly', licenca: 'uso livre com citação (FMI)',
   })
   try {
-    const res = await fetch(urlFmi(), { cache: 'no-store', headers: { Accept: 'application/vnd.sdmx.data+csv;version=1.0.0' }, signal: AbortSignal.timeout(30000) })
+    const res = await buscarComRetentativa(urlFmi(), { headers: { Accept: 'application/vnd.sdmx.data+csv;version=1.0.0' }, timeoutMs: 30000 })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const series = lerCsvFmi(await res.text())
     let total = 0
@@ -195,7 +209,7 @@ export async function ingerirIbge(supabase: SupabaseClient): Promise<string> {
   const erros: string[] = []
   for (const s of SERIES_IBGE) {
     try {
-      const res = await fetch(`https://servicodados.ibge.gov.br/api/v3/agregados/${s.q}`, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+      const res = await buscarComRetentativa(`https://servicodados.ibge.gov.br/api/v3/agregados/${s.q}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json() as { resultados?: { series?: { serie?: Record<string, string> }[] }[] }[]
       const serie = json[0]?.resultados?.[0]?.series?.[0]?.serie ?? {}
@@ -237,7 +251,7 @@ export async function ingerirGdelt(supabase: SupabaseClient): Promise<string> {
   for (const [i, q] of CONSULTAS_GDELT.entries()) {
     if (i > 0) await new Promise((r) => setTimeout(r, 6000))
     try {
-      const res = await fetch(urlGdelt(q), { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+      const res = await buscarComRetentativa(urlGdelt(q), {}, [6000, 12000]) // limite do GDELT: 1 pedido a cada 5s
       const texto = await res.text()
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       // Estourou o limite ou não achou nada: GDELT devolve texto/objeto vazio, não erro HTTP.

@@ -27,6 +27,8 @@ export type PayloadEvento = {
   variacao: number // % pra câmbio/atividade, pontos (p.p.) pra Selic/desemprego, o próprio valor mensal pro IPCA
   data_ref: string
   data_ref_anterior: string
+  // 2ª fonte oficial viu o mesmo movimento (ex.: BCE confirma câmbio do BCB).
+  confirmacao?: { fonte: string; variacao: number }
 }
 
 export type EventoDetectado = {
@@ -183,6 +185,19 @@ export function detectarEventosSerie(serie: string, historico: PontoSerieEvento[
   }
 
   return out
+}
+
+// ─── Confirmação cruzada ───
+// Mede a variação na série da 2ª fonte entre as mesmas datas do evento (ponto
+// mais recente em ou antes de cada data). Confirma se vai na mesma direção e a
+// diferença é de até 1,5 ponto percentual. null = não dá pra confirmar.
+export function confirmacaoCruzada(p: PayloadEvento, outra: PontoSerieEvento[]): number | null {
+  const ate = (d: string) => [...outra].filter((x) => x.data <= d).sort((a, b) => b.data.localeCompare(a.data))[0]
+  const fim = ate(p.data_ref), ini = ate(p.data_ref_anterior)
+  if (!fim || !ini || !ini.valor || fim.data === ini.data) return null
+  const pct = ((fim.valor - ini.valor) / ini.valor) * 100
+  if (Math.sign(pct) !== Math.sign(p.variacao) || Math.abs(pct - p.variacao) > 1.5) return null
+  return arred(pct)
 }
 
 // ─── Texto do evento em PT/EN/ES, gerado do payload (nunca do título salvo) ───
