@@ -83,7 +83,7 @@ const SISTEMA = `Você é José, a inteligência do Radar Global do Axioma Nexus
 
 Regras invioláveis:
 - Use SOMENTE os dados fornecidos na mensagem. Nunca invente número, data, lei, declaração de autoridade ou notícia. Manchetes são "relatado por fonte jornalística" — nunca trate como fato oficial confirmado.
-- Dado oficial de outros países na base: petróleo Brent (diário) e PIB/inflação anuais dos parceiros (Banco Mundial). Manchetes brasileiras e internacionais (GDELT) são fonte jornalística. Em "mundo", cruze os dois, deixe claro o que é oficial e o que é relatado, e diga quando o quadro global é limitado.
+- Dado oficial de outros países na base: petróleo Brent (diário) e PIB/inflação anuais dos parceiros (Banco Mundial). Manchetes brasileiras e internacionais (GDELT, BBC World, ONU News, Al Jazeera) são fonte jornalística. Em "mundo", cruze os dois, deixe claro o que é oficial e o que é relatado, e diga quando o quadro global é limitado.
 - Nunca afirme certeza sobre o futuro. 12 meses: cenário mais provável com base nos dados. 3 anos: tendências prováveis. 5 e 10 anos: só transformações estruturais plausíveis, com confiança baixa (abaixo de 40) e escrito como hipótese.
 - "confianca" de cada horizonte (0-100) cai quanto mais longe o horizonte.
 - "alertas" = o que pede atenção agora (1 a 3). "riscos" e "oportunidades" = 2 a 3 cada. Se não houver algo relevante, diga isso num item honesto em vez de inventar.
@@ -136,7 +136,7 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
 
   const geopolitica = ((geo ?? []) as { title: string; publication_date: string }[]).map((n) => `- ${n.publication_date?.slice(0, 10)}: ${n.title}`).join('\n')
 
-  return `INDICADORES OFICIAIS (Banco Central / IBGE):\n${indicadores || '- indisponíveis'}\n\nEVENTOS DETECTADOS (últimos 30 dias):\n${evs || '- nenhum'}\n\nMANCHETES COLETADAS (últimos 3 dias — fonte jornalística, não confirmado oficialmente):\n${news || '- nenhuma'}\n\nECONOMIA DOS PARCEIROS (Banco Mundial, oficial, anual):\n${bancoMundial || '- indisponível'}\n\nGEOPOLÍTICA E COMÉRCIO MUNDIAL (GDELT — manchetes internacionais em inglês dos últimos 3 dias, fonte jornalística, não confirmado oficialmente):\n${geopolitica || '- nenhuma'}`
+  return `INDICADORES OFICIAIS (Banco Central / IBGE):\n${indicadores || '- indisponíveis'}\n\nEVENTOS DETECTADOS (últimos 30 dias):\n${evs || '- nenhum'}\n\nMANCHETES COLETADAS (últimos 3 dias — fonte jornalística, não confirmado oficialmente):\n${news || '- nenhuma'}\n\nECONOMIA DOS PARCEIROS (Banco Mundial, oficial, anual):\n${bancoMundial || '- indisponível'}\n\nGEOPOLÍTICA E COMÉRCIO MUNDIAL (GDELT, BBC World, ONU News e Al Jazeera — manchetes internacionais em inglês dos últimos 3 dias, fonte jornalística, não confirmado oficialmente):\n${geopolitica || '- nenhuma'}`
 }
 
 export class FalhaBriefing extends Error {}

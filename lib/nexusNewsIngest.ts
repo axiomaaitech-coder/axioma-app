@@ -127,7 +127,7 @@ function resumoDeDescricao(html: string): string {
   return texto.slice(0, 500)
 }
 
-async function buscarFeedRSS(url: string): Promise<ItemFeed[]> {
+export async function buscarFeedRSS(url: string): Promise<ItemFeed[]> {
   // 1 nova tentativa curta: esta função também roda quando alguém abre a tela.
   const res = await buscarComRetentativa(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AxiomaNexus/1.0; +https://axioma.ai.tech)' },

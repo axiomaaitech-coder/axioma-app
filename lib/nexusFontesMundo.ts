@@ -12,6 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcularFreshness } from './nexusFreshness'
 import { buscarComRetentativa } from './nexusRede'
 import * as XLSX from 'xlsx'
+import { buscarFeedRSS } from './nexusNewsIngest'
 import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerDbnomicsOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
 
 type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
@@ -360,6 +361,14 @@ const CONSULTAS_GDELT = [
 ]
 const urlGdelt = (q: string) => `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${q} sourcelang:english`)}&mode=artlist&maxrecords=12&format=json&timespan=2d&sort=hybridrel`
 
+const RESERVAS_GEOPOLITICA = [
+  { nome: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml' },
+  { nome: 'ONU News', url: 'https://news.un.org/feed/subscribe/en/news/all/rss.xml' },
+  { nome: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+]
+// Mesmos assuntos das consultas do GDELT (comércio, sanções, conflitos, energia, rotas).
+export const PALAVRAS_GEOPOLITICA = /tariff|sanction|embargo|trade (war|deal|agreement|talks)|ceasefire|invasion|\bwars?\b|conflict|missile|troops|attack|\boil\b|opec|shipping|strait|blockade|export|import|brazil|china|nato|nuclear/i
+
 // "20260927T120000Z" → ISO
 const dataGdelt = (s: string) => s.length >= 15 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}Z` : null
 
@@ -390,11 +399,32 @@ export async function ingerirGdelt(supabase: SupabaseClient): Promise<string> {
       erros.push(err instanceof Error ? err.message : String(err))
     }
   }
+  const doGdelt = vistos.size
+  await marcar(supabase, sourceId, doGdelt > 0 && erros.length < CONSULTAS_GDELT.length)
+
+  // O GDELT recusa por limite (429) quase sempre de IP de nuvem — o mundo nunca
+  // pode ficar sem manchete no Nexus. RSS internacionais abertos rodam SEMPRE junto,
+  // filtrados pelos mesmos assuntos, cada um com a própria fonte na Saúde das fontes.
+  const reservas = await Promise.all(RESERVAS_GEOPOLITICA.map(async (f) => {
+    const id = await garantirFonte(supabase, { nome: f.nome, tipo: 'news_source', provedor: f.nome, endpoint: f.url, frequencia: 'hourly', licenca: 'RSS público — só manchete e link, com crédito, como contexto do José' })
+    try {
+      const itens = (await buscarFeedRSS(f.url)).filter((it) => PALAVRAS_GEOPOLITICA.test(it.titulo)).slice(0, 10)
+      for (const it of itens) if (!vistos.has(it.url_original)) vistos.set(it.url_original, {
+        source_id: id, title: it.titulo, original_title: it.titulo, original_language: 'en',
+        publication_date: it.data, canonical_url: it.url_original, imagem_url: it.imagem_url, canal: CANAL_GEOPOLITICA,
+      })
+      await marcar(supabase, id, true)
+      return `${f.nome}: ${itens.length}`
+    } catch (err) {
+      await marcar(supabase, id, false)
+      return `${f.nome}: erro ${err instanceof Error ? err.message : String(err)}`
+    }
+  }))
+
   const linhas = [...vistos.values()]
   if (linhas.length) {
     const { error } = await supabase.from('nexus_news').upsert(linhas, { onConflict: 'canonical_url' })
     if (error) erros.push(error.message)
   }
-  await marcar(supabase, sourceId, linhas.length > 0 && erros.length < CONSULTAS_GDELT.length)
-  return erros.length ? `${linhas.length} manchetes; erros: ${erros.join(' | ')}` : `${linhas.length} manchetes`
+  return `${linhas.length} manchetes (GDELT ${doGdelt}; ${reservas.join('; ')})${erros.length ? `; erros: ${erros.join(' | ')}` : ''}`
 }
