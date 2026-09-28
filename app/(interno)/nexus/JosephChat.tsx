@@ -14,7 +14,8 @@ import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, obterResumoPlacar, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
-import { textoEvento, ramoDoCnae, nomeSerie } from '../../../lib/nexusEventDetector'
+import { textoEvento, nomeSerie } from '../../../lib/nexusEventDetector'
+import { ramoDoCnae } from '../../../lib/ia/setores'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
 
@@ -251,7 +252,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
           )}
 
           {/* Plano do José pra empresa: 1-3, 4-7, 8-10 anos (análise completa, Etapa 8) */}
-          <PlanoJose lang={lang} temaClaro={temaClaro} empresaId={empresaId} aliquotaPct={ponto?.aliquotaEfetivaPct ?? 0} />
+          <PlanoJose lang={lang} temaClaro={temaClaro} empresaId={empresaId} />
 
           <div className="flex items-end gap-2 mt-3">
             <textarea

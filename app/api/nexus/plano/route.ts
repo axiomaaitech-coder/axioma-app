@@ -7,7 +7,7 @@ import { MODELO_JOSEPH, type IdiomaJoseph } from '@/lib/nexusJoseph'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 
 // ═══════════════════════════════════════════════════════════════
-// AXIOMA NEXUS — Etapa 8: POST /api/nexus/plano { empresa_id, horizonte, lang, aliquota_pct }
+// AXIOMA NEXUS — Etapa 8: POST /api/nexus/plano { empresa_id, horizonte, lang }
 // Plano do José pra empresa (sobreviver + crescer). Tudo com a sessão do
 // usuário: a RLS por empresa decide o que ele pode ler e gravar — pedir o
 // plano de uma empresa que não é dele simplesmente não acha a empresa.
@@ -34,11 +34,10 @@ export async function POST(request: NextRequest) {
   const empresaId = typeof corpo?.empresa_id === 'string' ? corpo.empresa_id : ''
   const horizonte = HORIZONTES.includes(corpo?.horizonte) ? (corpo.horizonte as HorizontePlano) : null
   const lang = IDIOMAS.includes(corpo?.lang) ? (corpo.lang as IdiomaJoseph) : 'pt'
-  const aliquota = Math.min(40, Math.max(0, Number(corpo?.aliquota_pct) || 0))
   if (!UUID.test(empresaId) || !horizonte) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
   try {
-    const { origem, caracteresEnviados, ...plano } = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id, aliquota)
+    const { origem, caracteresEnviados, ...plano } = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id)
     // Auditoria: quem pediu, qual empresa, se a IA foi acionada e quanto dado saiu (nunca o conteúdo).
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'jose.plano', entidade: 'nexus_plano_empresa',

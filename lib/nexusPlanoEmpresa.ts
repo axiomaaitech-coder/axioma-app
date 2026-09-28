@@ -12,8 +12,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
 import { montarContextoMundo } from './nexusBriefing'
-import { montarDRE } from './cfoCore'
-import { ramoDoCnae, nomeSerie } from './nexusEventDetector'
+import { montarRetrato, textoSetor } from './ia/retratoEmpresa'
 
 export type HorizontePlano = '1-3' | '4-7' | '8-10'
 
@@ -85,76 +84,26 @@ Regras invioláveis:
 - Não recomende investimento em ativo específico. Nunca se identifique como IA, Claude ou Anthropic. Você é o José, do Axioma.
 - Escreva no idioma pedido.`
 
-const soma = (linhas: Record<string, unknown>[] | null, campo: string) => (linhas ?? []).reduce((t, l) => t + Number(l[campo] || 0), 0)
-const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
-
-// aliquotaPct vem da tela (mesma alíquota efetiva do módulo Simulações, calculada por
-// calcularImpostoRegime no navegador) — lucro aqui bate com o de Simulações/chat.
-export async function coletarEmpresa(supabase: SupabaseClient, empresaId: string, aliquotaPct: number): Promise<{ numeros: NumerosEmpresa; texto: string }> {
-  const hoje = new Date()
-  const inicio12 = new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()).toISOString().slice(0, 10)
-  const [emp, rec, cf, cv, dv, fc] = await Promise.all([
-    supabase.from('empresas').select('*').eq('id', empresaId).maybeSingle(),
-    supabase.from('receitas').select('descricao, valor, data, categoria').eq('empresa_id', empresaId).gte('data', inicio12),
-    supabase.from('custos_fixos').select('descricao, valor_mensal, categoria').eq('empresa_id', empresaId),
-    supabase.from('custos_variaveis').select('descricao, valor, data, categoria').eq('empresa_id', empresaId).gte('data', inicio12),
-    supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId),
-    supabase.from('fluxo_caixa').select('tipo, valor, status').eq('empresa_id', empresaId),
-  ])
-  if (!emp.data) throw new Error('empresa não encontrada ou sem acesso')
-
-  const receitaMensal = soma(rec.data, 'valor') / 12
-  const custoFixoMensal = soma(cf.data, 'valor_mensal')
-  const custoVariavelMensal = soma(cv.data, 'valor') / 12
-  const dividas = (dv.data ?? []) as { descricao: string | null; valor_total: number; valor_pago: number; taxa_juros: number | null }[]
-  const saldo = (d: { valor_total: number; valor_pago: number }) => Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0))
-  const dividaTotal = dividas.reduce((t, d) => t + saldo(d), 0)
-  const jurosMensal = dividas.reduce((t, d) => t + saldo(d) * (Number(d.taxa_juros || 0) / 100), 0)
-  const caixa = ((fc.data ?? []) as { tipo: string; valor: number; status: string }[]).filter((l) => l.status === 'realizado')
-    .reduce((t, l) => t + (l.tipo === 'entrada' ? Number(l.valor || 0) : -Number(l.valor || 0)), 0)
-  const lucroMensal = montarDRE({ receitaBruta: receitaMensal, deducoes: receitaMensal * (aliquotaPct / 100), custoVariavel: custoVariavelMensal, custoFixo: custoFixoMensal, despesasFinanceiras: jurosMensal }).lucroLiquido.valor
+// Números e texto da empresa = retrato do motor de IA (lib/ia/retratoEmpresa.ts):
+// mesma foto usada pela IA Financeira, IA Tributária e chat — imposto calculado
+// no servidor pelo regime (calcularImpostoRegime), nunca vindo do navegador.
+export async function coletarEmpresa(supabase: SupabaseClient, empresaId: string): Promise<{ numeros: NumerosEmpresa; texto: string }> {
+  const r = await montarRetrato(supabase, empresaId)
+  const x = r.numeros
   const numeros: NumerosEmpresa = {
-    receitaMensal, custoFixoMensal, custoVariavelMensal, lucroMensal, caixa, dividaTotal,
-    margemPct: receitaMensal > 0 ? (lucroMensal / receitaMensal) * 100 : null,
-    custoFixoSobreReceitaPct: receitaMensal > 0 ? (custoFixoMensal / receitaMensal) * 100 : null,
-    folegoMeses: lucroMensal < 0 && caixa > 0 ? Math.floor(caixa / Math.abs(lucroMensal)) : null,
+    receitaMensal: x.receitaMensal, custoFixoMensal: x.custoFixoMensal, custoVariavelMensal: x.custoVariavelMensal,
+    lucroMensal: x.lucroMensal, margemPct: x.margemPct, custoFixoSobreReceitaPct: x.custoFixoSobreReceitaPct,
+    caixa: x.caixa, dividaTotal: x.dividaTotal, folegoMeses: x.folegoMeses,
   }
-
-  const agrupar = (linhas: Record<string, unknown>[] | null, campo: string, divisor: number) => {
-    const m = new Map<string, number>()
-    for (const l of linhas ?? []) { const k = String(l.descricao || l.categoria || 'sem descrição'); m.set(k, (m.get(k) || 0) + Number(l[campo] || 0) / divisor) }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `  - ${k}: ${fBRL(v)}/mês`).join('\n')
-  }
-  const e = emp.data as Record<string, unknown>
-  const ramo = ramoDoCnae(e.cnae_principal as string | null)
-  const texto = `EMPRESA: ${e.nome_fantasia || e.razao_social || e.nome || 'sem nome'}${e.regime_tributario ? ` — regime ${e.regime_tributario}` : ''}${e.porte ? ` — porte ${e.porte}` : ''}${e.setor ? ` — setor ${e.setor}` : ''}${e.cnae_principal ? ` — CNAE ${e.cnae_principal}${e.cnae_descricao ? ` (${e.cnae_descricao})` : ''}` : ''}
-${ramo ? `RAMO: ${ramo.nome} — indicadores que mais pesam nele: ${ramo.series.map((c) => nomeSerie(c, 'pt')).join(', ')}` : 'RAMO: CNAE não cadastrado — trate como empresa típica e liste isso nas limitações'}
-NÚMEROS CALCULADOS (médias dos últimos 12 meses):
-- Receita média: ${fBRL(receitaMensal)}/mês
-- Custos fixos: ${fBRL(custoFixoMensal)}/mês${numeros.custoFixoSobreReceitaPct != null ? ` (${numeros.custoFixoSobreReceitaPct.toFixed(1)}% da receita)` : ''}
-- Custos variáveis: ${fBRL(custoVariavelMensal)}/mês
-- Impostos estimados (alíquota efetiva ${aliquotaPct.toFixed(1)}%): ${fBRL(receitaMensal * aliquotaPct / 100)}/mês
-- Juros de dívidas: ${fBRL(jurosMensal)}/mês
-- Lucro mensal: ${fBRL(lucroMensal)}${numeros.margemPct != null ? ` (margem ${numeros.margemPct.toFixed(1)}%)` : ''}
-- Caixa disponível: ${fBRL(caixa)}
-- Dívida total em aberto: ${fBRL(dividaTotal)}
-- Fôlego de caixa: ${numeros.folegoMeses != null ? `${numeros.folegoMeses} meses mantido o prejuízo atual` : lucroMensal >= 0 ? 'empresa no azul (não queima caixa)' : 'sem caixa registrado'}
-CUSTOS FIXOS (maiores):
-${agrupar(cf.data, 'valor_mensal', 1) || '  - nenhum cadastrado'}
-CUSTOS VARIÁVEIS (maiores, média/mês):
-${agrupar(cv.data, 'valor', 12) || '  - nenhum registrado'}
-RECEITAS (maiores fontes, média/mês):
-${agrupar(rec.data, 'valor', 12) || '  - nenhuma registrada'}
-DÍVIDAS:
-${dividas.map((d) => `  - ${d.descricao || 'dívida'}: saldo ${fBRL(saldo(d))}, juros ${d.taxa_juros ?? '?'}%`).join('\n') || '  - nenhuma'}`
-  return { numeros, texto }
+  return { numeros, texto: `${r.texto}
+${textoSetor(r.setor)}` }
 }
 
 export class FalhaPlano extends Error {}
 
-async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph, aliquotaPct: number): Promise<{ plano: PlanoJose; numeros: NumerosEmpresa; caracteresEnviados: number }> {
+async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph): Promise<{ plano: PlanoJose; numeros: NumerosEmpresa; caracteresEnviados: number }> {
   if (!process.env.ANTHROPIC_API_KEY) throw new FalhaPlano('ANTHROPIC_API_KEY ausente')
-  const [{ numeros, texto }, mundo] = await Promise.all([coletarEmpresa(supabase, empresaId, aliquotaPct), montarContextoMundo(supabase)])
+  const [{ numeros, texto }, mundo] = await Promise.all([coletarEmpresa(supabase, empresaId), montarContextoMundo(supabase)])
   const client = new Anthropic()
   const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.\nHoje: ${new Date().toISOString().slice(0, 10)}.\nHORIZONTE PEDIDO: ${DESC_HORIZONTE[horizonte]}.\n\n${texto}\n\nCENÁRIO ECONÔMICO (Brasil e mundo):\n${mundo}`
   const params = {
@@ -177,13 +126,13 @@ async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte
 
 // Plano de hoje pra empresa/horizonte/idioma; gera e grava se não houver.
 // Sem conseguir ler a tabela (SQL da Etapa 8 não rodado), NÃO gera (evita gasto repetido).
-export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph, userId: string, aliquotaPct: number) {
+export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph, userId: string) {
   const hoje = new Date().toISOString().slice(0, 10)
   const { data: salvo, error } = await supabase.from('nexus_plano_empresa').select('data, conteudo')
     .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).eq('data', hoje).maybeSingle()
   if (error) throw new FalhaPlano(`leitura de nexus_plano_empresa: ${error.message}`)
   if (salvo) return { data: salvo.data as string, origem: 'guardado' as const, caracteresEnviados: 0, ...(salvo.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
-  const { caracteresEnviados, ...conteudo } = await gerarPlano(supabase, empresaId, horizonte, lang, aliquotaPct)
+  const { caracteresEnviados, ...conteudo } = await gerarPlano(supabase, empresaId, horizonte, lang)
   const { error: erroGravar } = await supabase.from('nexus_plano_empresa').upsert(
     { empresa_id: empresaId, horizonte, lang, data: hoje, conteudo, modelo: MODELO_JOSEPH, criado_por: userId, gerado_em: new Date().toISOString() },
     { onConflict: 'empresa_id,horizonte,lang,data' },

@@ -74,7 +74,7 @@ function baixarPdfPlano(r: Resultado, rotuloHorizonte: string, lang: Lang) {
   })
 }
 
-export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: Lang; temaClaro: boolean; empresaId: string | null; aliquotaPct: number }) {
+export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClaro: boolean; empresaId: string | null }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const L3 = (n: Nome3) => L(...n)
   const tema = temaClaro ? 'xms' : 'dark'
@@ -97,7 +97,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
     try {
       const res = await fetch('/api/nexus/plano', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empresa_id: empresaId, horizonte: h, lang, aliquota_pct: aliquotaPct }),
+        body: JSON.stringify({ empresa_id: empresaId, horizonte: h, lang }),
       })
       const json = await res.json().catch(() => null)
       if (res.ok && json?.plano) { setResultado(json.plano); setEstado('ok'); carregarSalvos() } else setEstado('erro')
