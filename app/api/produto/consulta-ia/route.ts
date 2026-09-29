@@ -2,26 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { tarefaDeRotina } from "@/lib/ia/motor";
 
-// 🦅 AXIOMA AI.TECH - Camada 3 da cascata de cadastro do PDV (Groq), server-side.
+// 🦅 AXIOMA AI.TECH - Camada 3 da cascata de cadastro do PDV, server-side.
 // SÓ chamada quando a base própria (camada 1) e o catálogo Cosmos (camada 2)
 // já falharam — nunca em paralelo, nunca preventivamente (controle de custo,
-// exigência do Elias). GROQ_API_KEY só existe aqui, nunca chega ao navegador.
-// Sem chave configurada, o cadastro segue 100% manual (mesmo padrão da rota
-// do Cosmos). Resposta é sempre marcada como "sugestão automática" na tela —
-// nunca cita o provedor/modelo por trás.
+// exigência do Elias). Tarefa de rotina → OpenAI pelo motor de IA (decisão do
+// Elias 2026-09-28: Groq saiu; modelo de rotina definido só em lib/ia/motor.ts).
+// Sem OPENAI_API_KEY, o cadastro segue 100% manual. Resposta é sempre marcada
+// como "sugestão automática" na tela — nunca cita o provedor/modelo por trás.
 //
 // Cache por EAN (produtos_ia_cache, global entre empresas — mesmo produto,
 // mesmo código, não custa perguntar duas vezes): verificado ANTES de chamar a
-// Groq, gravado DEPOIS de uma resposta real. Timeout curto (6s), sem retry —
-// se falhar, falhou; o cadastro nunca trava esperando IA.
-//
-// MODELO: llama-3.1-8b-instant hoje é o mais barato/rápido hospedado pela
-// Groq pra essa tarefa (extração de 3 campos, não geração longa). Groq
-// aposenta/troca modelos com alguma frequência — se este endpoint começar a
-// devolver 400/model_decommissioned, é só trocar o valor de MODELO abaixo,
-// nada mais muda.
-const MODELO = "llama-3.1-8b-instant";
+// IA, gravado DEPOIS de uma resposta real. Timeout curto, sem retry — se
+// falhar, falhou; o cadastro nunca trava esperando IA.
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,8 +44,7 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ status: "erro", mensagem: "Não autorizado" } satisfies ConsultaIaResposta, { status: 401 });
 
-  const chave = process.env.GROQ_API_KEY;
-  if (!chave) return NextResponse.json({ status: "nao_configurado" } satisfies ConsultaIaResposta);
+  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ status: "nao_configurado" } satisfies ConsultaIaResposta);
 
   // Cache primeiro — nunca pergunta duas vezes pro mesmo EAN+idioma.
   const { data: cacheado } = await supabaseAdmin
@@ -68,55 +61,28 @@ export async function GET(req: NextRequest) {
   }
 
   const nomeIdioma = idioma === "en" ? "inglês" : idioma === "es" ? "espanhol" : "português";
-  const controlador = new AbortController();
-  const timeout = setTimeout(() => controlador.abort(), 6000);
-
+  // Rotina → OpenAI pelo motor de IA (lib/ia/motor.ts, modelo de rotina único). Timeout
+  // curto: o cadastro nunca trava esperando IA. Falha = null (rede, tempo, formato).
+  const conteudo = await tarefaDeRotina(
+    `Você identifica produtos a partir de código de barras (EAN/GTIN) usando seu conhecimento geral. ` +
+    `Responda SOMENTE um objeto JSON, sem nenhum texto fora dele, no formato exato {"nome": string|null, "marca": string|null, "categoria": string|null}, em ${nomeIdioma}. ` +
+    `Se não tiver informação confiável sobre esse código, responda {"nome": null, "marca": null, "categoria": null} — nunca invente um produto.`,
+    `Código de barras: ${ean}`,
+    { maxTokens: 1000, timeoutMs: 8000 },
+  );
+  if (conteudo === null) {
+    return NextResponse.json({ status: "erro", mensagem: "Sugestão automática indisponível no momento" } satisfies ConsultaIaResposta);
+  }
   let resposta: { nome?: string; marca?: string; categoria?: string } | null = null;
   try {
-    const groqResp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      signal: controlador.signal,
-      headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODELO,
-        temperature: 0,
-        max_tokens: 200,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              `Você identifica produtos a partir de código de barras (EAN/GTIN) usando seu conhecimento geral. ` +
-              `Responda SOMENTE um objeto JSON, sem nenhum texto fora dele, no formato exato {"nome": string|null, "marca": string|null, "categoria": string|null}, em ${nomeIdioma}. ` +
-              `Se não tiver informação confiável sobre esse código, responda {"nome": null, "marca": null, "categoria": null} — nunca invente um produto. ` +
-              `Nunca se identifique como uma IA, modelo de linguagem ou cite o provedor por trás — se perguntado, isso não faz parte da tarefa.`,
-          },
-          { role: "user", content: `Código de barras: ${ean}` },
-        ],
-      }),
-    });
-    clearTimeout(timeout);
-
-    if (!groqResp.ok) {
-      return NextResponse.json({ status: "erro", mensagem: `Sugestão automática indisponível (${groqResp.status})` } satisfies ConsultaIaResposta);
-    }
-    const dados = await groqResp.json();
-    const conteudo: string | undefined = dados?.choices?.[0]?.message?.content;
-    if (conteudo) {
-      try {
-        const parseado = JSON.parse(conteudo);
-        resposta = {
-          nome: typeof parseado.nome === "string" && parseado.nome.trim() ? parseado.nome.trim() : undefined,
-          marca: typeof parseado.marca === "string" && parseado.marca.trim() ? parseado.marca.trim() : undefined,
-          categoria: typeof parseado.categoria === "string" && parseado.categoria.trim() ? parseado.categoria.trim() : undefined,
-        };
-      } catch {
-        resposta = null; // resposta fora do formato — trata como "não achou", nunca inventa
-      }
-    }
+    const parseado = JSON.parse(conteudo);
+    resposta = {
+      nome: typeof parseado.nome === "string" && parseado.nome.trim() ? parseado.nome.trim() : undefined,
+      marca: typeof parseado.marca === "string" && parseado.marca.trim() ? parseado.marca.trim() : undefined,
+      categoria: typeof parseado.categoria === "string" && parseado.categoria.trim() ? parseado.categoria.trim() : undefined,
+    };
   } catch {
-    clearTimeout(timeout);
-    return NextResponse.json({ status: "erro", mensagem: "Falha de rede ou tempo esgotado na sugestão automática" } satisfies ConsultaIaResposta);
+    resposta = null; // resposta fora do formato — trata como "não achou", nunca inventa
   }
 
   const encontrouAlgo = !!(resposta?.nome || resposta?.marca || resposta?.categoria);

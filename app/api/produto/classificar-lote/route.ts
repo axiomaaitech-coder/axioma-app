@@ -3,16 +3,16 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { buscarNicho } from "../../../../lib/pdvCatalogoTaxonomia";
+import { tarefaDeRotina } from "@/lib/ia/motor";
 
-// 🦅 AXIOMA AI.TECH - PDV Fase 2.1: classificação em LOTE (Groq), server-side.
+// 🦅 AXIOMA AI.TECH - PDV Fase 2.1: classificação em LOTE, server-side.
 // Uma chamada por NOTA INTEIRA, nunca uma por item — é o que torna barato.
 // Dado fiscal (EAN/NCM/custo) SEMPRE vem do XML, nunca daqui — esta rota só
 // organiza nome legível + sugere categoria/sub-nicho dentro da nossa própria
 // taxonomia (a IA escolhe de uma lista fechada, nunca inventa categoria
 // nova). Cache por EAN em produtos_ia_cache (mesma tabela da Fase 2) — item
-// já visto antes nem entra na chamada. GROQ_API_KEY só existe aqui.
-
-const MODELO = "llama-3.1-8b-instant";
+// já visto antes nem entra na chamada. Rotina → OpenAI pelo motor de IA
+// (decisão do Elias 2026-09-28: Groq saiu).
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,8 +43,7 @@ export async function POST(req: NextRequest) {
   const nichoDef = buscarNicho(corpo.nicho);
   if (!nichoDef) return NextResponse.json({ status: "erro", mensagem: "Nicho inválido" }, { status: 400 });
 
-  const chave = process.env.GROQ_API_KEY;
-  if (!chave) return NextResponse.json({ status: "nao_configurado" });
+  if (!process.env.OPENAI_API_KEY) return NextResponse.json({ status: "nao_configurado" });
 
   // 1) Cache primeiro — só itens com EAN podem ser cacheados (é a chave).
   const eansUnicos = Array.from(new Set(corpo.itens.map((i) => i.ean).filter((e): e is string => !!e)));
@@ -75,41 +74,19 @@ export async function POST(req: NextRequest) {
   );
   const nomeIdioma = idioma === "en" ? "inglês" : idioma === "es" ? "espanhol" : "português";
 
-  const controlador = new AbortController();
-  const timeout = setTimeout(() => controlador.abort(), 20000);
-
   try {
-    const groqResp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      signal: controlador.signal,
-      headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODELO,
-        temperature: 0,
-        max_tokens: 4000,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              `Você organiza descrições cruas de nota fiscal (tipo "REFRIG COCA COLA 2L PET") em nome legível de produto, em ${nomeIdioma}. ` +
-              `Para cada item, escolha a combinação categoria > sub-nicho MAIS PARECIDA desta lista fechada (nunca invente uma fora dela): ${opcoesTaxonomia.join("; ")}. ` +
-              `Se nenhuma combinação fizer sentido, deixe categoria e subNicho como null — nunca force uma errada. ` +
-              `Responda SOMENTE um objeto JSON no formato exato {"itens": [{"idx": number, "nome": string|null, "categoria": string|null, "subNicho": string|null}]}, um item pra cada entrada recebida, na mesma ordem. ` +
-              `Nunca se identifique como uma IA, modelo de linguagem ou cite o provedor por trás — isso não faz parte da tarefa.`,
-          },
-          { role: "user", content: JSON.stringify(pendentes.map((p) => ({ idx: p.idx, descricao: p.descricao }))) },
-        ],
-      }),
-    });
-    clearTimeout(timeout);
-
-    if (!groqResp.ok) {
-      return NextResponse.json({ status: "erro", mensagem: `Sugestão automática indisponível (${groqResp.status})` });
+    const conteudo = await tarefaDeRotina(
+      `Você organiza descrições cruas de nota fiscal (tipo "REFRIG COCA COLA 2L PET") em nome legível de produto, em ${nomeIdioma}. ` +
+      `Para cada item, escolha a combinação categoria > sub-nicho MAIS PARECIDA desta lista fechada (nunca invente uma fora dela): ${opcoesTaxonomia.join("; ")}. ` +
+      `Se nenhuma combinação fizer sentido, deixe categoria e subNicho como null — nunca force uma errada. ` +
+      `Responda SOMENTE um objeto JSON no formato exato {"itens": [{"idx": number, "nome": string|null, "categoria": string|null, "subNicho": string|null}]}, um item pra cada entrada recebida, na mesma ordem.`,
+      JSON.stringify(pendentes.map((p) => ({ idx: p.idx, descricao: p.descricao }))),
+      { maxTokens: 8000, timeoutMs: 30000 },
+    );
+    if (conteudo === null) {
+      return NextResponse.json({ status: "erro", mensagem: "Sugestão automática indisponível no momento" });
     }
-    const dados = await groqResp.json();
-    const conteudo: string | undefined = dados?.choices?.[0]?.message?.content;
-    const parseado = conteudo ? JSON.parse(conteudo) : null;
+    const parseado = JSON.parse(conteudo);
     const itensRespondidos: { idx: number; nome?: string | null; categoria?: string | null; subNicho?: string | null }[] = Array.isArray(parseado?.itens) ? parseado.itens : [];
 
     const linhasParaCache: Record<string, any>[] = [];
@@ -126,8 +103,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("produtos_ia_cache").upsert(linhasParaCache, { onConflict: "ean,idioma", ignoreDuplicates: true });
     }
   } catch {
-    clearTimeout(timeout);
-    // Falha na IA não pode travar a importação — itens pendentes voltam sem
+    // Falha na IA (ou JSON fora do formato) não pode travar a importação — itens pendentes voltam sem
     // sugestão, o dono completa nome/categoria na tela de conferência.
   }
 

@@ -62,7 +62,7 @@ Resposta para a tela
 - A triagem é feita por regras determinísticas testadas (`scripts/check-ia-motor.mts`). A IA só classifica quando a regra fica em dúvida e, se falhar, o padrão é "análise" (o lado seguro).
 - Toda IA nova do Axioma deve passar pelo motor, nunca chamar o provedor direto. As telas usam só `perguntarAoAxioma()` (`lib/ia/cliente.ts`); a rota antiga que aceitava provedor/modelo vindo do navegador foi **removida**.
 - A tela pode mandar os números e o formato dela (`contexto_tela`), mas nunca escolher a IA.
-- **Exceções previstas (já seguem a regra):** análise de evento, painel diário e plano do José rodam no servidor direto na Anthropic (complexas, geradas 1 vez e guardadas); o assistente de cadastro do PDV roda direto na OpenAI (rotina curta).
+- **Exceções previstas (já seguem a regra):** análise de evento, painel diário e plano do José rodam no servidor direto na Anthropic (complexas, geradas 1 vez e guardadas); o assistente de cadastro do PDV roda direto na OpenAI (rotina curta). Tarefas curtas de servidor com resposta em JSON (sugestão de produto por código de barras, classificação de itens de nota no PDV) usam `tarefaDeRotina()` do motor — mesmo modelo de rotina; a Groq foi retirada em 2026-09-28 por decisão do Elias.
 
 ## 4. Componentes
 

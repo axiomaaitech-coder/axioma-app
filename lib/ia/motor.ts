@@ -103,13 +103,20 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
 }
 
 // ─── Chamadas aos provedores (nunca lançam: falha = null) ───
-async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: string, maxTokens: number, json = false): Promise<string | null> {
+// Tarefa curta e estruturada de servidor (extrair/classificar, resposta em JSON),
+// sem retrato de empresa — ex.: sugestão de produto por código de barras. Regra
+// fixa: rotina = OpenAI, pelo MESMO modelo de rotina do motor (nunca outro provedor).
+export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: { maxTokens: number; timeoutMs: number }): Promise<string | null> {
+  return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
+}
+
+async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: string, maxTokens: number, json = false, timeoutMs = 45000): Promise<string | null> {
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return null
   for (const m of [modelo, OPENAI_RESERVA]) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST', signal: AbortSignal.timeout(45000),
+        method: 'POST', signal: AbortSignal.timeout(timeoutMs),
         headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: m, max_completion_tokens: maxTokens, messages: [{ role: 'system', content: sistema }, ...msgs], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
       })

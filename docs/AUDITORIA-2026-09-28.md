@@ -71,7 +71,7 @@ Verificado sem problema: rotas do Nexus e de produto (login + validação de ent
 | # | Item | Dono |
 |---|---|---|
 | A1 | Cadastrar `PLUGGY_WEBHOOK_SECRET` na Vercel e registrar o webhook da Pluggy com `?token=` — obrigatório antes da produção | Elias (etapa F) |
-| A2 | Groq continua como 3ª IA (sugestão de produto por código de barras). Decidir: manter, por ser a mais barata, ou trocar por OpenAI pela regra rotina→OpenAI | Elias |
+| A2 | ~~Groq como 3ª IA~~ — **resolvido 2026-09-28**: Elias decidiu trocar pela OpenAI; as 2 rotas de produto usam `tarefaDeRotina()` do motor. `GROQ_API_KEY` pode ser apagada da Vercel | ✅ |
 | A3 | 8 políticas RLS no formato antigo (lista P4 do STATUS) — SQL para rodar no Supabase | Claude prepara, Elias roda |
 | A4 | Segurança do banco (RLS) só pode ser auditada com acesso ao SQL/painel do Supabase | Elias libera acesso ou roda o SQL de conferência |
 
