@@ -31,6 +31,11 @@ export type LinhaImportada = {
   documento?: string;
   cnpj?: string;
   tipo?: "entrada" | "saida";
+  // NF-e (B3, 2026-09-28): vencimento de verdade (duplicata da nota) e quanto já
+  // foi quitado na emissão (grupo de pagamento). Sem isso a conta nascia "vencendo
+  // no dia da emissão" e sempre em aberto, mesmo paga à vista.
+  vencimento?: string; // ISO YYYY-MM-DD
+  valorPago?: number;
   // Distribuição automática de destino (por linha, não por arquivo inteiro —
   // um extrato pode ter entrada E saída, uma NF-e pode ser venda OU compra).
   // Sempre uma SUGESTÃO: o usuário decide de verdade, nunca grava sozinho.
@@ -574,6 +579,36 @@ const CONTRAPARTE_FALLBACK: Record<Lang, { cliente: string; fornecedor: string }
   es: { cliente: "Cliente", fornecedor: "Proveedor" },
 };
 
+// ─── NF-e: parcelas e pagamentos (B3, 2026-09-28) ───
+// cobr/dup: nDup (número), dVenc (vencimento), vDup (valor) — as parcelas a prazo.
+// pag/detPag: indPag (0 à vista, 1 a prazo), tPag (meio, tabela SEFAZ), vPag.
+// "quitado" = pago no ato da nota (Pix, dinheiro, cartão, transferência,
+// depósito); boleto, crédito da loja e "sem pagamento" ficam em aberto.
+const MEIOS_PAGAMENTO_NFE: Record<string, string> = {
+  "01": "Dinheiro", "02": "Cheque", "03": "Cartão de crédito", "04": "Cartão de débito", "05": "Crédito loja",
+  "10": "Vale alimentação", "11": "Vale refeição", "12": "Vale presente", "13": "Vale combustível",
+  "15": "Boleto", "16": "Depósito", "17": "Pix", "18": "Transferência", "19": "Programa de fidelidade",
+  "90": "Sem pagamento", "99": "Outros",
+};
+const MEIOS_QUITADOS_NA_EMISSAO = new Set(["01", "03", "04", "16", "17", "18"]);
+export type ParcelaNFe = { numero?: string; vencimento?: string; valor: number };
+export type PagamentoNFe = { codigo: string; meio: string; valor: number; aPrazo: boolean; quitado: boolean };
+
+export function lerCobrancaNFe(nfe: any): { parcelas: ParcelaNFe[]; pagamentos: PagamentoNFe[] } {
+  const lista = (x: any) => (Array.isArray(x) ? x : x ? [x] : []);
+  const parcelas: ParcelaNFe[] = lista(nfe?.cobr?.dup)
+    .map((d: any) => ({ numero: d?.nDup ? String(d.nDup) : undefined, vencimento: d?.dVenc ? parseDataBR(String(d.dVenc)) : undefined, valor: parseValorBR(d?.vDup) ?? 0 }))
+    .filter((p: ParcelaNFe) => p.valor > 0);
+  const pagamentos: PagamentoNFe[] = lista(nfe?.pag?.detPag)
+    .map((p: any) => {
+      const codigo = String(p?.tPag ?? "").padStart(2, "0");
+      const aPrazo = String(p?.indPag ?? "") === "1";
+      return { codigo, meio: MEIOS_PAGAMENTO_NFE[codigo] ?? "Outros", valor: parseValorBR(p?.vPag) ?? 0, aPrazo, quitado: !aPrazo && MEIOS_QUITADOS_NA_EMISSAO.has(codigo) };
+    })
+    .filter((p: PagamentoNFe) => p.valor > 0);
+  return { parcelas, pagamentos };
+}
+
 export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lang = "pt"): Promise<ResultadoParse> {
   const motivos = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
   const fallbackContraparte = CONTRAPARTE_FALLBACK[lang] || CONTRAPARTE_FALLBACK.pt;
@@ -698,19 +733,32 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   const nomeContraparte = ehVenda ? dest.xNome || fallbackContraparte.cliente : emit.xNome || fallbackContraparte.fornecedor;
   const cnpjContraparte = ehVenda ? dest.CNPJ || dest.CPF : emit.CNPJ || emit.CPF;
 
-  // Cria uma linha-resumo da NF
-  linhas.push({
-    data: metadados.data_emissao,
-    valor: metadados.valor_total,
-    descricao: `NF ${ide.nNF || "?"} - ${nomeContraparte}`,
-    documento: String(ide.nNF || ""),
-    cnpj: cnpjContraparte,
-    tipo: ehVenda ? "entrada" : "saida",
-    destinoSugerido: destinoLinha,
-    confiancaDestino: confiancaLinha,
-    motivoDestino: motivoLinha,
+  // Parcelas (grupo cobr/dup) e pagamentos (grupo pag/detPag) — tudo literal do XML.
+  const { parcelas, pagamentos } = lerCobrancaNFe(nfe);
+  metadados.parcelas = parcelas;
+  metadados.pagamentos = pagamentos;
+  const valorQuitado = pagamentos.filter((p) => p.quitado).reduce((s, p) => s + p.valor, 0);
+  metadados.valor_quitado_na_emissao = valorQuitado;
+
+  const base = {
+    data: metadados.data_emissao, documento: String(ide.nNF || ""), cnpj: cnpjContraparte,
+    tipo: (ehVenda ? "entrada" : "saida") as "entrada" | "saida",
+    destinoSugerido: destinoLinha, confiancaDestino: confiancaLinha, motivoDestino: motivoLinha,
     raw: { emit, ide, total, dest },
-  });
+  };
+  const descricaoNF = `NF ${ide.nNF || "?"} - ${nomeContraparte}`;
+  if (!ehVenda && parcelas.length > 0) {
+    // Compra parcelada: 1 conta a pagar por duplicata, cada uma com o vencimento real.
+    parcelas.forEach((p, i) => linhas.push({
+      ...base, valor: p.valor, vencimento: p.vencimento,
+      descricao: `${descricaoNF} (parcela ${i + 1}/${parcelas.length}${p.numero ? ` · dup. ${p.numero}` : ""})`,
+    }));
+  } else {
+    // Uma linha-resumo; se a nota diz que foi quitada na emissão (Pix, dinheiro,
+    // cartão, transferência), a conta já nasce paga.
+    const total = metadados.valor_total ?? 0;
+    linhas.push({ ...base, valor: metadados.valor_total, descricao: descricaoNF, valorPago: !ehVenda && valorQuitado > 0 ? Math.min(valorQuitado, total) : undefined });
+  }
 
   return {
     formato: "xml",

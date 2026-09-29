@@ -138,17 +138,22 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
   contas_pagar: (linha, userId, empresaId) => {
     if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
       return { erro: "Valor ausente" };
+    // NF-e traz o vencimento real (duplicata) e o que já foi quitado na emissão —
+    // antes o vencimento era sempre a data de emissão e a conta nascia em aberto.
+    const pago = Math.min(Math.max(linha.valorPago ?? 0, 0), linha.valor);
+    const status = pago >= linha.valor - 0.005 ? "pago" : pago > 0 ? "parcial" : "pendente";
     return {
       payload: {
         user_id: userId,
         empresa_id: empresaId,
         descricao: linha.descricao || "Conta a pagar importada",
         valor_total: linha.valor,
-        valor_pago: 0,
+        valor_pago: pago,
         data_emissao: linha.data || null,
-        data_vencimento: linha.data || null,
+        data_vencimento: linha.vencimento || linha.data || null,
+        data_pagamento: status === "pago" ? linha.data || null : null,
         data_hora: linha.dataHora || null,
-        status: "pendente",
+        status,
         categoria: linha.categoria || null,
         numero_nota: linha.documento || null,
       },
