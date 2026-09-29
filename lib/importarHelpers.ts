@@ -171,15 +171,16 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
   contas_receber: (linha, userId, empresaId) => {
     if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
       return { erro: "Valor ausente" };
-    if (!linha.data) return { erro: "Data de vencimento obrigatoria para Contas a Receber" };
+    // NF-e de venda parcelada traz o vencimento real de cada duplicata (linha.vencimento).
+    if (!linha.data && !linha.vencimento) return { erro: "Data de vencimento obrigatoria para Contas a Receber" };
     return {
       payload: {
         user_id: userId,
         empresa_id: empresaId,
         descricao: linha.descricao || "Conta a receber importada",
         valor: linha.valor,
-        data_vencimento: linha.data,
-        data_emissao: linha.data,
+        data_vencimento: linha.vencimento || linha.data,
+        data_emissao: linha.data || linha.vencimento,
         data_hora: linha.dataHora || null,
         status: "pendente",
         categoria: linha.categoria || null,

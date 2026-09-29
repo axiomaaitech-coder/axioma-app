@@ -809,7 +809,12 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   metadados.pagamentos = pagamentos;
   const valorQuitado = pagamentos.filter((p) => p.quitado).reduce((s, p) => s + p.valor, 0);
   metadados.valor_quitado_na_emissao = valorQuitado;
-  metadados.resumo_pagamento = resumirPagamentoNFe(parcelas, pagamentos, metadados.valor_total ?? 0);
+  const resumo = resumirPagamentoNFe(parcelas, pagamentos, metadados.valor_total ?? 0);
+  // A pergunta "em quantas vezes no cartão?" só vale pra COMPRA (na venda quem
+  // parcela é o cliente, e o recebimento segue a maquininha — outro fluxo).
+  metadados.resumo_pagamento = ehVenda && resumo.perguntaParcelasCartao
+    ? { pt: resumo.pt.replace(/ Foi no cartão de crédito — em quantas vezes\?$/, ""), en: resumo.en.replace(/ Paid by credit card — in how many installments\?$/, ""), es: resumo.es.replace(/ Fue con tarjeta de crédito — ¿en cuántas cuotas\?$/, ""), perguntaParcelasCartao: false }
+    : resumo;
 
   const base = {
     data: metadados.data_emissao, documento: String(ide.nNF || ""), cnpj: cnpjContraparte,
@@ -829,6 +834,15 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
     // cartão, transferência), a conta já nasce paga.
     const total = metadados.valor_total ?? 0;
     linhas.push({ ...base, valor: metadados.valor_total, descricao: descricaoNF, valorPago: !ehVenda && valorQuitado > 0 ? Math.min(valorQuitado, total) : undefined });
+    // Venda parcelada: a receita fica na data da venda (linha acima) E cada parcela
+    // vira uma conta a receber no vencimento real — o caixa sabe quando entra.
+    if (ehVenda && parcelas.length > 0) {
+      parcelas.forEach((p, i) => linhas.push({
+        ...base, valor: p.valor, vencimento: p.vencimento, destinoSugerido: "contas_receber", confiancaDestino: "alta",
+        motivoDestino: lang === "en" ? "Installment of a sale invoice (receivable)" : lang === "es" ? "Cuota de una factura de venta (por cobrar)" : "Parcela de nota de venda (a receber)",
+        descricao: `${descricaoNF} (parcela ${i + 1}/${parcelas.length}${p.numero ? ` · dup. ${p.numero}` : ""})`,
+      }));
+    }
   }
 
   return {

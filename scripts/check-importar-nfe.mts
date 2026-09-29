@@ -40,6 +40,17 @@ assert.equal(venda.linhas[0].destinoSugerido, 'receitas')
 assert.equal(venda.linhas[0].valorPago, undefined)
 console.log('OK — venda continua como receita única')
 
+// 3b) Venda parcelada → receita na data da venda + 1 conta a receber por duplicata
+const vendaParcelada = await parseXMLNFe(nota(EMPRESA, '55666777000199', `
+  <cobr><dup><nDup>001</nDup><dVenc>2026-10-20</dVenc><vDup>1500.00</vDup></dup><dup><nDup>002</nDup><dVenc>2026-11-20</dVenc><vDup>1500.00</vDup></dup></cobr>
+  <pag><detPag><indPag>1</indPag><tPag>15</tPag><vPag>3000.00</vPag></detPag></pag>`), EMPRESA)
+assert.deepEqual(vendaParcelada.linhas.map((l) => [l.destinoSugerido, l.valor, l.vencimento ?? null]), [['receitas', 3000, null], ['contas_receber', 1500, '2026-10-20'], ['contas_receber', 1500, '2026-11-20']])
+console.log('OK — venda parcelada: receita + contas a receber no vencimento de cada parcela')
+const vendaCartao = await parseXMLNFe(nota(EMPRESA, '55666777000199', `<pag><detPag><tPag>03</tPag><vPag>3000.00</vPag></detPag></pag>`), EMPRESA)
+assert.equal(vendaCartao.metadados.resumo_pagamento.perguntaParcelasCartao, false)
+assert.ok(!vendaCartao.metadados.resumo_pagamento.pt.includes('quantas vezes'))
+console.log('OK — venda no cartão não pergunta parcelas (só compra pergunta)')
+
 // 4) Resumo em linguagem simples (e pergunta quando o cartão não diz em quantas vezes)
 assert.ok(parcelada.metadados.resumo_pagamento.pt.startsWith('Parcelado em 3x (Boleto)'))
 assert.ok(pix.metadados.resumo_pagamento.pt.startsWith('Pago à vista: Pix'))
