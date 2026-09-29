@@ -109,6 +109,7 @@ const grupos = [
     itens: [
       { label: { pt: "Empresa", en: "Company", es: "Empresa" }, path: "/empresa", emoji: "🏛️" },
       { label: { pt: "Planos", en: "Plans", es: "Planes" }, path: "/planos", emoji: "🚀" },
+      { label: { pt: "Uso da IA", en: "AI usage", es: "Uso de la IA" }, path: "/uso-ia", emoji: "📊" },
     ]
   },
 ];

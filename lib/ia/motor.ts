@@ -34,6 +34,24 @@ export const MODELOS: Record<Nivel, { provedor: 'openai' | 'anthropic'; modelo: 
   estrategica: { provedor: 'anthropic', modelo: 'claude-opus-5-5', esforco: 'high' },
 }
 const OPENAI_RESERVA = 'gpt-4o-mini' // se o modelo barato principal falhar
+
+// ─── Medição de consumo (B2 — painel de custo) ───
+// Preço de tabela da Anthropic (US$ por milhão de tokens, consultado 2026-09-28;
+// gravar cache = 1,25× a entrada). OpenAI sem preço aqui de propósito: não
+// inventar número — o painel mostra os tokens e manda conferir no painel da OpenAI.
+const PRECOS_USD_POR_MILHAO: Record<string, { entrada: number; saida: number; cacheLeitura: number; cacheEscrita: number }> = {
+  'claude-sonnet-5-5': { entrada: 2, saida: 10, cacheLeitura: 0.2, cacheEscrita: 2.5 },
+  'claude-opus-5-5': { entrada: 4, saida: 20, cacheLeitura: 0.2, cacheEscrita: 5 },
+}
+export type Uso = { tokensEntrada: number; tokensSaida: number; tokensCacheLeitura: number; tokensCacheEscrita: number; custoUsdAnthropic: number; tokensOpenAI: number }
+export const usoZerado = (): Uso => ({ tokensEntrada: 0, tokensSaida: 0, tokensCacheLeitura: 0, tokensCacheEscrita: 0, custoUsdAnthropic: 0, tokensOpenAI: 0 })
+export function somarUso(uso: Uso | undefined, modelo: string, entrada = 0, saida = 0, cacheLeitura = 0, cacheEscrita = 0) {
+  if (!uso) return
+  uso.tokensEntrada += entrada; uso.tokensSaida += saida; uso.tokensCacheLeitura += cacheLeitura; uso.tokensCacheEscrita += cacheEscrita
+  const p = PRECOS_USD_POR_MILHAO[modelo]
+  if (p) uso.custoUsdAnthropic += (entrada * p.entrada + saida * p.saida + cacheLeitura * p.cacheLeitura + cacheEscrita * p.cacheEscrita) / 1e6
+  else uso.tokensOpenAI += entrada + saida
+}
 const ORDEM: Nivel[] = ['rotina', 'analise', 'estrategica']
 const subir = (a: Nivel, b: Nivel): Nivel => (ORDEM.indexOf(a) >= ORDEM.indexOf(b) ? a : b)
 
@@ -43,7 +61,7 @@ const SINAL_ESCALAR = '[[ESCALAR]]'
 
 // ─── 1. TRIAGEM POR REGRA (grátis, determinística) ───
 const RE_ESTRATEGICA = /plano|estrat[eé]g|reestrutur|cen[aá]rio|proje[çc]|pr[oó]ximos?\s+\d+\s+(anos|meses)|\d+\s+anos|longo prazo|m[eé]dio prazo|expandir|expans[aã]o|abrir (uma )?(nova|outra) (loja|unidade|filial)|contratar|demitir|mudar de regime|trocar de regime|vender a empresa|valuation|sociedade|s[oó]cio|investir em|vale a pena (investir|abrir|comprar|financiar)|plan\b|strateg|forecast|restructur|expand|estrateg|proyecc|reestructur/i
-const RE_ANALISE = /por ?que|porque|causa|motivo|analis|compar|melhor(ar)?|reduzir|cortar|economizar|o que (devo|fazer|posso)|devo |deveria|vale a pena|risco|problema|preocup|aument|diminu|caiu|subiu|piorou|tend[eê]ncia|why|analy[sz]|compare|should|risk|improve|reduce|por qu[eé]|analiz|deber[ií]a|riesgo|mejorar/i
+const RE_ANALISE = /por ?que|porque|causa|motivo|analis|compar|melhor(ar)?|reduzir|cortar|economizar|o que (devo|fazer|posso)|devo |deveria|vale a pena|risco|problema|preocup|aument|diminu|caiu|subiu|piorou|tend[eê]ncia|afet|impact|amea[çc]|compromet|v[aã]o cobrir|vai cobrir|vai dar|preju[ií]z|repass|why|analy[sz]|compare|should|risk|improve|reduce|affect|threat|por qu[eé]|analiz|deber[ií]a|riesgo|mejorar|afecta/i
 const RE_ROTINA = /^(quanto|qual|quais|quando|onde|o que [eé]|o que significa|me (mostra|mostre|diga|lista)|liste|mostre|total|defin|explique o que|how much|what is|when|list|show|cu[aá]nto|qu[eé] es|cu[aá]ndo|muestra)/i
 
 export function triagemPorRegra(pergunta: string, qtdManuais: number): Nivel | null {
@@ -110,7 +128,7 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
   return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
 }
 
-async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: string, maxTokens: number, json = false, timeoutMs = 45000): Promise<string | null> {
+async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: string, maxTokens: number, json = false, timeoutMs = 45000, uso?: Uso): Promise<string | null> {
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return null
   for (const m of [modelo, OPENAI_RESERVA]) {
@@ -121,7 +139,9 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
         body: JSON.stringify({ model: m, max_completion_tokens: maxTokens, messages: [{ role: 'system', content: sistema }, ...msgs], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
       })
       if (!res.ok) { console.error('[motor-ia] OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
-      const texto = (await res.json())?.choices?.[0]?.message?.content
+      const dados = await res.json()
+      somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
+      const texto = dados?.choices?.[0]?.message?.content
       if (typeof texto === 'string' && texto.trim()) return texto.trim()
     } catch (err) { console.error('[motor-ia] OpenAI rede', m, err) }
   }
@@ -133,7 +153,7 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
 // cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
 const MAX_CONSULTAS = 4
 type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
-async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string }): Promise<ConsultaClaude> {
+async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string }, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   if (!process.env.ANTHROPIC_API_KEY) return { texto: null, dadosConsultados }
   const cfg = MODELOS[nivel]
@@ -155,6 +175,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
       }
       // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão do plano do José).
       const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
+      somarUso(uso, cfg.modelo, r.usage?.input_tokens ?? 0, r.usage?.output_tokens ?? 0, r.usage?.cache_read_input_tokens ?? 0, r.usage?.cache_creation_input_tokens ?? 0)
       if (r.stop_reason === 'refusal') return { texto: null, dadosConsultados }
       const pedidos = r.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use')
       if (r.stop_reason !== 'tool_use' || !pedidos.length) {
@@ -186,10 +207,10 @@ export function reaisDasConsultas(dados: string[]): string {
 }
 
 // Triagem por IA barata quando a regra fica em dúvida. Falha → 'analise' (lado seguro).
-async function triagemPorIA(pergunta: string): Promise<Nivel> {
+async function triagemPorIA(pergunta: string, uso?: Uso): Promise<Nivel> {
   const r = await chamarOpenAI(
     'Classifique a pergunta de um dono de empresa para o CFO digital. Responda JSON {"nivel": "rotina"|"analise"|"estrategica"}. rotina = fato direto (um valor, uma data, uma definição). analise = entender causa, comparar, decidir algo do dia a dia. estrategica = plano, projeção, cenário de longo prazo, decisão grande (investir, expandir, reestruturar).',
-    [{ role: 'user', content: pergunta.slice(0, 1500) }], MODELOS.rotina.modelo, 300, true)
+    [{ role: 'user', content: pergunta.slice(0, 1500) }], MODELOS.rotina.modelo, 300, true, 45000, uso)
   try { const n = JSON.parse(r ?? '{}').nivel; return ORDEM.includes(n) ? n : 'analise' } catch { return 'analise' }
 }
 
@@ -202,6 +223,7 @@ export type RespostaMotor = {
   triagem: 'regra' | 'ia'
   valoresNaoConferidos: number
   consultas: number // quantas ferramentas de consulta a IA usou
+  uso: Uso // tokens e custo desta pergunta (painel de custo)
   setor: string | null
   caracteresEnviados: number
 }
@@ -214,7 +236,8 @@ export async function perguntarAoMotor(args: {
   const pergunta = args.pergunta.trim().slice(0, 4000)
   const manuais = escolherManuais(pergunta, args.tela)
   const porRegra = triagemPorRegra(pergunta, manuais.length)
-  let nivel = subir(porRegra ?? await triagemPorIA(pergunta), args.nivelMinimo ?? 'rotina')
+  const uso = usoZerado()
+  let nivel = subir(porRegra ?? await triagemPorIA(pergunta, uso), args.nivelMinimo ?? 'rotina')
   const triagem = porRegra ? 'regra' : 'ia'
 
   const precisaMundo = nivel === 'estrategica' || manuais.some((m) => m.id === 'economia')
@@ -236,11 +259,11 @@ export async function perguntarAoMotor(args: {
   const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number; consultas?: string[] }> => {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
-    if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
-    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId })
+    if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
+    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId }, uso)
     if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
     // Anthropic fora do ar: a OpenAI responde no lugar (sem a regra de escalar), melhor que nada.
-    const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_RESERVA, 3000)
+    const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_RESERVA, 3000, false, 45000, uso)
     return { texto: reserva, provedor: 'openai', modelo: OPENAI_RESERVA, enviados }
   }
 
@@ -253,5 +276,5 @@ export async function perguntarAoMotor(args: {
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
   const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`) : []
-  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados }
+  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso }
 }

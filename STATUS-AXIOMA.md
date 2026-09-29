@@ -1356,8 +1356,8 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 
 ## 4-LISTA. O QUE FALTA PARA TERMINAR O AXIOMA — lista única, atualizada 2026-09-28 (marcar ✅ ao fechar)
 Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
-- [ ] B1 Motor fase 4 — manuais com exemplos de boa resposta
-- [ ] B2 Motor fase 7 — perguntas-padrão por setor + painel de custo/qualidade
+- [x] B1 Motor fase 4 — manuais com exemplos de boa resposta ✅ 2026-09-28
+- [x] B2 Motor fase 7 — 32 perguntas-padrão + medição de custo + painel Config → Uso da IA ✅ 2026-09-28 (teste achou 9 buracos na triagem, corrigidos)
 - [ ] B3 Nota fiscal inteligente (Importar Documentos Fase 2)
 - [ ] B4 Pagar contas por dentro do Axioma (construído, chave DESLIGADA)
 - [ ] P1 Menu do topo por cima do fundo escurecido dos modais (18 módulos) — correção geral no TopNav

@@ -5,7 +5,7 @@
 | Documento | Especificação técnica e operacional |
 | Sistema | Axioma AI.Tech — CFO digital |
 | Versão do motor | `motor-ia-1` |
-| Status | Fases 1, 2, 3, 5 e 6 concluídas; fases 4 e 7 em andamento |
+| Status | Todas as 7 fases concluídas |
 | Responsável pelo produto | Elias Tavares (CEO) |
 | Última atualização | 2026-09-28 |
 
@@ -75,6 +75,8 @@ Resposta para a tela
 | `lib/ia/ferramentas.ts` | 8 ferramentas de consulta só de leitura (Claude pede o detalhe; até 4 rodadas, na última é obrigado a responder). Mesmos nomes e esquemas servirão a um servidor MCP do Axioma. Números trazidos por elas contam como dado real na conferência. |
 | `app/api/ia/motor/route.ts` | Porta única do motor para as telas. |
 | `lib/ia/cliente.ts` | `perguntarAoAxioma()`: a única função que as telas usam para falar com a IA. Falha = `null` → a tela usa as respostas por regras. |
+| `lib/ia/perguntasPadrao.ts` | 32 perguntas reais de dono de empresa com o nível e o manual esperados — teste automático da trava. |
+| `app/(interno)/uso-ia/page.tsx` | Painel Uso da IA: perguntas, % que subiram de nível, consultas, % de números conferidos, custo Anthropic (US$) e tokens OpenAI, por nível e por tela. Lê só a auditoria da própria empresa, nunca conteúdo. |
 | `scripts/check-ia-motor.mts` | Testes das partes sem IA (rodar: `npx tsx scripts/check-ia-motor.mts`). |
 
 ## 5. Segurança e privacidade
@@ -100,10 +102,10 @@ A parte fixa do prompt (regras) e a parte da empresa (retrato, setor e manuais) 
 | 1 | Setores (CNAE inteira), manuais por área, retrato da empresa; plano do José usando o retrato | ✅ 2026-09-28 |
 | 2 | Triagem, executores, escalonamento, conferência, rota `/api/ia/motor`, auditoria, testes | ✅ 2026-09-28 |
 | 3 | 8 ferramentas de consulta (a IA pede o detalhe: contas a pagar/receber, custos, receita mês a mês, avisos de estoque, dívidas, maiores fornecedores e devedores), desenhadas para virar MCP depois | ✅ 2026-09-28 |
-| 4 | Aprofundar os manuais por setor e área com exemplos de boa resposta | ⏳ |
+| 4 | Exemplo de boa resposta por área (marcadores, nunca valor real) | ✅ 2026-09-28 |
 | 5 | IA Financeira e IA Tributária ligadas no motor (+ comparação de regimes em pergunta tributária) | ✅ 2026-09-28 — conferido no site |
 | 6 | Todas as telas com IA no motor: chat do José, simulações do Nexus, Tesouraria, Contas a Pagar, Centro de Custos, Clientes e os 6 do MEI (DAS, Faturamento, Reforma, Precificação, IR, Advisor). Rota antiga `/api/ia-chat` removida | ✅ 2026-09-28 |
-| 7 | Conjunto de perguntas-padrão por setor + painel de custo e qualidade | ⏳ |
+| 7 | 32 perguntas-padrão (áreas + setores) testadas a cada mudança; medição de tokens e custo em toda chamada; painel **Config → Uso da IA** (`/uso-ia`) | ✅ 2026-09-28 |
 
 Funções que vêm depois e usam o motor como base: **nota fiscal inteligente** (Importar Documentos, fase 2) e **pagar contas por dentro do Axioma** (construído com chave desligada, ligado só na produção). Ver `STATUS-AXIOMA.md`, seção 4-ROTEIRO.
 
@@ -115,3 +117,4 @@ Funções que vêm depois e usam o motor como base: **nota fiscal inteligente** 
 | 2026-09-28 | motor-ia-1 | Fase 5: IA Financeira e IA Tributária usando o motor (conferido no site: resposta com números do retrato, custos pelo nome, alerta principal). Respostas em texto simples (as telas não leem markdown). |
 | 2026-09-28 | motor-ia-1 | Fase 3: ferramentas de consulta ligadas ao Claude; rotina (OpenAI, sem ferramentas) passa pra cima quando a pergunta pede lista/detalhe. |
 | 2026-09-28 | motor-ia-1 | Fase 6: todas as telas com IA passam pelo motor (José, simulações, Tesouraria, Contas a Pagar, Centro de Custos, Clientes, 6 do MEI); rota antiga removida (trava completa); histórico sem pergunta duplicada. |
+| 2026-09-28 | motor-ia-1 | Fases 4 e 7: exemplos de boa resposta; medição de tokens/custo; painel Uso da IA; 32 perguntas-padrão (acharam 9 buracos na triagem, corrigidos); Groq substituída pela OpenAI (`tarefaDeRotina`). |

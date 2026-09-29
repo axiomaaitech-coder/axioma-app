@@ -18,6 +18,19 @@ assert.equal(triagemPorRegra('Vale a pena abrir uma nova loja?', 1), 'estrategic
 assert.equal(triagemPorRegra('bom dia', 0), null) // dúvida → IA classifica
 console.log('OK — triagem por regra')
 
+// Perguntas-padrão (B2): trava de nível + manual certo em todo o conjunto
+const { PERGUNTAS_PADRAO } = await import('../lib/ia/perguntasPadrao')
+const { escolherManuais: esc } = await import('../lib/ia/manuais')
+const falhas: string[] = []
+for (const q of PERGUNTAS_PADRAO) {
+  const man = esc(q.pergunta, q.tela)
+  const nivel = triagemPorRegra(q.pergunta, man.length)
+  if (nivel !== q.nivel) falhas.push(`nível "${q.pergunta}": esperado ${q.nivel}, veio ${nivel}`)
+  if (q.manual && !man.some((m) => m.id === q.manual)) falhas.push(`manual "${q.pergunta}": esperado ${q.manual}, veio ${man.map((m) => m.id).join(',') || 'nenhum'}`)
+}
+assert.deepEqual(falhas, [], falhas.join('\n'))
+console.log(`OK — ${PERGUNTAS_PADRAO.length} perguntas-padrão no nível e manual certos`)
+
 // Conferência: número do retrato passa; inventado é pego; estimativa marcada passa
 const base = 'Receita R$ 50.000/mês · custo fixo R$ 12.345/mês'
 assert.deepEqual(conferirNumeros('Sua receita é R$ 50.000 e o fixo R$ 12.345.', base), [])
@@ -28,6 +41,15 @@ const { reaisDasConsultas } = await import('../lib/ia/motor')
 const consulta = reaisDasConsultas(['{"itens":[{"saldo":4321.5}]}'])
 assert.deepEqual(conferirNumeros('A maior conta é de R$ 4.321,50.', `${base}\n${consulta}`), [])
 console.log('OK — conferência de números (inclusive vindos das ferramentas)')
+
+// Custo: Sonnet 5.5 1M entrada + 1M saída = US$ 12; OpenAI só conta tokens (sem preço inventado)
+const { usoZerado, somarUso } = await import('../lib/ia/motor')
+const u = usoZerado()
+somarUso(u, 'claude-sonnet-5-5', 1_000_000, 1_000_000)
+somarUso(u, 'gpt-5.6-luna', 500, 200)
+assert.equal(Math.round(u.custoUsdAnthropic * 100) / 100, 12)
+assert.equal(u.tokensOpenAI, 700)
+console.log('OK — medição de custo (Anthropic em US$, OpenAI em tokens)')
 
 // Ferramentas: esquema estrito válido (todo campo obrigatório, nada extra)
 const { FERRAMENTAS } = await import('../lib/ia/ferramentas')
