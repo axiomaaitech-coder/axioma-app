@@ -1906,6 +1906,11 @@ function PreviewBlock(props: any) {
   const bordaHeaderTabela = temaClaro ? "1px solid rgba(46,204,155,0.2)" : "none";
   const DESTINOS = DESTINOS_BASE.map((d) => ({ ...d, cor: corDestinoClaro(d.cor, temaClaro) }));
 
+  // Resumo do pagamento da NF-e (parcelas, cartão, boleto, Pix) — lido do XML.
+  const { idioma } = useLanguage();
+  const resumoPag = resultado?.metadados?.resumo_pagamento as { pt: string; en: string; es: string; perguntaParcelasCartao: boolean } | undefined;
+  const textoResumoPag = resumoPag ? (idioma === "en" ? resumoPag.en : idioma === "es" ? resumoPag.es : resumoPag.pt) : null;
+
   const destinoResumo = destinoPredominante(destinos);
   const destInfo = DESTINOS.find((d) => d.key === destinoResumo) || DESTINOS[0];
   const multiplosDestinos = new Set(destinos).size > 1;
@@ -1923,6 +1928,14 @@ function PreviewBlock(props: any) {
   return (
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
+        {textoResumoPag && (
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
+              💳 {idioma === "en" ? "How it was paid" : idioma === "es" ? "Cómo se pagó" : "Como foi pago"}
+            </p>
+            <p className="text-sm mt-1" style={{ color: ct("#c8d8f0") }}>{textoResumoPag}</p>
+          </div>
+        )}
         {/* Header do preview */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") }}>
           <div>

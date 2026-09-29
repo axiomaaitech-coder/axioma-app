@@ -609,6 +609,37 @@ export function lerCobrancaNFe(nfe: any): { parcelas: ParcelaNFe[]; pagamentos: 
   return { parcelas, pagamentos };
 }
 
+// Resumo em linguagem simples pro usuário (pedido do Elias): parcelado ou não,
+// cartão, boleto, Pix. O XML traz o MEIO mas não em quantas vezes foi no cartão —
+// nesse caso o resumo vira pergunta (perguntaParcelasCartao = true).
+const MEIO_EN: Record<string, string> = { Dinheiro: "cash", Cheque: "check", "Cartão de crédito": "credit card", "Cartão de débito": "debit card", "Crédito loja": "store credit", Boleto: "bank slip (boleto)", Depósito: "deposit", Pix: "Pix", Transferência: "bank transfer", "Sem pagamento": "no payment", Outros: "other" };
+const MEIO_ES: Record<string, string> = { Dinheiro: "efectivo", Cheque: "cheque", "Cartão de crédito": "tarjeta de crédito", "Cartão de débito": "tarjeta de débito", "Crédito loja": "crédito de la tienda", Boleto: "boleto bancario", Depósito: "depósito", Pix: "Pix", Transferência: "transferencia", "Sem pagamento": "sin pago", Outros: "otro" };
+export function resumirPagamentoNFe(parcelas: ParcelaNFe[], pagamentos: PagamentoNFe[], total: number): { pt: string; en: string; es: string; perguntaParcelasCartao: boolean } {
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const data = (iso?: string, loc = "pt-BR") => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(loc) : "?");
+  const meios = [...new Set(pagamentos.map((p) => p.meio))]
+  const cartaoCredito = pagamentos.some((p) => p.codigo === "03");
+  const perguntaParcelasCartao = cartaoCredito && parcelas.length === 0;
+  if (parcelas.length > 0) {
+    const via = meios.length ? meios.join(", ") : null;
+    return {
+      pt: `Parcelado em ${parcelas.length}x${via ? ` (${via})` : ""}: ${parcelas.map((p) => `${brl(p.valor)} em ${data(p.vencimento)}`).join("; ")}.`,
+      en: `Paid in ${parcelas.length} installments${via ? ` (${meios.map((m) => MEIO_EN[m] ?? m).join(", ")})` : ""}: ${parcelas.map((p) => `${brl(p.valor)} on ${data(p.vencimento, "en-US")}`).join("; ")}.`,
+      es: `En ${parcelas.length} cuotas${via ? ` (${meios.map((m) => MEIO_ES[m] ?? m).join(", ")})` : ""}: ${parcelas.map((p) => `${brl(p.valor)} el ${data(p.vencimento, "es-ES")}`).join("; ")}.`,
+      perguntaParcelasCartao,
+    };
+  }
+  if (!pagamentos.length) return { pt: "A nota não informa a forma de pagamento.", en: "The invoice does not state the payment method.", es: "La factura no informa la forma de pago.", perguntaParcelasCartao: false };
+  const linha = (m: Record<string, string> | null) => pagamentos.map((p) => `${m ? m[p.meio] ?? p.meio : p.meio} ${brl(p.valor)}`).join(" + ");
+  const quitado = pagamentos.every((p) => p.quitado) && pagamentos.reduce((s, p) => s + p.valor, 0) >= total - 0.01;
+  return {
+    pt: `${quitado ? "Pago à vista" : "Forma de pagamento"}: ${linha(null)}.${perguntaParcelasCartao ? " Foi no cartão de crédito — em quantas vezes?" : ""}`,
+    en: `${quitado ? "Paid in full" : "Payment method"}: ${linha(MEIO_EN)}.${perguntaParcelasCartao ? " Paid by credit card — in how many installments?" : ""}`,
+    es: `${quitado ? "Pagado al contado" : "Forma de pago"}: ${linha(MEIO_ES)}.${perguntaParcelasCartao ? " Fue con tarjeta de crédito — ¿en cuántas cuotas?" : ""}`,
+    perguntaParcelasCartao,
+  };
+}
+
 export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lang = "pt"): Promise<ResultadoParse> {
   const motivos = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
   const fallbackContraparte = CONTRAPARTE_FALLBACK[lang] || CONTRAPARTE_FALLBACK.pt;
@@ -739,6 +770,7 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   metadados.pagamentos = pagamentos;
   const valorQuitado = pagamentos.filter((p) => p.quitado).reduce((s, p) => s + p.valor, 0);
   metadados.valor_quitado_na_emissao = valorQuitado;
+  metadados.resumo_pagamento = resumirPagamentoNFe(parcelas, pagamentos, metadados.valor_total ?? 0);
 
   const base = {
     data: metadados.data_emissao, documento: String(ide.nNF || ""), cnpj: cnpjContraparte,
