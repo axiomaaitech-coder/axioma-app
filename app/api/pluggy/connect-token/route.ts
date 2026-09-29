@@ -62,6 +62,6 @@ export async function POST() {
   } catch (error: any) {
     console.error('Pluggy connect token error:', error)
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/connect-token' } })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'erro interno' }, { status: 500 }) // detalhe só no Sentry
   }
 }

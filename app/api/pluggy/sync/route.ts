@@ -145,6 +145,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Pluggy sync error:', error)
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/sync' } })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'erro interno' }, { status: 500 }) // detalhe só no Sentry
   }
 }

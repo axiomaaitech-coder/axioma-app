@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import * as Sentry from '@sentry/nextjs'
 
 // Retorna a lista de bancos (conectores) do Pluggy COM logo oficial e cor da marca.
 // Usado para montar os cartões clicáveis na tela de Open Finance.
 export async function GET() {
+  // Só logado: cada chamada gasta a nossa autenticação na Pluggy (auditoria 2026-09-28).
+  const cookieStore = await cookies()
+  const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { getAll() { return cookieStore.getAll() }, setAll() { /* só leitura */ } } })
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autorizado', connectors: [] }, { status: 401 })
   try {
     // Autentica no Pluggy
     const authResponse = await fetch('https://api.pluggy.ai/auth', {
@@ -40,6 +47,6 @@ export async function GET() {
   } catch (error: any) {
     console.error('Pluggy connectors error:', error)
     Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/connectors' } })
-    return NextResponse.json({ error: error.message, connectors: [] }, { status: 500 })
+    return NextResponse.json({ error: 'erro ao buscar bancos', connectors: [] }, { status: 500 })
   }
 }
