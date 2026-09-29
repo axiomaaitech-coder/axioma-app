@@ -1371,6 +1371,7 @@ Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
 - [ ] E Políticas: termos de uso, privacidade (LGPD), política de uso
 - [ ] F Produção: Stripe e Pluggy reais, Supabase Pro, trava do Nexus por plano, preços, landing
 Resolvido ao levantar: Dashboard já usa dados reais (demonstração é só um botão opcional).
+**AUDITORIA 2026-09-28 (pedido do Elias) — FEITA:** relatório completo em docs/AUDITORIA-2026-09-28.md. 7 falhas de segurança corrigidas (webhook Pluggy, assinatura Stripe com userId do navegador, PDV/Estoque/Equipe sem trava, redirecionamento aberto no login, lista de bancos sem login, mensagens internas de erro, página de teste do Sentry), pacotes 32 falhas → 0 (Next 16.3.6, xlsx 0.20.3), 5 bugs corrigidos, código morto removido, nenhuma chave exposta (código e histórico). Pendências: PLUGGY_WEBHOOK_SECRET (etapa F), decisão Groq, P4 (RLS antigas).
 
 ## 4-ROTEIRO. ROTEIRO FINAL ATÉ TERMINAR O AXIOMA (definido pelo Elias em 2026-09-28)
 Ordem de execução (decisão técnica minha, explicada ao Elias):
