@@ -1354,6 +1354,24 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 ## 3-BW. Nexus — coleta pela visita (2026-09-28)
 Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não dá pra ver; trocar exigiria redeploy) — agendamento do GitHub criado e removido. Solução: **coleta pela visita** — POST /api/nexus/atualizar (só logado): se o último sucesso do BCB tem mais de 3h, roda a mesma coleta do cron **sem IA** (sem análises/painel) e a tela recarrega os números em silêncio. Lógica da coleta movida pra lib/nexusColeta.ts (executarColeta({ comIA })); a rota do cron ficou só com a checagem do CRON_SECRET. Limite: sem visita, sem coleta extra (o cron das 6h continua).
 
+## 4-LISTA. O QUE FALTA PARA TERMINAR O AXIOMA — lista única, atualizada 2026-09-28 (marcar ✅ ao fechar)
+Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
+- [ ] B1 Motor fase 4 — manuais com exemplos de boa resposta
+- [ ] B2 Motor fase 7 — perguntas-padrão por setor + painel de custo/qualidade
+- [ ] B3 Nota fiscal inteligente (Importar Documentos Fase 2)
+- [ ] B4 Pagar contas por dentro do Axioma (construído, chave DESLIGADA)
+- [ ] P1 Menu do topo por cima do fundo escurecido dos modais (18 módulos) — correção geral no TopNav
+- [ ] P2 Currents (paga) ainda ativa no cadastro de fontes — desligar com ok do Elias
+- [ ] P3 Aceitar convite de equipe — confirmar CONVITE-EQUIPE-SQL.sql rodado e testar ponta a ponta
+- [ ] P4 8 políticas RLS na forma antiga (alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes) — SQL pro Elias rodar
+- [ ] P5 Escala: listas sem paginação que leem tudo (Clientes, Contas a Receber/Inadimplência — seção 11)
+- [ ] P6 Placar do José — conferir em 28/10/2026
+- [ ] C Tema Escuro padronizado (confirmar paleta antes)
+- [ ] D Manual de uso de todos os módulos (pt/en/es)
+- [ ] E Políticas: termos de uso, privacidade (LGPD), política de uso
+- [ ] F Produção: Stripe e Pluggy reais, Supabase Pro, trava do Nexus por plano, preços, landing
+Resolvido ao levantar: Dashboard já usa dados reais (demonstração é só um botão opcional).
+
 ## 4-ROTEIRO. ROTEIRO FINAL ATÉ TERMINAR O AXIOMA (definido pelo Elias em 2026-09-28)
 Ordem de execução (decisão técnica minha, explicada ao Elias):
 **A. Fechar Nexus/José** — (1) setor da empresa no cruzamento — FEITO 2026-09-28 (commit 1a99aa9: ramoDoCnae em nexusEventDetector.ts, selo "Mexe com o seu ramo" nos eventos, ramo no chat e no plano; plano lia campos setor/cnae que não existem, corrigido); (2) "Exportar PDF" do Nexus com todas as seções — FEITO 2026-09-28 (commit ed7164d, app/(interno)/nexus/pdfNexus.ts; só lê o que já está gravado, nunca aciona IA). Junto: ciclo OCDE nunca coletava na Vercel (OCDE barra IP de nuvem) — reserva DBnomics; pausa de fonte com falha agora é 6h, não 3 dias (Elias: "não podemos ficar sem dados por 3 dias em um módulo premium"); (3) conferências — FEITO 2026-09-28: coleta pela visita funcionando (fontes atualizando no mesmo dia); GDELT recusa por limite de IP de nuvem → BBC World, ONU News e Al Jazeera rodam sempre junto (canal geopolitica); ciclo OCDE aparecendo (Elias confirmou). Pendente só por data: 1ª conferência do placar em 28/10 — olhar nesse dia se acertos/erros aparecem. **ETAPA A FECHADA.**
