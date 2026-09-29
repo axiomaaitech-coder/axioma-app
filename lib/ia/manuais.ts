@@ -41,6 +41,25 @@ export const MANUAIS_DA_TELA: Record<string, string[]> = {
 }
 
 // Até 3 manuais: os que a pergunta cita (na ordem do catálogo) + os da tela.
+// Fase 4 — formato de uma BOA resposta por área. Marcadores [assim] no lugar dos
+// números: a IA copia o jeito (diagnóstico com número → causa pelo nome → ações com
+// impacto), nunca um valor — todo número real vem do retrato ou das ferramentas.
+export const EXEMPLOS: Record<string, string> = {
+  caixa: 'Seu caixa hoje é [caixa] e nos próximos 30 dias entram [a receber 30d] e saem [a pagar 30d] — sobra [diferença]. Mantido o ritmo, ele aguenta [fôlego] meses. O que mais pesa é [maior saída pelo nome]. Faça agora: 1) cobre [maior recebível vencido]; 2) negocie o vencimento de [conta] para depois de [data]; 3) monte uma reserva de 1 a 3 meses de custo fixo.',
+  custos: 'Seus custos somam [total]/mês: [fixo] fixos e [variável] variáveis. Os 3 maiores fixos são [item 1], [item 2] e [item 3]. Onde agir: 1) renegociar [item 1] (10% a menos = [conta] por mês, estimativa); 2) cortar [item sem uso]; 3) medir a perda em [variável]. Com isso o ponto de equilíbrio cai de [antes] para [depois] (estimativa).',
+  precificacao: 'Hoje cada venda deixa [margem de contribuição]% depois do custo variável e dos impostos. Para pagar [custo fixo] você precisa vender [ponto de equilíbrio]/mês. Um reajuste de [x]% em [produto] cobre a alta de [custo que subiu]. Desconto só com contrapartida: volume acima de [y] ou pagamento à vista.',
+  divida: 'Você deve [dívida total] ([x]% da receita do ano). A mais cara é [dívida] a [juros]% ao mês — quite primeiro ela. As parcelas comprometem [y]% do lucro mensal. Peça ao banco troca de [dívida cara] por crédito mais barato; só vale se o custo total (juros + tarifas) cair.',
+  tributario: 'No regime [regime] você paga [imposto]/mês ([alíquota]% da receita). Pela comparação de hoje, [outro regime] custaria [valor] (estimativa pelas regras vigentes em [data]; a Reforma Tributária está em transição até 2033 e isso pode mudar). Antes de trocar, confira [condição/prazo de opção]. Obrigações atrasadas: [quais].',
+  cobranca: 'Você tem [a receber] em aberto, [vencido] já vencido ([inadimplência]%). Os maiores devedores são [cliente 1] e [cliente 2]. Faça hoje: 1) contato com [cliente 1]; 2) régua: lembrete 3 dias antes, contato no vencimento, proposta de acordo após 15 dias; 3) venda a prazo para quem atrasa repetido só com entrada.',
+  estoque: '[n] produtos estão em falta ([produto 1], [produto 2]) — venda perdida. [m] estão acima do máximo (capital parado em [produto]). Reponha primeiro o que gira e rompe; compre menos e mais vezes o que gira pouco; faça promoção de [produto parado] antes que perca valor.',
+  crescimento: 'Para crescer com segurança você precisa de margem positiva e fôlego — hoje a margem é [margem] e o fôlego [fôlego]. [Ideia] exige [investimento] e se paga em [meses] se trouxer [receita adicional] (estimativa). Cenário mais provável: [x]; o que pode mudar: [risco]. Comece pelo que já funciona: [produto/cliente que mais vende].',
+  vendas: 'Sua receita dos últimos meses foi [série] — [subiu/caiu] [x]%. A variação veio de [volume ou ticket]. [Cliente/fonte] responde por [y]% — risco de concentração. Ações: 1) reativar [clientes parados]; 2) aumentar a recorrência de [produto]; 3) oferta para quem já compra [item].',
+  economia: '[Indicador] foi de [antes] para [agora] em [período] (fonte [órgão]). Para uma empresa de [setor] isso mexe em [custo/preço/demanda]: [efeito na empresa, citando o custo pelo nome]. Cenário mais provável: [x]; pode mudar se [gatilho]. O que fazer agora: [ação].',
+}
+
+// Texto do manual pro prompt: instrução + formato de boa resposta.
+export const textoManual = (m: Manual) => `${m.texto}\nFormato de boa resposta (${m.id}): ${EXEMPLOS[m.id] ?? '—'}`
+
 export function escolherManuais(pergunta: string, tela?: string): Manual[] {
   const ids = MANUAIS.filter((m) => m.palavras.test(pergunta)).map((m) => m.id)
   for (const id of MANUAIS_DA_TELA[tela ?? ''] ?? []) if (!ids.includes(id)) ids.push(id)

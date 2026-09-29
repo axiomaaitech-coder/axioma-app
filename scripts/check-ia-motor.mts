@@ -51,7 +51,13 @@ console.log(`OK — setores (${SETORES.length} setores, ${DIVISOES.length} divis
 // Manuais: pergunta + tela, no máximo 3
 assert.deepEqual(escolherManuais('quanto pago de imposto?', 'ia-financeira').map((m) => m.id), ['tributario', 'caixa', 'custos'])
 assert.ok(escolherManuais('a b c d e f g', 'nexus').length <= 3)
-console.log('OK — manuais')
+// Todo manual tem exemplo de boa resposta, e exemplo nunca traz valor em R$ (só marcadores)
+const { MANUAIS, EXEMPLOS } = await import('../lib/ia/manuais')
+for (const m of MANUAIS) {
+  assert.ok(EXEMPLOS[m.id], `manual ${m.id} sem exemplo`)
+  assert.ok(!/R\$\s?\d/.test(EXEMPLOS[m.id]), `exemplo de ${m.id} com valor real`)
+}
+console.log(`OK — manuais (${MANUAIS.length} áreas, todas com exemplo de boa resposta)`)
 
 // Alertas
 const zero: NumerosRetrato = { receitaMensal: 10000, receitas6m: [10000, 9000, 9000, 8000, 8000, 7000], custoFixoMensal: 5000, custoVariavelMensal: 6000, aliquotaEfetivaPct: 6, impostoMensal: 600, jurosMensal: 0, lucroMensal: -1600, margemPct: -16, custoFixoSobreReceitaPct: 50, pontoEquilibrioMensal: null, caixa: 4000, folegoMeses: 2, dividaTotal: 0, dividaSobreReceitaAnualPct: 0, aReceberAberto: 0, aReceberVencido: 0, aReceber30d: 0, inadimplenciaPct: null, aPagarAberto: 0, aPagarVencido: 0, aPagar30d: 0, concentracaoTopClientePct: null, estoqueRuptura: 0, estoqueBaixo: 0, estoqueParado: 0, obrigacoesAtrasadas: 0 }
