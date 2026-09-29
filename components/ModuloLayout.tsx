@@ -26,33 +26,6 @@ interface ModuloLayoutProps {
   corNovo?: string;
 }
 
-// Card interno reutilizável — borda sutil, sem animação piscante.
-export function NeonCard({ children, cor = "#6ab0ff", className = "" }: { children: ReactNode; cor?: string; className?: string }) {
-  const corRgb = cor === "#6ab0ff" ? "106,176,255" : cor === "#34d399" ? "52,211,153" : cor === "#f87171" ? "248,113,113" : cor === "#fbbf24" ? "251,191,36" : cor === "#a78bfa" ? "167,139,250" : "106,176,255";
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className={`relative rounded-2xl overflow-hidden ${className}`}
-      style={{
-        background: "var(--axi-surface)",
-        border: `1px solid rgba(${corRgb},0.16)`,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
-      }}
-    >
-      {/* Acento sutil no topo (estático, sem piscar) */}
-      <div
-        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, rgba(${corRgb},0.5), transparent)` }}
-      />
-      <div className="relative z-10 p-4 md:p-5">
-        {children}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function ModuloLayout({
   titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra, aurora,
   headerFundo, corExportar, corNovo

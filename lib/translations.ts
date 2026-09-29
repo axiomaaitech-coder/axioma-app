@@ -1519,4 +1519,3 @@ export const traducoes = {
 };
 
 export type Idioma = "pt" | "en" | "es";
-export type Traducoes = typeof traducoes.pt;

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Sliders, Target, Dices, TrendingUp, AlertTriangle, Sparkles, Share2, X,
+  Sliders, Target, Dices, TrendingUp, AlertTriangle, Sparkles, Share2, 
   Landmark, Zap, Percent, ShieldCheck,
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -11,7 +11,7 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -72,14 +72,11 @@ export default function Simulacoes() {
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
-  const CAMPO_BG2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
-  const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
   const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
@@ -90,7 +87,7 @@ export default function Simulacoes() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  const [carregando, setCarregando] = useState(true);
+  const [, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [macro, setMacro] = useState<IndicadoresMacro | null>(null);

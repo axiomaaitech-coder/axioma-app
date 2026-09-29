@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
@@ -20,7 +19,6 @@ const TEXTO_MUTED = '#6a8bbd'
 const TEXTO_MUTED2 = '#5a7aaa'
 
 export default function Planos() {
-  const router = useRouter()
   const { idioma } = useLanguage()
   const [hover, setHover] = useState<string | null>(null)
   const [loadingPlano, setLoadingPlano] = useState<string | null>(null)

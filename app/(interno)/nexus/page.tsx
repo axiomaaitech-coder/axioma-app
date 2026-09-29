@@ -269,7 +269,6 @@ export default function NexusPage() {
         carregarEventos(0)
       })
       .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Vindo do card flutuante (Radar Global): /nexus?evento=<id> abre direto no modal.

@@ -1,6 +1,6 @@
 ﻿"use client";
 import { useState, useEffect } from "react";
-import { Search, Trash2, X, Pencil, Share2, TrendingUp, AlertTriangle, Sparkles, Bell, Zap } from "lucide-react";
+import { Search, Trash2, X, Pencil, Share2,  AlertTriangle, Sparkles, Bell, Zap } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -184,8 +184,6 @@ export default function CustosFixos() {
   const temDados = custos.length > 0;
 
   // Próximos vencimentos do mês (por dia_vencimento)
-  const diaHoje = new Date().getDate();
-  const proximosVenc = [...custos].filter(c => c.dia_vencimento >= diaHoje).sort((a, b) => a.dia_vencimento - b.dia_vencimento).slice(0, 5);
 
   const insights: { tipo: "alerta" | "positivo"; texto: string }[] = [];
   if (temDados) {

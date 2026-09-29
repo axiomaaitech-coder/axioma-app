@@ -20,8 +20,6 @@ import {
   carregarKPIs,
   calcularScoreCFO,
   gerarInsights,
-  nomeMesPt,
-  type Periodo,
   type DRE,
   type PontoEvolucao,
   type CategoriaCusto,

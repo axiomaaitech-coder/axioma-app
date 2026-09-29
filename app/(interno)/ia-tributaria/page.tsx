@@ -7,7 +7,7 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
+import {      Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 import {
   carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
   calcularEconomiaTributaria, gerarAlertasReforma, gerarDiagnosticoFiscal,
@@ -175,7 +175,6 @@ export default function IATributariaPage() {
   const chatRef = useRef<HTMLDivElement>(null);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const { VERDE, VERMELHO, AMARELO, AZULC, ROXO, CINZA, TEXTO, CAMPO_BG, TOOLTIP_BG } = PALETA[tema];
   const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)";
   const tooltipStyle = { background: TOOLTIP_BG, border: `1px solid ${temaClaro ? "rgba(16,27,61,0.18)" : "rgba(106,176,255,0.3)"}`, borderRadius: "12px", color: TEXTO, fontSize: "12px" };

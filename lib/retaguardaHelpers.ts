@@ -92,23 +92,6 @@ export async function obterResumoDia(empresaId: string, data: string): Promise<{
   };
 }
 
-export type VendaPorCategoria = {
-  nicho: string; categoria: string; subNicho: string;
-  quantidade: number; valorVendido: number; lucroReal: number | null;
-};
-
-export async function obterVendasPorCategoria(empresaId: string, data: string): Promise<{ dados: VendaPorCategoria[]; erro?: string; codigo?: string }> {
-  const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_por_categoria", { p_empresa_id: empresaId, p_data: data });
-  if (error) return { dados: [], erro: error.message, codigo: error.code };
-  return {
-    dados: (linhas || []).map((l: any) => ({
-      nicho: l.nicho, categoria: l.categoria, subNicho: l.sub_nicho,
-      quantidade: Number(l.quantidade) || 0, valorVendido: Number(l.valor_vendido) || 0,
-      lucroReal: l.lucro_real === null || l.lucro_real === undefined ? null : Number(l.lucro_real),
-    })),
-  };
-}
-
 export type VendaPorProduto = {
   produtoId: string; produtoNome: string; nicho: string; categoria: string; subNicho: string;
   quantidade: number; valorVendido: number; lucroReal: number | null; saldoAtual: number;

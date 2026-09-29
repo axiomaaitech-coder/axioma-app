@@ -1619,9 +1619,11 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
     [{ label: "1", acao: { tipo: "digito", valor: "1" } }, { label: "2", acao: { tipo: "digito", valor: "2" } }, { label: "3", acao: { tipo: "digito", valor: "3" } }, { label: "+", acao: { tipo: "operador", valor: "+" }, operador: true }],
   ];
 
-  function BotaoCalc({ label, acao, estilo, className }: { label: string; acao: AcaoCalculadora; estilo?: "operador" | "acao" | "igual"; className?: string }) {
+  // Função de desenho (não componente): componente criado dentro de outro é
+  // recriado a cada tecla e perde foco/hover (auditoria 2026-09-28).
+  function botaoCalc({ label, acao, estilo, className }: { label: string; acao: AcaoCalculadora; estilo?: "operador" | "acao" | "igual"; className?: string }) {
     return (
-      <button onClick={() => dispatch(acao)} className={`h-[56px] flex items-center justify-center rounded-xl text-[22px] font-bold ${className || ""}`}
+      <button key={label} onClick={() => dispatch(acao)} className={`h-[56px] flex items-center justify-center rounded-xl text-[22px] font-bold ${className || ""}`}
         style={estilo === "operador" ? { background: tokens.acentoSuaveBg, color: tokens.acento }
           : estilo === "acao" ? { background: "rgba(248,113,113,0.12)", color: "#f87171" }
           : estilo === "igual" ? { background: tokens.acaoBg, color: tokens.acaoTexto }
@@ -1641,11 +1643,11 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
         </div>
 
         <div className="grid grid-cols-4 gap-[8px] mb-3">
-          {botoesLinha1.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.label === "÷" ? "operador" : "acao"} />)}
-          {linhasNumericas.map((linha) => linha.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.operador ? "operador" : undefined} />))}
-          <BotaoCalc label="0" acao={{ tipo: "digito", valor: "0" }} className="col-span-2" />
-          <BotaoCalc label="," acao={{ tipo: "digito", valor: "," }} />
-          <BotaoCalc label="=" acao={{ tipo: "igual" }} estilo="igual" />
+          {botoesLinha1.map((b) => botaoCalc({ label: b.label, acao: b.acao, estilo: b.label === "÷" ? "operador" : "acao" }))}
+          {linhasNumericas.map((linha) => linha.map((b) => botaoCalc({ label: b.label, acao: b.acao, estilo: b.operador ? "operador" : undefined })))}
+          {botaoCalc({ label: "0", acao: { tipo: "digito", valor: "0" }, className: "col-span-2" })}
+          {botaoCalc({ label: ",", acao: { tipo: "digito", valor: "," } })}
+          {botaoCalc({ label: "=", acao: { tipo: "igual" }, estilo: "igual" })}
         </div>
 
         {estado.historico.length > 0 && (

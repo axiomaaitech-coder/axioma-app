@@ -595,6 +595,25 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     });
   }
 
+  // Anomalias em ALERTA também viram ação (auditoria 2026-09-28: o parâmetro chegava
+  // e era ignorado — o plano nunca mostrava o que a aba Anomalias já tinha achado).
+  // Pula o que outra ação acima já cobre, pra não repetir.
+  const CATEGORIA_ANOMALIA: Record<Anomalia["tipo"], AcaoSugerida["categoria"]> = {
+    gasto_alto: "custo", queda_receita: "receita", inadimplencia: "cobranca", margem_baixa: "custo", endividamento: "gestao",
+  };
+  const jaCoberto = (a: Anomalia) =>
+    (a.tipo === "inadimplencia" && acoes.some((x) => x.categoria === "cobranca")) ||
+    (a.tipo === "margem_baixa" && acoes.some((x) => x.categoria === "custo"));
+  for (const a of anomalias.filter((x) => x.severidade === "alerta" && !jaCoberto(x)).slice(0, 2)) {
+    acoes.push({
+      prioridade: prioridade++,
+      titulo: `Tratar: ${a.titulo}`, titulo_en: `Address: ${a.titulo_en}`, titulo_es: `Atender: ${a.titulo_es}`,
+      descricao: a.descricao, descricao_en: a.descricao_en, descricao_es: a.descricao_es,
+      impacto_estimado: a.metrica ?? "a medir",
+      categoria: CATEGORIA_ANOMALIA[a.tipo],
+    });
+  }
+
   // Garantir ao menos 3 ações
   if (acoes.length < 3 && snap.receita_bruta > 0) {
     acoes.push({
@@ -668,52 +687,6 @@ export function gerarResumoNarrado(snap: SnapshotFinanceiro, score: Score360, be
       ? `Áreas prioritárias: ${score.dimensoes.filter(d => d.score < 50).map(d => d.nome).join(", ")}.`
       : "Todas as dimensões com desempenho positivo.",
   ].filter(Boolean).join("\n");
-}
-
-// ============================================================================
-// CHAT — MONTAR PROMPT PRA CLAUDE API
-// ============================================================================
-
-export function montarPromptCFO(snap: SnapshotFinanceiro, score: Score360, bench: BenchmarkSetor | null, pergunta: string, idioma: string): string {
-  const lang = idioma === "en" ? "English" : idioma === "es" ? "Spanish" : "Portuguese (Brazilian)";
-  return `You are the Axioma CFO — a senior financial analyst specializing in Brazilian small and medium businesses. Answer in ${lang}. Be direct, specific, and actionable. Use the company's REAL data below.
-
-COMPANY DATA (current month: ${snap.periodo}):
-- Revenue: R$ ${snap.receita_bruta.toLocaleString("pt-BR")}
-- Fixed Costs: R$ ${snap.custos_fixos.toLocaleString("pt-BR")}
-- Variable Costs: R$ ${snap.custos_variaveis.toLocaleString("pt-BR")}
-- Net Profit: R$ ${snap.lucro_liquido.toLocaleString("pt-BR")}
-- Gross Margin: ${snap.margem_bruta.toFixed(1)}%
-- Net Margin: ${snap.margem_liquida.toFixed(1)}%
-- Accounts Receivable (open): R$ ${snap.contas_receber.toLocaleString("pt-BR")}
-- Accounts Payable (open): R$ ${snap.contas_pagar.toLocaleString("pt-BR")}
-- Delinquency Rate: ${snap.inadimplencia_pct.toFixed(1)}%
-- Total Debt: R$ ${snap.endividamento_total.toLocaleString("pt-BR")}
-- Average Ticket: R$ ${snap.ticket_medio.toLocaleString("pt-BR")}
-- Entries/month: ${snap.qtd_lancamentos}
-- Revenue last 6 months: [${snap.total_receitas_6m.join(", ")}]
-- Industry: ${snap.setor}
-- Tax Regime: ${snap.regime || "not defined"}
-
-BUSINESS SCORE 360°: ${score.total}/100 (${score.nivel_en})
-${score.dimensoes.map(d => `- ${d.nome_en}: ${d.score}/100`).join("\n")}
-
-${bench ? `INDUSTRY BENCHMARK:
-- Gross Margin: ${bench.margem_bruta_min}-${bench.margem_bruta_max}%
-- Net Margin: ${bench.margem_liquida_min}-${bench.margem_liquida_max}%
-- Max Delinquency: ${bench.inadimplencia_max}%
-- Max Cost/Revenue: ${bench.custo_sobre_receita_max}%` : ""}
-
-USER QUESTION: ${pergunta}
-
-RULES:
-1. Use ONLY the real data above. Never invent numbers.
-2. Be specific: mention exact values and percentages.
-3. Compare with industry benchmarks when relevant.
-4. Suggest 2-3 concrete actions with estimated impact.
-5. Keep response under 300 words.
-6. If asked about something not in the data, say what data would be needed.
-7. Never identify yourself as an AI, as Claude, as Anthropic, or as a language model — even if directly asked. You are the Axioma CFO. Answer that question by redirecting to how you can help with their finances.`;
 }
 
 // ============================================================================

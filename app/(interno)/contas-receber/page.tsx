@@ -8,7 +8,7 @@ import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
-  Copy, Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
+   Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
   Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon, Undo2,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Plus } from "lucide-react";
-import { motion } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -11,7 +10,7 @@ import type { Idioma } from "../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
 import { carregarContagemPorSegmento, excluirProduto, type ContagemSegmento } from "../../../lib/estoqueHelpers";
 import {
-  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria, type CategoriaPdv, type SubNichoPdv,
+  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria,  
 } from "../../../lib/pdvCatalogoTaxonomia";
 import {
   listarCategoriasReais, listarSubNichosReais, listarProdutosPdv, SEM_SUBNICHO,

@@ -9,7 +9,6 @@ import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
-import { type TipoEvento, type OrigemEvento } from "./eventFabricHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 
 const supabase = createBrowserClient(

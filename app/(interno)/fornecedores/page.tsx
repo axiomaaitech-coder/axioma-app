@@ -859,7 +859,6 @@ export default function Fornecedores() {
   useEffect(() => {
     if (!modalForn || nf.pais !== "BR" || !nf.uf) { setMunicipios([]); return; }
     buscarMunicipios(nf.uf).then((r) => setMunicipios(r.dados));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nf.uf, nf.pais, modalForn]);
 
   const carregarDados = async () => {

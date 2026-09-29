@@ -281,7 +281,9 @@ export default function Receitas() {
     `${cx.ticketMedio} ${fBRL(tkt)}`, `${t.receitas.recebido} ${fBRL(totalRecebido)}`,
   ];
 
-  const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
+  // Função de desenho (não componente): como componente criado dentro da tela, o
+  // gráfico era recriado do zero a cada atualização — piscava e reiniciava a animação.
+  const subChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
     <div className="rounded-xl p-3 md:p-4" style={{ background: subPainelFundo, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
@@ -362,10 +364,10 @@ export default function Receitas() {
                     <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.subAnalise}</p>
                   </div>
                 </div>
-                <div className="mb-4"><SubChart titulo={cx.evolucao} cor={ct(temaClaro ? CORES.verde : CORES.roxo)} option={optEvol} altura={260} /></div>
+                <div className="mb-4">{subChart({ titulo: cx.evolucao, cor: ct(temaClaro ? CORES.verde : CORES.roxo), option: optEvol, altura: 260 })}</div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(temaClaro ? CORES.verde : CORES.ouro)} option={optCat} altura={240} />
-                  <SubChart titulo={cx.previsao} cor={ct(CORES.cyan)} option={optPrev} altura={240} />
+                  {subChart({ titulo: cx.composicao, cor: ct(temaClaro ? CORES.verde : CORES.ouro), option: optCat, altura: 240 })}
+                  {subChart({ titulo: cx.previsao, cor: ct(CORES.cyan), option: optPrev, altura: 240 })}
                 </div>
               </div>
             </div>

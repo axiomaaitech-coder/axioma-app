@@ -30,7 +30,7 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
   cfoT,
-  montarConselhoInvestimento, nomeCategoriaAlocacao, montarNarrativaAlocacao, montarNarrativaCenario,
+  montarConselhoInvestimento, nomeCategoriaAlocacao, montarNarrativaAlocacao, 
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -104,7 +104,6 @@ export default function Investimentos() {
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";

@@ -13,7 +13,6 @@ import { corTema } from "../../../lib/cfoCore";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
-  autodetectarMapeamento,
   type ResultadoParse,
   type LinhaImportada,
   type DestinoTabela,
@@ -21,7 +20,6 @@ import {
 } from "../../../lib/importarParsers";
 import {
   hashArquivo,
-  hashLinha,
   buscarImportacaoPorHash,
   marcarDuplicatasPorLinha,
   uploadArquivo,
@@ -527,7 +525,6 @@ export default function ImportarDocumentosPage() {
   const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#6ab0ff";
   const PILL_ATIVA = temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)";
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)";
-  const fundoCaixaAninhadaForte = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(2,8,16,0.5)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
   const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
 
@@ -1208,7 +1205,6 @@ export default function ImportarDocumentosPage() {
   function shareTelegram() {
     if (!shareModal) return;
     const texto = encodeURIComponent(montarTextoResumo(shareModal, "longo"));
-    const titulo = encodeURIComponent(`Axioma - ${shareModal.nome_arquivo}`);
     window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
   }
 
@@ -1905,7 +1901,6 @@ function PreviewBlock(props: any) {
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
-  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
   const fundoHeaderTabela = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.95)";
   const bordaHeaderTabela = temaClaro ? "1px solid rgba(46,204,155,0.2)" : "none";
@@ -2403,9 +2398,7 @@ function HistoricoBlock(props: any) {
   const ct = (hex: string) => corTema(hex, temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
-  const fundoCaixaAninhadaForte = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(2,8,16,0.6)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
-  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
   const fundoHeaderTabela = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.95)";
   const bordaHeaderTabela = temaClaro ? "1px solid rgba(46,204,155,0.2)" : "none";

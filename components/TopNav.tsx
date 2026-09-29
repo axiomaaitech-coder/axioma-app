@@ -254,25 +254,6 @@ export default function TopNav() {
 
   const nexusAtivo = pathname === nexusModulo.path || pathname.startsWith(nexusModulo.path + "/");
 
-  const nexusBotaoDesktop = (
-    <motion.button
-      key="nexus-desktop"
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={() => navegar(nexusModulo.path)}
-      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-      style={{
-        background: nexusAtivo ? "rgba(34,211,238,0.28)" : "rgba(34,211,238,0.12)",
-        color: nexusModulo.cor,
-        border: nexusAtivo ? "1px solid rgba(34,211,238,0.85)" : "1px solid rgba(34,211,238,0.45)",
-        boxShadow: "0 0 18px rgba(34,211,238,0.35)",
-        textShadow: "0 0 8px rgba(34,211,238,0.45)",
-      }}
-    >
-      <span className="text-xs">{nexusModulo.label[lang]}</span>
-    </motion.button>
-  );
-
   const nexusBotaoMobile = (
     <motion.button key="nexus-mobile" whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(nexusModulo.path)}
       className="w-full flex items-center justify-between px-4 py-3 rounded-xl"

@@ -43,7 +43,6 @@ export default function FiscalObrigacoesPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
   const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, CINZA, TEXTO, BTN_BG, BORDA, BORDA_SUAVE, THEAD_BG, EMPTY_BG } = PALETA[tema]
   const COR_RISCO: Record<string, string> = { atrasada: VERMELHO, urgente: LARANJA, atencao: AMARELO, folga: VERDE }
 

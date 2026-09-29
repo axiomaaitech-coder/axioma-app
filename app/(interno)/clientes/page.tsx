@@ -20,7 +20,6 @@ import ReactECharts from "echarts-for-react";
 import { CORES, corTema, optDispersao, optBarrasV } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
-import { cfoT } from "../../../lib/cfoTextos";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -381,7 +380,6 @@ export default function ClientesPage() {
   const cl = t.clientes;
   const lang = (idioma as Idioma3) || "pt";
   const tt = T[lang];
-  const cx = cfoT(lang);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
@@ -461,7 +459,6 @@ export default function ClientesPage() {
   useEffect(() => {
     if (!modalCliente || !form.estado) { setMunicipios([]); return; }
     buscarMunicipios(form.estado).then((r) => setMunicipios(r.dados));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.estado, modalCliente]);
 
   async function carregarDados() {

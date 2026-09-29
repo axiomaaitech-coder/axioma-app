@@ -2243,4 +2243,3 @@ export function calcularIPPA(p: {
 // tocar em cada arquivo.
 // ═══════════════════════════════════════════════════════════════
 export const FONTE_EXEC = {};
-export const FONTE_EXEC_TITULO = { letterSpacing: "0.3px" };

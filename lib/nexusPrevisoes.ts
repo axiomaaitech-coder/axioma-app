@@ -8,7 +8,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type TextoTrilingue = { pt: string; en: string; es: string }
 export type Direcao = 'sobe' | 'cai' | 'estavel'
-export type StatusPrevisao = 'aberta' | 'acertou' | 'errou' | 'sem_dado'
 
 // "estável" = variação dentro da tolerância de cada série (em % do valor ou
 // em pontos absolutos). ponytail: tolerância fixa por série; calibrar pela

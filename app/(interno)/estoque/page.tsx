@@ -236,7 +236,6 @@ export default function EstoquePage() {
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
   const labelStyle = { color: ct(BRONZE) };
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const POSITIVO_CT = ct(POSITIVO);
   const NEGATIVO_CT = ct(NEGATIVO);

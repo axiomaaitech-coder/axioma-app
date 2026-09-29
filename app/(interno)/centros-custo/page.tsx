@@ -36,7 +36,6 @@ import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/PlanilhaCentroCusto";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
-import { SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
 const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
@@ -110,7 +109,6 @@ export default function CentrosCustoPage() {
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   // Padrão de aba/pill: azul-marinho+branco em repouso, verde-menta forte
   // (#16a97d, par "Sucesso" oficial)+branco quando ativa/clicada - mesmo
   // padrão pedido pelo Elias em Contas a Pagar/Estoque/Contas a Receber.

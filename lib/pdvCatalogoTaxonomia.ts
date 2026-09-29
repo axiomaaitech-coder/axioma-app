@@ -2150,7 +2150,3 @@ export function subNichoEhServico(nicho: NichoPdvDef | null | undefined, sub: Su
 export function buscarCategoria(nicho: string, categoria: string): CategoriaPdv | undefined {
   return buscarNicho(nicho)?.categorias.find((c) => c.value === categoria);
 }
-
-export function buscarSubNicho(nicho: string, categoria: string, subNicho: string): SubNichoPdv | undefined {
-  return buscarCategoria(nicho, categoria)?.subNichos.find((s) => s.value === subNicho);
-}

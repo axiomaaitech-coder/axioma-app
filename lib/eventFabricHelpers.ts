@@ -57,19 +57,6 @@ export type OrigemEvento = {
   id?: string; // id da linha de origem nessa tabela
 };
 
-export type EventoNegocio = {
-  id: string;
-  empresa_id: string;
-  tipo: string;
-  origem_modulo: string | null;
-  origem_tabela: string | null;
-  origem_id: string | null;
-  payload: Record<string, unknown> | null;
-  usuario_id: string | null;
-  versao: number;
-  criado_em: string;
-};
-
 // ============================================================================
 // PUBLICAR EVENTO
 // ============================================================================
@@ -97,25 +84,4 @@ export async function publicarEvento(
     return { erro: motivo };
   }
   return { id: data[0].id };
-}
-
-// ============================================================================
-// SELF-CHECK — publica um evento de teste, lê de volta, confirma empresa_id.
-// Não faz parte do fluxo do app (nenhuma tela chama isto). Rodar manualmente
-// (console do navegador, logado, com uma empresaId real) pra validar o
-// Commit 1 antes do Commit 2 ligar os publishers de verdade.
-// ============================================================================
-
-export async function selfCheckEventFabric(empresaId: string): Promise<{ ok: boolean; detalhe: string }> {
-  const payloadTeste = { selfCheck: true, quando: new Date().toISOString() };
-  const { erro } = await publicarEvento(empresaId, "SELF_CHECK", payloadTeste, { modulo: "event_fabric_selfcheck" });
-  if (erro) return { ok: false, detalhe: `publicarEvento falhou: ${erro}` };
-
-  const { data, error } = await supabase.from("eventos_negocio")
-    .select("*").eq("empresa_id", empresaId).eq("tipo", "SELF_CHECK")
-    .order("criado_em", { ascending: false }).limit(1).maybeSingle();
-  if (error || !data) return { ok: false, detalhe: `leitura de volta falhou: ${error?.message || "sem linha"}` };
-  if (data.empresa_id !== empresaId) return { ok: false, detalhe: `empresa_id divergente: esperado ${empresaId}, veio ${data.empresa_id}` };
-
-  return { ok: true, detalhe: `evento ${data.id} publicado e lido de volta, empresa_id confere` };
 }

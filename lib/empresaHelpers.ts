@@ -224,18 +224,6 @@ export function sugerirRegimePorPorte(porte: string): string | null {
 // EMPRESA - CRUD COM AUDITORIA AUTOMÁTICA
 // ============================================================================
 
-export async function carregarEmpresa(userId: string): Promise<any | null> {
-  const { data } = await supabase
-    .from("empresas")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("ativo", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return data;
-}
-
 // Carrega a empresa pelo id (funciona pro dono E pro convidado — RLS decide
 // quem enxerga, não o filtro). Usar junto de obterEmpresaAtiva().
 export async function carregarEmpresaPorId(empresaId: string): Promise<any | null> {

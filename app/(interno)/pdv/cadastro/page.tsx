@@ -219,7 +219,6 @@ function PDVCadastroInner() {
       const sub = categoria && produto.subcategoria ? encontrarSubNichoPorLabel(categoria, produto.subcategoria) : null;
       setSubNichoSel(sub);
       setProdutoParaEditar(produto);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     })();
   }, [empresaId]);
 

@@ -30,8 +30,6 @@ export type ClienteRow = {
   observacoes?: string | null; documentos_links?: string | null;
 };
 
-export type ClassificacaoCliente = "lead" | "cliente" | "parceiro" | "estrategico" | "premium";
-
 export type ContaRow = {
   id: string; descricao: string; valor: number; valor_recebido?: number | null;
   data_vencimento: string; data_emissao?: string | null; data_recebimento?: string | null;

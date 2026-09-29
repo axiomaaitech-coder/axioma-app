@@ -866,12 +866,6 @@ export function montarNarrativaMetaIrreal(lang: string, classificacao: "facil" |
   return `Essa meta está muito acima do ritmo que a empresa já demonstrou. Um alvo ambicioso e realista seria ${sugestaoFmt}.`;
 }
 
-export function montarNarrativaMarco(lang: string, marco: 25 | 50 | 75 | 100, titulo: string): string {
-  const cx = cfoT(lang);
-  const chave = marco === 25 ? "metaMarco25" : marco === 50 ? "metaMarco50" : marco === 75 ? "metaMarco75" : "metaMarco100";
-  return `"${titulo}" — ${cx[chave as keyof CfoTextos]}.`;
-}
-
 export function montarConselhoMeta(lang: string, g: GatilhoConselhoMeta): string {
   if (g.tipo === "acelerar") {
     if (lang === "en") return `Accelerate "${g.tituloMeta}": at the current pace you need to speed up ${fPct(g.percentualAcelerar)} to hit the deadline.`;

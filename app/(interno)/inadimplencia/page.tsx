@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/nextjs'
 import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Search, X, AlertTriangle, Share2, Crown, Copy, Users,
+  Search, X, AlertTriangle, Share2, Crown,  Users,
   HandCoins, CheckCircle2, Shield, Inbox, Bell, Brain, MessageSquare,
   Plus, Trash2, Pencil, Phone, Sparkles, Calculator, TrendingUp, PiggyBank, BarChart3,
 } from 'lucide-react'

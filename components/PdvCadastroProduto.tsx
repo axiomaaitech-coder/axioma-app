@@ -8,7 +8,7 @@
 // precificação (Etapa 2), as sugestões inteligentes (Etapa 3), o chat da
 // inteligência do Axioma (Etapa 4) e a proteção contra falha silenciosa no
 // salvamento vivem só aqui — corrigir num lugar corrige nos dois.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -497,7 +497,7 @@ export function Campo({ label, value, onChange, tipo = "text", sugerido, lista, 
   sugerido?: boolean; lista?: string[]; onFocus?: () => void; emCard?: boolean;
 }) {
   const { tokens } = useTemaPdv();
-  const listId = useRef(`dl-${Math.random().toString(36).slice(2)}`).current;
+  const listId = `dl-${useId().replace(/:/g, "")}`; // estável e igual no servidor e no navegador (Math.random rodava a cada desenho)
   return (
     <div>
       <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : emCard ? tokens.cardTexto : tokens.textoSecundario }}>
