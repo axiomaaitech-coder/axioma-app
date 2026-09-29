@@ -13,6 +13,8 @@ import { corTema } from "../../../lib/cfoCore";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
+  parcelarCompraCartao,
+  MAX_PARCELAS_CARTAO,
   type ResultadoParse,
   type LinhaImportada,
   type DestinoTabela,
@@ -693,7 +695,13 @@ export default function ImportarDocumentosPage() {
     if (!userId || !empresaId) return;
     setEtapa("parse");
     const res = await parseArquivo(file, empresaCnpj || undefined, langAtual);
+    await aplicarResultado(res);
+  }
 
+  // Pré-visualização + conferências (duplicata, aprendizado) de um resultado já lido.
+  // Reusado quando o usuário escolhe em quantas vezes pagou no cartão (NF-e).
+  async function aplicarResultado(res: ResultadoParse) {
+    if (!empresaId) return;
     setResultado(res);
     setLinhas(res.linhas);
     setSelecionadas(res.linhas.map((l) => Boolean(l.data && l.valor !== undefined)));
@@ -731,6 +739,13 @@ export default function ImportarDocumentosPage() {
     if (empresaId) {
       sugerirClassificacoes(empresaId, res.linhas.map((l) => l.descricao || "")).then(setSugestoes);
     }
+  }
+
+  // NF-e paga no cartão sem nº de parcelas no XML: o usuário escolhe (1x a 48x) e a
+  // compra vira N contas a pagar mensais (1x = continua quitada na emissão).
+  async function escolherParcelasCartao(n: number) {
+    if (!resultado) return;
+    await aplicarResultado(parcelarCompraCartao(resultado, n));
   }
 
   function continuarMesmoComDuplicata() {
@@ -1578,6 +1593,7 @@ export default function ImportarDocumentosPage() {
           {/* PREVIEW */}
           {resultado && !sucesso && !etapa && (
             <PreviewBlock
+              escolherParcelasCartao={escolherParcelasCartao}
               tt={tt}
               imp={imp}
               resultado={resultado}
@@ -1893,6 +1909,7 @@ function PreviewBlock(props: any) {
     totalSelecionadas, totalDuplicadas, valorTotalPreview,
     mostrarSalvarTemplate, setMostrarSalvarTemplate,
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
+    escolherParcelasCartao,
   } = props;
 
   const { tema } = useThemeAxioma();
@@ -1934,6 +1951,22 @@ function PreviewBlock(props: any) {
               💳 {idioma === "en" ? "How it was paid" : idioma === "es" ? "Cómo se pagó" : "Como foi pago"}
             </p>
             <p className="text-sm mt-1" style={{ color: ct("#c8d8f0") }}>{textoResumoPag}</p>
+            {resumoPag?.perguntaParcelasCartao && (
+              <label className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold" style={{ color: ct("#c8d8f0") }}>
+                {idioma === "en" ? "Credit card installments:" : idioma === "es" ? "Cuotas de la tarjeta:" : "Parcelas no cartão:"}
+                <select
+                  value={resultado?.metadados?.parcelas_cartao ?? ""}
+                  onChange={(e) => escolherParcelasCartao(Number(e.target.value))}
+                  className="px-3 py-1.5 rounded-lg text-sm focus:outline-none"
+                  style={{ background: fundoInput, color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(106,176,255,0.25)" }}
+                >
+                  <option value="" disabled style={{ background: corOpcao }}>{idioma === "en" ? "Choose" : idioma === "es" ? "Elija" : "Escolha"}</option>
+                  {Array.from({ length: MAX_PARCELAS_CARTAO }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n} style={{ background: corOpcao }}>{n}x</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         )}
         {/* Header do preview */}

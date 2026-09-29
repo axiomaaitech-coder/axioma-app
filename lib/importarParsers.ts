@@ -640,6 +640,45 @@ export function resumirPagamentoNFe(parcelas: ParcelaNFe[], pagamentos: Pagament
   };
 }
 
+// Cartão de crédito sem nº de parcelas no XML: o usuário escolhe N (1 a 48) e a
+// compra vira N contas a pagar mensais (vencimento = emissão + i meses; a data
+// real da fatura varia por cartão — o usuário ajusta na tela se quiser).
+// Divisão em centavos: a diferença de arredondamento fica na última parcela.
+// 1x mantém a linha única já quitada na emissão. Só mexe em NF-e de COMPRA.
+export const MAX_PARCELAS_CARTAO = 48;
+export function parcelarCompraCartao(res: ResultadoParse, n: number): ResultadoParse {
+  const resumo = res.metadados?.resumo_pagamento;
+  if (!resumo?.perguntaParcelasCartao || !Number.isInteger(n) || n < 1 || n > MAX_PARCELAS_CARTAO) return res;
+  // Sempre a partir da compra ORIGINAL (o usuário pode trocar 10x por 12x depois).
+  const original: LinhaImportada | undefined = res.metadados?.linha_original_cartao ?? res.linhas[0];
+  if (!original || original.destinoSugerido === "receitas" || original.valor === undefined) return res;
+  const totalCent = Math.round(original.valor * 100);
+  const baseCent = Math.floor(totalCent / n);
+  const emissao = original.data ? new Date(`${original.data}T12:00:00`) : new Date();
+  const descBase = String(original.descricao || "").replace(/ \(cartão .*\)$/, "");
+  const linhas: LinhaImportada[] = n === 1
+    ? [{ ...original, descricao: `${descBase} (cartão 1x)`, valorPago: original.valor }]
+    : Array.from({ length: n }, (_, i) => {
+        const venc = new Date(emissao); venc.setMonth(venc.getMonth() + i + 1);
+        const cent = i === n - 1 ? totalCent - baseCent * (n - 1) : baseCent;
+        return { ...original, valor: cent / 100, valorPago: undefined, vencimento: venc.toISOString().slice(0, 10), descricao: `${descBase} (cartão ${i + 1}/${n})` };
+      });
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const parc = brl(baseCent / 100);
+  return {
+    ...res, linhas,
+    metadados: {
+      ...res.metadados, parcelas_cartao: n, linha_original_cartao: original,
+      resumo_pagamento: {
+        pt: n === 1 ? `Cartão de crédito à vista: ${brl(original.valor)}.` : `Cartão de crédito em ${n}x de ${parc} (mensal, a partir do mês seguinte à compra).`,
+        en: n === 1 ? `Credit card, single payment: ${brl(original.valor)}.` : `Credit card in ${n} installments of ${parc} (monthly, starting the month after purchase).`,
+        es: n === 1 ? `Tarjeta de crédito en 1 pago: ${brl(original.valor)}.` : `Tarjeta de crédito en ${n} cuotas de ${parc} (mensual, desde el mes siguiente a la compra).`,
+        perguntaParcelasCartao: true,
+      },
+    },
+  };
+}
+
 export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lang = "pt"): Promise<ResultadoParse> {
   const motivos = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
   const fallbackContraparte = CONTRAPARTE_FALLBACK[lang] || CONTRAPARTE_FALLBACK.pt;

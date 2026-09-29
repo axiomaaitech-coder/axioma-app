@@ -48,3 +48,21 @@ assert.equal(cartao.metadados.resumo_pagamento.perguntaParcelasCartao, true)
 assert.ok(cartao.metadados.resumo_pagamento.pt.includes('em quantas vezes?'))
 assert.ok(cartao.metadados.resumo_pagamento.en.includes('how many installments'))
 console.log('OK — resumo do pagamento (pt/en/es) e pergunta de parcelas do cartão')
+
+// 5) Usuário escolhe as parcelas do cartão (1x a 48x) — centavos fecham, dá pra trocar de ideia
+const { parcelarCompraCartao } = await import('../lib/importarParsers')
+const em7 = parcelarCompraCartao(cartao, 7)
+assert.equal(em7.linhas.length, 7)
+assert.equal(Math.round(em7.linhas.reduce((s, l) => s + (l.valor ?? 0), 0) * 100), 300000) // soma exata R$ 3.000,00
+assert.equal(em7.linhas[0].vencimento, '2026-10-20')
+assert.equal(em7.linhas[6].vencimento, '2027-04-20')
+assert.ok(em7.linhas.every((l) => l.valorPago === undefined)) // parcelas futuras em aberto
+const em48 = parcelarCompraCartao(em7, 48) // troca de 7x para 48x: parte da compra original
+assert.equal(em48.linhas.length, 48)
+assert.equal(Math.round(em48.linhas.reduce((s, l) => s + (l.valor ?? 0), 0) * 100), 300000)
+const em1 = parcelarCompraCartao(em48, 1)
+assert.equal(em1.linhas.length, 1)
+assert.equal(em1.linhas[0].valorPago, 3000)
+assert.equal(parcelarCompraCartao(cartao, 49), cartao) // fora do limite: não mexe
+assert.equal(parcelarCompraCartao(pix, 3), pix) // sem pergunta de cartão: não mexe
+console.log('OK — parcelas do cartão de 1x a 48x (centavos fecham, troca de opção parte da compra original)')
