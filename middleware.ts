@@ -88,36 +88,15 @@ export async function middleware(request: NextRequest) {
   const isCallback = pathname.startsWith('/auth/')
   const isRotaPlanos = pathname.startsWith('/planos')
 
+  // Protegido POR PADRÃO (auditoria 2026-09-28): antes era uma lista à mão e PDV,
+  // Estoque e Equipe tinham ficado de fora (abriam sem login e sem plano). Agora só
+  // fica aberto o que é público de propósito: páginas públicas, auth, planos,
+  // convite (tem o próprio fluxo de login), rotas de API (cada uma confere a sua
+  // própria sessão/assinatura) e arquivos estáticos (imagem, vídeo, ícone).
+  const isArquivoEstatico = /\.[a-z0-9]{2,5}$/i.test(pathname)
   const isRotaProtegida =
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/receitas') ||
-    pathname.startsWith('/custos-fixos') ||
-    pathname.startsWith('/custos-variaveis') ||
-    pathname.startsWith('/fornecedores') ||
-    pathname.startsWith('/endividamento') ||
-    pathname.startsWith('/fluxo-caixa') ||
-    pathname.startsWith('/dre') ||
-    pathname.startsWith('/clientes') ||
-    pathname.startsWith('/centros-custo') ||
-    pathname.startsWith('/importar-documentos') ||
-    pathname.startsWith('/ia-financeira') ||
-    pathname.startsWith('/ia-tributaria') ||
-    pathname.startsWith('/relatorios') ||
-    pathname.startsWith('/empresa') ||
-    pathname.startsWith('/metas') ||
-    pathname.startsWith('/investimentos') ||
-    pathname.startsWith('/simulacoes') ||
-    pathname.startsWith('/precificacao') ||
-    pathname.startsWith('/contas-receber') ||
-    pathname.startsWith('/contas-pagar') ||
-    pathname.startsWith('/inadimplencia') ||
-    pathname.startsWith('/mei') ||
-    pathname.startsWith('/open-finance') ||
-    pathname.startsWith('/contabilidade') ||
-    pathname.startsWith('/tesouraria') ||
-    pathname.startsWith('/contador') ||
-    pathname.startsWith('/fiscal') ||
-    pathname.startsWith('/nexus')
+    !isRotaPublica && !isCallback && !isRotaPlanos && !isArquivoEstatico &&
+    !pathname.startsWith('/api/') && !pathname.startsWith('/convite/')
 
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)

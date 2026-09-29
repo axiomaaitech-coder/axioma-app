@@ -125,11 +125,7 @@ export default function Planos() {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plano: planoId,
-          email: user.email,
-          userId: user.id,
-        }),
+        body: JSON.stringify({ plano: planoId }), // quem assina sai da sessão no servidor, nunca daqui
       })
 
       const data = await response.json()

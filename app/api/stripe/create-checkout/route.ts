@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import * as Sentry from '@sentry/nextjs'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
@@ -38,8 +40,17 @@ const CUPOM_LANCAMENTO = 'LANCAMENTO40'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://axiomaai.com.br'
 
 export async function POST(request: NextRequest) {
+  // Identidade SEMPRE da sessão, nunca do corpo (auditoria 2026-09-28): antes o
+  // userId vinha do navegador — alguém podia ligar a própria assinatura à conta de
+  // outra pessoa e, ao cancelar, desativar o plano dela.
+  const cookieStore = await cookies()
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { getAll() { return cookieStore.getAll() }, setAll() { /* só leitura */ } } })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const userId = user.id
+  const email = user.email
   try {
-    const { plano, email, userId } = await request.json()
+    const { plano } = await request.json()
 
     if (!plano || !PLANOS[plano as keyof typeof PLANOS]) {
       return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
@@ -69,7 +80,7 @@ export async function POST(request: NextRequest) {
       // Trial de 14 dias COM cartão obrigatório
       subscription_data: {
         trial_period_days: 14,
-        metadata: { userId: userId || '', plano },
+        metadata: { userId, plano },
       },
       payment_method_collection: 'always',
       // Cupom de lançamento aplicado automaticamente (cliente não digita nada)
@@ -78,7 +89,7 @@ export async function POST(request: NextRequest) {
       locale: 'pt-BR',
       success_url: `${SITE_URL}/dashboard?assinatura=sucesso&plano=${plano}`,
       cancel_url: `${SITE_URL}/cadastro?checkout=cancelado`,
-      metadata: { userId: userId || '', plano },
+      metadata: { userId, plano },
       custom_text: {
         submit: {
           message: 'Você não será cobrado durante os 14 dias de teste. Cancele quando quiser. Após o período de teste, a assinatura é renovada automaticamente.',
