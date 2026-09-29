@@ -5,6 +5,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { calcularImpostoRegime } from "./iaTributariaHelpers";
 import { nomeMesPt } from "./cfoCore";
+import { reportarFalhaLeitura } from "./erroUiHelpers";
 export { nomeMesPt };
 
 const supabase = createBrowserClient(
@@ -370,20 +371,20 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
   });
 
   // ---- 6. ENDIVIDAMENTO ----
-  let totalDividas = 0;
-  try {
-    const { data: div } = await supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId);
-    totalDividas = (div || []).reduce((s: number, r: any) => s + Math.max(0, Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
-  } catch {}
+  // Falha na leitura NUNCA vira "0% — saudável" (auditoria 2026-09-28: o erro era
+  // engolido e o KPI mostrava a empresa sem dívida). Agora mostra "—" e vai pro Sentry.
+  const { data: div, error: erroDividas } = await supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId);
+  if (erroDividas) reportarFalhaLeitura("relatorios.kpi.endividamento", new Error(erroDividas.message));
+  const totalDividas = (div || []).reduce((s: number, r: any) => s + Math.max(0, Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
   const patrimonio = Math.max(dre.receita_bruta * 3, 1); // estimativa: 3x receita do mês
   const endividamento = (totalDividas / patrimonio) * 100;
   kpis.push({
     nome: "Endividamento",
-    valor: formatPct(endividamento),
+    valor: erroDividas ? "—" : formatPct(endividamento),
     valor_num: endividamento,
     meta: "< 50%",
     meta_num: 50,
-    atingido: endividamento < 50,
+    atingido: !erroDividas && endividamento < 50,
     unidade: "PCT",
     categoria: "endividamento",
     descricao: "Dívida total sobre patrimônio estimado (abaixo de 50% é saudável)",

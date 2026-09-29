@@ -28,8 +28,11 @@ async function garantirFonte(supabase: SupabaseClient, f: Fonte): Promise<string
   return data.source_id as string
 }
 
+// Alimenta a "Saúde das fontes" — falha aqui mostraria status errado sem ninguém
+// saber, então vai pro log do servidor (auditoria 2026-09-28; antes o erro era ignorado).
 async function marcar(supabase: SupabaseClient, sourceId: string, ok: boolean) {
-  await supabase.from('nexus_source').update(ok ? { last_success: new Date().toISOString() } : { last_failure: new Date().toISOString() }).eq('source_id', sourceId)
+  const { error } = await supabase.from('nexus_source').update(ok ? { last_success: new Date().toISOString() } : { last_failure: new Date().toISOString() }).eq('source_id', sourceId)
+  if (error) console.error('[nexus] falha ao marcar saúde da fonte', sourceId, error.message)
 }
 
 // ─── Petróleo Brent (IPEA) ───
