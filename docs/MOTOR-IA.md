@@ -5,7 +5,7 @@
 | Documento | Especificação técnica e operacional |
 | Sistema | Axioma AI.Tech — CFO digital |
 | Versão do motor | `motor-ia-1` |
-| Status | Fases 1, 2, 3 e 5 concluídas; fases 4, 6 e 7 em andamento |
+| Status | Fases 1, 2, 3, 5 e 6 concluídas; fases 4 e 7 em andamento |
 | Responsável pelo produto | Elias Tavares (CEO) |
 | Última atualização | 2026-09-28 |
 
@@ -60,7 +60,9 @@ Resposta para a tela
 - **Quem chama nunca escolhe provedor nem modelo.** A rota só aceita pergunta, empresa, tela, idioma e histórico.
 - O mapa nível → modelo existe em **um único lugar**: `MODELOS` em `lib/ia/motor.ts`.
 - A triagem é feita por regras determinísticas testadas (`scripts/check-ia-motor.mts`). A IA só classifica quando a regra fica em dúvida e, se falhar, o padrão é "análise" (o lado seguro).
-- Toda IA nova do Axioma deve passar pelo motor, nunca chamar o provedor direto.
+- Toda IA nova do Axioma deve passar pelo motor, nunca chamar o provedor direto. As telas usam só `perguntarAoAxioma()` (`lib/ia/cliente.ts`); a rota antiga que aceitava provedor/modelo vindo do navegador foi **removida**.
+- A tela pode mandar os números e o formato dela (`contexto_tela`), mas nunca escolher a IA.
+- **Exceções previstas (já seguem a regra):** análise de evento, painel diário e plano do José rodam no servidor direto na Anthropic (complexas, geradas 1 vez e guardadas); o assistente de cadastro do PDV roda direto na OpenAI (rotina curta).
 
 ## 4. Componentes
 
@@ -72,6 +74,7 @@ Resposta para a tela
 | `lib/ia/motor.ts` | Triagem, executores, escalonamento, conferência e prompts. |
 | `lib/ia/ferramentas.ts` | 8 ferramentas de consulta só de leitura (Claude pede o detalhe; até 4 rodadas, na última é obrigado a responder). Mesmos nomes e esquemas servirão a um servidor MCP do Axioma. Números trazidos por elas contam como dado real na conferência. |
 | `app/api/ia/motor/route.ts` | Porta única do motor para as telas. |
+| `lib/ia/cliente.ts` | `perguntarAoAxioma()`: a única função que as telas usam para falar com a IA. Falha = `null` → a tela usa as respostas por regras. |
 | `scripts/check-ia-motor.mts` | Testes das partes sem IA (rodar: `npx tsx scripts/check-ia-motor.mts`). |
 
 ## 5. Segurança e privacidade
@@ -99,7 +102,7 @@ A parte fixa do prompt (regras) e a parte da empresa (retrato, setor e manuais) 
 | 3 | 8 ferramentas de consulta (a IA pede o detalhe: contas a pagar/receber, custos, receita mês a mês, avisos de estoque, dívidas, maiores fornecedores e devedores), desenhadas para virar MCP depois | ✅ 2026-09-28 |
 | 4 | Aprofundar os manuais por setor e área com exemplos de boa resposta | ⏳ |
 | 5 | IA Financeira e IA Tributária ligadas no motor (+ comparação de regimes em pergunta tributária) | ✅ 2026-09-28 — conferido no site |
-| 6 | Chat do José, Contas a Pagar, Fornecedores, Centro de Custos, Tesouraria, MEI | ⏳ |
+| 6 | Todas as telas com IA no motor: chat do José, simulações do Nexus, Tesouraria, Contas a Pagar, Centro de Custos, Clientes e os 6 do MEI (DAS, Faturamento, Reforma, Precificação, IR, Advisor). Rota antiga `/api/ia-chat` removida | ✅ 2026-09-28 |
 | 7 | Conjunto de perguntas-padrão por setor + painel de custo e qualidade | ⏳ |
 
 Funções que vêm depois e usam o motor como base: **nota fiscal inteligente** (Importar Documentos, fase 2) e **pagar contas por dentro do Axioma** (construído com chave desligada, ligado só na produção). Ver `STATUS-AXIOMA.md`, seção 4-ROTEIRO.
@@ -111,3 +114,4 @@ Funções que vêm depois e usam o motor como base: **nota fiscal inteligente** 
 | 2026-09-28 | motor-ia-1 | Fases 1 e 2: setores, manuais, retrato, triagem, executores, escalonamento, conferência, rota e auditoria. Plano do José passa a usar o retrato e o imposto calculado no servidor (antes vinha do navegador). |
 | 2026-09-28 | motor-ia-1 | Fase 5: IA Financeira e IA Tributária usando o motor (conferido no site: resposta com números do retrato, custos pelo nome, alerta principal). Respostas em texto simples (as telas não leem markdown). |
 | 2026-09-28 | motor-ia-1 | Fase 3: ferramentas de consulta ligadas ao Claude; rotina (OpenAI, sem ferramentas) passa pra cima quando a pergunta pede lista/detalhe. |
+| 2026-09-28 | motor-ia-1 | Fase 6: todas as telas com IA passam pelo motor (José, simulações, Tesouraria, Contas a Pagar, Centro de Custos, Clientes, 6 do MEI); rota antiga removida (trava completa); histórico sem pergunta duplicada. |

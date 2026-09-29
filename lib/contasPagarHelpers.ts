@@ -1460,7 +1460,7 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
 // duplicação dos motores (forecast, spend analytics, value recovery,
 // anomalias) que já existem. Ponto único de geração de texto: no dia em
 // que a ANTHROPIC_API_KEY for ativada, é só trocar o corpo desta função
-// por uma chamada a /api/ia-chat (mesmo padrão ZIA de
+// por uma chamada a o motor de IA (lib/ia/cliente.ts) (mesmo padrão ZIA de
 // clienteIntelHelpers.ts) — a tela não muda uma linha.
 // ----------------------------------------------------------------------------
 

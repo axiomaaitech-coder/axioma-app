@@ -271,7 +271,7 @@ export default function PainelMEI() {
 
   // ---- Cofre Inteligente (Fase 2) — "o que é seu de verdade" ----
   // Gancho de IA: a explicação de cada fatia é texto fixo por regra hoje;
-  // quando ANTHROPIC_API_KEY entrar, trocar por chamada a app/api/ia-chat
+  // quando ANTHROPIC_API_KEY entrar, trocar por chamada a o motor de IA (lib/ia/motor.ts)
   // (mesma rota do IA MEI Advisor) sem mudar os números calculados abaixo.
   const cofre = montarCofre({
     sobraMes: fluxo.sobra,

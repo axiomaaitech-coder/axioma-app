@@ -59,7 +59,7 @@ export function useLeitorCodigoBarras(onLeitura: (codigo: string) => void) {
 // ativada, decisão do Elias). Quando o Estoque ganhar sugestão de recompra/
 // previsão de ruptura por IA (Fase 2), o gancho entra aqui, não espalhado
 // pela tela.
-// export async function sugestaoIAEstoque(contexto: unknown) { /* @anthropic-ai/sdk via app/api/ia-chat */ }
+// export async function sugestaoIAEstoque(contexto: unknown) { /* @anthropic-ai/sdk via o motor de IA (lib/ia/motor.ts) */ }
 
 // Importar Documentos — NF-e de compra virando entrada de estoque automática.
 // Ponto de entrada: lib/importarHelpers.ts já sabe classificar uma NF-e; o dia

@@ -313,7 +313,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
     setAnalisandoIA(false)
   }
 
-  // ---- Salvar Preço — zero token, nunca chama /api/ia-chat ----
+  // ---- Salvar Preço — zero token, nunca chama o motor de IA (lib/ia/cliente.ts) ----
   function montarSnapshotDados() {
     return {
       custoFixoMensal, custoVariavelMensal, margemDesejada,

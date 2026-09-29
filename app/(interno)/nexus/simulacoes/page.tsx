@@ -17,6 +17,7 @@ import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { PALETA, VERDE_SOLIDO } from '../../../../lib/nexusTema'
 import { DivisorNexus } from '../DivisorNexus'
 import { VARIAVEIS_ZERO, PRESETS_MACRO, variaveisDoEvento, type VariaveisMacro } from '../../../../lib/nexusSimulacaoMotor'
+import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import {
   carregarPontoPartida, rodarSimulacao, listarSimulacoes, salvarSimulacao, mudarStatusSimulacao, favoritarSimulacao,
   autoArquivarAntigas, type PontoPartida, type ResultadoSimulacao, type SimulacaoSalva,
@@ -139,21 +140,14 @@ export default function NexusSimulacoesPage() {
   async function explicar(r: ResultadoSimulacao) {
     setExplicando(true)
     const base = r.cenarios.find((c) => c.nome === 'base')
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provedor: 'openai', historico: [],
-          contexto: `Você é José, a inteligência do Axioma Nexus. Explique para um dono de pequena empresa, em no máximo 3 frases curtas e em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}, o resultado de uma simulação "E se". Use SÓ os números fornecidos, não invente nada, não afirme certeza e termine com uma ação prática.`,
-          mensagem: `Choque simulado: ${JSON.stringify(variaveis)}. Lucro mensal atual: ${fBRL(r.lucroAtualMensal)}. Cenário base: lucro mensal ${fBRL(base?.lucroLiquidoMensal ?? 0)}, caixa em ${horizonte} meses ${fBRL(base?.saldoCaixaProjetado ?? 0)}. Adverso: lucro ${fBRL(r.cenarios.find((c) => c.nome === 'adverso')?.lucroLiquidoMensal ?? 0)}.`,
-        }),
-      })
-      const json = await res.json().catch(() => null)
-      const texto = res.ok && typeof json?.resposta === 'string' && json.resposta.trim() ? json.resposta.trim() : explicacaoPorRegra(r, lang)
-      setResultado((atual) => (atual ? { ...atual, explicacao: texto } : atual))
-    } catch {
-      setResultado((atual) => (atual ? { ...atual, explicacao: explicacaoPorRegra(r, lang) } : atual))
-    }
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + resultado desta simulação.
+    const ia = await perguntarAoAxioma({
+      pergunta: L('Explique o resultado desta simulação "E se" para a minha empresa.', 'Explain the result of this "What if" simulation for my company.', 'Explique el resultado de esta simulación "Y si" para mi empresa.'),
+      empresaId, tela: 'nexus-simulacoes', lang,
+      contextoTela: `Você é José, a inteligência do Axioma Nexus. Explique em no máximo 3 frases curtas o resultado de uma simulação "E se", sem afirmar certeza, terminando com uma ação prática. Choque simulado: ${JSON.stringify(variaveis)}. Lucro mensal atual: ${fBRL(r.lucroAtualMensal)}. Cenário base: lucro mensal ${fBRL(base?.lucroLiquidoMensal ?? 0)}, caixa em ${horizonte} meses ${fBRL(base?.saldoCaixaProjetado ?? 0)}. Adverso: lucro ${fBRL(r.cenarios.find((c) => c.nome === 'adverso')?.lucroLiquidoMensal ?? 0)}.`,
+    })
+    const texto = ia?.resposta ?? explicacaoPorRegra(r, lang)
+    setResultado((atual) => (atual ? { ...atual, explicacao: texto } : atual))
     setExplicando(false)
   }
 

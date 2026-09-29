@@ -228,7 +228,7 @@ export function diasParaDAS(hoje: Date = new Date(), diaVencimento: number = 20)
 
 // ============================================================================
 // DETECTOR PESSOAL × EMPRESA (regra/palavra-chave — gancho de IA no lugar
-// desta lista fixa quando a Claude API for ativada, ver app/api/ia-chat)
+// desta lista fixa quando a Claude API for ativada, ver o motor de IA (lib/ia/motor.ts))
 // ============================================================================
 
 export const PALAVRAS_GASTO_PESSOAL = [
@@ -429,7 +429,7 @@ export function serieMensalMEI(
 // Honestidade: nunca inventa valor — o que falta vira aviso, não suposição
 // silenciosa. Gancho de IA: a explicação de cada fatia hoje é texto fixo por
 // regra; quando ANTHROPIC_API_KEY entrar, trocar por chamada a
-// app/api/ia-chat (mesma rota do IA MEI Advisor), sem mudar os números.
+// o motor de IA (lib/ia/motor.ts) (mesma rota do IA MEI Advisor), sem mudar os números.
 // ============================================================================
 
 export type ContaPagarMEI = { valor_total: number; valor_pago: number };

@@ -730,7 +730,7 @@ export default function ContasPagarPage() {
   // ========== ENTREGA 4, COMMIT 5 — CFO AP BRIEFING V1 + NATURAL LANGUAGE CFO V1 ==========
   // Puramente derivado do que a tela já carregou/calculou — zero fetch novo,
   // zero motor novo. montarBriefingAp/responderPerguntaApPorRegra (lib) são o
-  // único ponto de geração de texto, prontos pra virar IA real (/api/ia-chat,
+  // único ponto de geração de texto, prontos pra virar IA real (o motor de IA (lib/ia/cliente.ts),
   // mesmo padrão ZIA) sem mexer nesta tela.
   const aprovacoesPendentesValor = useMemo(() => aprovacoes.reduce((s, a) => s + (a.valor || 0), 0), [aprovacoes]);
 
@@ -819,7 +819,7 @@ export default function ContasPagarPage() {
     return linhas.join("\n");
   }
 
-  // IA real (OpenAI, via /api/ia-chat) primeiro; se falhar ou estiver fora,
+  // IA real (OpenAI, via o motor de IA (lib/ia/cliente.ts)) primeiro; se falhar ou estiver fora,
   // cai no V1 por regra que já existia — nunca quebra, só troca de fonte.
   // Mesmo padrão do MEI IA Advisor (fetch + catch vazio + fallback síncrono).
   async function perguntarAoCfo(perguntaDireta?: string) {

@@ -6,6 +6,8 @@
 // (ver STATUS-AXIOMA.md). Mesmo princípio de "nunca inventar número" do resto do alicerce.
 
 import type { CorSaude } from "./cfoCore";
+import { perguntarAoAxioma } from "./ia/cliente";
+import { obterEmpresaAtiva } from "./empresaHelpers";
 
 // ============================================================================
 // TIPOS — LINHAS DO SUPABASE
@@ -717,9 +719,9 @@ export function serieRecebimentosFutura(contas: ContaRow[], semanas = 8): Bucket
 
 // ============================================================================
 // ZIA — camada híbrida de IA (mesmo padrão de iaFinanceiraHelpers.ts):
-// tenta /api/ia-chat (Claude real, se ANTHROPIC_API_KEY estiver ativa),
+// tenta o motor de IA (lib/ia/cliente.ts) (Claude real, se ANTHROPIC_API_KEY estiver ativa),
 // senão cai num fallback determinístico que nunca inventa número.
-// A rota espera {mensagem, historico, contexto} — contrato real de app/api/ia-chat/route.ts.
+// A rota espera {mensagem, historico, contexto} — contrato real de o motor de IA (lib/ia/motor.ts).
 // ============================================================================
 
 export function montarPromptZIA(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[]): string {
@@ -758,22 +760,15 @@ export async function enviarPerguntaZIA(
   pergunta: string,
   historico: { role: string; texto: string }[],
   lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[]
-): Promise<{ resposta: string; modelo: "claude" | "regras" }> {
-  try {
-    const res = await fetch("/api/ia-chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mensagem: pergunta,
-        historico: historico.slice(-10).map((m) => ({ role: m.role, content: m.texto })),
-        contexto: montarPromptZIA(lang, s, ivca, sinais),
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.resposta) return { resposta: data.resposta, modelo: "claude" };
-    }
-  } catch {}
+): Promise<{ resposta: string; modelo: "motor" | "regras" }> {
+  // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + ficha deste cliente.
+  // O histórico recebido já traz a pergunta atual no fim — sai daqui pra não ir duplicada.
+  const ia = await perguntarAoAxioma({
+    pergunta, empresaId: await obterEmpresaAtiva(), tela: "clientes", lang,
+    historico: historico.slice(0, -1).slice(-8).map((m) => ({ role: m.role, content: m.texto })),
+    contextoTela: montarPromptZIA(lang, s, ivca, sinais),
+  });
+  if (ia) return { resposta: ia.resposta, modelo: "motor" };
   return { resposta: respostaZIAPorRegras(lang, s, ivca, sinais, pergunta), modelo: "regras" };
 }
 

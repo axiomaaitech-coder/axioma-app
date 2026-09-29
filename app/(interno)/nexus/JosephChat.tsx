@@ -2,7 +2,7 @@
 // ═══════════════════════════════════════════════════════════════
 // "Converse com o José" — chat do Nexus, logo acima da TV.
 // Conversa é uso frequente → OpenAI (regra de roteamento de IA do Axioma),
-// via /api/ia-chat (só logado). O José só pode usar o contexto montado aqui:
+// via o motor de IA (lib/ia/cliente.ts) (só logado). O José só pode usar o contexto montado aqui:
 // indicadores oficiais, eventos detectados, as leituras que ele já fez e os
 // números da empresa (ponto de partida do simulador). Nada inventado.
 // Histórico fica só na tela (sessão); "Nova conversa" zera.
@@ -18,6 +18,7 @@ import { textoEvento, nomeSerie } from '../../../lib/nexusEventDetector'
 import { ramoDoCnae } from '../../../lib/ia/setores'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
+import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -141,19 +142,11 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
     setMensagens((m) => [...m, { role: 'user', content: p }])
     setTexto('')
     setPensando(true)
-    try {
-      const res = await fetch('/api/ia-chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: p, historico, contexto: montarContexto(), provedor: 'openai', empresa_id: empresaId }),
-      })
-      const json = await res.json().catch(() => null)
-      const resposta = res.ok && typeof json?.resposta === 'string' && json.resposta.trim()
-        ? json.resposta.trim()
-        : L('Não consegui interpretar agora — tente de novo em instantes.', "I couldn't interpret that right now — try again in a moment.", 'No pude interpretar ahora — intente de nuevo en unos instantes.')
-      setMensagens((m) => [...m, { role: 'assistant', content: resposta }])
-    } catch {
-      setMensagens((m) => [...m, { role: 'assistant', content: L('Sem conexão agora — tente de novo em instantes.', 'No connection right now — try again in a moment.', 'Sin conexión ahora — intente de nuevo en unos instantes.') }])
-    }
+    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + tudo que o José vê nesta tela
+    // (indicadores, eventos, leituras, manchetes, placar). Pergunta de futuro/plano sobe sozinha pra Anthropic.
+    const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela: 'nexus', lang, historico, contextoTela: montarContexto() })
+    const resposta = ia?.resposta ?? L('Não consegui interpretar agora — tente de novo em instantes.', "I couldn't interpret that right now — try again in a moment.", 'No pude interpretar ahora — intente de nuevo en unos instantes.')
+    setMensagens((m) => [...m, { role: 'assistant', content: resposta }])
     setPensando(false)
   }
 

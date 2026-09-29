@@ -1719,7 +1719,7 @@ export default function Fornecedores() {
   const NIVEL_CREDITO_LABEL: Record<string, string> = { pleno: tt.nivelPleno, parcial: tt.nivelParcial, baixo: tt.nivelBaixo, indefinido: tt.nivelIndefinido };
 
   // ========== IA EXECUTIVA — modo por regras (Fase 5C) ==========
-  // Fase futura: tentar POST /api/ia-chat ({mensagem, historico, contexto}, mesmo padrão de
+  // Fase futura: tentar POST o motor de IA (lib/ia/cliente.ts) ({mensagem, historico, contexto}, mesmo padrão de
   // enviarPerguntaZIA em Clientes) antes de cair aqui. Nenhuma chamada de rede nesta fase —
   // ANTHROPIC_API_KEY segue desativada por decisão do Elias.
   type InsightExecutivo = { severidade: "positivo" | "atencao" | "critico"; texto: string };

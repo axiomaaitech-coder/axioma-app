@@ -725,7 +725,7 @@ export async function obterCapitalDeGiro(empresaId: string): Promise<CapitalDeGi
 // responderPerguntaApPorRegra (contasPagarHelpers.ts): função pura sobre dado
 // já carregado pela tela do Command Center — zero fetch, zero motor novo.
 // Ponto único de geração de texto, pronto pra virar IA real (troca só o
-// corpo por /api/ia-chat, mesmo padrão do chat de AP) sem mexer na tela.
+// corpo por o motor de IA (lib/ia/cliente.ts), mesmo padrão do chat de AP) sem mexer na tela.
 // Pergunta fora do roteiro: admite honestamente que não sabe, nunca inventa.
 // ============================================================================
 

@@ -37,7 +37,7 @@ const PALETA = {
 } as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
-// no fim do arquivo (chamaria app/api/ia-chat/route.ts quando a chave
+// no fim do arquivo (chamaria o motor de IA (lib/ia/motor.ts) quando a chave
 // ANTHROPIC_API_KEY for ativada; hoje a explicação é 100% por regra).
 function gerarResposta(pergunta: string, dados: {
   faturamento: number, limite: number, percentual: number,

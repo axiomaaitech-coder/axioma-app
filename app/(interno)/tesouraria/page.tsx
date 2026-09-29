@@ -122,7 +122,7 @@ export default function TesourariaPage() {
 
   // ========== ZIA COPILOT DE TESOURARIA (Rodada 3) ==========
   // Zero fetch novo, zero motor novo — só texto derivado do que a tela já
-  // carregou. IA real (OpenAI, via /api/ia-chat) primeiro; se falhar ou
+  // carregou. IA real (OpenAI, via o motor de IA (lib/ia/cliente.ts)) primeiro; se falhar ou
   // estiver fora, cai no V1 por regra que já existia — mesmo padrão do chat
   // de Contas a Pagar. Na UI: "inteligência do Axioma", nunca cita IA/OpenAI.
   const [perguntaZia, setPerguntaZia] = useState('')

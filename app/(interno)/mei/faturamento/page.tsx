@@ -290,7 +290,7 @@ export default function FaturamentoMEI() {
   }
 
   // ---- Análise Executiva por IA — mesmo padrão funcional do IA MEI Advisor
-  // (já validado em produção com Claude real): fetch('/api/ia-chat') com
+  // (já validado em produção com Claude real): o motor de IA com
   // modelo 'claude-sonnet-5' explícito. Fallback por regra só como rede de
   // segurança pra falha real (rede, rate limit, resposta vazia) — não é o
   // caminho esperado, já que a chave está ativa.

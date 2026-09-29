@@ -780,7 +780,7 @@ export function avaliarCreditoReforma(fornecedores: FornecedorRow[]): CreditoRef
 //   instância até existir uma tabela fornecedor_qualidade_historico (data + nota), pra
 //   dar de fato pra medir tendência em vez de comparar um ponto só contra ele mesmo.
 // Fase futura — IA Executiva real: quando ANTHROPIC_API_KEY for ativada, o mesmo padrão
-//   já usado em Clientes (enviarPerguntaZIA) entra aqui — tenta POST /api/ia-chat com
+//   já usado em Clientes (enviarPerguntaZIA) entra aqui — tenta POST o motor de IA (lib/ia/cliente.ts) com
 //   {mensagem, historico, contexto}, cai no conselho por regras se falhar. Nenhuma chamada
 //   de rede é feita na Fase 5, só o texto por regras.
 // Fase futura — Reforma Tributária com valor em R$: quando o IBS/CBS estiver regulamentado
