@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
+  // Só caminho INTERNO (auditoria 2026-09-28): "//site.com" ou "https://site.com"
+  // viravam redirecionamento pra fora depois do login (golpe de página falsa).
+  const nextBruto = requestUrl.searchParams.get('next') || ''
+  const next = /^\/(?![/\\])/.test(nextBruto) ? nextBruto : '/dashboard'
   // Quem está aceitando um convite não pode ganhar uma "Minha Empresa" automática
   // aqui — isso faria a ordem dono→convidado (obterEmpresaAtiva) escolher a empresa
   // errada depois. O próprio fluxo de convite cria o vínculo certo (empresa_usuarios).
