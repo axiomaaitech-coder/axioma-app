@@ -477,7 +477,7 @@ export default function EquipePage() {
                     ].map((c) => (
                       <button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando || !form.email_convidado.trim()}
                         className="py-2.5 rounded-xl text-sm font-bold disabled:opacity-40"
-                        style={{ background: `${c.cor}1f`, border: `1px solid ${c.cor}66`, color: c.cor }}>
+                        style={temaClaro ? { background: c.cor, border: `1px solid ${c.cor}`, color: '#ffffff' } : { background: `${c.cor}1f`, border: `1px solid ${c.cor}66`, color: c.cor }}>
                         {enviando ? t.enviando : c.rotulo}
                       </button>
                     ))}
