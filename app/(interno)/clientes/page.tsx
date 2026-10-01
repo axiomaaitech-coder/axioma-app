@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
-import { CORES, corTema, optDispersao, optBarrasV } from "../../../lib/cfoCore";
+import { CORES, corTema, optDispersao, optBarrasV, irParaDestino } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -376,6 +377,7 @@ const T = {
 };
 
 export default function ClientesPage() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const cl = t.clientes;
   const lang = (idioma as Idioma3) || "pt";
@@ -890,12 +892,12 @@ export default function ClientesPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: cl.totalClientes, valor: clientes.length.toString(), cor: ct("#6ab0ff") },
-                    { label: tt.valorCarteira, valor: fmt(snapshotCarteira.valorTotalCarteira), cor: ct("#34d399") },
-                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: ct("#fbbf24") },
-                    { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%`, cor: inadimplenciaCarteiraPct > 15 ? ct("#f87171") : ct("#34d399") },
+                    { label: cl.totalClientes, valor: clientes.length.toString(), cor: ct("#6ab0ff"), ir: "#lista-carteira" },
+                    { label: tt.valorCarteira, valor: fmt(snapshotCarteira.valorTotalCarteira), cor: ct("#34d399"), ir: "/contas-receber" },
+                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: ct("#fbbf24"), ir: "/precificacao" },
+                    { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%`, cor: inadimplenciaCarteiraPct > 15 ? ct("#f87171") : ct("#34d399"), ir: "/inadimplencia" },
                   ].map((card, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+                    <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
                       <CanvasBox {...cartaoTema} cor={card.cor}>
                         <p className="text-xs mb-1" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                         <p className="text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.valor} /></p>
@@ -1095,6 +1097,7 @@ export default function ClientesPage() {
                   )}
                 </CanvasBox>
 
+                <div id="lista-carteira" className="scroll-mt-28" />
                 <CanvasBox {...cartaoTema} cor={ct("#3b6fd4")}>
                   <input value={buscaCarteira} onChange={(e) => setBuscaCarteira(e.target.value)}
                     placeholder={cl.buscar}

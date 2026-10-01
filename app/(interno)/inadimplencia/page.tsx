@@ -1,4 +1,6 @@
 ﻿'use client'
+import { useRouter } from "next/navigation";
+import { irParaDestino } from '../../../lib/cfoCore'
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -78,6 +80,7 @@ type DreHistoricoAtual = {
 }
 
 export default function Inadimplencia() {
+  const router = useRouter();
   const { idioma } = useLanguage()
   const lang = idioma as Idioma3
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
@@ -540,6 +543,13 @@ export default function Inadimplencia() {
     { key: 'scoreMedio', label: L('Score Médio da Carteira Inadimplente', 'Avg. Delinquent Portfolio Score', 'Score Medio de Cartera Morosa'), valor: kpis.scoreMedioCarteiraInadimplente != null ? `${kpis.scoreMedioCarteiraInadimplente}/1000` : '', cor: INDIGO, vazio: kpis.scoreMedioCarteiraInadimplente == null },
   ]
 
+  // destino de cada KPI (card nunca é só enfeite)
+  const DESTINO_KPI: Record<string, string> = {
+    total: '#score-risco-inad', qtd: '#score-risco-inad', pct: '#aging-inad', recMes: '#regua-inad', recAno: '#regua-inad',
+    negociacao: '#regua-inad', perda: '#pcld-inad', dso: '#previsao-inad', indice: '#previsao-inad', tempoRec: '#previsao-inad',
+    risco: '#mapa-risco-inad', fluxo: '/fluxo-caixa', liquidez: '/tesouraria', giro: '/tesouraria', scoreMedio: '#score-risco-inad',
+  }
+
   const agingLabels = [L('0-30 dias', '0-30 days', '0-30 días'), L('31-60 dias', '31-60 days', '31-60 días'), L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días')]
   const agingCores = [AMBAR, ct('#f59e0b'), ct('#ef4444'), VERMELHO]
   const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5', agingCores, temaClaro) : null
@@ -694,7 +704,7 @@ export default function Inadimplencia() {
         {/* ================= DASHBOARD EXECUTIVO — 15 KPIs ================= */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {kpiTiles.map((k) => (
-            <div key={k.key} className={`rounded-2xl p-4 relative overflow-hidden${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+            <div key={k.key} onClick={() => irParaDestino(DESTINO_KPI[k.key] || '#aging-inad', router)} title={L('Ver detalhes', 'See details', 'Ver detalles')} className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer transition-transform hover:-translate-y-0.5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
               <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
               {k.vazio ? (
@@ -755,6 +765,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="aging-inad" className="scroll-mt-28" />
         {/* ================= AGING DA INADIMPLÊNCIA ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: VERMELHO }}>
@@ -780,6 +791,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="score-risco-inad" className="scroll-mt-28" />
         {/* ================= SCORE DE RISCO AXIOMA ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: PLATINA }}>
@@ -847,6 +859,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="regua-inad" className="scroll-mt-28" />
         {/* ================= RÉGUA DE RECUPERAÇÃO ESCALONADA ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
@@ -893,6 +906,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="mapa-risco-inad" className="scroll-mt-28" />
         {/* ================= MAPA EXECUTIVO DE RISCO ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
@@ -992,6 +1006,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="previsao-inad" className="scroll-mt-28" />
         {/* ================= PREVISÃO DE RECUPERAÇÃO MULTI-HORIZONTE ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${AZUL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: AZUL }}>
@@ -1015,6 +1030,7 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        <div id="pcld-inad" className="scroll-mt-28" />
         {/* ================= PERDA ESPERADA (PCLD) + CUSTO-BENEFÍCIO + IMPACTO NA DRE ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>

@@ -1031,16 +1031,19 @@ export default function EstoquePage() {
               { label: et.kpiValorTotal, valor: fBRL(kpis?.valor_total_estoque || 0), cor: ct(JADE) },
               { label: et.kpiProdutosAtivos, valor: String(kpis?.produtos_ativos || 0), cor: NEUTRO_CT },
               { label: et.kpiProdutosInativos, valor: String(kpis?.produtos_inativos || 0), cor: ct("#5a7a9a") },
-              { label: et.kpiRuptura, valor: String(kpis?.qtd_ruptura || 0), cor: NEGATIVO_CT },
-              { label: et.kpiBaixoEstoque, valor: String(kpis?.qtd_baixo_estoque || 0), cor: ATENCAO_CT },
-              { label: et.kpiProxValidade, valor: String(avisosValidadeResumo.filter((v) => v.severidade !== "vencido").length), cor: ATENCAO_CT },
-              { label: et.kpiVencidos, valor: String(avisosValidadeResumo.filter((v) => v.severidade === "vencido").length), cor: NEGATIVO_CT },
-              { label: et.kpiCapitalParado, valor: String(kpis?.qtd_capital_parado || 0), cor: ct(BRONZE) },
+              { label: et.kpiRuptura, valor: String(kpis?.qtd_ruptura || 0), cor: NEGATIVO_CT, aba: "produtos" },
+              { label: et.kpiBaixoEstoque, valor: String(kpis?.qtd_baixo_estoque || 0), cor: ATENCAO_CT, aba: "produtos" },
+              { label: et.kpiProxValidade, valor: String(avisosValidadeResumo.filter((v) => v.severidade !== "vencido").length), cor: ATENCAO_CT, aba: "avisos" },
+              { label: et.kpiVencidos, valor: String(avisosValidadeResumo.filter((v) => v.severidade === "vencido").length), cor: NEGATIVO_CT, aba: "avisos" },
+              { label: et.kpiCapitalParado, valor: String(kpis?.qtd_capital_parado || 0), cor: ct(BRONZE), aba: "inteligencia" },
             ].map((k) => (
-              <CanvasBox {...cartaoTema} key={k.label} cor={k.cor}>
+              // card leva à aba onde estão esses itens
+              <div key={k.label} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => { setAba(k.aba as typeof aba); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+              <CanvasBox {...cartaoTema} cor={k.cor}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               </CanvasBox>
+              </div>
             ))}
           </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Tag, Pencil, Trash2, Plus, X, Share2, Sparkles, AlertTriangle, TrendingUp,
@@ -21,8 +22,7 @@ import {
   estimarElasticidade, detectarOportunidadesPrecificacao, calcularIPPA, optRosca,
   precoPorDivisor, precoBlur,
   type Lancamento, type ChoqueSimulador, type ResultadoCenario,
-  type TipoOportunidadePrecificacao,
-} from "../../../lib/cfoCore";
+  type TipoOportunidadePrecificacao, irParaDestino } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
@@ -67,6 +67,7 @@ const WAR_PRESETS: Record<string, Partial<ChoqueSimulador>> = {
 };
 
 export default function Precificacao() {
+  const router = useRouter();
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
@@ -550,12 +551,12 @@ export default function Precificacao() {
         {/* KPIs originais */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: txt.produtos, value: `${produtos.length}`, cor: COR_PRC },
-            { label: txt.margemMedia, value: `${margemMedia}%`, cor: ct(CORES.verde) },
-            { label: txt.menorPreco, value: fmt(menorPreco), cor: ct(CORES.azul) },
-            { label: txt.maiorPreco, value: fmt(maiorPreco), cor: ct(CORES.roxo) },
+            { label: txt.produtos, value: `${produtos.length}`, cor: COR_PRC, ir: "#lista-produtos-prc" },
+            { label: txt.margemMedia, value: `${margemMedia}%`, cor: ct(CORES.verde), ir: "#lista-produtos-prc" },
+            { label: txt.menorPreco, value: fmt(menorPreco), cor: ct(CORES.azul), ir: "#lista-produtos-prc" },
+            { label: txt.maiorPreco, value: fmt(maiorPreco), cor: ct(CORES.roxo), ir: "#lista-produtos-prc" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
@@ -863,6 +864,7 @@ export default function Precificacao() {
               )}
             </div>
 
+            <div id="lista-produtos-prc" className="scroll-mt-28" />
             {/* Lista de produtos (CRUD) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {produtos.map((p, i) => (

@@ -102,6 +102,8 @@ export default function FiscalPage() {
   const [obrigacoesProximas, setObrigacoesProximas] = useState<ObrigacaoProxima[]>([])
   const [config, setConfig] = useState<ConfigFiscal | null>(null)
   const [mostrarTodas, setMostrarTodas] = useState(false)
+  // Card do topo clicado = filtro da lista (cada card leva às descobertas que ele conta)
+  const [filtroCard, setFiltroCard] = useState<string | null>(null)
   const [selecionada, setSelecionada] = useState<DescobertaFiscal | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [mensagem, setMensagem] = useState<string | null>(null)
@@ -160,17 +162,22 @@ export default function FiscalPage() {
   const emDia = contagem.P0 === 0 && contagem.P1 === 0
   const previsoes = descobertas.filter((d) => d.status === 'aberto' && (d.confianca === 'previsao' || d.confianca === 'cenario')).length
   const proximosSete = obrigacoesProximas.filter((o) => o.dias_restantes <= 7).length
-  const visiveis = mostrarTodas ? descobertas : descobertas.filter((d) => d.status === 'aberto')
+  const FILTROS: Record<string, (d: (typeof descobertas)[number]) => boolean> = {
+    p0: (d) => d.prioridade === 'P0', p1: (d) => d.prioridade === 'P1', p2: (d) => d.prioridade === 'P2',
+    previsao: (d) => d.confianca === 'previsao' || d.confianca === 'cenario',
+  }
+  const visiveis = (mostrarTodas ? descobertas : descobertas.filter((d) => d.status === 'aberto'))
+    .filter((d) => !filtroCard || !FILTROS[filtroCard] || FILTROS[filtroCard](d))
   const reforma = alertasReformaRelevantes(config?.regime_tributario || null)
 
-  const TILES: { emoji: string; label: string; valor: number | string; cor: string }[] = [
-    { emoji: '🔴', label: L('Crítico', 'Critical', 'Crítico'), valor: contagem.P0, cor: VERMELHO },
-    { emoji: '🟠', label: L('Atenção', 'Attention', 'Atención'), valor: contagem.P1, cor: LARANJA },
-    { emoji: '🟡', label: L('Pendências', 'Pending', 'Pendientes'), valor: contagem.P2, cor: AMARELO },
-    { emoji: '🟢', label: L('Em Dia', 'On Time', 'Al Día'), valor: emDia ? L('Sim', 'Yes', 'Sí') : L('Não', 'No', 'No'), cor: emDia ? VERDE : CINZA },
-    { emoji: '📅', label: L('Próx. Obrigações (7d)', 'Upcoming (7d)', 'Próx. Obligaciones (7d)'), valor: proximosSete, cor: AZULC },
-    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: ROXO },
-    { emoji: '🧠', label: L('Descobertas', 'Findings', 'Hallazgos'), valor: contagem.totalAbertas, cor: AZULC },
+  const TILES: { emoji: string; label: string; valor: number | string; cor: string; filtro: string | null; ir?: string }[] = [
+    { emoji: '🔴', label: L('Crítico', 'Critical', 'Crítico'), valor: contagem.P0, cor: VERMELHO, filtro: 'p0' },
+    { emoji: '🟠', label: L('Atenção', 'Attention', 'Atención'), valor: contagem.P1, cor: LARANJA, filtro: 'p1' },
+    { emoji: '🟡', label: L('Pendências', 'Pending', 'Pendientes'), valor: contagem.P2, cor: AMARELO, filtro: 'p2' },
+    { emoji: '🟢', label: L('Em Dia', 'On Time', 'Al Día'), valor: emDia ? L('Sim', 'Yes', 'Sí') : L('Não', 'No', 'No'), cor: emDia ? VERDE : CINZA, filtro: null },
+    { emoji: '📅', label: L('Próx. Obrigações (7d)', 'Upcoming (7d)', 'Próx. Obligaciones (7d)'), valor: proximosSete, cor: AZULC, filtro: null, ir: '/fiscal/obrigacoes' },
+    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: ROXO, filtro: 'previsao' },
+    { emoji: '🧠', label: L('Descobertas', 'Findings', 'Hallazgos'), valor: contagem.totalAbertas, cor: AZULC, filtro: null },
   ]
 
   return (
@@ -247,13 +254,23 @@ export default function FiscalPage() {
 
           {/* STATUS DE INTELIGÊNCIA */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-            {TILES.map((t) => (
-              <div key={t.label} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
-                <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
-                <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
-                <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
-              </div>
-            ))}
+            {TILES.map((t) => {
+              const ativo = filtroCard !== null && filtroCard === t.filtro
+              return (
+                <motion.button key={t.label} type="button" whileHover={{ y: -3, scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    if (t.ir) { router.push(t.ir); return }
+                    setFiltroCard(t.filtro); setMostrarTodas(false)
+                    document.getElementById('lista-descobertas-fiscal')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                  className={`rounded-xl p-3 text-left cursor-pointer${classePremium3d}`}
+                  style={{ background: PAINEL_BG, border: ativo ? `2px solid ${t.cor}` : `1px solid ${t.cor}30` }}>
+                  <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
+                  <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
+                </motion.button>
+              )
+            })}
           </div>
 
           {/* PRÓXIMAS OBRIGAÇÕES — prévia, calendário completo em /fiscal/obrigacoes */}
@@ -292,8 +309,9 @@ export default function FiscalPage() {
           </div>
 
           {/* LISTA DE DESCOBERTAS — densa, hierárquica, sem card decorativo por item */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
+          <div id="lista-descobertas-fiscal" className="scroll-mt-28">
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              {filtroCard && <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full order-last" style={{ background: temaClaro ? '#101b3d' : 'rgba(106,176,255,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>{L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕</button>}
               <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
               <button onClick={() => setMostrarTodas((v) => !v)} className="text-[11px] font-semibold" style={{ color: AZULC }}>
                 {mostrarTodas ? L('Mostrar só abertas', 'Show only open', 'Mostrar solo abiertas') : L('Mostrar todas', 'Show all', 'Mostrar todas')}
