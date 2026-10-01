@@ -208,6 +208,11 @@ export default function TopNav() {
   // menu inteiro por um instante a cada navegação enquanto o papel carrega.
   const isOperador = papel === "operador";
   const ehDono = papel === "dono";
+  // Caixa é caixa: nunca fica em tela do Axioma fora do PDV, nem digitando o
+  // endereço direto (pedido do Elias 2026-10-01). Dados já bloqueados no banco.
+  useEffect(() => {
+    if (isOperador && !pathname.startsWith("/pdv")) router.replace("/pdv/venda");
+  }, [isOperador, pathname, router]);
   const destinoLogo = isOperador ? pdvModulo.path : "/dashboard";
 
   const equipeItem = { label: { pt: "Equipe", en: "Team", es: "Equipo" }, path: "/equipe", emoji: "🧑‍🤝‍🧑" };

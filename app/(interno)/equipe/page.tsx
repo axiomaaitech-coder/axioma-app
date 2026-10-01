@@ -11,7 +11,7 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
@@ -71,7 +71,7 @@ const textos = {
     assuntoConvite: 'Convite para a equipe no Axioma',
     msgConvite: 'Olá{nome}! Você foi convidado(a) por {remetente} para acessar nossa empresa no Axioma como {papel}{prazo}. Para aceitar, abra o link (válido por {validade}) e crie sua conta ou entre no Axioma: {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
-    papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Operador (caixa/PDV)',
+    papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Caixa (só PDV, sem acesso ao Axioma)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
     erroDuplicado: 'Já existe um convite pendente pra este e-mail.',
     erroUltimoDono: 'Não é possível remover ou rebaixar o único proprietário da empresa.',
@@ -114,7 +114,7 @@ const textos = {
     assuntoConvite: 'Invitation to join the team on Axioma',
     msgConvite: 'Hi{nome}! You have been invited by {remetente} to access our company on Axioma as {papel}{prazo}. To accept, open the link (valid for {validade}) and create your account or sign in to Axioma: {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
-    papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Operator (register/POS)',
+    papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Cashier (POS only, no Axioma access)',
     erroGenerico: 'Could not complete. Please try again.',
     erroDuplicado: 'A pending invite already exists for this e-mail.',
     erroUltimoDono: 'You cannot remove or demote the company\'s only owner.',
@@ -157,7 +157,7 @@ const textos = {
     assuntoConvite: 'Invitación al equipo en Axioma',
     msgConvite: '¡Hola{nome}! Fuiste invitado(a) por {remetente} a acceder a nuestra empresa en Axioma como {papel}{prazo}. Para aceptar, abre el link (válido por {validade}) y crea tu cuenta o entra en Axioma: {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
-    papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Operador (caja/PDV)',
+    papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Cajero (solo PDV, sin acceso a Axioma)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
     erroDuplicado: 'Ya existe una invitación pendiente para este correo.',
     erroUltimoDono: 'No es posible eliminar o degradar al único propietario de la empresa.',
@@ -425,6 +425,49 @@ export default function EquipePage() {
     <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
+        {membros.some((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao') && (
+          <CanvasBox cor="#16a97d" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+            <div className="flex items-center gap-2 mb-3">
+              <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity }}>
+                <AlertCircle size={18} style={{ color: '#16a97d' }} />
+              </motion.span>
+              <p className="text-sm font-black" style={{ color: TEXTO }}>
+                {t.aguardandoAprovacao} ({membros.filter((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao').length})
+              </p>
+            </div>
+            <div className="space-y-2">
+              {membros.filter((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao').map((m) => {
+                const tm = termos.find((x) => x.convite_id === m.id && !x.apagado_em)
+                return (
+                  <div key={m.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3"
+                    style={{ background: LINHA_BG, border: '1px solid rgba(22,169,125,0.35)' }}>
+                    <div className="flex-1 min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
+                      <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm?.nome || m.nome || t.conviteLink}</p>
+                      <p>📧 <strong style={{ color: TEXTO }}>{tm?.email || m.email || '—'}</strong>{tm?.cpf ? ` • CPF ${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : ''}</p>
+                      <p>{m.relacao ? `${(t as any)[`rel_${m.relacao}`] || m.relacao} • ` : ''}{labelPapel(m.papel)}{tm ? ` • ${rotuloPrazo(tm.acesso_dias)}` : ''}</p>
+                      {tm && <p>{t.convidadoPorEm(tm.remetente_nome || '—', tm.convidado_em ? dataHora(tm.convidado_em) : '—')} • {t.aceitoEm(dataHora(tm.aceito_em))}</p>}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <motion.button whileHover={{ scale: 1.05, y: -2, boxShadow: '0 8px 20px rgba(22,169,125,0.4)' }} whileTap={{ scale: 0.95 }}
+                        onClick={() => decidir(m, true)} disabled={decidindoId === m.id}
+                        className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-1.5 disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
+                        <CheckCircle size={15} />{t.aprovar}
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
+                        onClick={() => decidir(m, false)} disabled={decidindoId === m.id}
+                        className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60"
+                        style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
+                        {t.recusar}
+                      </motion.button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CanvasBox>
+        )}
+
         <AnimatePresence>
           {mensagem && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -484,24 +527,6 @@ export default function EquipePage() {
                       </span>
                     </div>
 
-                    {m.origem === 'convite' && m.situacao === 'aguardando_aprovacao' && (() => {
-                      const tm = termos.find((x) => x.convite_id === m.id && !x.apagado_em)
-                      return (
-                        <div className="w-full sm:w-auto flex flex-col gap-1.5 sm:items-end">
-                          {tm && <p className="text-[11px]" style={{ color: MUTED }}>{tm.nome} • CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email}</p>}
-                          <div className="flex gap-2">
-                            <motion.button whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => decidir(m, true)} disabled={decidindoId === m.id}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
-                              <CheckCircle size={13} className="inline mr-1" />{t.aprovar}
-                            </motion.button>
-                            <motion.button whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => decidir(m, false)} disabled={decidindoId === m.id}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', color: VERMELHO }}>
-                              {t.recusar}
-                            </motion.button>
-                          </div>
-                        </div>
-                      )
-                    })()}
                     {!ehVoce && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
@@ -638,42 +663,21 @@ export default function EquipePage() {
                     <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
                       className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                   </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.papelLabel}</label>
-                    <select value={form.papel} onChange={(e) => ajustarForm({ ...form, papel: e.target.value })}
-                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
-                      {PAPEIS_ATRIBUIVEIS.map((p) => (
-                        <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: MUTED }}>{t.relacaoLabel}</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                    {(['ceo', 'socio', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => (
-                      <motion.button key={r} type="button" onClick={() => ajustarForm({ ...form, relacao: r, acesso_dias: (r === 'socio' || r === 'ceo') && form.acesso_dias === 7 ? null : form.acesso_dias })}
-                        whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.96 }}
-                        className="py-1.5 px-1 rounded-lg text-[11px] font-bold leading-tight"
-                        style={form.relacao === r ? { background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.25)', border: '1px solid #16a97d', color: temaClaro ? '#ffffff' : '#2ecc9b' } : { background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.04)', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(255,255,255,0.1)'}`, color: temaClaro ? '#ffffff' : MUTED }}>
-                        {(t as any)[`rel_${r}`]}
-                      </motion.button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <MenuEscolha rotulo={t.relacaoLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                    valor={form.relacao}
+                    opcoes={(['ceo', 'socio', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: (t as any)[`rel_${r}`] }))}
+                    onEscolher={(r) => ajustarForm({ ...form, relacao: r, acesso_dias: (r === 'socio' || r === 'ceo') && form.acesso_dias === 7 ? null : form.acesso_dias })} />
+                  <MenuEscolha rotulo={t.papelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                    valor={form.papel}
+                    opcoes={PAPEIS_ATRIBUIVEIS.map((p) => ({ valor: p, label: labelPapel(p) }))}
+                    onEscolher={(p) => ajustarForm({ ...form, papel: p })} />
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: MUTED }}>{t.tempoAcesso}</p>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                    {([1, 3, 7, 30, 60, 90, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => (
-                      <motion.button key={String(d)} type="button" onClick={() => ajustarForm({ ...form, acesso_dias: d })}
-                        whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.96 }}
-                        className="py-1.5 rounded-lg text-xs font-bold"
-                        style={form.acesso_dias === d ? { background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.25)', border: '1px solid #16a97d', color: temaClaro ? '#ffffff' : '#2ecc9b' } : { background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.04)', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(255,255,255,0.1)'}`, color: temaClaro ? '#ffffff' : MUTED }}>
-                        {rotuloPrazo(d)}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
+                <MenuEscolha rotulo={t.tempoAcesso} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                  valor={String(form.acesso_dias)}
+                  opcoes={([1, 3, 7, 30, 60, 90, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => ({ valor: String(d), label: rotuloPrazo(d) }))}
+                  onEscolher={(v) => ajustarForm({ ...form, acesso_dias: v === 'null' ? null : Number(v) })} />
                 {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
                 <div>
                   <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}</label>
@@ -723,6 +727,47 @@ export default function EquipePage() {
         textoResumo={conviteEnviar ? textoConvite(conviteEnviar) : ''}
       />
     </ModuloLayout>
+    </div>
+  )
+}
+
+// Menu de escolha "hambúrguer": botão largo com o valor escolhido; abre uma
+// lista legível (no lugar dos botões pequenos espremidos — pedido do Elias).
+function MenuEscolha({ rotulo, valor, opcoes, onEscolher, temaClaro, cores }: {
+  rotulo: string; valor: string; opcoes: { valor: string; label: string }[]; onEscolher: (v: string) => void
+  temaClaro: boolean; cores: { texto: string; muted: string; campo: string; borda: string }
+}) {
+  const [aberto, setAberto] = useState(false)
+  const atual = opcoes.find((o) => o.valor === valor)?.label || '—'
+  return (
+    <div className="relative">
+      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: cores.muted }}>{rotulo}</p>
+      <motion.button type="button" onClick={() => setAberto((a) => !a)} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-left"
+        style={{ background: cores.campo, border: aberto ? '1px solid #16a97d' : cores.borda, color: cores.texto }}>
+        <Menu size={15} style={{ color: '#16a97d' }} />
+        <span className="flex-1 truncate">{atual}</span>
+        <motion.span animate={{ rotate: aberto ? 180 : 0 }}><ChevronDown size={15} style={{ color: cores.muted }} /></motion.span>
+      </motion.button>
+      <AnimatePresence>
+        {aberto && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 mt-1 z-20 rounded-xl overflow-hidden shadow-xl"
+            style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(46,204,155,0.25)' }}>
+            {opcoes.map((o) => {
+              const sel = o.valor === valor
+              return (
+                <motion.button key={o.valor} type="button" whileHover={{ x: 4 }}
+                  onClick={() => { onEscolher(o.valor); setAberto(false) }}
+                  className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between transition-colors"
+                  style={{ background: sel ? (temaClaro ? 'rgba(22,169,125,0.12)' : 'rgba(46,204,155,0.15)') : 'transparent', color: sel ? '#16a97d' : cores.texto, fontWeight: sel ? 700 : 500 }}>
+                  {o.label}{sel && <CheckCircle size={14} />}
+                </motion.button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
