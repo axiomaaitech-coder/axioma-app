@@ -136,7 +136,7 @@ export default function EquipePage() {
   const TEXTO = temaClaro ? '#101b3d' : '#c8d8f0'
   const MUTED = temaClaro ? '#374151' : '#5a7a9a'
   const CAMPO_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.7)'
-  const LINHA_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.5)'
+  const LINHA_BG = temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(2,8,16,0.5)'
   const CAMPO_BORDA = temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(106,176,255,0.2)'
 
   const [carregando, setCarregando] = useState(true)
