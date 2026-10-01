@@ -904,7 +904,7 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   const emailNorm = String(dados.email_convidado || "").trim().toLowerCase();
   const { data: existente } = await supabase
     .from("empresa_equipe")
-    .select("id, expira_em")
+    .select("id, expira_em, token_convite")
     .eq("empresa_id", empresaId)
     .eq("convite_aceito", false)
     .ilike("email_convidado", emailNorm);
@@ -912,7 +912,9 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   const pendente = (existente || [])[0];
   if (pendente) {
     const expirado = pendente.expira_em && new Date(pendente.expira_em) < new Date();
-    if (!expirado) return { erro: "duplicado", codigo: "AX008" };
+    // Convite ainda válido pro mesmo e-mail: reenvia o MESMO link (antes
+    // recusava com "duplicado" e o botão parecia não funcionar).
+    if (!expirado) return { id: pendente.id, token: pendente.token_convite };
     // Limpeza best-effort do convite expirado antes de criar o novo — se falhar,
     // não bloqueia o convite novo (o insert abaixo segue e é conferido normalmente);
     // só reporta pro Sentry pra não perder visibilidade de que sobrou um registro.

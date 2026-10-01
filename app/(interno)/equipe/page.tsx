@@ -52,6 +52,7 @@ const textos = {
     sucessoConvite: 'Convite gerado', sucessoPapel: 'Papel atualizado', sucessoRemocao: 'Acesso removido',
     copiarLink: 'Copiar link do convite',
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    erroEmail: 'Preencha um e-mail válido para enviar o convite.',
     enviarPor: 'Gerar e enviar o convite por:', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
     msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e entre com este e-mail ({email}): {link}',
@@ -81,6 +82,7 @@ const textos = {
     sucessoConvite: 'Invite generated', sucessoPapel: 'Role updated', sucessoRemocao: 'Access removed',
     copiarLink: 'Copy invite link',
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    erroEmail: 'Enter a valid e-mail to send the invite.',
     enviarPor: 'Create and send the invite via:', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
     msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and sign in with this e-mail ({email}): {link}',
@@ -110,6 +112,7 @@ const textos = {
     sucessoConvite: 'Invitación generada', sucessoPapel: 'Rol actualizado', sucessoRemocao: 'Acceso eliminado',
     copiarLink: 'Copiar link de invitación',
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
+    erroEmail: 'Ingrese un correo válido para enviar la invitación.',
     enviarPor: 'Generar y enviar la invitación por:', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
     msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y entra con este correo ({email}): {link}',
@@ -154,6 +157,7 @@ export default function EquipePage() {
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null)
   // convite aberto no Centro de Compartilhamento (envio de verdade pelos apps da pessoa)
   const [conviteEnviar, setConviteEnviar] = useState<MembroEquipe | null>(null)
+  const [erroModal, setErroModal] = useState('')
 
   useEffect(() => { carregarTudo() }, [])
 
@@ -205,14 +209,16 @@ export default function EquipePage() {
   // A aba nova é aberta ANTES do await (clique do usuário) — senão o navegador
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
-    if (!empresaId || !userId || !form.email_convidado.trim()) { avisar('erro', t.erroGenerico); return }
+    if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email_convidado.trim())) { setErroModal(t.erroEmail); return }
+    setErroModal('')
     const abreAba = canal !== 'E-mail' && canal !== 'copiar'
     const aba = abreAba ? window.open('', '_blank') : null
     setEnviando(true)
     try {
       const dadosForm = { ...form }
       const r = await convidarMembro(empresaId, userId, dadosForm)
-      if (r.erro || !r.token) { aba?.close(); avisar('erro', mensagemErro(r.codigo)); return }
+      if (r.erro || !r.token) { aba?.close(); setErroModal(mensagemErro(r.codigo)); return }
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: null } as unknown as MembroEquipe
       const texto = textoConvite(membroNovo)
       if (canal === 'copiar') {
@@ -331,7 +337,7 @@ export default function EquipePage() {
               </div>
             </div>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setModalAberto(true)}
+              onClick={() => { setErroModal(''); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
               style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}
@@ -431,40 +437,45 @@ export default function EquipePage() {
       {/* Modal compartilhado (portal no body): antes era fixed dentro do
           ModuloLayout, que anima com transform — o card nascia cortado em cima. */}
       <Modal open={modalAberto} onClose={() => setModalAberto(false)}>
-            <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
-              <div className="flex items-center justify-between mb-4">
+            {/* premium3d desligado aqui: o efeito de "levantar" no hover mudava a
+                altura e a barra de rolagem do modal ficava oscilando. Layout
+                compacto (2 colunas) cabe na tela sem rolagem. */}
+            <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined}>
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? '#101b3d' : VERDE }}>AXIOMA AI.TECH</p>
                   <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.novoConvite}</h3>
                 </div>
                 <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
-                  <input type="email" value={form.email_convidado} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
+                    <input type="email" value={form.email_convidado} onChange={(e) => { setForm({ ...form, email_convidado: e.target.value }); setErroModal('') }}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
+                    <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
+                    <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.papelLabel}</label>
+                    <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
+                      {PAPEIS_ATRIBUIVEIS.map((p) => (
+                        <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
-                  <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
-                  <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.papelLabel}</label>
-                  <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
-                    {PAPEIS_ATRIBUIVEIS.map((p) => (
-                      <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="pt-2">
+                <div className="pt-1">
                   <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[
@@ -475,15 +486,20 @@ export default function EquipePage() {
                       { canal: 'E-mail', rotulo: t.outroEmail, cor: temaClaro ? '#101b3d' : '#94a3b8' },
                       { canal: 'copiar', rotulo: t.copiarLinkCurto, cor: temaClaro ? '#16a97d' : '#2ecc9b' },
                     ].map((c) => (
-                      <button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando || !form.email_convidado.trim()}
-                        className="py-2.5 rounded-xl text-sm font-bold disabled:opacity-40"
-                        style={temaClaro ? { background: c.cor, border: `1px solid ${c.cor}`, color: '#ffffff' } : { background: `${c.cor}1f`, border: `1px solid ${c.cor}66`, color: c.cor }}>
+                      <motion.button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando}
+                        whileHover={{ scale: 1.05, y: -2, boxShadow: `0 8px 18px ${c.cor}55` }} whileTap={{ scale: 0.96 }}
+                        className="py-2.5 rounded-xl text-sm font-bold disabled:cursor-wait"
+                        style={temaClaro ? { background: c.cor, border: `1px solid ${c.cor}`, color: '#ffffff' } : { background: `${c.cor}26`, border: `1px solid ${c.cor}80`, color: c.cor }}>
                         {enviando ? t.enviando : c.rotulo}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
-                  <button onClick={() => setModalAberto(false)} className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: 'rgba(106,176,255,0.1)', color: AZUL }}>{t.cancelar}</button>
+                  {erroModal && (
+                    <p className="text-xs font-semibold mt-2 flex items-center gap-1.5" style={{ color: VERMELHO }}><AlertCircle size={14} />{erroModal}</p>
+                  )}
+                  <motion.button onClick={() => setModalAberto(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(106,176,255,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
                 </div>
               </div>
             </CanvasBox>
