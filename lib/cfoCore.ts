@@ -25,6 +25,23 @@ export const fK = (n: number) =>
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
+// Quadro "Evidência" (Contador, Fiscal): nunca mostra código interno na tela —
+// some campo *_id, valor que é UUID e objeto/lista crus; true/false vira Sim/Não.
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function entradasEvidencia(
+  evidencia: Record<string, unknown>,
+  L: (pt: string, en: string, es: string) => string,
+): [string, string][] {
+  return Object.entries(evidencia)
+    .filter(([k, v]) => k !== "chave" && k !== "id" && !k.endsWith("_id") && v !== null && v !== undefined && typeof v !== "object" && !(typeof v === "string" && RE_UUID.test(v)))
+    .map(([k, v]) => [
+      k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+      typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("pt-BR") : fBRL2(v))
+        : typeof v === "boolean" ? (v ? L("Sim", "Yes", "Sí") : L("Não", "No", "No"))
+        : String(v),
+    ]);
+}
+
 // Preço digitado à mão numa string precisa ganhar 2 casas fixas ao perder o
 // foco (padrão brasileiro R$ X,XX) — um <input type="number"> nunca preserva
 // zero à direita quando o valor vem de um número JS (5.40 === 5.4), então a

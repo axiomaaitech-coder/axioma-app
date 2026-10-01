@@ -857,7 +857,9 @@ export default function ContasPagarPage() {
   function nomeUsuario(id?: string | null): string {
     if (!id) return "—";
     const m = equipeCache.find((e) => e.user_id === id);
-    return m?.nome || m?.email || `${id.slice(0, 8)}…`;
+    if (m?.nome || m?.email) return (m.nome || m.email) as string;
+    // nunca mostra o código interno do usuário na tela
+    return id === userId ? L("Você", "You", "Usted") : L("Membro da equipe", "Team member", "Miembro del equipo");
   }
 
   async function decidir(aprovacaoId: string, decisao: "aprovada" | "rejeitada") {
@@ -1254,6 +1256,56 @@ export default function ContasPagarPage() {
     };
     const t = mapa[acao] || [acao, acao, acao];
     return L(t[0], t[1], t[2]);
+  }
+
+  // Histórico legível: o trigger grava a linha inteira (to_jsonb), com id,
+  // empresa_id etc. — aqui vira "Campo: antes → depois", só o que mudou e
+  // só campo que faz sentido pro usuário. Campo desconhecido fica de fora
+  // (nunca mostra código cru na tela).
+  const CAMPOS_AUDITORIA: Record<string, [string, string, string]> = {
+    descricao: ["Descrição", "Description", "Descripción"], status: ["Status", "Status", "Estado"],
+    valor_total: ["Valor total", "Total amount", "Valor total"], valor_pago: ["Valor pago", "Amount paid", "Valor pagado"],
+    data_emissao: ["Emissão", "Issue date", "Emisión"], data_vencimento: ["Vencimento", "Due date", "Vencimiento"],
+    data_pagamento: ["Data do pagamento", "Payment date", "Fecha de pago"], forma_pagamento: ["Forma de pagamento", "Payment method", "Forma de pago"],
+    parcelas: ["Parcelas", "Installments", "Cuotas"], categoria: ["Categoria", "Category", "Categoría"],
+    fornecedor_id: ["Fornecedor", "Supplier", "Proveedor"], numero_nota: ["Nº da nota", "Invoice no.", "Nº de factura"],
+    numero_nf: ["Nº da nota", "Invoice no.", "Nº de factura"], chave_acesso: ["Chave da NF-e", "NF-e key", "Clave NF-e"],
+    observacoes: ["Observações", "Notes", "Observaciones"], observacao: ["Observação", "Note", "Observación"],
+    motivo: ["Motivo", "Reason", "Motivo"], valor_estornado: ["Valor estornado", "Amount reversed", "Valor revertido"],
+    taxa_multa_mensal: ["Multa/juros ao mês (%)", "Monthly late fee (%)", "Multa/interés mensual (%)"],
+    desconto_disponivel_pct: ["Desconto disponível (%)", "Available discount (%)", "Descuento disponible (%)"],
+    desconto_data_limite: ["Prazo do desconto", "Discount deadline", "Plazo del descuento"],
+    similares: ["Contas parecidas", "Similar bills", "Cuentas similares"], duplicatas: ["Contas parecidas", "Similar bills", "Cuentas similares"],
+  };
+  function valorAuditoria(campo: string, v: any): string {
+    if (v === null || v === undefined || v === "") return "—";
+    if (Array.isArray(v)) return String(v.length);
+    if (typeof v === "object") return "—";
+    if (campo === "status") return statusLabel(String(v));
+    if (campo === "categoria") return cat(String(v));
+    if (campo === "fornecedor_id") return nomeFornecedor(String(v));
+    if (campo.startsWith("valor_")) return fmt(Number(v));
+    if (campo.startsWith("data_") || campo === "desconto_data_limite") {
+      const d = new Date(String(v).length === 10 ? `${v}T00:00:00` : String(v));
+      return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("pt-BR");
+    }
+    if (typeof v === "boolean") return v ? L("Sim", "Yes", "Sí") : L("Não", "No", "No");
+    return String(v).trim();
+  }
+  function linhasAuditoria(ev: AuditoriaAp): { campo: string; antes: string | null; depois: string }[] {
+    const a = ev.antes && typeof ev.antes === "object" ? ev.antes : null;
+    const d = ev.depois && typeof ev.depois === "object" ? ev.depois : {};
+    const linhas: { campo: string; antes: string | null; depois: string }[] = [];
+    for (const k of Object.keys(CAMPOS_AUDITORIA)) {
+      if (!(k in d) && !(a && k in a)) continue;
+      const depois = valorAuditoria(k, d[k]);
+      const antes = a && k in a ? valorAuditoria(k, a[k]) : null;
+      if (a && antes === depois) continue; // edição: só o que mudou
+      if (!a && depois === "—") continue;  // criação: só o que foi preenchido
+      const t = CAMPOS_AUDITORIA[k];
+      linhas.push({ campo: L(t[0], t[1], t[2]), antes, depois });
+    }
+    return linhas;
   }
 
   function alternarExpandido(id: string) {
@@ -2834,22 +2886,24 @@ export default function ContasPagarPage() {
                       </button>
                     )}
                   </div>
-                  {expandido.has(ev.id) && (ev.antes || ev.depois) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                      {ev.antes && (
-                        <div>
-                          <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERMELHO }}>{L("Antes", "Before", "Antes")}</p>
-                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: TEXTO }}>{JSON.stringify(ev.antes, null, 2)}</pre>
-                        </div>
-                      )}
-                      {ev.depois && (
-                        <div>
-                          <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERDE }}>{L("Depois", "After", "Después")}</p>
-                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: TEXTO }}>{JSON.stringify(ev.depois, null, 2)}</pre>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {expandido.has(ev.id) && (ev.antes || ev.depois) && (() => {
+                    const linhas = linhasAuditoria(ev);
+                    return (
+                      <div className="mt-2 rounded-lg p-3 space-y-1.5" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(0,0,0,0.25)" }}>
+                        {linhas.length === 0 ? (
+                          <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum campo visível mudou.", "No visible field changed.", "Ningún campo visible cambió.")}</p>
+                        ) : linhas.map((l) => (
+                          <div key={l.campo} className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 text-xs">
+                            <span className="font-bold sm:w-44 flex-shrink-0" style={{ color: CINZA }}>{l.campo}</span>
+                            <span className="break-words" style={{ color: TEXTO }}>
+                              {l.antes !== null && (<><span style={{ color: VERMELHO, textDecoration: "line-through" }}>{l.antes}</span>{" → "}</>)}
+                              <span className="font-semibold" style={{ color: l.antes !== null ? VERDE : TEXTO }}>{l.depois}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

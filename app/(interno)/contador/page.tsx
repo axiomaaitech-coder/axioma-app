@@ -15,7 +15,7 @@ import {
   listarDescobertas, contarPorPrioridade, atualizarStatusDescoberta, rodarDiscoveryEngine,
   type Descoberta, type StatusDescoberta, type TipoDescoberta, type Confianca,
 } from '../../../lib/contadorHelpers'
-import { fBRL2 } from '../../../lib/cfoCore'
+import { fBRL2, entradasEvidencia } from '../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
@@ -65,17 +65,6 @@ const LABEL_STATUS: Record<StatusDescoberta, Record<Idioma3, string>> = {
   revisado: { pt: 'Revisada', en: 'Reviewed', es: 'Revisada' },
   resolvido: { pt: 'Resolvida', en: 'Resolved', es: 'Resuelta' },
   ignorado: { pt: 'Ignorada', en: 'Ignored', es: 'Ignorada' },
-}
-
-function formatarChaveEvidencia(chave: string): string {
-  return chave.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
-}
-
-function formatarValorEvidencia(v: unknown): string {
-  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(2)
-  if (v === null || v === undefined) return '—'
-  if (typeof v === 'object') return JSON.stringify(v)
-  return String(v)
 }
 
 export default function ContadorPage() {
@@ -333,14 +322,14 @@ export default function ContadorPage() {
                     </div>
                   </div>
 
-                  {selecionada.evidencia && Object.keys(selecionada.evidencia).filter((k) => k !== 'chave').length > 0 && (
+                  {selecionada.evidencia && entradasEvidencia(selecionada.evidencia, L).length > 0 && (
                     <div className="rounded-lg p-3 mb-4" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
                       <p className="text-[10px] font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: CINZA }}><Eye size={11} />{L('Evidência (dados e cálculo usados)', 'Evidence (data and calculation used)', 'Evidencia (datos y cálculo usados)')}</p>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                        {Object.entries(selecionada.evidencia).filter(([k]) => k !== 'chave').map(([k, v]) => (
+                        {entradasEvidencia(selecionada.evidencia, L).map(([k, v]) => (
                           <div key={k} className="flex justify-between gap-2 text-[11px]">
-                            <span style={{ color: CINZA }}>{formatarChaveEvidencia(k)}</span>
-                            <span className="font-semibold text-right" style={{ color: TEXTO }}>{formatarValorEvidencia(v)}</span>
+                            <span style={{ color: CINZA }}>{k}</span>
+                            <span className="font-semibold text-right" style={{ color: TEXTO }}>{v}</span>
                           </div>
                         ))}
                       </div>
