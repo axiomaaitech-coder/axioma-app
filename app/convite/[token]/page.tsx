@@ -37,7 +37,8 @@ export default function AceitarConvite() {
       const emailUsuario = authData?.user?.email || ''
       if (!emailUsuario) { setEstado('precisa_login'); return }
       setEmailLogado(emailUsuario)
-      if (emailUsuario.toLowerCase() !== c.email_convidado.toLowerCase()) { setEstado('email_errado'); return }
+      // convite por link (sem e-mail, enviado por WhatsApp etc.): qualquer conta logada pode aceitar
+      if (c.email_convidado && emailUsuario.toLowerCase() !== c.email_convidado.toLowerCase()) { setEstado('email_errado'); return }
       setEstado('pronto')
     })()
   }, [token])
@@ -88,7 +89,7 @@ export default function AceitarConvite() {
     },
   }[idioma]
 
-  const linksAuth = convite ? `?next=${encodeURIComponent(`/convite/${token}`)}&email=${encodeURIComponent(convite.email_convidado)}` : ''
+  const linksAuth = convite ? `?next=${encodeURIComponent(`/convite/${token}`)}${convite.email_convidado ? `&email=${encodeURIComponent(convite.email_convidado)}` : ''}` : ''
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
@@ -148,7 +149,7 @@ export default function AceitarConvite() {
 
         {estado === 'precisa_login' && convite && (
           <div className="w-full space-y-3">
-            <p className="text-xs mb-2" style={{ color: '#5a7a9a' }}>{t.comEmail} <strong style={{ color: '#c8d8f0' }}>{convite.email_convidado}</strong></p>
+            {convite.email_convidado && <p className="text-xs mb-2" style={{ color: '#5a7a9a' }}>{t.comEmail} <strong style={{ color: '#c8d8f0' }}>{convite.email_convidado}</strong></p>}
             <a href={`/login${linksAuth}`} className="block w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase"
               style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', color: '#fff', boxShadow: '0 4px 30px rgba(109,40,217,0.4)' }}>
               {t.entrar}

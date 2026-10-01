@@ -53,9 +53,9 @@ const textos = {
     copiarLink: 'Copiar link do convite',
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Preencha um e-mail válido para enviar o convite.',
-    enviarPor: 'Gerar e enviar o convite por:', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
+    enviarPor: 'Gerar e enviar o convite por:', conviteLink: 'Convite por link', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
-    msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e entre com este e-mail ({email}): {link}',
+    msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e crie sua conta ou entre no Axioma: {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
     papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Operador (caixa/PDV)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
@@ -83,9 +83,9 @@ const textos = {
     copiarLink: 'Copy invite link',
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Enter a valid e-mail to send the invite.',
-    enviarPor: 'Create and send the invite via:', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
+    enviarPor: 'Create and send the invite via:', conviteLink: 'Invite by link', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
-    msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and sign in with this e-mail ({email}): {link}',
+    msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and create your account or sign in to Axioma: {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
     papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Operator (register/POS)',
     erroGenerico: 'Could not complete. Please try again.',
@@ -113,9 +113,9 @@ const textos = {
     copiarLink: 'Copiar link de invitación',
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
     erroEmail: 'Ingrese un correo válido para enviar la invitación.',
-    enviarPor: 'Generar y enviar la invitación por:', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
+    enviarPor: 'Generar y enviar la invitación por:', conviteLink: 'Invitación por link', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
-    msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y entra con este correo ({email}): {link}',
+    msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y crea tu cuenta o entra en Axioma: {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
     papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Operador (caja/PDV)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
@@ -210,7 +210,6 @@ export default function EquipePage() {
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
     if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email_convidado.trim())) { setErroModal(t.erroEmail); return }
     setErroModal('')
     const abreAba = canal !== 'E-mail' && canal !== 'copiar'
     const aba = abreAba ? window.open('', '_blank') : null
@@ -263,7 +262,6 @@ export default function EquipePage() {
     return t.msgConvite
       .replace('{nome}', m.nome ? ` ${m.nome}` : '')
       .replace('{papel}', labelPapel(m.papel))
-      .replace('{email}', m.email)
       .replace('{link}', `${window.location.origin}/convite/${m.token_convite}`)
   }
 
@@ -362,10 +360,10 @@ export default function EquipePage() {
                     style={{ background: LINHA_BG, border: '1px solid rgba(167,139,250,0.15)' }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>
-                        {m.nome || m.email} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
+                        {m.nome || m.email || t.conviteLink} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
                       </p>
                       <p className="text-xs truncate" style={{ color: MUTED }}>
-                        {m.email} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
+                        {m.email || t.conviteLink} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
                       </p>
                       <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
@@ -450,11 +448,6 @@ export default function EquipePage() {
               </div>
               <div className="space-y-2.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
-                    <input type="email" value={form.email_convidado} onChange={(e) => { setForm({ ...form, email_convidado: e.target.value }); setErroModal('') }}
-                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                  </div>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
                     <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}

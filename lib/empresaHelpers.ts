@@ -902,12 +902,14 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   // novo; se ainda estiver valendo, recusa (evita 2 convites vivos ao mesmo
   // tempo pro mesmo e-mail).
   const emailNorm = String(dados.email_convidado || "").trim().toLowerCase();
-  const { data: existente } = await supabase
+  // Sem e-mail (convite por link pelo WhatsApp etc.) não há como saber se é a
+  // mesma pessoa — cada envio gera um link novo.
+  const { data: existente } = emailNorm ? await supabase
     .from("empresa_equipe")
     .select("id, expira_em, token_convite")
     .eq("empresa_id", empresaId)
     .eq("convite_aceito", false)
-    .ilike("email_convidado", emailNorm);
+    .ilike("email_convidado", emailNorm) : { data: [] as { id: string; expira_em: string | null; token_convite: string }[] };
 
   const pendente = (existente || [])[0];
   if (pendente) {
