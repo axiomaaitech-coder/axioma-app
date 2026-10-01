@@ -657,7 +657,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </div>
             <button onClick={handleEnviarDocumento} disabled={!arquivoDoc || etapaUpload === 'enviando'}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
+              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
               <Upload size={16} />
               {etapaUpload === 'enviando' ? t('docEnviando') : etapaUpload === 'concluido' ? t('docEnviado') : t('docEnviar')}
             </button>
