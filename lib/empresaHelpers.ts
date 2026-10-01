@@ -883,6 +883,8 @@ export type MembroEquipe = {
   token_convite: string | null;
   expira_em: string | null;
   criado_em: string;
+  situacao?: string | null; // enviado | aguardando_aprovacao | aprovado (EQUIPE-ACESSO-TEMPORARIO-SQL.sql)
+  relacao?: string | null;
 };
 
 // Lista unificada (ativos + convites pendentes) — RPC recusa quem não é dono
@@ -944,6 +946,8 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
 // nunca expõe a linha inteira de empresa_equipe, só o necessário pra tela).
 export async function obterConvitePorToken(token: string): Promise<{
   empresa_nome: string; email_convidado: string; papel: string; cargo: string | null; convite_aceito: boolean;
+  // termo/prazo (EQUIPE-ACESSO-TEMPORARIO-SQL.sql) — ausentes antes do SQL rodar
+  remetente_nome?: string | null; convidado_em?: string | null; acesso_dias?: number | null; motivo_convite?: string | null; expira_em?: string | null; relacao?: string | null; situacao?: string | null;
 } | null> {
   const { data } = await supabase.rpc("obter_convite_por_token", { p_token: token });
   return data?.[0] || null;
@@ -952,11 +956,37 @@ export async function obterConvitePorToken(token: string): Promise<{
 // Aceita o convite (exige login) — cria o vínculo real em empresa_usuarios,
 // que é o que faltava (ver seção 11 do STATUS-AXIOMA: "convidar membro" só
 // gravava o convite, nunca dava acesso de fato a ninguém).
-export async function aceitarConvite(token: string): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
-  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token });
+// Termo de quem recebe: nome completo, CPF e e-mail ficam em
+// empresa_convite_termo (só dono/admin leem — EQUIPE-ACESSO-TEMPORARIO-SQL.sql).
+// Não dá acesso ainda: deixa o convite "aguardando aprovação" do dono/admin (decidirConvite).
+export async function aceitarConvite(token: string, nome: string, cpf: string, email: string, confirmaRemetente: boolean, aceitaTermos: boolean): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
+  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token, p_nome: nome, p_cpf: cpf, p_email: email, p_confirma_remetente: confirmaRemetente, p_aceita_termos: aceitaTermos });
   if (error) return { erro: error.message, codigo: error.code };
   limparCacheEmpresaAtiva();
   return { empresaId: data as string };
+}
+
+export type TermoConvite = {
+  id: string; convite_id: string | null; user_id: string | null; nome: string | null; cpf: string | null; email: string | null;
+  remetente_nome: string | null; relacao: string | null; papel: string | null; acesso_dias: number | null; motivo_convite: string | null;
+  convidado_em: string | null; aceito_em: string; apagado_em: string | null; apagado_por: string | null; motivo_apagado: string | null;
+};
+export async function listarTermosConvite(empresaId: string): Promise<TermoConvite[]> {
+  const { data } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).order("aceito_em", { ascending: false }).limit(200);
+  return (data as TermoConvite[]) || [];
+}
+// Aprovação final do dono/admin: aprovar libera o acesso (com o prazo do convite); recusar encerra.
+export async function decidirConvite(conviteId: string, aprovar: boolean, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("decidir_convite", { p_convite_id: conviteId, p_aprovar: aprovar, p_motivo: motivo || null });
+  if (error) { reportarFalhaEscrita("empresa_equipe", "rpc decidir_convite", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
+}
+
+// Apaga os dados pessoais (nome/CPF/e-mail) do termo — só dono/admin, com motivo; fica o registro de quem apagou.
+export async function apagarTermoConvite(id: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("apagar_termo_convite", { p_id: id, p_motivo: motivo });
+  if (error) { reportarFalhaEscrita("empresa_convite_termo", "rpc apagar_termo_convite", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
 }
 
 // Troca o papel de um membro. origem "ativo" = empresa_usuarios (já aceitou);

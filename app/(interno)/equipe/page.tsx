@@ -5,12 +5,13 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
   obterMeuPapel, listarEquipe, convidarMembro, alterarPapelMembro, removerAcessoMembro,
+  listarTermosConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
   type MembroEquipe,
 } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
@@ -53,9 +54,21 @@ const textos = {
     copiarLink: 'Copiar link do convite',
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Preencha um e-mail válido para enviar o convite.',
+    semPrazoRegra: 'Sem prazo só para Admin, Sócio ou CEO.', aguardandoAprovacao: 'Aguardando sua aprovação', aprovar: 'Aprovar', recusar: 'Recusar', sucessoAprovar: 'Acesso liberado.', sucessoRecusar: 'Convite recusado.', erroDecidir: 'Não foi possível concluir. Tente novamente.', confirmarRecusa: 'Recusar o acesso desta pessoa?',
+    tempoAcesso: 'Tempo de acesso', semPrazo: 'Sem prazo', h24: '24 horas', dias: (n: number) => `${n} dias`, prazoMsg: (p: string) => ` por ${p}`,
+    motivoLabel: 'Motivo do convite (ex.: segunda opinião no fechamento)', erroTermo: 'Marque o termo de responsabilidade para enviar o convite.',
+    termoRemetente: (nome: string, data: string) => `Eu, ${nome}, envio este convite em ${data} e assumo a responsabilidade pelo acesso desta pessoa aos dados financeiros e bancários da empresa. Posso cortar o acesso a qualquer momento.`,
+    acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
+    relacaoLabel: 'Quem você está convidando', rel_ceo: 'CEO', rel_socio: 'Sócio', rel_contador: 'Contador', rel_funcionario: 'Funcionário', rel_consultor: 'Consultor (2ª opinião)', rel_outro: 'Outro',
+    termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
+    semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
+    dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Apagar dados pessoais deste termo',
+    apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
+    apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tenho autorização para apagar estes dados e que a ação não pode ser desfeita.', apagarBotao: 'Apagar dados', apagando: 'Apagando...',
+    sucessoApagar: 'Dados pessoais apagados.', erroApagar: 'Não foi possível apagar. Tente novamente.',
     enviarPor: 'Gerar e enviar o convite por:', conviteLink: 'Convite por link', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
-    msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e crie sua conta ou entre no Axioma: {link}',
+    msgConvite: 'Olá{nome}! Você foi convidado(a) por {remetente} para acessar nossa empresa no Axioma como {papel}{prazo}. Para aceitar, abra o link (válido por {validade}) e crie sua conta ou entre no Axioma: {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
     papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Operador (caixa/PDV)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
@@ -83,9 +96,21 @@ const textos = {
     copiarLink: 'Copy invite link',
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Enter a valid e-mail to send the invite.',
+    semPrazoRegra: 'No limit only for Admin, Partner or CEO.', aguardandoAprovacao: 'Waiting for your approval', aprovar: 'Approve', recusar: 'Decline', sucessoAprovar: 'Access granted.', sucessoRecusar: 'Invite declined.', erroDecidir: 'Could not complete. Try again.', confirmarRecusa: 'Decline this person\'s access?',
+    tempoAcesso: 'Access time', semPrazo: 'No limit', h24: '24 hours', dias: (n: number) => `${n} days`, prazoMsg: (p: string) => ` for ${p}`,
+    motivoLabel: 'Reason for the invite (e.g.: second opinion on closing)', erroTermo: 'Check the responsibility term to send the invite.',
+    termoRemetente: (nome: string, data: string) => `I, ${nome}, send this invite on ${data} and take responsibility for this person's access to the company's financial and banking data. I can cut the access at any time.`,
+    acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
+    relacaoLabel: 'Who you are inviting', rel_ceo: 'CEO', rel_socio: 'Partner', rel_contador: 'Accountant', rel_funcionario: 'Employee', rel_consultor: 'Consultant (2nd opinion)', rel_outro: 'Other',
+    termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
+    semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
+    dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Delete personal data of this term',
+    apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
+    apagarMotivo: 'Reason *', apagarCiente: 'I confirm I am authorized to delete this data and that it cannot be undone.', apagarBotao: 'Delete data', apagando: 'Deleting...',
+    sucessoApagar: 'Personal data deleted.', erroApagar: 'Could not delete. Try again.',
     enviarPor: 'Create and send the invite via:', conviteLink: 'Invite by link', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
-    msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and create your account or sign in to Axioma: {link}',
+    msgConvite: 'Hi{nome}! You have been invited by {remetente} to access our company on Axioma as {papel}{prazo}. To accept, open the link (valid for {validade}) and create your account or sign in to Axioma: {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
     papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Operator (register/POS)',
     erroGenerico: 'Could not complete. Please try again.',
@@ -113,9 +138,21 @@ const textos = {
     copiarLink: 'Copiar link de invitación',
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
     erroEmail: 'Ingrese un correo válido para enviar la invitación.',
+    semPrazoRegra: 'Sin plazo solo para Admin, Socio o CEO.', aguardandoAprovacao: 'Esperando su aprobación', aprovar: 'Aprobar', recusar: 'Rechazar', sucessoAprovar: 'Acceso liberado.', sucessoRecusar: 'Invitación rechazada.', erroDecidir: 'No se pudo completar. Intente de nuevo.', confirmarRecusa: '¿Rechazar el acceso de esta persona?',
+    tempoAcesso: 'Tiempo de acceso', semPrazo: 'Sin plazo', h24: '24 horas', dias: (n: number) => `${n} días`, prazoMsg: (p: string) => ` por ${p}`,
+    motivoLabel: 'Motivo de la invitación (ej.: segunda opinión en el cierre)', erroTermo: 'Marque el término de responsabilidad para enviar la invitación.',
+    termoRemetente: (nome: string, data: string) => `Yo, ${nome}, envío esta invitación el ${data} y asumo la responsabilidad por el acceso de esta persona a los datos financieros y bancarios de la empresa. Puedo cortar el acceso en cualquier momento.`,
+    acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
+    relacaoLabel: 'A quién está invitando', rel_ceo: 'CEO', rel_socio: 'Socio', rel_contador: 'Contador', rel_funcionario: 'Empleado', rel_consultor: 'Consultor (2ª opinión)', rel_outro: 'Otro',
+    termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
+    semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
+    dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Borrar datos personales de este término',
+    apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
+    apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tengo autorización para borrar estos datos y que la acción no se puede deshacer.', apagarBotao: 'Borrar datos', apagando: 'Borrando...',
+    sucessoApagar: 'Datos personales borrados.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
     enviarPor: 'Generar y enviar la invitación por:', conviteLink: 'Invitación por link', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
-    msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y crea tu cuenta o entra en Axioma: {link}',
+    msgConvite: '¡Hola{nome}! Fuiste invitado(a) por {remetente} a acceder a nuestra empresa en Axioma como {papel}{prazo}. Para aceptar, abre el link (válido por {validade}) y crea tu cuenta o entra en Axioma: {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
     papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Operador (caja/PDV)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
@@ -151,7 +188,21 @@ export default function EquipePage() {
   const [tipoMsg, setTipoMsg] = useState<'sucesso' | 'erro' | ''>('')
 
   const [modalAberto, setModalAberto] = useState(false)
-  const [form, setForm] = useState({ email_convidado: '', nome: '', cargo: '', papel: 'operador' })
+  const FORM_VAZIO = { email_convidado: '', nome: '', cargo: '', papel: 'operador', acesso_dias: 7 as number | null, motivo_convite: '', relacao: 'funcionario' }
+  const [form, setForm] = useState(FORM_VAZIO)
+  const [termoRemetente, setTermoRemetente] = useState(false)
+  const [nomeRemetente, setNomeRemetente] = useState('')
+  const [termos, setTermos] = useState<TermoConvite[]>([])
+  const [decidindoId, setDecidindoId] = useState<string | null>(null)
+  // Sem prazo: só Admin (papel) ou Sócio/CEO (relação) — mesma regra checada no banco (decidir_convite)
+  const podeSemPrazo = (f: { papel: string; relacao: string }) => f.papel === 'admin' || f.relacao === 'socio' || f.relacao === 'ceo'
+  function ajustarForm(novo: typeof FORM_VAZIO) {
+    setForm(novo.acesso_dias === null && !podeSemPrazo(novo) ? { ...novo, acesso_dias: 7 } : novo)
+  }
+  const [termoApagar, setTermoApagar] = useState<TermoConvite | null>(null)
+  const [motivoApagar, setMotivoApagar] = useState('')
+  const [cienteApagar, setCienteApagar] = useState(false)
+  const [apagando, setApagando] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null)
@@ -187,6 +238,7 @@ export default function EquipePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
+      setNomeRemetente(String(user.user_metadata?.nome || user.user_metadata?.full_name || user.email || ''))
       const id = await obterEmpresaAtiva()
       if (!id) return
       setEmpresaId(id)
@@ -198,6 +250,7 @@ export default function EquipePage() {
       const r = await listarEquipe(id)
       if (r.erro) avisar('erro', mensagemErro(r.codigo))
       setMembros(r.dados)
+      setTermos(await listarTermosConvite(id))
     } catch (err: any) {
       avisar('erro', t.erroGenerico)
     } finally {
@@ -210,16 +263,19 @@ export default function EquipePage() {
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
     if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
+    if (!termoRemetente) { setErroModal(t.erroTermo); return }
     setErroModal('')
     const abreAba = canal !== 'E-mail' && canal !== 'copiar'
     const aba = abreAba ? window.open('', '_blank') : null
     setEnviando(true)
     try {
-      const dadosForm = { ...form }
+      // Link vale até 7 dias, nunca mais que o próprio prazo de acesso (convite de 24h = link de 24h).
+      const diasLink = Math.min(form.acesso_dias ?? 7, 7)
+      const dadosForm = { ...form, motivo_convite: form.motivo_convite.trim() || null, remetente_nome: nomeRemetente, remetente_termo_em: new Date().toISOString(), expira_em: new Date(Date.now() + diasLink * 86400000).toISOString() }
       const r = await convidarMembro(empresaId, userId, dadosForm)
       if (r.erro || !r.token) { aba?.close(); setErroModal(mensagemErro(r.codigo)); return }
-      const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: null } as unknown as MembroEquipe
-      const texto = textoConvite(membroNovo)
+      const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
+      const texto = textoConvite(membroNovo, form.acesso_dias)
       if (canal === 'copiar') {
         try { await navigator.clipboard.writeText(texto) } catch {}
         avisar('sucesso', t.linkCopiado)
@@ -230,7 +286,8 @@ export default function EquipePage() {
         avisar('sucesso', t.sucessoConvite)
       }
       setModalAberto(false)
-      setForm({ email_convidado: '', nome: '', cargo: '', papel: 'operador' })
+      setForm(FORM_VAZIO)
+      setTermoRemetente(false)
       const lista = await listarEquipe(empresaId)
       setMembros(lista.dados)
     } finally {
@@ -258,11 +315,29 @@ export default function EquipePage() {
     setMembros(lista.dados)
   }
 
-  function textoConvite(m: MembroEquipe): string {
+  const rotuloPrazo = (dias: number | null) => dias == null ? t.semPrazo : dias === 1 ? t.h24 : t.dias(dias)
+  const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
+  const dataHora = (iso: string | Date) => new Date(iso).toLocaleString(localeData, { dateStyle: 'short', timeStyle: 'short' })
+  function textoConvite(m: MembroEquipe, acessoDias?: number | null): string {
+    const validadeDias = m.expira_em ? Math.max(1, Math.round((new Date(m.expira_em).getTime() - Date.now()) / 86400000)) : 7
     return t.msgConvite
       .replace('{nome}', m.nome ? ` ${m.nome}` : '')
+      .replace('{remetente}', nomeRemetente)
+      .replace('{prazo}', acessoDias === undefined || acessoDias === null ? '' : t.prazoMsg(rotuloPrazo(acessoDias)))
+      .replace('{validade}', rotuloPrazo(validadeDias))
       .replace('{papel}', labelPapel(m.papel))
       .replace('{link}', `${window.location.origin}/convite/${m.token_convite}`)
+  }
+
+  async function confirmarApagarTermo() {
+    if (!termoApagar || !empresaId || motivoApagar.trim().length < 5 || !cienteApagar) return
+    setApagando(true)
+    const r = await apagarTermoConvite(termoApagar.id, motivoApagar.trim())
+    setApagando(false)
+    if (r.erro) { avisar('erro', t.erroApagar); return }
+    setTermoApagar(null)
+    avisar('sucesso', t.sucessoApagar)
+    setTermos(await listarTermosConvite(empresaId))
   }
 
   function copiarLink(token: string) {
@@ -271,8 +346,25 @@ export default function EquipePage() {
     avisar('sucesso', t.linkCopiado)
   }
 
+  async function decidir(m: MembroEquipe, aprovar: boolean) {
+    if (!empresaId) return
+    if (!aprovar && !window.confirm(t.confirmarRecusa)) return
+    setDecidindoId(m.id)
+    const r = await decidirConvite(m.id, aprovar)
+    setDecidindoId(null)
+    if (r.erro) { avisar('erro', r.codigo === 'AX011' ? t.semPrazoRegra : t.erroDecidir); return }
+    avisar('sucesso', aprovar ? t.sucessoAprovar : t.sucessoRecusar)
+    setMembros((await listarEquipe(empresaId)).dados)
+    setTermos(await listarTermosConvite(empresaId))
+  }
+
   function statusDe(m: MembroEquipe): { label: string; cor: string } {
-    if (m.origem === 'ativo') return { label: t.statusAtivo, cor: VERDE }
+    if (m.origem === 'convite' && m.situacao === 'aguardando_aprovacao') return { label: t.aguardandoAprovacao, cor: temaClaro ? '#101b3d' : AZUL }
+    if (m.origem === 'ativo') {
+      if (m.expira_em && new Date(m.expira_em) < new Date()) return { label: t.acessoEncerrado, cor: VERMELHO }
+      if (m.expira_em) return { label: t.acessoAte(dataHora(m.expira_em)), cor: temaClaro ? '#16a97d' : VERDE }
+      return { label: t.statusAtivo, cor: VERDE }
+    }
     const expirado = m.expira_em ? new Date(m.expira_em) < new Date() : false
     return expirado ? { label: t.statusExpirado, cor: VERMELHO } : { label: t.statusConvidado, cor: AMBAR }
   }
@@ -335,7 +427,7 @@ export default function EquipePage() {
               </div>
             </div>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setErroModal(''); setModalAberto(true) }}
+              onClick={() => { setErroModal(''); setTermoRemetente(false); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
               style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}
@@ -363,7 +455,7 @@ export default function EquipePage() {
                         {m.nome || m.email || t.conviteLink} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
                       </p>
                       <p className="text-xs truncate" style={{ color: MUTED }}>
-                        {m.email || t.conviteLink} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
+                        {m.email || t.conviteLink} {m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
                       </p>
                       <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
@@ -371,6 +463,24 @@ export default function EquipePage() {
                       </span>
                     </div>
 
+                    {m.origem === 'convite' && m.situacao === 'aguardando_aprovacao' && (() => {
+                      const tm = termos.find((x) => x.convite_id === m.id && !x.apagado_em)
+                      return (
+                        <div className="w-full sm:w-auto flex flex-col gap-1.5 sm:items-end">
+                          {tm && <p className="text-[11px]" style={{ color: MUTED }}>{tm.nome} • CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email}</p>}
+                          <div className="flex gap-2">
+                            <motion.button whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => decidir(m, true)} disabled={decidindoId === m.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
+                              <CheckCircle size={13} className="inline mr-1" />{t.aprovar}
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }} onClick={() => decidir(m, false)} disabled={decidindoId === m.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', color: VERMELHO }}>
+                              {t.recusar}
+                            </motion.button>
+                          </div>
+                        </div>
+                      )
+                    })()}
                     {!ehVoce && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
@@ -416,7 +526,7 @@ export default function EquipePage() {
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => setConfirmandoId(`${m.origem}-${m.id}`)} title={t.removerAcesso}
+                          <button onClick={() => setConfirmandoId(`${m.origem}-${m.id}`)} title={t.cortarAcesso}
                             className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                             <Trash2 size={15} />
                           </button>
@@ -430,8 +540,69 @@ export default function EquipePage() {
           )}
         </CanvasBox>
 
+        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <div className="flex items-center gap-2 mb-1">
+            <FileText size={16} style={{ color: temaClaro ? '#101b3d' : VERDE }} />
+            <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.termosTitulo}</p>
+          </div>
+          <p className="text-xs mb-3" style={{ color: MUTED }}>{t.termosSub}</p>
+          {termos.length === 0 ? (
+            <p className="text-xs" style={{ color: MUTED }}>{t.semTermos}</p>
+          ) : (
+            <div className="space-y-2">
+              {termos.map((tm) => (
+                <div key={tm.id} className="rounded-xl p-3 flex items-start justify-between gap-3" style={{ background: LINHA_BG, border: '1px solid rgba(16,27,61,0.10)' }}>
+                  <div className="min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
+                    {tm.apagado_em ? (
+                      <p className="font-semibold" style={{ color: TEXTO }}>{t.dadosApagados(dataHora(tm.apagado_em), tm.motivo_apagado || '')}</p>
+                    ) : (
+                      <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm.nome} <span className="font-normal" style={{ color: MUTED }}>• CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email}</span></p>
+                    )}
+                    <p>{tm.relacao ? `${(t as any)[`rel_${tm.relacao}`] || tm.relacao} • ` : ''}{tm.papel ? labelPapel(tm.papel) : ''}{` • ${rotuloPrazo(tm.acesso_dias)}`}</p>
+                    <p>{t.convidadoPorEm(tm.remetente_nome || '—', tm.convidado_em ? dataHora(tm.convidado_em) : '—')} • {t.aceitoEm(dataHora(tm.aceito_em))}</p>
+                    {tm.motivo_convite && <p>{t.motivoLabel.split(' (')[0]}: {tm.motivo_convite}</p>}
+                  </div>
+                  {!tm.apagado_em && (
+                    <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }} onClick={() => { setTermoApagar(tm); setMotivoApagar(''); setCienteApagar(false) }}
+                      title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                      <Trash2 size={15} />
+                    </motion.button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
+
       </div>
 
+      <Modal open={!!termoApagar} onClose={() => { if (!apagando) setTermoApagar(null) }}>
+        <CanvasBox cor={VERMELHO} fundo={temaClaro ? '#f6f7c4' : undefined}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+              <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.apagarTitulo}</h3>
+            </div>
+            <button onClick={() => { if (!apagando) setTermoApagar(null) }} style={{ color: MUTED }}><X size={20} /></button>
+          </div>
+          <div className="rounded-xl p-3 mb-3 flex gap-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(248,113,113,0.08)', border: `1px solid ${VERMELHO}40` }}>
+            <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
+            <p className="text-xs" style={{ color: TEXTO }}>{t.apagarAviso}</p>
+          </div>
+          <label className="text-xs font-semibold mb-1 block" style={{ color: TEXTO }}>{t.apagarMotivo}</label>
+          <textarea value={motivoApagar} onChange={(e) => setMotivoApagar(e.target.value)} rows={2} maxLength={500} disabled={apagando}
+            className="w-full px-3 py-2 rounded-lg text-sm resize-none mb-3" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+          <label className="flex items-start gap-2 mb-3 cursor-pointer">
+            <input type="checkbox" checked={cienteApagar} onChange={(e) => setCienteApagar(e.target.checked)} disabled={apagando} className="mt-0.5" />
+            <span className="text-xs" style={{ color: TEXTO }}>{t.apagarCiente}</span>
+          </label>
+          <motion.button onClick={confirmarApagarTermo} disabled={apagando || motivoApagar.trim().length < 5 || !cienteApagar}
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: VERMELHO, color: '#fff' }}>
+            {apagando ? t.apagando : t.apagarBotao}
+          </motion.button>
+        </CanvasBox>
+      </Modal>
       {/* Modal compartilhado (portal no body): antes era fixed dentro do
           ModuloLayout, que anima com transform — o card nascia cortado em cima. */}
       <Modal open={modalAberto} onClose={() => setModalAberto(false)}>
@@ -460,7 +631,7 @@ export default function EquipePage() {
                   </div>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.papelLabel}</label>
-                    <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
+                    <select value={form.papel} onChange={(e) => ajustarForm({ ...form, papel: e.target.value })}
                       className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
                       {PAPEIS_ATRIBUIVEIS.map((p) => (
                         <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
@@ -468,6 +639,42 @@ export default function EquipePage() {
                     </select>
                   </div>
                 </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: MUTED }}>{t.relacaoLabel}</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    {(['ceo', 'socio', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => (
+                      <motion.button key={r} type="button" onClick={() => ajustarForm({ ...form, relacao: r, acesso_dias: (r === 'socio' || r === 'ceo') && form.acesso_dias === 7 ? null : form.acesso_dias })}
+                        whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.96 }}
+                        className="py-1.5 px-1 rounded-lg text-[11px] font-bold leading-tight"
+                        style={form.relacao === r ? { background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.25)', border: '1px solid #16a97d', color: temaClaro ? '#ffffff' : '#2ecc9b' } : { background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.04)', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(255,255,255,0.1)'}`, color: temaClaro ? '#ffffff' : MUTED }}>
+                        {(t as any)[`rel_${r}`]}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: MUTED }}>{t.tempoAcesso}</p>
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                    {([1, 3, 7, 30, 60, 90, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => (
+                      <motion.button key={String(d)} type="button" onClick={() => ajustarForm({ ...form, acesso_dias: d })}
+                        whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.96 }}
+                        className="py-1.5 rounded-lg text-xs font-bold"
+                        style={form.acesso_dias === d ? { background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.25)', border: '1px solid #16a97d', color: temaClaro ? '#ffffff' : '#2ecc9b' } : { background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.04)', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(255,255,255,0.1)'}`, color: temaClaro ? '#ffffff' : MUTED }}>
+                        {rotuloPrazo(d)}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}</label>
+                  <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
+                    className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                </div>
+                <label className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${termoRemetente ? '#16a97d' : (temaClaro ? 'rgba(16,27,61,0.15)' : 'rgba(255,255,255,0.08)')}` }}>
+                  <input type="checkbox" checked={termoRemetente} onChange={(e) => { setTermoRemetente(e.target.checked); setErroModal('') }} className="mt-0.5" />
+                  <span className="text-[11px] leading-snug" style={{ color: TEXTO }}>{t.termoRemetente(nomeRemetente, dataHora(new Date()))}</span>
+                </label>
                 <div className="pt-1">
                   <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
