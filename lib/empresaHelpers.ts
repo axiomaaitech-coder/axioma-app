@@ -262,27 +262,43 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
   if (typeof window !== "undefined") {
     const salvo = sessionStorage.getItem(`axioma_empresa_ativa_${userId}`);
     if (salvo) return salvar(salvo);
+    // Empresa escolhida pela pessoa (ex.: convidado aprovado — senão o Axioma
+    // abriria sempre a empresa vazia criada no cadastro dela). Só vale se a
+    // regra de acesso do banco ainda liberar (prazo vencido/acesso cortado = some).
+    const preferida = localStorage.getItem(`axioma_empresa_preferida_${userId}`);
+    if (preferida) {
+      const { data: ok } = await supabase.from("empresas").select("id").eq("id", preferida).maybeSingle();
+      if (ok?.id) return salvar(ok.id);
+      localStorage.removeItem(`axioma_empresa_preferida_${userId}`);
+    }
   }
 
   // (a) empresa própria (dono)
   const { data: propria } = await supabase
     .from("empresas")
-    .select("id")
+    .select("id, cadastro_completo")
     .eq("user_id", userId)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (propria?.id) return salvar(propria.id);
+  if (propria?.id && propria.cadastro_completo) return salvar(propria.id);
 
-  // (b) vínculo existente (convidado — nunca cria empresa nova pra quem já foi convidado)
-  const { data: vinculo } = await supabase
+  // (b) vínculo de convidado (em outra empresa). Vem ANTES da empresa própria
+  // vazia: quem foi convidado e aprovado ganhou uma "Minha Empresa" vazia no
+  // cadastro — sem isto, entraria sempre nela e nunca na empresa que o convidou.
+  // empresas_do_usuario (RLS) já some com acesso vencido/cortado.
+  const { data: vinculos } = await supabase
     .from("empresa_usuarios")
     .select("empresa_id")
     .eq("user_id", userId)
-    .limit(1)
-    .maybeSingle();
-  if (vinculo?.empresa_id) return salvar(vinculo.empresa_id);
+    .limit(20);
+  const { data: acessiveis } = vinculos?.length
+    ? await supabase.from("empresas").select("id").in("id", vinculos.map((v) => v.empresa_id))
+    : { data: [] as { id: string }[] };
+  const outra = (acessiveis || []).find((e) => e.id !== propria?.id);
+  if (outra) return salvar(outra.id);
+  if (propria?.id) return salvar(propria.id);
 
   // (c) rede de segurança: nem dono nem convidado — cria "Minha Empresa" vazia
   // (idempotente/atômica no banco, ver obter_ou_criar_empresa_padrao() em SQL-EMPRESA-PADRAO.sql).
@@ -290,6 +306,14 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
   const { data: empresaId, error } = await supabase.rpc("obter_ou_criar_empresa_padrao");
   if (error) reportarFalhaEscrita("empresas", "rpc obter_ou_criar_empresa_padrao", error.message);
   return salvar(typeof empresaId === "string" ? empresaId : null);
+}
+
+// Abre o Axioma nesta empresa agora e nas próximas entradas (convite aprovado).
+export function definirEmpresaPreferida(userId: string, empresaId: string) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(`axioma_empresa_preferida_${userId}`, empresaId); } catch {}
+  sessionStorage.setItem(`axioma_empresa_ativa_${userId}`, empresaId);
+  cacheEmpresaAtiva = null;
 }
 
 // Chamar no logout, ou depois de trocar/criar empresa, pra forçar nova consulta.

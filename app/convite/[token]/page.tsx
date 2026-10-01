@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShieldCheck, Clock, UserCheck, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterConvitePorToken, aceitarConvite } from '../../../lib/empresaHelpers'
+import { obterConvitePorToken, aceitarConvite, definirEmpresaPreferida } from '../../../lib/empresaHelpers'
 
 // Tela de quem RECEBE o convite (link do WhatsApp/Gmail/Outlook/Telegram).
 // Segurança (EQUIPE-ACESSO-TEMPORARIO-SQL.sql): a pessoa entra com a própria
@@ -40,7 +40,7 @@ function cpfValido(c: string): boolean {
 const mascaraCpf = (v: string) => v.replace(/\D/g, '').slice(0, 11)
   .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
 
-type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'precisa_login' | 'email_errado' | 'pronto' | 'enviando' | 'aguardando' | 'recusado'
+type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'precisa_login' | 'email_errado' | 'pronto' | 'enviando' | 'aguardando' | 'recusado' | 'liberado'
 type Convite = NonNullable<Awaited<ReturnType<typeof obterConvitePorToken>>>
 
 const COR = { fundo: '#020810', card: 'rgba(8,18,36,0.95)', borda: 'rgba(46,204,155,0.25)', menta: '#2ecc9b', mentaForte: '#16a97d', texto: '#e2e8f0', sec: '#8aa0bf', campo: 'rgba(255,255,255,0.04)', erro: '#f87171' }
@@ -60,16 +60,40 @@ export default function AceitarConvite() {
   const [cpf, setCpf] = useState('')
   const [confirmaRemetente, setConfirmaRemetente] = useState(false)
   const [aceitaTermos, setAceitaTermos] = useState(false)
+  const [userId, setUserId] = useState('')
+  const [empresaLiberada, setEmpresaLiberada] = useState<string | null>(null)
+
+  // Depois da aprovação: a pessoa já é membro → acha a empresa (RLS só mostra
+  // se o acesso estiver valendo) e libera o botão de entrar.
+  async function checarLiberacao(uid: string, nomeEmpresa: string): Promise<boolean> {
+    const { data } = await supabase.from('empresa_usuarios').select('empresa_id, empresas(nome)').eq('user_id', uid)
+    const linha = (data || []).find((l: any) => (Array.isArray(l.empresas) ? l.empresas[0]?.nome : l.empresas?.nome) === nomeEmpresa)
+    if (!linha) return false
+    setEmpresaLiberada(linha.empresa_id)
+    setEstado('liberado')
+    return true
+  }
+
+  function entrarNaEmpresa() {
+    if (!userId || !empresaLiberada) return
+    definirEmpresaPreferida(userId, empresaLiberada)
+    window.location.href = '/dashboard'
+  }
 
   useEffect(() => {
     (async () => {
       const c = await obterConvitePorToken(token)
       if (!c) { setEstado('invalido'); return }
       setConvite(c)
-      if (c.convite_aceito || c.situacao === 'aprovado') { setEstado('usado'); return }
+      const { data: authData } = await supabase.auth.getUser()
+      const uid = authData?.user?.id || ''
+      setUserId(uid)
+      if (c.convite_aceito || c.situacao === 'aprovado') {
+        if (uid && await checarLiberacao(uid, c.empresa_nome)) return
+        setEstado('usado'); return
+      }
       if (c.situacao === 'recusado') { setEstado('recusado'); return }
       if (c.expira_em && new Date(c.expira_em) < new Date()) { setEstado('expirado'); return }
-      const { data: authData } = await supabase.auth.getUser()
       const emailUsuario = authData?.user?.email || ''
       if (!emailUsuario) { setEstado('precisa_login'); return }
       setEmailLogado(emailUsuario)
@@ -78,6 +102,17 @@ export default function AceitarConvite() {
       setEstado('pronto')
     })()
   }, [token])
+
+  // Aguardando aprovação: confere a cada 8s se o dono/admin já aprovou
+  useEffect(() => {
+    if (estado !== 'aguardando' || !userId || !convite) return
+    const id = setInterval(async () => {
+      const c = await obterConvitePorToken(token)
+      if (c?.situacao === 'aprovado') { clearInterval(id); await checarLiberacao(userId, c.empresa_nome) }
+      else if (c?.situacao === 'recusado') { clearInterval(id); setEstado('recusado') }
+    }, 8000)
+    return () => clearInterval(id)
+  }, [estado, userId, convite])
 
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
@@ -270,9 +305,28 @@ export default function AceitarConvite() {
             </motion.div>
             <p className="text-sm font-bold mb-1" style={{ color: COR.texto }}>{L('Dados enviados com segurança', 'Data sent securely', 'Datos enviados con seguridad')}</p>
             <p className="text-xs" style={{ color: COR.sec }}>
-              {L(`Agora é só aguardar: ${remetente} vai conferir e aprovar seu acesso. Depois disso, é só entrar no Axioma normalmente.`,
-                 `Now just wait: ${remetente} will review and approve your access. After that, just sign in to Axioma.`,
-                 `Ahora solo espere: ${remetente} revisará y aprobará su acceso. Después, solo entre en Axioma.`)}
+              {L(`Agora é só aguardar: ${remetente} vai conferir e aprovar seu acesso. Pode deixar esta tela aberta — ela se atualiza sozinha. Se fechar, é só abrir este mesmo link de novo depois.`,
+                 `Now just wait: ${remetente} will review and approve your access. You can keep this screen open — it updates by itself. If you close it, just open this same link again later.`,
+                 `Ahora solo espere: ${remetente} revisará y aprobará su acceso. Puede dejar esta pantalla abierta — se actualiza sola. Si la cierra, abra este mismo enlace de nuevo más tarde.`)}
+            </p>
+          </motion.div>
+        )}
+        {estado === 'liberado' && convite && (
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.2, 1] }} transition={{ duration: 0.5 }} className="inline-block mb-3">
+              <CheckCircle2 size={48} style={{ color: COR.menta }} />
+            </motion.div>
+            <p className="text-base font-bold mb-1" style={{ color: COR.texto }}>{L('Acesso liberado!', 'Access granted!', '¡Acceso liberado!')}</p>
+            <p className="text-xs mb-5" style={{ color: COR.sec }}>
+              {L(`${remetente} aprovou seu acesso à empresa ${convite.empresa_nome}.`, `${remetente} approved your access to ${convite.empresa_nome}.`, `${remetente} aprobó su acceso a ${convite.empresa_nome}.`)}
+            </p>
+            <motion.button onClick={entrarNaEmpresa} whileHover={{ scale: 1.03, y: -2, boxShadow: '0 10px 30px rgba(46,204,155,0.45)' }} whileTap={{ scale: 0.97 }}
+              className="w-full py-3 rounded-xl font-black text-sm tracking-wide"
+              style={{ background: `linear-gradient(135deg, ${COR.mentaForte}, ${COR.menta})`, color: '#fff' }}>
+              {L(`Entrar em ${convite.empresa_nome}`, `Enter ${convite.empresa_nome}`, `Entrar en ${convite.empresa_nome}`)}
+            </motion.button>
+            <p className="text-[11px] mt-3" style={{ color: COR.sec }}>
+              {L('Nas próximas vezes, é só entrar no Axioma com seu e-mail e senha.', 'Next time, just sign in to Axioma with your e-mail and password.', 'Las próximas veces, solo entre en Axioma con su correo y contraseña.')}
             </p>
           </motion.div>
         )}
