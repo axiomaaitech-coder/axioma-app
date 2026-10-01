@@ -12,6 +12,7 @@ import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
+import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
@@ -51,6 +52,7 @@ const textos = {
     sucessoConvite: 'Convite gerado', sucessoPapel: 'Papel atualizado', sucessoRemocao: 'Acesso removido',
     copiarLink: 'Copiar link do convite',
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    enviarPor: 'Gerar e enviar o convite por:', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
     msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e entre com este e-mail ({email}): {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
@@ -79,6 +81,7 @@ const textos = {
     sucessoConvite: 'Invite generated', sucessoPapel: 'Role updated', sucessoRemocao: 'Access removed',
     copiarLink: 'Copy invite link',
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    enviarPor: 'Create and send the invite via:', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
     msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and sign in with this e-mail ({email}): {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
@@ -107,6 +110,7 @@ const textos = {
     sucessoConvite: 'Invitación generada', sucessoPapel: 'Rol actualizado', sucessoRemocao: 'Acceso eliminado',
     copiarLink: 'Copiar link de invitación',
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
+    enviarPor: 'Generar y enviar la invitación por:', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
     msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y entra con este correo ({email}): {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
@@ -197,25 +201,33 @@ export default function EquipePage() {
     }
   }
 
-  async function enviarConvite() {
+  // Gera o convite e já abre o canal escolhido com mensagem + e-mail preenchidos.
+  // A aba nova é aberta ANTES do await (clique do usuário) — senão o navegador
+  // bloqueia como pop-up; depois só recebe o endereço certo.
+  async function enviarConvite(canal: string) {
     if (!empresaId || !userId || !form.email_convidado.trim()) { avisar('erro', t.erroGenerico); return }
+    const abreAba = canal !== 'E-mail' && canal !== 'copiar'
+    const aba = abreAba ? window.open('', '_blank') : null
     setEnviando(true)
     try {
-      const r = await convidarMembro(empresaId, userId, form)
-      if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+      const dadosForm = { ...form }
+      const r = await convidarMembro(empresaId, userId, dadosForm)
+      if (r.erro || !r.token) { aba?.close(); avisar('erro', mensagemErro(r.codigo)); return }
+      const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: null } as unknown as MembroEquipe
+      const texto = textoConvite(membroNovo)
+      if (canal === 'copiar') {
+        try { await navigator.clipboard.writeText(texto) } catch {}
+        avisar('sucesso', t.linkCopiado)
+      } else {
+        const url = canaisCompartilhamento(texto, t.assuntoConvite, membroNovo.email).find((c) => c.nome === canal)?.url
+        if (url && aba) aba.location.href = url
+        else if (url) window.location.href = url
+        avisar('sucesso', t.sucessoConvite)
+      }
       setModalAberto(false)
       setForm({ email_convidado: '', nome: '', cargo: '', papel: 'operador' })
       const lista = await listarEquipe(empresaId)
       setMembros(lista.dados)
-      const novo = lista.dados.find((m) => m.origem === 'convite' && m.email.toLowerCase() === form.email_convidado.trim().toLowerCase())
-      if (novo?.token_convite) {
-        // Antes só copiava o link em silêncio e o convite "nunca chegava" —
-        // agora abre na hora as opções de envio, com o e-mail já preenchido.
-        setConviteEnviar(novo)
-        avisar('sucesso', t.sucessoConvite)
-      } else {
-        avisar('sucesso', t.sucessoConvite)
-      }
     } finally {
       setEnviando(false)
     }
@@ -452,14 +464,26 @@ export default function EquipePage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <button onClick={() => setModalAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                <div className="pt-2">
+                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { canal: 'WhatsApp', rotulo: 'WhatsApp', cor: '#25D366' },
+                      { canal: 'Gmail', rotulo: 'Gmail', cor: '#EA4335' },
+                      { canal: 'Outlook', rotulo: 'Outlook', cor: '#0078D4' },
+                      { canal: 'Telegram', rotulo: 'Telegram', cor: '#0088cc' },
+                      { canal: 'E-mail', rotulo: t.outroEmail, cor: temaClaro ? '#101b3d' : '#94a3b8' },
+                      { canal: 'copiar', rotulo: t.copiarLinkCurto, cor: temaClaro ? '#16a97d' : '#2ecc9b' },
+                    ].map((c) => (
+                      <button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando || !form.email_convidado.trim()}
+                        className="py-2.5 rounded-xl text-sm font-bold disabled:opacity-40"
+                        style={{ background: `${c.cor}1f`, border: `1px solid ${c.cor}66`, color: c.cor }}>
+                        {enviando ? t.enviando : c.rotulo}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setModalAberto(false)} className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
                     style={{ background: 'rgba(106,176,255,0.1)', color: AZUL }}>{t.cancelar}</button>
-                  <button onClick={enviarConvite} disabled={enviando || !form.email_convidado.trim()}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                    style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
-                    {enviando ? t.enviando : t.enviarConvite}
-                  </button>
                 </div>
               </div>
             </CanvasBox>

@@ -896,7 +896,7 @@ export async function listarEquipe(empresaId: string): Promise<{ dados: MembroEq
   return { dados: (data as MembroEquipe[]) || [] };
 }
 
-export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string; codigo?: string }> {
+export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; token?: string; erro?: string; codigo?: string }> {
   // Anti-duplicidade: já existe convite pendente (não aceito) pra este e-mail
   // nesta empresa? Se estiver expirado, some com o antigo e deixa convidar de
   // novo; se ainda estiver valendo, recusa (evita 2 convites vivos ao mesmo
@@ -932,7 +932,8 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
     valorDepois: payload,
     descricao: `Membro convidado: ${dados.email_convidado}`,
   });
-  return { id: data.id };
+  // token devolvido direto: a tela abre o envio (WhatsApp/Gmail...) sem depender de listar_equipe
+  return { id: data.id, token };
 }
 
 // Consulta pública do convite (funciona sem login — RPC SECURITY DEFINER,
