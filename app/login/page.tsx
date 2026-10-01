@@ -33,10 +33,10 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     if (TURNSTILE_ATIVO && !captcha) { setError(idiomaAtual(idioma)); return }
-    setCaptchaReset((n) => n + 1) // token vale uma vez — novo desafio para a próxima tentativa
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captcha } })
+    setCaptchaReset((n) => n + 1) // token já foi usado no servidor — novo desafio para a próxima tentativa
     if (error) {
       setError(idioma === 'pt' ? 'Email ou senha incorretos. Tente novamente.' : idioma === 'en' ? 'Incorrect email or password. Try again.' : 'Email o contrasena incorrectos. Intentalo de nuevo.')
       setLoading(false)

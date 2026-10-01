@@ -18,7 +18,6 @@ export default function RecuperarSenha() {
 
   const handleRecuperar = async () => {
     if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
-    setCaptchaReset((n) => n + 1) // token vale uma vez — novo desafio para a próxima tentativa
     if (!email) {
       setErro(idioma === 'pt' ? 'Digite seu email.' : idioma === 'en' ? 'Enter your email.' : 'Ingresa tu email.')
       return
@@ -30,6 +29,7 @@ export default function RecuperarSenha() {
       redirectTo: `https://axiomaai.com.br/atualizar-senha`,
       captchaToken: captcha,
     })
+    setCaptchaReset((n) => n + 1) // token já foi usado no servidor — novo desafio para a próxima tentativa
 
     if (error) {
       setErro(error.message)

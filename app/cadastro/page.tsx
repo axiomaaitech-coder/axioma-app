@@ -45,8 +45,6 @@ export default function Cadastro() {
   }
 
   const handleCadastro = async () => {
-    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
-    setCaptchaReset((n) => n + 1) // token vale uma vez — novo desafio para a próxima tentativa
     if (!nome || !email || !senha || !confirmarSenha) {
       setErro(idioma === 'pt' ? 'Preencha todos os campos.' : idioma === 'en' ? 'Fill in all fields.' : 'Complete todos los campos.')
       return
@@ -59,6 +57,7 @@ export default function Cadastro() {
       setErro(idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' : idioma === 'en' ? 'Password must be at least 6 characters.' : 'La contrasena debe tener al menos 6 caracteres.')
       return
     }
+    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
     setCarregando(true)
     setErro('')
     const { error } = await supabase.auth.signUp({
@@ -70,6 +69,7 @@ export default function Cadastro() {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
+    setCaptchaReset((n) => n + 1) // token já foi usado no servidor — novo desafio para a próxima tentativa
     if (error) {
       setErro(error.message)
       setCarregando(false)
