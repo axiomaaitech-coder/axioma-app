@@ -55,6 +55,7 @@ const textos = {
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Preencha um e-mail válido para enviar o convite.',
     semPrazoRegra: 'Sem prazo só para Admin, Sócio ou CEO.', aguardandoAprovacao: 'Aguardando sua aprovação', aprovar: 'Aprovar', recusar: 'Recusar', sucessoAprovar: 'Acesso liberado.', sucessoRecusar: 'Convite recusado.', erroDecidir: 'Não foi possível concluir. Tente novamente.', confirmarRecusa: 'Recusar o acesso desta pessoa?',
+    cortarTitulo: 'Cortar acesso?', cortarAviso: 'Admin, CEO, Sócio ou Contador: informe o motivo — ele fica registrado na auditoria da empresa com a data.', cortarBotao: 'Cortar acesso', cortarCiente: 'Confirmo que tenho autorização para cortar este acesso.', motivoTerceiro: 'Dados de terceiro removidos pelo responsável',
     tempoAcesso: 'Tempo de acesso', semPrazo: 'Sem prazo', h24: '24 horas', dias: (n: number) => `${n} dias`, prazoMsg: (p: string) => ` por ${p}`,
     motivoLabel: 'Motivo do convite (ex.: segunda opinião no fechamento)', erroTermo: 'Marque o termo de responsabilidade para enviar o convite.',
     termoRemetente: (nome: string, data: string) => `Eu, ${nome}, envio este convite em ${data} e assumo a responsabilidade pelo acesso desta pessoa aos dados financeiros e bancários da empresa. Posso cortar o acesso a qualquer momento.`,
@@ -97,6 +98,7 @@ const textos = {
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
     erroEmail: 'Enter a valid e-mail to send the invite.',
     semPrazoRegra: 'No limit only for Admin, Partner or CEO.', aguardandoAprovacao: 'Waiting for your approval', aprovar: 'Approve', recusar: 'Decline', sucessoAprovar: 'Access granted.', sucessoRecusar: 'Invite declined.', erroDecidir: 'Could not complete. Try again.', confirmarRecusa: 'Decline this person\'s access?',
+    cortarTitulo: 'Cut access?', cortarAviso: 'Admin, CEO, Partner or Accountant: enter the reason — it is recorded in the company audit with the date.', cortarBotao: 'Cut access', cortarCiente: 'I confirm I am authorized to cut this access.', motivoTerceiro: 'Third-party data removed by the owner',
     tempoAcesso: 'Access time', semPrazo: 'No limit', h24: '24 hours', dias: (n: number) => `${n} days`, prazoMsg: (p: string) => ` for ${p}`,
     motivoLabel: 'Reason for the invite (e.g.: second opinion on closing)', erroTermo: 'Check the responsibility term to send the invite.',
     termoRemetente: (nome: string, data: string) => `I, ${nome}, send this invite on ${data} and take responsibility for this person's access to the company's financial and banking data. I can cut the access at any time.`,
@@ -139,6 +141,7 @@ const textos = {
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
     erroEmail: 'Ingrese un correo válido para enviar la invitación.',
     semPrazoRegra: 'Sin plazo solo para Admin, Socio o CEO.', aguardandoAprovacao: 'Esperando su aprobación', aprovar: 'Aprobar', recusar: 'Rechazar', sucessoAprovar: 'Acceso liberado.', sucessoRecusar: 'Invitación rechazada.', erroDecidir: 'No se pudo completar. Intente de nuevo.', confirmarRecusa: '¿Rechazar el acceso de esta persona?',
+    cortarTitulo: '¿Cortar acceso?', cortarAviso: 'Admin, CEO, Socio o Contador: informe el motivo — queda registrado en la auditoría de la empresa con la fecha.', cortarBotao: 'Cortar acceso', cortarCiente: 'Confirmo que tengo autorización para cortar este acceso.', motivoTerceiro: 'Datos de tercero eliminados por el responsable',
     tempoAcesso: 'Tiempo de acceso', semPrazo: 'Sin plazo', h24: '24 horas', dias: (n: number) => `${n} días`, prazoMsg: (p: string) => ` por ${p}`,
     motivoLabel: 'Motivo de la invitación (ej.: segunda opinión en el cierre)', erroTermo: 'Marque el término de responsabilidad para enviar la invitación.',
     termoRemetente: (nome: string, data: string) => `Yo, ${nome}, envío esta invitación el ${data} y asumo la responsabilidad por el acceso de esta persona a los datos financieros y bancarios de la empresa. Puedo cortar el acceso en cualquier momento.`,
@@ -194,6 +197,10 @@ export default function EquipePage() {
   const [nomeRemetente, setNomeRemetente] = useState('')
   const [termos, setTermos] = useState<TermoConvite[]>([])
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
+  // Admin, CEO, Sócio e Contador: cortar acesso / apagar dados exige formulário simples (data + motivo).
+  // Funcionário, consultor e outros: direto, sem formulário (pedido do Elias).
+  const ehAltoNivel = (papel?: string | null, relacao?: string | null) => papel === 'admin' || relacao === 'ceo' || relacao === 'socio' || relacao === 'contador'
+  const [membroCortar, setMembroCortar] = useState<MembroEquipe | null>(null)
   // Sem prazo: só Admin (papel) ou Sócio/CEO (relação) — mesma regra checada no banco (decidir_convite)
   const podeSemPrazo = (f: { papel: string; relacao: string }) => f.papel === 'admin' || f.relacao === 'socio' || f.relacao === 'ceo'
   function ajustarForm(novo: typeof FORM_VAZIO) {
@@ -205,7 +212,6 @@ export default function EquipePage() {
   const [apagando, setApagando] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [confirmandoId, setConfirmandoId] = useState<string | null>(null)
   // convite aberto no Centro de Compartilhamento (envio de verdade pelos apps da pessoa)
   const [conviteEnviar, setConviteEnviar] = useState<MembroEquipe | null>(null)
   const [erroModal, setErroModal] = useState('')
@@ -305,11 +311,10 @@ export default function EquipePage() {
     setMembros(lista.dados)
   }
 
-  async function removerAcesso(membro: MembroEquipe) {
+  async function removerAcesso(membro: MembroEquipe, motivo?: string) {
     if (!empresaId || !userId) { avisar('erro', t.erroGenerico); return }
-    const r = await removerAcessoMembro(membro, empresaId, userId)
+    const r = await removerAcessoMembro(membro, empresaId, userId, motivo)
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
-    setConfirmandoId(null)
     avisar('sucesso', t.sucessoRemocao)
     const lista = await listarEquipe(empresaId)
     setMembros(lista.dados)
@@ -327,6 +332,22 @@ export default function EquipePage() {
       .replace('{validade}', rotuloPrazo(validadeDias))
       .replace('{papel}', labelPapel(m.papel))
       .replace('{link}', `${window.location.origin}/convite/${m.token_convite}`)
+  }
+
+  async function apagarTermoDireto(tm: TermoConvite) {
+    if (!empresaId) return
+    const r = await apagarTermoConvite(tm.id, t.motivoTerceiro)
+    if (r.erro) { avisar('erro', t.erroApagar); return }
+    avisar('sucesso', t.sucessoApagar)
+    setTermos(await listarTermosConvite(empresaId))
+  }
+
+  async function confirmarCorteAltoNivel() {
+    if (!membroCortar || motivoApagar.trim().length < 5 || !cienteApagar) return
+    setApagando(true)
+    await removerAcesso(membroCortar, motivoApagar.trim())
+    setApagando(false)
+    setMembroCortar(null)
   }
 
   async function confirmarApagarTermo() {
@@ -514,23 +535,10 @@ export default function EquipePage() {
                           </button>
                         )}
 
-                        {confirmandoId === `${m.origem}-${m.id}` ? (
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={() => removerAcesso(m)}
-                              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: VERMELHO, border: `1px solid ${VERMELHO}50` }}>
-                              {t.confirmar}
-                            </button>
-                            <button onClick={() => setConfirmandoId(null)}
-                              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: temaClaro ? 'rgba(16,27,61,0.06)' : 'rgba(255,255,255,0.05)', color: MUTED }}>
-                              {t.cancelar}
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setConfirmandoId(`${m.origem}-${m.id}`)} title={t.cortarAcesso}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
-                            <Trash2 size={15} />
-                          </button>
-                        )}
+                        <button onClick={() => ehAltoNivel(m.papel, m.relacao) ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : removerAcesso(m)}
+                          title={t.cortarAcesso} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -563,7 +571,7 @@ export default function EquipePage() {
                     {tm.motivo_convite && <p>{t.motivoLabel.split(' (')[0]}: {tm.motivo_convite}</p>}
                   </div>
                   {!tm.apagado_em && (
-                    <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }} onClick={() => { setTermoApagar(tm); setMotivoApagar(''); setCienteApagar(false) }}
+                    <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }} onClick={() => ehAltoNivel(tm.papel, tm.relacao) ? (setTermoApagar(tm), setMotivoApagar(''), setCienteApagar(false)) : apagarTermoDireto(tm)}
                       title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                       <Trash2 size={15} />
                     </motion.button>
@@ -576,30 +584,31 @@ export default function EquipePage() {
 
       </div>
 
-      <Modal open={!!termoApagar} onClose={() => { if (!apagando) setTermoApagar(null) }}>
+      <Modal open={!!termoApagar || !!membroCortar} onClose={() => { if (!apagando) { setTermoApagar(null); setMembroCortar(null) } }}>
         <CanvasBox cor={VERMELHO} fundo={temaClaro ? '#f6f7c4' : undefined}>
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
-              <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.apagarTitulo}</h3>
+              <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{membroCortar ? t.cortarTitulo : t.apagarTitulo}</h3>
             </div>
-            <button onClick={() => { if (!apagando) setTermoApagar(null) }} style={{ color: MUTED }}><X size={20} /></button>
+            <button onClick={() => { if (!apagando) { setTermoApagar(null); setMembroCortar(null) } }} style={{ color: MUTED }}><X size={20} /></button>
           </div>
           <div className="rounded-xl p-3 mb-3 flex gap-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(248,113,113,0.08)', border: `1px solid ${VERMELHO}40` }}>
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
-            <p className="text-xs" style={{ color: TEXTO }}>{t.apagarAviso}</p>
+            <p className="text-xs" style={{ color: TEXTO }}>{membroCortar ? `${membroCortar.nome || membroCortar.email} — ${t.cortarAviso}` : t.apagarAviso}</p>
           </div>
+          <p className="text-xs mb-2" style={{ color: MUTED }}>{lang === 'en' ? 'Date' : lang === 'es' ? 'Fecha' : 'Data'}: <strong style={{ color: TEXTO }}>{dataHora(new Date())}</strong></p>
           <label className="text-xs font-semibold mb-1 block" style={{ color: TEXTO }}>{t.apagarMotivo}</label>
           <textarea value={motivoApagar} onChange={(e) => setMotivoApagar(e.target.value)} rows={2} maxLength={500} disabled={apagando}
             className="w-full px-3 py-2 rounded-lg text-sm resize-none mb-3" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
           <label className="flex items-start gap-2 mb-3 cursor-pointer">
             <input type="checkbox" checked={cienteApagar} onChange={(e) => setCienteApagar(e.target.checked)} disabled={apagando} className="mt-0.5" />
-            <span className="text-xs" style={{ color: TEXTO }}>{t.apagarCiente}</span>
+            <span className="text-xs" style={{ color: TEXTO }}>{membroCortar ? t.cortarCiente : t.apagarCiente}</span>
           </label>
-          <motion.button onClick={confirmarApagarTermo} disabled={apagando || motivoApagar.trim().length < 5 || !cienteApagar}
+          <motion.button onClick={membroCortar ? confirmarCorteAltoNivel : confirmarApagarTermo} disabled={apagando || motivoApagar.trim().length < 5 || !cienteApagar}
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: VERMELHO, color: '#fff' }}>
-            {apagando ? t.apagando : t.apagarBotao}
+            {apagando ? t.apagando : membroCortar ? t.cortarBotao : t.apagarBotao}
           </motion.button>
         </CanvasBox>
       </Modal>

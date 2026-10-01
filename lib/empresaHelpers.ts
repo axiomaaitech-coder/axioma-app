@@ -1014,7 +1014,7 @@ export async function alterarPapelMembro(
 // valendo (empresa_usuarios nunca era tocado). Agora remove o vínculo real
 // quando a origem é "ativo"; pra convite pendente, cancela o convite.
 export async function removerAcessoMembro(
-  membro: MembroEquipe, empresaId: string, userId: string
+  membro: MembroEquipe, empresaId: string, userId: string, motivo?: string
 ): Promise<{ erro?: string; codigo?: string }> {
   const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
   const { data, error } = await supabase.from(tabela).delete().eq("id", membro.id).eq("empresa_id", empresaId).select("id");
@@ -1025,7 +1025,8 @@ export async function removerAcessoMembro(
   }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "excluir",
-    descricao: `Acesso removido: ${membro.email}`,
+    // motivo obrigatório na tela para Admin/CEO/Sócio; fica na auditoria da empresa
+    descricao: `Acesso removido: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
   });
   return {};
 }
