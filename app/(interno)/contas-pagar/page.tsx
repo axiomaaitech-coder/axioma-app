@@ -41,7 +41,7 @@ import {
   obterConfigAp, salvarConfigAp, detectarDuplicata, registrarAuditoriaAp,
   calcularForecastAp, priorizarPagamentos, type ForecastAp, type HorizonteForecastDias, HORIZONTES_FORECAST_AP, type ItemPrioridadePagamento,
   solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
-  listarAuditoriaConta, type AuditoriaAp,
+  listarAuditoriaConta, type AuditoriaAp, excluirRegistroHistoricoAp, restaurarRegistroHistoricoAp, anotarRegistroHistoricoAp,
   detectarDespesasRecorrentes, transformarPadraoEmCustoFixo, type PadraoRecorrenteDetectado,
   detectarCobrancasAcimaMedia, type CobrancaAcimaMedia,
   detectarMultasEvitaveis, type MultaEvitavel,
@@ -1216,6 +1216,54 @@ export default function ContasPagarPage() {
   const [auditoria, setAuditoria] = useState<AuditoriaAp[]>([]);
   const [carregandoAuditoria, setCarregandoAuditoria] = useState(false);
   const [expandido, setExpandido] = useState<Set<string>>(new Set());
+  // Lápis (observação) + lixeira de 30 dias do Histórico — pedido do Elias
+  // 2026-10-01. Registro excluído some da lista e fica na "Lixeira do
+  // histórico" (restaurável pelo dono) até a limpeza diária apagar de vez.
+  const DIAS_LIXEIRA = 30;
+  const [mostrarLixeira, setMostrarLixeira] = useState(false);
+  const [anotandoId, setAnotandoId] = useState<string | null>(null);
+  const [textoObs, setTextoObs] = useState("");
+  const [registroExcluir, setRegistroExcluir] = useState<AuditoriaAp | null>(null);
+  const [motivoExclusaoHist, setMotivoExclusaoHist] = useState("");
+  const [cienteExclusaoHist, setCienteExclusaoHist] = useState(false);
+  const [processandoHist, setProcessandoHist] = useState(false);
+  const auditoriaAtiva = useMemo(() => auditoria.filter((ev) => !ev.excluido_em), [auditoria]);
+  const auditoriaLixeira = useMemo(() => auditoria.filter((ev) => !!ev.excluido_em), [auditoria]);
+  const diasParaApagarHist = (excluidoEm: string) => Math.max(0, DIAS_LIXEIRA - Math.floor((Date.now() - new Date(excluidoEm).getTime()) / 86400000));
+
+  async function recarregarAuditoria() {
+    if (contaHistoricoId && empresaId) setAuditoria(await listarAuditoriaConta(contaHistoricoId, empresaId));
+  }
+  function abrirAnotacao(ev: AuditoriaAp) { setAnotandoId(ev.id); setTextoObs(ev.observacao || ""); }
+  async function salvarAnotacao() {
+    if (!anotandoId) return;
+    setProcessandoHist(true);
+    const { erro } = await anotarRegistroHistoricoAp(anotandoId, textoObs);
+    setProcessandoHist(false);
+    if (erro) { showToast(L("Não foi possível salvar a observação. Tente novamente.", "Could not save the note. Try again.", "No se pudo guardar la observación. Intente de nuevo."), "erro"); return; }
+    setAnotandoId(null);
+    await recarregarAuditoria();
+  }
+  function abrirExclusaoHist(ev: AuditoriaAp) { setRegistroExcluir(ev); setMotivoExclusaoHist(""); setCienteExclusaoHist(false); }
+  function fecharExclusaoHist() { if (!processandoHist) setRegistroExcluir(null); }
+  async function confirmarExclusaoHist() {
+    if (!registroExcluir || motivoExclusaoHist.trim().length < 5 || !cienteExclusaoHist) return;
+    setProcessandoHist(true);
+    const { erro } = await excluirRegistroHistoricoAp(registroExcluir.id, motivoExclusaoHist.trim());
+    setProcessandoHist(false);
+    if (erro) { showToast(L("Não foi possível excluir o registro. Tente novamente.", "Could not delete the record. Try again.", "No se pudo eliminar el registro. Intente de nuevo."), "erro"); return; }
+    setRegistroExcluir(null);
+    showToast(L(`Registro enviado para a lixeira. Será apagado definitivamente em ${DIAS_LIXEIRA} dias.`, `Record moved to the trash. It will be permanently deleted in ${DIAS_LIXEIRA} days.`, `Registro enviado a la papelera. Se eliminará definitivamente en ${DIAS_LIXEIRA} días.`), "ok");
+    await recarregarAuditoria();
+  }
+  async function restaurarHist(ev: AuditoriaAp) {
+    setProcessandoHist(true);
+    const { erro } = await restaurarRegistroHistoricoAp(ev.id);
+    setProcessandoHist(false);
+    if (erro) { showToast(L("Não foi possível restaurar o registro. Tente novamente.", "Could not restore the record. Try again.", "No se pudo restaurar el registro. Intente de nuevo."), "erro"); return; }
+    showToast(L("Registro restaurado no histórico.", "Record restored to the history.", "Registro restaurado en el historial."), "ok");
+    await recarregarAuditoria();
+  }
 
   useEffect(() => {
     if (!contaHistoricoId || !empresaId) { setAuditoria([]); return; }
@@ -2871,25 +2919,52 @@ export default function ContasPagarPage() {
           ) : auditoria.length === 0 ? (
             <p className="text-sm" style={{ color: CINZA }}>{L("Nenhum registro de auditoria ainda.", "No audit records yet.", "Ningún registro de auditoría todavía.")}</p>
           ) : (
+            <>
+            {auditoriaAtiva.length === 0 && (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Todos os registros desta conta estão na lixeira.", "All records of this bill are in the trash.", "Todos los registros de esta cuenta están en la papelera.")}</p>
+            )}
             <div className="space-y-2">
-              {auditoria.map((ev) => (
-                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.12)" : "1px solid rgba(106,176,255,0.12)") }}>
+              {auditoriaAtiva.map((ev) => (
+                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(245,238,220,0.55)" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.10)" : "1px solid rgba(106,176,255,0.12)") }}>
                   <div className="flex items-center justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: TEXTO }}>{acaoLabel(ev.acao)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>{nomeUsuario(ev.usuario_id)} · {new Date(ev.criado_em).toLocaleString("pt-BR")}</p>
                     </div>
-                    {(ev.antes || ev.depois) && (
-                      <button onClick={() => alternarExpandido(ev.id)} className="flex items-center gap-1 text-xs font-semibold flex-shrink-0" style={{ color: AZUL }}>
-                        {expandido.has(ev.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        {L("Detalhes", "Details", "Detalles")}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {(ev.antes || ev.depois) && (
+                        <button onClick={() => alternarExpandido(ev.id)} className="flex items-center gap-1 text-xs font-semibold" style={{ color: AZUL }}>
+                          {expandido.has(ev.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          {L("Detalhes", "Details", "Detalles")}
+                        </button>
+                      )}
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnotacao(ev)} title={L("Adicionar/editar observação", "Add/edit note", "Agregar/editar observación")} style={{ color: AZUL }}><Pencil size={15} /></motion.button>
+                      {papel === "dono" && (
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirExclusaoHist(ev)} title={L("Excluir registro (vai para a lixeira por 30 dias)", "Delete record (goes to the trash for 30 days)", "Eliminar registro (va a la papelera por 30 días)")} style={{ color: VERMELHO }}><Trash2 size={15} /></motion.button>
+                      )}
+                    </div>
                   </div>
+                  {ev.observacao && anotandoId !== ev.id && (
+                    <p className="text-xs mt-2 break-words" style={{ color: TEXTO }}>
+                      <span className="font-bold" style={{ color: CINZA }}>{L("Observação", "Note", "Observación")}: </span>{ev.observacao}
+                      <span style={{ color: CINZA }}> — {nomeUsuario(ev.observacao_por)}</span>
+                    </p>
+                  )}
+                  {anotandoId === ev.id && (
+                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                      <input type="text" value={textoObs} onChange={(e) => setTextoObs(e.target.value)} disabled={processandoHist} autoFocus maxLength={500}
+                        placeholder={L("Ex.: valor corrigido após conversa com o fornecedor", "E.g.: amount fixed after talking to the supplier", "Ej.: valor corregido tras hablar con el proveedor")}
+                        className="flex-1 px-3 py-2 rounded-lg text-xs" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                      <div className="flex gap-2">
+                        <button onClick={() => setAnotandoId(null)} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                        <button onClick={salvarAnotacao} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: temaClaro ? "#16a97d" : VERDE, color: "#fff" }}>{processandoHist ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar", "Save", "Guardar")}</button>
+                      </div>
+                    </div>
+                  )}
                   {expandido.has(ev.id) && (ev.antes || ev.depois) && (() => {
                     const linhas = linhasAuditoria(ev);
                     return (
-                      <div className="mt-2 rounded-lg p-3 space-y-1.5" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(0,0,0,0.25)" }}>
+                      <div className="mt-2 rounded-lg p-3 space-y-1.5" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(0,0,0,0.25)", border: temaClaro ? "1px solid rgba(16,27,61,0.08)" : undefined }}>
                         {linhas.length === 0 ? (
                           <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum campo visível mudou.", "No visible field changed.", "Ningún campo visible cambió.")}</p>
                         ) : linhas.map((l) => (
@@ -2907,8 +2982,102 @@ export default function ContasPagarPage() {
                 </div>
               ))}
             </div>
+
+            {auditoriaLixeira.length > 0 && (
+              <div className="mt-4">
+                <button onClick={() => setMostrarLixeira((v) => !v)} className="flex items-center gap-1.5 text-xs font-bold" style={{ color: CINZA }}>
+                  {mostrarLixeira ? <ChevronDown size={14} /> : <ChevronRight size={14} />}<Trash2 size={13} />
+                  {L(`Lixeira do histórico (${auditoriaLixeira.length})`, `History trash (${auditoriaLixeira.length})`, `Papelera del historial (${auditoriaLixeira.length})`)}
+                </button>
+                {mostrarLixeira && (
+                  <div className="space-y-2 mt-2">
+                    {auditoriaLixeira.map((ev) => {
+                      const dias = diasParaApagarHist(ev.excluido_em as string);
+                      return (
+                        <div key={ev.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3" style={{ background: temaClaro ? "rgba(245,238,220,0.55)" : "rgba(248,113,113,0.05)", border: `1px dashed ${VERMELHO}55` }}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold" style={{ color: TEXTO, textDecoration: "line-through" }}>{acaoLabel(ev.acao)} · {new Date(ev.criado_em).toLocaleString("pt-BR")}</p>
+                            <p className="text-xs break-words" style={{ color: CINZA }}>
+                              {L("Excluído por", "Deleted by", "Eliminado por")} {nomeUsuario(ev.excluido_por)} · {L("Motivo", "Reason", "Motivo")}: {ev.motivo_exclusao}
+                            </p>
+                            <p className="text-xs font-semibold" style={{ color: VERMELHO }}>
+                              {L(`Será apagado definitivamente em ${dias} dia(s).`, `Will be permanently deleted in ${dias} day(s).`, `Se eliminará definitivamente en ${dias} día(s).`)}
+                            </p>
+                          </div>
+                          {papel === "dono" && dias > 0 && (
+                            <button onClick={() => restaurarHist(ev)} disabled={processandoHist} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 self-start sm:self-auto"
+                              style={temaClaro ? { background: "#101b3d", color: "#ffffff" } : { background: "rgba(52,211,153,0.15)", color: VERDE, border: `1px solid ${VERDE}50` }}>
+                              <RotateCcw size={13} />{L("Restaurar", "Restore", "Restaurar")}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            </>
           )}
         </CanvasBox>
+      )}
+
+      {/* ====== MODAL EXCLUIR REGISTRO DO HISTÓRICO (lixeira 30 dias) ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {registroExcluir && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
+                <CanvasBox {...cartaoTema} cor={VERMELHO}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Excluir registro do histórico?", "Delete history record?", "¿Eliminar registro del historial?")}</h3>
+                    </div>
+                    <button onClick={fecharExclusaoHist} disabled={processandoHist} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <p className="text-xs mb-3" style={{ color: CINZA }}>{acaoLabel(registroExcluir.acao)} · {nomeUsuario(registroExcluir.usuario_id)} · {new Date(registroExcluir.criado_em).toLocaleString("pt-BR")}</p>
+                  <div className="rounded-xl p-3 mb-4 flex gap-2" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(248,113,113,0.08)", border: `1px solid ${VERMELHO}40` }}>
+                    <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
+                    <p className="text-xs" style={{ color: TEXTO }}>
+                      {L(`Atenção: o registro sai do histórico, mas permanece guardado no banco de dados por mais ${DIAS_LIXEIRA} dias na Lixeira do histórico, onde o proprietário pode restaurá-lo. Depois desse prazo ele será apagado definitivamente e não poderá ser recuperado.`,
+                         `Warning: the record leaves the history but stays stored in the database for ${DIAS_LIXEIRA} more days in the History trash, where the owner can restore it. After that it will be permanently deleted and cannot be recovered.`,
+                         `Atención: el registro sale del historial, pero permanece guardado en la base de datos ${DIAS_LIXEIRA} días más en la Papelera del historial, donde el propietario puede restaurarlo. Después de ese plazo se eliminará definitivamente y no podrá recuperarse.`)}
+                    </p>
+                  </div>
+                  <div className="mb-3">
+                    <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Motivo da exclusão *", "Reason for deletion *", "Motivo de la eliminación *")}</label>
+                    <textarea value={motivoExclusaoHist} onChange={(e) => setMotivoExclusaoHist(e.target.value)} disabled={processandoHist} rows={2} maxLength={500}
+                      placeholder={L("Ex.: lançamento de teste, criado por engano", "E.g.: test entry, created by mistake", "Ej.: registro de prueba, creado por error")}
+                      className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                    {motivoExclusaoHist.trim().length > 0 && motivoExclusaoHist.trim().length < 5 && (
+                      <p className="text-[11px] mt-1" style={{ color: VERMELHO }}>{L("Escreva pelo menos 5 letras.", "Write at least 5 characters.", "Escriba al menos 5 letras.")}</p>
+                    )}
+                  </div>
+                  <label className="flex items-start gap-2 mb-4 cursor-pointer">
+                    <input type="checkbox" checked={cienteExclusaoHist} onChange={(e) => setCienteExclusaoHist(e.target.checked)} disabled={processandoHist} className="mt-0.5" />
+                    <span className="text-xs" style={{ color: TEXTO }}>{L(`Entendi que depois de ${DIAS_LIXEIRA} dias o registro será apagado definitivamente.`, `I understand the record will be permanently deleted after ${DIAS_LIXEIRA} days.`, `Entiendo que después de ${DIAS_LIXEIRA} días el registro se eliminará definitivamente.`)}</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button onClick={fecharExclusaoHist} disabled={processandoHist}
+                      className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
+                      {L("Cancelar", "Cancel", "Cancelar")}
+                    </button>
+                    <button onClick={confirmarExclusaoHist} disabled={processandoHist || motivoExclusaoHist.trim().length < 5 || !cienteExclusaoHist}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50"
+                      style={{ background: VERMELHO, color: "#fff" }}>
+                      {processandoHist ? L("Excluindo...", "Deleting...", "Eliminando...") : L("Mover para a lixeira", "Move to trash", "Mover a la papelera")}
+                    </button>
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
       )}
 
       {/* TOAST */}

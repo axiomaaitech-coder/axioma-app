@@ -242,6 +242,8 @@ export async function estornarBaixaContaPagar(conta: ContaPagar, motivo: string,
 // foi aplicada — SQL em CONTAS-A-PAGAR-ESTORNO-BANCARIO-SQL.txt, pendente de
 // revisão do Elias. Até lá, chamar isto reporta uma falha esperada no
 // Sentry (coluna não existe) sem afetar o estorno em si, que já terminou.
+// ATENÇÃO (2026-10-01): desde HISTORICO-AP-LIXEIRA-SQL.sql a tabela é só
+// leitura pelo navegador — ao ligar a tesouraria, este update vira RPC.
 // ----------------------------------------------------------------------------
 export async function reverterNoBanco(estornoId: string): Promise<{ erro?: string }> {
   const { data, error } = await supabase.from("contas_pagar_auditoria")
@@ -756,7 +758,21 @@ export async function decidirAprovacao(aprovacaoId: string, decisao: "aprovada" 
 export type AuditoriaAp = {
   id: string; contas_pagar_id: string; empresa_id: string; usuario_id: string | null;
   acao: string; antes: any; depois: any; ip: string | null; criado_em: string;
+  // lixeira de 30 dias + lápis (HISTORICO-AP-LIXEIRA-SQL.sql) — ausentes antes do SQL rodar
+  excluido_em?: string | null; excluido_por?: string | null; motivo_exclusao?: string | null;
+  observacao?: string | null; observacao_por?: string | null; observacao_em?: string | null;
 };
+
+// Escrita só por RPC (RLS da tabela é só leitura): lixeira e restaurar exigem
+// dono no banco; observação vale pra qualquer membro da empresa.
+async function rpcHistoricoAp(nome: string, args: Record<string, unknown>): Promise<{ erro?: string }> {
+  const { error } = await supabase.rpc(nome, args);
+  if (error) { reportarFalhaEscrita(nome, "rpc", error.message); return { erro: error.message }; }
+  return {};
+}
+export const excluirRegistroHistoricoAp = (id: string, motivo: string) => rpcHistoricoAp("ap_auditoria_excluir", { p_id: id, p_motivo: motivo });
+export const restaurarRegistroHistoricoAp = (id: string) => rpcHistoricoAp("ap_auditoria_restaurar", { p_id: id });
+export const anotarRegistroHistoricoAp = (id: string, observacao: string) => rpcHistoricoAp("ap_auditoria_anotar", { p_id: id, p_observacao: observacao });
 
 export async function listarAuditoriaConta(contasPagarId: string, empresaId: string): Promise<AuditoriaAp[]> {
   const { data } = await supabase.from("contas_pagar_auditoria").select("*")
