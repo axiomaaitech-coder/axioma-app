@@ -1,13 +1,18 @@
 'use client'
+import { Turnstile, TURNSTILE_ATIVO } from '../../components/Turnstile'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
 
+const idiomaAtual = (i: string) => i === 'en' ? 'Wait for the security check below.' : i === 'es' ? 'Espere la verificación de seguridad abajo.' : 'Aguarde a verificação de segurança abaixo.'
+
 export default function Cadastro() {
   const router = useRouter()
   const { idioma, setIdioma } = useLanguage()
+  const [captcha, setCaptcha] = useState<string | undefined>()
+  const [captchaReset, setCaptchaReset] = useState(0)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -40,6 +45,8 @@ export default function Cadastro() {
   }
 
   const handleCadastro = async () => {
+    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
+    setCaptchaReset((n) => n + 1) // token vale uma vez — novo desafio para a próxima tentativa
     if (!nome || !email || !senha || !confirmarSenha) {
       setErro(idioma === 'pt' ? 'Preencha todos os campos.' : idioma === 'en' ? 'Fill in all fields.' : 'Complete todos los campos.')
       return
@@ -59,6 +66,7 @@ export default function Cadastro() {
       password: senha,
       options: {
         data: { nome },
+        captchaToken: captcha,
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
@@ -210,6 +218,7 @@ export default function Cadastro() {
             </p>
           )}
 
+          <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
           <button onClick={handleCadastro} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
             style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>

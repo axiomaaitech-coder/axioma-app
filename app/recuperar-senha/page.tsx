@@ -1,17 +1,24 @@
 'use client'
+import { Turnstile, TURNSTILE_ATIVO } from '../../components/Turnstile'
 import { useState } from 'react'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { supabase } from '../../lib/supabase'
 
+const idiomaAtual = (i: string) => i === 'en' ? 'Wait for the security check below.' : i === 'es' ? 'Espere la verificación de seguridad abajo.' : 'Aguarde a verificação de segurança abaixo.'
+
 export default function RecuperarSenha() {
   const { idioma, setIdioma } = useLanguage()
+  const [captcha, setCaptcha] = useState<string | undefined>()
+  const [captchaReset, setCaptchaReset] = useState(0)
   const [email, setEmail] = useState('')
   const [enviado, setEnviado] = useState(false)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
   const handleRecuperar = async () => {
+    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
+    setCaptchaReset((n) => n + 1) // token vale uma vez — novo desafio para a próxima tentativa
     if (!email) {
       setErro(idioma === 'pt' ? 'Digite seu email.' : idioma === 'en' ? 'Enter your email.' : 'Ingresa tu email.')
       return
@@ -21,6 +28,7 @@ export default function RecuperarSenha() {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `https://axiomaai.com.br/atualizar-senha`,
+      captchaToken: captcha,
     })
 
     if (error) {
@@ -126,6 +134,7 @@ export default function RecuperarSenha() {
             </p>
           )}
 
+          <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
           <button onClick={handleRecuperar} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
             style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>

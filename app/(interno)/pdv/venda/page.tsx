@@ -1,4 +1,5 @@
 "use client";
+import { Turnstile, TURNSTILE_ATIVO } from "../../../../components/Turnstile";
 // 🦅 AXIOMA AI.TECH — PDV Fase 3: Frente de Caixa.
 // Redesenho (2026-08-16) — estrutura de PDV de supermercado real: entrada
 // de código no topo, destaque do item mais recente, tabela de itens da
@@ -427,10 +428,10 @@ export default function PdvVendaPage() {
     setReautenticarAberto(true);
   }
 
-  async function handleConfirmarReauth(senha: string) {
+  async function handleConfirmarReauth(senha: string, captchaToken?: string) {
     if (!emailUsuario) { setErroReauth(t("senhaIncorreta", lang)); return; }
     setAutenticandoRetaguarda(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senha });
+    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senha, options: { captchaToken } });
     setAutenticandoRetaguarda(false);
     if (error) { setErroReauth(t("senhaIncorreta", lang)); return; }
     sessionStorage.setItem(CHAVE_REAUTH_RETAGUARDA, String(Date.now() + VALIDADE_REAUTH_MS));
@@ -1544,14 +1545,18 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlu
 
 function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, onCancelar }: {
   lang: Idioma; autenticando: boolean; erro: string;
-  onConfirmar: (senha: string) => void; onCancelar: () => void;
+  onConfirmar: (senha: string, captchaToken?: string) => void; onCancelar: () => void;
 }) {
   const { tokens } = useTemaPdv();
   const [senha, setSenha] = useState("");
+  // anti-robô do login (Supabase exige em toda confirmação de senha quando ligado)
+  const [captcha, setCaptcha] = useState<string | undefined>();
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   function handleConfirmar() {
-    if (!senha) return;
-    onConfirmar(senha);
+    if (!senha || (TURNSTILE_ATIVO && !captcha)) return;
+    onConfirmar(senha, captcha);
+    setCaptchaReset((n) => n + 1);
   }
 
   return (
@@ -1572,6 +1577,7 @@ function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, on
           style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
         />
         {erro && <p className="text-xs font-semibold mb-3" style={{ color: "#f87171" }}>{erro}</p>}
+        <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
 
         <div className="flex items-center gap-2 mt-2">
           <button onClick={onCancelar} disabled={autenticando}

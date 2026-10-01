@@ -1,4 +1,5 @@
 "use client";
+import { Turnstile, TURNSTILE_ATIVO } from "../../../components/Turnstile";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -1549,6 +1550,8 @@ export default function ContasPagarPage() {
   const [dadosPendentes, setDadosPendentes] = useState<Record<string, any> | null>(null);
   const [mostrarForcar, setMostrarForcar] = useState(false);
   const [senhaForcar, setSenhaForcar] = useState("");
+  const [captchaForcar, setCaptchaForcar] = useState<string | undefined>();
+  const [captchaForcarReset, setCaptchaForcarReset] = useState(0);
   const [erroForcar, setErroForcar] = useState("");
   const [forcando, setForcando] = useState(false);
 
@@ -1575,8 +1578,10 @@ export default function ContasPagarPage() {
 
   async function confirmarForcarSenha() {
     if (!emailUsuario || !senhaForcar || !dadosPendentes) return;
+    if (TURNSTILE_ATIVO && !captchaForcar) return;
     setForcando(true); setErroForcar("");
-    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senhaForcar });
+    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senhaForcar, options: { captchaToken: captchaForcar } });
+    setCaptchaForcarReset((n) => n + 1);
     if (error) {
       setErroForcar(L("Senha incorreta.", "Incorrect password.", "Contraseña incorrecta."));
       setForcando(false);
@@ -3374,6 +3379,7 @@ export default function ContasPagarPage() {
                               placeholder={L("Sua senha", "Your password", "Su contraseña")}
                               className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(255,90,107,0.3)" : "1px solid rgba(248,113,113,0.3)"), color: TEXTO }} />
                             {erroForcar && <p className="text-xs" style={{ color: VERMELHO }}>{erroForcar}</p>}
+                            <Turnstile onToken={setCaptchaForcar} resetKey={captchaForcarReset} />
                             <div className="flex gap-3">
                               <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                               <button onClick={confirmarForcarSenha} disabled={forcando || !senhaForcar} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #f87171)", color: "#fff" }}>
