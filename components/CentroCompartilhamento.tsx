@@ -24,17 +24,19 @@ type Props = {
   textoDetalhado?: string;
   onExportarPDF?: () => void;
   cor?: string;
+  /** destinatário já conhecido (ex.: e-mail do convidado) — preenche Gmail/Outlook/E-mail */
+  para?: string;
 };
 
 export function CentroCompartilhamento({
-  aberto, onFechar, lang, textoResumo, assunto, textoDetalhado, onExportarPDF, cor = "#8b5cf6",
+  aberto, onFechar, lang, textoResumo, assunto, textoDetalhado, onExportarPDF, cor = "#8b5cf6", para,
 }: Props) {
   const cx = cfoT(lang);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const [copiado, setCopiado] = useState(false);
   const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
-  const canais = canaisCompartilhamento(textoResumo, assunto);
+  const canais = canaisCompartilhamento(textoResumo, assunto, para);
 
   const copiar = async () => {
     try { await navigator.clipboard.writeText(textoResumo); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {}
@@ -58,7 +60,7 @@ export function CentroCompartilhamento({
         </div>
         <div className="grid grid-cols-2 gap-3">
           {canais.map((c) => (
-            <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer"
+            <a key={c.nome} href={c.url} target={c.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
               style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>
               {c.nome}

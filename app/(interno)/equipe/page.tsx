@@ -10,7 +10,8 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send } from 'lucide-react'
+import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
@@ -48,6 +49,9 @@ const textos = {
     linkCopiado: 'Link do convite copiado! Envie pra pessoa (WhatsApp, e-mail etc.)',
     sucessoConvite: 'Convite gerado', sucessoPapel: 'Papel atualizado', sucessoRemocao: 'Acesso removido',
     copiarLink: 'Copiar link do convite',
+    enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    assuntoConvite: 'Convite para a equipe no Axioma',
+    msgConvite: 'Olá{nome}! Você foi convidado(a) para acessar nossa empresa no Axioma como {papel}. Para aceitar, abra o link (válido por 7 dias) e entre com este e-mail ({email}): {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
     papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Operador (caixa/PDV)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
@@ -73,6 +77,9 @@ const textos = {
     linkCopiado: 'Invite link copied! Send it to the person (WhatsApp, e-mail etc.)',
     sucessoConvite: 'Invite generated', sucessoPapel: 'Role updated', sucessoRemocao: 'Access removed',
     copiarLink: 'Copy invite link',
+    enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
+    assuntoConvite: 'Invitation to join the team on Axioma',
+    msgConvite: 'Hi{nome}! You have been invited to access our company on Axioma as {papel}. To accept, open the link (valid for 7 days) and sign in with this e-mail ({email}): {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
     papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Operator (register/POS)',
     erroGenerico: 'Could not complete. Please try again.',
@@ -98,6 +105,9 @@ const textos = {
     linkCopiado: '¡Link de invitación copiado! Envíelo a la persona (WhatsApp, correo, etc.)',
     sucessoConvite: 'Invitación generada', sucessoPapel: 'Rol actualizado', sucessoRemocao: 'Acceso eliminado',
     copiarLink: 'Copiar link de invitación',
+    enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
+    assuntoConvite: 'Invitación al equipo en Axioma',
+    msgConvite: '¡Hola{nome}! Fuiste invitado(a) a acceder a nuestra empresa en Axioma como {papel}. Para aceptar, abre el link (válido por 7 días) y entra con este correo ({email}): {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
     papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Operador (caja/PDV)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
@@ -138,6 +148,8 @@ export default function EquipePage() {
   const [enviando, setEnviando] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null)
+  // convite aberto no Centro de Compartilhamento (envio de verdade pelos apps da pessoa)
+  const [conviteEnviar, setConviteEnviar] = useState<MembroEquipe | null>(null)
 
   useEffect(() => { carregarTudo() }, [])
 
@@ -197,9 +209,10 @@ export default function EquipePage() {
       setMembros(lista.dados)
       const novo = lista.dados.find((m) => m.origem === 'convite' && m.email.toLowerCase() === form.email_convidado.trim().toLowerCase())
       if (novo?.token_convite) {
-        const link = `${window.location.origin}/convite/${novo.token_convite}`
-        navigator.clipboard.writeText(link)
-        avisar('sucesso', t.linkCopiado)
+        // Antes só copiava o link em silêncio e o convite "nunca chegava" —
+        // agora abre na hora as opções de envio, com o e-mail já preenchido.
+        setConviteEnviar(novo)
+        avisar('sucesso', t.sucessoConvite)
       } else {
         avisar('sucesso', t.sucessoConvite)
       }
@@ -226,6 +239,14 @@ export default function EquipePage() {
     avisar('sucesso', t.sucessoRemocao)
     const lista = await listarEquipe(empresaId)
     setMembros(lista.dados)
+  }
+
+  function textoConvite(m: MembroEquipe): string {
+    return t.msgConvite
+      .replace('{nome}', m.nome ? ` ${m.nome}` : '')
+      .replace('{papel}', labelPapel(m.papel))
+      .replace('{email}', m.email)
+      .replace('{link}', `${window.location.origin}/convite/${m.token_convite}`)
   }
 
   function copiarLink(token: string) {
@@ -337,6 +358,12 @@ export default function EquipePage() {
                     {!ehVoce && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
+                          <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
+                            className="p-2 rounded-lg" style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
+                            <Send size={15} />
+                          </button>
+                        )}
+                        {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
                             className="p-2 rounded-lg" style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}>
                             <Copy size={15} />
@@ -441,6 +468,15 @@ export default function EquipePage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <CentroCompartilhamento
+        aberto={!!conviteEnviar}
+        onFechar={() => setConviteEnviar(null)}
+        lang={lang}
+        cor="#2ecc9b"
+        para={conviteEnviar?.email}
+        assunto={t.assuntoConvite}
+        textoResumo={conviteEnviar ? textoConvite(conviteEnviar) : ''}
+      />
     </ModuloLayout>
     </div>
   )

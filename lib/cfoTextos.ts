@@ -1088,13 +1088,18 @@ export function montarNarrativaIPPA(lang: string, ippa: IPPA): string {
   return `Nota ${ippa.total}/1000 — o maior freio agora é ${fator}.`;
 }
 
-export function canaisCompartilhamento(texto: string, assunto: string) {
+// `para` (opcional) já deixa o destinatário preenchido no Gmail/Outlook/e-mail
+// do aparelho — usado no convite de equipe (o e-mail convidado é conhecido).
+export function canaisCompartilhamento(texto: string, assunto: string, para?: string) {
   const enc = encodeURIComponent(texto);
   const encAssunto = encodeURIComponent(assunto);
+  const encPara = para ? encodeURIComponent(para) : "";
   return [
     { nome: "WhatsApp", cor: "#25D366", url: `https://wa.me/?text=${enc}` },
     { nome: "Telegram", cor: "#0088cc", url: `https://t.me/share/url?url=axiomaai.com.br&text=${enc}` },
-    { nome: "Gmail", cor: "#EA4335", url: `https://mail.google.com/mail/?view=cm&fs=1&su=${encAssunto}&body=${enc}` },
-    { nome: "Outlook", cor: "#0078D4", url: `https://outlook.live.com/owa/?path=/mail/action/compose&subject=${encAssunto}&body=${enc}` },
+    { nome: "Gmail", cor: "#EA4335", url: `https://mail.google.com/mail/?view=cm&fs=1${encPara ? `&to=${encPara}` : ""}&su=${encAssunto}&body=${enc}` },
+    { nome: "Outlook", cor: "#0078D4", url: `https://outlook.live.com/owa/?path=/mail/action/compose${encPara ? `&to=${encPara}` : ""}&subject=${encAssunto}&body=${enc}` },
+    // "Outros": abre o app de e-mail padrão do celular/computador (Apple Mail, Outlook desktop, Yahoo app etc.)
+    { nome: "E-mail", cor: "#64748b", url: `mailto:${encPara}?subject=${encAssunto}&body=${enc}` },
   ];
 }
