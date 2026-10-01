@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   TrendingUp, Trash2, X, Pencil, Share2, Sparkles, ShieldCheck, AlertTriangle,
@@ -24,8 +25,7 @@ import {
   gerarConselhoInvestimento, compararAlocacoes, simularCenariosExecutivos,
   type Lancamento, type Periodo, type PeriodoPreset, type DividaBase, type CorSaude,
   type TipoInvestimento, type Liquidez, type StatusInvestimento, type InvestimentoItem,
-  type CategoriaAlocacao, type ParametroAlocacao, type ResultadoAlocacao, type ChoqueSimulador, type ResultadoCenario,
-} from "../../../lib/cfoCore";
+  type CategoriaAlocacao, type ParametroAlocacao, type ResultadoAlocacao, type ChoqueSimulador, type ResultadoCenario, irParaDestino } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
@@ -88,6 +88,7 @@ function optBarrasPct(dados: number[], labels: string[], cores: string[], temaCl
 }
 
 export default function Investimentos() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
@@ -456,6 +457,8 @@ export default function Investimentos() {
     { l: cx.invCapitalOcioso, v: capitalOcioso ? fBRL(capitalOcioso.valor) : fBRL(0), c: capitalOcioso ? ct(CORES.vermelho) : ct(CORES.verde), i: "💤" },
     { l: cx.invDiversificacao, v: fPct(Math.max(0, 100 - concentracaoTipoPct)), c: concentracaoTipoPct > 70 ? ct(CORES.vermelho) : concentracaoTipoPct > 50 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🧩" },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#radar-riscos-inv", "#lista-investimentos", "#escada-liquidez", "#radar-riscos-inv", "#custo-oportunidade", "#lista-investimentos"];
 
   const marquee = [
     "🚀 AXIOMA AI.TECH", `${cx.invPatrimonioTotal} ${fBRL(patrimonioTotal)}`,
@@ -548,11 +551,11 @@ export default function Investimentos() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: txt.totalInvestido, value: fBRL(totalInvestido), cor: ct(CORES.azul) },
-            { label: txt.ativos, value: `${investimentos.length}`, cor: corOuro },
-            { label: txt.melhorRent, value: `${melhorRent}% a.a.`, cor: ct(CORES.verde) },
+            { label: txt.totalInvestido, value: fBRL(totalInvestido), cor: ct(CORES.azul), ir: "#lista-investimentos" },
+            { label: txt.ativos, value: `${investimentos.length}`, cor: corOuro, ir: "#lista-investimentos" },
+            { label: txt.melhorRent, value: `${melhorRent}% a.a.`, cor: ct(CORES.verde), ir: "#oportunidades-inv" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
@@ -570,6 +573,7 @@ export default function Investimentos() {
           </CanvasBox>
         ) : (
           <>
+            <div id="radar-riscos-inv" className="scroll-mt-28" />
             {/* RADAR DE RISCOS — semáforo resumo */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${corExposicao === "verde" ? "rgba(16,185,129,0.3)" : corExposicao === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
@@ -590,8 +594,8 @@ export default function Investimentos() {
             {/* KPIs CFO */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
@@ -636,6 +640,7 @@ export default function Investimentos() {
               <style>{`.marquee-inv{animation:marqueeInv 30s linear infinite}@keyframes marqueeInv{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-inv:hover{animation-play-state:paused}`}</style>
             </div>
 
+            <div id="escada-liquidez" className="scroll-mt-28" />
             {/* ESCADA DE LIQUIDEZ */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-2">
@@ -655,6 +660,7 @@ export default function Investimentos() {
               }} altura={220} />
             </div>
 
+            <div id="custo-oportunidade" className="scroll-mt-28" />
             {/* CUSTO DE OPORTUNIDADE vs DÍVIDA */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${oportunidades.length ? "rgba(239,68,68,0.3)" : CAMPO_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
@@ -751,6 +757,7 @@ export default function Investimentos() {
                 </motion.button>
               </div>
 
+              <div id="oportunidades-inv" className="scroll-mt-28" />
               {/* RADAR DE OPORTUNIDADES */}
               <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: corOuro }}>{cx.invRadarOportunidadesTitulo}</p>
               {resultadosAlocacao.length === 0 ? (
@@ -844,6 +851,7 @@ export default function Investimentos() {
           </div>
         </CanvasBox>
 
+        <div id="lista-investimentos" className="scroll-mt-28" />
         {/* Lista */}
         {carregando ? (
           <div className="flex items-center justify-center py-16">

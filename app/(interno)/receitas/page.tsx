@@ -274,6 +274,8 @@ export default function Receitas() {
     { l: cx.recorrenciaPct, v: `${recPct.toFixed(0)}%`, c: temaClaro ? ct(CORES.verde) : CORES.teal, i: "♻️" },
     { l: cx.concentracao, v: `${conc.toFixed(0)}%`, c: conc > 70 ? CORES.laranja : CORES.verde, i: "🎯" },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#lista-receitas", "/metas", "/metas", "/precificacao", "/clientes", "/clientes"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${t.receitas.totalReceitas} ${fBRL(totalReceitas)}`,
@@ -335,8 +337,8 @@ export default function Receitas() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>

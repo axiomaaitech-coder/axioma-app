@@ -252,6 +252,8 @@ export default function CustosFixos() {
     { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: ct(CORES.verde), i: "💸" },
     { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(temaClaro ? CORES.verde : CORES.laranja) : ct(temaClaro ? CORES.verde : CORES.teal), i: "🔔" },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#lista-custos-fixos", "/dre", "#lista-custos-fixos", "#insights-custos-fixos", "#radar-renovacoes", "#radar-renovacoes"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${cx.totalMensal} ${fBRL(totalMensal)}`, `${cx.totalAnual} ${fBRL(totalAnual)}`,
@@ -318,8 +320,8 @@ export default function CustosFixos() {
             {/* KPIs CFO */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}><AnimatedNumber value={k.v} /></p>
@@ -340,6 +342,7 @@ export default function CustosFixos() {
               <style>{`.marquee-cf{animation:marqueeCf 30s linear infinite}@keyframes marqueeCf{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-cf:hover{animation-play-state:paused}`}</style>
             </div>
 
+            <div id="radar-renovacoes" className="scroll-mt-28" />
             {/* RADAR DE RENOVAÇÕES — o diferencial mundial */}
             {renovacoes.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: renovFundo, border: "1px solid rgba(249,115,22,0.25)" }}>
@@ -381,6 +384,7 @@ export default function CustosFixos() {
               </div>
             </div>
 
+            <div id="insights-custos-fixos" className="scroll-mt-28" />
             {/* Insights */}
             {insights.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>

@@ -349,6 +349,8 @@ export default function FluxoCaixa() {
     { l: cx.rupturaCaixaTitulo, v: ruptura ? `${ruptura.diasRestantes}d` : "—", c: ruptura ? ct(CORES.vermelho) : ct(CORES.verde), i: "🚨", delta: null, invertido: false },
     { l: cx.precisaoPrevisao, v: fPct(precisaoPrevisao), c: precisaoPrevisao >= 80 ? ct(CORES.verde) : precisaoPrevisao >= 60 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯", delta: null, invertido: false },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["/tesouraria", "/receitas", "/custos-variaveis", "/tesouraria", "#ruptura-caixa", "#previstos-caixa"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${cx.saldoAtual} ${fBRL(saldoAtualReal)}`,
@@ -473,6 +475,7 @@ export default function FluxoCaixa() {
         {/* CAMADA CFO */}
         {temDados && (
           <>
+            <div id="ruptura-caixa" className="scroll-mt-28" />
             {/* ALERTA DE RUPTURA — o diferencial mundial, sempre visível quando existe */}
             {ruptura && (
               <div className="rounded-2xl p-4 md:p-5" style={{ background: rupturaFundo, border: "1px solid rgba(239,68,68,0.4)" }}>
@@ -489,8 +492,8 @@ export default function FluxoCaixa() {
             {/* KPIs CFO */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
@@ -523,6 +526,7 @@ export default function FluxoCaixa() {
               </div>
             )}
 
+            <div id="previstos-caixa" className="scroll-mt-28" />
             {/* PREVISTOS AUTOMÁTICOS — cross-módulo */}
             {(totalAutoEntradas > 0 || totalAutoSaidas > 0) && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(6,182,212,0.2)" }}>

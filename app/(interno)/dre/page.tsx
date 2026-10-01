@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { Share2, AlertTriangle, Sparkles, Zap, MessageSquareText, History, X, ShieldCheck, Clock } from "lucide-react";
@@ -20,8 +21,7 @@ import {
   montarDRE, decomporVariacaoLucro, ponteLucroCaixa, calcularSinaisSaude, semaforoSaude,
   mesesQuedaConsecutiva, runwayCritico, gerarConselhoCFO, projetarDRE, optCascata,
   type Lancamento, type Periodo, type PeriodoPreset, type DRE,
-  type FatorVariacaoLucro, type AnomaliaHistorica, type ItemCascata, type CorSaude,
-} from "../../../lib/cfoCore";
+  type FatorVariacaoLucro, type AnomaliaHistorica, type ItemCascata, type CorSaude, irParaDestino } from "../../../lib/cfoCore";
 import {
   cfoT, montarNarrativaCausaRaiz, montarNarrativaPonte,
   montarNarrativaRunway, montarConselhoCFO,
@@ -103,6 +103,7 @@ const CorSemaforo = ({ cor, size = 12 }: { cor: CorSaude; size?: number }) => (
 );
 
 export default function DREPage() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -461,6 +462,8 @@ export default function DREPage() {
     { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.verde : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
     { l: cx.runwayTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "—", c: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), i: "⏳" },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#diagnostico-dre", "#diagnostico-dre", "/precificacao", "/custos-variaveis", "/custos-fixos", "#runway-dre"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${cx.dreLucroLiquido} ${fBRL(dreAtual.lucroLiquido.valor)}`,
@@ -515,11 +518,11 @@ export default function DREPage() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: cx.dreReceitaBruta, value: fBRL(dreAtual.receitaBruta.valor), cor: ct(CORES.verde) },
-            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? ct(temaClaro ? CORES.verde : CORES.teal) : ct(CORES.vermelho) },
-            { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: ct(CORES.verde) },
+            { label: cx.dreReceitaBruta, value: fBRL(dreAtual.receitaBruta.valor), cor: ct(CORES.verde), ir: "/receitas" },
+            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? ct(temaClaro ? CORES.verde : CORES.teal) : ct(CORES.vermelho), ir: "#diagnostico-dre" },
+            { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: ct(CORES.verde), ir: "/precificacao" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}><AnimatedNumber value={card.value} /></p>
@@ -554,8 +557,8 @@ export default function DREPage() {
             {/* KPIs CFO */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}><AnimatedNumber value={k.v} /></p>
@@ -576,6 +579,7 @@ export default function DREPage() {
               <style>{`.marquee-dre{animation:marqueeDre 30s linear infinite}@keyframes marqueeDre{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-dre:hover{animation-play-state:paused}`}</style>
             </div>
 
+            <div id="diagnostico-dre" className="scroll-mt-28" />
             {/* DIAGNÓSTICO DE LUCRATIVIDADE — causa raiz */}
             {narrativaCausaRaiz && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(16,185,129,0.2)" }}>
@@ -675,6 +679,7 @@ export default function DREPage() {
               )}
             </div>
 
+            <div id="runway-dre" className="scroll-mt-28" />
             {/* Runway */}
             <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses !== null ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.2)"}` }}>
               <Clock size={18} style={{ color: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), flexShrink: 0 }} />

@@ -353,6 +353,8 @@ export default function CustosVariaveis() {
     { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? ct(CORES.vermelho) : volatilidade > 15 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🌊", delta: null, polaridadeInvertida: false },
     { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(temaClaro ? CORES.verde : CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#lista-custos-variaveis", "/precificacao", "/dre", "/dre", "#anomalias-custos-variaveis", "/receitas"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${cx.custoVariavelMes} ${fBRL(comparativoCV.atual)}`,
@@ -432,8 +434,8 @@ export default function CustosVariaveis() {
             {/* KPIs CFO com comparativo vs período anterior */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
@@ -491,6 +493,7 @@ export default function CustosVariaveis() {
               </div>
             </div>
 
+            <div id="anomalias-custos-variaveis" className="scroll-mt-28" />
             {/* ANOMALIAS HISTÓRICAS / PRICE CREEP */}
             {anomalias.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: anomaliaFundo, border: "1px solid rgba(249,115,22,0.25)" }}>

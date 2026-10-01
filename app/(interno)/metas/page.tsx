@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Archive, ArchiveRestore, Trophy } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -17,8 +18,7 @@ import {
   calcularRitmoMeta, progressoEsperado, projetarFechamentoMeta, progressoPercentual,
   detectarMetaIrreal, semaforoMeta, marcoAlcancado, traduzirMetaEmDinheiro,
   conectarMetas, gerarConselhoMeta, ritmoHistoricoMedio, validarDirecaoMeta,
-  type Lancamento, type Periodo, type TipoMeta, type CorSaude, type DirecaoMeta,
-} from "../../../lib/cfoCore";
+  type Lancamento, type Periodo, type TipoMeta, type CorSaude, type DirecaoMeta, irParaDestino } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
@@ -214,6 +214,7 @@ function optProgressoMetas(labels: string[], real: number[], esperado: number[],
 }
 
 export default function Metas() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
@@ -534,6 +535,8 @@ export default function Metas() {
     { l: cx.metaKpiProximaPrazo, v: proximaPrazo ? `${proximaPrazo.diasRestantes}d` : "—", c: corOuro, i: "⏳" },
     { l: cx.metaKpiMarcos, v: String(marcosConquistados), c: corOuroC, i: "🏆" },
   ];
+  // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
+  const DESTINOS_CFO = ["#lista-metas", "#lista-metas", "#lista-metas", "#lista-metas", "#lista-metas", "#arvore-metas"];
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`, `${cx.metaKpiNoRitmo}: ${noRitmo}`, `${cx.metaKpiEmRisco}: ${emRisco}`,
@@ -666,11 +669,11 @@ export default function Metas() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: txt.totalMetas, value: String(metasVisiveis.length), cor: ct(CORES.roxo) },
-            { label: txt.concluidas, value: String(metas.filter(m => m.status === "concluida").length), cor: ct(CORES.verde) },
-            { label: cx.metaKpiValorEmJogo, value: fBRL(valorEmJogo), cor: corOuro },
+            { label: txt.totalMetas, value: String(metasVisiveis.length), cor: ct(CORES.roxo), ir: "#lista-metas" },
+            { label: txt.concluidas, value: String(metas.filter(m => m.status === "concluida").length), cor: ct(CORES.verde), ir: "#lista-metas" },
+            { label: cx.metaKpiValorEmJogo, value: fBRL(valorEmJogo), cor: corOuro, ir: "#lista-metas" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
@@ -691,8 +694,8 @@ export default function Metas() {
             {/* KPIs CFO */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} onClick={() => irParaDestino(DESTINOS_CFO[i] || "#", router)}
+                  className={`rounded-2xl p-3 md:p-4 cursor-pointer${classePremium3d}`}
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
@@ -713,6 +716,7 @@ export default function Metas() {
               <style>{`.marquee-meta{animation:marqueeMeta 30s linear infinite}@keyframes marqueeMeta{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-meta:hover{animation-play-state:paused}`}</style>
             </div>
 
+            <div id="arvore-metas" className="scroll-mt-28" />
             {/* ÁRVORE DE DEPENDÊNCIA */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ROXO_CHIP_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
@@ -794,6 +798,7 @@ export default function Metas() {
           </div>
         </CanvasBox>
 
+        <div id="lista-metas" className="scroll-mt-28" />
         {/* Cards de meta */}
         {carregando ? (
           <div className="flex items-center justify-center py-16">
