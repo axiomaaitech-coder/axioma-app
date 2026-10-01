@@ -190,7 +190,12 @@ export default function ContasPagarPage() {
 
   const contasFiltradas = useMemo(() => {
     return contas.filter((c) => {
-      if (filtroStatus !== "todos" && statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) !== filtroStatus) return false;
+      const st = statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento);
+      // filtros dos cards do topo (mesma regra do cálculo de cada KPI)
+      if (filtroStatus === "aberto") { if (st === "pago") return false; }
+      else if (filtroStatus === "vence7") { if (st === "pago" || !c.data_vencimento || c.data_vencimento < hoje || c.data_vencimento > em7ISO) return false; }
+      else if (filtroStatus === "pago_mes") { if (st !== "pago" || (c.data_pagamento || "").slice(0, 7) !== mesAtual) return false; }
+      else if (filtroStatus !== "todos" && st !== filtroStatus) return false;
       if (filtroFornecedor && c.fornecedor_id !== filtroFornecedor) return false;
       if (filtroCategoria && c.categoria !== filtroCategoria) return false;
       if (filtroVencDe && (!c.data_vencimento || c.data_vencimento < filtroVencDe)) return false;
@@ -199,7 +204,7 @@ export default function ContasPagarPage() {
       const alvo = `${c.descricao} ${nomeFornecedor(c.fornecedor_id)} ${c.numero_nota || ""}`.toLowerCase();
       return alvo.includes(busca.toLowerCase());
     });
-  }, [contas, busca, filtroStatus, filtroFornecedor, filtroCategoria, filtroVencDe, filtroVencAte, fornecedores]);
+  }, [contas, busca, filtroStatus, filtroFornecedor, filtroCategoria, filtroVencDe, filtroVencAte, fornecedores, hoje, em7ISO, mesAtual]);
 
   function statusLabel(s?: string | null) {
     if (s === "pago") return L("Pago", "Paid", "Pagado");
@@ -1902,15 +1907,21 @@ export default function ContasPagarPage() {
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[
-              { label: L("Total em Aberto", "Total Outstanding", "Total Abierto"), valor: kpis.totalEmAberto, cor: AMBAR },
-              { label: L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días"), valor: kpis.vencendoEm7, cor: AZUL },
-              { label: L("Vencidas", "Overdue", "Vencidas"), valor: kpis.vencidas, cor: VERMELHO },
-              { label: L("Pagas no Mês", "Paid this Month", "Pagadas este Mes"), valor: kpis.pagasNoMes, cor: VERDE },
+              { label: L("Total em Aberto", "Total Outstanding", "Total Abierto"), valor: kpis.totalEmAberto, cor: AMBAR, filtro: "aberto" },
+              { label: L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días"), valor: kpis.vencendoEm7, cor: AZUL, filtro: "vence7" },
+              { label: L("Vencidas", "Overdue", "Vencidas"), valor: kpis.vencidas, cor: VERMELHO, filtro: "vencido" },
+              { label: L("Pagas no Mês", "Paid this Month", "Pagadas este Mes"), valor: kpis.pagasNoMes, cor: VERDE, filtro: "pago_mes" },
             ].map((k) => (
-              <CanvasBox {...cartaoTema} key={k.label} cor={k.cor}>
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
-                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
-              </CanvasBox>
+              // Card = atalho: filtra a lista abaixo exatamente pelo que ele soma
+              <motion.div key={k.label} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer"
+                title={L("Ver estas contas", "See these bills", "Ver estas cuentas")}
+                onClick={() => { setFiltroStatus(k.filtro); setFiltroVencDe(""); setFiltroVencAte(""); document.getElementById("lista-contas-pagar")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+                <CanvasBox {...cartaoTema} cor={k.cor}>
+                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
+                  <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
+                  {filtroStatus === k.filtro && <p className="text-[10px] font-bold mt-1" style={{ color: k.cor }}>● {L("filtrando a lista", "filtering the list", "filtrando la lista")}</p>}
+                </CanvasBox>
+              </motion.div>
             ))}
           </div>
 
@@ -1929,7 +1940,7 @@ export default function ContasPagarPage() {
           )}
 
           {/* Filtros */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div id="lista-contas-pagar" className="flex flex-wrap gap-2 mb-4 scroll-mt-28">
             <div className="relative flex-1 min-w-[180px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: CINZA }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
@@ -1937,6 +1948,9 @@ export default function ContasPagarPage() {
             </div>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
+              <option value="aberto">{L("Em aberto", "Outstanding", "Abiertas")}</option>
+              <option value="vence7">{L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días")}</option>
+              <option value="pago_mes">{L("Pagas no mês", "Paid this month", "Pagadas este mes")}</option>
               <option value="pendente">{statusLabel("pendente")}</option>
               <option value="parcial">{statusLabel("parcial")}</option>
               <option value="vencido">{statusLabel("vencido")}</option>
