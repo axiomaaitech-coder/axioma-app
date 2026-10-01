@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, TrendingUp, AlertTriangle, Sparkles } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -14,8 +15,7 @@ import ReactECharts from "echarts-for-react";
 import {
   fBRL, fBRL2, CORES, corTema, mesesPorLang, serieMensal, crescimentoMoM, ticketMedio,
   concentracao, percentualRecorrente, mrrArr, porCategoria, preverProximosMeses,
-  gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento,
-} from "../../../lib/cfoCore";
+  gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT, textoInsight } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -55,6 +55,7 @@ type Receita = { id: string; descricao: string; valor: number; data: string; cat
 type ClienteOpcao = { id: string; nome: string };
 
 export default function Receitas() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -316,11 +317,11 @@ export default function Receitas() {
         {/* KPIs originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.receitas.totalReceitas, value: fBRL(totalReceitas), cor: ct("#6ab0ff") },
-            { label: t.receitas.recebido, value: fBRL(totalRecebido), cor: ct("#34d399") },
-            { label: t.receitas.pendente, value: fBRL(totalPendente), cor: ct("#fbbf24") },
+            { label: t.receitas.totalReceitas, value: fBRL(totalReceitas), cor: ct("#6ab0ff"), ir: "#lista-receitas" },
+            { label: t.receitas.recebido, value: fBRL(totalRecebido), cor: ct("#34d399"), ir: "/fluxo-caixa" },
+            { label: t.receitas.pendente, value: fBRL(totalPendente), cor: ct("#fbbf24"), ir: "/contas-receber" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
@@ -411,7 +412,7 @@ export default function Receitas() {
 
         {/* Tabela */}
         <CanvasBox cor={ct("#6ab0ff")} {...cartaoTema}>
-          <div className="overflow-x-auto">
+          <div id="lista-receitas" className="overflow-x-auto scroll-mt-28">
             {carregando ? (
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
             ) : (

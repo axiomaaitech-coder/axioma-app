@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Sparkles, Zap, ShieldAlert, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -17,8 +18,7 @@ import {
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
   detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios,
   proximaOcorrenciaDoDia, projetarRecorrenciaMensal, FONTE_EXEC,
-  type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, type EventoCaixa,
-} from "../../../lib/cfoCore";
+  type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, type EventoCaixa, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT, montarNarrativaVariacao, montarNarrativaRuptura } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -85,6 +85,7 @@ function optEntradasSaidas(labels: string[], entradas: number[], saidas: number[
 }
 
 export default function FluxoCaixa() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -453,11 +454,11 @@ export default function FluxoCaixa() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString("pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp },
-            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString("pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown },
-            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtual.toLocaleString("pt-BR")}`, cor: saldoAtual >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtual >= 0 ? TrendingUp : AlertTriangle },
+            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString("pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
+            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString("pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
+            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtual.toLocaleString("pt-BR")}`, cor: saldoAtual >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtual >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <div className="flex justify-between items-start mb-3">
                   <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{card.label}</p>

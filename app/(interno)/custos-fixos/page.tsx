@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2,  AlertTriangle, Sparkles, Bell, Zap } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -13,8 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
   fBRL, fBRL2, CORES, corTema, porCategoria, optRosca, optBarrasV,
-  radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa,
-} from "../../../lib/cfoCore";
+  radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -57,6 +57,7 @@ type CustoFixo = {
 };
 
 export default function CustosFixos() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -298,11 +299,11 @@ export default function CustosFixos() {
         {/* KPIs originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct("#f87171") },
-            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#fbbf24") },
-            { label: t.custosFixos.itens, value: `${custos.length}`, cor: ct("#6ab0ff") },
+            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct("#f87171"), ir: "#lista-custos-fixos" },
+            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#fbbf24"), ir: "/dre" },
+            { label: t.custosFixos.itens, value: `${custos.length}`, cor: ct("#6ab0ff"), ir: "#lista-custos-fixos" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-sm md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}><AnimatedNumber value={card.value} /></p>
@@ -412,7 +413,7 @@ export default function CustosFixos() {
 
         {/* Tabela */}
         <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
-          <div className="overflow-x-auto">
+          <div id="lista-custos-fixos" className="overflow-x-auto scroll-mt-28">
             {carregando ? (
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
             ) : (

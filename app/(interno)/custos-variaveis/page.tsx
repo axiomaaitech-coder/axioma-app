@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -17,8 +18,7 @@ import {
   margemContribuicao, pontoEquilibrio, margemSeguranca, coeficienteVariacao, pesoSobreReceita,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos, compararPeriodosPorCategoria,
   detectarAnomaliasHistoricas, preverTendencia, FONTE_EXEC,
-  type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo,
-} from "../../../lib/cfoCore";
+  type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT, montarNarrativaVariacao, montarNarrativaMargem, montarSugestao } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -68,6 +68,7 @@ function inicioJanelaHistorica(fimPeriodo: string): string {
 }
 
 export default function CustosVariaveis() {
+  const router = useRouter();
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -412,11 +413,11 @@ export default function CustosVariaveis() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#f97316") },
-            { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#6ab0ff") },
-            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#fbbf24") },
+            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#f97316"), ir: "/dre" },
+            { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#6ab0ff"), ir: "#lista-custos-variaveis" },
+            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#fbbf24"), ir: "#lista-custos-variaveis" },
           ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+            <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}><AnimatedNumber value={card.value} /></p>
@@ -563,7 +564,7 @@ export default function CustosVariaveis() {
 
         {/* Tabela */}
         <CanvasBox cor={ct(temaClaro ? CORES.verde : "#f97316")} {...cartaoTema}>
-          <div className="overflow-x-auto">
+          <div id="lista-custos-variaveis" className="overflow-x-auto scroll-mt-28">
             {carregando ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />

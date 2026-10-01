@@ -25,6 +25,13 @@ export const fK = (n: number) =>
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
+// Card com destino (nunca "enfeite"): "#id" rola até a seção da própria tela;
+// "/rota" abre o módulo relacionado. Usado pelos cards de KPI de todo o app.
+export function irParaDestino(destino: string, router: { push: (p: string) => void }) {
+  if (destino.startsWith("#")) document.getElementById(destino.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  else router.push(destino);
+}
+
 // Quadro "Evidência" (Contador, Fiscal): nunca mostra código interno na tela —
 // some campo *_id, valor que é UUID e objeto/lista crus; true/false vira Sim/Não.
 const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
