@@ -889,7 +889,10 @@ export type MembroEquipe = {
 // daquela empresa (checagem dentro da própria função, não só na RLS).
 export async function listarEquipe(empresaId: string): Promise<{ dados: MembroEquipe[]; erro?: string; codigo?: string }> {
   const { data, error } = await supabase.rpc("listar_equipe", { p_empresa_id: empresaId });
-  if (error) return { dados: [], erro: error.message, codigo: error.code };
+  if (error) {
+    console.error("[equipe] listar_equipe falhou", error.code, error.message, error.details);
+    return { dados: [], erro: error.message, codigo: error.code };
+  }
   return { dados: (data as MembroEquipe[]) || [] };
 }
 
