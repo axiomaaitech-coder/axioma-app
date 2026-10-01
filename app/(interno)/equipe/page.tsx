@@ -12,6 +12,7 @@ import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
+import Modal from '../../../components/Modal'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
@@ -132,7 +133,6 @@ export default function EquipePage() {
   const MUTED = temaClaro ? '#374151' : '#5a7a9a'
   const CAMPO_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.7)'
   const LINHA_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.5)'
-  const MODAL_BG = temaClaro ? '#f6f7c4' : 'rgba(10,22,40,0.98)'
   const CAMPO_BORDA = temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(106,176,255,0.2)'
 
   const [carregando, setCarregando] = useState(true)
@@ -416,17 +416,15 @@ export default function EquipePage() {
 
       </div>
 
-      <AnimatePresence>
-        {modalAberto && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16 sm:pt-24 pb-8 overflow-y-auto"
-            style={{ background: 'rgba(2,8,16,0.85)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setModalAberto(false)}>
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-              className={`w-full max-w-md rounded-2xl p-5${temaClaro ? ' axi-card-premium3d' : ''}`} onClick={(e) => e.stopPropagation()}
-              style={{ background: MODAL_BG, border: `1px solid ${JADE}50` }}>
+      {/* Modal compartilhado (portal no body): antes era fixed dentro do
+          ModuloLayout, que anima com transform — o card nascia cortado em cima. */}
+      <Modal open={modalAberto} onClose={() => setModalAberto(false)}>
+            <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold" style={{ ...FONTE_EXEC, color: TEXTO }}>{t.novoConvite}</p>
+                <div>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? '#101b3d' : VERDE }}>AXIOMA AI.TECH</p>
+                  <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.novoConvite}</h3>
+                </div>
                 <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
               </div>
               <div className="space-y-3">
@@ -464,10 +462,8 @@ export default function EquipePage() {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </CanvasBox>
+      </Modal>
       <CentroCompartilhamento
         aberto={!!conviteEnviar}
         onFechar={() => setConviteEnviar(null)}
