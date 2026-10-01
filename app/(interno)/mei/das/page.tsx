@@ -428,9 +428,9 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
         {/* Mapa de Consequências — só aparece com atraso real, detectado por data */}
         {temAtrasoReal && (
-          <CanvasBox cor={corFase(faseAtual)} {...cartaoTema}>
+          <CanvasBox cor={temaClaro ? '#101b3d' : corFase(faseAtual)} {...cartaoTema}>
             <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle size={18} style={{ color: corFase(faseAtual) }} />
+              <AlertTriangle size={18} style={{ color: temaClaro ? '#101b3d' : corFase(faseAtual) }} />
               <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('mapaConsequencias')}</p>
             </div>
 
@@ -454,10 +454,13 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 const pctHoje = Math.min(97, (divida.piorDiasAtraso / DIAS_DIVIDA_ATIVA) * 100)
                 return (
                   <div className="relative h-2 rounded-full mb-6"
-                    style={{ background: `linear-gradient(90deg, #34d399 0%, #f59e0b ${pctMulta}%, #fb923c ${pctInapto}%, #f87171 100%)` }}>
+                    style={{ background: temaClaro
+                      // Claro: sem laranja — verde-menta forte até o teto da multa, depois azul-marinho (padrão Axioma)
+                      ? `linear-gradient(90deg, #2ecc9b 0%, #16a97d ${pctMulta}%, #17406e ${pctInapto}%, #101b3d 100%)`
+                      : `linear-gradient(90deg, #34d399 0%, #f59e0b ${pctMulta}%, #fb923c ${pctInapto}%, #f87171 100%)` }}>
                     <div className="absolute -top-1.5 flex flex-col items-center" style={{ left: `${pctHoje}%` }}>
-                      <div className="w-5 h-5 rounded-full border-2" style={{ background: corFase(faseAtual), borderColor: '#020810' }} />
-                      <span className="text-xs font-bold mt-1 whitespace-nowrap" style={{ color: corFase(faseAtual) }}>{t('marcoHoje')}</span>
+                      <div className="w-5 h-5 rounded-full border-2" style={{ background: temaClaro ? '#101b3d' : corFase(faseAtual), borderColor: temaClaro ? '#2ecc9b' : '#020810' }} />
+                      <span className="text-xs font-bold mt-1 whitespace-nowrap" style={{ color: temaClaro ? '#101b3d' : corFase(faseAtual) }}>{t('marcoHoje')}</span>
                     </div>
                     <div className="absolute -top-1" style={{ left: `${pctMulta}%` }}><div className="w-0.5 h-4" style={{ background: 'rgba(2,8,16,0.4)' }} /></div>
                     <div className="absolute -top-1" style={{ left: `${pctInapto}%` }}><div className="w-0.5 h-4" style={{ background: 'rgba(2,8,16,0.4)' }} /></div>
@@ -465,10 +468,10 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 )
               })()}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ color: TEXTO_SEC }}>
-                <div><span className="font-bold" style={{ color: AMBAR }}>0d</span> — {t('marcoVencimento')}</div>
-                <div><span className="font-bold" style={{ color: ALARANJADO }}>{DIAS_MULTA_TETO}d</span> — {t('marco61')}</div>
-                <div><span className="font-bold" style={{ color: VERMELHO }}>12m</span> — {t('marco12m')}</div>
-                <div><span className="font-bold" style={{ color: VERMELHO }}>24m</span> — {t('marco24m')}</div>
+                <div><span className="font-bold" style={{ color: temaClaro ? '#16a97d' : AMBAR }}>0d</span> — {t('marcoVencimento')}</div>
+                <div><span className="font-bold" style={{ color: temaClaro ? '#16a97d' : ALARANJADO }}>{DIAS_MULTA_TETO}d</span> — {t('marco61')}</div>
+                <div><span className="font-bold" style={{ color: temaClaro ? '#101b3d' : VERMELHO }}>12m</span> — {t('marco12m')}</div>
+                <div><span className="font-bold" style={{ color: temaClaro ? '#101b3d' : VERMELHO }}>24m</span> — {t('marco24m')}</div>
               </div>
             </div>
 
