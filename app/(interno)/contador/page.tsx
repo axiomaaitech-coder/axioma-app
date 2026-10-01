@@ -91,6 +91,8 @@ export default function ContadorPage() {
   const [rodando, setRodando] = useState(false)
   const [descobertas, setDescobertas] = useState<Descoberta[]>([])
   const [mostrarTodas, setMostrarTodas] = useState(false)
+  // Card do topo clicado = filtro da lista (cada card leva às descobertas que ele conta)
+  const [filtroCard, setFiltroCard] = useState<string | null>(null)
   const [selecionada, setSelecionada] = useState<Descoberta | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [mensagem, setMensagem] = useState<string | null>(null)
@@ -140,16 +142,21 @@ export default function ContadorPage() {
   const normal = contagem.P0 === 0 && contagem.P1 === 0
   const oportunidades = descobertas.filter((d) => d.status === 'aberto' && d.tipo === 'oportunidade').length
   const previsoes = descobertas.filter((d) => d.status === 'aberto' && (d.confianca === 'previsao' || d.confianca === 'cenario')).length
-  const visiveis = mostrarTodas ? descobertas : descobertas.filter((d) => d.status === 'aberto')
+  const FILTROS: Record<string, (d: Descoberta) => boolean> = {
+    p0: (d) => d.prioridade === 'P0', p1: (d) => d.prioridade === 'P1', p2: (d) => d.prioridade === 'P2',
+    oportunidade: (d) => d.tipo === 'oportunidade', previsao: (d) => d.confianca === 'previsao' || d.confianca === 'cenario',
+  }
+  const visiveis = (mostrarTodas ? descobertas : descobertas.filter((d) => d.status === 'aberto'))
+    .filter((d) => !filtroCard || !FILTROS[filtroCard] || FILTROS[filtroCard](d))
 
-  const TILES: { emoji: string; label: string; valor: number | string; cor: string }[] = [
-    { emoji: '🔴', label: L('Riscos Críticos', 'Critical Risks', 'Riesgos Críticos'), valor: contagem.P0, cor: VERMELHO },
-    { emoji: '🟠', label: L('Atenção', 'Attention', 'Atención'), valor: contagem.P1, cor: LARANJA },
-    { emoji: '🟡', label: L('Pendências', 'Pending', 'Pendientes'), valor: contagem.P2, cor: AMARELO },
-    { emoji: '🟢', label: L('Normal', 'Normal', 'Normal'), valor: normal ? L('Sim', 'Yes', 'Sí') : L('Não', 'No', 'No'), cor: normal ? VERDE : CINZA },
-    { emoji: '📈', label: L('Oportunidades', 'Opportunities', 'Oportunidades'), valor: oportunidades, cor: VERDE },
-    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: ROXO },
-    { emoji: '🧠', label: L('Descobertas da Axioma', "Axioma's Findings", 'Hallazgos de Axioma'), valor: contagem.totalAbertas, cor: AZULC },
+  const TILES: { emoji: string; label: string; valor: number | string; cor: string; filtro: string | null }[] = [
+    { emoji: '🔴', label: L('Riscos Críticos', 'Critical Risks', 'Riesgos Críticos'), valor: contagem.P0, cor: VERMELHO, filtro: 'p0' },
+    { emoji: '🟠', label: L('Atenção', 'Attention', 'Atención'), valor: contagem.P1, cor: LARANJA, filtro: 'p1' },
+    { emoji: '🟡', label: L('Pendências', 'Pending', 'Pendientes'), valor: contagem.P2, cor: AMARELO, filtro: 'p2' },
+    { emoji: '🟢', label: L('Normal', 'Normal', 'Normal'), valor: normal ? L('Sim', 'Yes', 'Sí') : L('Não', 'No', 'No'), cor: normal ? VERDE : CINZA, filtro: null },
+    { emoji: '📈', label: L('Oportunidades', 'Opportunities', 'Oportunidades'), valor: oportunidades, cor: VERDE, filtro: 'oportunidade' },
+    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: ROXO, filtro: 'previsao' },
+    { emoji: '🧠', label: L('Descobertas da Axioma', "Axioma's Findings", 'Hallazgos de Axioma'), valor: contagem.totalAbertas, cor: AZULC, filtro: null },
   ]
 
   return (
@@ -208,19 +215,38 @@ export default function ContadorPage() {
 
           {/* STATUS DE INTELIGÊNCIA */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-            {TILES.map((t) => (
-              <div key={t.label} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
-                <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
-                <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
-                <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
-              </div>
-            ))}
+            {TILES.map((t) => {
+              const ativo = filtroCard !== null && filtroCard === t.filtro
+              return (
+                <motion.button key={t.label} type="button" whileHover={{ y: -3, scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  title={L('Ver estas descobertas', 'See these findings', 'Ver estos hallazgos')}
+                  onClick={() => {
+                    setFiltroCard(t.filtro)
+                    setMostrarTodas(false)
+                    document.getElementById('lista-descobertas')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                  className={`rounded-xl p-3 text-left cursor-pointer${classePremium3d}`}
+                  style={{ background: PAINEL_BG, border: ativo ? `2px solid ${t.cor}` : `1px solid ${t.cor}30` }}>
+                  <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
+                  <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
+                </motion.button>
+              )
+            })}
           </div>
 
           {/* LISTA — densa, hierárquica, sem card decorativo por item */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
+          <div id="lista-descobertas" className="scroll-mt-28">
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
+                {filtroCard && (
+                  <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: temaClaro ? '#101b3d' : 'rgba(106,176,255,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>
+                    {L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕
+                  </button>
+                )}
+              </div>
               <button onClick={() => setMostrarTodas((v) => !v)} className="text-[11px] font-semibold" style={{ color: AZULC }}>
                 {mostrarTodas ? L('Mostrar só abertas', 'Show only open', 'Mostrar solo abiertas') : L('Mostrar todas', 'Show all', 'Mostrar todas')}
               </button>
@@ -229,7 +255,9 @@ export default function ContadorPage() {
             {visiveis.length === 0 ? (
               <div className={`rounded-xl p-6 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid var(--axi-border)' }}>
                 <p className="text-sm" style={{ color: CINZA }}>
-                  {L('Nenhuma descoberta ainda. Clique em "Rodar descoberta" pra a Axioma vasculhar seus dados.', 'No findings yet. Click "Run discovery" for Axioma to scan your data.', 'Ningún hallazgo aún. Haga clic en "Ejecutar descubrimiento" para que Axioma revise sus datos.')}
+                  {filtroCard
+                    ? L('Nada aqui no momento — ótimo sinal. Clique no filtro acima para ver todas.', 'Nothing here right now — a good sign. Click the filter above to see all.', 'Nada aquí por ahora — buena señal. Haga clic en el filtro arriba para ver todos.')
+                    : L('Nenhuma descoberta ainda. Clique em "Rodar descoberta" pra a Axioma vasculhar seus dados.', 'No findings yet. Click "Run discovery" for Axioma to scan your data.', 'Ningún hallazgo aún. Haga clic en "Ejecutar descubrimiento" para que Axioma revise sus datos.')}
                 </p>
               </div>
             ) : (
