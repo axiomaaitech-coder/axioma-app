@@ -1,4 +1,6 @@
 ﻿"use client";
+import { useRouter } from "next/navigation"
+import { irParaDestino } from "../../../lib/cfoCore"
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -169,6 +171,7 @@ function ControleAtividadeFiscal({ lang, atividadeFiscal, setAtividadeFiscal, is
 }
 
 export default function IATributariaPage() {
+  const router = useRouter()
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
@@ -363,14 +366,14 @@ export default function IATributariaPage() {
               <p className="text-xs font-bold" style={{ color: scoreFiscal.cor }}>{lang === "en" ? scoreFiscal.nivel_en : lang === "es" ? scoreFiscal.nivel_es : scoreFiscal.nivel}</p>
             </CanvasBox>
             {[
-              { label: lang === "en" ? "Tax Burden" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? AMARELO : VERDE },
-              { label: lang === "en" ? "Tax/Month" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO },
-              { label: lang === "en" ? "Savings" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE },
+              { label: lang === "en" ? "Tax Burden" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? AMARELO : VERDE, ir: "/fiscal" },
+              { label: lang === "en" ? "Tax/Month" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO, ir: "/fiscal/obrigacoes" },
+              { label: lang === "en" ? "Savings" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
             ].map((c, i) => (
-              <CanvasBox key={i} cor={c.cor} {...cartaoTema}>
+              <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/fiscal", router)}><CanvasBox cor={c.cor} {...cartaoTema}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
-              </CanvasBox>
+              </CanvasBox></div>
             ))}
           </div>
 

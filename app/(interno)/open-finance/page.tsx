@@ -1,4 +1,6 @@
 'use client'
+import { useRouter } from 'next/navigation'
+import { irParaDestino } from '../../../lib/cfoCore'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import * as Sentry from '@sentry/nextjs'
@@ -203,6 +205,7 @@ function carregarPluggySDK(): Promise<void> {
 }
 
 export default function OpenFinancePage() {
+  const router = useRouter()
   const { idioma } = useLanguage()
   const lang = (idioma as Idioma) || 'pt'
   const t = textos[lang] || textos.pt
@@ -626,17 +629,17 @@ export default function OpenFinancePage() {
 
         {/* ---- KPIs executivos: Saldo do Banco vs Sistema vs Divergência ---- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <CanvasBox {...cartaoTema} cor={corSaldoBanco}>
+          <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('conciliado')}><CanvasBox {...cartaoTema} cor={corSaldoBanco}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoBanco}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corSaldoBanco }}>{fmtOuTraco(saldoBanco, temBanco)}</p>
             {!temBanco && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>}
-          </CanvasBox>
-          <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
+          </CanvasBox></div>
+          <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino('/fluxo-caixa', router)}><CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoSistema}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: ct(BRONZE) }}>{fmt(saldoSistema)}</p>
             <p className="text-[10px] leading-snug" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.saldoSistemaExplicacao}</p>
-          </CanvasBox>
-          <CanvasBox {...cartaoTema} cor={corDivergencia}>
+          </CanvasBox></div>
+          <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('pendente')}><CanvasBox {...cartaoTema} cor={corDivergencia}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiDivergencia}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corDivergencia }}>{fmtOuTraco(kpis.divergencia, temBanco)}</p>
             {!temBanco ? (
@@ -650,20 +653,20 @@ export default function OpenFinancePage() {
             ) : (
               <p className="text-[11px] font-semibold" style={{ color: ct(VERDE) }}>{t.divergenciaOk}</p>
             )}
-          </CanvasBox>
+          </CanvasBox></div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <CanvasBox {...cartaoTema} cor={corNaoExplicado}>
+          <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('pendente')}><CanvasBox {...cartaoTema} cor={corNaoExplicado}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiNaoExplicado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corNaoExplicado }}>{fmtOuTraco(kpis.dinheiroNaoExplicado, temTransacoes)}</p>
             {!temTransacoes && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
-          </CanvasBox>
-          <CanvasBox {...cartaoTema} cor={corPctConciliado}>
+          </CanvasBox></div>
+          <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('conciliado')}><CanvasBox {...cartaoTema} cor={corPctConciliado}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiPctConciliado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corPctConciliado }}>{fPctOuTraco(kpis.percentualConciliado)}</p>
             {kpis.percentualConciliado === null && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
-          </CanvasBox>
+          </CanvasBox></div>
         </div>
 
         {/* ---- Período ---- */}

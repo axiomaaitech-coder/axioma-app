@@ -1,4 +1,6 @@
 ﻿"use client";
+import { useRouter } from "next/navigation"
+import { irParaDestino } from "../../../lib/cfoCore"
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -257,6 +259,7 @@ function formatBRL2(n: number): string {
 }
 
 export default function IAFinanceiraPage() {
+  const router = useRouter()
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
@@ -516,14 +519,14 @@ export default function IAFinanceiraPage() {
               <p className="text-xs font-bold" style={{ color: ct(score360.cor) }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
             </CanvasBox>
             {[
-              { label: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", valor: formatBRL(snap.receita_bruta), cor: ct("#34d399") },
-              { label: lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro Líquido", valor: formatBRL(snap.lucro_liquido), cor: snap.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171") },
-              { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: ct("#a78bfa") },
+              { label: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", valor: formatBRL(snap.receita_bruta), cor: ct("#34d399"), ir: "/receitas" },
+              { label: lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro Líquido", valor: formatBRL(snap.lucro_liquido), cor: snap.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171"), ir: "/dre" },
+              { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: ct("#a78bfa"), ir: "/precificacao" },
             ].map((c, i) => (
-              <CanvasBox {...cartaoTema} key={i} cor={c.cor}>
+              <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/dre", router)}><CanvasBox {...cartaoTema} cor={c.cor}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
-              </CanvasBox>
+              </CanvasBox></div>
             ))}
           </div>
 
