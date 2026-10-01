@@ -191,7 +191,7 @@ export default function EquipePage() {
   const [tipoMsg, setTipoMsg] = useState<'sucesso' | 'erro' | ''>('')
 
   const [modalAberto, setModalAberto] = useState(false)
-  const FORM_VAZIO = { email_convidado: '', nome: '', cargo: '', papel: 'operador', acesso_dias: 7 as number | null, motivo_convite: '', relacao: 'funcionario' }
+  const FORM_VAZIO = { email_convidado: '', nome: '', cargo: '', papel: 'leitor', acesso_dias: 7 as number | null, motivo_convite: '', relacao: 'funcionario' }
   const [form, setForm] = useState(FORM_VAZIO)
   const [termoRemetente, setTermoRemetente] = useState(false)
   const [nomeRemetente, setNomeRemetente] = useState('')
