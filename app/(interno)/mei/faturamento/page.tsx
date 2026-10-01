@@ -1,4 +1,6 @@
 'use client'
+import { useRouter } from 'next/navigation'
+import { irParaDestino } from '../../../../lib/cfoCore'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
@@ -47,6 +49,7 @@ const CATEGORIAS = ["Vendas de produtos", "Prestação de serviços", "Recorrent
 type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; considera_teto_mei?: boolean | null }
 
 export default function FaturamentoMEI() {
+  const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, AMBAR, ALARANJADO, NEUTRO, ON_ACCENT, CAMPO_BG, LINHA_BG, SELECT_BG, POCO_BG } = PALETA[tema]
@@ -404,14 +407,14 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: `${t('faturamento')} ${anoAtual}`, value: fmt(faturamentoAnual), cor: OURO },
-            { label: t('limiteRestante'), value: fmt(restanteLimite), cor: VERDE },
-            { label: t('limiteUsado'), value: `${percentualReal.toFixed(1)}%`, cor: semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? ALARANJADO : semaforo4 === 'amarelo' ? AMBAR : VERDE },
+            { label: `${t('faturamento')} ${anoAtual}`, value: fmt(faturamentoAnual), cor: OURO, ir: '#lista-lancamentos-mei' },
+            { label: t('limiteRestante'), value: fmt(restanteLimite), cor: VERDE, ir: '/mei/cockpit' },
+            { label: t('limiteUsado'), value: `${percentualReal.toFixed(1)}%`, cor: semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? ALARANJADO : semaforo4 === 'amarelo' ? AMBAR : VERDE, ir: '/mei/cockpit' },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor} {...cartaoTema}>
+            <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino(card.ir, router)}><CanvasBox cor={card.cor} {...cartaoTema}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
-            </CanvasBox>
+            </CanvasBox></div>
           ))}
         </div>
 
@@ -569,6 +572,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           </button>
         </CanvasBox>
 
+        <div id="lista-lancamentos-mei" className="scroll-mt-28" />
         {/* Lançamentos — lápis/lixeira/toggle */}
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('lancamentos')}</p>

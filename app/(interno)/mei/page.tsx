@@ -1,4 +1,6 @@
 'use client'
+import { useRouter } from 'next/navigation'
+import { irParaDestino } from '../../../lib/cfoCore'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
@@ -48,6 +50,7 @@ const supabase = createBrowserClient(
 // navy) fica ilegível em cima do fundo branco do tema Claro.
 
 export default function PainelMEI() {
+  const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   // Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" é o
@@ -605,15 +608,15 @@ export default function PainelMEI() {
         <CanvasBox cor={AZUL} motionIndex={10} glow {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{mx.fluxoTitulo}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? `${VERDE}10`, border: `1px solid ${NESTED_BORDA ?? VERDE + '25'}` }}>
+            <div onClick={() => irParaDestino('/mei/faturamento', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5" style={{ background: NESTED_BG ?? `${VERDE}10`, border: `1px solid ${NESTED_BORDA ?? VERDE + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.entrou}</p>
               <p className="text-lg font-black" style={{ color: VERDE }}><CountUp valor={fluxo.entrou} formatar={fmt} /></p>
             </div>
-            <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? `${VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? VERMELHO + '25'}` }}>
+            <div onClick={() => irParaDestino('/custos-variaveis', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5" style={{ background: NESTED_BG ?? `${VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? VERMELHO + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.saiu}</p>
               <p className="text-lg font-black" style={{ color: VERMELHO }}><CountUp valor={fluxo.saiu} formatar={fmt} /></p>
             </div>
-            <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? `${fluxo.sobra >= 0 ? AZUL : VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? (fluxo.sobra >= 0 ? AZUL : VERMELHO) + '25'}` }}>
+            <div onClick={() => irParaDestino('/fluxo-caixa', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5" style={{ background: NESTED_BG ?? `${fluxo.sobra >= 0 ? AZUL : VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? (fluxo.sobra >= 0 ? AZUL : VERMELHO) + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.sobra}</p>
               <p className="text-lg font-black" style={{ color: fluxo.sobra >= 0 ? AZUL : VERMELHO }}><CountUp valor={fluxo.sobra} formatar={fmt} /></p>
             </div>

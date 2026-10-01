@@ -1,4 +1,6 @@
 ﻿'use client'
+import { useRouter } from 'next/navigation'
+import { irParaDestino } from '../../../../lib/cfoCore'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
@@ -41,6 +43,7 @@ const PALETA = {
 type Modo = 'hora' | 'projeto' | 'produto'
 
 export default function PrecificacaoMEI() {
+  const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, ROXO, NEUTRO, CAMPO_BG, PAINEL_BG, POCO_BG } = PALETA[tema]
@@ -470,14 +473,14 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         {/* Info do MEI */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t('categoria'), value: meiDados?.categoria_mei || 'Serviços', cor: OURO },
-            { label: t('dasMensalLbl'), value: fmt(dasMensal), cor: AZUL },
-            { label: t('receitaMediaLbl'), value: fmt(receitaMensalMedia), cor: VERDE },
+            { label: t('categoria'), value: meiDados?.categoria_mei || 'Serviços', cor: OURO, ir: '/empresa' },
+            { label: t('dasMensalLbl'), value: fmt(dasMensal), cor: AZUL, ir: '/mei/das' },
+            { label: t('receitaMediaLbl'), value: fmt(receitaMensalMedia), cor: VERDE, ir: '/mei/faturamento' },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor} {...cartaoTema}>
+            <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino(card.ir, router)}><CanvasBox cor={card.cor} {...cartaoTema}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
-            </CanvasBox>
+            </CanvasBox></div>
           ))}
         </div>
 
