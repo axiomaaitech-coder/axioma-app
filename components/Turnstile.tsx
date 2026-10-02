@@ -33,6 +33,9 @@ export function Turnstile({ onToken, resetKey = 0 }: { onToken: (token: string |
       idRef.current = window.turnstile.render(ref.current, {
         sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
         theme: 'auto',
+        // só aparece se precisar de clique; renova sozinha quando vence enquanto a pessoa preenche
+        appearance: 'interaction-only',
+        'refresh-expired': 'auto',
         language: idioma === 'en' ? 'en' : idioma === 'es' ? 'es' : 'pt-br',
         callback: (t: string) => { clearTimeout(lento); setProblema(false); onToken(t) },
         'expired-callback': () => onToken(undefined),
@@ -55,7 +58,7 @@ export function Turnstile({ onToken, resetKey = 0 }: { onToken: (token: string |
   return (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" />
-      <div ref={ref} className="flex justify-center my-2 min-h-[65px]" />
+      <div ref={ref} className="flex justify-center my-2" />
       {problema && (
         <div className="text-center mb-2">
           <button type="button" onClick={() => setTentativa((n) => n + 1)}
