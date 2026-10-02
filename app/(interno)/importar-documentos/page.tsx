@@ -9,10 +9,12 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
-import { corTema } from "../../../lib/cfoCore";
+import { corTema, fBRL } from "../../../lib/cfoCore";
+import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
+  classificarItensCompra,
   parcelarCompraCartao,
   MAX_PARCELAS_CARTAO,
   type ResultadoParse,
@@ -80,6 +82,9 @@ const T = {
     calcHash: "Verificando duplicatas...",
     parseando: "Lendo conteúdo do arquivo...",
     parseandoIA: "A IA está lendo a nota... pode levar até 1 minuto.",
+    classificandoItens: "Classificando os itens da compra...",
+    deQueECompra: "Do que é esta compra (sugestão da IA)",
+    categoriaSugeridaLinhas: "Categoria sugerida nas contas a pagar",
     lidoPorIA: "Nota lida pela IA a partir do PDF/foto. Confira valores, datas e parcelas antes de importar.",
     uploadStorage: "Salvando no cofre seguro...",
     dedup: "Cruzando com base existente...",
@@ -206,6 +211,9 @@ const T = {
     calcHash: "Checking for duplicates...",
     parseando: "Reading file contents...",
     parseandoIA: "AI is reading the invoice... this may take up to 1 minute.",
+    classificandoItens: "Classifying the purchase items...",
+    deQueECompra: "What this purchase is (AI suggestion)",
+    categoriaSugeridaLinhas: "Suggested category on the payables",
     lidoPorIA: "Invoice read by AI from the PDF/photo. Check amounts, dates and installments before importing.",
     uploadStorage: "Saving to secure vault...",
     dedup: "Cross-checking existing data...",
@@ -332,6 +340,9 @@ const T = {
     calcHash: "Verificando duplicados...",
     parseando: "Leyendo contenido...",
     parseandoIA: "La IA está leyendo la factura... puede tardar hasta 1 minuto.",
+    classificandoItens: "Clasificando los ítems de la compra...",
+    deQueECompra: "De qué es esta compra (sugerencia de la IA)",
+    categoriaSugeridaLinhas: "Categoría sugerida en las cuentas por pagar",
     lidoPorIA: "Factura leída por IA desde el PDF/foto. Revise valores, fechas y cuotas antes de importar.",
     uploadStorage: "Guardando en bóveda segura...",
     dedup: "Cruzando con base existente...",
@@ -546,7 +557,7 @@ export default function ImportarDocumentosPage() {
   // Estados de upload/parse
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
   const [arrastando, setArrastando] = useState(false);
-  const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "upload" | "dedup">("");
+  const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "classificar" | "upload" | "dedup">("");
   const [hashFile, setHashFile] = useState<string>("");
   const [duplicataGlobal, setDuplicataGlobal] = useState<any>(null);
 
@@ -700,8 +711,11 @@ export default function ImportarDocumentosPage() {
   async function processarParse(file: File) {
     if (!userId || !empresaId) return;
     setEtapa("parse");
-    const res = await parseArquivo(file, empresaCnpj || undefined, langAtual, empresaId);
-    if (res.metadados?.erro_leitura) showToast(res.metadados.erro_leitura, "erro");
+    const lido = await parseArquivo(file, empresaCnpj || undefined, langAtual, empresaId);
+    if (lido.metadados?.erro_leitura) showToast(lido.metadados.erro_leitura, "erro");
+    // Nota de compra: a IA sugere categoria e natureza de cada item (B3 item 3).
+    setEtapa("classificar");
+    const res = await classificarItensCompra(lido, empresaId);
     await aplicarResultado(res);
   }
 
@@ -1589,6 +1603,7 @@ export default function ImportarDocumentosPage() {
                   {etapa === "parse" && (/\.(pdf|jpe?g|png|webp)$/i.test(arquivoSelecionado?.name || "") ? tt.parseandoIA : tt.parseando)}
                   {etapa === "upload" && tt.uploadStorage}
                   {etapa === "dedup" && tt.dedup}
+                  {etapa === "classificar" && tt.classificandoItens}
                 </p>
                 {arquivoSelecionado && (
                   <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{arquivoSelecionado.name}</p>
@@ -1934,6 +1949,9 @@ function PreviewBlock(props: any) {
   const { idioma } = useLanguage();
   const resumoPag = resultado?.metadados?.resumo_pagamento as { pt: string; en: string; es: string; perguntaParcelasCartao: boolean } | undefined;
   const textoResumoPag = resumoPag ? (idioma === "en" ? resumoPag.en : idioma === "es" ? resumoPag.es : resumoPag.pt) : null;
+  // Classificação dos itens da compra (B3 item 3) — sugestão da IA.
+  const classif = resultado?.metadados?.classificacao_itens as { categoriaPrincipal?: string; porNatureza: Record<string, { valor: number; itens: string[] }> } | undefined;
+  const idiomaNat: "pt" | "en" | "es" = idioma === "en" ? "en" : idioma === "es" ? "es" : "pt";
 
   const destinoResumo = destinoPredominante(destinos);
   const destInfo = DESTINOS.find((d) => d.key === destinoResumo) || DESTINOS[0];
@@ -1956,6 +1974,27 @@ function PreviewBlock(props: any) {
           <p className="text-xs font-semibold rounded-xl p-3" style={{ background: fundoCaixaAninhada, color: ct("#fbbf24"), border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(251,191,36,0.25)" }}>
             🤖 {tt.lidoPorIA}
           </p>
+        )}
+        {classif && (
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>🧾 {tt.deQueECompra}</p>
+            <div className="mt-2 space-y-2">
+              {Object.entries(classif.porNatureza).map(([natureza, g]) => (
+                <div key={natureza}>
+                  <p className="text-sm font-semibold flex flex-wrap justify-between gap-2" style={{ color: ct("#c8d8f0") }}>
+                    <span>{LABEL_NATUREZA[natureza as keyof typeof LABEL_NATUREZA]?.[idiomaNat] ?? natureza}</span>
+                    <span>{fBRL(g.valor)}</span>
+                  </p>
+                  <p className="text-xs break-words" style={{ color: ct("#5a7a9a") }}>{g.itens.slice(0, 6).join(" · ")}{g.itens.length > 6 ? ` +${g.itens.length - 6}` : ""}</p>
+                </div>
+              ))}
+            </div>
+            {classif.categoriaPrincipal && (
+              <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>
+                {tt.categoriaSugeridaLinhas}: <strong style={{ color: ct("#c8d8f0") }}>{labelCategoriaDespesa(classif.categoriaPrincipal, idiomaNat)}</strong>
+              </p>
+            )}
+          </div>
         )}
         {textoResumoPag && (
           <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>

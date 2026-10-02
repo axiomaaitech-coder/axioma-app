@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { parseXMLNFe, resultadoDeNotaIA } = await import('../lib/importarParsers')
+const { parseXMLNFe, resultadoDeNotaIA, aplicarClassificacaoItens } = await import('../lib/importarParsers')
 
 const EMPRESA = '11222333000181'
 const nota = (emit: string, dest: string, extra: string) => `<nfeProc><NFe><infNFe Id="NFe35260911222333000181550010000001231000001230">
@@ -93,3 +93,13 @@ assert.deepEqual(lidaIA.linhas.map((l) => [l.valor, l.vencimento, l.destinoSuger
 assert.equal(lidaIA.itensNFe?.[0].descricao, 'CHAPA ACO')
 assert.equal(lidaIA.metadados.problemas_formato_reforma, undefined)
 console.log('OK — nota lida pela IA (PDF/foto) gera as mesmas contas que o XML')
+
+// 7) Classificação dos itens (B3 item 3): resumo por natureza + categoria de maior valor nas contas de compra
+const classificada = aplicarClassificacaoItens(parcelada, [{ categoria: 'Produtos', natureza: 'estoque' }])
+assert.ok(classificada.linhas.every((l) => l.categoria === 'Produtos'))
+assert.equal(classificada.metadados.classificacao_itens.porNatureza.estoque.valor, 3000)
+assert.equal(classificada.itensNFe?.[0].naturezaSugerida, 'estoque')
+assert.equal(aplicarClassificacaoItens(parcelada, []), parcelada) // quantidade errada: não mexe
+const vendaClass = aplicarClassificacaoItens(venda, [{ categoria: 'Produtos', natureza: 'estoque' }])
+assert.equal(vendaClass.linhas[0].categoria, undefined) // venda não ganha categoria de despesa
+console.log('OK — classificação dos itens da compra (natureza + categoria sugerida, venda intacta)')

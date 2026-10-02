@@ -5,6 +5,7 @@
 import * as XLSX from "xlsx";
 import { XMLParser } from "fast-xml-parser";
 import { estimarImpactoSplitPayment } from "./previsaoRecebimentoHelpers";
+import type { ItemClassificado, NaturezaItem } from "./categoriasDespesa";
 
 // ============================================================================
 // TIPOS
@@ -77,6 +78,9 @@ export type ItemNFe = {
   numeroLote?: string;
   dataFabricacao?: string;
   dataValidade?: string;
+  // B3 item 3 — sugestão da IA (só nota de compra do Importar Documentos)
+  categoriaSugerida?: string;
+  naturezaSugerida?: NaturezaItem;
 };
 
 export type MapeamentoColunas = {
@@ -1111,6 +1115,56 @@ export function resultadoDeNotaIA(nota: NotaLidaIA, formato: ResultadoParse["for
   res.metadados.lido_por_ia = true;
   res.metadados.tipo_documento = nota.tipo_documento;
   return res;
+}
+
+// ============================================================================
+// CLASSIFICAÇÃO DOS ITENS DA COMPRA (B3 item 3)
+// ============================================================================
+// /api/importar/classificar-itens devolve, por item da nota, a categoria de
+// despesa (lista fechada de Contas a Pagar/contabilidade) e a natureza do gasto.
+
+// Grava a sugestão no resultado: resumo por natureza (pra tela) e a categoria
+// de maior valor nas linhas de compra que ainda não têm categoria. Venda não
+// mexe. Sempre sugestão — o usuário troca na pré-visualização.
+export function aplicarClassificacaoItens(res: ResultadoParse, classificados: ItemClassificado[]): ResultadoParse {
+  const itens = res.itensNFe ?? [];
+  if (!classificados.length || classificados.length !== itens.length) return res;
+  const porCategoria = new Map<string, number>();
+  const porNatureza = new Map<string, { valor: number; itens: string[] }>();
+  itens.forEach((item, i) => {
+    const c = classificados[i];
+    porCategoria.set(c.categoria, (porCategoria.get(c.categoria) ?? 0) + item.valorTotal);
+    const chave = c.natureza ?? "indefinido";
+    const grupo = porNatureza.get(chave) ?? { valor: 0, itens: [] };
+    grupo.valor += item.valorTotal;
+    grupo.itens.push(item.descricao);
+    porNatureza.set(chave, grupo);
+  });
+  const categoriaPrincipal = [...porCategoria.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  return {
+    ...res,
+    itensNFe: itens.map((item, i) => ({ ...item, categoriaSugerida: classificados[i].categoria, naturezaSugerida: classificados[i].natureza ?? undefined })),
+    linhas: res.linhas.map((l) => (l.destinoSugerido === "contas_pagar" && !l.categoria && categoriaPrincipal ? { ...l, categoria: categoriaPrincipal } : l)),
+    metadados: { ...res.metadados, classificacao_itens: { categoriaPrincipal, porNatureza: Object.fromEntries(porNatureza) } },
+  };
+}
+
+// Chama a IA só pra NOTA DE COMPRA com itens. Falha/demora → devolve o
+// resultado como estava (a importação nunca depende da classificação).
+export async function classificarItensCompra(res: ResultadoParse, empresaId: string): Promise<ResultadoParse> {
+  const itens = res.itensNFe ?? [];
+  if (!itens.length || !res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) return res;
+  try {
+    const r = await fetch("/api/importar/classificar-itens", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ empresa_id: empresaId, itens: itens.map((i) => ({ descricao: i.descricao, ncm: i.ncm, cfop: i.cfop, valor: i.valorTotal })) }),
+    });
+    if (!r.ok) return res;
+    const { itens: classificados } = (await r.json()) as { itens: ItemClassificado[] | null };
+    return classificados ? aplicarClassificacaoItens(res, classificados) : res;
+  } catch {
+    return res;
+  }
 }
 
 // Foto grande do celular passa do limite de envio (4,5 MB na Vercel): reduz
