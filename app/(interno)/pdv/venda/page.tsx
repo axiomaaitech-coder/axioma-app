@@ -1,5 +1,5 @@
 "use client";
-import { Turnstile, TURNSTILE_ATIVO } from "../../../../components/Turnstile";
+import { useTurnstile, TURNSTILE_ATIVO } from "../../../../components/Turnstile";
 // 🦅 AXIOMA AI.TECH — PDV Fase 3: Frente de Caixa.
 // Redesenho (2026-08-16) — estrutura de PDV de supermercado real: entrada
 // de código no topo, destaque do item mais recente, tabela de itens da
@@ -1549,14 +1549,14 @@ function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, on
 }) {
   const { tokens } = useTemaPdv();
   const [senha, setSenha] = useState("");
-  // anti-robô do login (Supabase exige em toda confirmação de senha quando ligado)
-  const [captcha, setCaptcha] = useState<string | undefined>();
-  const [captchaReset, setCaptchaReset] = useState(0);
+  // anti-robô do login (Supabase exige em toda confirmação de senha quando ligado) — roda só no clique
+  const turnstile = useTurnstile();
 
-  function handleConfirmar() {
-    if (!senha || (TURNSTILE_ATIVO && !captcha)) return;
+  async function handleConfirmar() {
+    if (!senha) return;
+    const captcha = await turnstile.pegarToken();
+    if (TURNSTILE_ATIVO && !captcha) return;
     onConfirmar(senha, captcha);
-    setCaptchaReset((n) => n + 1);
   }
 
   return (
@@ -1577,7 +1577,7 @@ function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, on
           style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
         />
         {erro && <p className="text-xs font-semibold mb-3" style={{ color: "#f87171" }}>{erro}</p>}
-        <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
+        {turnstile.elemento}
 
         <div className="flex items-center gap-2 mt-2">
           <button onClick={onCancelar} disabled={autenticando}

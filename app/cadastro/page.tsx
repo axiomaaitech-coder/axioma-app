@@ -1,18 +1,17 @@
 'use client'
-import { Turnstile, TURNSTILE_ATIVO } from '../../components/Turnstile'
+import { useTurnstile, TURNSTILE_ATIVO } from '../../components/Turnstile'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
 
-const idiomaAtual = (i: string) => i === 'en' ? 'Wait for the security check below.' : i === 'es' ? 'Espere la verificación de seguridad abajo.' : 'Aguarde a verificação de segurança abaixo.'
+const idiomaAtual = (i: string) => i === 'en' ? 'Could not confirm you are not a robot. Please try again.' : i === 'es' ? 'No se pudo confirmar que no es un robot. Intente de nuevo.' : 'Não foi possível confirmar que você não é um robô. Tente de novo.'
 
 export default function Cadastro() {
   const router = useRouter()
   const { idioma, setIdioma } = useLanguage()
-  const [captcha, setCaptcha] = useState<string | undefined>()
-  const [captchaReset, setCaptchaReset] = useState(0)
+  const turnstile = useTurnstile()
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -57,8 +56,9 @@ export default function Cadastro() {
       setErro(idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' : idioma === 'en' ? 'Password must be at least 6 characters.' : 'La contrasena debe tener al menos 6 caracteres.')
       return
     }
-    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); return }
     setCarregando(true)
+    const captcha = await turnstile.pegarToken() // só aqui a Cloudflare roda
+    if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); setCarregando(false); return }
     setErro('')
     const { error } = await supabase.auth.signUp({
       email,
@@ -69,7 +69,6 @@ export default function Cadastro() {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
-    setCaptchaReset((n) => n + 1) // token já foi usado no servidor — novo desafio para a próxima tentativa
     if (error) {
       setErro(error.message)
       setCarregando(false)
@@ -218,7 +217,7 @@ export default function Cadastro() {
             </p>
           )}
 
-          <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
+          {turnstile.elemento}
           <button onClick={handleCadastro} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
             style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
