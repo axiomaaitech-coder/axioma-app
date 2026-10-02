@@ -264,6 +264,7 @@ type ConfigTabelaTransacao = {
   colDataHora?: string;
   colDescricao: string;
   colDistintivo?: string;
+  colVencimento?: string;
   colContraparteId?: string;
   tabelaContraparte?: "fornecedores" | "clientes";
 };
@@ -274,8 +275,8 @@ const TABELAS_TRANSACAO: ConfigTabelaTransacao[] = [
   { tabela: "fluxo_caixa", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
   { tabela: "receitas", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
   { tabela: "custos_variaveis", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
-  { tabela: "contas_pagar", colValor: "valor_total", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_nota", colContraparteId: "fornecedor_id", tabelaContraparte: "fornecedores" },
-  { tabela: "contas_receber", colValor: "valor", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_documento", colContraparteId: "cliente_id", tabelaContraparte: "clientes" },
+  { tabela: "contas_pagar", colValor: "valor_total", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_nota", colVencimento: "data_vencimento", colContraparteId: "fornecedor_id", tabelaContraparte: "fornecedores" },
+  { tabela: "contas_receber", colValor: "valor", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_documento", colVencimento: "data_vencimento", colContraparteId: "cliente_id", tabelaContraparte: "clientes" },
   { tabela: "dividas", colValor: "valor_total", colData: "vencimento", colDescricao: "descricao" },
 ];
 
@@ -306,6 +307,7 @@ export type CandidatoDuplicata = {
   data: string;
   dataHora: string | null;
   distintivo: string | null;
+  vencimento: string | null;
   contraparteDocumento: string | null;
   temCampoContraparte: boolean;
 };
@@ -349,6 +351,7 @@ async function buscarCandidatosPorTabela(
     data: r[cfg.colData],
     dataHora: cfg.colDataHora ? r[cfg.colDataHora] || null : null,
     distintivo: cfg.colDistintivo ? r[cfg.colDistintivo] || null : null,
+    vencimento: cfg.colVencimento ? r[cfg.colVencimento] || null : null,
     contraparteDocumento: cfg.colContraparteId ? contrapartes.get(r[cfg.colContraparteId]) || null : null,
     temCampoContraparte: !!(cfg.colContraparteId && cfg.tabelaContraparte),
   }));
@@ -380,6 +383,10 @@ export async function detectarPossiveisDuplicatas(
     if (candidatos.length === 0) continue;
 
     for (const cand of candidatos) {
+      // 0) Vencimento diferente = parcela/conta diferente (mesmo valor e mesma
+      // emissão é normal em nota parcelada) — nunca é duplicata (regra do Elias).
+      if (l.vencimento && cand.vencimento && l.vencimento !== String(cand.vencimento).slice(0, 10)) continue;
+
       // 1) Os dois lados têm hora → hora decide, sem ambiguidade.
       if (l.dataHora && cand.dataHora) {
         const horaLinha = l.dataHora.slice(11, 19);

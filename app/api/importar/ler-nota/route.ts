@@ -29,11 +29,16 @@ const ESQUEMA = objeto({
   itens: { type: 'array', items: objeto({ descricao: texto, quantidade: numeroOuNulo, unidade: textoOuNulo, valor_unitario: numeroOuNulo, valor_total: numeroOuNulo, ncm: textoOuNulo, cfop: textoOuNulo, codigo: textoOuNulo, ean: textoOuNulo }) },
   parcelas: { type: 'array', items: objeto({ numero: textoOuNulo, vencimento: textoOuNulo, valor: { type: 'number' } }) },
   pagamentos: { type: 'array', items: objeto({ codigo_meio: texto, valor: { type: 'number' }, a_prazo: { type: 'boolean' } }) },
+  duvidas: { type: 'array', items: objeto({ campo: texto, pergunta: texto }) },
 })
 
-const INSTRUCAO = `Você lê documentos fiscais brasileiros (DANFE de NF-e, NFC-e, NFS-e, cupom fiscal, recibo, boleto) e extrai os dados EXATAMENTE como estão impressos.
+const INSTRUCAO = `Você lê documentos fiscais brasileiros (DANFE de NF-e, NFC-e, NFS-e, cupom fiscal, recibo, boleto) e extrai os dados EXATAMENTE como estão impressos. Esses dados viram contas a pagar/receber de uma empresa real: um erro de data, valor ou de quem vendeu/comprou leva dinheiro para o lugar errado. Leia com muito cuidado, campo por campo, e confira antes de responder.
 Regras:
 - Nunca invente nem complete dado. Se um campo não estiver legível ou não existir, use null (ou lista vazia).
+- Datas: não confunda data de EMISSÃO com data de VENCIMENTO, de saída ou de protocolo. data_emissao é a emissão; vencimento de cada parcela vem da fatura/duplicata. Atenção a dia/mês (formato brasileiro DD/MM/AAAA).
+- Valores: valor_total é o "VALOR TOTAL DA NOTA" (não o subtotal dos produtos, nem o valor de um imposto). Atenção a vírgula decimal e ponto de milhar brasileiros.
+- emitente é quem EMITIU/VENDEU (topo do DANFE); destinatário é quem COMPROU (quadro "destinatário/remetente"). Não troque os dois.
+- duvidas: para CADA campo importante (data, valor, parcela, emitente, destinatário, forma de pagamento) que você não leu com certeza — borrado, cortado, ambíguo, ou números que não fecham (parcelas que não somam o total) —, escreva uma pergunta curta em português para um humano conferir, dizendo o que você leu. Ex.: {"campo":"data_emissao","pergunta":"Li a emissão como 03/10/2026, mas o dígito está borrado. Está certo?"}. Sem dúvidas, lista vazia.
 - eh_nota = false se o documento não for nota, cupom, recibo ou boleto de compra/venda.
 - Datas no formato AAAA-MM-DD. Valores em número decimal com ponto (1234.56), sem "R$".
 - cnpj_cpf só com os dígitos.

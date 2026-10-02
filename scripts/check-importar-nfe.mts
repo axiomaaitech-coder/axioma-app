@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { parseXMLNFe, resultadoDeNotaIA, aplicarClassificacaoItens } = await import('../lib/importarParsers')
+const { parseXMLNFe, resultadoDeNotaIA, aplicarClassificacaoItens, perguntasSupervisao } = await import('../lib/importarParsers')
 
 const EMPRESA = '11222333000181'
 const nota = (emit: string, dest: string, extra: string) => `<nfeProc><NFe><infNFe Id="NFe35260911222333000181550010000001231000001230">
@@ -85,7 +85,7 @@ const lidaIA = resultadoDeNotaIA({
   valor_total: 3000,
   itens: [{ descricao: 'CHAPA ACO', quantidade: 1, unidade: 'UN', valor_unitario: 3000, valor_total: 3000, ncm: '72085100', cfop: '5102', codigo: '1', ean: null }],
   parcelas: [{ numero: '001', vencimento: '2026-10-20', valor: 1000 }, { numero: '002', vencimento: '2026-11-20', valor: 1000 }, { numero: '003', vencimento: '2026-12-20', valor: 1000 }],
-  pagamentos: [{ codigo_meio: '15', valor: 3000, a_prazo: true }],
+  pagamentos: [{ codigo_meio: '15', valor: 3000, a_prazo: true }], duvidas: [],
 }, 'pdf', EMPRESA)
 assert.equal(lidaIA.formato, 'pdf')
 assert.equal(lidaIA.metadados.lido_por_ia, true)
@@ -103,3 +103,18 @@ assert.equal(aplicarClassificacaoItens(parcelada, []), parcelada) // quantidade 
 const vendaClass = aplicarClassificacaoItens(venda, [{ categoria: 'Produtos', natureza: 'estoque' }])
 assert.equal(vendaClass.linhas[0].categoria, undefined) // venda não ganha categoria de despesa
 console.log('OK — classificação dos itens da compra (natureza + categoria sugerida, venda intacta)')
+
+// 8) Supervisão humana: perguntas antes de importar
+const hoje = new Date('2026-10-02T12:00:00')
+const ids = (r: Parameters<typeof perguntasSupervisao>[0]) => perguntasSupervisao(r, hoje).map((p) => p.id)
+console.log('   perguntas XML parcelado:', ids(parcelada).join(', ') || '(nenhuma)')
+assert.ok(!ids(parcelada).includes('parcelas_total')) // 3 x 1000 = 3000 fecha
+assert.ok(ids(lidaIA).includes('leitura_ia')) // nota lida pela IA sempre pede conferência
+const comDuvida = resultadoDeNotaIA({ ...JSON.parse(JSON.stringify(lidaIA.linhas[0].raw ? {} : {})), eh_nota: true, tipo_documento: 'nfe', numero: '9', data_emissao: '2027-01-10',
+  emitente: { nome: 'X', cnpj_cpf: '11111111111111' }, destinatario: { nome: 'Y', cnpj_cpf: '11222333000181' }, valor_total: 500,
+  itens: [], parcelas: [{ numero: '1', vencimento: '2026-12-01', valor: 200 }], pagamentos: [], duvidas: [{ campo: 'data_emissao', pergunta: 'Li 10/01/2027, está borrado.' }] }, 'imagem', EMPRESA)
+const idsDuvida = ids(comDuvida)
+for (const esperado of ['leitura_ia', 'duvida_ia_0', 'parcelas_total', 'emissao_futura', 'vencimento_antes', 'cnpj_emitente']) assert.ok(idsDuvida.includes(esperado), esperado)
+const semEmpresa = await parseXMLNFe(nota('99888777000100', EMPRESA, ''), undefined)
+assert.ok(ids(semEmpresa).includes('destino')) // empresa sem CNPJ: pergunta se é compra ou venda
+console.log('OK — supervisão humana: leitura da IA, dúvidas, parcelas x total, datas impossíveis, CNPJ inválido, compra ou venda')

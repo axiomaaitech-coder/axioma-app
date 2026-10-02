@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -15,6 +15,8 @@ import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/err
 import {
   parseArquivo,
   classificarItensCompra,
+  perguntasSupervisao,
+  type PerguntaSupervisao,
   parcelarCompraCartao,
   MAX_PARCELAS_CARTAO,
   type ResultadoParse,
@@ -26,6 +28,7 @@ import {
   hashArquivo,
   buscarImportacaoPorHash,
   marcarDuplicatasPorLinha,
+  registrarEventoTimeline,
   uploadArquivo,
   criarImportacao,
   gravarLinhas,
@@ -83,6 +86,13 @@ const T = {
     parseando: "Lendo conteúdo do arquivo...",
     parseandoIA: "A IA está lendo a nota... pode levar até 1 minuto.",
     classificandoItens: "Classificando os itens da compra...",
+    supervisaoPendente: "Responda as perguntas de conferência antes de importar.",
+    supervisaoTitulo: "Conferência humana antes de importar",
+    supervisaoSub: "Responda cada pergunta. O botão Importar só libera depois.",
+    supCerto: "✅ Está certo",
+    supCorrigir: "✏️ Vou corrigir na tabela",
+    supCompra: "É uma COMPRA (contas a pagar)",
+    supVenda: "É uma VENDA (receita)",
     deQueECompra: "Do que é esta compra (sugestão da IA)",
     categoriaSugeridaLinhas: "Categoria sugerida nas contas a pagar",
     lidoPorIA: "Nota lida pela IA a partir do PDF/foto. Confira valores, datas e parcelas antes de importar.",
@@ -212,6 +222,13 @@ const T = {
     parseando: "Reading file contents...",
     parseandoIA: "AI is reading the invoice... this may take up to 1 minute.",
     classificandoItens: "Classifying the purchase items...",
+    supervisaoPendente: "Answer the check questions before importing.",
+    supervisaoTitulo: "Human check before importing",
+    supervisaoSub: "Answer each question. The Import button unlocks only after that.",
+    supCerto: "✅ It is correct",
+    supCorrigir: "✏️ I will fix it in the table",
+    supCompra: "It is a PURCHASE (payables)",
+    supVenda: "It is a SALE (revenue)",
     deQueECompra: "What this purchase is (AI suggestion)",
     categoriaSugeridaLinhas: "Suggested category on the payables",
     lidoPorIA: "Invoice read by AI from the PDF/photo. Check amounts, dates and installments before importing.",
@@ -341,6 +358,13 @@ const T = {
     parseando: "Leyendo contenido...",
     parseandoIA: "La IA está leyendo la factura... puede tardar hasta 1 minuto.",
     classificandoItens: "Clasificando los ítems de la compra...",
+    supervisaoPendente: "Responda las preguntas de verificación antes de importar.",
+    supervisaoTitulo: "Verificación humana antes de importar",
+    supervisaoSub: "Responda cada pregunta. El botón Importar se habilita solo después.",
+    supCerto: "✅ Está correcto",
+    supCorrigir: "✏️ Voy a corregir en la tabla",
+    supCompra: "Es una COMPRA (cuentas por pagar)",
+    supVenda: "Es una VENTA (ingreso)",
     deQueECompra: "De qué es esta compra (sugerencia de la IA)",
     categoriaSugeridaLinhas: "Categoría sugerida en las cuentas por pagar",
     lidoPorIA: "Factura leída por IA desde el PDF/foto. Revise valores, fechas y cuotas antes de importar.",
@@ -558,6 +582,8 @@ export default function ImportarDocumentosPage() {
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "classificar" | "upload" | "dedup">("");
+  // Supervisão humana (regra do Elias): respostas às perguntas da nota.
+  const [respostasSup, setRespostasSup] = useState<Record<string, string>>({});
   const [hashFile, setHashFile] = useState<string>("");
   const [duplicataGlobal, setDuplicataGlobal] = useState<any>(null);
 
@@ -711,6 +737,7 @@ export default function ImportarDocumentosPage() {
   async function processarParse(file: File) {
     if (!userId || !empresaId) return;
     setEtapa("parse");
+    setRespostasSup({});
     const lido = await parseArquivo(file, empresaCnpj || undefined, langAtual, empresaId);
     if (lido.metadados?.erro_leitura) showToast(lido.metadados.erro_leitura, "erro");
     // Nota de compra: a IA sugere categoria e natureza de cada item (B3 item 3).
@@ -777,6 +804,7 @@ export default function ImportarDocumentosPage() {
   }
 
   function cancelarUpload() {
+    setRespostasSup({});
     setArquivoSelecionado(null);
     setResultado(null);
     setLinhas([]);
@@ -816,6 +844,14 @@ export default function ImportarDocumentosPage() {
 
   function aplicarDestinoEmMassa(novoDestino: DestinoTabela, apenasSelecionadas: boolean) {
     setDestinos((prev) => prev.map((d, i) => (!apenasSelecionadas || selecionadas[i] ? novoDestino : d)));
+  }
+
+  // Resposta do humano a uma pergunta de supervisão. "Compra"/"venda" também
+  // aplica o destino em todas as linhas (o usuário ainda pode trocar linha a linha).
+  function responderSupervisao(id: string, resposta: string) {
+    setRespostasSup((prev) => ({ ...prev, [id]: resposta }));
+    if (resposta === "compra") aplicarDestinoEmMassa("contas_pagar", false);
+    if (resposta === "venda") aplicarDestinoEmMassa("receitas", false);
   }
 
   // Decisão do usuário sobre 1 linha com possível duplicata — nada grava
@@ -942,6 +978,10 @@ export default function ImportarDocumentosPage() {
       showToast(tt.duplicataPendente, "erro");
       return;
     }
+    if (pendentesSupervisao > 0) {
+      showToast(tt.supervisaoPendente, "erro");
+      return;
+    }
     const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
     if (totalSel === 0) {
       showToast(tt.nenhumaSelecionada, "erro");
@@ -972,6 +1012,10 @@ export default function ImportarDocumentosPage() {
     if (!userId || !arquivoSelecionado || !resultado) return;
     if (pendentesDuplicata > 0) {
       showToast(tt.duplicataPendente, "erro");
+      return;
+    }
+    if (pendentesSupervisao > 0) {
+      showToast(tt.supervisaoPendente, "erro");
       return;
     }
     const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
@@ -1019,6 +1063,15 @@ export default function ImportarDocumentosPage() {
         destinos,
         somarAlvo: montarSomarAlvo(),
       });
+
+      // 3b) Guarda o que o humano respondeu na supervisão (quem conferiu o quê).
+      if (perguntasSup.length > 0) {
+        await registrarEventoTimeline({
+          empresaId, userId, importacaoId, evento: "supervisao_humana",
+          descricao: `${perguntasSup.length} pergunta(s) de conferência respondida(s) antes de importar`,
+          dados: perguntasSup.map((p) => ({ id: p.id, pergunta: p.texto.pt, resposta: respostasSup[p.id] })),
+        });
+      }
 
       // 4) Atualiza tempo de processamento — métrica não-crítica (a importação em si já
       // foi gravada por gravarLinhas() acima); só reporta pro Sentry, sem toast, pra não
@@ -1459,6 +1512,8 @@ export default function ImportarDocumentosPage() {
   const totalSelecionadas = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
   const totalDuplicadas = duplicadas.filter(Boolean).length;
   const pendentesDuplicata = possiveisDuplicatas.filter((p, i) => p && decisoesDuplicata[i] === null).length;
+  const perguntasSup = useMemo(() => (resultado ? perguntasSupervisao(resultado) : []), [resultado]);
+  const pendentesSupervisao = perguntasSup.filter((p) => !respostasSup[p.id]).length;
   const valorTotalPreview = linhas.reduce(
     (sum, l, i) => (selecionadas[i] && !duplicadas[i] ? sum + (l.valor || 0) : sum),
     0
@@ -1616,6 +1671,10 @@ export default function ImportarDocumentosPage() {
           {resultado && !sucesso && !etapa && (
             <PreviewBlock
               escolherParcelasCartao={escolherParcelasCartao}
+              perguntasSup={perguntasSup}
+              respostasSup={respostasSup}
+              responderSupervisao={responderSupervisao}
+              pendentesSupervisao={pendentesSupervisao}
               tt={tt}
               imp={imp}
               resultado={resultado}
@@ -1932,6 +1991,7 @@ function PreviewBlock(props: any) {
     mostrarSalvarTemplate, setMostrarSalvarTemplate,
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
     escolherParcelasCartao,
+    perguntasSup, respostasSup, responderSupervisao, pendentesSupervisao,
   } = props;
 
   const { tema } = useThemeAxioma();
@@ -1970,6 +2030,38 @@ function PreviewBlock(props: any) {
   return (
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
+        {perguntasSup.length > 0 && (
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? `1px solid ${ct("#fbbf24")}` : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
+              🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.supervisaoSub}</p>
+            <div className="mt-2 space-y-2">
+              {perguntasSup.map((p: PerguntaSupervisao) => {
+                const resp = respostasSup[p.id];
+                const opcoes: [string, string][] = p.tipo === "destino"
+                  ? [["compra", tt.supCompra], ["venda", tt.supVenda]]
+                  : [["certo", tt.supCerto], ["corrigir", tt.supCorrigir]];
+                return (
+                  <div key={p.id} className="rounded-lg p-2" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
+                    <p className="text-sm break-words" style={{ color: ct("#c8d8f0") }}>{p.texto[idiomaNat]}</p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {opcoes.map(([valor, rotulo]) => (
+                        <button key={valor} type="button" onClick={() => responderSupervisao(p.id, valor)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                          style={resp === valor
+                            ? { background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }
+                            : { background: "transparent", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(106,176,255,0.3)" }}>
+                          {rotulo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {resultado?.metadados?.lido_por_ia && (
           <p className="text-xs font-semibold rounded-xl p-3" style={{ background: fundoCaixaAninhada, color: ct("#fbbf24"), border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(251,191,36,0.25)" }}>
             🤖 {tt.lidoPorIA}
@@ -2456,14 +2548,14 @@ function PreviewBlock(props: any) {
                 style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
                 {tt.cancelar}
               </button>
-              <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0 || pendentesDuplicata > 0}
-                title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
+              <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0 || pendentesDuplicata > 0 || pendentesSupervisao > 0}
+                title={pendentesDuplicata > 0 ? tt.duplicataPendente : pendentesSupervisao > 0 ? tt.supervisaoPendente : undefined}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: ct("#6ab0ff"), border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
                 {simulando ? `⏳ ${tt.simulando}` : `🔍 ${tt.simular}`}
               </button>
-              <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0 || pendentesDuplicata > 0}
-                title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
+              <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0 || pendentesDuplicata > 0 || pendentesSupervisao > 0}
+                title={pendentesDuplicata > 0 ? tt.duplicataPendente : pendentesSupervisao > 0 ? tt.supervisaoPendente : undefined}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
                 {confirmando ? `⏳ ${tt.importando}` : `✓ ${tt.confirmarImport} (${totalSelecionadas})`}

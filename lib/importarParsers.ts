@@ -1095,6 +1095,7 @@ export type NotaLidaIA = {
   itens: { descricao: string; quantidade: number | null; unidade: string | null; valor_unitario: number | null; valor_total: number | null; ncm: string | null; cfop: string | null; codigo: string | null; ean: string | null }[];
   parcelas: { numero: string | null; vencimento: string | null; valor: number }[];
   pagamentos: { codigo_meio: string; valor: number; a_prazo: boolean }[];
+  duvidas: { campo: string; pergunta: string }[];
 };
 
 export function resultadoDeNotaIA(nota: NotaLidaIA, formato: ResultadoParse["formato"], empresaCnpj?: string, lang: Lang = "pt"): ResultadoParse {
@@ -1114,7 +1115,86 @@ export function resultadoDeNotaIA(nota: NotaLidaIA, formato: ResultadoParse["for
   const res = montarResultadoNFe(nfe, { empresaCnpj, lang, formato });
   res.metadados.lido_por_ia = true;
   res.metadados.tipo_documento = nota.tipo_documento;
+  res.metadados.duvidas_ia = (nota.duvidas ?? []).filter((d) => d?.pergunta).slice(0, 10);
   return res;
+}
+
+// ============================================================================
+// SUPERVISÃO HUMANA (regra do Elias, 2026-10-02)
+// ============================================================================
+// Toda nota passa por perguntas que um humano responde ANTES de importar:
+// conferência da leitura da IA, dúvidas que a própria IA marcou e conferências
+// sem IA (parcelas × total, datas impossíveis, CNPJ inválido, compra ou venda
+// indefinida). Confirmar fica travado até responder todas.
+type T3 = { pt: string; en: string; es: string };
+export type PerguntaSupervisao = { id: string; tipo: "conferir" | "destino"; texto: T3 };
+
+function cnpjValido(c: string): boolean {
+  if (!/^\d{14}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
+  const dv = (base: string) => {
+    let soma = 0, peso = base.length - 7;
+    for (const d of base) { soma += Number(d) * peso--; if (peso < 2) peso = 9; }
+    const r = soma % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return dv(c.slice(0, 12)) === Number(c[12]) && dv(c.slice(0, 13)) === Number(c[13]);
+}
+
+export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): PerguntaSupervisao[] {
+  const m = res.metadados ?? {};
+  const ehNota = res.formato === "xml" || m.lido_por_ia;
+  if (!ehNota || m.valor_total === undefined && !m.lido_por_ia) return [];
+  const brl = (v: number) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const dt = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR") : "?");
+  const p: PerguntaSupervisao[] = [];
+  const total = Number(m.valor_total ?? 0);
+  const parcelas: ParcelaNFe[] = m.parcelas ?? [];
+
+  if (m.lido_por_ia) {
+    const resumo = `${m.razao_social ?? "?"} · ${brl(total)} · ${dt(m.data_emissao)} · ${parcelas.length || 1}x`;
+    p.push({ id: "leitura_ia", tipo: "conferir", texto: {
+      pt: `A IA leu esta nota assim: ${resumo}. Confere com o documento (emitente, valor total, data de emissão e parcelas)?`,
+      en: `The AI read this invoice as: ${resumo}. Does it match the document (issuer, total, issue date and installments)?`,
+      es: `La IA leyó esta factura así: ${resumo}. ¿Coincide con el documento (emisor, total, fecha de emisión y cuotas)?`,
+    } });
+  }
+  ((m.duvidas_ia ?? []) as { campo: string; pergunta: string }[]).forEach((d, i) =>
+    p.push({ id: `duvida_ia_${i}`, tipo: "conferir", texto: { pt: `Dúvida da IA: ${d.pergunta}`, en: `AI doubt (in Portuguese): ${d.pergunta}`, es: `Duda de la IA (en portugués): ${d.pergunta}` } }));
+
+  if (!total) p.push({ id: "sem_total", tipo: "conferir", texto: { pt: "A nota está sem valor total. Preencha o valor certo na tabela antes de importar.", en: "The invoice has no total amount. Fill in the correct amount in the table before importing.", es: "La factura no tiene valor total. Complete el valor correcto en la tabla antes de importar." } });
+  if (parcelas.length && total) {
+    const soma = parcelas.reduce((s, x) => s + x.valor, 0);
+    if (Math.abs(soma - total) > 0.05) p.push({ id: "parcelas_total", tipo: "conferir", texto: {
+      pt: `As parcelas somam ${brl(soma)}, mas o total da nota é ${brl(total)}. Confira na tabela qual está certo antes de importar.`,
+      en: `The installments add up to ${brl(soma)}, but the invoice total is ${brl(total)}. Check which is right in the table before importing.`,
+      es: `Las cuotas suman ${brl(soma)}, pero el total de la factura es ${brl(total)}. Verifique en la tabla cuál es correcto antes de importar.`,
+    } });
+  }
+
+  const emissao: string | undefined = m.data_emissao;
+  const hojeIso = hoje.toISOString().slice(0, 10);
+  const cincoAnos = new Date(hoje); cincoAnos.setFullYear(cincoAnos.getFullYear() - 5);
+  if (!emissao) p.push({ id: "sem_emissao", tipo: "conferir", texto: { pt: "A nota está sem data de emissão. Preencha a data certa na tabela.", en: "The invoice has no issue date. Fill in the correct date in the table.", es: "La factura no tiene fecha de emisión. Complete la fecha correcta en la tabla." } });
+  else if (emissao > hojeIso) p.push({ id: "emissao_futura", tipo: "conferir", texto: { pt: `A data de emissão (${dt(emissao)}) está no futuro. Está certa?`, en: `The issue date (${dt(emissao)}) is in the future. Is it right?`, es: `La fecha de emisión (${dt(emissao)}) está en el futuro. ¿Es correcta?` } });
+  else if (emissao < cincoAnos.toISOString().slice(0, 10)) p.push({ id: "emissao_antiga", tipo: "conferir", texto: { pt: `A data de emissão (${dt(emissao)}) tem mais de 5 anos. Está certa?`, en: `The issue date (${dt(emissao)}) is over 5 years old. Is it right?`, es: `La fecha de emisión (${dt(emissao)}) tiene más de 5 años. ¿Es correcta?` } });
+  if (emissao && res.linhas.some((l) => l.vencimento && l.vencimento < emissao)) p.push({ id: "vencimento_antes", tipo: "conferir", texto: { pt: "Há vencimento ANTES da data de emissão. Confira as datas na tabela.", en: "There is a due date BEFORE the issue date. Check the dates in the table.", es: "Hay un vencimiento ANTES de la fecha de emisión. Verifique las fechas en la tabla." } });
+
+  const raw = res.linhas[0]?.raw ?? {};
+  for (const [lado, cnpj] of [["emitente", raw.emit?.CNPJ], ["destinatario", raw.dest?.CNPJ]] as const) {
+    const c = String(cnpj ?? "").replace(/\D/g, "");
+    if (c.length === 14 && !cnpjValido(c)) p.push({ id: `cnpj_${lado}`, tipo: "conferir", texto: {
+      pt: `O CNPJ do ${lado === "emitente" ? "emitente" : "destinatário"} (${c}) não é válido — pode ter sido lido errado. Confira no documento.`,
+      en: `The ${lado === "emitente" ? "issuer" : "recipient"} CNPJ (${c}) is not valid — it may have been misread. Check the document.`,
+      es: `El CNPJ del ${lado === "emitente" ? "emisor" : "destinatario"} (${c}) no es válido — puede haberse leído mal. Verifique el documento.`,
+    } });
+  }
+
+  if (res.linhas.some((l) => l.confiancaDestino === "baixa")) p.push({ id: "destino", tipo: "destino", texto: {
+    pt: "Não deu para ter certeza se esta nota é uma COMPRA ou uma VENDA da sua empresa (o CNPJ da empresa não bate com o da nota ou não está cadastrado). O que ela é?",
+    en: "We could not be sure whether this invoice is a PURCHASE or a SALE of your company (the company CNPJ does not match the invoice or is not registered). What is it?",
+    es: "No se pudo saber si esta factura es una COMPRA o una VENTA de su empresa (el CNPJ de la empresa no coincide con la factura o no está registrado). ¿Qué es?",
+  } });
+  return p;
 }
 
 // ============================================================================
