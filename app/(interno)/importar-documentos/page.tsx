@@ -2097,7 +2097,7 @@ function PreviewBlock(props: any) {
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
         {perguntasSup.length > 0 && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? `1px solid ${ct("#fbbf24")}` : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
             </p>
@@ -2112,14 +2112,14 @@ function PreviewBlock(props: any) {
                   : [["certo", tt.supCerto], ["corrigir", tt.supCorrigir]];
                 return (
                   <div key={p.id} className="rounded-lg p-2" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
-                    <p className="text-sm break-words" style={{ color: ct("#c8d8f0") }}>{p.texto[idiomaNat]}</p>
+                    <p className="text-sm font-medium break-words" style={{ color: temaClaro ? "#101b3d" : "#e2e8f0" }}>{p.texto[idiomaNat]}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {opcoes.map(([valor, rotulo]) => (
                         <button key={valor} type="button" onClick={() => responderSupervisao(p.id, valor)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                           style={resp === valor
-                            ? { background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }
-                            : { background: "transparent", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(106,176,255,0.3)" }}>
+                            ? { background: "#16a97d", color: "#fff", border: "1px solid #16a97d" }
+                            : { background: temaClaro ? "#ffffff" : "transparent", color: temaClaro ? "#0f6b51" : "#6ee7b7", border: "1px solid #16a97d" }}>
                           {rotulo}
                         </button>
                       ))}
@@ -2131,7 +2131,7 @@ function PreviewBlock(props: any) {
           </div>
         )}
         {resultado?.metadados?.lido_por_ia && (
-          <p className="text-xs font-semibold rounded-xl p-3" style={{ background: fundoCaixaAninhada, color: ct("#fbbf24"), border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(251,191,36,0.25)" }}>
+          <p className="text-xs font-semibold rounded-xl p-3" style={{ background: fundoCaixaAninhada, color: temaClaro ? "#101b3d" : "#e2e8f0", borderLeft: "4px solid #16a97d" }}>
             🤖 {tt.lidoPorIA}
           </p>
         )}
