@@ -24,6 +24,8 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
+import Paginacao, { usePagina } from "../../../components/Paginacao";
+import { lerTodas } from "../../../lib/lerTodas";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
   montarSnapshotsCarteira, calcularIVCA, calcularSaudeCliente, detectarSinaisCliente,
@@ -472,9 +474,9 @@ export default function ClientesPage() {
     setEmpresaId(empId);
     if (!empId) { setLoading(false); return; }
     const [{ data: clientesData }, { data: contasData }, { data: inadData }] = await Promise.all([
-      supabase.from("clientes").select("*").eq("empresa_id", empId).order("created_at", { ascending: false }),
-      supabase.from("contas_receber").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }),
-      supabase.from("inadimplencia").select("*").eq("empresa_id", empId),
+      lerTodas(() => supabase.from("clientes").select("*").eq("empresa_id", empId).order("created_at", { ascending: false }).order("id")),
+      lerTodas(() => supabase.from("contas_receber").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }).order("id")),
+      lerTodas(() => supabase.from("inadimplencia").select("*").eq("empresa_id", empId).order("id")),
     ]);
     setClientes(clientesData || []);
     setContas(contasData || []);
@@ -720,6 +722,8 @@ export default function ClientesPage() {
         return c.descricao.toLowerCase().includes(buscaContas.toLowerCase()) ||
           clienteNome.toLowerCase().includes(buscaContas.toLowerCase());
       });
+  const paginaCarteira = usePagina(intelFiltrado, 20);
+  const paginaCobrancas = usePagina(contasFiltradas);
 
   function getStatusCor(status: string | null | undefined, vencimento: string) {
     if (status === "recebido") return { cor: ct("#34d399"), bg: "rgba(52,211,153,0.1)", label: cl.recebido };
@@ -1109,7 +1113,7 @@ export default function ClientesPage() {
                   <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}><div className="p-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{cl.semClientes}</p></div></CanvasBox>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {intelFiltrado.map(({ s, ivca, sinais }, i) => {
+                    {paginaCarteira.fatia.map(({ s, ivca, sinais }, i) => {
                       const piorSinal = ordenarSinaisPorSeveridade(sinais)[0];
                       return (
                         <motion.div key={s.cliente.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
@@ -1144,6 +1148,7 @@ export default function ClientesPage() {
                     })}
                   </div>
                 )}
+                <Paginacao pagina={paginaCarteira.pagina} total={paginaCarteira.total} porPagina={20} onMudar={paginaCarteira.setPagina} lang={lang} temaClaro={temaClaro} />
               </div>
             )}
 
@@ -1477,7 +1482,7 @@ export default function ClientesPage() {
                   <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
                     <div className="p-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{cl.semContas}</p></div>
                   </CanvasBox>
-                ) : contasFiltradas.map((conta, i) => {
+                ) : paginaCobrancas.fatia.map((conta, i) => {
                   const clienteDaConta = clientes.find(c => c.id === conta.cliente_id);
                   const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
                   const expandida = cobrancaExpandidaId === conta.id;
@@ -1534,6 +1539,7 @@ export default function ClientesPage() {
                     </motion.div>
                   );
                 })}
+                <Paginacao pagina={paginaCobrancas.pagina} total={paginaCobrancas.total} onMudar={paginaCobrancas.setPagina} lang={lang} temaClaro={temaClaro} />
               </div>
             )}
           </>

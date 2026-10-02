@@ -24,6 +24,8 @@ import { statusEfetivo } from '../../../lib/fornecedorHelpers'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
+import Paginacao, { usePagina } from '../../../components/Paginacao'
+import { lerTodas } from '../../../lib/lerTodas'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -231,16 +233,16 @@ export default function ContasReceber() {
       { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: fc },
     ] = await Promise.all([
-      empId ? supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('centros_custo').select('id, nome').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
-      empId ? supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [] }),
       empId ? listarCompromissos(empId) : Promise.resolve([]),
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
-      empId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
@@ -544,6 +546,7 @@ export default function ContasReceber() {
       return alvo.includes(busca.toLowerCase())
     }).sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
   }, [contas, busca, filtroStatus, periodo, clientes])
+  const paginaContas = usePagina(contasFiltradas)
 
   // ========== PDF ==========
   const exportarPDF = async () => {
@@ -1383,7 +1386,7 @@ export default function ContasReceber() {
               <Inbox size={48} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-4" />
               <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma conta encontrada para o período/filtro atual.', 'No accounts found for the current period/filter.', 'Ninguna cuenta encontrada para el período/filtro actual.')}</p>
             </div>
-          ) : (
+          ) : (<>
             <div className="overflow-x-auto -mx-1">
               <table className="w-full text-xs border-separate" style={{ borderSpacing: '0 6px', minWidth: 1600 }}>
                 <thead>
@@ -1403,7 +1406,7 @@ export default function ContasReceber() {
                   </tr>
                 </thead>
                 <tbody>
-                  {contasFiltradas.map((c, i) => {
+                  {paginaContas.fatia.map((c, i) => {
                     const { dias, desconto, multa, juros, valorAtualizado, saldo } = calcularLinha(c)
                     const cli = cliente(c.cliente_id)
                     const cc = centrosCusto.find((x) => x.id === c.centro_custo_id)
@@ -1458,7 +1461,8 @@ export default function ContasReceber() {
                 </tbody>
               </table>
             </div>
-          )}
+              <Paginacao pagina={paginaContas.pagina} total={paginaContas.total} onMudar={paginaContas.setPagina} lang={lang} temaClaro={temaClaro} />
+          </>)}
         </div>
 
       </div>

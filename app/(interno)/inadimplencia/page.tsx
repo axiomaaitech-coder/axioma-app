@@ -24,6 +24,8 @@ import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
+import Paginacao, { usePagina } from '../../../components/Paginacao'
+import { lerTodas } from '../../../lib/lerTodas'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -170,15 +172,15 @@ export default function Inadimplencia() {
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: dreRows },
     ] = await Promise.all([
       empId ? supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
-      empId ? supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
-      empId ? supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [] }),
       empId ? listarCompromissos(empId) : Promise.resolve([]),
       empId ? listarInteracoes(empId) : Promise.resolve([]),
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
-      empId ? supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dre_historico').select('*').eq('empresa_id', empId).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle() : Promise.resolve({ data: null }),
     ])
@@ -302,6 +304,7 @@ export default function Inadimplencia() {
     (filtroPrioridade === 'todas' || l.prioridade === filtroPrioridade) &&
     l.s.cliente.nome.toLowerCase().includes(busca.toLowerCase())
   )
+  const paginaLinhas = usePagina(linhasFiltradas)
   const rankingPioresScores = useMemo(() => [...linhasRisco].sort((a, b) => a.score.total - b.score.total).slice(0, 8), [linhasRisco])
 
   const linhaAberta = linhasRisco.find((l) => l.s.cliente.id === clienteAbertoId) || null
@@ -479,7 +482,7 @@ export default function Inadimplencia() {
     }
     // empresa_id restaurado aqui — faltava neste refresh específico (o
     // carregamento inicial da tela já filtrava certo, este ponto não).
-    const { data: ct } = await supabase.from('contas_receber').select('*').eq('empresa_id', empresaId).order('data_vencimento', { ascending: true })
+    const { data: ct } = await lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empresaId).order('data_vencimento', { ascending: true }).order('id'))
     setContas((ct as ContaRow[]) || [])
     fecharModalCaso()
     setSalvandoCaso(false)
@@ -919,7 +922,7 @@ export default function Inadimplencia() {
               <Inbox size={48} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-4" />
               <p className="text-sm" style={{ color: CINZA }}>{linhasRisco.length === 0 ? L('Nenhum cliente inadimplente no momento.', 'No delinquent clients right now.', 'Ningún cliente moroso por el momento.') : L('Nenhum resultado para o filtro atual.', 'No results for the current filter.', 'Ningún resultado para el filtro actual.')}</p>
             </div>
-          ) : (
+          ) : (<>
             <div className="overflow-x-auto -mx-1">
               <table className="w-full text-xs border-separate" style={{ borderSpacing: '0 6px', minWidth: 1400 }}>
                 <thead>
@@ -936,7 +939,7 @@ export default function Inadimplencia() {
                   </tr>
                 </thead>
                 <tbody>
-                  {linhasFiltradas.map((l, i) => (
+                  {paginaLinhas.fatia.map((l, i) => (
                     <motion.tr key={l.s.cliente.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} style={{ background: (temaClaro ? '#f8fafc' : 'rgba(255,255,255,0.02)') }}>
                       <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: ct('#c8d8f0') }}>{l.s.cliente.nome}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: VERMELHO }}>{fBRL(l.s.valorVencido)}</td>
@@ -964,7 +967,8 @@ export default function Inadimplencia() {
                 </tbody>
               </table>
             </div>
-          )}
+            <Paginacao pagina={paginaLinhas.pagina} total={paginaLinhas.total} onMudar={paginaLinhas.setPagina} lang={lang} temaClaro={temaClaro} />
+          </>)}
         </div>
 
         {/* ================= SIMULADOR EXECUTIVO DE RECUPERAÇÃO ================= */}
