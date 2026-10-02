@@ -1148,6 +1148,21 @@ function cnpjValido(c: string): boolean {
   return dv(c.slice(0, 12)) === Number(c[12]) && dv(c.slice(0, 13)) === Number(c[13]);
 }
 
+// Ajudante da conferência (pedido do Elias): a IA explica cada pergunta em
+// linguagem simples e SUGERE a resposta — nunca responde sozinha. Formato de
+// linha pedido ao motor: [id] => valor || explicação. Ignora id/valor que não existem.
+export function lerSugestoesIA(texto: string, perguntas: PerguntaSupervisao[], opcoesPadrao: (p: PerguntaSupervisao) => string[]): Record<string, { valor: string; explicacao: string }> {
+  const out: Record<string, { valor: string; explicacao: string }> = {};
+  for (const linha of texto.split("\n")) {
+    const m = linha.match(/\[([\w-]+)\]\s*=>\s*([\w-]+)\s*\|\|\s*(.+)/);
+    if (!m) continue;
+    const p = perguntas.find((x) => x.id === m[1]);
+    if (!p || !(p.opcoes ? p.opcoes.map((o) => o.valor) : opcoesPadrao(p)).includes(m[2])) continue;
+    out[p.id] = { valor: m[2], explicacao: m[3].trim().slice(0, 600) };
+  }
+  return out;
+}
+
 export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): PerguntaSupervisao[] {
   const m = res.metadados ?? {};
   const ehNota = res.formato === "xml" || m.lido_por_ia;

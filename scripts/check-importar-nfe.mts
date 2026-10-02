@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { parseXMLNFe, resultadoDeNotaIA, aplicarClassificacaoItens, perguntasSupervisao } = await import('../lib/importarParsers')
+const { parseXMLNFe, resultadoDeNotaIA, aplicarClassificacaoItens, perguntasSupervisao, lerSugestoesIA } = await import('../lib/importarParsers')
 
 const EMPRESA = '11222333000181'
 const nota = (emit: string, dest: string, extra: string) => `<nfeProc><NFe><infNFe Id="NFe35260911222333000181550010000001231000001230">
@@ -138,3 +138,10 @@ const jaCad = { ...parcelada, metadados: { ...parcelada.metadados, fornecedor_ca
 assert.ok(!perguntasSupervisao(jaCad, hoje).some((p) => p.id === 'fornecedor_novo'))
 assert.ok(!perguntasSupervisao({ ...venda, metadados: { ...venda.metadados, fornecedor_cadastrado: null } }, hoje).some((p) => p.id === 'fornecedor_novo'))
 console.log('OK — fornecedor: pergunta só quando não cadastrado e só em compra')
+
+// 11) Ajudante da IA: lê só ids e opções que existem; o resto é ignorado
+const pergs = perguntasSupervisao(classificada, hoje)
+const sug = lerSugestoesIA(`Aqui vai:\n[lanc_estoque] => estoque || São roupas pra revender, então vão pro estoque.\n[lanc_estoque] => inventado || x\n[nao_existe] => certo || y\n1. Confira o papel.`, pergs, () => ['certo', 'corrigir'])
+assert.deepEqual(Object.keys(sug), ['lanc_estoque'])
+assert.equal(sug.lanc_estoque.valor, 'estoque')
+console.log('OK — ajudante da IA: só aceita pergunta e opção válidas')

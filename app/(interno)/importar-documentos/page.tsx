@@ -13,11 +13,13 @@ import { corTema, fBRL } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { transformarPadraoEmCustoFixo } from "../../../lib/contasPagarHelpers";
 import { buscarFornecedorPorCnpj, criarFornecedorDaNfe } from "../../../lib/pdvNfeHelpers";
+import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
   classificarItensCompra,
   perguntasSupervisao,
+  lerSugestoesIA,
   categoriaCustoVariavel,
   type PerguntaSupervisao,
   parcelarCompraCartao,
@@ -97,6 +99,10 @@ const T = {
     supCorrigir: "✏️ Vou corrigir na tabela",
     supCompra: "É uma COMPRA (contas a pagar)",
     supVenda: "É uma VENDA (receita)",
+    ajudanteBotao: "A IA explica e sugere as respostas",
+    ajudanteCarregando: "A IA está analisando a nota...",
+    ajudanteAceitarTodas: "Usar todas as sugestões da IA",
+    ajudanteSugere: "A IA sugere",
     deQueECompra: "Do que é esta compra (sugestão da IA)",
     categoriaSugeridaLinhas: "Categoria sugerida nas contas a pagar",
     lidoPorIA: "Nota lida pela IA a partir do PDF/foto. Confira valores, datas e parcelas antes de importar.",
@@ -233,6 +239,10 @@ const T = {
     supCorrigir: "✏️ I will fix it in the table",
     supCompra: "It is a PURCHASE (payables)",
     supVenda: "It is a SALE (revenue)",
+    ajudanteBotao: "AI explains and suggests the answers",
+    ajudanteCarregando: "AI is analyzing the invoice...",
+    ajudanteAceitarTodas: "Use all AI suggestions",
+    ajudanteSugere: "AI suggests",
     deQueECompra: "What this purchase is (AI suggestion)",
     categoriaSugeridaLinhas: "Suggested category on the payables",
     lidoPorIA: "Invoice read by AI from the PDF/photo. Check amounts, dates and installments before importing.",
@@ -369,6 +379,10 @@ const T = {
     supCorrigir: "✏️ Voy a corregir en la tabla",
     supCompra: "Es una COMPRA (cuentas por pagar)",
     supVenda: "Es una VENTA (ingreso)",
+    ajudanteBotao: "La IA explica y sugiere las respuestas",
+    ajudanteCarregando: "La IA está analizando la factura...",
+    ajudanteAceitarTodas: "Usar todas las sugerencias de la IA",
+    ajudanteSugere: "La IA sugiere",
     deQueECompra: "De qué es esta compra (sugerencia de la IA)",
     categoriaSugeridaLinhas: "Categoría sugerida en las cuentas por pagar",
     lidoPorIA: "Factura leída por IA desde el PDF/foto. Revise valores, fechas y cuotas antes de importar.",
@@ -588,6 +602,9 @@ export default function ImportarDocumentosPage() {
   const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "classificar" | "upload" | "dedup">("");
   // Supervisão humana (regra do Elias): respostas às perguntas da nota.
   const [respostasSup, setRespostasSup] = useState<Record<string, string>>({});
+  // Ajudante da IA na conferência: só sugere; o humano clica pra aceitar.
+  const [sugestoesIA, setSugestoesIA] = useState<Record<string, { valor: string; explicacao: string }>>({});
+  const [ajudanteCarregando, setAjudanteCarregando] = useState(false);
   const [hashFile, setHashFile] = useState<string>("");
   const [duplicataGlobal, setDuplicataGlobal] = useState<any>(null);
 
@@ -742,6 +759,7 @@ export default function ImportarDocumentosPage() {
     if (!userId || !empresaId) return;
     setEtapa("parse");
     setRespostasSup({});
+    setSugestoesIA({});
     const lido = await parseArquivo(file, empresaCnpj || undefined, langAtual, empresaId);
     if (lido.metadados?.erro_leitura) showToast(lido.metadados.erro_leitura, "erro");
     // Nota de compra: a IA sugere categoria e natureza de cada item (B3 item 3).
@@ -815,6 +833,7 @@ export default function ImportarDocumentosPage() {
 
   function cancelarUpload() {
     setRespostasSup({});
+    setSugestoesIA({});
     setArquivoSelecionado(null);
     setResultado(null);
     setLinhas([]);
@@ -899,6 +918,44 @@ export default function ImportarDocumentosPage() {
     if (respostasSup.lanc_custo_variavel === "sim") await variavel(grupos.custo_variavel, "custo variável", categoriaCustoVariavel(categoria));
     if (respostasSup.lanc_estoque === "custo") await variavel(grupos.estoque, "matéria-prima/mercadoria", "Matéria-prima");
     return avisos;
+  }
+
+  // Ajudante da conferência: manda a nota e as perguntas pro motor de IA, que
+  // explica em linguagem simples e sugere uma resposta por pergunta.
+  const opcoesPadraoSup = (p: PerguntaSupervisao) => (p.tipo === "destino" ? ["compra", "venda"] : ["certo", "corrigir"]);
+  async function pedirAjudaIA() {
+    if (!resultado || !empresaId || perguntasSup.length === 0) return;
+    setAjudanteCarregando(true);
+    const m = resultado.metadados ?? {};
+    const itens = (resultado.itensNFe ?? []).slice(0, 40).map((i) => `- ${i.descricao}: ${i.quantidade} x ${fBRL(i.valorUnitario)} = ${fBRL(i.valorTotal)}${i.naturezaSugerida ? ` (${i.naturezaSugerida})` : ""}`).join("\n");
+    const linhasNota = resultado.linhas.map((l, i) => `- ${l.descricao}: ${fBRL(l.valor ?? 0)}, emissão ${l.data ?? "?"}, vencimento ${l.vencimento ?? "-"}, já pago ${fBRL(l.valorPago ?? 0)}, destino ${destinos[i] ?? l.destinoSugerido}`).join("\n");
+    const perguntas = perguntasSup.map((p) => `[${p.id}] ${p.texto.pt}\n   opções: ${(p.opcoes ? p.opcoes.map((o) => `${o.valor} = ${o.texto.pt}`) : opcoesPadraoSup(p).map((v) => `${v} = ${v === "certo" ? "está certo" : v === "corrigir" ? "precisa corrigir na tabela" : v === "compra" ? "é compra (contas a pagar)" : "é venda (receita)"}`)).join("; ")}`).join("\n");
+    const contexto = `NOTA IMPORTADA (tela Importar Documentos — o usuário está conferindo antes de gravar)
+Emitente: ${m.razao_social ?? "?"} (CNPJ ${m.cnpj_emitente ?? "?"}) · Nº ${m.numero_nf ?? "?"} · emissão ${m.data_emissao ?? "?"} · total ${fBRL(m.valor_total ?? 0)}
+Pagamento: ${m.resumo_pagamento?.pt ?? "não informado"}
+Itens:
+${itens || "(sem itens)"}
+Linhas que serão gravadas:
+${linhasNota}
+
+PERGUNTAS DE CONFERÊNCIA (o usuário não entendeu e pediu ajuda):
+${perguntas}
+
+FORMATO OBRIGATÓRIO DA RESPOSTA: uma linha por pergunta, exatamente assim:
+[id] => valor_da_opção || explicação simples, como se falasse com um dono de loja sem conhecimento de contabilidade (o que a pergunta quer dizer, para onde o dinheiro vai em cada opção e por que você sugere essa).
+Use só os ids e valores de opção listados. Se não tiver como saber (ex.: comparar com o papel), sugira "certo" só quando os números da nota fecham, e diga na explicação o que o usuário deve olhar no papel. Nada além dessas linhas.`;
+    const r = await perguntarAoAxioma({
+      pergunta: "Analise esta nota fiscal e as perguntas de conferência: explique cada uma em linguagem simples e sugira a resposta e o destino de cada valor.",
+      empresaId, tela: "importar-documentos", lang: langAtual, contextoTela: contexto,
+    });
+    const sugestoes = r ? lerSugestoesIA(r.resposta, perguntasSup, opcoesPadraoSup) : {};
+    setSugestoesIA(sugestoes);
+    setAjudanteCarregando(false);
+    if (!Object.keys(sugestoes).length) showToast(langAtual === "en" ? "The AI could not help right now. Try again in a moment." : langAtual === "es" ? "La IA no pudo ayudar ahora. Intente de nuevo." : "A IA não conseguiu ajudar agora. Tente de novo em instantes.", "erro");
+  }
+
+  function aceitarTodasSugestoesIA() {
+    Object.entries(sugestoesIA).forEach(([id, s]) => { if (!respostasSup[id]) responderSupervisao(id, s.valor); });
   }
 
   // Resposta do humano a uma pergunta de supervisão. "Compra"/"venda" também
@@ -1741,6 +1798,10 @@ export default function ImportarDocumentosPage() {
               respostasSup={respostasSup}
               responderSupervisao={responderSupervisao}
               pendentesSupervisao={pendentesSupervisao}
+              sugestoesIA={sugestoesIA}
+              ajudanteCarregando={ajudanteCarregando}
+              pedirAjudaIA={pedirAjudaIA}
+              aceitarTodasSugestoesIA={aceitarTodasSugestoesIA}
               tt={tt}
               imp={imp}
               resultado={resultado}
@@ -2058,6 +2119,7 @@ function PreviewBlock(props: any) {
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
     escolherParcelasCartao,
     perguntasSup, respostasSup, responderSupervisao, pendentesSupervisao,
+    sugestoesIA, ajudanteCarregando, pedirAjudaIA, aceitarTodasSugestoesIA,
   } = props;
 
   const { tema } = useThemeAxioma();
@@ -2102,6 +2164,20 @@ function PreviewBlock(props: any) {
               🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
             </p>
             <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.supervisaoSub}</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button type="button" onClick={pedirAjudaIA} disabled={ajudanteCarregando}
+                className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60"
+                style={{ background: "#16a97d", color: "#fff" }}>
+                {ajudanteCarregando ? `⏳ ${tt.ajudanteCarregando}` : `🤖 ${tt.ajudanteBotao}`}
+              </button>
+              {Object.keys(sugestoesIA).length > 0 && pendentesSupervisao > 0 && (
+                <button type="button" onClick={aceitarTodasSugestoesIA}
+                  className="px-3 py-2 rounded-lg text-xs font-bold"
+                  style={{ background: temaClaro ? "#ffffff" : "transparent", color: temaClaro ? "#0f6b51" : "#6ee7b7", border: "1px solid #16a97d" }}>
+                  ✅ {tt.ajudanteAceitarTodas}
+                </button>
+              )}
+            </div>
             <div className="mt-2 space-y-2">
               {perguntasSup.map((p: PerguntaSupervisao) => {
                 const resp = respostasSup[p.id];
@@ -2113,6 +2189,14 @@ function PreviewBlock(props: any) {
                 return (
                   <div key={p.id} className="rounded-lg p-2" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
                     <p className="text-sm font-medium break-words" style={{ color: temaClaro ? "#101b3d" : "#e2e8f0" }}>{p.texto[idiomaNat]}</p>
+                    {sugestoesIA[p.id] && (
+                      <div className="mt-2 rounded-lg p-2 text-xs break-words" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(22,169,125,0.12)", borderLeft: "3px solid #16a97d", color: temaClaro ? "#101b3d" : "#e2e8f0" }}>
+                        <p className="font-bold" style={{ color: temaClaro ? "#0f6b51" : "#6ee7b7" }}>
+                          🤖 {tt.ajudanteSugere}: {opcoes.find(([v]) => v === sugestoesIA[p.id].valor)?.[1]}
+                        </p>
+                        <p className="mt-1">{sugestoesIA[p.id].explicacao}</p>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {opcoes.map(([valor, rotulo]) => (
                         <button key={valor} type="button" onClick={() => responderSupervisao(p.id, valor)}
