@@ -650,7 +650,12 @@ export async function sugerirClassificacoes(
 // ============================================================================
 
 export async function hashArquivo(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
+  // Navegador com leitura de arquivo travada (visto 2026-10-02) deixava o
+  // "Verificando duplicatas..." girando pra sempre — vira erro com aviso.
+  const buffer = await Promise.race([
+    file.arrayBuffer(),
+    new Promise<never>((_, rej) => setTimeout(() => rej(new Error("leitura do arquivo travou (navegador)")), 15000)),
+  ]);
   const bytes = new Uint8Array(buffer);
   const wordArray = CryptoJS.lib.WordArray.create(bytes as any);
   return CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
