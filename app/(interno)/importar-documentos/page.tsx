@@ -11,11 +11,13 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { corTema, fBRL } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
+import { transformarPadraoEmCustoFixo } from "../../../lib/contasPagarHelpers";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
   classificarItensCompra,
   perguntasSupervisao,
+  categoriaCustoVariavel,
   type PerguntaSupervisao,
   parcelarCompraCartao,
   MAX_PARCELAS_CARTAO,
@@ -29,6 +31,7 @@ import {
   buscarImportacaoPorHash,
   marcarDuplicatasPorLinha,
   registrarEventoTimeline,
+  lancarCustoVariavelDaNota,
   uploadArquivo,
   criarImportacao,
   gravarLinhas,
@@ -846,6 +849,39 @@ export default function ImportarDocumentosPage() {
     setDestinos((prev) => prev.map((d, i) => (!apenasSelecionadas || selecionadas[i] ? novoDestino : d)));
   }
 
+  // B3 item 4 — executa o que o humano respondeu nas perguntas de lançamento.
+  // Custos Variáveis = entra no DRE do mês. Custo Fixo mensal = reaproveita
+  // transformarPadraoEmCustoFixo (liga a conta a pagar desta nota ao custo fixo,
+  // então o mês atual não duplica no fluxo de caixa). Devolve frases curtas pro aviso.
+  async function lancarCustosDaNota(idsContasPagar: string[]): Promise<string[]> {
+    if (!userId || !empresaId || !resultado) return [];
+    const m = resultado.metadados ?? {};
+    const grupos = (m.classificacao_itens?.porNatureza ?? {}) as Record<string, { valor: number; itens: string[] }>;
+    const categoria = m.classificacao_itens?.categoriaPrincipal as string | undefined;
+    const emissao: string = m.data_emissao || new Date().toISOString().slice(0, 10);
+    const base = `NF ${m.numero_nf ?? "?"} - ${m.razao_social ?? (langAtual === "en" ? "supplier" : langAtual === "es" ? "proveedor" : "fornecedor")}`;
+    const L = (pt: string, en: string, es: string) => (langAtual === "en" ? en : langAtual === "es" ? es : pt);
+    const avisos: string[] = [];
+    const variavel = async (g: { valor: number; itens: string[] } | undefined, rotulo: string, cat: string) => {
+      if (!g) return;
+      const r = await lancarCustoVariavelDaNota(userId, empresaId, { data: emissao, valor: Math.round(g.valor * 100) / 100, descricao: `${base} (${rotulo})`, categoria: cat, documento: m.numero_nf ? String(m.numero_nf) : undefined });
+      avisos.push(r.erro ? `⚠️ ${L("Falha ao lançar em Custos Variáveis", "Failed to post to Variable Costs", "Error al registrar en Costos Variables")}` : `✓ ${fBRL(g.valor)} ${L("em Custos Variáveis", "in Variable Costs", "en Costos Variables")}`);
+    };
+    const rFixo = respostasSup.lanc_custo_fixo;
+    if (rFixo === "unico") await variavel(grupos.custo_fixo, "custo fixo pontual", "Outros");
+    if (rFixo === "mensal" && grupos.custo_fixo) {
+      const ref = resultado.linhas.find((l) => l.destinoSugerido === "contas_pagar")?.vencimento || emissao;
+      const r = await transformarPadraoEmCustoFixo(userId, empresaId, {
+        descricao: base, valorMensal: Math.round(grupos.custo_fixo.valor * 100) / 100,
+        diaVencimento: Number(ref.slice(8, 10)) || 1, categoria: categoria || "Outros",
+      }, idsContasPagar, ref.slice(0, 7));
+      avisos.push(r.erro && !r.custoFixoId ? `⚠️ ${L("Falha ao criar o Custo Fixo", "Failed to create the Fixed Cost", "Error al crear el Costo Fijo")}` : `✓ ${L("Custo Fixo mensal criado", "Monthly Fixed Cost created", "Costo Fijo mensual creado")}: ${fBRL(grupos.custo_fixo.valor)}`);
+    }
+    if (respostasSup.lanc_custo_variavel === "sim") await variavel(grupos.custo_variavel, "custo variável", categoriaCustoVariavel(categoria));
+    if (respostasSup.lanc_estoque === "custo") await variavel(grupos.estoque, "matéria-prima/mercadoria", "Matéria-prima");
+    return avisos;
+  }
+
   // Resposta do humano a uma pergunta de supervisão. "Compra"/"venda" também
   // aplica o destino em todas as linhas (o usuário ainda pode trocar linha a linha).
   function responderSupervisao(id: string, resposta: string) {
@@ -1071,6 +1107,16 @@ export default function ImportarDocumentosPage() {
           descricao: `${perguntasSup.length} pergunta(s) de conferência respondida(s) antes de importar`,
           dados: perguntasSup.map((p) => ({ id: p.id, pergunta: p.texto.pt, resposta: respostasSup[p.id] })),
         });
+      }
+
+      // 3c) B3 item 4 — lança a parte "custo" da compra onde o humano mandou.
+      // Só com conta a pagar criada de verdade (se ele disse "é venda", nada).
+      if (empresaId && result.inseridos.some((x) => x.tabela === "contas_pagar")) {
+        const avisos = await lancarCustosDaNota(result.inseridos.filter((x) => x.tabela === "contas_pagar").map((x) => x.id));
+        if (avisos.length) {
+          await registrarEventoTimeline({ empresaId, userId, importacaoId, evento: "lancamentos_nota", descricao: avisos.join(" · ") });
+          showToast(avisos.join(" · "), avisos.some((a) => a.startsWith("⚠️")) ? "erro" : "ok");
+        }
       }
 
       // 4) Atualiza tempo de processamento — métrica não-crítica (a importação em si já
@@ -2039,7 +2085,9 @@ function PreviewBlock(props: any) {
             <div className="mt-2 space-y-2">
               {perguntasSup.map((p: PerguntaSupervisao) => {
                 const resp = respostasSup[p.id];
-                const opcoes: [string, string][] = p.tipo === "destino"
+                const opcoes: [string, string][] = p.opcoes
+                  ? p.opcoes.map((o) => [o.valor, o.texto[idiomaNat]])
+                  : p.tipo === "destino"
                   ? [["compra", tt.supCompra], ["venda", tt.supVenda]]
                   : [["certo", tt.supCerto], ["corrigir", tt.supCorrigir]];
                 return (

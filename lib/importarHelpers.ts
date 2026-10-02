@@ -871,6 +871,9 @@ export type ResultadoGravacao = {
   erro: number;
   valor_total: number;
   mensagens_erro: string[];
+  // Registros criados nos destinos (B3 item 4: ligar a conta a pagar da nota
+  // ao custo fixo que o usuário pediu pra criar a partir dela).
+  inseridos: { tabela: DestinoTabela; id: string }[];
 };
 
 export async function gravarLinhas(params: {
@@ -903,6 +906,7 @@ export async function gravarLinhas(params: {
     erro: 0,
     valor_total: 0,
     mensagens_erro: [],
+    inseridos: [],
   };
 
   const auditoriaRows: any[] = [];
@@ -1066,6 +1070,7 @@ export async function gravarLinhas(params: {
 
     // 5) Sucesso
     resultado.importadas++;
+    resultado.inseridos.push({ tabela: destino, id: inserido.id });
     resultado.valor_total += linha.valor || 0;
     auditoriaRows.push({
       ...auditoriaBase,
@@ -1635,4 +1640,25 @@ export async function salvarTemplate(params: {
     return { erro: motivo };
   }
   return {};
+}
+// ============================================================================
+// B3 item 4 — lançar a parte "custo" de uma nota de COMPRA em Custos Variáveis
+// (é o que entra no DRE do mês). Só roda depois de o humano responder "sim" na
+// conferência. Contas a pagar NÃO entra no DRE, então isto não conta 2 vezes.
+// Mesmo builder do Importar (mesma validação de campos obrigatórios).
+// ============================================================================
+export async function lancarCustoVariavelDaNota(
+  userId: string,
+  empresaId: string,
+  dados: { data: string; valor: number; descricao: string; categoria: string; documento?: string },
+): Promise<{ id?: string; erro?: string }> {
+  const build = BUILDERS.custos_variaveis({ data: dados.data, valor: dados.valor, descricao: dados.descricao, categoria: dados.categoria, documento: dados.documento, raw: {} }, userId, empresaId);
+  if ("erro" in build) return { erro: build.erro };
+  const { data, error } = await supabase.from("custos_variaveis").insert(build.payload).select("id").single();
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("custos_variaveis", "insert (custo da nota importada)", motivo);
+    return { erro: motivo };
+  }
+  return { id: data.id };
 }

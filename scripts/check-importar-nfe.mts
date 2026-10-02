@@ -118,3 +118,15 @@ for (const esperado of ['leitura_ia', 'duvida_ia_0', 'parcelas_total', 'emissao_
 const semEmpresa = await parseXMLNFe(nota('99888777000100', EMPRESA, ''), undefined)
 assert.ok(ids(semEmpresa).includes('destino')) // empresa sem CNPJ: pergunta se é compra ou venda
 console.log('OK — supervisão humana: leitura da IA, dúvidas, parcelas x total, datas impossíveis, CNPJ inválido, compra ou venda')
+
+// 9) Perguntas de lançamento (B3 item 4): estoque pergunta como tratar; custo fixo da nota inteira oferece "todo mês"
+const pEstoque = perguntasSupervisao(classificada, hoje)
+assert.ok(pEstoque.some((p) => p.id === 'lanc_estoque' && p.opcoes?.length === 2))
+assert.ok(!pEstoque.some((p) => p.id === 'lanc_custo_fixo'))
+const pixFixo = aplicarClassificacaoItens(pix, [{ categoria: 'Serviços', natureza: 'custo_fixo' }])
+const pFixo = perguntasSupervisao(pixFixo, hoje).find((p) => p.id === 'lanc_custo_fixo')
+assert.deepEqual(pFixo?.opcoes?.map((o) => o.valor), ['mensal', 'unico', 'nao'])
+const parcFixo = aplicarClassificacaoItens(parcelada, [{ categoria: 'Serviços', natureza: 'custo_fixo' }])
+assert.deepEqual(perguntasSupervisao(parcFixo, hoje).find((p) => p.id === 'lanc_custo_fixo')?.opcoes?.map((o) => o.valor), ['unico', 'nao']) // parcelada não vira custo fixo mensal
+assert.ok(!perguntasSupervisao(vendaClass, hoje).some((p) => p.id.startsWith('lanc_'))) // venda não pergunta lançamento de custo
+console.log('OK — perguntas de lançamento (custo fixo mensal só p/ nota inteira à vista, estoque, venda sem pergunta)')

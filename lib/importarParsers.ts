@@ -1127,7 +1127,13 @@ export function resultadoDeNotaIA(nota: NotaLidaIA, formato: ResultadoParse["for
 // sem IA (parcelas × total, datas impossíveis, CNPJ inválido, compra ou venda
 // indefinida). Confirmar fica travado até responder todas.
 type T3 = { pt: string; en: string; es: string };
-export type PerguntaSupervisao = { id: string; tipo: "conferir" | "destino"; texto: T3 };
+export type PerguntaSupervisao = { id: string; tipo: "conferir" | "destino" | "lancamento"; texto: T3; opcoes?: { valor: string; texto: T3 }[] };
+
+// Categoria de Custos Variáveis (lista da tela Custos Variáveis) a partir da
+// categoria de despesa sugerida pela IA.
+export function categoriaCustoVariavel(categoriaDespesa?: string): string {
+  return categoriaDespesa === "Produtos" ? "Matéria-prima" : categoriaDespesa === "Marketing" || categoriaDespesa === "Logística" ? categoriaDespesa : "Outros";
+}
 
 function cnpjValido(c: string): boolean {
   if (!/^\d{14}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
@@ -1186,6 +1192,46 @@ export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): Per
       pt: `O CNPJ do ${lado === "emitente" ? "emitente" : "destinatário"} (${c}) não é válido — pode ter sido lido errado. Confira no documento.`,
       en: `The ${lado === "emitente" ? "issuer" : "recipient"} CNPJ (${c}) is not valid — it may have been misread. Check the document.`,
       es: `El CNPJ del ${lado === "emitente" ? "emisor" : "destinatario"} (${c}) no es válido — puede haberse leído mal. Verifique el documento.`,
+    } });
+  }
+
+  // B3 item 4 — onde lançar a parte "custo" da COMPRA (só depois do "sim" do
+  // humano). Contas a pagar não entra no DRE; Custos Variáveis entra no mês;
+  // Custo Fixo conta TODO mês (só vale pra despesa que se repete).
+  const grupos = (m.classificacao_itens?.porNatureza ?? {}) as Record<string, { valor: number; itens: string[] }>;
+  if (res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) {
+    const nomes = (g: { itens: string[] }) => g.itens.slice(0, 3).join(", ") + (g.itens.length > 3 ? "…" : "");
+    const naoLancar = { valor: "nao", texto: { pt: "Não lançar como custo", en: "Do not post as a cost", es: "No registrar como costo" } };
+    const g = grupos.custo_fixo;
+    if (g) {
+      const notaInteira = g.valor >= total * 0.99 && parcelas.length <= 1;
+      p.push({ id: "lanc_custo_fixo", tipo: "lancamento", texto: {
+        pt: `Itens de custo fixo (${brl(g.valor)}: ${nomes(g)}). Essa despesa se repete todo mês?`,
+        en: `Fixed-cost items (${brl(g.valor)}: ${nomes(g)}). Does this expense repeat every month?`,
+        es: `Ítems de costo fijo (${brl(g.valor)}: ${nomes(g)}). ¿Este gasto se repite todos los meses?`,
+      }, opcoes: [
+        ...(notaInteira ? [{ valor: "mensal", texto: { pt: "Sim, todo mês: criar Custo Fixo mensal", en: "Yes, monthly: create a monthly Fixed Cost", es: "Sí, cada mes: crear Costo Fijo mensual" } }] : []),
+        { valor: "unico", texto: { pt: "Foi só desta vez: lançar em Custos Variáveis do mês", en: "One-off: post to this month's Variable Costs", es: "Solo esta vez: registrar en Costos Variables del mes" } },
+        naoLancar,
+      ] });
+    }
+    if (grupos.custo_variavel) p.push({ id: "lanc_custo_variavel", tipo: "lancamento", texto: {
+      pt: `Itens de custo variável (${brl(grupos.custo_variavel.valor)}: ${nomes(grupos.custo_variavel)}). Lançar em Custos Variáveis do mês (entra no resultado)?`,
+      en: `Variable-cost items (${brl(grupos.custo_variavel.valor)}: ${nomes(grupos.custo_variavel)}). Post to this month's Variable Costs (affects the result)?`,
+      es: `Ítems de costo variable (${brl(grupos.custo_variavel.valor)}: ${nomes(grupos.custo_variavel)}). ¿Registrar en Costos Variables del mes (afecta el resultado)?`,
+    }, opcoes: [{ valor: "sim", texto: { pt: "Sim, lançar", en: "Yes, post it", es: "Sí, registrar" } }, naoLancar] });
+    if (grupos.estoque) p.push({ id: "lanc_estoque", tipo: "lancamento", texto: {
+      pt: `Itens de estoque/matéria-prima (${brl(grupos.estoque.valor)}: ${nomes(grupos.estoque)}). Como tratar?`,
+      en: `Inventory/raw-material items (${brl(grupos.estoque.valor)}: ${nomes(grupos.estoque)}). How to handle them?`,
+      es: `Ítems de inventario/materia prima (${brl(grupos.estoque.valor)}: ${nomes(grupos.estoque)}). ¿Cómo tratarlos?`,
+    }, opcoes: [
+      { valor: "custo", texto: { pt: "Lançar como custo variável do mês (já foi/será usado)", en: "Post as this month's variable cost (used up)", es: "Registrar como costo variable del mes (ya usado)" } },
+      { valor: "estoque", texto: { pt: "Vou dar entrada no Estoque (não lançar como custo agora)", en: "I will add it to Inventory (no cost now)", es: "Daré entrada en Inventario (sin costo ahora)" } },
+    ] });
+    if (grupos.investimento) p.push({ id: "lanc_investimento", tipo: "conferir", texto: {
+      pt: `Itens de investimento (${brl(grupos.investimento.valor)}: ${nomes(grupos.investimento)}) ficam só na conta a pagar e não entram como custo do mês, porque são bens duráveis. Está certo?`,
+      en: `Investment items (${brl(grupos.investimento.valor)}: ${nomes(grupos.investimento)}) stay only as a payable and are not a cost of the month, since they are durable assets. Is that right?`,
+      es: `Ítems de inversión (${brl(grupos.investimento.valor)}: ${nomes(grupos.investimento)}) quedan solo como cuenta por pagar y no son costo del mes, por ser bienes durables. ¿Es correcto?`,
     } });
   }
 
