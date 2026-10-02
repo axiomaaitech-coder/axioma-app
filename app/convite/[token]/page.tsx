@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShieldCheck, Clock, UserCheck, CheckCircle2, AlertCircle } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterConvitePorToken, definirEmpresaPreferida } from '../../../lib/empresaHelpers'
@@ -41,7 +41,7 @@ const mascaraCpf = (v: string) => v.replace(/\D/g, '').slice(0, 11)
 type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'recusado' | 'pronto' | 'enviando' | 'bemvindo'
 type Convite = NonNullable<Awaited<ReturnType<typeof obterConvitePorToken>>>
 
-const COR = { fundo: '#020810', card: 'rgba(8,18,36,0.95)', borda: 'rgba(46,204,155,0.25)', menta: '#2ecc9b', mentaForte: '#16a97d', texto: '#e2e8f0', sec: '#8aa0bf', campo: 'rgba(255,255,255,0.04)', erro: '#f87171' }
+const COR = { fundo: '#050d1c', card: '#0a1730', linha: 'rgba(147,166,194,0.16)', menta: '#2ecc9b', tinta: '#04241a', texto: '#e8eef7', sec: '#93a6c2', campo: 'rgba(255,255,255,0.035)', erro: '#f87171' }
 
 export default function AceitarConvite() {
   const params = useParams()
@@ -81,7 +81,7 @@ export default function AceitarConvite() {
     : d === 180 ? L('6 meses', '6 months', '6 meses')
     : d === 365 ? L('1 ano', '1 year', '1 año')
     : L(`${d} dias`, `${d} days`, `${d} días`)
-  const remetente = convite?.remetente_nome || L('o responsável pela empresa', 'the company owner', 'el responsable de la empresa')
+  const remetente = (convite?.remetente_nome || '').replace(/\s*\(.*$/, '') || L('o responsável pela empresa', 'the company owner', 'el responsable de la empresa')
 
   // CPF só para acesso acima de 30 dias ou indeterminado (regra do Elias)
   const pedeCpf = convite ? (convite.acesso_dias == null || convite.acesso_dias > 30) : false
@@ -133,150 +133,174 @@ export default function AceitarConvite() {
     }
   }
 
-  const campo = (ok: boolean, preenchido: boolean) => ({
-    background: COR.campo, color: COR.texto,
-    border: `1px solid ${preenchido ? (ok ? COR.menta : COR.erro) : 'rgba(255,255,255,0.12)'}`,
-  })
-  const rotulo = 'text-[10px] uppercase tracking-wider'
-  const entrada = 'w-full mt-1 px-3 py-2.5 rounded-xl text-sm outline-none transition-all focus:scale-[1.01]'
+  const [verSenha, setVerSenha] = useState(false)
+  const borda = (ok: boolean, preenchido: boolean) => preenchido ? (ok ? 'rgba(46,204,155,0.55)' : 'rgba(248,113,113,0.6)') : COR.linha
+  const entrada = 'w-full mt-1.5 px-3.5 py-3 rounded-xl text-[15px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#2ecc9b]/60'
+  const estiloCampo = (ok: boolean, preenchido: boolean) => ({ background: COR.campo, color: COR.texto, border: `1px solid ${borda(ok, preenchido)}` })
+  const Rotulo = ({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) =>
+    <label htmlFor={htmlFor} className="text-[13px] font-medium" style={{ color: COR.sec }}>{children}</label>
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4 py-10"
-      style={{ background: `radial-gradient(ellipse at 50% 0%, #0a1628 0%, ${COR.fundo} 60%, #000 100%)` }}>
+    <div className="min-h-screen flex flex-col items-center px-4 pt-16 pb-10"
+      style={{ background: `radial-gradient(ellipse 90% 60% at 50% -10%, #0f2a4a 0%, ${COR.fundo} 55%, #01050c 100%)` }}>
 
-      <div className="absolute top-5 right-5 flex gap-2">
+      <div className="w-full max-w-[440px] flex justify-end gap-1.5 mb-10">
         {(['pt', 'en', 'es'] as const).map((l) => (
-          <button key={l} onClick={() => setIdioma(l)} className="text-xs px-3 py-1 rounded-full font-bold transition-all"
-            style={{ background: idioma === l ? 'rgba(46,204,155,0.2)' : 'transparent', color: idioma === l ? COR.menta : COR.sec, border: '1px solid rgba(46,204,155,0.25)' }}>
-            {l === 'pt' ? '🇧🇷 PT' : l === 'en' ? '🇺🇸 EN' : '🇪🇸 ES'}
+          <button key={l} onClick={() => setIdioma(l)} aria-pressed={idioma === l}
+            className="text-xs px-2.5 py-1 rounded-md font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2ecc9b]"
+            style={{ background: idioma === l ? 'rgba(46,204,155,0.14)' : 'transparent', color: idioma === l ? COR.menta : COR.sec }}>
+            {l.toUpperCase()}
           </button>
         ))}
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.4 }}
-        className="w-full max-w-md px-6 sm:px-8 py-8 rounded-3xl"
-        style={{ background: COR.card, border: `1px solid ${COR.borda}`, boxShadow: '0 0 80px rgba(46,204,155,0.08), 0 30px 60px rgba(0,0,0,0.5)' }}>
+      <motion.main initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[440px] rounded-[28px] px-6 sm:px-9 pt-14 pb-8"
+        style={{ background: COR.card, border: `1px solid ${COR.linha}`, boxShadow: '0 40px 80px -20px rgba(0,0,0,0.65)' }}>
 
-        <div className="flex flex-col items-center mb-5">
-          <motion.div animate={{ filter: ['drop-shadow(0 0 18px rgba(46,204,155,0.35))', 'drop-shadow(0 0 30px rgba(46,204,155,0.6))', 'drop-shadow(0 0 18px rgba(46,204,155,0.35))'] }} transition={{ duration: 3, repeat: Infinity }}>
-            <Image src="/logo-aitech.png" alt="Axioma AI.Tech" width={64} height={64} priority />
-          </motion.div>
-          <p className="text-xs font-black tracking-[0.3em] uppercase mt-3" style={{ color: COR.menta }}>AXIOMA AI.TECH</p>
-          <p className="text-lg font-bold mt-1" style={{ color: COR.texto }}>{L('Convite de acesso', 'Access invitation', 'Invitación de acceso')}</p>
+        {/* selo do convite */}
+        <div className="absolute left-1/2 -top-9 -translate-x-1/2 w-[72px] h-[72px] rounded-full flex items-center justify-center"
+          style={{ background: COR.fundo, border: '1px solid rgba(46,204,155,0.45)', boxShadow: '0 0 0 6px rgba(46,204,155,0.06), 0 10px 30px rgba(46,204,155,0.18)' }}>
+          <Image src="/logo-aitech.png" alt="Axioma AI.Tech" width={46} height={46} priority />
         </div>
 
-        {estado === 'carregando' && <p className="text-sm text-center" style={{ color: COR.sec }}>...</p>}
+        {estado === 'carregando' && (
+          <div className="py-10 flex justify-center">
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: `${COR.menta} transparent transparent transparent` }} />
+          </div>
+        )}
 
         {(estado === 'invalido' || estado === 'usado' || estado === 'expirado' || estado === 'recusado') && (
-          <div className="text-center">
-            <div className="text-4xl mb-3">{estado === 'usado' ? '✅' : '🚫'}</div>
-            <p className="text-sm mb-5" style={{ color: estado === 'usado' ? COR.texto : COR.erro }}>
-              {estado === 'invalido' ? L('Este link de convite não é válido.', 'This invite link is not valid.', 'Este enlace de invitación no es válido.')
-                : estado === 'usado' ? L('Este convite já foi utilizado. Para entrar de novo, use seu e-mail e senha.', 'This invite has already been used. To come back, use your e-mail and password.', 'Esta invitación ya fue utilizada. Para volver, use su correo y contraseña.')
-                : estado === 'expirado' ? MSG.expirado
-                : L('Este convite foi recusado pelo responsável da empresa.', 'This invite was declined by the company owner.', 'Esta invitación fue rechazada por el responsable.')}
+          <div className="text-center py-4">
+            <p className="text-lg font-semibold mb-2" style={{ color: COR.texto }}>
+              {estado === 'usado' ? L('Convite já aceito', 'Invite already accepted', 'Invitación ya aceptada')
+                : estado === 'expirado' ? L('Convite expirado', 'Invite expired', 'Invitación expirada')
+                : estado === 'recusado' ? L('Convite cancelado', 'Invite cancelled', 'Invitación cancelada')
+                : L('Link de convite inválido', 'Invalid invite link', 'Enlace de invitación inválido')}
             </p>
-            {estado === 'usado' && <a href="/login" className="text-sm font-bold" style={{ color: COR.menta }}>{L('Entrar no Axioma', 'Sign in to Axioma', 'Entrar en Axioma')}</a>}
+            <p className="text-sm leading-relaxed mb-6" style={{ color: COR.sec }}>
+              {estado === 'usado' ? L('Para entrar de novo, use seu e-mail e a senha que você criou.', 'To come back, use your e-mail and the password you created.', 'Para volver, use su correo y la contraseña que creó.')
+                : estado === 'expirado' ? L('Peça um convite novo a quem convidou você.', 'Ask whoever invited you for a new one.', 'Pida una invitación nueva a quien lo invitó.')
+                : estado === 'recusado' ? L('O responsável pela empresa cancelou este convite.', 'The company owner cancelled this invite.', 'El responsable de la empresa canceló esta invitación.')
+                : L('Confira se o link foi copiado inteiro.', 'Check that the whole link was copied.', 'Revise si el enlace se copió completo.')}
+            </p>
+            {estado === 'usado' && (
+              <a href="/login" className="inline-block px-6 py-3 rounded-xl text-sm font-bold" style={{ background: COR.menta, color: COR.tinta }}>
+                {L('Entrar no Axioma', 'Sign in to Axioma', 'Entrar en Axioma')}
+              </a>
+            )}
           </div>
         )}
 
         {convite && (estado === 'pronto' || estado === 'enviando') && (
           <>
-            <div className="rounded-2xl p-4 mb-5 space-y-1.5 text-xs" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: COR.sec }}>
-              <p className="text-sm" style={{ color: COR.texto }}>
-                <UserCheck size={14} className="inline mr-1.5" style={{ color: COR.menta }} />
-                {L('Convidado por', 'Invited by', 'Invitado por')} <strong>{remetente}</strong> {L('em', 'on', 'el')} {dataHora(convite.convidado_em)}
+            <header className="text-center">
+              <p className="text-[15px] leading-snug" style={{ color: COR.sec }}>
+                {L(`${remetente} convidou você para entrar em`, `${remetente} invited you to join`, `${remetente} te invitó a entrar en`)}
               </p>
-              <p>{L('Empresa', 'Company', 'Empresa')}: <strong style={{ color: COR.texto }}>{convite.empresa_nome}</strong></p>
-              <p>
-                {convite.relacao ? `${RELACAO_LABEL[lang][convite.relacao] || convite.relacao} • ` : ''}
-                {PAPEL_LABEL[lang][convite.papel] || convite.papel}
-              </p>
-              <p><Clock size={12} className="inline mr-1" />{L('Acesso por', 'Access for', 'Acceso por')} <strong style={{ color: COR.texto }}>{prazoTexto(convite.acesso_dias)}</strong>{L(' a partir de agora', ' starting now', ' a partir de ahora')}</p>
-              {convite.motivo_convite && <p>{L('Motivo', 'Reason', 'Motivo')}: {convite.motivo_convite}</p>}
-            </div>
+              <h1 className="mt-2 text-[30px] leading-[1.1] font-bold tracking-[-0.02em] break-words" style={{ color: COR.texto }}>{convite.empresa_nome}</h1>
+            </header>
 
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+            <dl className="mt-7 mb-7 text-sm" style={{ borderTop: `1px solid ${COR.linha}` }}>
+              {[
+                [L('Função', 'Role', 'Función'), `${convite.relacao ? `${RELACAO_LABEL[lang][convite.relacao] || convite.relacao}, ` : ''}${PAPEL_LABEL[lang][convite.papel] || convite.papel}`],
+                [L('Acesso', 'Access', 'Acceso'), `${prazoTexto(convite.acesso_dias)}${convite.acesso_dias == null ? '' : L(', a partir de agora', ', starting now', ', a partir de ahora')}`],
+                ...(convite.motivo_convite ? [[L('Motivo', 'Reason', 'Motivo'), convite.motivo_convite]] : []),
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4 py-2.5" style={{ borderBottom: `1px solid ${COR.linha}` }}>
+                  <dt style={{ color: COR.sec }}>{k}</dt>
+                  <dd className="text-right font-medium" style={{ color: COR.texto }}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <form onSubmit={(e) => { e.preventDefault(); enviar() }} className="space-y-4" noValidate>
               <div>
-                <label className={rotulo} style={{ color: COR.sec }}>{L('Nome completo *', 'Full name *', 'Nombre completo *')}</label>
-                <input value={nome} onChange={(e) => { setNome(e.target.value); setErro('') }} maxLength={120} autoComplete="name"
-                  className={entrada} style={campo(nomeOk, nome.length > 0)} />
+                <Rotulo htmlFor="cv-nome">{L('Nome completo', 'Full name', 'Nombre completo')}</Rotulo>
+                <input id="cv-nome" value={nome} onChange={(e) => { setNome(e.target.value); setErro('') }} maxLength={120} autoComplete="name"
+                  className={entrada} style={estiloCampo(nomeOk, nome.length > 0)} />
               </div>
               {pedeCpf && (
                 <div>
-                  <label className={rotulo} style={{ color: COR.sec }}>CPF *</label>
-                  <input value={cpf} onChange={(e) => { setCpf(mascaraCpf(e.target.value)); setErro('') }} inputMode="numeric" placeholder="000.000.000-00"
-                    className={entrada} style={campo(cpfOk, cpf.length > 0)} />
+                  <Rotulo htmlFor="cv-cpf">CPF</Rotulo>
+                  <input id="cv-cpf" value={cpf} onChange={(e) => { setCpf(mascaraCpf(e.target.value)); setErro('') }} inputMode="numeric" placeholder="000.000.000-00"
+                    className={entrada} style={estiloCampo(cpfOk, cpf.length > 0)} />
                 </div>
               )}
               <div>
-                <label className={rotulo} style={{ color: COR.sec }}>{L('E-mail *', 'E-mail *', 'Correo *')}</label>
-                <input value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }} type="email" autoComplete="email"
+                <Rotulo htmlFor="cv-email">E-mail</Rotulo>
+                <input id="cv-email" value={email} onChange={(e) => { setEmail(e.target.value); setErro('') }} type="email" autoComplete="email"
                   readOnly={!!convite.email_convidado}
-                  className={entrada} style={{ ...campo(emailOk, email.length > 0), ...(convite.email_convidado ? { opacity: 0.8, cursor: 'not-allowed' } : {}) }} />
+                  className={entrada} style={{ ...estiloCampo(emailOk, email.length > 0), ...(convite.email_convidado ? { opacity: 0.75 } : {}) }} />
               </div>
               <div>
-                <label className={rotulo} style={{ color: COR.sec }}>{L('Crie uma senha * (para as próximas vezes)', 'Create a password * (for next time)', 'Cree una contraseña * (para las próximas veces)')}</label>
-                <input value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }} type="password" autoComplete="new-password"
-                  className={entrada} style={campo(senhaOk, senha.length > 0)} />
-                <p className="text-[10px] mt-1" style={{ color: COR.sec }}>{L('Já tem conta no Axioma com este e-mail? Use a mesma senha.', 'Already have an Axioma account with this e-mail? Use the same password.', '¿Ya tiene cuenta en Axioma con este correo? Use la misma contraseña.')}</p>
+                <Rotulo htmlFor="cv-senha">{L('Crie uma senha', 'Create a password', 'Cree una contraseña')}</Rotulo>
+                <div className="relative">
+                  <input id="cv-senha" value={senha} onChange={(e) => { setSenha(e.target.value); setErro('') }} type={verSenha ? 'text' : 'password'} autoComplete="new-password"
+                    className={`${entrada} pr-16`} style={estiloCampo(senhaOk, senha.length > 0)} />
+                  <button type="button" onClick={() => setVerSenha(!verSenha)} className="absolute right-3 top-1/2 -translate-y-[40%] text-xs font-semibold px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2ecc9b]" style={{ color: COR.sec }}>
+                    {verSenha ? L('Ocultar', 'Hide', 'Ocultar') : L('Mostrar', 'Show', 'Mostrar')}
+                  </button>
+                </div>
+                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: COR.sec }}>
+                  {L('Mínimo de 6 caracteres. Se este e-mail já tem conta no Axioma, use a mesma senha.', 'At least 6 characters. If this e-mail already has an Axioma account, use the same password.', 'Mínimo 6 caracteres. Si este correo ya tiene cuenta en Axioma, use la misma contraseña.')}
+                </p>
               </div>
 
-              <motion.label whileHover={{ scale: 1.01 }} className="flex items-start gap-2.5 p-3 rounded-xl cursor-pointer"
-                style={{ background: aceitaTermos ? 'rgba(46,204,155,0.08)' : COR.campo, border: `1px solid ${aceitaTermos ? COR.menta : 'rgba(255,255,255,0.1)'}` }}>
-                <input type="checkbox" checked={aceitaTermos} onChange={(e) => { setAceitaTermos(e.target.checked); setErro('') }} className="mt-0.5 accent-emerald-500" />
-                <span className="text-xs" style={{ color: COR.texto }}>
-                  {L('Li e concordo com os ', 'I have read and agree to the ', 'Leí y acepto los ')}
-                  <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: COR.menta }}>{L('Termos de Uso', 'Terms of Use', 'Términos de Uso')}</a>
-                  {L(' e com a ', ' and the ', ' y la ')}
-                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: COR.menta }}>{L('Política de Privacidade (LGPD)', 'Privacy Policy (LGPD)', 'Política de Privacidad (LGPD)')}</a>
-                  {L(`. Fui convidado(a) por ${remetente}. Meus dados ficam registrados e o acesso pode ser encerrado a qualquer momento.`,
-                     `. I was invited by ${remetente}. My data is recorded and access can be ended at any time.`,
-                     `. Fui invitado(a) por ${remetente}. Mis datos quedan registrados y el acceso puede cerrarse en cualquier momento.`)}
+              <label className="flex items-start gap-3 pt-1 cursor-pointer">
+                <input type="checkbox" checked={aceitaTermos} onChange={(e) => { setAceitaTermos(e.target.checked); setErro('') }} className="mt-[3px] w-4 h-4 accent-[#2ecc9b] flex-shrink-0" />
+                <span className="text-[13px] leading-relaxed" style={{ color: COR.sec }}>
+                  {L('Li e aceito os ', 'I accept the ', 'Acepto los ')}
+                  <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: COR.texto }}>{L('Termos de Uso', 'Terms of Use', 'Términos de Uso')}</a>
+                  {L(' e a ', ' and the ', ' y la ')}
+                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: COR.texto }}>{L('Política de Privacidade (LGPD)', 'Privacy Policy (LGPD)', 'Política de Privacidad (LGPD)')}</a>
+                  {L('. Sei que o acesso pode ser encerrado a qualquer momento.', '. I know access can be ended at any time.', '. Sé que el acceso puede cerrarse en cualquier momento.')}
                 </span>
-              </motion.label>
+              </label>
 
               <AnimatePresence>
                 {erro && (
-                  <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="text-xs font-semibold flex items-center gap-1.5" style={{ color: COR.erro }}>
-                    <AlertCircle size={14} />{erro}
+                  <motion.p role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="text-[13px] font-medium flex items-start gap-2 rounded-lg px-3 py-2.5" style={{ color: COR.erro, background: 'rgba(248,113,113,0.08)' }}>
+                    <AlertCircle size={15} className="mt-[2px] flex-shrink-0" />{erro}
                   </motion.p>
                 )}
               </AnimatePresence>
 
-              <motion.button onClick={enviar} disabled={estado === 'enviando'}
-                whileHover={podeEnviar ? { scale: 1.02, y: -2, boxShadow: '0 10px 30px rgba(46,204,155,0.4)' } : { x: [0, -3, 3, 0] }} whileTap={{ scale: 0.97 }}
-                className="w-full py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2 disabled:opacity-70"
-                style={{ background: podeEnviar ? `linear-gradient(135deg, ${COR.mentaForte}, ${COR.menta})` : 'rgba(46,204,155,0.18)', color: '#fff' }}>
-                <ShieldCheck size={16} />
-                {estado === 'enviando' ? L('Entrando...', 'Entering...', 'Entrando...') : L(`Aceitar e entrar em ${convite.empresa_nome}`, `Accept and enter ${convite.empresa_nome}`, `Aceptar y entrar en ${convite.empresa_nome}`)}
+              <motion.button type="submit" disabled={estado === 'enviando'} whileTap={{ scale: 0.98 }}
+                className="w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter,opacity] hover:brightness-110 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
+                style={{ background: COR.menta, color: COR.tinta, opacity: podeEnviar || estado === 'enviando' ? 1 : 0.55 }}>
+                {estado === 'enviando' ? L('Entrando…', 'Entering…', 'Entrando…') : L('Aceitar convite e entrar', 'Accept invite and enter', 'Aceptar invitación y entrar')}
               </motion.button>
-            </motion.div>
+            </form>
+
+            <p className="mt-6 text-xs text-center leading-relaxed flex items-center justify-center gap-1.5" style={{ color: COR.sec }}>
+              <Lock size={12} />
+              {L('Seus dados ficam protegidos e só a empresa que convidou vê.', 'Your data is protected and only the inviting company sees it.', 'Sus datos están protegidos y solo la empresa que invitó los ve.')}
+            </p>
           </>
         )}
 
         {estado === 'bemvindo' && convite && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.2, 1] }} transition={{ duration: 0.5 }} className="inline-block mb-3">
-              <CheckCircle2 size={48} style={{ color: COR.menta }} />
-            </motion.div>
-            <p className="text-base font-bold mb-1" style={{ color: COR.texto }}>{L('Seja bem-vindo(a) ao Axioma!', 'Welcome to Axioma!', '¡Bienvenido(a) a Axioma!')}</p>
-            <p className="text-xs mb-5" style={{ color: COR.sec }}>
-              {L(`Seu acesso à empresa ${convite.empresa_nome} está liberado.`, `Your access to ${convite.empresa_nome} is granted.`, `Su acceso a ${convite.empresa_nome} está liberado.`)}
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }} className="text-center py-2">
+            <CheckCircle2 size={44} className="mx-auto mb-4" style={{ color: COR.menta }} />
+            <h1 className="text-[26px] font-bold tracking-[-0.02em]" style={{ color: COR.texto }}>{L('Seja bem-vindo ao Axioma', 'Welcome to Axioma', 'Bienvenido a Axioma')}</h1>
+            <p className="mt-2 text-[15px] leading-relaxed" style={{ color: COR.sec }}>
+              {L(`Seu acesso a ${convite.empresa_nome} está liberado.`, `Your access to ${convite.empresa_nome} is ready.`, `Su acceso a ${convite.empresa_nome} está listo.`)}
             </p>
-            <motion.button onClick={() => { if (empresaId) window.location.href = '/dashboard' }}
-              whileHover={{ scale: 1.03, y: -2, boxShadow: '0 10px 30px rgba(46,204,155,0.45)' }} whileTap={{ scale: 0.97 }}
-              className="w-full py-3 rounded-xl font-black text-sm tracking-wide"
-              style={{ background: `linear-gradient(135deg, ${COR.mentaForte}, ${COR.menta})`, color: '#fff' }}>
+            <button onClick={() => { if (empresaId) window.location.href = '/dashboard' }}
+              className="mt-7 w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
+              style={{ background: COR.menta, color: COR.tinta }}>
               {L('Acessar a plataforma', 'Access the platform', 'Acceder a la plataforma')}
-            </motion.button>
-            <p className="text-[11px] mt-3" style={{ color: COR.sec }}>
-              {L('Nas próximas vezes, é só entrar no Axioma com seu e-mail e a senha que você criou.', 'Next time, just sign in to Axioma with your e-mail and the password you created.', 'Las próximas veces, solo entre en Axioma con su correo y la contraseña que creó.')}
+            </button>
+            <p className="mt-4 text-xs leading-relaxed" style={{ color: COR.sec }}>
+              {L('Nas próximas vezes, entre com seu e-mail e a senha que você criou.', 'Next time, sign in with your e-mail and the password you created.', 'Las próximas veces, entre con su correo y la contraseña que creó.')}
             </p>
           </motion.div>
         )}
-      </motion.div>
+      </motion.main>
+
+      <p className="mt-8 text-xs tracking-wide" style={{ color: 'rgba(147,166,194,0.6)' }}>Axioma AI.Tech · axiomaai.com.br</p>
     </div>
   )
 }

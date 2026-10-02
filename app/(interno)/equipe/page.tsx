@@ -33,6 +33,9 @@ const AMBAR = '#f59e0b'
 const AZUL = '#6ab0ff'
 const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" }
 
+// Link do convite sempre no domínio próprio (nunca o endereço da Vercel)
+const SITE = 'https://axiomaai.com.br'
+
 const PAPEIS_ATRIBUIVEIS = ['admin', 'financeiro', 'contabil', 'leitor', 'operador'] as const
 
 const textos = {
@@ -74,7 +77,7 @@ const textos = {
     sucessoApagar: 'Dados pessoais apagados.', erroApagar: 'Não foi possível apagar. Tente novamente.',
     enviarPor: 'Gerar e enviar o convite por:', conviteLink: 'Convite por link', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
-    msgConvite: 'Olá{nome}! Você foi convidado(a) por {remetente} para acessar nossa empresa no Axioma como {papel}{prazo}. Abra o link (válido por {validade}), preencha o formulário e entre direto: {link}',
+    msgConvite: 'Olá{nome}! {remetente} convidou você para entrar na nossa empresa no Axioma como {papel}{prazo}.\n\nToque no link, preencha o formulário e pronto, você já entra:\n{link}\n\nO link vale por {validade}.',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
     papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Caixa (só PDV, sem acesso ao Axioma)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
@@ -122,7 +125,7 @@ const textos = {
     sucessoApagar: 'Personal data deleted.', erroApagar: 'Could not delete. Try again.',
     enviarPor: 'Create and send the invite via:', conviteLink: 'Invite by link', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
-    msgConvite: 'Hi{nome}! You have been invited by {remetente} to access our company on Axioma as {papel}{prazo}. Open the link (valid for {validade}), fill in the form and go straight in: {link}',
+    msgConvite: 'Hi{nome}! {remetente} invited you to join our company on Axioma as {papel}{prazo}.\n\nTap the link, fill in the form and you are in:\n{link}\n\nThe link is valid for {validade}.',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
     papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Cashier (POS only, no Axioma access)',
     erroGenerico: 'Could not complete. Please try again.',
@@ -170,7 +173,7 @@ const textos = {
     sucessoApagar: 'Datos personales borrados.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
     enviarPor: 'Generar y enviar la invitación por:', conviteLink: 'Invitación por link', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
-    msgConvite: '¡Hola{nome}! Fuiste invitado(a) por {remetente} a acceder a nuestra empresa en Axioma como {papel}{prazo}. Abre el link (válido por {validade}), completa el formulario y entra directo: {link}',
+    msgConvite: '¡Hola{nome}! {remetente} te invitó a entrar en nuestra empresa en Axioma como {papel}{prazo}.\n\nToca el link, completa el formulario y listo, ya entras:\n{link}\n\nEl link vale por {validade}.',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
     papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Cajero (solo PDV, sin acceso a Axioma)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
@@ -365,7 +368,7 @@ export default function EquipePage() {
       .replace('{prazo}', acessoDias === undefined || acessoDias === null ? '' : t.prazoMsg(rotuloPrazo(acessoDias)))
       .replace('{validade}', rotuloPrazo(validadeDias))
       .replace('{papel}', labelPapel(m.papel))
-      .replace('{link}', `${window.location.origin}/convite/${m.token_convite}`)
+      .replace('{link}', `${SITE}/convite/${m.token_convite}`)
   }
 
   async function apagarTermoDireto(tm: TermoConvite) {
@@ -396,7 +399,7 @@ export default function EquipePage() {
   }
 
   function copiarLink(token: string) {
-    const link = `${window.location.origin}/convite/${token}`
+    const link = `${SITE}/convite/${token}`
     navigator.clipboard.writeText(link)
     avisar('sucesso', t.linkCopiado)
   }
