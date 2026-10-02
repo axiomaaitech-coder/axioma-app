@@ -1379,6 +1379,7 @@ Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
 - [x] P4 ✅ 2026-10-02 8 políticas RLS antigas (alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes) trocadas pela regra por empresa (RLS-8-TABELAS-ANTIGAS-SQL.sql, Elias rodou, 8 políticas _multi_tenant conferidas)
 - [x] P5 ✅ 2026-10-02 Clientes, Contas a Receber e Inadimplência: leitura em lotes de 1000 (lib/lerTodas.ts — antes o Supabase cortava em 1000 linhas e os totais ficavam errados sem aviso) + paginador genérico components/Paginacao.tsx (usePagina, 25 por página; carteira de clientes 20) nas 4 listas; totais/gráficos seguem usando a lista inteira. Conferido no site 2026-10-02 (as 3 telas carregam com os dados certos; paginador só aparece acima de 25 itens). Próximo nível de escala (agregação no banco por RPC, Centro de Custos teto 300, Fluxo, DRE) continua na seção 11.
 - [ ] P6 Placar do José — conferir em 28/10/2026
+- [ ] P7 CAMADA DE DEFESA DO CONVITE (Elias 2026-10-02: 'ruim pra reputação, não vamos deixar assim', fazer depois): (a) campo de e-mail obrigatório ao criar convite e link só vale pra esse e-mail; (b) código de 6 dígitos no e-mail no aceite (prova que o e-mail existe/é da pessoa); avaliar junto: link de uso único já existe, prazo de 7 dias do link já existe. Fazer junto/antes da hierarquia da Equipe.
 - [ ] C Tema Escuro padronizado (confirmar paleta antes)
 - [ ] D Manual de uso de todos os módulos (pt/en/es)
 - [ ] E Políticas: termos de uso, privacidade (LGPD), política de uso
