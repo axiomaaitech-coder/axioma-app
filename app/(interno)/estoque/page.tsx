@@ -14,7 +14,7 @@ import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela }
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, corTema, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
+import { fBRL, fBRL2, fData, optBarrasComparativo, optRosca, optBarrasH, corTema, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
@@ -930,7 +930,7 @@ export default function EstoquePage() {
             if (a.custo_subindo) tags.push(et.avisoCustoSubindo);
             return tags.map((tag) => ({ produto: a.nome, aviso: tag, detalhe: `${et.colSaldo}: ${a.saldo_disponivel}` }));
           }),
-          ...avisosValidade.map((v) => ({ produto: v.produto_nome, aviso: SEVERIDADE_LABEL[v.severidade], detalhe: `${v.numero_lote || "—"} — ${new Date(v.data_validade).toLocaleDateString("pt-BR")}` })),
+          ...avisosValidade.map((v) => ({ produto: v.produto_nome, aviso: SEVERIDADE_LABEL[v.severidade], detalhe: `${v.numero_lote || "—"} — ${fData(v.data_validade)}` })),
         ],
         nomeArquivo: "axioma-estoque-avisos.pdf",
       };
@@ -1341,7 +1341,7 @@ export default function EstoquePage() {
                     <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG3 }}>
                       <div>
                         <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{v.produto_nome}</p>
-                        <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {new Date(v.data_validade).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {fData(v.data_validade)}</p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap" style={{ background: `${cor}22`, color: cor }}>{SEVERIDADE_LABEL[v.severidade]}</span>
                     </div>
@@ -1964,7 +1964,7 @@ export default function EstoquePage() {
                 onChange={(v) => setFormMov((f: any) => ({ ...f, lote_id: v }))}
                 opcoes={lotesProdutoMov.map((l) => ({
                   value: l.id,
-                  label: `${l.numero_lote || "—"} · ${l.quantidade_atual} · ${l.data_validade ? new Date(l.data_validade).toLocaleDateString("pt-BR") : "—"}`,
+                  label: `${l.numero_lote || "—"} · ${l.quantidade_atual} · ${fData(l.data_validade)}`,
                 }))} />
             </div>
           )}

@@ -9,7 +9,7 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
-import { corTema, fBRL } from "../../../lib/cfoCore";
+import { corTema, fBRL, fData } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { transformarPadraoEmCustoFixo } from "../../../lib/contasPagarHelpers";
 import { buscarFornecedorPorCnpj, criarFornecedorDaNfe } from "../../../lib/pdvNfeHelpers";
@@ -555,12 +555,7 @@ function formatBRL(n: number): string {
 }
 
 function formatData(iso: string): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("pt-BR");
-  } catch {
-    return iso;
-  }
+  return fData(iso);
 }
 
 function formatDataHora(iso: string): string {
@@ -1495,7 +1490,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
       const linhasPdf = (lns || []).map((l: any) => ({
         num: String(l.linha_numero || ""),
-        data: l.data_lancamento ? new Date(l.data_lancamento).toLocaleDateString("pt-BR") : "—",
+        data: fData(l.data_lancamento),
         desc: l.descricao || "—",
         cat: l.categoria || "—",
         st: l.status || "—",
@@ -2558,7 +2553,7 @@ function PreviewBlock(props: any) {
                   <input type="checkbox" checked={isSel} onChange={() => toggleLinha(i)} className="mt-1" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</span>
+                      <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{fData(l.data)}</span>
                       <span className="text-sm font-bold" style={{ color: ct("#34d399") }}>{formatBRL(l.valor || 0)}</span>
                     </div>
                     <p className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{l.descricao || "—"}</p>
@@ -2930,7 +2925,7 @@ function HistoricoBlock(props: any) {
                                       opacity: editavel ? 1 : 0.55,
                                     }}>
                                       <td className="px-2 py-1.5" style={{ color: ct("#5a7a9a") }}>{ln.linha_numero}</td>
-                                      <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0") }}>{ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</td>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0") }}>{fData(ln.data_lancamento)}</td>
                                       <td className="px-2 py-1.5 text-right font-semibold" style={{ color: ct("#34d399") }}>{formatBRL(Number(ln.valor) || 0)}</td>
                                       <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0"), maxWidth: 200 }}>
                                         <div className="truncate">{ln.descricao || "—"}</div>
@@ -2987,7 +2982,7 @@ function HistoricoBlock(props: any) {
                                 opacity: editavel ? 1 : 0.55,
                               }}>
                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                  <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>#{ln.linha_numero} · {ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</span>
+                                  <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>#{ln.linha_numero} · {fData(ln.data_lancamento)}</span>
                                   <span className="text-sm font-bold" style={{ color: ct("#34d399") }}>{formatBRL(Number(ln.valor) || 0)}</span>
                                 </div>
                                 <p className="text-xs truncate mb-1" style={{ color: ct("#c8d8f0") }}>{ln.descricao || "—"}</p>

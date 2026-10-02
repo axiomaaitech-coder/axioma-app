@@ -25,6 +25,16 @@ export const fK = (n: number) =>
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
+// Data "2026-10-02" (só dia, sem hora) vira meia-noite UTC no new Date() e o
+// Brasil (UTC-3) mostrava 01/10. Aqui o dia é lido como data local. Aceita
+// também data com hora (timestamp), que já vem certa.
+export function fData(iso: string | null | undefined, lang = "pt"): string {
+  if (!iso) return "—";
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR");
+}
+
 // Card com destino (nunca "enfeite"): "#id" rola até a seção da própria tela;
 // "/rota" abre o módulo relacionado. Usado pelos cards de KPI de todo o app.
 export function irParaDestino(destino: string, router: { push: (p: string) => void }) {
