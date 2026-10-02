@@ -1086,7 +1086,7 @@ export default function EstoquePage() {
             {evolucao.length > 0 ? (
               <ReactECharts style={{ height: 260 }} option={optBarrasComparativo(
                 evolucao.map((e) => e.entradas_qtd), evolucao.map((e) => e.saidas_qtd),
-                evolucao.map((e) => new Date(e.periodo).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })),
+                evolucao.map((e) => fData(e.periodo, lang, { month: "short", year: "2-digit" })),
                 POSITIVO_CT, NEGATIVO_CT, et.tipoEntrada, et.tipoSaida, temaClaro
               )} />
             ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosEvolucao}</p>}
@@ -1523,7 +1523,7 @@ export default function EstoquePage() {
                         <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{f.fornecedor_nome}</td>
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{f.preco_medio_compra != null ? fBRL(f.preco_medio_compra) : "—"}</td>
                         <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{f.frequencia_entregas}</td>
-                        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{f.ultima_entrada ? new Date(f.ultima_entrada).toLocaleDateString("pt-BR") : "—"}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{f.ultima_entrada ? fData(f.ultima_entrada, lang) : "—"}</td>
                       </tr>
                     ))}
                   </tbody>

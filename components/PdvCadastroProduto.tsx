@@ -13,7 +13,7 @@ import Image from "next/image";
 import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTemaPdv } from "./PdvLayout";
-import { precoPorDivisor, margemReal, lucroPorUnidade, situacaoMargem, type SituacaoMargem } from "../lib/cfoCore";
+import { precoPorDivisor, margemReal, lucroPorUnidade, situacaoMargem, fData, type SituacaoMargem } from "../lib/cfoCore";
 import type { Idioma } from "../lib/translations";
 import {
   type Produto, criarProduto, atualizarProduto, buscarProdutoPorId,
@@ -169,7 +169,7 @@ export function moeda(v: number): string {
 }
 
 function dataCurta(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR");
+  return fData(iso);
 }
 
 export type OrigemSugestao = "base" | "cosmos" | "ia" | null;

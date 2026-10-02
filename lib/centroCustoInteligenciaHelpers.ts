@@ -9,7 +9,7 @@ import * as Sentry from "@sentry/nextjs";
 import {
   detectarAnomaliasHistoricas, type AnomaliaHistorica, type Lancamento,
   detectarDesperdicio, type ItemDespesa,
-  fBRL, normalizarTexto,
+  fBRL, fData, normalizarTexto,
   type ItemCascata,
   simularCenariosExecutivos, type ChoqueSimulador, type ResultadoCenario,
 } from "./cfoCore";
@@ -33,7 +33,7 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 export type CentroLeve = { id: string; nome: string };
 export type Lang = "pt" | "en" | "es";
 
-const fmtData = (iso: string) => iso ? new Date(iso).toLocaleDateString("pt-BR") : "";
+const fmtData = (iso: string) => iso ? fData(iso) : "";
 
 // ============================================================================
 // ESCOPO A — MOTOR DE CAUSA RAIZ
