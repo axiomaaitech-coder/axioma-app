@@ -922,50 +922,6 @@ export async function listarEquipe(empresaId: string): Promise<{ dados: MembroEq
   return { dados: (data as MembroEquipe[]) || [] };
 }
 
-export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; token?: string; erro?: string; codigo?: string }> {
-  // Anti-duplicidade: já existe convite pendente (não aceito) pra este e-mail
-  // nesta empresa? Se estiver expirado, some com o antigo e deixa convidar de
-  // novo; se ainda estiver valendo, recusa (evita 2 convites vivos ao mesmo
-  // tempo pro mesmo e-mail).
-  const emailNorm = String(dados.email_convidado || "").trim().toLowerCase();
-  // Sem e-mail (convite por link pelo WhatsApp etc.) não há como saber se é a
-  // mesma pessoa — cada envio gera um link novo.
-  const { data: existente } = emailNorm ? await supabase
-    .from("empresa_equipe")
-    .select("id, expira_em, token_convite")
-    .eq("empresa_id", empresaId)
-    .eq("convite_aceito", false)
-    .ilike("email_convidado", emailNorm) : { data: [] as { id: string; expira_em: string | null; token_convite: string }[] };
-
-  const pendente = (existente || [])[0];
-  if (pendente) {
-    const expirado = pendente.expira_em && new Date(pendente.expira_em) < new Date();
-    // Convite ainda válido pro mesmo e-mail: reenvia o MESMO link (antes
-    // recusava com "duplicado" e o botão parecia não funcionar).
-    if (!expirado) return { id: pendente.id, token: pendente.token_convite };
-    // Limpeza best-effort do convite expirado antes de criar o novo — se falhar,
-    // não bloqueia o convite novo (o insert abaixo segue e é conferido normalmente);
-    // só reporta pro Sentry pra não perder visibilidade de que sobrou um registro.
-    const { error: erroLimpeza } = await supabase.from("empresa_equipe").delete().eq("id", pendente.id);
-    if (erroLimpeza) reportarFalhaEscrita("empresa_equipe", "delete (limpeza convite expirado)", erroLimpeza.message);
-  }
-
-  const token = typeof crypto !== "undefined" && (crypto as any).randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
-  const payload = { ...dados, email_convidado: emailNorm, empresa_id: empresaId, user_id: userId, token_convite: token };
-  const { data, error } = await supabase.from("empresa_equipe").insert(payload).select("id").single();
-  if (error) return { erro: error.message, codigo: error.code };
-  await registrarAuditoria({
-    empresaId, userId,
-    tabela: "empresa_equipe",
-    registroId: data.id,
-    acao: "criar",
-    valorDepois: payload,
-    descricao: `Membro convidado: ${dados.email_convidado}`,
-  });
-  // token devolvido direto: a tela abre o envio (WhatsApp/Gmail...) sem depender de listar_equipe
-  return { id: data.id, token };
-}
-
 // Consulta pública do convite (funciona sem login — RPC SECURITY DEFINER,
 // nunca expõe a linha inteira de empresa_equipe, só o necessário pra tela).
 export async function obterConvitePorToken(token: string): Promise<{
@@ -983,13 +939,6 @@ export async function obterConvitePorToken(token: string): Promise<{
 // Termo de quem recebe: nome completo, CPF e e-mail ficam em
 // empresa_convite_termo (só dono/admin leem — EQUIPE-ACESSO-TEMPORARIO-SQL.sql).
 // Não dá acesso ainda: deixa o convite "aguardando aprovação" do dono/admin (decidirConvite).
-export async function aceitarConvite(token: string, nome: string, aceitaTermos: boolean): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
-  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token, p_nome: nome, p_aceita_termos: aceitaTermos });
-  if (error) return { erro: error.message, codigo: error.code };
-  limparCacheEmpresaAtiva();
-  return { empresaId: data as string };
-}
-
 export type TermoConvite = {
   id: string; convite_id: string | null; user_id: string | null; nome: string | null; cpf: string | null; email: string | null;
   remetente_nome: string | null; relacao: string | null; papel: string | null; acesso_dias: number | null; motivo_convite: string | null;

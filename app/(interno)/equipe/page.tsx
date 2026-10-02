@@ -4,7 +4,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
-  obterMeuPapel, listarEquipe, convidarMembro, alterarPapelMembro, removerAcessoMembro,
+  obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
   listarTermosConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
   type MembroEquipe,
 } from '../../../lib/empresaHelpers'
@@ -40,6 +40,11 @@ const textos = {
     titulo: 'Equipe', sub: 'Quem tem acesso à sua empresa e com qual papel.',
     carregando: 'Carregando...',
     somenteProprietario: 'Só o proprietário da empresa acessa a Equipe.',
+    meuPapelLabel: 'Qual é o seu papel? *', mp_admin: 'Admin',
+    autTitulo: 'Autorização obrigatória', autAviso: 'Só Admin, Sócio ou CEO liberam acesso. Peça para um deles digitar o e-mail e a senha aqui.',
+    autEmail: 'E-mail do Admin, Sócio ou CEO', autSenha: 'Senha dele(a)',
+    erroAutorizador: 'E-mail ou senha do Admin/Sócio/CEO incorretos, ou essa pessoa não é Admin/Sócio/CEO desta empresa.', erroMuitas: 'Muitas tentativas. Aguarde 15 minutos.', erroMeuPapel: 'Escolha qual é o seu papel.',
+    convidarSub: 'Você pode convidar pessoas para esta empresa. Sem ser Admin, Sócio ou CEO, o convite precisa da senha de um deles.',
     voltarDashboard: 'Voltar ao Dashboard',
     convidar: 'Convidar pessoa', novoConvite: 'Convidar pessoa',
     emailLabel: 'E-mail *', nomeLabel: 'Nome', cargoLabel: 'Cargo', papelLabel: 'Papel',
@@ -56,7 +61,7 @@ const textos = {
     erroEmail: 'Preencha um e-mail válido para enviar o convite.',
     semPrazoRegra: 'Sem prazo só para Admin, Sócio ou CEO.', aguardandoAprovacao: 'Aguardando sua aprovação', aprovar: 'Aprovar', recusar: 'Recusar', sucessoAprovar: 'Acesso liberado.', sucessoRecusar: 'Convite recusado.', erroDecidir: 'Não foi possível concluir. Tente novamente.', confirmarRecusa: 'Recusar o acesso desta pessoa?',
     cortarTitulo: 'Cortar acesso?', cortarAviso: 'Admin, CEO, Sócio ou Contador: informe o motivo — ele fica registrado na auditoria da empresa com a data.', cortarBotao: 'Cortar acesso', cortarCiente: 'Confirmo que tenho autorização para cortar este acesso.', motivoTerceiro: 'Dados de terceiro removidos pelo responsável',
-    tempoAcesso: 'Tempo de acesso', semPrazo: 'Sem prazo', h24: '24 horas', dias: (n: number) => `${n} dias`, prazoMsg: (p: string) => ` por ${p}`,
+    tempoAcesso: 'Tempo de acesso', semPrazo: 'Indeterminado', h24: '24 horas', dias: (n: number) => n === 180 ? '6 meses' : n === 365 ? '1 ano' : `${n} dias`, prazoMsg: (p: string) => ` por ${p}`,
     motivoLabel: 'Motivo do convite (ex.: segunda opinião no fechamento)', erroTermo: 'Marque o termo de responsabilidade para enviar o convite.',
     termoRemetente: (nome: string, data: string) => `Eu, ${nome}, envio este convite em ${data} e assumo a responsabilidade pelo acesso desta pessoa aos dados financeiros e bancários da empresa. Posso cortar o acesso a qualquer momento.`,
     acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
@@ -69,7 +74,7 @@ const textos = {
     sucessoApagar: 'Dados pessoais apagados.', erroApagar: 'Não foi possível apagar. Tente novamente.',
     enviarPor: 'Gerar e enviar o convite por:', conviteLink: 'Convite por link', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
-    msgConvite: 'Olá{nome}! Você foi convidado(a) por {remetente} para acessar nossa empresa no Axioma como {papel}{prazo}. Para aceitar, abra o link (válido por {validade}) e crie sua conta ou entre no Axioma: {link}',
+    msgConvite: 'Olá{nome}! Você foi convidado(a) por {remetente} para acessar nossa empresa no Axioma como {papel}{prazo}. Abra o link (válido por {validade}), preencha o formulário e entre direto: {link}',
     papel_dono: 'Proprietário', papel_admin: 'Admin (acesso total)', papel_financeiro: 'Financeiro',
     papel_contabil: 'Contábil', papel_leitor: 'Leitor (só visualização)', papel_operador: 'Caixa (só PDV, sem acesso ao Axioma)',
     erroGenerico: 'Não foi possível concluir. Tente de novo.',
@@ -83,6 +88,11 @@ const textos = {
     titulo: 'Team', sub: 'Who has access to your company and with which role.',
     carregando: 'Loading...',
     somenteProprietario: 'Only the company owner can access Team.',
+    meuPapelLabel: 'What is your role? *', mp_admin: 'Admin',
+    autTitulo: 'Authorization required', autAviso: 'Only Admin, Partner or CEO can grant access. Ask one of them to type their e-mail and password here.',
+    autEmail: 'Admin, Partner or CEO e-mail', autSenha: 'Their password',
+    erroAutorizador: 'Wrong Admin/Partner/CEO e-mail or password, or this person is not Admin/Partner/CEO of this company.', erroMuitas: 'Too many attempts. Wait 15 minutes.', erroMeuPapel: 'Choose your role.',
+    convidarSub: 'You can invite people to this company. If you are not Admin, Partner or CEO, the invite needs one of their passwords.',
     voltarDashboard: 'Back to Dashboard',
     convidar: 'Invite person', novoConvite: 'Invite person',
     emailLabel: 'E-mail *', nomeLabel: 'Name', cargoLabel: 'Position', papelLabel: 'Role',
@@ -99,7 +109,7 @@ const textos = {
     erroEmail: 'Enter a valid e-mail to send the invite.',
     semPrazoRegra: 'No limit only for Admin, Partner or CEO.', aguardandoAprovacao: 'Waiting for your approval', aprovar: 'Approve', recusar: 'Decline', sucessoAprovar: 'Access granted.', sucessoRecusar: 'Invite declined.', erroDecidir: 'Could not complete. Try again.', confirmarRecusa: 'Decline this person\'s access?',
     cortarTitulo: 'Cut access?', cortarAviso: 'Admin, CEO, Partner or Accountant: enter the reason — it is recorded in the company audit with the date.', cortarBotao: 'Cut access', cortarCiente: 'I confirm I am authorized to cut this access.', motivoTerceiro: 'Third-party data removed by the owner',
-    tempoAcesso: 'Access time', semPrazo: 'No limit', h24: '24 hours', dias: (n: number) => `${n} days`, prazoMsg: (p: string) => ` for ${p}`,
+    tempoAcesso: 'Access time', semPrazo: 'Indefinite', h24: '24 hours', dias: (n: number) => n === 180 ? '6 months' : n === 365 ? '1 year' : `${n} days`, prazoMsg: (p: string) => ` for ${p}`,
     motivoLabel: 'Reason for the invite (e.g.: second opinion on closing)', erroTermo: 'Check the responsibility term to send the invite.',
     termoRemetente: (nome: string, data: string) => `I, ${nome}, send this invite on ${data} and take responsibility for this person's access to the company's financial and banking data. I can cut the access at any time.`,
     acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
@@ -112,7 +122,7 @@ const textos = {
     sucessoApagar: 'Personal data deleted.', erroApagar: 'Could not delete. Try again.',
     enviarPor: 'Create and send the invite via:', conviteLink: 'Invite by link', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
-    msgConvite: 'Hi{nome}! You have been invited by {remetente} to access our company on Axioma as {papel}{prazo}. To accept, open the link (valid for {validade}) and create your account or sign in to Axioma: {link}',
+    msgConvite: 'Hi{nome}! You have been invited by {remetente} to access our company on Axioma as {papel}{prazo}. Open the link (valid for {validade}), fill in the form and go straight in: {link}',
     papel_dono: 'Owner', papel_admin: 'Admin (full access)', papel_financeiro: 'Financial',
     papel_contabil: 'Accounting', papel_leitor: 'Reader (view only)', papel_operador: 'Cashier (POS only, no Axioma access)',
     erroGenerico: 'Could not complete. Please try again.',
@@ -126,6 +136,11 @@ const textos = {
     titulo: 'Equipo', sub: 'Quién tiene acceso a su empresa y con qué rol.',
     carregando: 'Cargando...',
     somenteProprietario: 'Solo el propietario de la empresa accede a Equipo.',
+    meuPapelLabel: '¿Cuál es su rol? *', mp_admin: 'Admin',
+    autTitulo: 'Autorización obligatoria', autAviso: 'Solo Admin, Socio o CEO liberan acceso. Pida a uno de ellos que escriba su correo y contraseña aquí.',
+    autEmail: 'Correo del Admin, Socio o CEO', autSenha: 'Su contraseña',
+    erroAutorizador: 'Correo o contraseña del Admin/Socio/CEO incorrectos, o esta persona no es Admin/Socio/CEO de esta empresa.', erroMuitas: 'Demasiados intentos. Espere 15 minutos.', erroMeuPapel: 'Elija cuál es su rol.',
+    convidarSub: 'Puede invitar personas a esta empresa. Si no es Admin, Socio o CEO, la invitación necesita la contraseña de uno de ellos.',
     voltarDashboard: 'Volver al Panel',
     convidar: 'Invitar persona', novoConvite: 'Invitar persona',
     emailLabel: 'Correo *', nomeLabel: 'Nombre', cargoLabel: 'Cargo', papelLabel: 'Rol',
@@ -142,7 +157,7 @@ const textos = {
     erroEmail: 'Ingrese un correo válido para enviar la invitación.',
     semPrazoRegra: 'Sin plazo solo para Admin, Socio o CEO.', aguardandoAprovacao: 'Esperando su aprobación', aprovar: 'Aprobar', recusar: 'Rechazar', sucessoAprovar: 'Acceso liberado.', sucessoRecusar: 'Invitación rechazada.', erroDecidir: 'No se pudo completar. Intente de nuevo.', confirmarRecusa: '¿Rechazar el acceso de esta persona?',
     cortarTitulo: '¿Cortar acceso?', cortarAviso: 'Admin, CEO, Socio o Contador: informe el motivo — queda registrado en la auditoría de la empresa con la fecha.', cortarBotao: 'Cortar acceso', cortarCiente: 'Confirmo que tengo autorización para cortar este acceso.', motivoTerceiro: 'Datos de tercero eliminados por el responsable',
-    tempoAcesso: 'Tiempo de acceso', semPrazo: 'Sin plazo', h24: '24 horas', dias: (n: number) => `${n} días`, prazoMsg: (p: string) => ` por ${p}`,
+    tempoAcesso: 'Tiempo de acceso', semPrazo: 'Indefinido', h24: '24 horas', dias: (n: number) => n === 180 ? '6 meses' : n === 365 ? '1 año' : `${n} días`, prazoMsg: (p: string) => ` por ${p}`,
     motivoLabel: 'Motivo de la invitación (ej.: segunda opinión en el cierre)', erroTermo: 'Marque el término de responsabilidad para enviar la invitación.',
     termoRemetente: (nome: string, data: string) => `Yo, ${nome}, envío esta invitación el ${data} y asumo la responsabilidad por el acceso de esta persona a los datos financieros y bancarios de la empresa. Puedo cortar el acceso en cualquier momento.`,
     acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
@@ -155,7 +170,7 @@ const textos = {
     sucessoApagar: 'Datos personales borrados.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
     enviarPor: 'Generar y enviar la invitación por:', conviteLink: 'Invitación por link', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
-    msgConvite: '¡Hola{nome}! Fuiste invitado(a) por {remetente} a acceder a nuestra empresa en Axioma como {papel}{prazo}. Para aceptar, abre el link (válido por {validade}) y crea tu cuenta o entra en Axioma: {link}',
+    msgConvite: '¡Hola{nome}! Fuiste invitado(a) por {remetente} a acceder a nuestra empresa en Axioma como {papel}{prazo}. Abre el link (válido por {validade}), completa el formulario y entra directo: {link}',
     papel_dono: 'Propietario', papel_admin: 'Admin (acceso total)', papel_financeiro: 'Financiero',
     papel_contabil: 'Contable', papel_leitor: 'Lector (solo visualización)', papel_operador: 'Cajero (solo PDV, sin acceso a Axioma)',
     erroGenerico: 'No se pudo completar. Intente de nuevo.',
@@ -194,6 +209,12 @@ export default function EquipePage() {
   const FORM_VAZIO = { email_convidado: '', nome: '', cargo: '', papel: 'leitor', acesso_dias: 7 as number | null, motivo_convite: '', relacao: 'funcionario' }
   const [form, setForm] = useState(FORM_VAZIO)
   const [termoRemetente, setTermoRemetente] = useState(false)
+  // Trava do convite: papel declarado + conferência no servidor (/api/convite)
+  const [meuPapelConvite, setMeuPapelConvite] = useState('')
+  const [podeLiberar, setPodeLiberar] = useState(false)
+  const [autEmail, setAutEmail] = useState('')
+  const [autSenha, setAutSenha] = useState('')
+  const precisaAutorizacao = !podeLiberar || !['ceo', 'socio', 'admin'].includes(meuPapelConvite)
   const [nomeRemetente, setNomeRemetente] = useState('')
   const [termos, setTermos] = useState<TermoConvite[]>([])
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
@@ -251,6 +272,7 @@ export default function EquipePage() {
 
       const papel = await obterMeuPapel(id)
       setMeuPapel(papel)
+      fetch(`/api/convite?empresaId=${id}`).then((r) => r.json()).then((j) => setPodeLiberar(!!j?.podeLiberar)).catch(() => {})
       if (papel !== 'dono') return
 
       const r = await listarEquipe(id)
@@ -269,6 +291,7 @@ export default function EquipePage() {
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
     if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
+    if (!meuPapelConvite) { setErroModal(t.erroMeuPapel); return }
     if (!termoRemetente) { setErroModal(t.erroTermo); return }
     setErroModal('')
     const abreAba = canal !== 'E-mail' && canal !== 'copiar'
@@ -278,8 +301,17 @@ export default function EquipePage() {
       // Link vale até 7 dias, nunca mais que o próprio prazo de acesso (convite de 24h = link de 24h).
       const diasLink = Math.min(form.acesso_dias ?? 7, 7)
       const dadosForm = { ...form, motivo_convite: form.motivo_convite.trim() || null, remetente_nome: nomeRemetente, remetente_termo_em: new Date().toISOString(), expira_em: new Date(Date.now() + diasLink * 86400000).toISOString() }
-      const r = await convidarMembro(empresaId, userId, dadosForm)
-      if (r.erro || !r.token) { aba?.close(); setErroModal(mensagemErro(r.codigo)); return }
+      const resp = await fetch('/api/convite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao: 'criar', empresaId, form: dadosForm, termoRemetente, meuPapel: meuPapelConvite,
+          autorizador: precisaAutorizacao ? { email: autEmail, senha: autSenha } : null }),
+      })
+      const r = await resp.json().catch(() => ({ erro: 'generico' }))
+      if (r.erro || !r.token) {
+        aba?.close()
+        setErroModal(r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : t.erroGenerico)
+        return
+      }
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
       const texto = textoConvite(membroNovo, form.acesso_dias)
       if (canal === 'copiar') {
@@ -294,6 +326,8 @@ export default function EquipePage() {
       setModalAberto(false)
       setForm(FORM_VAZIO)
       setTermoRemetente(false)
+      setAutSenha('')
+      if (meuPapel !== 'dono') return
       const lista = await listarEquipe(empresaId)
       setMembros(lista.dados)
     } finally {
@@ -392,6 +426,102 @@ export default function EquipePage() {
 
   const labelPapel = (papel: string) => (t as any)[`papel_${papel}`] || papel
 
+  const modalConvite = (<Modal open={modalAberto} onClose={() => setModalAberto(false)}>
+            {/* premium3d desligado aqui: o efeito de "levantar" no hover mudava a
+                altura e a barra de rolagem do modal ficava oscilando. Layout
+                compacto (2 colunas) cabe na tela sem rolagem. */}
+            <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? '#101b3d' : VERDE }}>AXIOMA AI.TECH</p>
+                  <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.novoConvite}</h3>
+                </div>
+                <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
+              </div>
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
+                    <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
+                    <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <MenuEscolha rotulo={t.relacaoLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                    valor={form.relacao}
+                    opcoes={(['ceo', 'socio', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: (t as any)[`rel_${r}`] }))}
+                    onEscolher={(r) => ajustarForm({ ...form, relacao: r, acesso_dias: (r === 'socio' || r === 'ceo') && form.acesso_dias === 7 ? null : form.acesso_dias })} />
+                  <MenuEscolha rotulo={t.papelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                    valor={form.papel}
+                    opcoes={PAPEIS_ATRIBUIVEIS.map((p) => ({ valor: p, label: labelPapel(p) }))}
+                    onEscolher={(p) => ajustarForm({ ...form, papel: p })} />
+                </div>
+                <MenuEscolha rotulo={t.tempoAcesso} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                  valor={String(form.acesso_dias)}
+                  opcoes={([1, 3, 7, 30, 60, 90, 180, 365, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => ({ valor: String(d), label: rotuloPrazo(d) }))}
+                  onEscolher={(v) => ajustarForm({ ...form, acesso_dias: v === 'null' ? null : Number(v) })} />
+                {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}</label>
+                  <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
+                    className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                </div>
+                <MenuEscolha rotulo={t.meuPapelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                  valor={meuPapelConvite}
+                  opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
+                  onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
+                {meuPapelConvite && precisaAutorizacao && (
+                  <div className="rounded-lg p-2.5 space-y-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(245,158,11,0.06)', border: `1px solid ${AMBAR}66` }}>
+                    <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
+                    <p className="text-[11px]" style={{ color: MUTED }}>{t.autAviso}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input value={autEmail} onChange={(e) => { setAutEmail(e.target.value); setErroModal('') }} placeholder={t.autEmail} type="email" autoComplete="off"
+                        className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                      <input value={autSenha} onChange={(e) => { setAutSenha(e.target.value); setErroModal('') }} placeholder={t.autSenha} type="password" autoComplete="new-password"
+                        className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                    </div>
+                  </div>
+                )}
+                <label className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${termoRemetente ? '#16a97d' : (temaClaro ? 'rgba(16,27,61,0.15)' : 'rgba(255,255,255,0.08)')}` }}>
+                  <input type="checkbox" checked={termoRemetente} onChange={(e) => { setTermoRemetente(e.target.checked); setErroModal('') }} className="mt-0.5" />
+                  <span className="text-[11px] leading-snug" style={{ color: TEXTO }}>{t.termoRemetente(nomeRemetente, dataHora(new Date()))}</span>
+                </label>
+                <div className="pt-1">
+                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { canal: 'WhatsApp', rotulo: 'WhatsApp', cor: '#25D366' },
+                      { canal: 'Gmail', rotulo: 'Gmail', cor: '#EA4335' },
+                      { canal: 'Outlook', rotulo: 'Outlook', cor: '#0078D4' },
+                      { canal: 'Telegram', rotulo: 'Telegram', cor: '#0088cc' },
+                      { canal: 'E-mail', rotulo: t.outroEmail, cor: temaClaro ? '#101b3d' : '#94a3b8' },
+                      { canal: 'copiar', rotulo: t.copiarLinkCurto, cor: temaClaro ? '#16a97d' : '#2ecc9b' },
+                    ].map((c) => (
+                      <motion.button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando}
+                        whileHover={{ scale: 1.05, y: -2, boxShadow: `0 8px 18px ${c.cor}55` }} whileTap={{ scale: 0.96 }}
+                        className="py-2.5 rounded-xl text-sm font-bold disabled:cursor-wait"
+                        style={temaClaro ? { background: c.cor, border: `1px solid ${c.cor}`, color: '#ffffff' } : { background: `${c.cor}26`, border: `1px solid ${c.cor}80`, color: c.cor }}>
+                        {enviando ? t.enviando : c.rotulo}
+                      </motion.button>
+                    ))}
+                  </div>
+                  {erroModal && (
+                    <p className="text-xs font-semibold mt-2 flex items-center gap-1.5" style={{ color: VERMELHO }}><AlertCircle size={14} />{erroModal}</p>
+                  )}
+                  <motion.button onClick={() => setModalAberto(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(106,176,255,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
+                </div>
+              </div>
+            </CanvasBox>
+      </Modal>
+  )
+
   if (carregando) {
     return (
       <div data-theme={tema}>
@@ -405,16 +535,27 @@ export default function EquipePage() {
   }
 
   if (meuPapel !== 'dono') {
+    const podeConvidar = !!meuPapel && meuPapel !== 'operador'
     return (
       <div data-theme={tema}>
       <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
         <CanvasBox cor={AZUL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           <div className="text-center py-10">
             <Users size={32} className="mx-auto mb-3" style={{ color: AZUL }} />
-            <p className="text-sm font-semibold" style={{ color: TEXTO }}>{t.somenteProprietario}</p>
-            <a href="/dashboard" className="inline-block mt-4 text-xs font-semibold underline" style={{ color: AZUL }}>{t.voltarDashboard}</a>
+            <p className="text-sm font-semibold" style={{ color: TEXTO }}>{podeConvidar ? t.convidarSub : t.somenteProprietario}</p>
+            {podeConvidar && (
+              <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                onClick={() => { setErroModal(''); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+                className="mt-4 px-5 py-3 rounded-xl font-black text-sm tracking-wide inline-flex items-center justify-center gap-2"
+                style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
+                <UserPlus size={16} /> {t.convidar}
+              </motion.button>
+            )}
+            <div><a href="/dashboard" className="inline-block mt-4 text-xs font-semibold underline" style={{ color: AZUL }}>{t.voltarDashboard}</a></div>
           </div>
         </CanvasBox>
+        {mensagem && <p className="text-sm font-semibold text-center mt-3" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>}
+        {modalConvite}
       </ModuloLayout>
       </div>
     )
@@ -491,7 +632,7 @@ export default function EquipePage() {
               </div>
             </div>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setErroModal(''); setTermoRemetente(false); setForm(FORM_VAZIO); setModalAberto(true) }}
+              onClick={() => { setErroModal(''); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
               style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}
@@ -639,84 +780,7 @@ export default function EquipePage() {
       </Modal>
       {/* Modal compartilhado (portal no body): antes era fixed dentro do
           ModuloLayout, que anima com transform — o card nascia cortado em cima. */}
-      <Modal open={modalAberto} onClose={() => setModalAberto(false)}>
-            {/* premium3d desligado aqui: o efeito de "levantar" no hover mudava a
-                altura e a barra de rolagem do modal ficava oscilando. Layout
-                compacto (2 colunas) cabe na tela sem rolagem. */}
-            <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined}>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? '#101b3d' : VERDE }}>AXIOMA AI.TECH</p>
-                  <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.novoConvite}</h3>
-                </div>
-                <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
-              </div>
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
-                    <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
-                    <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-                      className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <MenuEscolha rotulo={t.relacaoLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
-                    valor={form.relacao}
-                    opcoes={(['ceo', 'socio', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: (t as any)[`rel_${r}`] }))}
-                    onEscolher={(r) => ajustarForm({ ...form, relacao: r, acesso_dias: (r === 'socio' || r === 'ceo') && form.acesso_dias === 7 ? null : form.acesso_dias })} />
-                  <MenuEscolha rotulo={t.papelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
-                    valor={form.papel}
-                    opcoes={PAPEIS_ATRIBUIVEIS.map((p) => ({ valor: p, label: labelPapel(p) }))}
-                    onEscolher={(p) => ajustarForm({ ...form, papel: p })} />
-                </div>
-                <MenuEscolha rotulo={t.tempoAcesso} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
-                  valor={String(form.acesso_dias)}
-                  opcoes={([1, 3, 7, 30, 60, 90, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => ({ valor: String(d), label: rotuloPrazo(d) }))}
-                  onEscolher={(v) => ajustarForm({ ...form, acesso_dias: v === 'null' ? null : Number(v) })} />
-                {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
-                <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}</label>
-                  <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
-                    className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
-                </div>
-                <label className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${termoRemetente ? '#16a97d' : (temaClaro ? 'rgba(16,27,61,0.15)' : 'rgba(255,255,255,0.08)')}` }}>
-                  <input type="checkbox" checked={termoRemetente} onChange={(e) => { setTermoRemetente(e.target.checked); setErroModal('') }} className="mt-0.5" />
-                  <span className="text-[11px] leading-snug" style={{ color: TEXTO }}>{t.termoRemetente(nomeRemetente, dataHora(new Date()))}</span>
-                </label>
-                <div className="pt-1">
-                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { canal: 'WhatsApp', rotulo: 'WhatsApp', cor: '#25D366' },
-                      { canal: 'Gmail', rotulo: 'Gmail', cor: '#EA4335' },
-                      { canal: 'Outlook', rotulo: 'Outlook', cor: '#0078D4' },
-                      { canal: 'Telegram', rotulo: 'Telegram', cor: '#0088cc' },
-                      { canal: 'E-mail', rotulo: t.outroEmail, cor: temaClaro ? '#101b3d' : '#94a3b8' },
-                      { canal: 'copiar', rotulo: t.copiarLinkCurto, cor: temaClaro ? '#16a97d' : '#2ecc9b' },
-                    ].map((c) => (
-                      <motion.button key={c.canal} onClick={() => enviarConvite(c.canal)} disabled={enviando}
-                        whileHover={{ scale: 1.05, y: -2, boxShadow: `0 8px 18px ${c.cor}55` }} whileTap={{ scale: 0.96 }}
-                        className="py-2.5 rounded-xl text-sm font-bold disabled:cursor-wait"
-                        style={temaClaro ? { background: c.cor, border: `1px solid ${c.cor}`, color: '#ffffff' } : { background: `${c.cor}26`, border: `1px solid ${c.cor}80`, color: c.cor }}>
-                        {enviando ? t.enviando : c.rotulo}
-                      </motion.button>
-                    ))}
-                  </div>
-                  {erroModal && (
-                    <p className="text-xs font-semibold mt-2 flex items-center gap-1.5" style={{ color: VERMELHO }}><AlertCircle size={14} />{erroModal}</p>
-                  )}
-                  <motion.button onClick={() => setModalAberto(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(106,176,255,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
-                </div>
-              </div>
-            </CanvasBox>
-      </Modal>
+      {modalConvite}
       <CentroCompartilhamento
         aberto={!!conviteEnviar}
         onFechar={() => setConviteEnviar(null)}
