@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe><infNFe Id="NFe35261045876543000105550010000015011000015011" versao="4.00">
+    <ide><cUF>35</cUF><natOp>VENDA DE MERCADORIA</natOp><mod>55</mod><serie>1</serie><nNF>1501</nNF><dhEmi>2026-10-02T10:30:00-03:00</dhEmi><tpNF>1</tpNF></ide>
+    <emit><CNPJ>45876543000105</CNPJ><xNome>DISTRIBUIDORA MODA TESTE LTDA</xNome><xFant>MODA TESTE</xFant><enderEmit><xLgr>RUA DO TESTE</xLgr><nro>100</nro><xMun>SAO PAULO</xMun><UF>SP</UF></enderEmit><IE>ISENTO</IE><CRT>1</CRT></emit>
+    <dest><CNPJ>11222333000181</CNPJ><xNome>MINHA EMPRESA TESTE LTDA</xNome><enderDest><xLgr>AV DO CLIENTE</xLgr><nro>200</nro><xMun>SAO PAULO</xMun><UF>SP</UF></enderDest></dest>
+    <det nItem="1"><prod><cProd>A100</cProd><cEAN>SEM GTIN</cEAN><xProd>CAMISETA ALGODAO BASICA PRETA M</xProd><NCM>61091000</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>40.0000</qCom><vUnCom>29.90</vUnCom><vProd>1196.00</vProd></prod>
+      <imposto><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS></imposto></det>
+    <det nItem="2"><prod><cProd>A101</cProd><cEAN>SEM GTIN</cEAN><xProd>CAMISETA ALGODAO BASICA BRANCA G</xProd><NCM>61091000</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>40.0000</qCom><vUnCom>29.90</vUnCom><vProd>1196.00</vProd></prod>
+      <imposto><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS></imposto></det>
+    <det nItem="3"><prod><cProd>B200</cProd><cEAN>SEM GTIN</cEAN><xProd>CALCA JEANS SKINNY 38</xProd><NCM>62034200</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>20.0000</qCom><vUnCom>79.50</vUnCom><vProd>1590.00</vProd></prod>
+      <imposto><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS></imposto></det>
+    <total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vProd>3982.00</vProd><vFrete>0.00</vFrete><vDesc>0.00</vDesc><vIPI>0.00</vIPI><vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vNF>3982.00</vNF></ICMSTot></total>
+    <cobr><fat><nFat>1501</nFat><vOrig>3982.00</vOrig><vLiq>3982.00</vLiq></fat>
+      <dup><nDup>001</nDup><dVenc>2026-11-02</dVenc><vDup>1327.33</vDup></dup>
+      <dup><nDup>002</nDup><dVenc>2026-12-02</dVenc><vDup>1327.33</vDup></dup>
+      <dup><nDup>003</nDup><dVenc>2027-01-02</dVenc><vDup>1327.34</vDup></dup></cobr>
+    <pag><detPag><indPag>1</indPag><tPag>15</tPag><vPag>3982.00</vPag></detPag></pag>
+  </infNFe></NFe>
+  <protNFe versao="4.00"><infProt><chNFe>35261045876543000105550010000015011000015011</chNFe><dhRecbto>2026-10-02T10:31:00-03:00</dhRecbto><cStat>100</cStat><xMotivo>Autorizado o uso da NF-e (NOTA DE TESTE - SEM VALOR FISCAL)</xMotivo></infProt></protNFe>
+</nfeProc>

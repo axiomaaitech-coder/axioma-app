@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe><infNFe Id="NFe35261030214567000121550010000088021000088027" versao="4.00">
+    <ide><cUF>35</cUF><natOp>VENDA DE MERCADORIA</natOp><mod>55</mod><serie>1</serie><nNF>8802</nNF><dhEmi>2026-10-01T10:30:00-03:00</dhEmi><tpNF>1</tpNF></ide>
+    <emit><CNPJ>30214567000121</CNPJ><xNome>PROVEDOR FIBRA TESTE LTDA</xNome><xFant>FIBRA TESTE</xFant><enderEmit><xLgr>RUA DO TESTE</xLgr><nro>100</nro><xMun>SAO PAULO</xMun><UF>SP</UF></enderEmit><IE>ISENTO</IE><CRT>1</CRT></emit>
+    <dest><CNPJ>11222333000181</CNPJ><xNome>MINHA EMPRESA TESTE LTDA</xNome><enderDest><xLgr>AV DO CLIENTE</xLgr><nro>200</nro><xMun>SAO PAULO</xMun><UF>SP</UF></enderDest></dest>
+    <det nItem="1"><prod><cProd>NET500</cProd><cEAN>SEM GTIN</cEAN><xProd>PLANO INTERNET FIBRA 500MB - MENSALIDADE OUTUBRO/2026</xProd><NCM>00000000</NCM><CFOP>5307</CFOP><uCom>UN</uCom><qCom>1.0000</qCom><vUnCom>149.90</vUnCom><vProd>149.90</vProd></prod>
+      <imposto><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS></imposto></det>
+    <total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vProd>149.90</vProd><vFrete>0.00</vFrete><vDesc>0.00</vDesc><vIPI>0.00</vIPI><vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vNF>149.90</vNF></ICMSTot></total>
+    <pag><detPag><indPag>0</indPag><tPag>17</tPag><vPag>149.90</vPag></detPag></pag>
+  </infNFe></NFe>
+  <protNFe versao="4.00"><infProt><chNFe>35261030214567000121550010000088021000088027</chNFe><dhRecbto>2026-10-01T10:31:00-03:00</dhRecbto><cStat>100</cStat><xMotivo>Autorizado o uso da NF-e (NOTA DE TESTE - SEM VALOR FISCAL)</xMotivo></infProt></protNFe>
+</nfeProc>
