@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { parseXMLNFe } = await import('../lib/importarParsers')
+const { parseXMLNFe, resultadoDeNotaIA } = await import('../lib/importarParsers')
 
 const EMPRESA = '11222333000181'
 const nota = (emit: string, dest: string, extra: string) => `<nfeProc><NFe><infNFe Id="NFe35260911222333000181550010000001231000001230">
@@ -77,3 +77,19 @@ assert.equal(em1.linhas[0].valorPago, 3000)
 assert.equal(parcelarCompraCartao(cartao, 49), cartao) // fora do limite: não mexe
 assert.equal(parcelarCompraCartao(pix, 3), pix) // sem pergunta de cartão: não mexe
 console.log('OK — parcelas do cartão de 1x a 48x (centavos fecham, troca de opção parte da compra original)')
+
+// 6) Nota lida pela IA (PDF/foto) segue o MESMO caminho do XML
+const lidaIA = resultadoDeNotaIA({
+  eh_nota: true, tipo_documento: 'nfe', numero: '123', data_emissao: '2026-09-20',
+  emitente: { nome: 'Fornecedor Aço Ltda', cnpj_cpf: '99.888.777/0001-00' }, destinatario: { nome: 'Cliente Comprador', cnpj_cpf: '11.222.333/0001-81' },
+  valor_total: 3000,
+  itens: [{ descricao: 'CHAPA ACO', quantidade: 1, unidade: 'UN', valor_unitario: 3000, valor_total: 3000, ncm: '72085100', cfop: '5102', codigo: '1', ean: null }],
+  parcelas: [{ numero: '001', vencimento: '2026-10-20', valor: 1000 }, { numero: '002', vencimento: '2026-11-20', valor: 1000 }, { numero: '003', vencimento: '2026-12-20', valor: 1000 }],
+  pagamentos: [{ codigo_meio: '15', valor: 3000, a_prazo: true }],
+}, 'pdf', EMPRESA)
+assert.equal(lidaIA.formato, 'pdf')
+assert.equal(lidaIA.metadados.lido_por_ia, true)
+assert.deepEqual(lidaIA.linhas.map((l) => [l.valor, l.vencimento, l.destinoSugerido]), parcelada.linhas.map((l) => [l.valor, l.vencimento, l.destinoSugerido]))
+assert.equal(lidaIA.itensNFe?.[0].descricao, 'CHAPA ACO')
+assert.equal(lidaIA.metadados.problemas_formato_reforma, undefined)
+console.log('OK — nota lida pela IA (PDF/foto) gera as mesmas contas que o XML')

@@ -46,7 +46,7 @@ export type LinhaImportada = {
 };
 
 export type ResultadoParse = {
-  formato: "ofx" | "xml" | "csv" | "xlsx" | "xls" | "pdf" | "txt";
+  formato: "ofx" | "xml" | "csv" | "xlsx" | "xls" | "pdf" | "imagem" | "txt";
   linhas: LinhaImportada[];
   metadados: Record<string, any>;
   colunas?: string[]; // headers detectados (CSV/XLSX)
@@ -680,8 +680,6 @@ export function parcelarCompraCartao(res: ResultadoParse, n: number): ResultadoP
 }
 
 export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lang = "pt"): Promise<ResultadoParse> {
-  const motivos = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
-  const fallbackContraparte = CONTRAPARTE_FALLBACK[lang] || CONTRAPARTE_FALLBACK.pt;
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
@@ -691,8 +689,6 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   });
 
   const obj = parser.parse(texto);
-  const linhas: LinhaImportada[] = [];
-  const metadados: Record<string, any> = {};
 
   // Caminhos possíveis: nfeProc.NFe.infNFe ou NFe.infNFe ou diretamente infNFe
   const nfe = obj?.nfeProc?.NFe?.infNFe || obj?.NFe?.infNFe || obj?.infNFe;
@@ -707,6 +703,21 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
       precisaMapeamento: false,
     };
   }
+  return montarResultadoNFe(nfe, { chaveProtocolo: obj?.nfeProc?.protNFe?.infProt?.chNFe, empresaCnpj, lang, formato: "xml" });
+}
+
+// Monta o resultado a partir do infNFe — usado pelo XML e pela nota lida por IA
+// (PDF/foto, que chega aqui já no mesmo formato do infNFe). Um caminho só:
+// parcelas, resumo de pagamento, venda × compra e linhas saem iguais.
+function montarResultadoNFe(
+  nfe: any,
+  opcoes: { chaveProtocolo?: string; empresaCnpj?: string; lang: Lang; formato: ResultadoParse["formato"] },
+): ResultadoParse {
+  const { empresaCnpj, lang } = opcoes;
+  const motivos = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
+  const fallbackContraparte = CONTRAPARTE_FALLBACK[lang] || CONTRAPARTE_FALLBACK.pt;
+  const linhas: LinhaImportada[] = [];
+  const metadados: Record<string, any> = {};
 
   const emit = nfe.emit || {};
   const dest = nfe.dest || {};
@@ -722,7 +733,7 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   // protocolo de autorização (nfeProc.protNFe.infProt.chNFe, já limpo) ou o
   // atributo Id de infNFe (formato "NFe" + 44 dígitos, precisa tirar o
   // prefixo). PDV Fase 2.1 usa isso pra travar reimportação da mesma nota.
-  const chaveProtocolo = obj?.nfeProc?.protNFe?.infProt?.chNFe;
+  const chaveProtocolo = opcoes.chaveProtocolo;
   const chaveAtributo = String(nfe?.["@_Id"] || "").replace(/^NFe/i, "");
   metadados.chave_acesso = chaveProtocolo || (chaveAtributo.length === 44 ? chaveAtributo : undefined);
   metadados.data_emissao = parseDataBR(ide.dhEmi || ide.dEmi || "");
@@ -846,7 +857,7 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   }
 
   return {
-    formato: "xml",
+    formato: opcoes.formato,
     linhas,
     metadados,
     destinoSugerido: destinoLinha,
@@ -1063,7 +1074,84 @@ export async function parseXLSX(
 // ROTEADOR: detecta tipo e chama o parser certo
 // ============================================================================
 
-export async function parseArquivo(file: File, empresaCnpj?: string, lang: Lang = "pt"): Promise<ResultadoParse> {
+// ============================================================================
+// NOTA LIDA POR IA (B3 — PDF ou foto, quando não há XML)
+// ============================================================================
+// Formato que /api/importar/ler-nota devolve (esquema fixo no servidor). Vira
+// um infNFe e segue pelo MESMO montarResultadoNFe do XML. Sempre sugestão:
+// a pré-visualização mostra tudo e nada grava sem o usuário confirmar.
+export type NotaLidaIA = {
+  eh_nota: boolean;
+  tipo_documento: string;
+  numero: string | null;
+  data_emissao: string | null;
+  emitente: { nome: string | null; cnpj_cpf: string | null };
+  destinatario: { nome: string | null; cnpj_cpf: string | null };
+  valor_total: number | null;
+  itens: { descricao: string; quantidade: number | null; unidade: string | null; valor_unitario: number | null; valor_total: number | null; ncm: string | null; cfop: string | null; codigo: string | null; ean: string | null }[];
+  parcelas: { numero: string | null; vencimento: string | null; valor: number }[];
+  pagamentos: { codigo_meio: string; valor: number; a_prazo: boolean }[];
+};
+
+export function resultadoDeNotaIA(nota: NotaLidaIA, formato: ResultadoParse["formato"], empresaCnpj?: string, lang: Lang = "pt"): ResultadoParse {
+  const digitos = (v: string | null) => (v ? v.replace(/\D/g, "") : undefined);
+  const nfe = {
+    emit: { CNPJ: digitos(nota.emitente?.cnpj_cpf), xNome: nota.emitente?.nome ?? undefined },
+    dest: { CNPJ: digitos(nota.destinatario?.cnpj_cpf), xNome: nota.destinatario?.nome ?? undefined },
+    ide: { nNF: nota.numero ?? undefined, dhEmi: nota.data_emissao ?? "" },
+    total: { ICMSTot: { vNF: nota.valor_total ?? undefined } },
+    det: (nota.itens ?? []).map((i) => ({ prod: {
+      xProd: i.descricao, qCom: i.quantidade ?? undefined, uCom: i.unidade ?? undefined, vUnCom: i.valor_unitario ?? undefined,
+      vProd: i.valor_total ?? undefined, NCM: i.ncm ?? undefined, CFOP: i.cfop ?? undefined, cProd: i.codigo ?? undefined, cEAN: i.ean ?? undefined,
+    } })),
+    cobr: { dup: (nota.parcelas ?? []).map((p) => ({ nDup: p.numero ?? undefined, dVenc: p.vencimento ?? undefined, vDup: p.valor })) },
+    pag: { detPag: (nota.pagamentos ?? []).map((p) => ({ tPag: p.codigo_meio, vPag: p.valor, indPag: p.a_prazo ? "1" : "0" })) },
+  };
+  const res = montarResultadoNFe(nfe, { empresaCnpj, lang, formato });
+  res.metadados.lido_por_ia = true;
+  res.metadados.tipo_documento = nota.tipo_documento;
+  return res;
+}
+
+// Foto grande do celular passa do limite de envio (4,5 MB na Vercel): reduz
+// pra no máximo 2000 px em JPEG, que continua legível pra IA.
+async function reduzirImagem(file: File): Promise<Blob> {
+  if (file.size <= 3_000_000 || typeof document === "undefined") return file;
+  const bmp = await createImageBitmap(file);
+  const escala = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * escala);
+  canvas.height = Math.round(bmp.height * escala);
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  return new Promise((ok) => canvas.toBlob((b) => ok(b ?? file), "image/jpeg", 0.85));
+}
+
+const MSG_LEITURA_IA = {
+  falhou: { pt: "Não foi possível ler esta nota automaticamente. Tente uma foto mais nítida ou envie o XML da nota.", en: "Could not read this invoice automatically. Try a sharper photo or upload the invoice XML.", es: "No se pudo leer esta factura automáticamente. Intente una foto más nítida o envíe el XML." },
+  grande: { pt: "Arquivo grande demais para leitura automática (máximo 4 MB). Envie o XML da nota ou um PDF menor.", en: "File too large for automatic reading (max 4 MB). Upload the invoice XML or a smaller PDF.", es: "Archivo demasiado grande para lectura automática (máx. 4 MB). Envíe el XML o un PDF más pequeño." },
+  naoNota: { pt: "Este arquivo não parece ser uma nota fiscal ou recibo.", en: "This file does not look like an invoice or receipt.", es: "Este archivo no parece una factura o recibo." },
+};
+
+async function lerNotaComIA(file: File, formato: "pdf" | "imagem", empresaCnpj: string | undefined, lang: Lang, empresaId: string | undefined): Promise<ResultadoParse> {
+  const vazio = (erro: string): ResultadoParse => ({ formato, linhas: [], metadados: { erro_leitura: erro }, destinoSugerido: "contas_pagar", precisaMapeamento: false });
+  const corpo = formato === "imagem" ? await reduzirImagem(file) : file;
+  if (corpo.size > 4_000_000) return vazio(MSG_LEITURA_IA.grande[lang]);
+  const form = new FormData();
+  form.append("arquivo", corpo, file.name);
+  form.append("empresa_id", empresaId ?? "");
+  try {
+    const r = await fetch("/api/importar/ler-nota", { method: "POST", body: form });
+    if (!r.ok) return vazio(MSG_LEITURA_IA.falhou[lang]);
+    const { nota } = (await r.json()) as { nota: NotaLidaIA | null };
+    if (!nota) return vazio(MSG_LEITURA_IA.falhou[lang]);
+    if (!nota.eh_nota) return vazio(MSG_LEITURA_IA.naoNota[lang]);
+    return resultadoDeNotaIA(nota, formato, empresaCnpj, lang);
+  } catch {
+    return vazio(MSG_LEITURA_IA.falhou[lang]);
+  }
+}
+
+export async function parseArquivo(file: File, empresaCnpj?: string, lang: Lang = "pt", empresaId?: string): Promise<ResultadoParse> {
   const nome = file.name.toLowerCase();
   const ext = nome.split(".").pop() || "";
 
@@ -1091,16 +1179,9 @@ export async function parseArquivo(file: File, empresaCnpj?: string, lang: Lang 
     return parseXLSX(buffer, undefined, ext === "xls" ? "xls" : "xlsx", file.name, lang);
   }
 
-  // PDF - salva pra OCR futuro (Fase 2 com Claude Vision)
-  if (ext === "pdf") {
-    return {
-      formato: "pdf",
-      linhas: [],
-      metadados: { aguardando_ocr: true, observacao: "PDF salvo. OCR automático na Fase 2." },
-      destinoSugerido: "contas_pagar",
-      precisaMapeamento: false,
-    };
-  }
+  // PDF ou foto da nota — a IA lê (B3)
+  if (ext === "pdf") return lerNotaComIA(file, "pdf", empresaCnpj, lang, empresaId);
+  if (["jpg", "jpeg", "png", "webp"].includes(ext)) return lerNotaComIA(file, "imagem", empresaCnpj, lang, empresaId);
 
   throw new Error(`Formato não suportado: .${ext}`);
 }

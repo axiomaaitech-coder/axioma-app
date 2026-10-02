@@ -128,6 +128,36 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
   return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
 }
 
+// Leitura de documento (PDF ou foto) com visão — B3, nota fiscal sem XML. Ler
+// nota com tabela, parcelas e impostos é tarefa de ANÁLISE (Claude), nunca
+// rotina. Resposta presa num esquema JSON (structured outputs). Falha = null.
+export type ArquivoVisao = { base64: string; mediaType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' }
+export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso): Promise<{ dados: unknown; modelo: string } | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null
+  const cfg = MODELOS.analise
+  const bloco = arquivo.mediaType === 'application/pdf'
+    ? { type: 'document', source: { type: 'base64', media_type: arquivo.mediaType, data: arquivo.base64 } }
+    : { type: 'image', source: { type: 'base64', media_type: arquivo.mediaType, data: arquivo.base64 } }
+  try {
+    const params = {
+      model: cfg.modelo, max_tokens: 16000,
+      betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: esquema } },
+      system: `${instrucao}\n${AVISO_IDENTIDADE}`,
+      messages: [{ role: 'user', content: [bloco, { type: 'text', text: 'Leia este documento e devolva os dados no formato pedido.' }] }],
+    }
+    // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão de chamarClaude).
+    const r = await new Anthropic().beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
+    somarUso(uso, cfg.modelo, r.usage?.input_tokens ?? 0, r.usage?.output_tokens ?? 0, r.usage?.cache_read_input_tokens ?? 0, r.usage?.cache_creation_input_tokens ?? 0)
+    if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') return null
+    const texto = r.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('').trim()
+    return texto ? { dados: JSON.parse(texto), modelo: cfg.modelo } : null
+  } catch (err) {
+    console.error('[motor-ia] visão', cfg.modelo, err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: string, maxTokens: number, json = false, timeoutMs = 45000, uso?: Uso): Promise<string | null> {
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return null

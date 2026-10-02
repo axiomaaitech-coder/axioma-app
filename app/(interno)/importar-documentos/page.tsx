@@ -73,12 +73,14 @@ const T = {
     duplicataGlobalMsg: "Detectamos que este arquivo idêntico já foi importado em",
     importarAssim: "Importar mesmo assim",
     cancelar: "Cancelar",
-    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF",
+    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF, JPG/PNG",
     arrasteAqui: "Arraste seu arquivo aqui",
     ouClique: "ou clique para selecionar",
     processando: "Processando arquivo...",
     calcHash: "Verificando duplicatas...",
     parseando: "Lendo conteúdo do arquivo...",
+    parseandoIA: "A IA está lendo a nota... pode levar até 1 minuto.",
+    lidoPorIA: "Nota lida pela IA a partir do PDF/foto. Confira valores, datas e parcelas antes de importar.",
     uploadStorage: "Salvando no cofre seguro...",
     dedup: "Cruzando com base existente...",
     preview: "Revisão antes de Importar",
@@ -197,12 +199,14 @@ const T = {
     duplicataGlobalMsg: "This identical file was already imported on",
     importarAssim: "Import anyway",
     cancelar: "Cancel",
-    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF",
+    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF, JPG/PNG",
     arrasteAqui: "Drop your file here",
     ouClique: "or click to select",
     processando: "Processing file...",
     calcHash: "Checking for duplicates...",
     parseando: "Reading file contents...",
+    parseandoIA: "AI is reading the invoice... this may take up to 1 minute.",
+    lidoPorIA: "Invoice read by AI from the PDF/photo. Check amounts, dates and installments before importing.",
     uploadStorage: "Saving to secure vault...",
     dedup: "Cross-checking existing data...",
     preview: "Review before Import",
@@ -321,12 +325,14 @@ const T = {
     duplicataGlobalMsg: "Detectamos que este archivo idéntico ya fue importado el",
     importarAssim: "Importar de todos modos",
     cancelar: "Cancelar",
-    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF",
+    formatosSuportados: "OFX, XML NF-e, CSV, XLSX, XLS, PDF, JPG/PNG",
     arrasteAqui: "Arrastra tu archivo aquí",
     ouClique: "o haz clic para seleccionar",
     processando: "Procesando archivo...",
     calcHash: "Verificando duplicados...",
     parseando: "Leyendo contenido...",
+    parseandoIA: "La IA está leyendo la factura... puede tardar hasta 1 minuto.",
+    lidoPorIA: "Factura leída por IA desde el PDF/foto. Revise valores, fechas y cuotas antes de importar.",
     uploadStorage: "Guardando en bóveda segura...",
     dedup: "Cruzando con base existente...",
     preview: "Revisión antes de Importar",
@@ -694,7 +700,8 @@ export default function ImportarDocumentosPage() {
   async function processarParse(file: File) {
     if (!userId || !empresaId) return;
     setEtapa("parse");
-    const res = await parseArquivo(file, empresaCnpj || undefined, langAtual);
+    const res = await parseArquivo(file, empresaCnpj || undefined, langAtual, empresaId);
+    if (res.metadados?.erro_leitura) showToast(res.metadados.erro_leitura, "erro");
     await aplicarResultado(res);
   }
 
@@ -1564,7 +1571,7 @@ export default function ImportarDocumentosPage() {
                 <input
                   ref={inputRef}
                   type="file"
-                  accept=".pdf,.xml,.xlsx,.xls,.csv,.tsv,.txt,.ofx,.qfx,.ods"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.xml,.xlsx,.xls,.csv,.tsv,.txt,.ofx,.qfx,.ods"
                   className="hidden"
                   onChange={onFileChange}
                 />
@@ -1579,7 +1586,7 @@ export default function ImportarDocumentosPage() {
                 <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="font-semibold text-sm" style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
                   {etapa === "hash" && tt.calcHash}
-                  {etapa === "parse" && tt.parseando}
+                  {etapa === "parse" && (/\.(pdf|jpe?g|png|webp)$/i.test(arquivoSelecionado?.name || "") ? tt.parseandoIA : tt.parseando)}
                   {etapa === "upload" && tt.uploadStorage}
                   {etapa === "dedup" && tt.dedup}
                 </p>
@@ -1945,6 +1952,11 @@ function PreviewBlock(props: any) {
   return (
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
+        {resultado?.metadados?.lido_por_ia && (
+          <p className="text-xs font-semibold rounded-xl p-3" style={{ background: fundoCaixaAninhada, color: ct("#fbbf24"), border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(251,191,36,0.25)" }}>
+            🤖 {tt.lidoPorIA}
+          </p>
+        )}
         {textoResumoPag && (
           <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
