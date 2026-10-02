@@ -1376,7 +1376,7 @@ Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
 - [x] P1 ✅ 2026-10-02 Menu do topo por cima das janelas: causa = "relative z-10" no conteúdo de ModuloLayout, PdvLayout e CanvasBox prendia toda janela (até z-[100]) abaixo do menu (z-50); removido (decoração é absolute sem z, fica atrás pela ordem). Janelas do PDV z-40 → z-50.
 - [x] P2 ✅ 2026-10-02 Currents desligada (nexus_source.active = false, com ok do Elias, conferido)
 - [ ] P3 Aceitar convite de equipe — banco CONFERIDO 2026-10-02 (colunas do EQUIPE-ACESSO-TEMPORARIO rodadas); falta teste ponta a ponta no site (Elias precisa estar logado no Chrome; aceite no celular dele)
-- [ ] P4 8 políticas RLS na forma antiga (alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes) — SQL PRONTO em RLS-8-TABELAS-ANTIGAS-SQL.sql (2026-10-02; as 8 têm empresa_id e não são usadas pelo app), falta o Elias rodar
+- [x] P4 ✅ 2026-10-02 8 políticas RLS antigas (alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes) trocadas pela regra por empresa (RLS-8-TABELAS-ANTIGAS-SQL.sql, Elias rodou, 8 políticas _multi_tenant conferidas)
 - [ ] P5 Escala: listas sem paginação que leem tudo (Clientes, Contas a Receber/Inadimplência — seção 11)
 - [ ] P6 Placar do José — conferir em 28/10/2026
 - [ ] C Tema Escuro padronizado (confirmar paleta antes)
