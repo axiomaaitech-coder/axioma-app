@@ -983,8 +983,8 @@ export async function obterConvitePorToken(token: string): Promise<{
 // Termo de quem recebe: nome completo, CPF e e-mail ficam em
 // empresa_convite_termo (só dono/admin leem — EQUIPE-ACESSO-TEMPORARIO-SQL.sql).
 // Não dá acesso ainda: deixa o convite "aguardando aprovação" do dono/admin (decidirConvite).
-export async function aceitarConvite(token: string, nome: string, cpf: string, email: string, confirmaRemetente: boolean, aceitaTermos: boolean): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
-  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token, p_nome: nome, p_cpf: cpf, p_email: email, p_confirma_remetente: confirmaRemetente, p_aceita_termos: aceitaTermos });
+export async function aceitarConvite(token: string, nome: string, aceitaTermos: boolean): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
+  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token, p_nome: nome, p_aceita_termos: aceitaTermos });
   if (error) return { erro: error.message, codigo: error.code };
   limparCacheEmpresaAtiva();
   return { empresaId: data as string };

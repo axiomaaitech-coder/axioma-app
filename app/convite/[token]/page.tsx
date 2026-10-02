@@ -9,10 +9,9 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterConvitePorToken, aceitarConvite, definirEmpresaPreferida } from '../../../lib/empresaHelpers'
 
 // Tela de quem RECEBE o convite (link do WhatsApp/Gmail/Outlook/Telegram).
-// Segurança (EQUIPE-ACESSO-TEMPORARIO-SQL.sql): a pessoa entra com a própria
-// conta (e-mail confirmado pelo Axioma), preenche nome + CPF, confirma quem
-// convidou e aceita Termos + LGPD → fica "aguardando aprovação". Só entra
-// depois que o dono/admin aprovar na tela Equipe.
+// Convite simples (CONVITE-SIMPLES-SQL.sql, pedido do Elias 2026-10-02): a
+// pessoa entra com a própria conta, digita o nome, aceita os Termos e ENTRA NA
+// HORA. O dono corta o acesso quando quiser na tela Equipe.
 
 const PAPEL_LABEL: Record<string, Record<string, string>> = {
   pt: { admin: 'Admin (acesso total)', financeiro: 'Financeiro', contabil: 'Contábil', leitor: 'Leitor (somente visualização)', operador: 'Operador (caixa/PDV)' },
@@ -25,22 +24,7 @@ const RELACAO_LABEL: Record<string, Record<string, string>> = {
   es: { ceo: 'CEO', socio: 'Socio', contador: 'Contador', funcionario: 'Empleado', consultor: 'Consultor (2ª opinión)', outro: 'Otro' },
 }
 
-// CPF: dígitos verificadores (barra número inventado/digitado errado)
-function cpfValido(c: string): boolean {
-  const d = c.replace(/\D/g, '')
-  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false
-  const dv = (n: number) => {
-    let s = 0
-    for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i)
-    const r = (s * 10) % 11
-    return r === 10 ? 0 : r
-  }
-  return dv(9) === Number(d[9]) && dv(10) === Number(d[10])
-}
-const mascaraCpf = (v: string) => v.replace(/\D/g, '').slice(0, 11)
-  .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-
-type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'precisa_login' | 'email_errado' | 'pronto' | 'enviando' | 'aguardando' | 'recusado' | 'liberado'
+type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'precisa_login' | 'email_errado' | 'pronto' | 'enviando' | 'recusado' | 'liberado'
 type Convite = NonNullable<Awaited<ReturnType<typeof obterConvitePorToken>>>
 
 const COR = { fundo: '#020810', card: 'rgba(8,18,36,0.95)', borda: 'rgba(46,204,155,0.25)', menta: '#2ecc9b', mentaForte: '#16a97d', texto: '#e2e8f0', sec: '#8aa0bf', campo: 'rgba(255,255,255,0.04)', erro: '#f87171' }
@@ -57,13 +41,11 @@ export default function AceitarConvite() {
   const [emailLogado, setEmailLogado] = useState('')
   const [erro, setErro] = useState('')
   const [nome, setNome] = useState('')
-  const [cpf, setCpf] = useState('')
-  const [confirmaRemetente, setConfirmaRemetente] = useState(false)
   const [aceitaTermos, setAceitaTermos] = useState(false)
   const [userId, setUserId] = useState('')
   const [empresaLiberada, setEmpresaLiberada] = useState<string | null>(null)
 
-  // Depois da aprovação: a pessoa já é membro → acha a empresa (RLS só mostra
+  // Já aceitou antes: a pessoa já é membro → acha a empresa (RLS só mostra
   // se o acesso estiver valendo) e libera o botão de entrar.
   async function checarLiberacao(uid: string, nomeEmpresa: string): Promise<boolean> {
     const { data } = await supabase.from('empresa_usuarios').select('empresa_id, empresas(nome)').eq('user_id', uid)
@@ -98,21 +80,9 @@ export default function AceitarConvite() {
       if (!emailUsuario) { setEstado('precisa_login'); return }
       setEmailLogado(emailUsuario)
       if (c.email_convidado && emailUsuario.toLowerCase() !== c.email_convidado.toLowerCase()) { setEstado('email_errado'); return }
-      if (c.situacao === 'aguardando_aprovacao') { setEstado('aguardando'); return }
       setEstado('pronto')
     })()
   }, [token])
-
-  // Aguardando aprovação: confere a cada 8s se o dono/admin já aprovou
-  useEffect(() => {
-    if (estado !== 'aguardando' || !userId || !convite) return
-    const id = setInterval(async () => {
-      const c = await obterConvitePorToken(token)
-      if (c?.situacao === 'aprovado') { clearInterval(id); await checarLiberacao(userId, c.empresa_nome) }
-      else if (c?.situacao === 'recusado') { clearInterval(id); setEstado('recusado') }
-    }, 8000)
-    return () => clearInterval(id)
-  }, [estado, userId, convite])
 
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
@@ -120,22 +90,21 @@ export default function AceitarConvite() {
   const prazoTexto = (d?: number | null) => d == null ? L('sem prazo', 'no time limit', 'sin plazo') : d === 1 ? L('24 horas', '24 hours', '24 horas') : L(`${d} dias`, `${d} days`, `${d} días`)
   const remetente = convite?.remetente_nome || L('o responsável pela empresa', 'the company owner', 'el responsable de la empresa')
 
-  const nomeOk = nome.trim().length >= 5 && nome.trim().includes(' ')
-  const cpfOk = cpfValido(cpf)
-  const podeEnviar = nomeOk && cpfOk && confirmaRemetente && aceitaTermos && estado === 'pronto'
+  const nomeOk = nome.trim().length >= 2
+  const podeEnviar = nomeOk && aceitaTermos && estado === 'pronto'
 
   async function enviar() {
     if (!podeEnviar) {
-      setErro(!nomeOk ? L('Digite seu nome completo (nome e sobrenome).', 'Enter your full name (first and last).', 'Escriba su nombre completo (nombre y apellido).')
-        : !cpfOk ? L('CPF inválido. Confira os números.', 'Invalid CPF. Check the numbers.', 'CPF inválido. Revise los números.')
-        : L('Confirme quem enviou o convite e aceite os Termos e a LGPD.', 'Confirm who sent the invite and accept the Terms and LGPD.', 'Confirme quién envió la invitación y acepte los Términos y la LGPD.'))
+      setErro(!nomeOk ? L('Digite seu nome.', 'Enter your name.', 'Escriba su nombre.')
+        : L('Marque que aceita os Termos.', 'Check that you accept the Terms.', 'Marque que acepta los Términos.'))
       return
     }
     setErro('')
     setEstado('enviando')
-    const r = await aceitarConvite(token, nome.trim(), cpf, emailLogado, confirmaRemetente, aceitaTermos)
-    if (r.erro) { setErro(r.erro); setEstado('pronto'); return }
-    setEstado('aguardando')
+    const r = await aceitarConvite(token, nome.trim(), aceitaTermos)
+    if (r.erro || !r.empresaId) { setErro(r.erro || L('Não deu certo. Tente de novo.', 'Something went wrong. Try again.', 'Algo salió mal. Intente de nuevo.')); setEstado('pronto'); return }
+    definirEmpresaPreferida(userId, r.empresaId)
+    window.location.href = '/dashboard'
   }
 
   async function handleSair() {
@@ -201,7 +170,7 @@ export default function AceitarConvite() {
               {convite.relacao ? `${RELACAO_LABEL[lang][convite.relacao] || convite.relacao} • ` : ''}
               {PAPEL_LABEL[lang][convite.papel] || convite.papel}
             </p>
-            <p><Clock size={12} className="inline mr-1" />{L('Acesso por', 'Access for', 'Acceso por')} <strong style={{ color: COR.texto }}>{prazoTexto(convite.acesso_dias)}</strong>{L(' a partir da aprovação', ' from approval', ' desde la aprobación')}</p>
+            <p><Clock size={12} className="inline mr-1" />{L('Acesso por', 'Access for', 'Acceso por')} <strong style={{ color: COR.texto }}>{prazoTexto(convite.acesso_dias)}</strong>{L(' a partir de agora', ' starting now', ' a partir de ahora')}</p>
             {convite.motivo_convite && <p>{L('Motivo', 'Reason', 'Motivo')}: {convite.motivo_convite}</p>}
           </div>
         )}
@@ -242,25 +211,6 @@ export default function AceitarConvite() {
               <input value={nome} onChange={(e) => { setNome(e.target.value); setErro('') }} maxLength={120} autoComplete="name"
                 className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm outline-none transition-all focus:scale-[1.01]" style={campo(nomeOk, nome.length > 0)} />
             </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-wider" style={{ color: COR.sec }}>CPF *</label>
-              <input value={cpf} onChange={(e) => { setCpf(mascaraCpf(e.target.value)); setErro('') }} inputMode="numeric" placeholder="000.000.000-00"
-                className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm outline-none transition-all focus:scale-[1.01]" style={campo(cpfOk, cpf.length > 0)} />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-wider" style={{ color: COR.sec }}>{L('E-mail (da sua conta, já confirmado)', 'E-mail (your account, confirmed)', 'Correo (de su cuenta, confirmado)')}</label>
-              <input value={emailLogado} readOnly className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm opacity-80" style={{ ...campo(true, true), cursor: 'not-allowed' }} />
-            </div>
-
-            <motion.label whileHover={{ scale: 1.01 }} className="flex items-start gap-2.5 p-3 rounded-xl cursor-pointer"
-              style={{ background: confirmaRemetente ? 'rgba(46,204,155,0.08)' : COR.campo, border: `1px solid ${confirmaRemetente ? COR.menta : 'rgba(255,255,255,0.1)'}` }}>
-              <input type="checkbox" checked={confirmaRemetente} onChange={(e) => { setConfirmaRemetente(e.target.checked); setErro('') }} className="mt-0.5 accent-emerald-500" />
-              <span className="text-xs" style={{ color: COR.texto }}>
-                {L(`Confirmo que fui convidado(a) por ${remetente} em ${dataHora(convite.convidado_em)} e que conheço essa pessoa.`,
-                   `I confirm I was invited by ${remetente} on ${dataHora(convite.convidado_em)} and that I know this person.`,
-                   `Confirmo que fui invitado(a) por ${remetente} el ${dataHora(convite.convidado_em)} y que conozco a esta persona.`)}
-              </span>
-            </motion.label>
 
             <motion.label whileHover={{ scale: 1.01 }} className="flex items-start gap-2.5 p-3 rounded-xl cursor-pointer"
               style={{ background: aceitaTermos ? 'rgba(46,204,155,0.08)' : COR.campo, border: `1px solid ${aceitaTermos ? COR.menta : 'rgba(255,255,255,0.1)'}` }}>
@@ -270,9 +220,9 @@ export default function AceitarConvite() {
                 <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: COR.menta }}>{L('Termos de Uso e Segurança', 'Terms of Use and Security', 'Términos de Uso y Seguridad')}</a>
                 {L(' e com a ', ' and the ', ' y la ')}
                 <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: COR.menta }}>{L('Política de Privacidade (LGPD)', 'Privacy Policy (LGPD)', 'Política de Privacidad (LGPD)')}</a>
-                {L('. Sei que vou acessar dados financeiros e bancários desta empresa, que meu nome, CPF e e-mail ficam registrados e que o acesso pode ser cortado a qualquer momento.',
-                   '. I know I will access this company\'s financial and banking data, that my name, CPF and e-mail are recorded and that access can be cut at any time.',
-                   '. Sé que accederé a datos financieros y bancarios de esta empresa, que mi nombre, CPF y correo quedan registrados y que el acceso puede cortarse en cualquier momento.')}
+                {L('. O acesso pode ser encerrado a qualquer momento por quem me convidou.',
+                   '. Access can be ended at any time by whoever invited me.',
+                   '. El acceso puede ser cerrado en cualquier momento por quien me invitó.')}
               </span>
             </motion.label>
 
@@ -290,27 +240,11 @@ export default function AceitarConvite() {
               className="w-full py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2 disabled:opacity-70"
               style={{ background: podeEnviar ? `linear-gradient(135deg, ${COR.mentaForte}, ${COR.menta})` : 'rgba(46,204,155,0.18)', color: '#fff' }}>
               <ShieldCheck size={16} />
-              {estado === 'enviando' ? L('Enviando...', 'Sending...', 'Enviando...') : L('Entrar — enviar para aprovação', 'Enter — send for approval', 'Entrar — enviar para aprobación')}
+              {estado === 'enviando' ? L('Entrando...', 'Entering...', 'Entrando...') : L(`Aceitar e entrar em ${convite.empresa_nome}`, `Accept and enter ${convite.empresa_nome}`, `Aceptar y entrar en ${convite.empresa_nome}`)}
             </motion.button>
-            <p className="text-[11px] text-center" style={{ color: COR.sec }}>
-              {L(`Por segurança, ${remetente} confirma seus dados antes de liberar o acesso.`, `For security, ${remetente} confirms your data before granting access.`, `Por seguridad, ${remetente} confirma sus datos antes de liberar el acceso.`)}
-            </p>
           </motion.div>
         )}
 
-        {estado === 'aguardando' && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-            <motion.div animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} className="inline-block mb-3">
-              <CheckCircle2 size={44} style={{ color: COR.menta }} />
-            </motion.div>
-            <p className="text-sm font-bold mb-1" style={{ color: COR.texto }}>{L('Dados enviados com segurança', 'Data sent securely', 'Datos enviados con seguridad')}</p>
-            <p className="text-xs" style={{ color: COR.sec }}>
-              {L(`Agora é só aguardar: ${remetente} vai conferir e aprovar seu acesso. Pode deixar esta tela aberta — ela se atualiza sozinha. Se fechar, é só abrir este mesmo link de novo depois.`,
-                 `Now just wait: ${remetente} will review and approve your access. You can keep this screen open — it updates by itself. If you close it, just open this same link again later.`,
-                 `Ahora solo espere: ${remetente} revisará y aprobará su acceso. Puede dejar esta pantalla abierta — se actualiza sola. Si la cierra, abra este mismo enlace de nuevo más tarde.`)}
-            </p>
-          </motion.div>
-        )}
         {estado === 'liberado' && convite && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
             <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.2, 1] }} transition={{ duration: 0.5 }} className="inline-block mb-3">
@@ -318,7 +252,7 @@ export default function AceitarConvite() {
             </motion.div>
             <p className="text-base font-bold mb-1" style={{ color: COR.texto }}>{L('Acesso liberado!', 'Access granted!', '¡Acceso liberado!')}</p>
             <p className="text-xs mb-5" style={{ color: COR.sec }}>
-              {L(`${remetente} aprovou seu acesso à empresa ${convite.empresa_nome}.`, `${remetente} approved your access to ${convite.empresa_nome}.`, `${remetente} aprobó su acceso a ${convite.empresa_nome}.`)}
+              {L(`Você já tem acesso à empresa ${convite.empresa_nome}.`, `You already have access to ${convite.empresa_nome}.`, `Ya tiene acceso a ${convite.empresa_nome}.`)}
             </p>
             <motion.button onClick={entrarNaEmpresa} whileHover={{ scale: 1.03, y: -2, boxShadow: '0 10px 30px rgba(46,204,155,0.45)' }} whileTap={{ scale: 0.97 }}
               className="w-full py-3 rounded-xl font-black text-sm tracking-wide"

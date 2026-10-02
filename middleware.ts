@@ -129,7 +129,21 @@ export async function middleware(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!perfil || !perfil.plano_ativo) {
+    // Convidado da equipe não paga plano: entra enquanto o acesso estiver valendo.
+    // ponytail: não confere o plano do dono da empresa — conferir na etapa F (planos).
+    let membro = false
+    if (!perfil?.plano_ativo) {
+      const { data: vinculo } = await supabase
+        .from('empresa_usuarios')
+        .select('empresa_id')
+        .eq('user_id', user.id)
+        .neq('papel', 'dono') // dono da própria empresa continua precisando de plano
+        .or(`acesso_expira_em.is.null,acesso_expira_em.gt.${new Date().toISOString()}`)
+        .limit(1)
+      membro = !!vinculo?.length
+    }
+
+    if (!membro && (!perfil || !perfil.plano_ativo)) {
       const response = NextResponse.redirect(new URL('/planos', request.url))
       return addSecurityHeaders(response)
     }
