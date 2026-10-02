@@ -27,18 +27,20 @@ declare global {
 //      na tela: {turnstile.elemento}
 export function useTurnstile() {
   const { idioma } = useLanguage()
-  const ref = useRef<HTMLDivElement>(null)
   const idRef = useRef<string | null>(null)
   const resolver = useRef<((t?: string) => void) | null>(null)
   const [problema, setProblema] = useState(false)
+  // Caixinha dentro de janela (Contas a Pagar, PDV) some e volta: redesenha a
+  // cada vez que aparece — antes ficava presa à caixinha antiga e travava.
+  const [el, setEl] = useState<HTMLDivElement | null>(null)
 
   const terminar = (t?: string) => { resolver.current?.(t); resolver.current = null }
 
   useEffect(() => {
-    if (!TURNSTILE_ATIVO) return
+    if (!TURNSTILE_ATIVO || !el) return
     const desenhar = () => {
-      if (!ref.current || !window.turnstile) return false
-      idRef.current = window.turnstile.render(ref.current, {
+      if (!window.turnstile) return false
+      idRef.current = window.turnstile.render(el, {
         sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
         theme: 'auto',
         appearance: 'interaction-only',
@@ -57,7 +59,7 @@ export function useTurnstile() {
       idRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [el])
 
   const pegarToken = useCallback(() => new Promise<string | undefined>((resolve) => {
     if (!TURNSTILE_ATIVO || !idRef.current || !window.turnstile) { resolve(undefined); return }
@@ -71,7 +73,7 @@ export function useTurnstile() {
   const elemento = TURNSTILE_ATIVO ? (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" />
-      <div ref={ref} className="flex justify-center my-2" />
+      <div ref={setEl} className="flex justify-center my-2" />
       {problema && (
         <p className="text-xs text-center mb-2" style={{ color: '#f87171' }}>
           {idioma === 'en' ? 'Could not confirm you are not a robot. Please click again.'
