@@ -37,6 +37,8 @@ export type LinhaImportada = {
   // no dia da emissão" e sempre em aberto, mesmo paga à vista.
   vencimento?: string; // ISO YYYY-MM-DD
   valorPago?: number;
+  // B3 item 5 — fornecedor da compra (achado pelo CNPJ ou cadastrado com o "sim" do humano)
+  fornecedorId?: string;
   // Distribuição automática de destino (por linha, não por arquivo inteiro —
   // um extrato pode ter entrada E saída, uma NF-e pode ser venda OU compra).
   // Sempre uma SUGESTÃO: o usuário decide de verdade, nunca grava sozinho.
@@ -1233,6 +1235,21 @@ export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): Per
       en: `Investment items (${brl(grupos.investimento.valor)}: ${nomes(grupos.investimento)}) stay only as a payable and are not a cost of the month, since they are durable assets. Is that right?`,
       es: `Ítems de inversión (${brl(grupos.investimento.valor)}: ${nomes(grupos.investimento)}) quedan solo como cuenta por pagar y no son costo del mes, por ser bienes durables. ¿Es correcto?`,
     } });
+  }
+
+  // B3 item 5 — fornecedor que ainda não está cadastrado: pergunta antes de criar.
+  // (Já cadastrado com o mesmo CNPJ = liga sozinho, sem pergunta.)
+  const cnpjEmit = String(m.cnpj_emitente ?? "").replace(/\D/g, "");
+  if (m.fornecedor_cadastrado === null && cnpjEmit && res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) {
+    const nome = m.fantasia || m.razao_social || cnpjEmit;
+    p.push({ id: "fornecedor_novo", tipo: "lancamento", texto: {
+      pt: `O fornecedor ${nome} (CNPJ ${cnpjEmit}) ainda não está cadastrado. Cadastrar e ligar as contas a pagar desta nota a ele?`,
+      en: `The supplier ${nome} (CNPJ ${cnpjEmit}) is not registered yet. Register it and link this invoice's payables to it?`,
+      es: `El proveedor ${nome} (CNPJ ${cnpjEmit}) aún no está registrado. ¿Registrarlo y vincular las cuentas por pagar de esta factura?`,
+    }, opcoes: [
+      { valor: "sim", texto: { pt: "Sim, cadastrar e ligar", en: "Yes, register and link", es: "Sí, registrar y vincular" } },
+      { valor: "nao", texto: { pt: "Não cadastrar", en: "Do not register", es: "No registrar" } },
+    ] });
   }
 
   if (res.linhas.some((l) => l.confiancaDestino === "baixa")) p.push({ id: "destino", tipo: "destino", texto: {

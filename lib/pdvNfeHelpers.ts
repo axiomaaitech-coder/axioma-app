@@ -95,9 +95,14 @@ export type FornecedorMinimo = { id: string; nome: string };
 export async function buscarFornecedorPorCnpj(empresaId: string, cnpj: string): Promise<FornecedorMinimo | null> {
   const limpo = (cnpj || "").replace(/\D/g, "");
   if (!limpo) return null;
+  // O cadastro manual (tela Fornecedores) guarda o CNPJ como foi digitado —
+  // com ou sem máscara. Procura nos dois formatos pra não cadastrar o mesmo
+  // fornecedor duas vezes.
+  const formatado = limpo.length === 14 ? limpo.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+    : limpo.length === 11 ? limpo.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : limpo;
   const { data } = await supabase.from("fornecedores").select("id, nome")
-    .eq("empresa_id", empresaId).eq("documento", limpo).maybeSingle();
-  return data;
+    .eq("empresa_id", empresaId).in("documento", [...new Set([limpo, formatado])]).limit(1);
+  return data?.[0] ?? null;
 }
 
 // Mesmos campos-padrão que o cadastro manual do módulo Fornecedores já grava

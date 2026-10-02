@@ -156,6 +156,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         status,
         categoria: linha.categoria || null,
         numero_nota: linha.documento || null,
+        fornecedor_id: linha.fornecedorId || null,
       },
     };
   },

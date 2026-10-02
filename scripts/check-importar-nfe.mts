@@ -130,3 +130,11 @@ const parcFixo = aplicarClassificacaoItens(parcelada, [{ categoria: 'Serviços',
 assert.deepEqual(perguntasSupervisao(parcFixo, hoje).find((p) => p.id === 'lanc_custo_fixo')?.opcoes?.map((o) => o.valor), ['unico', 'nao']) // parcelada não vira custo fixo mensal
 assert.ok(!perguntasSupervisao(vendaClass, hoje).some((p) => p.id.startsWith('lanc_'))) // venda não pergunta lançamento de custo
 console.log('OK — perguntas de lançamento (custo fixo mensal só p/ nota inteira à vista, estoque, venda sem pergunta)')
+
+// 10) Fornecedor (B3 item 5): não cadastrado → pergunta; já cadastrado → liga sem perguntar
+const naoCad = { ...parcelada, metadados: { ...parcelada.metadados, fornecedor_cadastrado: null } }
+assert.ok(perguntasSupervisao(naoCad, hoje).some((p) => p.id === 'fornecedor_novo'))
+const jaCad = { ...parcelada, metadados: { ...parcelada.metadados, fornecedor_cadastrado: { id: 'x', nome: 'Aço' } } }
+assert.ok(!perguntasSupervisao(jaCad, hoje).some((p) => p.id === 'fornecedor_novo'))
+assert.ok(!perguntasSupervisao({ ...venda, metadados: { ...venda.metadados, fornecedor_cadastrado: null } }, hoje).some((p) => p.id === 'fornecedor_novo'))
+console.log('OK — fornecedor: pergunta só quando não cadastrado e só em compra')

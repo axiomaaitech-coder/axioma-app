@@ -12,6 +12,7 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { corTema, fBRL } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { transformarPadraoEmCustoFixo } from "../../../lib/contasPagarHelpers";
+import { buscarFornecedorPorCnpj, criarFornecedorDaNfe } from "../../../lib/pdvNfeHelpers";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
@@ -745,7 +746,13 @@ export default function ImportarDocumentosPage() {
     if (lido.metadados?.erro_leitura) showToast(lido.metadados.erro_leitura, "erro");
     // Nota de compra: a IA sugere categoria e natureza de cada item (B3 item 3).
     setEtapa("classificar");
-    const res = await classificarItensCompra(lido, empresaId);
+    const classificado = await classificarItensCompra(lido, empresaId);
+    // Nota de compra: o fornecedor já está cadastrado (mesmo CNPJ)? (B3 item 5)
+    const cnpjEmit = String(classificado.metadados?.cnpj_emitente ?? "").replace(/\D/g, "");
+    const ehCompra = classificado.linhas.some((l) => l.destinoSugerido === "contas_pagar");
+    const res = cnpjEmit && ehCompra
+      ? { ...classificado, metadados: { ...classificado.metadados, fornecedor_cadastrado: await buscarFornecedorPorCnpj(empresaId, cnpjEmit) } }
+      : classificado;
     await aplicarResultado(res);
   }
 
@@ -847,6 +854,18 @@ export default function ImportarDocumentosPage() {
 
   function aplicarDestinoEmMassa(novoDestino: DestinoTabela, apenasSelecionadas: boolean) {
     setDestinos((prev) => prev.map((d, i) => (!apenasSelecionadas || selecionadas[i] ? novoDestino : d)));
+  }
+
+  // B3 item 5 — fornecedor da compra: o já cadastrado (mesmo CNPJ) ou um novo,
+  // só se o humano respondeu "sim". Falha ao cadastrar não trava a importação.
+  async function resolverFornecedor(): Promise<string | undefined> {
+    if (!userId || !empresaId || !resultado) return undefined;
+    const m = resultado.metadados ?? {};
+    if (m.fornecedor_cadastrado?.id) return m.fornecedor_cadastrado.id;
+    if (respostasSup.fornecedor_novo !== "sim" || !m.cnpj_emitente) return undefined;
+    const r = await criarFornecedorDaNfe(empresaId, userId, { cnpj: String(m.cnpj_emitente), razaoSocial: m.razao_social, fantasia: m.fantasia });
+    if (r.erro) showToast(langAtual === "en" ? "Could not register the supplier — payables imported without it." : langAtual === "es" ? "No se pudo registrar el proveedor — cuentas importadas sin él." : "Não foi possível cadastrar o fornecedor — contas importadas sem ele.", "erro");
+    return r.id;
   }
 
   // B3 item 4 — executa o que o humano respondeu nas perguntas de lançamento.
@@ -1088,12 +1107,13 @@ export default function ImportarDocumentosPage() {
       // abre exceção pra revisão, não bloqueia a importação em si.
       await abrirExcecaoFormatoReforma({ empresaId, userId, importacaoId, resultado });
 
-      // 3) Grava linhas
+      // 3) Grava linhas — contas a pagar da compra já ligadas ao fornecedor (B3 item 5)
+      const fornecedorId = await resolverFornecedor();
       const result = await gravarLinhas({
         userId,
         empresaId,
         importacaoId,
-        linhas,
+        linhas: fornecedorId ? linhas.map((l, i) => (destinos[i] === "contas_pagar" ? { ...l, fornecedorId } : l)) : linhas,
         selecionadas,
         duplicadas,
         destinos,
