@@ -66,7 +66,7 @@ export function CanvasBox({
       {premium3d && (
         <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
       )}
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
+      <div className="relative p-4 md:p-5">{children}</div>
     </>
   );
 

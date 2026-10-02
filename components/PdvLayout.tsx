@@ -203,7 +203,7 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
           className={telaCheia ? "relative rounded-2xl overflow-hidden flex-1 min-h-0 flex flex-col" : "relative rounded-2xl overflow-hidden"}
           style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
           <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: tokens.acentoTopo }} />
-          <div className={telaCheia ? "relative z-10 p-3 md:p-4 flex-1 min-h-0 flex flex-col" : "relative z-10 p-4 md:p-6"}>{children}</div>
+          <div className={telaCheia ? "relative p-3 md:p-4 flex-1 min-h-0 flex flex-col" : "relative p-4 md:p-6"}>{children}</div>
         </motion.div>
       </div>
     </TemaContext.Provider>

@@ -1000,7 +1000,7 @@ export default function PdvVendaPage() {
         )}
 
         {baixandoEstoqueFlag && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
             <div className="rounded-xl px-5 py-4 flex items-center gap-2" style={{ background: "#0b1622", color: "#fff" }}>
               <Loader2 className="animate-spin" size={16} />
               <span className="text-sm">{t("baixandoEstoque", lang)}</span>
@@ -1455,7 +1455,7 @@ function FinalizarVendaModal({
   const { tokens } = useTemaPdv();
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-md rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("finalizarVenda", lang)}</h3>
         <p className="text-4xl font-black mb-1" style={{ color: tokens.acento }}><AnimatedNumber value={moeda(totalAPagar)} /></p>
@@ -1511,7 +1511,7 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlu
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("definirPrecoTitulo", lang)}</h3>
         <p className="text-base font-bold truncate mb-2" style={{ color: tokens.texto }}>{produto.nome}</p>
@@ -1560,7 +1560,7 @@ function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, on
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center gap-2 mb-1">
           <Lock size={16} style={{ color: tokens.acento }} />
@@ -1906,7 +1906,7 @@ function ConfigCupomModal({ lang, config, salvando, statusQz, impressorasQz, onT
   const chaveStatusQz = statusQz === "conectado" ? "qzStatusConectado" : statusQz === "desconectado" ? "qzStatusDesconectado" : "qzStatusVerificando";
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>{t("configCupomTitulo", lang)}</h3>
 

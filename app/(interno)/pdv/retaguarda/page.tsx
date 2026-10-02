@@ -524,7 +524,7 @@ export default function RetaguardaPage() {
       )}
 
       {assistenteAberto && config && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
           <Assistente lang={lang} configAtual={config} salvando={salvandoConfig} podeCancelar comoModal onSalvar={handleSalvarConfig} onCancelar={() => setAssistenteAberto(false)} />
         </div>
       )}
@@ -945,7 +945,7 @@ function ModalDetalheProduto({ lang, produto, vendas, carregando, onFechar }: {
   const totalQtd = vendas.reduce((s, v) => s + v.quantidade, 0);
   const totalValor = vendas.reduce((s, v) => s + v.subtotal, 0);
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center justify-between mb-4 gap-3">
           <h3 className="text-sm font-bold truncate" style={{ color: tokens.texto }}>{produto.produtoNome}</h3>
@@ -1240,7 +1240,7 @@ function ModalMovimentacao({ lang, tipo, registrando, onConfirmar, onCancelar }:
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>
           {t(tipo === "sangria" ? "modalSangriaTitulo" : "modalSuprimentoTitulo", lang)}
@@ -1325,7 +1325,7 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
   const totalEsperado = totalAbertura + totalVendas + totalSuprimentos - totalSangrias;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-lg rounded-2xl p-6 max-h-[85vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center justify-between mb-4 gap-3">
           <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("composicaoTitulo", lang)}</h3>
@@ -1413,7 +1413,7 @@ function ModalEditarMovimentacao({ lang, movimentacao, salvando, onConfirmar, on
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>
           {t("editarMovimentacaoTitulo", lang, { tipo: t(movimentacao.tipo, lang) })}
@@ -1459,7 +1459,7 @@ function ModalConfirmarExclusaoMovimentacao({ lang, movimentacao, excluindo, onC
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: "2px solid #f87171" }}>
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle size={18} style={{ color: "#f87171" }} />
@@ -1771,7 +1771,7 @@ function ModalConfirmarFechamento({ lang, fechando, onConfirmar, onCancelar }: {
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-2" style={{ color: tokens.texto }}>{t("confirmarFechamentoTitulo", lang)}</h3>
         <p className="text-xs mb-5" style={{ color: tokens.textoMuted }}>{t("confirmarFechamentoTexto", lang)}</p>

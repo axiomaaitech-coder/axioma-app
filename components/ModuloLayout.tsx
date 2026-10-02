@@ -109,7 +109,7 @@ export default function ModuloLayout({
         {aurora}
 
         {/* Conteúdo */}
-        <div className="relative z-10 p-4 md:p-6">
+        <div className="relative p-4 md:p-6">
           {children}
         </div>
       </motion.div>
