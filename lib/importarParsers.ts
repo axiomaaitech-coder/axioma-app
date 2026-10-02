@@ -639,9 +639,9 @@ export function resumirPagamentoNFe(parcelas: ParcelaNFe[], pagamentos: Pagament
   const linha = (m: Record<string, string> | null) => pagamentos.map((p) => `${m ? m[p.meio] ?? p.meio : p.meio} ${brl(p.valor)}`).join(" + ");
   const quitado = pagamentos.every((p) => p.quitado) && pagamentos.reduce((s, p) => s + p.valor, 0) >= total - 0.01;
   return {
-    pt: `${quitado ? "Pago à vista" : "Forma de pagamento"}: ${linha(null)}.${perguntaParcelasCartao ? " Foi no cartão de crédito — em quantas vezes?" : ""}`,
-    en: `${quitado ? "Paid in full" : "Payment method"}: ${linha(MEIO_EN)}.${perguntaParcelasCartao ? " Paid by credit card — in how many installments?" : ""}`,
-    es: `${quitado ? "Pagado al contado" : "Forma de pago"}: ${linha(MEIO_ES)}.${perguntaParcelasCartao ? " Fue con tarjeta de crédito — ¿en cuántas cuotas?" : ""}`,
+    pt: `${perguntaParcelasCartao ? "Pago com" : quitado ? "Pago à vista" : "Forma de pagamento"}: ${linha(null)}.${perguntaParcelasCartao ? " Foi no cartão de crédito — em quantas vezes?" : ""}`,
+    en: `${perguntaParcelasCartao ? "Paid with" : quitado ? "Paid in full" : "Payment method"}: ${linha(MEIO_EN)}.${perguntaParcelasCartao ? " Paid by credit card — in how many installments?" : ""}`,
+    es: `${perguntaParcelasCartao ? "Pagado con" : quitado ? "Pagado al contado" : "Forma de pago"}: ${linha(MEIO_ES)}.${perguntaParcelasCartao ? " Fue con tarjeta de crédito — ¿en cuántas cuotas?" : ""}`,
     perguntaParcelasCartao,
   };
 }
@@ -827,6 +827,7 @@ function montarResultadoNFe(
   const valorQuitado = pagamentos.filter((p) => p.quitado).reduce((s, p) => s + p.valor, 0);
   metadados.valor_quitado_na_emissao = valorQuitado;
   const resumo = resumirPagamentoNFe(parcelas, pagamentos, metadados.valor_total ?? 0);
+  // Cartão: "Pago com" (não "à vista" — confundia com a pergunta de parcelas).
   // A pergunta "em quantas vezes no cartão?" só vale pra COMPRA (na venda quem
   // parcela é o cliente, e o recebimento segue a maquininha — outro fluxo).
   metadados.resumo_pagamento = ehVenda && resumo.perguntaParcelasCartao
