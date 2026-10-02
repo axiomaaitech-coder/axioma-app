@@ -2697,19 +2697,19 @@ function PreviewBlock(props: any) {
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={cancelarUpload}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
+                style={{ background: "#ffffff", color: "#0f6b51", border: "1px solid #16a97d" }}>
                 {tt.cancelar}
               </button>
               <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0 || pendentesDuplicata > 0 || pendentesSupervisao > 0}
                 title={pendentesDuplicata > 0 ? tt.duplicataPendente : pendentesSupervisao > 0 ? tt.supervisaoPendente : undefined}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: ct("#6ab0ff"), border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
+                style={{ background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" }}>
                 {simulando ? `⏳ ${tt.simulando}` : `🔍 ${tt.simular}`}
               </button>
               <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0 || pendentesDuplicata > 0 || pendentesSupervisao > 0}
                 title={pendentesDuplicata > 0 ? tt.duplicataPendente : pendentesSupervisao > 0 ? tt.supervisaoPendente : undefined}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+                className="px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+                style={{ background: "#0f6b51", color: "#fff", border: "1px solid #0f6b51" }}>
                 {confirmando ? `⏳ ${tt.importando}` : `✓ ${tt.confirmarImport} (${totalSelecionadas})`}
               </button>
             </div>
