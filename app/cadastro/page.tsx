@@ -162,7 +162,7 @@ export default function Cadastro() {
             <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: '#3a5a8a' }}>
               {idioma === 'pt' ? 'NOME COMPLETO' : idioma === 'en' ? 'FULL NAME' : 'NOMBRE COMPLETO'}
             </label>
-            <input type="text" value={nome} onChange={(e) => setNome(e.target.value)}
+            <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="off"
               placeholder={idioma === 'pt' ? 'Seu nome' : idioma === 'en' ? 'Your name' : 'Tu nombre'}
               className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0' }} />

@@ -217,7 +217,7 @@ export default function AceitarConvite() {
             <form onSubmit={(e) => { e.preventDefault(); enviar() }} className="space-y-4" noValidate>
               <div>
                 <Rotulo htmlFor="cv-nome">{L('Nome completo', 'Full name', 'Nombre completo')}</Rotulo>
-                <input id="cv-nome" value={nome} onChange={(e) => { setNome(e.target.value); setErro('') }} maxLength={120} autoComplete="name"
+                <input id="cv-nome" value={nome} onChange={(e) => { setNome(e.target.value); setErro('') }} maxLength={120} autoComplete="off"
                   className={entrada} style={estiloCampo(nomeOk, nome.length > 0)} />
               </div>
               {pedeCpf && (

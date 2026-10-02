@@ -7,8 +7,8 @@ import { useLanguage } from '../lib/LanguageContext'
 // (NEXT_PUBLIC_TURNSTILE_SITE_KEY) não faz nada e o login segue normal.
 // Proteção ligada no Supabase: Authentication > Attack Protection > Captcha.
 //
-// Só roda quando a pessoa clica no botão (execution: 'execute') — antes
-// disso nada aparece nem atrapalha o preenchimento (pedido do Elias).
+// Selo da Cloudflare visível na tela (pedido do Elias, 2026-10-02): a
+// verificação roda sozinha ao abrir; no clique usa o token já pronto.
 export const TURNSTILE_ATIVO = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 declare global {
@@ -29,6 +29,7 @@ export function useTurnstile() {
   const { idioma } = useLanguage()
   const idRef = useRef<string | null>(null)
   const resolver = useRef<((t?: string) => void) | null>(null)
+  const tokenPronto = useRef<string | null>(null)
   const [problema, setProblema] = useState(false)
   // Caixinha dentro de janela (Contas a Pagar, PDV) some e volta: redesenha a
   // cada vez que aparece — antes ficava presa à caixinha antiga e travava.
@@ -43,10 +44,10 @@ export function useTurnstile() {
       idRef.current = window.turnstile.render(el, {
         sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
         theme: 'auto',
-        appearance: 'interaction-only',
-        execution: 'execute',
+        appearance: 'always',
         language: idioma === 'en' ? 'en' : idioma === 'es' ? 'es' : 'pt-br',
-        callback: (t: string) => { setProblema(false); terminar(t) },
+        callback: (t: string) => { setProblema(false); if (resolver.current) terminar(t); else tokenPronto.current = t },
+        'expired-callback': () => { tokenPronto.current = null },
         'error-callback': () => { setProblema(true); terminar(undefined) },
         'timeout-callback': () => { setProblema(true); terminar(undefined) },
       })
@@ -63,12 +64,13 @@ export function useTurnstile() {
 
   const pegarToken = useCallback(() => new Promise<string | undefined>((resolve) => {
     if (!TURNSTILE_ATIVO || !idRef.current || !window.turnstile) { resolve(undefined); return }
+    const id = idRef.current
+    // token vale uma vez: usa o pronto e já pede outro pro próximo clique
+    if (tokenPronto.current) { const t = tokenPronto.current; tokenPronto.current = null; resolve(t); window.turnstile.reset(id); return }
     resolver.current = resolve
-    setProblema(false)
-    window.turnstile.reset(idRef.current) // token vale uma vez: cada clique gera um novo
-    window.turnstile.execute(idRef.current)
+    if (problema) { setProblema(false); window.turnstile.reset(id) }
     setTimeout(() => { if (resolver.current === resolve) { setProblema(true); terminar(undefined) } }, 30000)
-  }), [])
+  }), [problema])
 
   const elemento = TURNSTILE_ATIVO ? (
     <>

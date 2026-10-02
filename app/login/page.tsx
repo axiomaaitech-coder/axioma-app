@@ -70,13 +70,13 @@ export default function LoginPage() {
         ))}
       </div>
 
-      <div className="w-full max-w-md px-10 py-12 rounded-3xl flex flex-col items-center"
+      <div className="w-full max-w-sm px-8 py-8 rounded-3xl flex flex-col items-center"
         style={{ background: 'rgba(8,18,36,0.95)', border: '1px solid rgba(59,111,212,0.2)', boxShadow: '0 0 80px rgba(59,111,212,0.1), 0 30px 60px rgba(0,0,0,0.5)' }}>
 
-        <div className="flex flex-col items-center mb-8" style={{ filter: 'drop-shadow(0 0 40px rgba(59,111,212,0.6))' }}>
-          <Image src="/logo-aitech.png" alt="Axioma AI.Tech" width={100} height={100} priority />
-          <div className="mt-4 flex flex-col items-center">
-            <span className="font-black tracking-[0.3em] text-3xl"
+        <div className="flex flex-col items-center mb-5" style={{ filter: 'drop-shadow(0 0 40px rgba(59,111,212,0.6))' }}>
+          <Image src="/logo-aitech.png" alt="Axioma AI.Tech" width={72} height={72} priority />
+          <div className="mt-3 flex flex-col items-center">
+            <span className="font-black tracking-[0.3em] text-2xl"
               style={{ background: 'linear-gradient(135deg, #c8d8f0 0%, #6ab0ff 40%, #ffffff 60%, #3b6fd4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               AXIOMA
             </span>
@@ -84,15 +84,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-sm mb-6 text-center" style={{ color: '#3a6090' }}>
+        <p className="text-sm mb-4 text-center" style={{ color: '#3a6090' }}>
           {idioma === 'pt' ? 'Acesse sua conta' : idioma === 'en' ? 'Access your account' : 'Accede a tu cuenta'}
         </p>
 
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-3">
 
           {/* Botão Google */}
           <button onClick={handleGoogleLogin}
-            className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all hover:scale-105"
+            className="w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all hover:scale-105"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(59,111,212,0.3)', color: '#c8d8f0' }}>
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -116,7 +116,7 @@ export default function LoginPage() {
             <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: '#3a5a8a' }}>EMAIL</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="email@empresa.com"
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0' }} />
           </div>
 
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <input type={verSenha ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm pr-12"
+                className="w-full px-4 py-2.5 rounded-xl focus:outline-none text-sm pr-12"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0' }} />
               <button type="button" onClick={() => setVerSenha(!verSenha)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-lg"
@@ -152,7 +152,7 @@ export default function LoginPage() {
 
           {turnstile.elemento}
           <button onClick={handleLogin} disabled={loading}
-            className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
+            className="w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
             style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: loading ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
             {loading ? (idioma === 'pt' ? 'Entrando...' : idioma === 'en' ? 'Signing in...' : 'Entrando...') : (idioma === 'pt' ? 'Entrar' : idioma === 'en' ? 'Sign In' : 'Iniciar Sesion')}
           </button>
