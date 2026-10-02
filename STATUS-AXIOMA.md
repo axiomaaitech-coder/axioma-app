@@ -1374,7 +1374,7 @@ Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
 
 **ONDE PARAMOS (2026-09-28, fim da sessão por limite semanal):** B1 e B2 fechadas; auditoria completa feita (docs/AUDITORIA-2026-09-28.md); Groq trocada por OpenAI; B3 começada (ver acima). Próximo passo: B3 item (1). Pendências com o Elias: PLUGGY_WEBHOOK_SECRET na Vercel (etapa F), GROQ_API_KEY pode ser apagada da Vercel, P2 desligar Currents (precisa ok), P4 SQL das 8 RLS antigas.
 - [x] P1 ✅ 2026-10-02 Menu do topo por cima das janelas: causa = "relative z-10" no conteúdo de ModuloLayout, PdvLayout e CanvasBox prendia toda janela (até z-[100]) abaixo do menu (z-50); removido (decoração é absolute sem z, fica atrás pela ordem). Janelas do PDV z-40 → z-50.
-- [ ] P2 Currents (paga) ainda ativa no cadastro de fontes — desligar com ok do Elias
+- [x] P2 ✅ 2026-10-02 Currents desligada (nexus_source.active = false, com ok do Elias, conferido)
 - [ ] P3 Aceitar convite de equipe — confirmar CONVITE-EQUIPE-SQL.sql rodado e testar ponta a ponta
 - [ ] P4 8 políticas RLS na forma antiga (alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes) — SQL pro Elias rodar
 - [ ] P5 Escala: listas sem paginação que leem tudo (Clientes, Contas a Receber/Inadimplência — seção 11)
