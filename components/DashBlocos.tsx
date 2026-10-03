@@ -15,7 +15,7 @@ import ReactECharts from "echarts-for-react";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { useThemeAxioma } from "../lib/ThemeContext";
 
-const OURO = "#d4af37", OURO_C = "#f0d878";
+const OURO = "#2ecc9b", OURO_C = "#2ecc9b";
 const CARD_CLARO = { background: "#f6f7c4", border: "1px solid rgba(16,27,61,0.12)" };
 const NESTED_CLARO = { background: "rgba(255,255,255,0.5)", border: "1px solid rgba(16,27,61,0.12)" };
 const VERDE_SOLIDO = { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" };

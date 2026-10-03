@@ -66,7 +66,7 @@ const T = {
 const C = {
   ouro: "#2ecc9b", ouroC: "#7fe3c3", roxo: "#2ecc9b", roxoC: "#7fe3c3",
   cyan: "#2ecc9b", cyanC: "#7fe3c3", verde: "#34d399", verdeC: "#6ee7b7",
-  vermelho: "#ef4444", vermelhoC: "#fca5a5", laranja: "#f97316", laranjaC: "#fdba74",
+  vermelho: "#ef4444", vermelhoC: "#fca5a5", laranja: "#facc15", laranjaC: "#fde68a",
   rosa: "#f87171", rosaC: "#fca5a5", azul: "#2ecc9b", azulC: "#7fe3c3", indigo: "#2ecc9b", teal: "#2ecc9b",
 };
 
@@ -249,10 +249,10 @@ export default function DashComercial() {
       {demo && <BannerDemo claro={claro} texto={tt.modoDemoAtivo} />}
       <KpisDash kpis={kpis} demo={demo} claro={claro} rotuloDemo={tt.demo} />
       <LetreiroDash itens={marquee} demo={demo} claro={claro}
-        escuro={{ primeiro: "#67e8f9", separador: "#06b6d4", fundo: "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))", borda: "1px solid rgba(46,204,155,0.22)" }} />
+        escuro={{ primeiro: "#2ecc9b", separador: "#2ecc9b", fundo: "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))", borda: "1px solid rgba(46,204,155,0.22)" }} />
 
       {/* MODAL ÚNICO */}
-      <PainelDash titulo={tt.painelTitulo} sub={tt.painelSub} claro={claro} barraEscuro={{ fundo: "linear-gradient(180deg,#06b6d4,#d4af37)", brilho: "#06b6d4" }}>
+      <PainelDash titulo={tt.painelTitulo} sub={tt.painelSub} claro={claro} barraEscuro={{ fundo: "linear-gradient(180deg,#2ecc9b,#2ecc9b)", brilho: "#2ecc9b" }}>
           <div className="mb-4">
             {demo ? (
               <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" option={linhaMetas(tt, claro)} altura={280} />
