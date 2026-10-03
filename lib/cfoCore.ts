@@ -425,6 +425,8 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   "#d4af37": VERDE_MENTA, "#f0d878": VERDE_MENTA, "#a78bfa": VERDE_MENTA,
   "#a16207": VERDE_MENTA, "#047857": VERDE_MENTA, "#065f46": VERDE_MENTA, "#9f1239": VERDE_MENTA,
   "#b87333": VERDE_MENTA,
+  // tons do Escuro padronizado (2026-10-03) que podem chegar aqui
+  "#7fe3c3": VERDE_MENTA, "#a3b1c2": "#374151", "#e6edf5": "#101b3d", "#c8d3e0": "#101b3d", "#4a6fa5": "#122b54",
 };
 // Tema Escuro padronizado (proposta aprovada pelo Elias 2026-10-03, em teste no
 // Fluxo de Caixa): mesma lógica do Claro — toda cor decorativa vira verde-menta,
@@ -442,6 +444,11 @@ const MAPA_CORES_ESCURO: Record<string, string> = {
   "#5a7a9a": "#a3b1c2", "#64748b": "#a3b1c2", "#94a3b8": "#a3b1c2", "#3a6090": "#a3b1c2",
   "#c8d8f0": "#e6edf5", "#e2ecf7": "#ffffff",
 };
+// Sequência de cores pra gráfico com várias categorias (tema-tokens.md §1.4 no Claro;
+// no Escuro o azul-marinho some no fundo, vira cinza-claro/azul-aço).
+export const serieCores = (claro?: boolean) => claro
+  ? ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54"]
+  : ["#2ecc9b", "#c8d3e0", "#34d399", "#6b7280", "#4a6fa5"];
 export function corTema(hex: string, claro?: boolean): string {
   return (claro ? MAPA_CORES_CLARO : MAPA_CORES_ESCURO)[hex] ?? hex;
 }

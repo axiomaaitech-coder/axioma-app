@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
-import { serieRolling } from "../lib/cfoCore";
+import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
@@ -64,10 +64,10 @@ const T = {
 };
 
 const C = {
-  ouro: "#d4af37", ouroC: "#f0d878", roxo: "#8b5cf6", roxoC: "#c4b5fd",
-  cyan: "#06b6d4", cyanC: "#67e8f9", verde: "#10b981", verdeC: "#6ee7b7",
+  ouro: "#2ecc9b", ouroC: "#7fe3c3", roxo: "#2ecc9b", roxoC: "#7fe3c3",
+  cyan: "#2ecc9b", cyanC: "#7fe3c3", verde: "#34d399", verdeC: "#6ee7b7",
   vermelho: "#ef4444", vermelhoC: "#fca5a5", laranja: "#f97316", laranjaC: "#fdba74",
-  rosa: "#ec4899", rosaC: "#f9a8d4", azul: "#3b82f6", azulC: "#93c5fd", indigo: "#6366f1", teal: "#14b8a6",
+  rosa: "#f87171", rosaC: "#fca5a5", azul: "#2ecc9b", azulC: "#7fe3c3", indigo: "#2ecc9b", teal: "#2ecc9b",
 };
 
 
@@ -286,7 +286,7 @@ export default function DashComercial() {
                   ].filter(b => b.value > 0), C.verde, tt.total, claro) : undefined}
                   vazio={tt.semReceber} />
                 <ChartDash {...chartBase} titulo={tt.invest} cor={C.ouro} path="/investimentos" altura={220}
-                  option={real.investCategorias.length ? rosca(real.investCategorias.map((c, i) => ({ name: mapaCatInvest[c.categoria] || c.categoria, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total, claro) : undefined}
+                  option={real.investCategorias.length ? rosca(real.investCategorias.map((c, i) => ({ name: mapaCatInvest[c.categoria] || c.categoria, value: c.value, color: serieCores(claro)[i % 5] })), C.ouro, tt.total, claro) : undefined}
                   vazio={tt.semInvestimento} />
               </>
             )}
