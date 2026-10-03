@@ -61,6 +61,9 @@ export default function AceitarConvite() {
   const [aceitaTermos, setAceitaTermos] = useState(false)
   const [empresaId, setEmpresaId] = useState('')
   const [codigo, setCodigo] = useState('')
+  // Voltou pelo botão do e-mail (já logado com o e-mail do convite): só falta concluir
+  const [voltouPeloEmail, setVoltouPeloEmail] = useState(false)
+  const chaveRascunho = `axioma_convite_${token}`
 
   useEffect(() => {
     (async () => {
@@ -71,6 +74,16 @@ export default function AceitarConvite() {
       if (c.convite_aceito || c.situacao === 'aprovado') { setEstado('usado'); return }
       if (c.situacao === 'recusado') { setEstado('recusado'); return }
       if (c.expira_em && new Date(c.expira_em) < new Date()) { setEstado('expirado'); return }
+      // O botão do e-mail faz login e cai aqui de volta: recupera o formulário (sem a senha)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email && (!c.email_convidado || user.email.toLowerCase() === c.email_convidado.toLowerCase())) {
+        try {
+          const r = JSON.parse(localStorage.getItem(chaveRascunho) || 'null')
+          if (r) { setNome(r.nome || ''); setCpf(r.cpf || ''); setAceitaTermos(!!r.aceita) }
+        } catch {}
+        setEmail(user.email)
+        setVoltouPeloEmail(true)
+      }
       setEstado('pronto')
     })()
   }, [token])
@@ -127,8 +140,18 @@ export default function AceitarConvite() {
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
       if (r.erro || !r.ok) { setErro(MSG[r.erro] || erroPadrao); setEstado('pronto'); return }
-      // 2) código de 6 dígitos no e-mail (Supabase Auth → Resend)
-      const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true, data: { nome: nome.trim() } } })
+      if (voltouPeloEmail) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) { await concluir(user); return }
+      }
+      try { localStorage.setItem(chaveRascunho, JSON.stringify({ nome: nome.trim(), cpf, aceita: aceitaTermos })) } catch {}
+      // 2) código de 6 dígitos no e-mail (Supabase Auth → Resend). Se a pessoa clicar no
+      // botão do e-mail em vez de digitar o código, volta pra esta tela (antes ia pro painel
+      // sem o vínculo com a empresa e a trava mandava pra tela de planos).
+      const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: {
+        shouldCreateUser: true, data: { nome: nome.trim() },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/convite/${token}`)}`,
+      } })
       if (error) { console.error('[convite] código', error.message); setErro(MSG.envio); setEstado('pronto'); return }
       setCodigo('')
       setEstado('codigo')
@@ -145,6 +168,15 @@ export default function AceitarConvite() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: cod, type: 'email' })
       if (error || !data.user) { setErro(MSG.codigo); setEstado('codigo'); return }
+      await concluir(data.user, 'codigo')
+    } catch {
+      setErro(erroPadrao); setEstado('codigo')
+    }
+  }
+
+  async function concluir(user: { id: string; created_at: string }, voltarPara: Estado = 'pronto') {
+    try {
+      const data = { user }
       // Conta nova (criada agora pelo código): grava a senha escolhida. Conta antiga: senha não muda.
       if (Date.now() - new Date(data.user.created_at).getTime() < 15 * 60000) {
         await supabase.auth.updateUser({ password: senha, data: { nome: nome.trim() } })
@@ -154,12 +186,13 @@ export default function AceitarConvite() {
         body: JSON.stringify({ acao: 'aceitar', token, nome: nome.trim(), cpf, aceita: aceitaTermos }),
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
-      if (r.erro || !r.empresaId) { setErro(MSG[r.erro] || erroPadrao); setEstado('codigo'); return }
+      if (r.erro || !r.empresaId) { setErro(MSG[r.erro] || erroPadrao); setEstado(voltarPara); return }
       definirEmpresaPreferida(data.user.id, r.empresaId)
+      try { localStorage.removeItem(chaveRascunho) } catch {}
       setEmpresaId(r.empresaId)
       setEstado('bemvindo')
     } catch {
-      setErro(erroPadrao); setEstado('codigo')
+      setErro(erroPadrao); setEstado(voltarPara)
     }
   }
 
@@ -288,6 +321,11 @@ export default function AceitarConvite() {
                 </span>
               </label>
 
+              {voltouPeloEmail && (
+                <p className="text-[13px] font-medium rounded-lg px-3 py-2.5" style={{ color: COR.menta, background: 'rgba(46,204,155,0.08)' }}>
+                  {L('E-mail confirmado. Confira os dados, digite a senha e conclua.', 'E-mail confirmed. Check your details, type the password and finish.', 'Correo confirmado. Revise los datos, escriba la contraseña y concluya.')}
+                </p>
+              )}
               <AnimatePresence>
                 {erro && (
                   <motion.p role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -300,7 +338,7 @@ export default function AceitarConvite() {
               <motion.button type="submit" disabled={estado === 'enviando'} whileTap={{ scale: 0.98 }}
                 className="w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter,opacity] hover:brightness-110 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
                 style={{ background: COR.menta, color: COR.tinta, opacity: podeEnviar || estado === 'enviando' ? 1 : 0.55 }}>
-                {estado === 'enviando' ? L('Enviando código…', 'Sending code…', 'Enviando código…') : L('Receber código no e-mail', 'Get code by e-mail', 'Recibir código por correo')}
+                {estado === 'enviando' ? L('Enviando…', 'Sending…', 'Enviando…') : voltouPeloEmail ? L('Concluir e entrar', 'Finish and enter', 'Concluir y entrar') : L('Receber código no e-mail', 'Get code by e-mail', 'Recibir código por correo')}
               </motion.button>
             </form>
 
