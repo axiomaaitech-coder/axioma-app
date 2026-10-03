@@ -83,11 +83,12 @@ export function KpisDash({ kpis, demo, claro, rotuloDemo }: { kpis: KpiDash[]; d
 export type CoresLetreiroEscuro = { primeiro: string; separador: string; fundo: string; borda: string };
 
 export function LetreiroDash({ itens, demo, claro, escuro }: { itens: string[]; demo: boolean; claro: boolean; escuro: CoresLetreiroEscuro }) {
-  const corItem = (i: number) => claro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? escuro.primeiro : demo ? OURO_C : "#e2e8f0");
-  const corSep = claro ? "#2ecc9b" : demo ? OURO : escuro.separador;
+  // Letreiro único nos 2 temas (Elias 2026-10-03): azul-marinho, letra branca, destaque verde-menta
+  const corItem = (i: number) => (i === 0 ? "#2ecc9b" : "#ffffff");
+  const corSep = "#2ecc9b";
   const linha = (prefixo: string) => itens.map((t, i) => (<span key={prefixo + i} style={{ color: corItem(i) }}>{t}<span style={{ color: corSep }}>{"  •  "}</span></span>));
   return (
-    <div className="relative rounded-xl overflow-hidden" style={claro ? { background: "#101b3d", border: "1px solid #101b3d" } : { background: demo ? `linear-gradient(90deg, ${OURO}22, ${OURO}12)` : escuro.fundo, border: demo ? `1px solid ${OURO}55` : escuro.borda }}>
+    <div className="relative rounded-xl overflow-hidden" style={{ background: "#101b3d", border: claro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.35)" }}>
       <div className="marquee-dash py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
         <span className="text-sm font-bold tracking-wide">{linha("a")}</span>
         <span className="text-sm font-bold tracking-wide" aria-hidden>{linha("b")}</span>

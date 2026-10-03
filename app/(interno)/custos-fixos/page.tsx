@@ -74,10 +74,10 @@ export default function CustosFixos() {
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(239,68,68,0.12), rgba(249,115,22,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(239,68,68,0.22)";
-  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
-  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#fca5a5");
+  const LETREIRO_BG = "#101b3d";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.35)";
+  const LETREIRO_TEXTO = "#ffffff";
+  const LETREIRO_DESTAQUE = "#2ecc9b";
 
   const [custos, setCustos] = useState<CustoFixo[]>([]);
   const [carregando, setCarregando] = useState(true);

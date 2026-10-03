@@ -83,10 +83,10 @@ export default function Endividamento() {
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(46,204,155,0.14), rgba(46,204,155,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.24)";
-  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
-  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#f9a8d4");
+  const LETREIRO_BG = "#101b3d";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.35)";
+  const LETREIRO_TEXTO = "#ffffff";
+  const LETREIRO_DESTAQUE = "#2ecc9b";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {

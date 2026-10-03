@@ -77,10 +77,10 @@ export default function Receitas() {
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
   // Letreiro — regra absoluta: igual ao do Painel MEI (sólido azul-marinho,
   // texto branco, destaque verde-menta), nunca o degradê roxo/cyan antigo.
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.22)";
-  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
-  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#c4b5fd");
+  const LETREIRO_BG = "#101b3d";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.35)";
+  const LETREIRO_TEXTO = "#ffffff";
+  const LETREIRO_DESTAQUE = "#2ecc9b";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const meses = mesesPorLang(lang);

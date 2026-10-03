@@ -104,11 +104,10 @@ export default function FluxoCaixa() {
   const TEXTO_SEC = temaClaro ? "#374151" : "#a3b1c2";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  // Escuro: letreiro sólido verde-menta escuro forte (teste pedido pelo Elias 2026-10-03)
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "#0f7d5c";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.55)";
+  const LETREIRO_BG = "#101b3d";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.35)";
   const LETREIRO_TEXTO = "#ffffff";
-  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : "#c9f7e6";
+  const LETREIRO_DESTAQUE = "#2ecc9b";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {

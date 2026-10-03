@@ -44,12 +44,16 @@ export function LetreiroExecutivo({
 
   if (normalizados.length === 0) return null;
 
-  const corAcento = corDestaque || cor;
+  // Letreiro único nos 2 temas (Elias 2026-10-03): azul-marinho sólido, letra branca,
+  // destaque verde-menta — cor/solido/corDestaque/textoBase ficam só por compatibilidade.
+  void cor; void solido; void corDestaque; void textoBase;
+  const corAcento = "#2ecc9b";
+  const texto = "#ffffff";
 
   return (
     <div className="relative rounded-xl overflow-hidden" style={{
-      background: solido ? cor : `linear-gradient(90deg, ${cor}18, ${cor}0c)`,
-      border: solido ? "1px solid rgba(255,255,255,0.15)" : `1px solid ${cor}30`,
+      background: "#101b3d",
+      border: "1px solid rgba(46,204,155,0.35)",
     }}>
       <div className="letreiro-axioma py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
@@ -63,12 +67,12 @@ export function LetreiroExecutivo({
                     onClick={it.onClick}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); it.onClick!(); } }}
                     className="cursor-pointer px-1 -mx-1 py-2 -my-2 rounded active:opacity-70"
-                    style={{ color: it.cor || (it.destaque ? corAcento : textoBase) }}
+                    style={{ color: it.destaque ? corAcento : texto }}
                   >
                     {it.texto}
                   </span>
                 ) : (
-                  <span style={{ color: it.cor || (it.destaque ? corAcento : textoBase) }}>{it.texto}</span>
+                  <span style={{ color: it.destaque ? corAcento : texto }}>{it.texto}</span>
                 )}
                 <span style={{ color: corAcento }}>{"  •  "}</span>
               </span>
