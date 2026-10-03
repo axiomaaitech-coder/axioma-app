@@ -11,7 +11,7 @@ import { obterConvitePorToken, definirEmpresaPreferida } from '../../../lib/empr
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
 // pela tela de login. Abre o link → preenche o formulário (nome, senha nova,
 // LGPD; CPF quando o prazo passa de 30 dias ou é indeterminado) → recebe um
-// código de 6 dígitos no e-mail do convite (P7: prova que o e-mail é dele) →
+// código no e-mail do convite (P7: prova que o e-mail é dele) →
 // /api/convite libera o acesso → "Seja bem-vindo" → entra.
 
 const PAPEL_LABEL: Record<string, Record<string, string>> = {
@@ -127,7 +127,7 @@ export default function AceitarConvite() {
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
       if (r.erro || !r.ok) { setErro(MSG[r.erro] || erroPadrao); setEstado('pronto'); return }
-      // 2) código de 6 dígitos no e-mail (Supabase Auth → Resend)
+      // 2) código no e-mail (Supabase Auth → Resend)
       const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true, data: { nome: nome.trim() } } })
       if (error) { console.error('[convite] código', error.message); setErro(MSG.envio); setEstado('pronto'); return }
       setCodigo('')
@@ -317,9 +317,9 @@ export default function AceitarConvite() {
             <p className="mt-2 text-sm leading-relaxed" style={{ color: COR.sec }}>
               {L(`Mandamos um código de 6 números para ${email.trim()}. Ele prova que este e-mail é seu.`, `We sent a 6-digit code to ${email.trim()}. It proves this e-mail is yours.`, `Enviamos un código de 6 números a ${email.trim()}. Prueba que este correo es suyo.`)}
             </p>
-            <input value={codigo} onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6)); setErro('') }}
+            <input value={codigo} onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 10)); setErro('') }}
               inputMode="numeric" autoComplete="one-time-code" placeholder="000000" aria-label={L('Código', 'Code', 'Código')}
-              className={`${entrada} text-center text-2xl tracking-[0.5em] font-bold`} style={estiloCampo(codigo.length === 6, codigo.length > 0)} />
+              className={`${entrada} text-center text-2xl tracking-[0.3em] font-bold`} style={estiloCampo(codigo.length >= 6, codigo.length > 0)} />
             <AnimatePresence>
               {erro && (
                 <motion.p role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -330,7 +330,7 @@ export default function AceitarConvite() {
             </AnimatePresence>
             <motion.button type="submit" whileTap={{ scale: 0.98 }}
               className="mt-4 w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
-              style={{ background: COR.menta, color: COR.tinta, opacity: codigo.length === 6 ? 1 : 0.55 }}>
+              style={{ background: COR.menta, color: COR.tinta, opacity: codigo.length >= 6 ? 1 : 0.55 }}>
               {L('Confirmar e entrar', 'Confirm and enter', 'Confirmar y entrar')}
             </motion.button>
             <button type="button" onClick={() => { setEstado('pronto'); setErro('') }} className="mt-3 text-xs font-semibold underline underline-offset-2" style={{ color: COR.sec }}>
