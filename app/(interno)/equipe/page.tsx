@@ -5,7 +5,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
+  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
@@ -71,6 +71,7 @@ const textos = {
     acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
     relacaoLabel: 'Quem você está convidando', rel_ceo: 'CEO', rel_socio: 'Sócio', rel_contador: 'Contador', rel_funcionario: 'Funcionário', rel_consultor: 'Consultor (2ª opinião)', rel_outro: 'Outro',
     termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
+    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Dados de quem saiu da empresa. Ficam guardados por 60 dias e depois são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
     semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
     dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Apagar dados pessoais deste termo',
     apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
@@ -136,6 +137,7 @@ const textos = {
     acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
     relacaoLabel: 'Who you are inviting', rel_ceo: 'CEO', rel_socio: 'Partner', rel_contador: 'Accountant', rel_funcionario: 'Employee', rel_consultor: 'Consultant (2nd opinion)', rel_outro: 'Other',
     termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
+    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Data of people who left the company. Kept for 60 days and then deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
     semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
     dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Delete personal data of this term',
     apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
@@ -201,6 +203,7 @@ const textos = {
     acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
     relacaoLabel: 'A quién está invitando', rel_ceo: 'CEO', rel_socio: 'Socio', rel_contador: 'Contador', rel_funcionario: 'Empleado', rel_consultor: 'Consultor (2ª opinión)', rel_outro: 'Otro',
     termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
+    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Datos de quienes salieron de la empresa. Se guardan 60 días y luego se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
     semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
     dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Borrar datos personales de este término',
     apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
@@ -279,6 +282,8 @@ export default function EquipePage() {
   const precisaAutorizacao = !podeLiberar || !['ceo', 'socio', 'admin'].includes(meuPapelConvite)
   const [nomeRemetente, setNomeRemetente] = useState('')
   const [termos, setTermos] = useState<TermoConvite[]>([])
+  const [lixeira, setLixeira] = useState<TermoConvite[]>([])
+  const [lixeiraAberta, setLixeiraAberta] = useState(false)
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
   // Admin, CEO, Sócio e Contador: cortar acesso / apagar dados exige formulário simples (data + motivo).
   // Funcionário, consultor e outros: direto, sem formulário (pedido do Elias).
@@ -357,8 +362,9 @@ export default function EquipePage() {
     const r = await listarEquipe(id)
     if (r.erro) avisar('erro', mensagemErro(r.codigo))
     setMembros(r.dados)
-    const [tm, pd] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id)])
+    const [tm, pd, lx] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id), listarLixeiraTermos(id)])
     setTermos(tm)
+    setLixeira(lx)
     setPedidos(pd)
   }
 
@@ -492,6 +498,14 @@ export default function EquipePage() {
     if (r.erro) { avisar('erro', t.erroApagar); return }
     avisar('sucesso', t.sucessoApagar)
     setTermos(await listarTermosConvite(empresaId))
+  }
+
+  async function recuperarTermo(tm: TermoConvite) {
+    if (!empresaId) return
+    const r = await recuperarTermoConvite(tm.id)
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    avisar('sucesso', t.recuperado)
+    await recarregarEquipe(empresaId)
   }
 
   async function confirmarCorteAltoNivel() {
@@ -932,6 +946,37 @@ export default function EquipePage() {
               ))}
             </div>
           )}
+        </CanvasBox>
+
+        {/* Lixeira de termos — quem saiu da empresa; 60 dias e a limpeza diária apaga */}
+        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
+          <button type="button" onClick={() => setLixeiraAberta(v => !v)} className="w-full flex items-center justify-between gap-2" aria-expanded={lixeiraAberta}>
+            <span className="flex items-center gap-2">
+              <Trash2 size={16} style={{ color: temaClaro ? '#101b3d' : VERDE }} />
+              <span className="text-sm font-bold" style={{ color: TEXTO }}>{t.lixeiraTitulo} ({lixeira.length})</span>
+            </span>
+            <ChevronDown size={16} style={{ color: MUTED, transform: lixeiraAberta ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
+          </button>
+          <p className="text-xs mt-1" style={{ color: MUTED }}>{t.lixeiraSub}</p>
+          {lixeiraAberta && (lixeira.length === 0 ? (
+            <p className="text-xs mt-3" style={{ color: MUTED }}>{t.lixeiraVazia}</p>
+          ) : (
+            <div className="space-y-2 mt-3">
+              {lixeira.map((tm) => (
+                <div key={tm.id} className="rounded-xl p-3 text-xs flex items-start justify-between gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, color: MUTED }}>
+                  <div className="min-w-0 space-y-0.5">
+                  <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm.nome || '—'} <span className="font-normal" style={{ color: MUTED }}>• CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email || '—'}</span></p>
+                  <p>{tm.relacao ? `${(t as any)[`rel_${tm.relacao}`] || tm.relacao} • ` : ''}{tm.papel ? labelPapel(tm.papel) : ''}</p>
+                  {tm.saiu_em && <p>{t.saiuEm(dataHora(tm.saiu_em))} • <span style={{ color: VERMELHO }}>{t.apagaEm(dataHora(new Date(new Date(tm.saiu_em).getTime() + 60 * 86400000)))}</span></p>}
+                  </div>
+                  <button type="button" onClick={() => recuperarTermo(tm)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
+                    <RotateCcw size={13} />{t.recuperar}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
         </CanvasBox>
 
       </div>

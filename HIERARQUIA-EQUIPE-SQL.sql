@@ -526,3 +526,26 @@ where t.saiu_em is null
   and not exists (select 1 from empresa_equipe q where q.id = t.convite_id and q.situacao in ('enviado', 'aguardando_aprovacao'));
 
 SELECT 'bloco 8 ok' AS resultado, count(*) filter (where saiu_em is not null) AS na_lixeira FROM empresa_convite_termo;
+
+-- ============================== BLOCO 9 =====================================
+-- 2026-10-03 (Elias): recuperar termo da lixeira (volta pra lista do painel).
+create or replace function public.recuperar_termo_convite(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_empresa uuid;
+begin
+  select empresa_id into v_empresa from empresa_convite_termo where id = p_id and saiu_em is not null and apagado_em is null;
+  if v_empresa is null then raise exception 'Termo não está na lixeira' using errcode = 'AX002'; end if;
+  if public.meu_papel(v_empresa) not in ('dono', 'admin') then
+    raise exception 'Só o proprietário ou um administrador pode recuperar' using errcode = 'AX006';
+  end if;
+  update empresa_convite_termo set saiu_em = null where id = p_id;
+end;
+$$;
+revoke all on function public.recuperar_termo_convite(uuid) from public;
+grant execute on function public.recuperar_termo_convite(uuid) to authenticated;
+
+SELECT 'bloco 9 ok' AS resultado;
