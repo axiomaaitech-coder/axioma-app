@@ -100,7 +100,7 @@ export default function FluxoCaixa() {
   const cx = cfoT(lang);
   // Efeito do Claro (borda + faixa verde-menta no topo) também no Escuro — pedido do Elias 2026-10-03
   const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
-  const classePremium3d = " axi-card-premium3d";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const TEXTO_SEC = temaClaro ? "#374151" : "#a3b1c2";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;

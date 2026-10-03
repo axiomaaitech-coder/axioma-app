@@ -135,16 +135,16 @@ body {
   opacity: 0;
   height: 3px !important;
 }
-/* Card pequeno que só recebe a classe (sem o CanvasBox): ganha a mesma faixa
+/* Card pequeno (sem o CanvasBox) usa "axi-card-premium3d axi-card-faixa": ganha a mesma faixa
    verde-menta do topo via ::before — pedido do Elias 2026-10-03, todo card grande
    ou pequeno, nos 2 temas. */
-.axi-card-premium3d:not(:has(> .axi-card-premium3d-bar)) { position: relative; }
-.axi-card-premium3d:not(:has(> .axi-card-premium3d-bar))::before {
+.axi-card-faixa { position: relative; }
+.axi-card-faixa::before {
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: #2ecc9b; border-radius: inherit; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
   opacity: 0; transition: opacity 200ms ease, height 200ms ease; pointer-events: none; z-index: 1;
 }
-.axi-card-premium3d:not(:has(> .axi-card-premium3d-bar)):hover::before { opacity: 1; height: 4px; }
+.axi-card-faixa:hover::before { opacity: 1; height: 4px; }
 @media (prefers-reduced-motion: reduce) {
   .axi-card-premium3d, .axi-card-premium3d .axi-card-premium3d-bar { transition: none; }
 }
