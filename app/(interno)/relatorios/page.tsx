@@ -470,7 +470,7 @@ export default function Relatorios() {
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>
           {toast.msg}
@@ -485,12 +485,12 @@ export default function Relatorios() {
             <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.periodo}:</label>
             <select value={mes} onChange={(e) => setMes(Number(e.target.value))}
               className="px-3 py-2 rounded-lg text-sm"
-              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)" }}>
+              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.2)" }}>
               {MESES.map((m, i) => <option key={i} value={i + 1} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{m}</option>)}
             </select>
             <select value={ano} onChange={(e) => setAno(Number(e.target.value))}
               className="px-3 py-2 rounded-lg text-sm"
-              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)" }}>
+              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.2)" }}>
               {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{y}</option>)}
             </select>
           </div>
@@ -513,8 +513,8 @@ export default function Relatorios() {
             <button key={a.key} onClick={() => setAba(a.key as any)}
               className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
               style={{
-                background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
-                color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#6ab0ff"),
+                background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#2ecc9b"),
                 border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
               }}>
               {a.label}
@@ -619,7 +619,7 @@ export default function Relatorios() {
                       <stop offset="95%" stopColor={ct("#34d399")} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                   <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                   <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
@@ -643,7 +643,7 @@ export default function Relatorios() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)" }}>
+                <tr style={{ borderBottom: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)" }}>
                   <th className="text-left py-2 px-2 text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}></th>
                   <th className="text-right py-2 px-2 text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>Valor</th>
                   <th className="text-right py-2 px-2 text-[10px] uppercase hidden sm:table-cell" style={{ color: ct("#5a7a9a") }}>{tt.pctReceita}</th>
@@ -652,7 +652,7 @@ export default function Relatorios() {
               <tbody>
                 {dreLinhas.map((item, i) => (
                   <tr key={i} style={{
-                    background: item.tipo === "subtotal" || item.tipo === "lucro" ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.05)") : "transparent",
+                    background: item.tipo === "subtotal" || item.tipo === "lucro" ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.05)") : "transparent",
                   }}>
                     <td className="py-2.5 px-2" style={{
                       color: item.tipo === "subtotal" || item.tipo === "lucro" ? ct("#c8d8f0") : (temaClaro ? "#374151" : "#a8b8d0"),
@@ -677,7 +677,7 @@ export default function Relatorios() {
           </div>
 
           {/* Comentário automático */}
-          <div className="mt-4 rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(106,176,255,0.05)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+          <div className="mt-4 rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(46,204,155,0.05)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>💡 Análise</p>
             <p className="text-xs" style={{ color: ct("#c8d8f0") }}>
               {dre.lucro_liquido >= 0
@@ -713,7 +713,7 @@ export default function Relatorios() {
                     <stop offset="95%" stopColor={ct("#f87171")} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                 <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                 <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
@@ -730,7 +730,7 @@ export default function Relatorios() {
             <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.margem} Líquida (%)</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={evolucao}>
-                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                 <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                 <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${v}%`} />
@@ -779,7 +779,7 @@ export default function Relatorios() {
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>Ranking de Categorias</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={distribuicao} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                     <XAxis type="number" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                     <YAxis dataKey="name" type="category" stroke={ct("#5a7a9a")} tick={{ fontSize: 10 }} width={100} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
@@ -860,7 +860,7 @@ export default function Relatorios() {
 
             {/* Mini-preview */}
             {dre && (
-              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)" }}>
                 <p style={{ color: ct("#c8d8f0") }}>
                   💰 Receita: <strong style={{ color: ct("#34d399") }}>{formatBRL(dre.receita_bruta)}</strong> •
                   ✅ Lucro: <strong style={{ color: dre.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171") }}>{formatBRL(dre.lucro_liquido)}</strong>
@@ -913,7 +913,7 @@ export default function Relatorios() {
 
             <button onClick={() => setShareModalAberto(false)}
               className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: ct("#6ab0ff") }}>
+              style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: ct("#6ab0ff") }}>
               {tt.fechar}
             </button>
           </div>

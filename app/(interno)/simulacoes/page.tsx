@@ -77,7 +77,7 @@ export default function Simulacoes() {
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG3 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)";
   const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
 
@@ -349,9 +349,7 @@ export default function Simulacoes() {
           <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.indigo)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={temaClaro
-              ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: PAINEL_BORDA, border: "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
+            style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -697,7 +695,7 @@ export default function Simulacoes() {
                         {planoAcao.map((a, i) => (
                           <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                             <ShieldCheck size={15} style={{ color: corOuro, flexShrink: 0 }} />
-                            <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{a}</p>
+                            <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#7fe3c3" }}>{a}</p>
                           </div>
                         ))}
                       </div>

@@ -77,12 +77,12 @@ export default function UsoIaPage() {
   const t = T[lang]
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const TEXTO = temaClaro ? '#101b3d' : '#c8d8f0'
-  const MUTED = temaClaro ? '#374151' : '#5a7a9a'
+  const TEXTO = temaClaro ? '#101b3d' : '#e6edf5'
+  const MUTED = temaClaro ? '#374151' : '#a3b1c2'
   const CREME = temaClaro ? '#f6f7c4' : undefined
   // Caixa aninhada: bege translúcido no Claro (regra permanente), padrão original no Escuro.
   const NESTED = temaClaro ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' } : { background: 'rgba(2,8,16,0.5)', border: '1px solid rgba(106,176,255,0.15)' }
-  const ACENTO = temaClaro ? '#16a97d' : '#6ab0ff'
+  const ACENTO = temaClaro ? '#16a97d' : '#2ecc9b'
   const locale = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
 
   const [dias, setDias] = useState<(typeof PERIODOS)[number]>(30)
@@ -142,7 +142,7 @@ export default function UsoIaPage() {
           <div className="flex flex-wrap gap-2">
             {PERIODOS.map((d) => (
               <button key={d} onClick={() => setDias(d)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
-                style={dias === d ? { background: temaClaro ? '#101b3d' : 'rgba(106,176,255,0.2)', color: temaClaro ? '#ffffff' : '#c8d8f0', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(106,176,255,0.5)'}` } : { ...NESTED, color: TEXTO }}>
+                style={dias === d ? { background: temaClaro ? '#101b3d' : 'rgba(46,204,155,0.2)', color: temaClaro ? '#ffffff' : '#e6edf5', border: `1px solid ${temaClaro ? '#101b3d' : 'rgba(46,204,155,0.5)'}` } : { ...NESTED, color: TEXTO }}>
                 {t.dias(d)}
               </button>
             ))}
@@ -174,7 +174,7 @@ export default function UsoIaPage() {
                       <div className="flex justify-between text-xs font-semibold" style={{ color: TEXTO }}>
                         <span>{rotulo}</span><span>{num(r.nivel[k])} · {pct(r.nivel[k], r.total)}</span>
                       </div>
-                      <div className="h-1.5 rounded-full mt-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(106,176,255,0.1)' }}>
+                      <div className="h-1.5 rounded-full mt-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(46,204,155,0.1)' }}>
                         <div className="h-1.5 rounded-full" style={{ width: pct(r.nivel[k], r.total), background: ACENTO }} />
                       </div>
                     </div>
@@ -186,7 +186,7 @@ export default function UsoIaPage() {
                 <div className="rounded-xl overflow-hidden" style={NESTED}>
                   <div className="flex justify-between px-3 py-2 text-[11px] font-bold" style={{ color: MUTED }}><span>{t.tela}</span><span>{t.qtd}</span></div>
                   {r.telas.map(([tela, qtd]) => (
-                    <div key={tela} className="flex justify-between px-3 py-2 text-xs" style={{ color: TEXTO, borderTop: temaClaro ? '1px solid rgba(16,27,61,0.08)' : '1px solid rgba(106,176,255,0.08)' }}>
+                    <div key={tela} className="flex justify-between px-3 py-2 text-xs" style={{ color: TEXTO, borderTop: temaClaro ? '1px solid rgba(16,27,61,0.08)' : '1px solid rgba(46,204,155,0.08)' }}>
                       <span>{tela}</span><span className="font-bold">{num(qtd)}</span>
                     </div>
                   ))}

@@ -186,7 +186,7 @@ export default function ContadorPage() {
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
             <RefreshCw size={16} className={rodando ? 'animate-spin' : ''} />
             {rodando ? L('Rodando...', 'Running...', 'Ejecutando...') : L('Rodar descoberta', 'Run discovery', 'Ejecutar descubrimiento')}
           </button>
@@ -242,7 +242,7 @@ export default function ContadorPage() {
                 <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
                 {filtroCard && (
                   <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: temaClaro ? '#101b3d' : 'rgba(106,176,255,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>
+                    style={{ background: temaClaro ? '#101b3d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>
                     {L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕
                   </button>
                 )}

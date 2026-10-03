@@ -466,7 +466,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
   // mesma cor, senão as 3 classes ficam indistinguíveis no gráfico.
   const optCurvaABC = useMemo(() => optBarrasH(
     curvaABC.map(c => c.valor), curvaABC.map(c => `${c.nome} (${c.classe})`), PRIMARIA, SECUNDARIA,
-    curvaABC.map(c => c.classe === "A" ? (temaClaro ? "#2ecc9b" : VINHO) : c.classe === "B" ? (temaClaro ? "#101b3d" : COBRE) : (temaClaro ? "#6b7280" : "#64748b")),
+    curvaABC.map(c => c.classe === "A" ? (temaClaro ? "#2ecc9b" : VINHO) : c.classe === "B" ? (temaClaro ? "#101b3d" : COBRE) : (temaClaro ? "#6b7280" : "#a3b1c2")),
     temaClaro,
   ), [curvaABC, temaClaro]);
 
@@ -571,7 +571,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                       </button>
                       {["tabela", "categoria", "centro"].includes(c.id) && (
                         <button onClick={() => setColunaFiltroAberta(colunaFiltroAberta === c.id ? null : c.id)}>
-                          <Filter size={11} style={{ color: filtroAtivo(c.id) ? PRIMARIA : (temaClaro ? "rgba(255,255,255,0.5)" : "#5a7a9a") }} />
+                          <Filter size={11} style={{ color: filtroAtivo(c.id) ? PRIMARIA : (temaClaro ? "rgba(255,255,255,0.5)" : "#a3b1c2") }} />
                         </button>
                       )}
                     </div>
@@ -728,7 +728,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
         </div>
 
         {/* Barra de status estilo Excel */}
-        <div className="flex items-center justify-end gap-4 px-4 py-2 text-xs" style={{ borderTop: `1px solid ${PRIMARIA}25`, background: FUNDO_HEADER, color: temaClaro ? "rgba(255,255,255,0.7)" : "#5a7a9a" }}>
+        <div className="flex items-center justify-end gap-4 px-4 py-2 text-xs" style={{ borderTop: `1px solid ${PRIMARIA}25`, background: FUNDO_HEADER, color: temaClaro ? "rgba(255,255,255,0.7)" : "#a3b1c2" }}>
           {estatisticasSelecao.qtd > 0 ? (
             <>
               <span>{estatisticasSelecao.qtd} {estatisticasSelecao.qtd === 1 ? t.linhaSelecionada : t.linhasSelecionadas}</span>

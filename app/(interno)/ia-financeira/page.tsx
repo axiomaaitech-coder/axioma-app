@@ -476,7 +476,7 @@ export default function IAFinanceiraPage() {
     setExportando(false);
   }
 
-  const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)", color: ct("#c8d8f0") };
+  const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.2)", color: ct("#c8d8f0") };
   const dimNome = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
   const dimSugestao = (d: any) => lang === "en" ? d.sugestao_en : lang === "es" ? d.sugestao_es : d.sugestao;
   const anomTitulo = (a: Anomalia) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
@@ -492,7 +492,7 @@ export default function IAFinanceiraPage() {
       botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
@@ -551,8 +551,8 @@ export default function IAFinanceiraPage() {
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
                 style={{
-                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
-                  color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#6ab0ff"),
+                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                  color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#2ecc9b"),
                   border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
                 }}>{a.label}</button>
             ))}
@@ -617,7 +617,7 @@ export default function IAFinanceiraPage() {
                           <div className="flex items-center gap-2">
                             <span style={{ color: ind.status === "bom" ? ct("#34d399") : ind.status === "atencao" ? ct("#fbbf24") : ct("#f87171") }}>{ind.valor}</span>
                             {ind.status !== "bom" && (
-                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: ct("#6ab0ff") }}>✏️</a>
+                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: ct("#6ab0ff") }}>✏️</a>
                             )}
                           </div>
                         </div>
@@ -644,14 +644,14 @@ export default function IAFinanceiraPage() {
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
-                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)")}`, color: ct("#c8d8f0") }}>
+                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)")}`, color: ct("#c8d8f0") }}>
                       {m.texto}
                     </div>
                   </div>
                 ))}
                 {chatCarregando && (
                   <div className="flex justify-start">
-                    <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)", border: temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)", color: ct("#5a7a9a") }}>
+                    <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)", border: temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>
                       {tt.chatAnalisando} <span className="animate-pulse">●●●</span>
                     </div>
                   </div>
@@ -660,7 +660,7 @@ export default function IAFinanceiraPage() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviarMensagem(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)", color: ct("#6ab0ff") }}>
+                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#6ab0ff") }}>
                     {s}
                   </button>
                 ))}
@@ -671,7 +671,7 @@ export default function IAFinanceiraPage() {
                   placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={inputStyle} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50"
-                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                   ➤
                 </button>
               </div>
@@ -723,7 +723,7 @@ export default function IAFinanceiraPage() {
                       <linearGradient id="gRe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#6ab0ff")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#6ab0ff")} stopOpacity={0}/></linearGradient>
                       <linearGradient id="gPe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#f87171")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#f87171")} stopOpacity={0}/></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                     <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                     <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
@@ -823,7 +823,7 @@ export default function IAFinanceiraPage() {
               <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.resumoTitulo}</p>
               <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.resumoDescricao}</p>
               <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)", color: ct("#c8d8f0") }}>
+                style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)", color: ct("#c8d8f0") }}>
                 {resumo}
               </div>
             </CanvasBox>

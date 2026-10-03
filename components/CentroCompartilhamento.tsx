@@ -51,10 +51,10 @@ export function CentroCompartilhamento({
       <CanvasBox cor={cor} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d={temaClaro}>
         <div className="flex justify-between items-center mb-5">
           <div>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#101b3d" : "#c4b5fd" }}>AXIOMA AI.TECH</p>
-            <h3 className="text-lg font-bold" style={{ color: temaClaro ? "#101b3d" : "#c8d8f0" }}>{cx.centroCompart}</h3>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#101b3d" : "#7fe3c3" }}>AXIOMA AI.TECH</p>
+            <h3 className="text-lg font-bold" style={{ color: temaClaro ? "#101b3d" : "#e6edf5" }}>{cx.centroCompart}</h3>
           </div>
-          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: temaClaro ? "#374151" : "#5a7a9a" }}>
+          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: temaClaro ? "#374151" : "#a3b1c2" }}>
             <X size={20} />
           </motion.button>
         </div>

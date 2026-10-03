@@ -64,7 +64,7 @@ export default function FaturamentoMEI() {
   // eram um azul fixo em decimal — nunca trocavam de tom no Claro (mesmo bug
   // já corrigido em 18 arquivos, ver memória). Agora seguem o tema: azul no
   // Escuro (igual sempre foi), azul-marinho bem sutil no Claro.
-  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(106,176,255,${alpha})`
+  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(46,204,155,${alpha})`
   // Alertas laranja/vermelho também tinham o hex do Escuro fixo em decimal —
   // corrigido pra usar o hex real de cada tema.
   const rgbAlerta = temaClaro ? { vermelho: '255,90,107', laranja: '234,88,12' } : { vermelho: '248,113,113', laranja: '251,146,60' }

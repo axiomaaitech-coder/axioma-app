@@ -199,7 +199,7 @@ export default function FiscalPage() {
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
             <RefreshCw size={16} className={rodando ? 'animate-spin' : ''} />
             {rodando ? L('Rodando...', 'Running...', 'Ejecutando...') : L('Rodar descoberta', 'Run discovery', 'Ejecutar descubrimiento')}
           </button>
@@ -311,7 +311,7 @@ export default function FiscalPage() {
           {/* LISTA DE DESCOBERTAS — densa, hierárquica, sem card decorativo por item */}
           <div id="lista-descobertas-fiscal" className="scroll-mt-28">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              {filtroCard && <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full order-last" style={{ background: temaClaro ? '#101b3d' : 'rgba(106,176,255,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>{L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕</button>}
+              {filtroCard && <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full order-last" style={{ background: temaClaro ? '#101b3d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>{L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕</button>}
               <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
               <button onClick={() => setMostrarTodas((v) => !v)} className="text-[11px] font-semibold" style={{ color: AZULC }}>
                 {mostrarTodas ? L('Mostrar só abertas', 'Show only open', 'Mostrar solo abiertas') : L('Mostrar todas', 'Show all', 'Mostrar todas')}

@@ -230,28 +230,28 @@ export default function DashboardPage() {
           {/* ══════ HERO VIDEO ══════ */}
           <div className="relative rounded-2xl overflow-hidden" style={{ height: "460px" }}>
             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/hero-axioma.mp4" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,3,26,0.55) 0%, rgba(6,3,26,0.25) 35%, rgba(6,3,26,0.55) 75%, rgba(6,3,26,0.85) 100%)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(2,8,16,0.55) 0%, rgba(2,8,16,0.25) 35%, rgba(2,8,16,0.55) 75%, rgba(2,8,16,0.85) 100%)" }} />
             {/* Logo grande em destaque, sempre visível */}
             <div className="absolute top-6 left-8 md:left-14 z-20 flex items-center gap-3">
               <img src="/logo-aitech.png" alt="Axioma AI.Tech" style={{ width: 56, height: 56, objectFit: "contain" }} />
               <div>
                 <p className="text-xl md:text-2xl font-black tracking-wide" style={{ color: "#f1f5f9" }}>AXIOMA</p>
-                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: claro ? "#2ecc9b" : "#c4b5fd" }}>AI.TECH</p>
+                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: claro ? "#2ecc9b" : "#7fe3c3" }}>AI.TECH</p>
               </div>
             </div>
             <div className="absolute inset-0 z-10 flex items-end justify-between px-8 md:px-14 pb-8">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black" style={{ color: "#f1f5f9" }}>
-                  {saudacao}, <span style={{ color: claro ? "#2ecc9b" : "#c4b5fd" }}>{nomeUsuario}</span>
+                  {saudacao}, <span style={{ color: claro ? "#2ecc9b" : "#7fe3c3" }}>{nomeUsuario}</span>
                 </h1>
                 {empresaNome && <p className="text-base mt-2 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
                 <p className="text-sm mt-3 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
               </div>
               <div className="flex gap-3 items-center">
                 <button onClick={() => setShareAberto(true)} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
-                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(46,204,155,0.35)", border: "1px solid rgba(46,204,155,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
+                  style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }}>{tt.compartilhar}</button>
                 <button onClick={exportarPDF} disabled={exportando} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
-                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
+                  style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
                 <ThemeToggle />
               </div>
             </div>

@@ -71,7 +71,7 @@ export function KpisDash({ kpis, demo, claro, rotuloDemo }: { kpis: KpiDash[]; d
           </div>
           {/* Claro: número em azul-marinho (legível no creme); a cor da categoria fica no Escuro */}
           <p className="text-lg font-black tracking-tight" style={{ color: claro ? "#101b3d" : k.c }}><AnimatedNumber value={k.v} /></p>
-          <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: claro ? "#374151" : "#64748b" }}>{k.l}</p>
+          <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{k.l}</p>
         </div>
       ))}
     </div>
@@ -110,7 +110,7 @@ export function PainelDash({ titulo, sub, barraEscuro, claro, children }: { titu
           <span className="w-1.5 h-6 rounded-full" style={{ background: claro ? "linear-gradient(180deg,#101b3d,#2ecc9b)" : barraEscuro.fundo, boxShadow: claro ? undefined : `0 0 12px ${barraEscuro.brilho}` }} />
           <div>
             <p className="text-base font-black" style={{ color: claro ? "#101b3d" : "#f1f5f9" }}>{titulo}</p>
-            <p className="text-[10px] font-medium" style={{ color: claro ? "#374151" : "#64748b" }}>{sub}</p>
+            <p className="text-[10px] font-medium" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{sub}</p>
           </div>
         </div>
         {children}

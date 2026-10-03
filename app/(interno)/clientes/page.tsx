@@ -56,9 +56,9 @@ function useCampoEstilo() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   return {
-    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
-    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
-    labelStyle: { color: temaClaro ? "#2ecc9b" : "#5a8fd4" },
+    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#e6edf5" },
+    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#e6edf5" },
+    labelStyle: { color: temaClaro ? "#2ecc9b" : "#2ecc9b" },
   };
 }
 
@@ -395,7 +395,7 @@ export default function ClientesPage() {
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilo();
   const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
@@ -834,7 +834,7 @@ export default function ClientesPage() {
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
       onClick={() => setModalConta(true)}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+      style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
       + {cl.novaCobranca}
     </motion.button>
   );
@@ -879,7 +879,7 @@ export default function ClientesPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBuscaCarteira(""); setBuscaContas(""); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(106,176,255,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)")}` }}>
+              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(46,204,155,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)")}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -912,7 +912,7 @@ export default function ClientesPage() {
 
                 {/* Letreiro */}
                 {marquee.length > 0 && (
-                  <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(106,176,255,0.12), rgba(52,211,153,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.22)" }}>
+                  <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(52,211,153,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.22)" }}>
                     <div className="marquee-cli py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                       <span className="text-[13px] font-bold tracking-wide">
                         {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#93c5fd" : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct("#6ab0ff") }}>{"  •  "}</span></span>))}
@@ -1121,7 +1121,7 @@ export default function ClientesPage() {
                             <button onClick={() => abrirDigitalTwin(s.cliente.id)} className="w-full text-left">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
-                                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                                   {s.cliente.nome.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1172,7 +1172,7 @@ export default function ClientesPage() {
                     <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={() => setAba("carteira")} style={{ color: ct("#5a7a9a") }}><ChevronLeft size={20} /></button>
                       <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                         {clienteAtual.s.cliente.nome.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1445,7 +1445,7 @@ export default function ClientesPage() {
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                       onClick={() => setAba("cobrancas")}
                       className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-                      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                      style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
                       {tt.verTodasCobrancas} <ChevronRight size={14} />
                     </motion.button>
                   </CanvasBox>
@@ -1470,7 +1470,7 @@ export default function ClientesPage() {
                       className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0"
                       style={{ background: "rgba(106,176,255,0.1)", border: `1px solid ${ct(CORES.cyan)}30` }}>
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                         {(clientes.find(c => c.id === clienteSelecionadoId)?.nome || "?").charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm font-bold" style={{ color: ct("#6ab0ff") }}>{clientes.find(c => c.id === clienteSelecionadoId)?.nome}</span>
@@ -1702,10 +1702,10 @@ export default function ClientesPage() {
                     )}
                     {etapaCadastro < ETAPAS_CADASTRO.length - 1 ? (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setEtapaCadastro(etapaCadastro + 1)}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.proximo}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>{tt.proximo}</motion.button>
                     ) : (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCliente} disabled={salvandoCliente}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
                     )}
                   </div>
                 </CanvasBox>

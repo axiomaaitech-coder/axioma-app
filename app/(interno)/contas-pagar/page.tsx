@@ -1822,11 +1822,11 @@ export default function ContasPagarPage() {
             <>
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-                style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.15)", color: "#a78bfa", border: "1px solid rgba(46,204,155,0.3)" }}>
+                style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
                 <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
               </motion.button>
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
-                style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
                 <Upload size={16} />{processandoNfe ? L("Lendo…", "Reading…", "Leyendo…") : L("Importar XML NF-e", "Import NF-e XML", "Importar XML NF-e")}
                 <input type="file" accept=".xml" className="hidden" disabled={processandoNfe}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importarXmlNfe(f); e.target.value = ""; }} />
@@ -1835,7 +1835,7 @@ export default function ContasPagarPage() {
           )}
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(106,176,255,0.15)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
+            style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
             <Share2 size={16} />{L("Compartilhar", "Share", "Compartir")}
           </motion.button>
           <ThemeToggle />
@@ -1948,7 +1948,7 @@ export default function ContasPagarPage() {
             <div className="relative flex-1 min-w-[180px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: CINZA }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
             </div>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
@@ -1969,8 +1969,8 @@ export default function ContasPagarPage() {
               <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
               {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
             </select>
-            <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
-            <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+            <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
+            <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
           </div>
 
           {/* Lista */}
@@ -2087,7 +2087,7 @@ export default function ContasPagarPage() {
                   disabled={carregandoRespostaCfo}
                   placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
                   className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(46,204,155,0.2)"), color: TEXTO }} />
-                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.2)", color: "#a78bfa", border: "1px solid rgba(46,204,155,0.5)" }}>
+                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
                   <Send size={16} />
                 </button>
               </div>
@@ -2128,14 +2128,14 @@ export default function ContasPagarPage() {
                     <button key={h} onClick={() => setHorizonteSelecionado(h)}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold"
                       style={horizonteSelecionado === h
-                        ? { background: (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` }
+                        ? { background: (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` }
                         : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                       {L(`${h} dias`, `${h} days`, `${h} días`)}
                     </button>
                   ))}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
+                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
                     <p className="text-lg font-black" style={{ color: TEXTO }}><AnimatedNumber value={fmt(forecastAp.saldoAtual)} /></p>
                   </div>
@@ -2731,7 +2731,7 @@ export default function ContasPagarPage() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <input value={motivoDecisao[a.id] || ""} onChange={(e) => setMotivoDecisao({ ...motivoDecisao, [a.id]: e.target.value })}
                           placeholder={L("Motivo (obrigatório se rejeitar)", "Reason (required to reject)", "Motivo (obligatorio si rechaza)")}
-                          className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         <button onClick={() => decidir(a.id, "aprovada")} disabled={decidindoId === a.id}
                           className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                           <CheckCircle2 size={13} />{L("Aprovar", "Approve", "Aprobar")}
@@ -2870,7 +2870,7 @@ export default function ContasPagarPage() {
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       {podeEditar && (
                         <button onClick={() => reconferirNota(m)} disabled={reconferindoId === m.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)") }}>
                           <RotateCcw size={13} />{reconferindoId === m.id ? L("Conferindo…", "Checking…", "Conciliando…") : L("Reconferir", "Re-check", "Reconciliar")}
                         </button>
                       )}
@@ -2925,7 +2925,7 @@ export default function ContasPagarPage() {
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
           <h3 className="text-base font-bold mb-3" style={{ color: TEXTO }}>{L("Histórico da Conta", "Bill History", "Historial de la Cuenta")}</h3>
           <select value={contaHistoricoId} onChange={(e) => setContaHistoricoId(e.target.value)}
-            className="w-full mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+            className="w-full mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
             <option value="">-- {L("Selecione uma conta", "Select a bill", "Seleccione una cuenta")} --</option>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.descricao} ({fmt(c.valor_total)})</option>)}
           </select>
@@ -2943,7 +2943,7 @@ export default function ContasPagarPage() {
             )}
             <div className="space-y-2">
               {auditoriaAtiva.map((ev) => (
-                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(245,238,220,0.55)" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.10)" : "1px solid rgba(106,176,255,0.12)") }}>
+                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(245,238,220,0.55)" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.10)" : "1px solid rgba(46,204,155,0.12)") }}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: TEXTO }}>{acaoLabel(ev.acao)}</p>
@@ -2972,7 +2972,7 @@ export default function ContasPagarPage() {
                     <div className="mt-2 flex flex-col sm:flex-row gap-2">
                       <input type="text" value={textoObs} onChange={(e) => setTextoObs(e.target.value)} disabled={processandoHist} autoFocus maxLength={500}
                         placeholder={L("Ex.: valor corrigido após conversa com o fornecedor", "E.g.: amount fixed after talking to the supplier", "Ej.: valor corregido tras hablar con el proveedor")}
-                        className="flex-1 px-3 py-2 rounded-lg text-xs" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="flex-1 px-3 py-2 rounded-lg text-xs" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       <div className="flex gap-2">
                         <button onClick={() => setAnotandoId(null)} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                         <button onClick={salvarAnotacao} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: temaClaro ? "#16a97d" : VERDE, color: "#fff" }}>{processandoHist ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar", "Save", "Guardar")}</button>
@@ -3070,7 +3070,7 @@ export default function ContasPagarPage() {
                     <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Motivo da exclusão *", "Reason for deletion *", "Motivo de la eliminación *")}</label>
                     <textarea value={motivoExclusaoHist} onChange={(e) => setMotivoExclusaoHist(e.target.value)} disabled={processandoHist} rows={2} maxLength={500}
                       placeholder={L("Ex.: lançamento de teste, criado por engano", "E.g.: test entry, created by mistake", "Ej.: registro de prueba, creado por error")}
-                      className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                      className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     {motivoExclusaoHist.trim().length > 0 && motivoExclusaoHist.trim().length < 5 && (
                       <p className="text-[11px] mt-1" style={{ color: VERMELHO }}>{L("Escreva pelo menos 5 letras.", "Write at least 5 characters.", "Escriba al menos 5 letras.")}</p>
                     )}
@@ -3127,7 +3127,7 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Fornecedor", "Supplier", "Proveedor")}</label>
                       <select value={nc.fornecedor_id} onChange={(e) => setNc({ ...nc, fornecedor_id: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                         <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                         {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                       </select>
@@ -3135,18 +3135,18 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
                       <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} onBlur={sugerirCategoriaPorDescricao}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Total (R$)", "Total (R$)", "Total (R$)")} *</label>
                         <input type="number" value={nc.valor_total} onChange={(e) => setNc({ ...nc, valor_total: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Categoria", "Category", "Categoría")}</label>
                         <select value={nc.categoria} onChange={(e) => { setNc({ ...nc, categoria: e.target.value }); setSugestaoCategoria(null); }}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
                         </select>
@@ -3160,22 +3160,22 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Emissão", "Issue Date", "Emisión")}</label>
                         <input type="date" value={nc.data_emissao} onChange={(e) => setNc({ ...nc, data_emissao: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Vencimento", "Due Date", "Vencimiento")} *</label>
                         <input type="date" value={nc.data_vencimento} onChange={(e) => setNc({ ...nc, data_vencimento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Nº Nota Fiscal", "Invoice No.", "Nº Factura")}</label>
                         <input value={nc.numero_nota} onChange={(e) => setNc({ ...nc, numero_nota: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Forma de Pagamento", "Payment Method", "Forma de Pago")}</label>
                         <select value={nc.forma_pagamento} onChange={(e) => setNc({ ...nc, forma_pagamento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                           {FORMAS_PAGAMENTO.map((f) => <option key={f}>{f}</option>)}
                         </select>
                       </div>
@@ -3185,34 +3185,34 @@ export default function ContasPagarPage() {
                           value={nc.centro_custo_id} onChange={(id) => setNc({ ...nc, centro_custo_id: id })}
                           centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
                           onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}
                         />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Multa/Juros por Atraso (%/mês)", "Late Penalty/Interest (%/mo.)", "Multa/Interés por Atraso (%/mes)")}</label>
                         <input type="number" step="0.01" value={nc.taxa_multa_mensal} onChange={(e) => setNc({ ...nc, taxa_multa_mensal: e.target.value })}
                           placeholder={L("Opcional", "Optional", "Opcional")}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto por Pagamento Antecipado (%)", "Early Payment Discount (%)", "Descuento por Pago Anticipado (%)")}</label>
                         <input type="number" step="0.01" min="0" max="100" value={nc.desconto_disponivel_pct}
                           onChange={(e) => setNc({ ...nc, desconto_disponivel_pct: e.target.value, desconto_data_limite: e.target.value.trim() ? nc.desconto_data_limite : "" })}
                           placeholder={L("Opcional, ex: 2 para 2%", "Optional, e.g. 2 for 2%", "Opcional, ej: 2 para 2%")}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto Válido Até", "Discount Valid Until", "Descuento Válido Hasta")}</label>
                         <input type="date" value={nc.desconto_data_limite} onChange={(e) => setNc({ ...nc, desconto_data_limite: e.target.value })}
                           disabled={!nc.desconto_disponivel_pct.trim()}
-                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Preencha os dois só se o fornecedor oferecer desconto por antecipar o pagamento.", "Only fill both if the supplier offers a discount for early payment.", "Complete ambos solo si el proveedor ofrece descuento por pago anticipado.")}</p>
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observações", "Notes", "Observaciones")}</label>
                       <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2}
-                        className="w-full px-4 py-3 rounded-xl text-sm resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="flex gap-3 pt-2">
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
@@ -3251,7 +3251,7 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Fornecedor", "Supplier", "Proveedor")} *</label>
                         <select value={formPedido.fornecedor_id} disabled={!!editandoPedido} onChange={(e) => setFormPedido({ ...formPedido, fornecedor_id: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                         </select>
@@ -3259,18 +3259,18 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Número do Pedido", "Order Number", "Número de la Orden")} *</label>
                         <input value={formPedido.numero} onChange={(e) => setFormPedido({ ...formPedido, numero: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Data de Emissão", "Issue Date", "Fecha de Emisión")}</label>
                         <input type="date" value={formPedido.data_emissao} onChange={(e) => setFormPedido({ ...formPedido, data_emissao: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação", "Note", "Observación")}</label>
                       <input value={formPedido.observacao} onChange={(e) => setFormPedido({ ...formPedido, observacao: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
 
                     <div className="pt-2">
@@ -3283,15 +3283,15 @@ export default function ContasPagarPage() {
                           <div key={idx} className="p-2 rounded-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
                             <div className="grid grid-cols-12 gap-2 items-center">
                               <input value={it.descricao} onChange={(e) => atualizarItemPedido(idx, "descricao", e.target.value)} placeholder={L("Descrição", "Description", "Descripción")}
-                                className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                                className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                               <input value={it.codigo_fornecedor} onChange={(e) => atualizarItemPedido(idx, "codigo_fornecedor", e.target.value)} placeholder={L("Cód. fornecedor", "Supplier code", "Cód. proveedor")}
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                               <input value={it.ean} onChange={(e) => atualizarItemPedido(idx, "ean", e.target.value)} placeholder="EAN"
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                               <input type="number" value={it.quantidade} onChange={(e) => atualizarItemPedido(idx, "quantidade", e.target.value)} placeholder={L("Qtd.", "Qty.", "Cant.")}
-                                className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                                className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                               <input type="number" step="0.01" value={it.valor_unitario} onChange={(e) => atualizarItemPedido(idx, "valor_unitario", e.target.value)} placeholder={L("Vlr. unit.", "Unit price", "Precio unit.")}
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                               <button onClick={() => removerItemPedido(idx)} className="col-span-1 flex justify-center" title={L("Remover item", "Remove item", "Quitar ítem")} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
                             </div>
                           </div>
@@ -3428,17 +3428,17 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Pago (R$)", "Amount Paid (R$)", "Valor Pagado (R$)")}</label>
                       <input type="number" value={valorBaixa} onChange={(e) => setValorBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Data do Pagamento", "Payment Date", "Fecha de Pago")}</label>
                       <input type="date" value={dataBaixa} onChange={(e) => setDataBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Forma de Pagamento", "Payment Method", "Forma de Pago")}</label>
                       <select value={formaBaixa} onChange={(e) => setFormaBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                         {FORMAS_PAGAMENTO.map((f) => <option key={f}>{f}</option>)}
                       </select>
                     </div>
@@ -3480,12 +3480,12 @@ export default function ContasPagarPage() {
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Motivo do estorno *", "Reversal reason *", "Motivo del reverso *")}</label>
                       <input type="text" value={motivoEstorno} onChange={(e) => setMotivoEstorno(e.target.value)} disabled={processandoEstorno}
                         placeholder={L("Ex.: pagamento em duplicidade", "E.g.: duplicate payment", "Ej.: pago duplicado")}
-                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação (opcional)", "Note (optional)", "Observación (opcional)")}</label>
                       <textarea value={observacaoEstorno} onChange={(e) => setObservacaoEstorno(e.target.value)} disabled={processandoEstorno} rows={2}
-                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -3613,7 +3613,7 @@ export default function ContasPagarPage() {
                   {podeEditar && (
                     <div className="flex gap-2 mb-4">
                       <select value={tipoNovoDoc} onChange={(e) => setTipoNovoDoc(e.target.value)}
-                        className="px-3 py-2 rounded-lg text-xs flex-shrink-0" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                        className="px-3 py-2 rounded-lg text-xs flex-shrink-0" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                         {TIPOS_DOC.map((td) => <option key={td.key} value={td.key}>{(td.label as any)[idioma] || td.label.pt}</option>)}
                       </select>
                       <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
@@ -3630,7 +3630,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2">
                       {documentos.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
+                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                           <button onClick={() => abrirDocumento(doc)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
                             <FileText size={16} style={{ color: AZUL }} />
                             <span className="text-sm truncate" style={{ color: TEXTO }}>{doc.nome}</span>
@@ -3789,13 +3789,13 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Limite de Aprovação Automática (R$)", "Auto-approval Limit (R$)", "Límite de Aprobación Automática (R$)")}</label>
                       <input type="number" value={configForm.limite} onChange={(e) => setConfigForm({ ...configForm, limite: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Contas com valor acima disso pedem aprovação antes de poder ser pagas.", "Bills above this amount need approval before they can be paid.", "Cuentas con valor superior a esto piden aprobación antes de poder pagarse.")}</p>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Aprovadores", "Approvers", "Aprobadores")}</label>
                       <p className="text-[10px] mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
-                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                         {equipe.length === 0 ? (
                           <p className="text-xs px-2 py-1" style={{ color: CINZA }}>{L("Ninguém além de você tem acesso ainda.", "No one besides you has access yet.", "Nadie además de usted tiene acceso todavía.")}</p>
                         ) : equipe.filter((m) => m.origem === "ativo" && m.user_id).map((m) => (
@@ -3813,7 +3813,7 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Janela de Busca de Duplicata (dias)", "Duplicate Search Window (days)", "Ventana de Búsqueda de Duplicado (días)")}</label>
                       <input type="number" value={configForm.diasJanela} onChange={(e) => setConfigForm({ ...configForm, diasJanela: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="pt-1" style={{ borderTop: (temaClaro ? "1px solid #eef2f7" : "1px solid rgba(255,255,255,0.06)") }}>
                       <p className="text-xs font-bold mt-2 mb-1 flex items-center gap-2" style={{ color: TEXTO }}><ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</p>
@@ -3821,12 +3821,12 @@ export default function ContasPagarPage() {
                         <div>
                           <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de valor (%)", "Amount tolerance (%)", "Tolerancia de valor (%)")}</label>
                           <input type="number" min="0" value={configForm.toleranciaValor} onChange={(e) => setConfigForm({ ...configForm, toleranciaValor: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         </div>
                         <div>
                           <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de quantidade (%)", "Quantity tolerance (%)", "Tolerancia de cantidad (%)")}</label>
                           <input type="number" min="0" value={configForm.toleranciaQuantidade} onChange={(e) => setConfigForm({ ...configForm, toleranciaQuantidade: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         </div>
                       </div>
                       <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
@@ -3871,23 +3871,23 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
                       <input value={formCustoFixo.descricao} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, descricao: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Mensal (R$)", "Monthly Amount (R$)", "Valor Mensual (R$)")} *</label>
                         <input type="number" step="0.01" value={formCustoFixo.valorMensal} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, valorMensal: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Dia de Vencimento", "Due Day", "Día de Vencimiento")} *</label>
                         <input type="number" min={1} max={28} value={formCustoFixo.diaVencimento} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, diaVencimento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Categoria", "Category", "Categoría")}</label>
                         <select value={formCustoFixo.categoria} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, categoria: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
                         </select>
@@ -3898,7 +3898,7 @@ export default function ContasPagarPage() {
                           value={formCustoFixo.centroCustoId} onChange={(id) => setFormCustoFixo({ ...formCustoFixo, centroCustoId: id })}
                           centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
                           onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }}
                         />
                       </div>
                     </div>

@@ -23,8 +23,8 @@ export default function SeletorPeriodo({ preset, onChangePreset, personalizado, 
   const campoBg = temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)";
   const campoInputBg = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const campoTexto = temaClaro ? "#101b3d" : cor;
-  const campoInputTexto = temaClaro ? "#101b3d" : "#c8d8f0";
-  const separador = temaClaro ? "#374151" : "#5a7a9a";
+  const campoInputTexto = temaClaro ? "#101b3d" : "#e6edf5";
+  const separador = temaClaro ? "#374151" : "#a3b1c2";
 
   const opcoes: { valor: PeriodoPreset; label: string }[] = [
     { valor: "mes_atual", label: cx.periodoMesAtual },

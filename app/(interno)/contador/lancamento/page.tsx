@@ -241,7 +241,7 @@ export default function LancamentoManualPage() {
 
               <button onClick={salvar} disabled={!podeSalvar || salvando}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50"
-                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
                 <Save size={16} />{salvando ? L('Gravando...', 'Posting...', 'Grabando...') : L('Gravar lançamento', 'Post entry', 'Grabar asiento')}
               </button>
             </div>

@@ -578,11 +578,11 @@ export default function ImportarDocumentosPage() {
   const ct = (hex: string) => corTema(hex, temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)";
-  const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#6ab0ff";
-  const PILL_ATIVA = temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)";
+  const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#2ecc9b";
+  const PILL_ATIVA = temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)";
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
-  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
+  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.2)";
 
   // Estados base
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -1652,7 +1652,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>
           {toast.msg}
@@ -1722,7 +1722,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button onClick={cancelarUpload}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}>
+                    style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.1)", color: temaClaro ? "#ffffff" : "#2ecc9b" }}>
                     {tt.cancelar}
                   </button>
                   <button onClick={continuarMesmoComDuplicata}
@@ -1745,14 +1745,14 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 onClick={() => inputRef.current?.click()}
                 className="text-center cursor-pointer py-8 sm:py-12 rounded-xl transition-all"
                 style={{
-                  background: arrastando ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)") : "transparent",
-                  border: `2px dashed ${arrastando ? (temaClaro ? "#2ecc9b" : "#6ab0ff") : (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.25)")}`,
+                  background: arrastando ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)") : "transparent",
+                  border: `2px dashed ${arrastando ? (temaClaro ? "#2ecc9b" : "#2ecc9b") : (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.25)")}`,
                 }}
               >
                 <div className="text-5xl sm:text-6xl mb-4">📥</div>
                 <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{tt.arrasteAqui}</p>
                 <p className="text-xs sm:text-sm mb-4" style={{ color: ct("#5a7a9a") }}>{tt.ouClique}</p>
-                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
+                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
                   {tt.formatosSuportados}
                 </span>
                 <input
@@ -1768,10 +1768,10 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
           {/* PROCESSANDO */}
           {etapa && !duplicataGlobal && (
-            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#6ab0ff"}>
+            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}>
               <div className="text-center py-6">
                 <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="font-semibold text-sm" style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
+                <p className="font-semibold text-sm" style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
                   {etapa === "hash" && tt.calcHash}
                   {etapa === "parse" && (/\.(pdf|jpe?g|png|webp)$/i.test(arquivoSelecionado?.name || "") ? tt.parseandoIA : tt.parseando)}
                   {etapa === "upload" && tt.uploadStorage}
@@ -1864,7 +1864,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 )}
                 <button onClick={cancelarUpload}
                   className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                   {tt.novoImporte}
                 </button>
               </div>
@@ -1970,7 +1970,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </div>
 
               <div className="rounded-lg p-2 text-[11px]" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
-                ℹ️ A alteração será aplicada em <strong style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
+                ℹ️ A alteração será aplicada em <strong style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
               </div>
             </div>
 
@@ -1979,7 +1979,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 onClick={fecharEdicao}
                 disabled={salvandoEdicao}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}
+                style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.1)", color: temaClaro ? "#ffffff" : "#2ecc9b" }}
               >
                 Cancelar
               </button>
@@ -2017,10 +2017,10 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             </div>
 
             {/* Mini-preview do resumo */}
-            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)" }}>
               <p style={{ color: ct("#5a7a9a") }}>
                 📅 {formatDataHora(shareModal.created_at)} •
-                🎯 <span style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>{destinoLabel(tt, shareModal.destino)}</span>
+                🎯 <span style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>{destinoLabel(tt, shareModal.destino)}</span>
               </p>
               <p>
                 <span style={{ color: ct("#34d399") }}>✅ {shareModal.linhas_importadas || 0}</span> •
@@ -2085,7 +2085,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
             <button onClick={fecharShareModal}
               className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}>
+              style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.1)", color: temaClaro ? "#ffffff" : "#2ecc9b" }}>
               Fechar
             </button>
           </div>
@@ -2154,7 +2154,7 @@ function PreviewBlock(props: any) {
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
         {perguntasSup.length > 0 && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
             </p>
@@ -2215,7 +2215,7 @@ function PreviewBlock(props: any) {
           </p>
         )}
         {classif && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>🧾 {tt.deQueECompra}</p>
             <div className="mt-2 space-y-2">
               {Object.entries(classif.porNatureza).map(([natureza, g]) => (
@@ -2236,7 +2236,7 @@ function PreviewBlock(props: any) {
           </div>
         )}
         {textoResumoPag && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(106,176,255,0.15)" }}>
+          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               💳 {idioma === "en" ? "How it was paid" : idioma === "es" ? "Cómo se pagó" : "Como foi pago"}
             </p>
@@ -2248,7 +2248,7 @@ function PreviewBlock(props: any) {
                   value={resultado?.metadados?.parcelas_cartao ?? ""}
                   onChange={(e) => escolherParcelasCartao(Number(e.target.value))}
                   className="px-3 py-1.5 rounded-lg text-sm focus:outline-none"
-                  style={{ background: fundoInput, color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(106,176,255,0.25)" }}
+                  style={{ background: fundoInput, color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(46,204,155,0.25)" }}
                 >
                   <option value="" disabled style={{ background: corOpcao }}>{idioma === "en" ? "Choose" : idioma === "es" ? "Elija" : "Escolha"}</option>
                   {Array.from({ length: MAX_PARCELAS_CARTAO }, (_, i) => i + 1).map((n) => (
@@ -2260,7 +2260,7 @@ function PreviewBlock(props: any) {
           </div>
         )}
         {/* Header do preview */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") }}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") }}>
           <div>
             <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.preview}</p>
             <p className="text-base font-bold" style={{ color: ct("#c8d8f0") }}>
@@ -2283,7 +2283,7 @@ function PreviewBlock(props: any) {
               value={multiplosDestinos ? "" : destinoResumo}
               onChange={(e) => aplicarDestinoEmMassa(e.target.value as DestinoTabela, false)}
               className="px-3 py-2 rounded-lg text-sm focus:outline-none"
-              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}
             >
               {multiplosDestinos && (
                 <option value="" disabled style={{ background: corOpcao }}>{tt.destinoMultiplos}</option>
@@ -2331,7 +2331,7 @@ function PreviewBlock(props: any) {
                     value={(mapeamento[c.key] as string) || ""}
                     onChange={(e) => aplicarMapeamento({ ...mapeamento, [c.key]: e.target.value || undefined })}
                     className="w-full px-2 py-1.5 rounded-lg text-xs"
-                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
+                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}
                   >
                     <option value="" style={{ background: corOpcao }}>{tt.naoMapeado}</option>
                     {(resultado.colunas || []).map((col: string) => (
@@ -2366,7 +2366,7 @@ function PreviewBlock(props: any) {
                   </button>
                   <button onClick={() => { setMostrarSalvarTemplate(false); setNomeNovoTemplate(""); }}
                     className="px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#6ab0ff") }}>
                     ✕
                   </button>
                 </div>
@@ -2399,20 +2399,20 @@ function PreviewBlock(props: any) {
             value={destinoMassa}
             onChange={(e) => setDestinoMassa(e.target.value as DestinoTabela)}
             className="px-2 py-1 rounded-lg text-[11px]"
-            style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
+            style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}
           >
             {DESTINOS.map((d) => (
               <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
             ))}
           </select>
           <button onClick={() => aplicarDestinoEmMassa(destinoMassa, true)}
-            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
+            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
             {tt.aplicar}
           </button>
         </div>
 
         {/* Tabela DESKTOP */}
-        <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
+        <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
           <div className="max-h-96 overflow-auto">
             <table className="w-full text-xs">
               <thead style={{ background: fundoHeaderTabela, borderBottom: bordaHeaderTabela, position: "sticky", top: 0 }}>
@@ -2433,7 +2433,7 @@ function PreviewBlock(props: any) {
                   const confereDestino = l.confiancaDestino === "baixa";
                   return (
                     <tr key={i} className="border-t" style={{
-                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)"),
+                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)"),
                       background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.05)" : "transparent",
                       opacity: !isSel ? 0.5 : 1,
                     }}>
@@ -2507,7 +2507,7 @@ function PreviewBlock(props: any) {
                             style={{
                               background: fundoInput,
                               color: confereDestino ? ct("#fbbf24") : ct("#c8d8f0"),
-                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)")}`,
+                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
                             }}
                           >
                             {DESTINOS.map((d) => (
@@ -2546,7 +2546,7 @@ function PreviewBlock(props: any) {
             return (
               <div key={i} className="rounded-lg p-2.5" style={{
                 background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.06)" : fundoCaixaAninhada,
-                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)"),
+                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)"),
                 opacity: !isSel ? 0.55 : 1,
               }}>
                 <div className="flex items-start gap-2">
@@ -2576,7 +2576,7 @@ function PreviewBlock(props: any) {
                         style={{
                           background: fundoInput,
                           color: l.confiancaDestino === "baixa" ? ct("#fbbf24") : ct("#c8d8f0"),
-                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)")}`,
+                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
                         }}
                       >
                         {DESTINOS.map((d) => (
@@ -2618,7 +2618,7 @@ function PreviewBlock(props: any) {
                   <span className="text-[10px] self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
                   <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
                   <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>{tt.somar}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>{tt.somar}</button>
                 </div>
               )}
             </div>
@@ -2651,7 +2651,7 @@ function PreviewBlock(props: any) {
                       </button>
                       <button onClick={() => resolverDuplicata(i, "somar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: temaClaro ? "#101b3d" : ct("#6ab0ff"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#6ab0ff")}` : "none" }}>
+                        style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: temaClaro ? "#101b3d" : ct("#6ab0ff"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#6ab0ff")}` : "none" }}>
                         {tt.somar}
                       </button>
                     </div>
@@ -2664,7 +2664,7 @@ function PreviewBlock(props: any) {
 
         {/* Simulador — mesmo caminho da importação real, nada é gravado */}
         {simulacao && (
-          <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(106,176,255,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.25)") }}>
+          <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(46,204,155,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
             <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#6ab0ff") }}>🔍 {tt.resultadoSimulacao}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
@@ -2750,7 +2750,7 @@ function HistoricoBlock(props: any) {
             <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroStatus}</label>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}>
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}>
               <option value="todos" style={{ background: corOpcao }}>{tt.todos}</option>
               {Object.keys(STATUS_INFO).map((k) => (
                 <option key={k} value={k} style={{ background: corOpcao }}>{statusLabel(tt, k)}</option>
@@ -2761,7 +2761,7 @@ function HistoricoBlock(props: any) {
             <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroDestino}</label>
             <select value={filtroDestino} onChange={(e) => setFiltroDestino(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}>
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}>
               <option value="todos" style={{ background: corOpcao }}>{tt.todos}</option>
               {DESTINOS.map((d) => (
                 <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
@@ -2825,7 +2825,7 @@ function HistoricoBlock(props: any) {
                 {isExp && (
                   <div className="space-y-3">
                     {/* Metadados */}
-                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p style={{ color: ct("#5a7a9a") }}>
                         Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
                       </p>
@@ -2871,7 +2871,7 @@ function HistoricoBlock(props: any) {
                     </div>
 
                     {/* Linha do Tempo */}
-                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>🕒 {tt.timeline}</p>
                       {(timelinePorImportacao[item.id] || []).length === 0 ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semTimeline}</p>
@@ -2902,7 +2902,7 @@ function HistoricoBlock(props: any) {
                         </p>
 
                         {/* Tabela DESKTOP */}
-                        <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                        <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                           <div className="max-h-80 overflow-auto">
                             <table className="w-full text-xs">
                               <thead style={{ background: fundoHeaderTabela, borderBottom: bordaHeaderTabela, position: "sticky", top: 0 }}>
@@ -2921,7 +2921,7 @@ function HistoricoBlock(props: any) {
                                   const editavel = ln.status === "importada";
                                   return (
                                     <tr key={ln.id} className="border-t" style={{
-                                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)"),
+                                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)"),
                                       opacity: editavel ? 1 : 0.55,
                                     }}>
                                       <td className="px-2 py-1.5" style={{ color: ct("#5a7a9a") }}>{ln.linha_numero}</td>
@@ -2936,7 +2936,7 @@ function HistoricoBlock(props: any) {
                                           background: ln.status === "importada" ? "rgba(52,211,153,0.15)" :
                                                        ln.status === "duplicada" ? "rgba(251,191,36,0.15)" :
                                                        ln.status === "revertida" ? "rgba(58,90,138,0.2)" :
-                                                       ln.status === "erro" ? "rgba(248,113,113,0.15)" : (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"),
+                                                       ln.status === "erro" ? "rgba(248,113,113,0.15)" : (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"),
                                           color: ln.status === "importada" ? ct("#34d399") :
                                                  ln.status === "duplicada" ? ct("#fbbf24") :
                                                  ln.status === "revertida" ? ct("#5a7a9a") :
@@ -2951,7 +2951,7 @@ function HistoricoBlock(props: any) {
                                             <button onClick={() => abrirEdicao(ln)}
                                               title="Editar"
                                               className="px-1.5 py-1 rounded hover:opacity-80"
-                                              style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
+                                              style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
                                               ✏️
                                             </button>
                                             <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
@@ -2978,7 +2978,7 @@ function HistoricoBlock(props: any) {
                             return (
                               <div key={ln.id} className="rounded-lg p-2.5" style={{
                                 background: fundoCaixaAninhada,
-                                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)"),
+                                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)"),
                                 opacity: editavel ? 1 : 0.55,
                               }}>
                                 <div className="flex items-start justify-between gap-2 mb-1">
@@ -2992,7 +2992,7 @@ function HistoricoBlock(props: any) {
                                     <div className="flex gap-1">
                                       <button onClick={() => abrirEdicao(ln)}
                                         className="px-2 py-1 rounded text-xs"
-                                        style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
+                                        style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
                                         ✏️ Editar
                                       </button>
                                       <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
@@ -3016,7 +3016,7 @@ function HistoricoBlock(props: any) {
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => expandirImportacao(item.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#6ab0ff") }}>
                     {isExp ? "▲" : "▼"} {tt.detalhes}
                   </button>
                   {item.storage_path && (

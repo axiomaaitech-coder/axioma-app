@@ -681,7 +681,7 @@ export default function OpenFinancePage() {
               </div>
               <div>
                 <h3 className="font-black text-lg" style={{ color: ct('#c8d8f0') }}>{temBanco ? t.conectado : t.semConexao}</h3>
-                <p className="text-sm" style={{ color: (temaClaro ? '#374151' : '#3a6090') }}>{t.conecteSeu}</p>
+                <p className="text-sm" style={{ color: (temaClaro ? '#374151' : '#a3b1c2') }}>{t.conecteSeu}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -697,7 +697,7 @@ export default function OpenFinancePage() {
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={() => abrirWidget()} disabled={conectando}
                 className="px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
-                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
                 {conectando && !conectandoId ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
                 {conectando && !conectandoId ? t.carregando : t.conectar}
               </motion.button>
@@ -763,7 +763,7 @@ export default function OpenFinancePage() {
                     <Landmark size={20} style={{ color: ct(VERDE) }} />
                     <div className="min-w-0">
                       <p className="font-bold text-sm truncate" style={{ color: ct('#c8d8f0') }}>{c.conector_nome || 'Banco'}</p>
-                      <p className="text-xs" style={{ color: (temaClaro ? '#374151' : '#3a6090') }}>{fmt(Number(c.saldo_atual) || 0)}</p>
+                      <p className="text-xs" style={{ color: (temaClaro ? '#374151' : '#a3b1c2') }}>{fmt(Number(c.saldo_atual) || 0)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -858,7 +858,7 @@ export default function OpenFinancePage() {
 function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick, temaClaro }: {
   banco: any; i: number; conectando: boolean; conectandoId: number | null; carregando: string; onClick: (id?: number) => void; temaClaro: boolean
 }) {
-  const cor = banco.primaryColor || (temaClaro ? '#2ecc9b' : '#6ab0ff')
+  const cor = banco.primaryColor || (temaClaro ? '#2ecc9b' : '#2ecc9b')
   const clicavel = banco.id > 0
   const carregandoEste = conectandoId === banco.id && banco.id > 0
   return (
@@ -907,7 +907,7 @@ function LinhaTransacao({
 
   return (
     <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-      className="p-3 rounded-xl" style={{ background: temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.02)', border: temaClaro ? '1px solid rgba(46,204,155,0.15)' : '1px solid rgba(106,176,255,0.08)' }}>
+      className="p-3 rounded-xl" style={{ background: temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.02)', border: temaClaro ? '1px solid rgba(46,204,155,0.15)' : '1px solid rgba(46,204,155,0.08)' }}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{tx.descricao}</p>
@@ -959,7 +959,7 @@ function LinhaTransacao({
                 value={categoriaAtual}
                 onChange={(e) => setCategoriaEscolhida((prev: Record<string, string>) => ({ ...prev, [tx.id]: e.target.value }))}
                 className="px-2 py-1.5 rounded-lg text-xs focus:outline-none"
-                style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.05)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(106,176,255,0.25)', color: ct('#c8d8f0') }}
+                style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.05)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(46,204,155,0.25)', color: ct('#c8d8f0') }}
               >
                 {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -968,7 +968,7 @@ function LinhaTransacao({
           ) : (
             <button onClick={() => setEditandoCategoriaId(tx.id)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: temaClaro ? 'rgba(46,204,155,0.08)' : 'rgba(106,176,255,0.08)', border: temaClaro ? '1px solid rgba(46,204,155,0.2)' : '1px solid rgba(106,176,255,0.2)', color: ct(AZUL) }}>
+              style={{ background: temaClaro ? 'rgba(46,204,155,0.08)' : 'rgba(46,204,155,0.08)', border: temaClaro ? '1px solid rgba(46,204,155,0.2)' : '1px solid rgba(46,204,155,0.2)', color: ct(AZUL) }}>
               <Pencil size={11} /> {tx.categoriaSugerida ? `${t.categoriaSugerida}: ${categoriaAtual}` : t.semSugestao}
             </button>
           )}

@@ -1440,7 +1440,7 @@ export default function CentrosCustoPage() {
             <div className="flex gap-2">
               {["custo", "receita"].map((tipo) => (
                 <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
-                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.2)") : (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.2)")) : (temaClaro ? "#eef2f7" : "rgba(159,18,57,0.05)"), color: tipoLanc === tipo ? ct(tipo === "custo" ? "#f87171" : "#34d399") : (temaClaro ? "#374151" : "#5a7a9a"), border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : (temaClaro ? "rgba(22,169,125,0.3)" : "rgba(52,211,153,0.3)")) : (temaClaro ? "#e2e8f0" : "rgba(159,18,57,0.1)")}` }}>
+                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.2)") : (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.2)")) : (temaClaro ? "#eef2f7" : "rgba(159,18,57,0.05)"), color: tipoLanc === tipo ? ct(tipo === "custo" ? "#f87171" : "#34d399") : (temaClaro ? "#374151" : "#a3b1c2"), border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : (temaClaro ? "rgba(22,169,125,0.3)" : "rgba(52,211,153,0.3)")) : (temaClaro ? "#e2e8f0" : "rgba(159,18,57,0.1)")}` }}>
                   {tipo === "custo" ? cc.custo : cc.receita}
                 </motion.button>
               ))}

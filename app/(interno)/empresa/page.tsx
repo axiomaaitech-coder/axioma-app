@@ -703,7 +703,7 @@ export default function EmpresaPage() {
   // Card creme + efeito premium3d (borda verde-menta no hover), igual aos
   // demais módulos já repintados — spread em todo <CanvasBox> de nível de seção.
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
-  const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)";
+  const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)";
 
   // Estados principais
   const [userId, setUserId] = useState<string | null>(null);
@@ -1239,7 +1239,7 @@ export default function EmpresaPage() {
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>{toast.msg}</div>
       )}
@@ -1264,7 +1264,7 @@ export default function EmpresaPage() {
             <p className="text-xs mt-1" style={{ color: CINZA }}>{tt.empresaNaoEncontradaSub}</p>
             <button onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: AZULC, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
+              style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: AZULC, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)"}` }}>
               {tt.recarregarPagina}
             </button>
           </div>
@@ -1280,7 +1280,7 @@ export default function EmpresaPage() {
                 {empresa.logo_url ? (
                   <img src={empresa.logo_url} alt="logo" className="w-16 h-16 rounded-xl object-contain" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)") }} />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)"), color: "#fff" }}>
                     {(empresa.razao_social || empresa.nome || "?")[0]}
                   </div>
                 )}
@@ -1335,7 +1335,7 @@ export default function EmpresaPage() {
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
                 style={{
-                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
                   color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC),
                   border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
                 }}>{a.label}</button>
@@ -1364,7 +1364,7 @@ export default function EmpresaPage() {
                   </div>
                   <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
                     className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
-                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #2ecc9b, #7fe3c3)"), color: "#fff" }}>
                     {consultandoCNPJ ? tt.consultando : tt.preencherCnpj}
                   </button>
                 </div>
@@ -1378,13 +1378,13 @@ export default function EmpresaPage() {
                     {empresaForm.logo_url ? (
                       <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)") }} />
                     ) : (
-                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px dashed ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
+                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px dashed ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)"}` }}>
                         <span style={{ color: CINZA }}>?</span>
                       </div>
                     )}
                     <button onClick={() => inputLogoRef.current?.click()}
                       className="mt-2 text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.uploadLogo}</button>
+                      style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.uploadLogo}</button>
                     <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
                   </div>
                   <div className="md:col-span-3 space-y-3">
@@ -1554,7 +1554,7 @@ export default function EmpresaPage() {
                         const encontrados = bancos.filter((b) => !filtro || b.nome.toLowerCase().includes(filtro)).slice(0, 30);
                         return (
                           <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg shadow-lg"
-                            style={{ background: temaClaro ? "#ffffff" : "#0a1628", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
+                            style={{ background: temaClaro ? "#ffffff" : "#0a1628", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)"}` }}>
                             {encontrados.length === 0 ? (
                               <p className="px-3 py-2 text-xs" style={{ color: CINZA }}>{tt.nenhumBancoEncontrado}</p>
                             ) : encontrados.map((b) => (
@@ -1618,7 +1618,7 @@ export default function EmpresaPage() {
                   <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.quadroSocietario} ({socios.length})</p>
                   <button onClick={() => setModalSocio("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>{tt.novoSocio}</button>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)"), color: "#fff" }}>{tt.novoSocio}</button>
                 </div>
                 {socios.length === 0 ? (
                   <p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semSocios}</p>
@@ -1626,7 +1626,7 @@ export default function EmpresaPage() {
                   <div className="space-y-2">
                     {socios.map((s: any) => (
                       <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"}` }}>
+                        style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"}` }}>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.nome}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
@@ -1636,7 +1636,7 @@ export default function EmpresaPage() {
                         </div>
                         <div className="flex gap-1">
                           <button onClick={() => setModalSocio(s)} title={tt.editar}
-                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>✏️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZULC }}>✏️</button>
                           <button onClick={() => removerSocio(s)} title={tt.remover}
                             className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
                         </div>
@@ -1662,10 +1662,10 @@ export default function EmpresaPage() {
                   <div className="flex gap-2 flex-wrap">
                     <button onClick={gerarCalendarioFiscal}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>{tt.gerarCalendario}</button>
+                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #2ecc9b, #7fe3c3)"), color: "#fff" }}>{tt.gerarCalendario}</button>
                     <button onClick={() => setModalObrigacao("novo")}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>{tt.novaObrigacao}</button>
+                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)"), color: "#fff" }}>{tt.novaObrigacao}</button>
                   </div>
                 </div>
               </CanvasBox>
@@ -1700,7 +1700,7 @@ export default function EmpresaPage() {
                               className="px-2 py-1 rounded text-xs" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>✓</button>
                           )}
                           <button onClick={() => setModalObrigacao(o)} title={tt.editar}
-                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>✏️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZULC }}>✏️</button>
                           <button onClick={() => removerObrigacao(o)} title={tt.remover}
                             className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
                         </div>
@@ -1747,7 +1747,7 @@ export default function EmpresaPage() {
                         <div className="flex gap-1 mt-2">
                           {d.storage_path && (
                             <button onClick={() => baixarDocumento(d)}
-                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>{tt.baixar}</button>
+                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZULC }}>{tt.baixar}</button>
                           )}
                           <button onClick={() => removerDocumento(d)}
                             className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
@@ -1819,7 +1819,7 @@ export default function EmpresaPage() {
           <div className="flex flex-col sm:flex-row-reverse gap-2">
             <button onClick={() => setModalLimparAberto(false)}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>
+              style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)"), color: "#fff" }}>
               {tt.cancelar}
             </button>
             <button onClick={limparCampos}
@@ -1854,9 +1854,9 @@ export default function EmpresaPage() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setResultadoCNPJ(null)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
+                style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.cancelar}</button>
               <button onClick={aplicarDadosCNPJ} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>{tt.cnpjAplicar}</button>
+                style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #2ecc9b, #7fe3c3)"), color: "#fff" }}>{tt.cnpjAplicar}</button>
             </div>
           </div>
         </div>
@@ -1904,7 +1904,7 @@ export default function EmpresaPage() {
               <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
             {empresa && (
-              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"}` }}>
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"}` }}>
                 <p style={{ color: TEXTO }}>📄 <strong style={{ color: AZULC }}>{empresa.cnpj || tt.semCnpj}</strong></p>
                 <p style={{ color: TEXTO }}>
                   📊 Health: <strong style={{ color: ct(healthScore.cor) }}>{healthScore.score}/100</strong> • 🛡️ Compliance: <strong style={{ color: ct(complianceScore.cor) }}>{complianceScore.score}/100</strong>
@@ -1940,7 +1940,7 @@ export default function EmpresaPage() {
               </button>
             </div>
             <button onClick={() => setShareModalAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.fechar}</button>
+              style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.fechar}</button>
           </div>
         </div>
       )}
@@ -2016,7 +2016,7 @@ function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const { TEXTO, AZULC } = PALETA[tema];
-  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -2047,7 +2047,7 @@ function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
         placeholder={tt.telefone} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
           style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)"), color: "#fff" }}>{tt.salvar}</button>
@@ -2062,7 +2062,7 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const { CINZA, TEXTO, AZULC } = PALETA[tema];
-  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -2091,7 +2091,7 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
         className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
           style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #f5a623)"), color: "#fff" }}>{tt.salvar}</button>
@@ -2105,7 +2105,7 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const { CINZA, TEXTO, AZULC } = PALETA[tema];
-  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <input value={form.tipo || ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -2144,7 +2144,7 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
       </div>
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form)} disabled={!form.tipo || !form.nome || !form.data_vencimento}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
           style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)"), color: "#fff" }}>{tt.salvar}</button>

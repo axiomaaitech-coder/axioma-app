@@ -159,7 +159,7 @@ export default function TesourariaConfigPage() {
             {podeEditar && (
               <button onClick={salvarConfig} disabled={salvando}
                 className="flex items-center gap-2 mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
                 <Save size={16} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
               </button>
             )}

@@ -67,8 +67,8 @@ function useCampoEstilos() {
   const { tema } = useThemeAxioma();
   const claro = tema === "xms";
   return {
-    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
-    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
+    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
+    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
     labelStyle: { color: claro ? "#2ecc9b" : "#d4a017" },
     erroStyle: { color: claro ? "#ff5a6b" : "#f87171" },
   };
@@ -1545,7 +1545,7 @@ export default function Fornecedores() {
   ) : null;
 
   const geoOption = geoData.length > 0 ? optRosca(
-    geoData.slice(0, 8).map((g, i) => ({ name: g.uf, value: g.quantidade, color: [AMBAR, "#fbbf24", ct("#34d399"), ct("#6ab0ff"), (temaClaro ? "#7c3aed" : "#a78bfa"), ct("#f87171"), "#14b8a6", "#ec4899"][i % 8] })),
+    geoData.slice(0, 8).map((g, i) => ({ name: g.uf, value: g.quantidade, color: [AMBAR, "#fbbf24", ct("#34d399"), ct("#6ab0ff"), (temaClaro ? "#7c3aed" : "#7fe3c3"), ct("#f87171"), "#14b8a6", "#ec4899"][i % 8] })),
     AMBAR, idioma === "pt" ? "Estados" : idioma === "es" ? "Estados" : "States", temaClaro,
   ) : null;
 
@@ -1759,7 +1759,7 @@ export default function Fornecedores() {
       <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
         onClick={abrirNovaConta}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-        style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+        style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
         + {idioma === "pt" ? "Nova Conta a Pagar" : "New Bill"}
       </motion.button>
       <ThemeToggle />
@@ -2349,7 +2349,7 @@ export default function Fornecedores() {
                             <p className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{c.descricao}</p>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               {fnome && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.1)", color: AMBAR }}>🏭 {fnome}</span>}
-                              {c.forma_pagamento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: (temaClaro ? "#7c3aed" : "#a78bfa") }}>{c.forma_pagamento}</span>}
+                              {c.forma_pagamento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: (temaClaro ? "#7c3aed" : "#7fe3c3") }}>{c.forma_pagamento}</span>}
                               {c.numero_nota && <span className="text-xs" style={{ color: ct("#5a7a9a") }}>NF: {c.numero_nota}</span>}
                             </div>
                           </div>

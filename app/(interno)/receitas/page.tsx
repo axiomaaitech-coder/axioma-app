@@ -431,7 +431,7 @@ export default function Receitas() {
                     <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: TEXTO_SEC }}>{t.receitas.semReceitas}</td></tr>
                   ) : receitasFiltradas.map((r, i) => (
                     <motion.tr key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(106,176,255,0.03)" }}
+                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(46,204,155,0.03)" }}
                       style={{ borderBottom: i < receitasFiltradas.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>
                         {r.descricao}

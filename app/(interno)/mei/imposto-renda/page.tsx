@@ -48,7 +48,7 @@ export default function ImpostoRendaMEI() {
   const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
-  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(106,176,255,${alpha})`
+  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(46,204,155,${alpha})`
   const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
   const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -657,7 +657,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </div>
             <button onClick={handleEnviarDocumento} disabled={!arquivoDoc || etapaUpload === 'enviando'}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
+              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #16a97d, ${AZUL})`, color: '#fff' }}>
               <Upload size={16} />
               {etapaUpload === 'enviando' ? t('docEnviando') : etapaUpload === 'concluido' ? t('docEnviado') : t('docEnviar')}
             </button>

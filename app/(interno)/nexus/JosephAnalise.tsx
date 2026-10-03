@@ -70,7 +70,7 @@ function JosephPensando({ lang, temaClaro }: { lang: Lang; temaClaro: boolean })
     return () => clearInterval(t)
   }, [atual.paises])
 
-  const ACENTO = temaClaro ? '#16a97d' : '#22d3ee'
+  const ACENTO = temaClaro ? '#16a97d' : '#7fe3c3'
   const TXT = temaClaro ? '#101b3d' : '#e6edf5'
   const SEC = temaClaro ? '#374151' : '#d7e0ea'
   return (
@@ -141,7 +141,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
   const TIT = temaClaro ? '#101b3d' : '#e2ecf7'
   const TXT = temaClaro ? '#101b3d' : '#e6edf5'
   const SEC = temaClaro ? '#374151' : '#d7e0ea'
-  const ACENTO = temaClaro ? '#16a97d' : '#22d3ee'
+  const ACENTO = temaClaro ? '#16a97d' : '#7fe3c3'
   const caixa: CSSProperties = temaClaro
     ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' }
     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }

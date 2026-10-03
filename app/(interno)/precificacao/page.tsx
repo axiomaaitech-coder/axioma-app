@@ -91,7 +91,7 @@ export default function Precificacao() {
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)";
   const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
 
@@ -818,7 +818,7 @@ export default function Precificacao() {
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                   <Sparkles size={15} style={{ color: corOuro, flexShrink: 0, marginTop: 2 }} />
-                  <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{montarNarrativaIPPA(lang, ippa)}</p>
+                  <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#7fe3c3" }}>{montarNarrativaIPPA(lang, ippa)}</p>
                 </div>
                 {piorOportunidade && (
                   <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>

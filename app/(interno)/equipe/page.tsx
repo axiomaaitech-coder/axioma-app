@@ -250,11 +250,11 @@ export default function EquipePage() {
   // Paleta Claro segue tema-tokens.md, mesmo padrão já usado nos demais
   // módulos com modal/CRUD (ex.: Metas) - card creme, texto azul-marinho,
   // cinza #374151, campo branco, modal creme.
-  const TEXTO = temaClaro ? '#101b3d' : '#c8d8f0'
-  const MUTED = temaClaro ? '#374151' : '#5a7a9a'
+  const TEXTO = temaClaro ? '#101b3d' : '#e6edf5'
+  const MUTED = temaClaro ? '#374151' : '#a3b1c2'
   const CAMPO_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.7)'
   const LINHA_BG = temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(2,8,16,0.5)'
-  const CAMPO_BORDA = temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(106,176,255,0.2)'
+  const CAMPO_BORDA = temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(46,204,155,0.2)'
 
   const [carregando, setCarregando] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
@@ -639,7 +639,7 @@ export default function EquipePage() {
                   )}
                   <motion.button onClick={() => setModalAberto(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(106,176,255,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
+                    style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(46,204,155,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
                 </div>
               </div>
             </CanvasBox>

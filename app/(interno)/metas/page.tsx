@@ -741,7 +741,7 @@ export default function Metas() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: `1px solid ${PAINEL_BORDA}`, boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#8b5cf6,#d4af37)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#8b5cf6"}` }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#2ecc9b"}` }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaModalAnaliseTitulo}</p>
                     <p className="text-[10px] font-medium" style={{ color: ct("#64748b") }}>{cx.metaModalAnaliseSub}</p>
@@ -1025,7 +1025,7 @@ export default function Metas() {
         textoDetalhado={textoDetalhado}
         assunto={`${txt.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor={temaClaro ? "#2ecc9b" : "#8b5cf6"}
+        cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}
       />
 
       {toast && (

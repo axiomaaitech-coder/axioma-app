@@ -520,7 +520,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             <a href="https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold"
-              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
+              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #16a97d, ${AZUL})`, color: '#fff' }}>
               <FileText size={16} />{t('abrirPortalParcelamento')}
             </a>
           </CanvasBox>
@@ -641,7 +641,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             <a href="https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/declaracao-anual-de-faturamento-dasn-simei"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold"
-              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
+              style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, #16a97d, ${AZUL})`, color: '#fff' }}>
               <FileText size={16} />{t('abrirPortal')}
             </a>
           </div>
