@@ -1,4 +1,5 @@
 ﻿"use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useRouter } from "next/navigation"
 import { irParaDestino } from "../../../lib/cfoCore"
 import { useState, useEffect, useRef } from "react";
@@ -494,6 +495,20 @@ export default function IAFinanceiraPage() {
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
+        </div>
+      )}
+
+      {/* Letreiro (padrão: azul-marinho, letra branca, destaque verde-menta) */}
+      {!carregando && snap && score360 && (
+        <div className="mb-4">
+          <LetreiroExecutivo cor="#101b3d" itens={[
+            { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+            `Score 360°: ${score360.total}/100`,
+            `${(lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita")}: ${formatBRL(snap.receita_bruta)}`,
+            `${(lang === "en" ? "Costs" : lang === "es" ? "Costos" : "Custos")}: ${formatBRL(snap.custos_totais)}`,
+            `${(lang === "en" ? "Net profit" : lang === "es" ? "Utilidad neta" : "Lucro líquido")}: ${formatBRL(snap.lucro_liquido)}`,
+            `${(lang === "en" ? "Net margin" : lang === "es" ? "Margen neto" : "Margem líquida")}: ${(snap.margem_liquida || 0).toFixed(1)}%`,
+          ]} />
         </div>
       )}
 

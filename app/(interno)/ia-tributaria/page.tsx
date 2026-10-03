@@ -1,4 +1,5 @@
 ﻿"use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useRouter } from "next/navigation"
 import { irParaDestino } from "../../../lib/cfoCore"
 import { useState, useEffect, useRef } from "react";
@@ -355,6 +356,15 @@ export default function IATributariaPage() {
 
       {!carregando && dados && scoreFiscal && (
         <div className="space-y-4">
+          {/* Letreiro (padrão: azul-marinho, letra branca, destaque verde-menta) */}
+          <LetreiroExecutivo cor="#101b3d" itens={[
+            { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+            `Score Fiscal: ${scoreFiscal.score}/100`,
+            `${(lang === "en" ? "Tax burden" : lang === "es" ? "Carga tributaria" : "Carga tributária")}: ${(carga?.carga_pct ?? 0).toFixed(1)}%`,
+            `${(lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita")}: ${formatBRL(dados.receita_bruta_mensal)}${tt.porMes}`,
+            `Regime: ${dados.regime_atual || "—"}`,
+            ...(economia?.economia_mensal > 0 ? [`${tt.economiaMensal}: ${formatBRL(economia.economia_mensal)}`] : []),
+          ]} />
           {/* HEADER */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <CanvasBox cor={scoreFiscal.cor} {...cartaoTema}>
