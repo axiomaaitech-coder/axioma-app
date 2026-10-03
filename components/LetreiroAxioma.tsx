@@ -18,14 +18,16 @@ export function LetreiroAxioma({ id, itens, cor, solido, corDestaque }: {
 }) {
   const todos = ["🚀 AXIOMA AI.TECH", ...itens];
   const classe = `marquee-${id}`;
-  const acento = corDestaque || cor;
+  // Letreiro único (Elias 2026-10-03): azul-marinho, letra branca, destaque verde-menta
+  void cor; void solido; void corDestaque;
+  const acento = "#2ecc9b";
   return (
-    <div className="relative rounded-xl overflow-hidden" style={{ background: solido ? "#101b3d" : `linear-gradient(90deg, ${cor}20, ${cor}0d)`, border: `1px solid ${solido ? "#101b3d" : cor + "40"}` }}>
+    <div className="relative rounded-xl overflow-hidden" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.35)" }}>
       <div className={`${classe} py-2.5 whitespace-nowrap`} style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
           <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
             {todos.map((m, i) => (
-              <span key={i} style={{ color: i === 0 ? acento : (solido ? "#ffffff" : "var(--axi-text-primary)") }}>
+              <span key={i} style={{ color: i === 0 ? acento : "#ffffff" }}>
                 {m}<span style={{ color: acento }}>{"  •  "}</span>
               </span>
             ))}

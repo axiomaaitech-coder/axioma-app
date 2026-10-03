@@ -1823,11 +1823,11 @@ export default function Fornecedores() {
 
           {/* Letreiro */}
           {marquee.length > 0 && (
-            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : `linear-gradient(90deg, ${AMBAR}20, ${BRONZE}15)`, border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : `1px solid ${AMBAR}40` }}>
+            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.3)"}}>
               <div className="marquee-forn py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? AMBAR : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: (i === 0 ? "#2ecc9b" : "#ffffff")}}>{m}<span style={{ color: "#2ecc9b"}}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
