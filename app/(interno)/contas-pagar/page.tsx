@@ -1864,7 +1864,7 @@ export default function ContasPagarPage() {
                 {L("Sim, vincular", "Yes, link", "Sí, vincular")}
               </button>
               <button onClick={() => setAvisoNfeDuplicada(null)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: CINZA }}>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff" }}>
                 {L("Não", "No", "No")}
               </button>
             </div>
@@ -1875,32 +1875,32 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "inteligencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "aprovacoes" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "conferencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "conferencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
           <button onClick={abrirConfigAp} className="ml-auto px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-            style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+            style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" }}>
             <Settings size={14} />⚙️ {L("Configuração AP", "AP Configuration", "Configuración AP")}
           </button>
         )}
@@ -2093,7 +2093,7 @@ export default function ContasPagarPage() {
               </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {(PERGUNTAS_SUGERIDAS_CFO[idioma as "pt" | "en" | "es"] || PERGUNTAS_SUGERIDAS_CFO.pt).map((sug) => (
-                  <button key={sug} onClick={() => perguntarAoCfo(sug)} disabled={carregandoRespostaCfo} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+                  <button key={sug} onClick={() => perguntarAoCfo(sug)} disabled={carregandoRespostaCfo} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                     {sug}
                   </button>
                 ))}
@@ -2129,7 +2129,7 @@ export default function ContasPagarPage() {
                       className="px-3 py-1.5 rounded-lg text-xs font-bold"
                       style={horizonteSelecionado === h
                         ? { background: (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` }
-                        : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+                        : { background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                       {L(`${h} dias`, `${h} days`, `${h} días`)}
                     </button>
                   ))}
@@ -2309,7 +2309,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(c.valorRecuperavelEstimado)}</span>
-                      <button onClick={() => revisarNoCentral(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                      <button onClick={() => revisarNoCentral(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2340,7 +2340,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(m.valorMulta)}</span>
-                      <button onClick={() => revisarNoCentral(m.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                      <button onClick={() => revisarNoCentral(m.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2371,7 +2371,7 @@ export default function ContasPagarPage() {
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de semelhança", "Similarity score", "Score de semejanza")} style={{ background: `${p.score >= 85 ? VERMELHO : AMBAR}20`, color: p.score >= 85 ? VERMELHO : AMBAR }}>
                         {p.score}
                       </span>
-                      <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                      <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2430,7 +2430,7 @@ export default function ContasPagarPage() {
                         }}>
                         {fmt(d.valorDesconto)}
                       </span>
-                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2515,7 +2515,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(d.valorPerdido)}</span>
-                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2658,7 +2658,7 @@ export default function ContasPagarPage() {
                                   `${fmt(a.valorAtual)}${pct !== null ? ` está ${pct}% por encima` : " por encima"} del promedio histórico de esta descripción (${fmt(a.valorReferencia)}), con base en ${n} cuenta(s).`)}
                               </p>
                             </div>
-                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                               {L("Revisar", "Review", "Revisar")}
                             </button>
                           </div>
@@ -2690,7 +2690,7 @@ export default function ContasPagarPage() {
                                   `Subió 3 veces seguidas: de ${fmt(a.valorReferencia)} a ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, con base en ${n} cuenta(s).`)}
                               </p>
                             </div>
-                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? TEXTO : "#fff" }}>
                               {L("Revisar", "Review", "Revisar")}
                             </button>
                           </div>
@@ -2759,7 +2759,7 @@ export default function ContasPagarPage() {
             </div>
             {podeEditar && (
               <button onClick={abrirNovoPedido} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
-                style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(46,204,155,0.15)", color: AZUL, border: "1px solid rgba(46,204,155,0.3)" }}>
+                style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "none" }}>
                 <Plus size={15} />{L("Novo Pedido", "New Order", "Nueva Orden")}
               </button>
             )}
@@ -2825,7 +2825,7 @@ export default function ContasPagarPage() {
               <button key={f} onClick={() => setFiltroConferencia(f)} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                 style={filtroConferencia === f
                   ? { background: (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: `1px solid ${VERMELHO}40` }
-                  : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+                  : { background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                 {f === "excecao" ? L("Divergências", "Discrepancies", "Discrepancias") : f === "ok" ? L("Conferidas", "Matched", "Conciliadas") : L("Todas", "All", "Todas")}
               </button>
             ))}
@@ -2974,7 +2974,7 @@ export default function ContasPagarPage() {
                         placeholder={L("Ex.: valor corrigido após conversa com o fornecedor", "E.g.: amount fixed after talking to the supplier", "Ej.: valor corregido tras hablar con el proveedor")}
                         className="flex-1 px-3 py-2 rounded-lg text-xs" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                       <div className="flex gap-2">
-                        <button onClick={() => setAnotandoId(null)} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                        <button onClick={() => setAnotandoId(null)} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                         <button onClick={salvarAnotacao} disabled={processandoHist} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: temaClaro ? "#16a97d" : VERDE, color: "#fff" }}>{processandoHist ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar", "Save", "Guardar")}</button>
                       </div>
                     </div>
@@ -3082,7 +3082,7 @@ export default function ContasPagarPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={fecharExclusaoHist} disabled={processandoHist}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
+                      style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff" }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
                     <button onClick={confirmarExclusaoHist} disabled={processandoHist || motivoExclusaoHist.trim().length < 5 || !cienteExclusaoHist}
@@ -3215,7 +3215,7 @@ export default function ContasPagarPage() {
                         className="w-full px-4 py-3 rounded-xl text-sm resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarConta} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                         style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {salvando ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Conta", "Save Bill", "Guardar Cuenta")}
@@ -3301,9 +3301,9 @@ export default function ContasPagarPage() {
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                      <button onClick={fecharModalPedido} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={fecharModalPedido} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarPedido} disabled={salvandoPedido} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #1e40af, #2ecc9b)", color: "#fff" }}>
+                        style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {salvandoPedido ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Pedido", "Save Order", "Guardar Orden")}
                       </button>
                     </div>
@@ -3367,7 +3367,7 @@ export default function ContasPagarPage() {
                       {(papel === "dono" || papel === "admin") ? (
                         !mostrarForcar ? (
                           <div className="flex gap-3">
-                            <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                            <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                             <button onClick={() => setMostrarForcar(true)} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #7f1d1d, #f87171)", color: "#fff" }}>
                               {L("Forçar (senha do dono)", "Force (owner password)", "Forzar (contraseña del dueño)")}
                             </button>
@@ -3380,7 +3380,7 @@ export default function ContasPagarPage() {
                             {erroForcar && <p className="text-xs" style={{ color: VERMELHO }}>{erroForcar}</p>}
                             {turnstileForcar.elemento}
                             <div className="flex gap-3">
-                              <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                              <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                               <button onClick={confirmarForcarSenha} disabled={forcando || !senhaForcar} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #f87171)", color: "#fff" }}>
                                 {forcando ? L("Confirmando...", "Confirming...", "Confirmando...") : L("Confirmar e Salvar", "Confirm and Save", "Confirmar y Guardar")}
                               </button>
@@ -3388,12 +3388,12 @@ export default function ContasPagarPage() {
                           </div>
                         )
                       ) : (
-                        <button onClick={fecharModalDuplicata} className="w-full py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Entendi", "Got it", "Entendido")}</button>
+                        <button onClick={fecharModalDuplicata} className="w-full py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Entendi", "Got it", "Entendido")}</button>
                       )}
                     </div>
                   ) : (
                     <div className="flex gap-2 flex-wrap">
-                      <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {L("Salvar mesmo assim", "Save anyway", "Guardar de todos modos")}
                       </button>
@@ -3491,12 +3491,12 @@ export default function ContasPagarPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
+                      style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff" }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
                     <button onClick={confirmarEstorno} disabled={processandoEstorno || !motivoEstorno.trim()}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                      style={{ background: CINZA, color: "#fff" }}>
+                      style={{ background: temaClaro ? CINZA : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                       {processandoEstorno ? L("Estornando...", "Reversing...", "Reversando...") : L("Confirmar Estorno", "Confirm Reversal", "Confirmar Reversión")}
                     </button>
                   </div>
@@ -3531,7 +3531,7 @@ export default function ContasPagarPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
+                      style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff" }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
                     <button onClick={confirmarExclusao} disabled={processandoExclusao}
@@ -3832,8 +3832,8 @@ export default function ContasPagarPage() {
                       <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
                     </div>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={salvarConfiguracaoAp} disabled={salvandoConfig} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #334155, #64748b)", color: "#fff" }}>
+                      <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={salvarConfiguracaoAp} disabled={salvandoConfig} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {salvandoConfig ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Configuração", "Save Configuration", "Guardar Configuración")}
                       </button>
                     </div>
@@ -3908,7 +3908,7 @@ export default function ContasPagarPage() {
                         "Las cuentas antiguas de ese patrón quedan vinculadas a este Costo Fijo, y la cuenta de este mes se genera automáticamente (sin duplicar si ya existe).")}
                     </p>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #2ecc9b)", color: "#fff" }}>
                         {transformando ? L("Criando...", "Creating...", "Creando...") : L("Confirmar e Criar", "Confirm and Create", "Confirmar y Crear")}
                       </button>

@@ -962,7 +962,7 @@ export default function ContasReceber() {
               <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum alerta no momento.', 'No alerts right now.', 'Sin alertas por el momento.')}</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-2">
               {alertas.map((a, i) => (
                 <motion.button key={i} whileHover={{ scale: 1.005 }}
                   onClick={() => a.clienteId && setClienteScoreDrill(a.clienteId)}
