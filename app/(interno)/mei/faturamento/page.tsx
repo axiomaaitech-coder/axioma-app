@@ -58,8 +58,8 @@ export default function FaturamentoMEI() {
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
-  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   // Fundo/borda decorativos neutros (trilha de barra, botão cancelar, divisor)
   // eram um azul fixo em decimal — nunca trocavam de tom no Claro (mesmo bug
   // já corrigido em 18 arquivos, ver memória). Agora seguem o tema: azul no
@@ -470,11 +470,11 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-            <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.12)'}` }}>
+            <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.12)'}` }}>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('margemMesTitulo')}</p>
               <p className="text-lg font-black" style={{ color: VERDE }}><AnimatedNumber value={fmt(Math.max(0, margemRecomendadaMes))} /></p>
             </div>
-            <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.12)'}` }}>
+            <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.12)'}` }}>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('mesEstouroTitulo')}</p>
               <p className="text-lg font-black capitalize" style={{ color: nomeMesEstouro ? VERMELHO : VERDE }}>
                 {nomeMesEstouro || t('mesEstouroNenhum')}

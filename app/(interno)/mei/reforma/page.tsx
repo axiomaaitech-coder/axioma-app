@@ -46,8 +46,8 @@ export default function ReformaTributaria() {
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
-  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   // Banners/toast tinham o hex do Escuro fixo em decimal — mesmo bug já
   // corrigido em 18 arquivos antes, corrigido aqui também.
   const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
@@ -332,7 +332,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilTitulo')}</p>
 
           {!perfilCliente && (
-            <div className="mb-4 p-3 rounded-xl" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.15)'}` }}>
+            <div className="mb-4 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.06)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.15)'}` }}>
               <p className="text-xs mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilNaoConfigurado')}</p>
               <Link href="/mei" className="text-xs font-bold" style={{ color: AZUL }}>{t('configurarPerfil')} →</Link>
             </div>
@@ -340,7 +340,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
 
           <div className="space-y-4">
             {(perfilCliente === 'b2b' || perfilCliente === 'ambos' || !perfilCliente) && (
-              <div className="p-4 rounded-xl" style={{ background: NESTED_BG ?? `${AMBAR}08`, border: `1px solid ${NESTED_BORDA ?? AMBAR + '20'}` }}>
+              <div className="p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AMBAR}08`, border: `1px solid ${NESTED_BORDA ?? AMBAR + '20'}` }}>
                 <p className="text-sm font-bold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilB2BTitulo')}</p>
                 <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('perfilB2BTexto')}</p>
                 <ul className="space-y-1.5">
@@ -353,7 +353,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
               </div>
             )}
             {(perfilCliente === 'b2c' || perfilCliente === 'ambos' || !perfilCliente) && (
-              <div className="p-4 rounded-xl" style={{ background: NESTED_BG ?? `${VERDE}08`, border: `1px solid ${NESTED_BORDA ?? VERDE + '20'}` }}>
+              <div className="p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${VERDE}08`, border: `1px solid ${NESTED_BORDA ?? VERDE + '20'}` }}>
                 <p className="text-sm font-bold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilB2CTitulo')}</p>
                 <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('perfilB2CTexto')}</p>
               </div>
@@ -368,21 +368,21 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('checklistTitulo')}</p>
           <div className="space-y-2.5">
-            <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
+            <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
               <p className="text-xs flex-1" style={{ color: 'var(--axi-text-primary)' }}>1. {t('checklist1')}</p>
               <Link href="/mei/das" className="text-xs font-bold whitespace-nowrap" style={{ color: AZUL }}>{t('verDAS')}</Link>
             </div>
-            <div className="p-3 rounded-xl" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
               <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>2. {t('checklist2')}</p>
             </div>
-            <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
+            <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
               <p className="text-xs flex-1" style={{ color: 'var(--axi-text-primary)' }}>3. {t('checklist3')}</p>
               <Link href="/mei/faturamento" className="text-xs font-bold whitespace-nowrap" style={{ color: AZUL }}>{t('verFaturamento')}</Link>
             </div>
-            <div className="p-3 rounded-xl" style={{ background: NESTED_BG ?? `${AMBAR}08`, border: `1px solid ${NESTED_BORDA ?? AMBAR + '20'}` }}>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AMBAR}08`, border: `1px solid ${NESTED_BORDA ?? AMBAR + '20'}` }}>
               <p className="text-xs font-semibold" style={{ color: AMBAR }}>4. {t('checklist4')}</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'rgba(106,176,255,0.05)', border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
               <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>5. {t('checklist5')} ({fmt(LIMITE_NANOEMPREENDEDOR)}/ano)</p>
             </div>
           </div>
@@ -392,7 +392,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('simulador')}</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-xl text-center" style={{ background: NESTED_BG ?? `${OURO}10`, border: `1px solid ${NESTED_BORDA ?? OURO + '30'}` }}>
+            <div className="p-4 rounded-xl text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}10`, border: `1px solid ${NESTED_BORDA ?? OURO + '30'}` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: OURO }}>MEI 2027</p>
               <p className="text-lg font-black mb-1" style={{ color: OURO }}><AnimatedNumber value={fmt(dasValor)} /></p>
               <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('porMes')}</p>
@@ -403,7 +403,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
                 <p className="text-xs" style={{ color: VERMELHO }}>✗ {lang === 'pt' ? 'Sem sócios' : lang === 'en' ? 'No partners' : 'Sin socios'}</p>
               </div>
             </div>
-            <div className="p-4 rounded-xl text-center" style={{ background: NESTED_BG ?? `${AZUL}10`, border: `1px solid ${NESTED_BORDA ?? AZUL + '30'}` }}>
+            <div className="p-4 rounded-xl text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}10`, border: `1px solid ${NESTED_BORDA ?? AZUL + '30'}` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: AZUL }}>ME Simples</p>
               <p className="text-lg font-black mb-1" style={{ color: AZUL }}><AnimatedNumber value={fmt(faturamentoAnual * 0.06 / 12)} /></p>
               <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('estimado')}</p>

@@ -53,8 +53,8 @@ export default function DASObrigacoes() {
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
-  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   // Alertas/toast tinham o hex do Escuro fixo em decimal — mesmo bug já
   // corrigido em 18 arquivos antes, corrigido aqui também.
   const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
@@ -358,7 +358,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
   ) => {
     const { texto: prazoTexto, atrasado } = diasOuAtraso(vencimento, status)
     return (
-      <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap"
+      <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa"
         style={{ background: NESTED_BG ?? `${cor}08`, border: `1px solid ${NESTED_BORDA ?? cor + '20'}` }}>
         {tipo === 'DAS' ? <Bell size={18} style={{ color: cor, flexShrink: 0 }} /> : <FileText size={18} style={{ color: cor, flexShrink: 0 }} />}
         <div className="flex-1 min-w-0">
@@ -435,12 +435,12 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-              <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
+              <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('dividaAtualizada')}</p>
                 <p className="text-xl font-black" style={{ color: temaClaro ? OURO : corFase(faseAtual) }}><AnimatedNumber value={fmt(divida.totalAtualizado)} /></p>
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
               </div>
-              <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
+              <div className="rounded-xl p-3 flex flex-col justify-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
                 <p className="text-lg font-black" style={{ color: temaClaro ? (faseAtual === 'em_dia' ? VERDE : OURO) : corFase(faseAtual) }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
               </div>
@@ -508,7 +508,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 <input type="range" min={1} max={Math.max(1, maxParcelas)} value={parcelasEscolhidas}
                   onChange={e => setNumParcelas(parseInt(e.target.value, 10))} className="w-full" />
               </div>
-              <div className="rounded-xl px-4 py-2 text-center" style={{ background: NESTED_BG ?? `${AZUL}10`, border: `1px solid ${NESTED_BORDA ?? AZUL + '30'}` }}>
+              <div className="rounded-xl px-4 py-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}10`, border: `1px solid ${NESTED_BORDA ?? AZUL + '30'}` }}>
                 <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
                 <p className="text-lg font-black" style={{ color: AZUL }}><AnimatedNumber value={fmt(valorPorParcela)} /></p>
               </div>
@@ -550,7 +550,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           <div className="space-y-3">
 
             {/* DAS Mensal — valor editável + status */}
-            <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '20'}` }}>
+            <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '20'}` }}>
               <Bell size={18} style={{ color: OURO, flexShrink: 0 }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>DAS Mensal</p>
@@ -615,7 +615,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                   idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR', { month: 'short' }
                 )
                 return (
-                  <div key={c.competencia} className="rounded-xl p-2.5 text-center"
+                  <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
                     style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
                     <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
                     <p className="text-xs font-semibold mt-1" style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>{c.status}</p>
@@ -630,11 +630,11 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('calculadora')}</p>
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
+            <div className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
               <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
             </div>
-            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
+            <div className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}</span>
               <span className="text-sm font-bold" style={{ color: AZUL }}>{meiDados?.categoria_mei || 'Serviços'}</span>
             </div>

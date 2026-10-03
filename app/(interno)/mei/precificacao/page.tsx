@@ -52,8 +52,8 @@ export default function PrecificacaoMEI() {
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
-  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
   const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
   const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
@@ -613,7 +613,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               { label: t('irpfLbl'), value: fmt(irpfReais), cor: ROXO },
               { label: t('margemReaisLbl'), value: fmt(margemReais), cor: OURO },
             ].map((item, i) => (
-              <div key={i} className="flex justify-between items-center p-3 rounded-xl"
+              <div key={i} className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa"
                 style={{ background: NESTED_BG ?? `${item.cor}10`, border: `1px solid ${NESTED_BORDA ?? item.cor + '20'}` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                 <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
@@ -775,7 +775,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('dicas')}</p>
           <div className="space-y-3">
             {dicas.map((dica, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: NESTED_BG ?? `${AZUL}06`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}06`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
                 <span className="text-sm flex-shrink-0" style={{ color: AZUL }}>💡</span>
                 <p className="text-xs" style={{ color: TEXTO_SEC }}>{dica[lang]}</p>
               </div>

@@ -45,8 +45,8 @@ export default function ImpostoRendaMEI() {
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
-  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
   const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(46,204,155,${alpha})`
   const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
@@ -475,7 +475,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               { label: lang === 'pt' ? 'Alíquota efetiva IRPF' : lang === 'en' ? 'Effective IRPF rate' : 'Alícuota efectiva IRPF', value: `${aliquotaEfetiva.toFixed(1)}%`, cor: obrigado ? VERMELHO : VERDE },
               { label: lang === 'pt' ? '💰 IRPF total estimado/ano' : lang === 'en' ? '💰 Estimated total IRPF/year' : '💰 IRPF total estimado/año', value: fmt(impostoAnual), cor: obrigado ? VERMELHO : VERDE },
             ].map((item, i) => (
-              <div key={i} className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${item.cor}08`, border: `1px solid ${NESTED_BORDA ?? item.cor + '15'}` }}>
+              <div key={i} className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${item.cor}08`, border: `1px solid ${NESTED_BORDA ?? item.cor + '15'}` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                 <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
               </div>
@@ -663,7 +663,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </button>
           </div>
 
-          <div className="p-4 rounded-xl mb-4" style={{ background: NESTED_BG ?? `rgba(${rgbVerde},0.04)`, border: `1px solid ${NESTED_BORDA ?? `rgba(${rgbVerde},0.15)`}` }}>
+          <div className="p-4 rounded-xl mb-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `rgba(${rgbVerde},0.04)`, border: `1px solid ${NESTED_BORDA ?? `rgba(${rgbVerde},0.15)`}` }}>
             <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: TEXTO_SEC }}>{t('docChecklistTitulo')} ({anoDocSelecionado})</p>
             <div className="flex flex-wrap gap-2">
               {checklistDocItens.map((item) => (
