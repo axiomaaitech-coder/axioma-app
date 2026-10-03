@@ -133,7 +133,7 @@ export default function ContasReceber() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { ESMERALDA, TEAL, OURO, VERDE, VERMELHO, AZUL, AMBAR, CINZA, BG_CARD, TITULO, TEXTO, PAINEL_BG, CAMPO_BG, SELECT_BG, BOTAO_BG } = PALETA[tema]
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
 
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {

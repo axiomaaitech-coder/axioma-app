@@ -90,7 +90,7 @@ export default function Inadimplencia() {
   const temaClaro = tema === 'xms'
   const { INDIGO, SAFIRA, PLATINA, VERMELHO, AMBAR, VERDE, AZUL, CINZA, BG_CARD } = PALETA[tema]
   const ct = (hex: string) => corTema(hex, temaClaro)
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
 
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [contas, setContas] = useState<ContaRow[]>([])

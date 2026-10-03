@@ -34,7 +34,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Por isso as cores aqui são valores JS por tema (não CSS var), inclusive
 // PAINEL_BG/MODAL_BG.
 const PALETA = {
-  dark: { VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', PAINEL_BG3: 'rgba(10,20,36,0.6)', MODAL_BG: '#0a1628' },
+  dark: { VERMELHO: '#f87171', LARANJA: '#facc15', AMARELO: '#facc15', VERDE: '#34d399', AZULC: '#2ecc9b', ROXO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', PAINEL_BG3: 'rgba(10,20,36,0.6)', MODAL_BG: '#0a1628' },
   // Creme #f6f7c4, cinza #374151 e modal creme (igual ao CanvasBox dos
   // demais módulos) — valores finais do rollout Claro. PAINEL_BG2 é a
   // caixinha aninhada translúcida; PAINEL_BG3 acompanha o card creme.
@@ -82,7 +82,7 @@ export default function FiscalPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, ROXO, CINZA, TEXTO, TITULO, PAINEL_BG, PAINEL_BG2, PAINEL_BG3, MODAL_BG } = PALETA[tema]
 
   const COR_PRIORIDADE: Record<string, string> = { P0: VERMELHO, P1: LARANJA, P2: AMARELO, P3: CINZA }
@@ -221,13 +221,13 @@ export default function FiscalPage() {
           ].filter(Boolean)} />
 
           {mensagem && (
-            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${AZULC}15`, border: `1px solid ${AZULC}35`, color: AZULC }}>
+            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: `${AZULC}15`, border: `1px solid ${AZULC}35`, color: AZULC }}>
               {mensagem}
             </div>
           )}
 
           {!config?.atividade_fiscal && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: `${AMARELO}12`, border: `1px solid ${AMARELO}35` }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 axi-card-premium3d axi-card-faixa" style={{ background: `${AMARELO}12`, border: `1px solid ${AMARELO}35` }}>
               <div className="flex items-center gap-2">
                 <AlertTriangle size={16} style={{ color: AMARELO }} />
                 <p className="text-xs font-semibold" style={{ color: TEXTO }}>
@@ -412,7 +412,7 @@ export default function FiscalPage() {
                   {selecionada.descricao && <p className="text-xs mb-3" style={{ color: TEXTO }}>{selecionada.descricao}</p>}
 
                   {selecionada.causa && (
-                    <div className="rounded-lg p-3 mb-3" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
+                    <div className="rounded-lg p-3 mb-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
                       <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}</p>
                       <p className="text-xs" style={{ color: TEXTO }}>{selecionada.causa}</p>
                     </div>
@@ -436,7 +436,7 @@ export default function FiscalPage() {
                   </div>
 
                   {selecionada.evidencia && entradasEvidencia(selecionada.evidencia, L).length > 0 && (
-                    <div className="rounded-lg p-3 mb-4" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
+                    <div className="rounded-lg p-3 mb-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
                       <p className="text-[10px] font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: CINZA }}><Eye size={11} />{L('Evidência (dados e cálculo usados)', 'Evidence (data and calculation used)', 'Evidencia (datos y cálculo usados)')}</p>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                         {entradasEvidencia(selecionada.evidencia, L).map(([k, v]) => (

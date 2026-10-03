@@ -148,7 +148,7 @@ export default function UsoIaPage() {
             ))}
           </div>
 
-          <CanvasBox cor={ACENTO} fundo={CREME} premium3d={temaClaro}>
+          <CanvasBox cor={ACENTO} fundo={CREME} premium3d>
             {erro ? <p className="text-sm py-6 text-center" style={{ color: TEXTO }}>{t.erro}</p>
               : registros === null ? <p className="text-sm py-6 text-center" style={{ color: MUTED }}>{t.carregando}</p>
               : r.total === 0 ? <p className="text-sm py-6 text-center" style={{ color: TEXTO }}>{t.vazio}</p>
@@ -166,7 +166,7 @@ export default function UsoIaPage() {
 
           {!!registros?.length && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <CanvasBox cor={ACENTO} fundo={CREME} premium3d={temaClaro}>
+              <CanvasBox cor={ACENTO} fundo={CREME} premium3d>
                 <p className="text-sm font-black mb-3" style={{ color: TEXTO }}>{t.porNivel}</p>
                 <div className="space-y-2">
                   {([['rotina', t.rotina], ['analise', t.analise], ['estrategica', t.estrategica]] as const).map(([k, rotulo]) => (
@@ -181,7 +181,7 @@ export default function UsoIaPage() {
                   ))}
                 </div>
               </CanvasBox>
-              <CanvasBox cor={ACENTO} fundo={CREME} premium3d={temaClaro}>
+              <CanvasBox cor={ACENTO} fundo={CREME} premium3d>
                 <p className="text-sm font-black mb-3" style={{ color: TEXTO }}>{t.porTela}</p>
                 <div className="rounded-xl overflow-hidden" style={NESTED}>
                   <div className="flex justify-between px-3 py-2 text-[11px] font-bold" style={{ color: MUTED }}><span>{t.tela}</span><span>{t.qtd}</span></div>

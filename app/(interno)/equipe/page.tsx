@@ -663,7 +663,7 @@ export default function EquipePage() {
     return (
       <div data-theme={tema}>
       <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
-        <CanvasBox cor={AZUL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={AZUL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="text-center py-10">
             <Users size={32} className="mx-auto mb-3" style={{ color: AZUL }} />
             <p className="text-sm font-semibold" style={{ color: TEXTO }}>{podeConvidar ? t.convidarSub : t.somenteProprietario}</p>
@@ -696,7 +696,7 @@ export default function EquipePage() {
       <div className="space-y-4">
 
         {membros.some((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao') && (
-          <CanvasBox cor="#16a97d" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <CanvasBox cor="#16a97d" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
             <div className="flex items-center gap-2 mb-3">
               <motion.span animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity }}>
                 <AlertCircle size={18} style={{ color: '#16a97d' }} />
@@ -739,7 +739,7 @@ export default function EquipePage() {
         )}
 
         {pedidos.length > 0 && (
-          <CanvasBox cor={VERMELHO} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <CanvasBox cor={VERMELHO} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck size={18} style={{ color: VERMELHO }} />
               <p className="text-sm font-black" style={{ color: TEXTO }}>{t.pedidosTitulo} ({pedidos.length})</p>
@@ -789,7 +789,7 @@ export default function EquipePage() {
           )}
         </AnimatePresence>
 
-        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl" style={{ background: 'rgba(4,120,87,0.12)' }}>
@@ -815,7 +815,7 @@ export default function EquipePage() {
           </div>
         </CanvasBox>
 
-        <CanvasBox cor="#a78bfa" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor="#a78bfa" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           {membros.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-4xl mb-3">🧑‍🤝‍🧑</p>
@@ -900,7 +900,7 @@ export default function EquipePage() {
           )}
         </CanvasBox>
 
-        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="flex items-center gap-2 mb-1">
             <FileText size={16} style={{ color: temaClaro ? '#101b3d' : VERDE }} />
             <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.termosTitulo}</p>

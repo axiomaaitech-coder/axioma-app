@@ -28,7 +28,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // isso as cores aqui são valores JS por tema (não CSS var), inclusive
 // CAMPO_BG e MODAL_BG que dependem do tema pra não ficar sempre escuro.
 const PALETA = {
-  dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.9)', MODAL_BG: '#0a1628' },
+  dark: { TEAL: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', CAMPO_BG: 'rgba(10,22,40,0.9)', MODAL_BG: '#0a1628' },
   // TEAL não é cor da nossa paleta padrão — no Claro vira verde-menta
   // (nossa cor de destaque/CTA, tema-tokens.md §1.1). Creme #f6f7c4,
   // cinza #374151 e input branco seguem o mesmo padrão dos demais módulos.
@@ -48,7 +48,7 @@ function RazaoInner() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO, CAMPO_BG, MODAL_BG } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -146,7 +146,7 @@ function RazaoInner() {
       }
     >
       <div className="mb-5">
-        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={contaId}
@@ -167,7 +167,7 @@ function RazaoInner() {
       ) : !contaSelecionada ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Cadastre o plano de contas para ver o Razão.', 'Set up the chart of accounts to see the ledger.', 'Registre el plan de cuentas para ver el libro mayor.')}</p>
       ) : (
-        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
         {contaSelecionada && (
           <div className="mb-5">
             <LetreiroAxioma id="razao" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[

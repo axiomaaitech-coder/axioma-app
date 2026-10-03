@@ -15,7 +15,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Tela interna (fora do menu principal) — precisa optar no tema local
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
-  dark: { AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', PAINEL_BG: 'rgba(10,20,36,0.7)' },
+  dark: { AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#facc15', CINZA: '#a3b1c2', PAINEL_BG: 'rgba(10,20,36,0.7)' },
   xms: { AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', PAINEL_BG: '#f6f7c4' },
 } as const
 
@@ -26,7 +26,7 @@ export default function ContadorProjecaoPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, PAINEL_BG } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export default function ContadorProjecaoPage() {
       botaoExtra={
         <>
           <button onClick={() => router.push('/tesouraria/gemeo')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(46,204,155,0.14)', color: '#a78bfa', border: '1px solid rgba(46,204,155,0.4)' }}>
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' }}>
             {L('Simular uma mudança grande', 'Simulate a big change', 'Simular un cambio grande')}
           </button>
           <ThemeToggle />
@@ -70,7 +70,7 @@ export default function ContadorProjecaoPage() {
       ) : (
         <div className="space-y-5">
           {rompe && (
-            <div className="rounded-xl px-4 py-3 text-xs font-semibold" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}35`, color: VERMELHO }}>
+            <div className="rounded-xl px-4 py-3 text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}35`, color: VERMELHO }}>
               {L(`Sem mudar nada, o caixa rompe a reserva mínima em ${rompe.horizonteDias} dias.`, `Without any change, cash breaks the minimum reserve in ${rompe.horizonteDias} days.`, `Sin cambiar nada, la caja rompe la reserva mínima en ${rompe.horizonteDias} días.`)}
             </div>
           )}

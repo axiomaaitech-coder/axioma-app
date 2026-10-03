@@ -54,7 +54,7 @@ export default function TesourariaPage() {
   const CORES_SEVERIDADE: Record<string, string> = { normal: VERDE, atencao: AMARELO, risco: LARANJA, critico: VERMELHO }
   const CORES_SCORE: Record<string, string> = { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE }
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   // Inverte tingimento branco-sobre-escuro pra navy-sobre-claro (mesmo
   // "neutro()" já usado nos outros módulos do rollout Claro).
   const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(255,255,255,${alpha})`

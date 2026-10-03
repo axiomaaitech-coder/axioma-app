@@ -42,7 +42,7 @@ export default function TesourariaSimuladorPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, ROXO, VERDE, AMARELO, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, BORDA, BORDA_SUAVE, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)

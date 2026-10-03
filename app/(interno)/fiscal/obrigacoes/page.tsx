@@ -22,7 +22,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
   dark: {
-    VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', CINZA: '#5a7a9a', TEXTO: '#c8d8f0',
+    VERMELHO: '#f87171', LARANJA: '#facc15', AMARELO: '#facc15', VERDE: '#34d399', AZULC: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5',
     BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', THEAD_BG: 'rgba(255,255,255,0.03)', EMPTY_BG: 'rgba(10,20,36,0.5)',
   },
   xms: {
@@ -114,7 +114,7 @@ export default function FiscalObrigacoesPage() {
         <div className="space-y-4">
 
           {mensagem && (
-            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: mensagem.erro ? `${VERMELHO}15` : `${VERDE}15`, border: `1px solid ${mensagem.erro ? VERMELHO : VERDE}35`, color: mensagem.erro ? VERMELHO : VERDE }}>
+            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: mensagem.erro ? `${VERMELHO}15` : `${VERDE}15`, border: `1px solid ${mensagem.erro ? VERMELHO : VERDE}35`, color: mensagem.erro ? VERMELHO : VERDE }}>
               {mensagem.texto}
             </div>
           )}
@@ -130,7 +130,7 @@ export default function FiscalObrigacoesPage() {
           </div>
 
           {obrigacoes.length === 0 ? (
-            <div className="rounded-xl p-6 text-center" style={{ background: EMPTY_BG, border: `1px solid ${BORDA_SUAVE}` }}>
+            <div className="rounded-xl p-6 text-center axi-card-premium3d axi-card-faixa" style={{ background: EMPTY_BG, border: `1px solid ${BORDA_SUAVE}` }}>
               <p className="text-sm" style={{ color: CINZA }}>{L(`Nenhuma obrigação em aberto vencendo nos próximos ${janela} dias.`, `No open obligation due in the next ${janela} days.`, `Ninguna obligación abierta vence en los próximos ${janela} días.`)}</p>
             </div>
           ) : (

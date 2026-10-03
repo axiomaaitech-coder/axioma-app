@@ -50,7 +50,7 @@ export default function TesourariaGemeoPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, ROXO, VERDE, AMARELO, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, BORDA, BORDA_SUAVE, NESTED_BG } = PALETA[tema]
   const CORES_SCORE = coresScore(VERMELHO, AMARELO, AZULC, VERDE)
 

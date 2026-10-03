@@ -25,8 +25,8 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
   dark: {
-    AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
-    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)', FORM_BORDA: 'rgba(106,176,255,0.16)',
+    AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)', FORM_BORDA: 'rgba(46,204,155,0.16)',
   },
   xms: {
     AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
@@ -50,7 +50,7 @@ export default function FiscalConfigPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
@@ -155,7 +155,7 @@ export default function FiscalConfigPage() {
           )}
 
           {!config?.regime_tributario && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold" style={{ background: `${AMARELO}12`, color: AMARELO, border: `1px solid ${AMARELO}35` }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: `${AMARELO}12`, color: AMARELO, border: `1px solid ${AMARELO}35` }}>
               <AlertTriangle size={14} />
               {L('Regime tributário ainda não definido — defina primeiro em Empresa antes da atividade fiscal.', 'Tax regime not defined yet — set it under Company first, before the tax activity.', 'Régimen tributario aún no definido — defínalo primero en Empresa antes de la actividad fiscal.')}
             </div>
@@ -215,7 +215,7 @@ export default function FiscalConfigPage() {
                   <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Sem atividade definida (default)', 'Without activity defined (default)', 'Sin actividad definida (por defecto)')}</p>
                   <p className="text-lg font-black" style={{ color: CINZA }}>R$ {impostoComDefault.toFixed(2)}</p>
                 </div>
-                <div className="rounded-lg p-3" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}30` }}>
+                <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}30` }}>
                   <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: VERDE }}>{L('Com a atividade que você escolheu', 'With the activity you chose', 'Con la actividad que eligió')}</p>
                   <p className="text-lg font-black" style={{ color: VERDE }}>R$ {impostoComAtividade.toFixed(2)}</p>
                 </div>

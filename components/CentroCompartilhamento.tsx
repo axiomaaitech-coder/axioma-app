@@ -48,7 +48,7 @@ export function CentroCompartilhamento({
 
   return (
     <Modal open={aberto} onClose={onFechar}>
-      <CanvasBox cor={cor} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d={temaClaro}>
+      <CanvasBox cor={cor} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d>
         <div className="flex justify-between items-center mb-5">
           <div>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#101b3d" : "#7fe3c3" }}>AXIOMA AI.TECH</p>

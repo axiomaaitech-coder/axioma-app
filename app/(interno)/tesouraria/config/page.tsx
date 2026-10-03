@@ -36,7 +36,7 @@ export default function TesourariaConfigPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, VERDE, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BORDA, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)

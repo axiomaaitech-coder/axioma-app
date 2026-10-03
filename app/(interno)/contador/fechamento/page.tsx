@@ -15,7 +15,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Tela interna (fora do menu principal) — precisa optar no tema local
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
-  dark: { AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(10,20,36,0.7)', BORDA: 'rgba(255,255,255,0.08)' },
+  dark: { AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', BORDA: 'rgba(255,255,255,0.08)' },
   xms: { AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 
@@ -28,7 +28,7 @@ export default function ContadorFechamentoPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO, PAINEL_BG, BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)

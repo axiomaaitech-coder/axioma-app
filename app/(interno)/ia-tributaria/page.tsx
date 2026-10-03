@@ -141,7 +141,7 @@ function ControleAtividadeFiscal({ lang, atividadeFiscal, setAtividadeFiscal, is
   const { VERDE, AMARELO, CINZA, TEXTO, CAMPO_BG } = PALETA[tema];
   const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)";
   return (
-    <CanvasBox cor={atividadeFiscal ? VERDE : AMARELO} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d={temaClaro}>
+    <CanvasBox cor={atividadeFiscal ? VERDE : AMARELO} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d>
       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>
         {L("Atividade fiscal (Lucro Presumido)", "Tax activity (Presumed Profit)", "Actividad fiscal (Lucro Presumido)")}
       </p>

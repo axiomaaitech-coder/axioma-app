@@ -21,7 +21,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
 // Claro) usa as mesmas cores 600/700 já padronizadas no resto do Axioma.
 const PALETA = {
-  dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
+  dark: { TEAL: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff' },
   // TEAL não é cor da nossa paleta padrão — no Claro vira verde-menta
   // (nossa cor de destaque/CTA, tema-tokens.md §1.1). CINZA sobe pra
   // #374151, mesmo padrão já usado nos demais módulos.
@@ -114,7 +114,7 @@ export default function BalancetePage() {
       }
     >
       <div className="mb-5">
-        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
         </CanvasBox>
       </div>
@@ -124,7 +124,7 @@ export default function BalancetePage() {
       ) : grupos.length === 0 ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</p>
       ) : (
-        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="mb-5">
             <LetreiroAxioma id="balancete" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
               `${L('Débito', 'Debit', 'Débito')} R$ ${fBRL2(totalDebitoGeral)}`,
