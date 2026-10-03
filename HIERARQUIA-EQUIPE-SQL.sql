@@ -2,7 +2,7 @@
 -- AXIOMA — Hierarquia da Equipe (aprovada pelo Elias em 2026-10-02).
 -- Níveis: 1 Proprietário (dono da empresa) · 2 CEO · 3 Sócio · 4 Admin ·
 --         5 demais (Contador, Financeiro, Contábil, Consultor, Leitor, Caixa).
--- Regras:
+-- Regras (bloco 5: quem tem PRAZO sai de vez, sem restaurar):
 --   - Ninguém remove o Proprietário (ele também não "sai": só transfere).
 --   - CEO: sai sozinho, prazo vence, ou Proprietário + aval de 1 Sócio (ou
 --     Sócio + aval do Proprietário). Sem sócio, o Proprietário conclui com motivo.
@@ -410,3 +410,26 @@ DROP POLICY IF EXISTS empresa_usuarios_delete ON public.empresa_usuarios;
 
 SELECT 'bloco 4 ok' AS resultado,
   (select count(*) from pg_policies where tablename = 'empresa_usuarios') AS politicas_restantes;
+
+
+-- ============================== BLOCO 5 =====================================
+-- Regra do Elias (2026-10-02): quem entrou COM PRAZO (24h, 7, 30 dias...) e tem
+-- o acesso cortado sai DE VEZ — sem "Restaurar"; se precisar, novo convite.
+-- Suspensão de 7 dias (restaurável) fica só para quem não tem prazo.
+create or replace function public.equipe_suspender(p_empresa uuid, p_alvo uuid, p_por uuid, p_motivo text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from empresa_usuarios
+  where empresa_id = p_empresa and user_id = p_alvo and acesso_expira_em is not null;
+  update empresa_usuarios
+  set suspenso_em = now(), suspenso_por = p_por, suspenso_motivo = p_motivo
+  where empresa_id = p_empresa and user_id = p_alvo and suspenso_em is null;
+  update equipe_pedidos set situacao = 'cancelado', decidido_em = now()
+  where empresa_id = p_empresa and alvo_user_id = p_alvo and situacao = 'aberto';
+$$;
+revoke all on function public.equipe_suspender(uuid, uuid, uuid, text) from public;
+
+SELECT 'bloco 5 ok' AS resultado;
