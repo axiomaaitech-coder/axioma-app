@@ -189,7 +189,7 @@ export default function FiscalPage() {
       botaoExtra={
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
-          <button onClick={() => router.push('/fiscal/obrigacoes')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
+          <button onClick={() => router.push('/fiscal/obrigacoes')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
             style={{ background: `${AZULC}18`, color: AZULC, border: `1px solid ${AZULC}40` }}>
             <CalendarClock size={15} />{L('Calendário', 'Calendar', 'Calendario')}
           </button>
@@ -453,17 +453,17 @@ export default function FiscalPage() {
                   {selecionada.status === 'aberto' ? (
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => aplicarAcao('resolvido')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${VERDE}20`, color: VERDE, border: `1px solid ${VERDE}40` }}>
                         <CheckCircle2 size={14} />{L('Marcar como resolvida', 'Mark as resolved', 'Marcar como resuelta')}
                       </button>
                       <button onClick={() => aplicarAcao('revisado')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
                         <Eye size={14} />{L('Marcar como revisada', 'Mark as reviewed', 'Marcar como revisada')}
                       </button>
                       <button onClick={() => aplicarAcao('ignorado')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${CINZA}18`, color: CINZA, border: `1px solid ${CINZA}40` }}>
                         <XCircle size={14} />{L('Ignorar', 'Ignore', 'Ignorar')}
                       </button>

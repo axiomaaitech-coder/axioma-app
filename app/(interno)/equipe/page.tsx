@@ -726,7 +726,7 @@ export default function EquipePage() {
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}
                         onClick={() => decidir(m, false)} disabled={decidindoId === m.id}
-                        className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60"
+                        className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
                         {t.recusar}
                       </motion.button>
@@ -761,12 +761,12 @@ export default function EquipePage() {
                         <button onClick={() => decidirPedido(p, true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-1.5" style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
                           <CheckCircle size={15} />{t.aprovar}
                         </button>
-                        <button onClick={() => decidirPedido(p, false)} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
+                        <button onClick={() => decidirPedido(p, false)} className="px-4 py-2.5 rounded-xl text-sm font-bold axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
                           {t.recusar}
                         </button>
                       </>)}
                       {p.pedido_por === userId && venceu && (
-                        <button onClick={() => concluirPedido(p)} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
+                        <button onClick={() => concluirPedido(p)} className="px-4 py-2.5 rounded-xl text-sm font-bold axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
                           {t.concluirSemAval}
                         </button>
                       )}

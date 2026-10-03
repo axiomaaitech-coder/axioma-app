@@ -871,11 +871,11 @@ export default function Inadimplencia() {
             </p>
             <div className="flex items-center gap-2">
               {etapasEscalonamento.length === 0 && (
-                <button onClick={usarEscalonamentoPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${PLATINA}15`, color: PLATINA, border: `1px solid ${PLATINA}30` }}>
+                <button onClick={usarEscalonamentoPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${PLATINA}15`, color: PLATINA, border: `1px solid ${PLATINA}30` }}>
                   {L('Usar escalonamento padrão', 'Use default ladder', 'Usar escalonamiento predeterminado')}
                 </button>
               )}
-              <button onClick={() => abrirNovaEtapa()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
+              <button onClick={() => abrirNovaEtapa()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
                 <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
               </button>
             </div>
@@ -1065,7 +1065,7 @@ export default function Inadimplencia() {
                 </div>
               </div>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarProvisaoDRE} disabled={salvandoProvisao}
-                className="mt-3 px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
+                className="mt-3 px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                 style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
                 {salvandoProvisao ? '...' : provisaoSalva ? L('Provisão salva na DRE ✓', 'Provision saved to DRE ✓', 'Provisión guardada en la DRE ✓') : L('Salvar provisão na DRE do período', 'Save provision to period DRE', 'Guardar provisión en la DRE del período')}
               </motion.button>

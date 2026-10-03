@@ -293,7 +293,7 @@ export default function CustosFixos() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(46,204,155,0.15)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>

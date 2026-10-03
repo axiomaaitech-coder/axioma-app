@@ -238,7 +238,7 @@ export default function TesourariaSimuladorPage() {
                     placeholder={L('Nome do cenário', 'Scenario name', 'Nombre del escenario')}
                     className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                   <button onClick={handleSalvar} disabled={salvando}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                     style={{ background: temaClaro ? 'rgba(46,204,155,0.2)' : 'rgba(46,204,155,0.2)', color: ROXO, border: `1px solid ${ROXO}50` }}>
                     <Save size={14} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
                   </button>

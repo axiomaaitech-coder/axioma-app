@@ -688,7 +688,7 @@ export default function OpenFinancePage() {
               {temBanco && (
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => sincronizar()} disabled={sincronizando}
-                  className="px-4 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
+                  className="px-4 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2 axi-card-premium3d axi-card-faixa"
                   style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.4)', color: ct(VERDE), opacity: sincronizando ? 0.7 : 1 }}>
                   <RefreshCw size={16} className={sincronizando ? 'animate-spin' : ''} />
                   {sincronizando ? t.sincronizando : t.sincronizar}
@@ -770,7 +770,7 @@ export default function OpenFinancePage() {
                     <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: ct(VERDE), border: '1px solid rgba(52,211,153,0.3)' }}>{c.status}</span>
                     {confirmandoRemocaoId === c.item_id ? (
                       <>
-                        <button onClick={() => desconectarBanco(c.item_id)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: ct(VERMELHO), border: `1px solid ${ct(VERMELHO)}50` }}>{t.confirmarDesconectar}</button>
+                        <button onClick={() => desconectarBanco(c.item_id)} className="text-xs font-bold px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.2)', color: ct(VERMELHO), border: `1px solid ${ct(VERMELHO)}50` }}>{t.confirmarDesconectar}</button>
                         <button onClick={() => setConfirmandoRemocaoId(null)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: temaClaro ? 'rgba(16,27,61,0.06)' : 'rgba(255,255,255,0.05)', color: ct('#5a7a9a') }}>{t.cancelar}</button>
                       </>
                     ) : (
@@ -796,7 +796,7 @@ export default function OpenFinancePage() {
                 const ativa = abaAtiva === aba
                 return (
                   <button key={aba} onClick={() => setAbaAtiva(aba)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap flex-shrink-0"
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap flex-shrink-0 axi-card-premium3d axi-card-faixa"
                     style={{ background: ativa ? `${cor}22` : 'transparent', border: `1px solid ${ativa ? cor : 'transparent'}`, color: ativa ? cor : ct('#5a7a9a') }}>
                     {label} ({contagem})
                   </button>
@@ -944,7 +944,7 @@ function LinhaTransacao({
             </div>
           ) : (
             <button onClick={() => setExpandidoCandidatosId(tx.id)}
-              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', color: ct(AMBAR) }}>
+              className="text-xs font-bold px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', color: ct(AMBAR) }}>
               {t.escolherLancamento}
             </button>
           )}
@@ -974,7 +974,7 @@ function LinhaTransacao({
           )}
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => onCriarLancamento(tx)} disabled={criando}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold axi-card-premium3d axi-card-faixa"
             style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.35)', color: ct(VERDE), opacity: criando ? 0.7 : 1 }}>
             {criando ? <RefreshCw size={12} className="animate-spin" /> : <ArrowRight size={12} />}
             {criando ? t.criando : t.criarLancamento}

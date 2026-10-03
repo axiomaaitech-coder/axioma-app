@@ -1668,7 +1668,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
           <button
             key={a.key}
             onClick={() => setAba(a.key as any)}
-            className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
+            className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all axi-card-premium3d axi-card-faixa"
             style={{
               background: aba === a.key ? PILL_ATIVA : PILL_INATIVO,
               color: aba === a.key ? "#fff" : PILL_INATIVO_TEXTO,
@@ -1864,7 +1864,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 )}
                 <button onClick={cancelarUpload}
                   className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                   {tt.novoImporte}
                 </button>
               </div>
@@ -1987,7 +1987,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 onClick={salvarEdicao}
                 disabled={salvandoEdicao}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}
               >
                 {salvandoEdicao ? "Salvando..." : "✓ Salvar"}
               </button>
@@ -2167,7 +2167,7 @@ function PreviewBlock(props: any) {
               </button>
               {Object.keys(sugestoesIA).length > 0 && pendentesSupervisao > 0 && (
                 <button type="button" onClick={aceitarTodasSugestoesIA}
-                  className="px-3 py-2 rounded-lg text-xs font-bold"
+                  className="px-3 py-2 rounded-lg text-xs font-bold axi-card-premium3d axi-card-faixa"
                   style={{ background: temaClaro ? "#ffffff" : "transparent", color: temaClaro ? "#0f6b51" : "#6ee7b7", border: "1px solid #16a97d" }}>
                   ✅ {tt.ajudanteAceitarTodas}
                 </button>
@@ -2304,7 +2304,7 @@ function PreviewBlock(props: any) {
             <div className="flex flex-wrap gap-2">
               {templates.map((tpl: any) => (
                 <button key={tpl.id} onClick={() => aplicarTemplate(tpl)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold axi-card-premium3d axi-card-faixa"
                   style={{ background: "rgba(46,204,155,0.12)", color: ct("#2ecc9b"), border: "1px solid rgba(46,204,155,0.25)" }}>
                   📋 {tpl.nome}
                 </button>
@@ -2691,7 +2691,7 @@ function PreviewBlock(props: any) {
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={cancelarUpload}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold"
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold axi-card-premium3d axi-card-faixa"
                 style={{ background: "#ffffff", color: "#0f6b51", border: "1px solid #16a97d" }}>
                 {tt.cancelar}
               </button>
@@ -3040,7 +3040,7 @@ function HistoricoBlock(props: any) {
                   )}
                   {podeExcluirRegistro && (
                     <button onClick={() => excluirRegistro(item)} disabled={excluindoRegistro === item.id}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto axi-card-premium3d axi-card-faixa"
                       style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.4)", color: ct("#f87171") }}>
                       {excluindoRegistro === item.id ? "⏳ Excluindo..." : "🗑️ Excluir registro"}
                     </button>

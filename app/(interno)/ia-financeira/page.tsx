@@ -533,7 +533,7 @@ export default function IAFinanceiraPage() {
           {/* Botão share + Abas */}
           <button onClick={() => setShareAberto(true)}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
             {tt.compartilhar}
           </button>
 
@@ -660,7 +660,7 @@ export default function IAFinanceiraPage() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviarMensagem(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#2ecc9b") }}>
+                    className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#2ecc9b") }}>
                     {s}
                   </button>
                 ))}
@@ -671,7 +671,7 @@ export default function IAFinanceiraPage() {
                   placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={inputStyle} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50"
-                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                   ➤
                 </button>
               </div>

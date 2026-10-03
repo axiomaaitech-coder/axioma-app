@@ -207,18 +207,18 @@ export default function TesourariaPage() {
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/tesouraria/simulador')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
             style={{ background: 'rgba(46,204,155,0.14)', color: ROXO, border: '1px solid rgba(46,204,155,0.4)' }}>
             <SlidersHorizontal size={16} />{L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
           </button>
           <button onClick={() => router.push('/tesouraria/gemeo')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
             style={{ background: 'rgba(52,211,153,0.14)', color: VERDE, border: `1px solid ${VERDE}40` }}>
             <Building2 size={16} />{L('Gêmeo Financeiro', 'Digital Twin', 'Gemelo Financiero')}
           </button>
           {podeConfigurar && (
             <button onClick={() => router.push('/tesouraria/config')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
               style={{ background: 'rgba(163,177,194,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
               <Settings size={16} />{L('Configurar', 'Settings', 'Configurar')}
             </button>
@@ -413,7 +413,7 @@ export default function TesourariaPage() {
                 disabled={carregandoRespostaZia}
                 placeholder={L('Ex.: como está meu caixa?', 'E.g.: how is my cash?', 'Ej.: ¿cómo está mi caja?')}
                 className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: CAMPO_BG, border: '1px solid rgba(46,204,155,0.2)', color: TEXTO }} />
-              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(46,204,155,0.2)', color: ROXO, border: '1px solid rgba(46,204,155,0.5)' }}>
+              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.2)', color: ROXO, border: '1px solid rgba(46,204,155,0.5)' }}>
                 <Send size={16} />
               </button>
             </div>

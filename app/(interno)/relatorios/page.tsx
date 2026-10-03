@@ -496,7 +496,7 @@ export default function Relatorios() {
           </div>
           <button onClick={() => setShareModalAberto(true)}
             className="px-4 py-2 rounded-lg text-sm font-semibold sm:ml-auto"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
             📤 {tt.compartilhar}
           </button>
         </div>

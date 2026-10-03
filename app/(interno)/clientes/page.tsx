@@ -878,7 +878,7 @@ export default function ClientesPage() {
           {[{ key: "carteira", label: tt.abaCarteira }, { key: "cliente", label: tt.abaCliente }, { key: "cobrancas", label: tt.abaCobrancas }].map((a) => (
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBuscaCarteira(""); setBuscaContas(""); }}
-              className="px-4 py-2 rounded-xl text-sm font-semibold"
+              className="px-4 py-2 rounded-xl text-sm font-semibold axi-card-premium3d axi-card-faixa"
               style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#2ecc9b") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(46,204,155,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)")}` }}>
               {a.label}
             </motion.button>
@@ -1121,7 +1121,7 @@ export default function ClientesPage() {
                             <button onClick={() => abrirDigitalTwin(s.cliente.id)} className="w-full text-left">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
-                                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                                   {s.cliente.nome.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1159,7 +1159,7 @@ export default function ClientesPage() {
                   <div className="p-8 text-center">
                     <p style={{ color: ct("#5a7a9a") }}>{tt.selecioneCliente}</p>
                     <motion.button whileHover={{ scale: 1.02 }} onClick={() => setAba("carteira")}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2"
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2 axi-card-premium3d axi-card-faixa"
                       style={{ background: "rgba(46,204,155,0.12)", color: ct("#2ecc9b"), border: `1px solid ${ct(CORES.cyan)}30` }}>
                       <ChevronLeft size={14} /> {tt.voltarCarteira}
                     </motion.button>
@@ -1172,7 +1172,7 @@ export default function ClientesPage() {
                     <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={() => setAba("carteira")} style={{ color: ct("#5a7a9a") }}><ChevronLeft size={20} /></button>
                       <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                         {clienteAtual.s.cliente.nome.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1470,7 +1470,7 @@ export default function ClientesPage() {
                       className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0 axi-card-premium3d axi-card-faixa"
                       style={{ background: "rgba(46,204,155,0.1)", border: `1px solid ${ct(CORES.cyan)}30` }}>
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                         {(clientes.find(c => c.id === clienteSelecionadoId)?.nome || "?").charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm font-bold" style={{ color: ct("#2ecc9b") }}>{clientes.find(c => c.id === clienteSelecionadoId)?.nome}</span>
@@ -1506,14 +1506,14 @@ export default function ClientesPage() {
                             {conta.status === "pendente" && (
                               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                 onClick={() => marcarRecebido(conta.id)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold axi-card-premium3d axi-card-faixa"
                                 style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), border: "1px solid rgba(52,211,153,0.3)" }}>
                                 {cl.marcarRecebido}
                               </motion.button>
                             )}
                             {temDetalhe && (
                               <button onClick={() => setCobrancaExpandidaId(expandida ? null : conta.id)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold axi-card-premium3d axi-card-faixa"
                                 style={{ background: "rgba(148,163,184,0.12)", color: ct("#94a3b8"), border: "1px solid rgba(148,163,184,0.25)" }}>
                                 {expandida ? tt.ocultarDetalhes : tt.verDetalhes}
                               </button>
@@ -1702,10 +1702,10 @@ export default function ClientesPage() {
                     )}
                     {etapaCadastro < ETAPAS_CADASTRO.length - 1 ? (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setEtapaCadastro(etapaCadastro + 1)}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>{tt.proximo}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>{tt.proximo}</motion.button>
                     ) : (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCliente} disabled={salvandoCliente}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
                     )}
                   </div>
                 </CanvasBox>
@@ -1824,7 +1824,7 @@ export default function ClientesPage() {
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                         {salvandoConta ? "..." : cl.salvarCobranca}
                       </motion.button>
                     </div>

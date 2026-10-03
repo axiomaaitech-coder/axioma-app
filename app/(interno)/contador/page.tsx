@@ -168,7 +168,7 @@ export default function ContadorPage() {
       botaoExtra={
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
-          <button onClick={() => router.push('/contador/explicar')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
+          <button onClick={() => router.push('/contador/explicar')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
             style={{ background: 'rgba(52,211,153,0.14)', color: VERDE, border: `1px solid ${VERDE}40` }}>
             <BookOpenText size={15} />{L('Explique minha empresa', 'Explain my company', 'Explique mi empresa')}
           </button>
@@ -176,7 +176,7 @@ export default function ContadorPage() {
             style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: `${ROXO}18`, color: ROXO, border: `1px solid ${ROXO}40` }}>
             <TrendingDown size={15} />{L('Se eu fizer nada', 'If I do nothing', 'Si no hago nada')}
           </button>
-          <button onClick={() => router.push('/contador/fechamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
+          <button onClick={() => router.push('/contador/fechamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
             style={{ background: `${AZULC}18`, color: AZULC, border: `1px solid ${AZULC}40` }}>
             <ClipboardCheck size={15} />{L('Fechamento', 'Close', 'Cierre')}
           </button>
@@ -369,7 +369,7 @@ export default function ContadorPage() {
                       editando a descoberta, sempre no Lançamento Manual (estorna + relança). */}
                   {(selecionada.tipo === 'classificacao_suspeita' || selecionada.tipo === 'divergencia' || selecionada.tipo === 'inconsistencia') && (
                     <button onClick={() => router.push('/contador/lancamento')}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold mb-2"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold mb-2 axi-card-premium3d axi-card-faixa"
                       style={{ background: `${AMARELO}20`, color: AMARELO, border: `1px solid ${AMARELO}40` }}>
                       <BookText size={14} />{L('Corrigir no Lançamento Manual', 'Fix in Manual Entry', 'Corregir en Asiento Manual')}
                     </button>
@@ -377,17 +377,17 @@ export default function ContadorPage() {
                   {selecionada.status === 'aberto' ? (
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => aplicarAcao('resolvido')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${VERDE}20`, color: VERDE, border: `1px solid ${VERDE}40` }}>
                         <CheckCircle2 size={14} />{L('Marcar como resolvida', 'Mark as resolved', 'Marcar como resuelta')}
                       </button>
                       <button onClick={() => aplicarAcao('revisado')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
                         <Eye size={14} />{L('Marcar como revisada', 'Mark as reviewed', 'Marcar como revisada')}
                       </button>
                       <button onClick={() => aplicarAcao('ignorado')} disabled={processandoAcao}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                         style={{ background: `${CINZA}18`, color: CINZA, border: `1px solid ${CINZA}40` }}>
                         <XCircle size={14} />{L('Ignorar', 'Ignore', 'Ignorar')}
                       </button>

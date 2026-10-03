@@ -2224,7 +2224,7 @@ export default function Fornecedores() {
           ].map((a) => (
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBusca(""); setBuscaContas(""); }}
-              className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
+              className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 axi-card-premium3d axi-card-faixa"
               style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(250,204,21,0.2)") : PAINEL_BG, color: aba === a.key ? AMBAR : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(250,204,21,0.4)") : CAMPO_BORDA2}` }}>
               <a.Icon size={15} /> {a.label}
             </motion.button>
@@ -2382,7 +2382,7 @@ export default function Fornecedores() {
                           </span>
                           {c.status !== "pago" && (
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => quitarConta(c)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 axi-card-premium3d axi-card-faixa"
                               style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), border: "1px solid rgba(52,211,153,0.3)" }}>
                               <CheckCircle2 size={13} /> {idioma === "pt" ? "Quitar" : "Settle"}
                             </motion.button>
@@ -2899,7 +2899,7 @@ export default function Fornecedores() {
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                         {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : "Save Bill")}
                       </motion.button>
                     </div>

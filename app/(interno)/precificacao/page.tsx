@@ -687,7 +687,7 @@ export default function Precificacao() {
                         ))}
                       </div>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={aplicarPreco}
-                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
+                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                         {cx.prcAplicarPreco}
                       </motion.button>
                     </>
@@ -733,7 +733,7 @@ export default function Precificacao() {
                     <input placeholder={cx.prcConcorrenteNomeLabel} value={novoConcorrenteNome} onChange={(e) => setNovoConcorrenteNome(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} onBlur={(e) => setNovoConcorrentePreco(precoBlur(e.target.value))} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input placeholder={cx.prcConcorrentePosicionamentoLabel} value={novoConcorrentePosicionamento} onChange={(e) => setNovoConcorrentePosicionamento(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                       <Plus size={16} /> {cx.prcAdicionarConcorrente}
                     </motion.button>
                   </div>
@@ -768,13 +768,13 @@ export default function Precificacao() {
                   ["explosaoDemanda", cx.prcCenarioExplosaoDemanda], ["quedaVendas", cx.prcCenarioQuedaVendas], ["mudancaFornecedores", cx.prcCenarioMudancaFornecedores],
                 ] as [keyof typeof WAR_PRESETS, string][]).map(([k, l]) => (
                   <motion.button key={k} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPresetGuerra(k)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold" style={{ background: `${COR_PRC}12`, border: `1px solid ${COR_PRC}35`, color: COR_PRC_C }}>
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${COR_PRC}12`, border: `1px solid ${COR_PRC}35`, color: COR_PRC_C }}>
                     {l}
                   </motion.button>
                 ))}
               </div>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarWarRoom}
-                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
+                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
                 {cx.simSimular}
               </motion.button>
               {warResultado && (

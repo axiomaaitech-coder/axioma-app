@@ -717,7 +717,7 @@ export default function CentrosCustoPage() {
   const botaoLancamento = (
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
       onClick={abrirNovoLancamento}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
       style={{ background: temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)", color: ct("#34d399"), border: temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)" }}>
       + {cc.novoLancamento}
     </motion.button>
@@ -726,7 +726,7 @@ export default function CentrosCustoPage() {
   const botaoRateio = (
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
       onClick={abrirRateio}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"
       style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct("#2ecc9b"), border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)" }}>
       <Split size={15} /> {L.rateio}
     </motion.button>

@@ -1263,7 +1263,7 @@ export default function EmpresaPage() {
             <p className="text-sm font-semibold" style={{ color: TEXTO }}>{tt.empresaNaoEncontrada}</p>
             <p className="text-xs mt-1" style={{ color: CINZA }}>{tt.empresaNaoEncontradaSub}</p>
             <button onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
+              className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold axi-card-premium3d axi-card-faixa"
               style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: AZULC, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)"}` }}>
               {tt.recarregarPagina}
             </button>
@@ -1319,7 +1319,7 @@ export default function EmpresaPage() {
 
           <button onClick={() => setShareModalAberto(true)}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
             {tt.compartilharCartao}
           </button>
 

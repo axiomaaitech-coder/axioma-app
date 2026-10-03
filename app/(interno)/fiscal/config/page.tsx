@@ -183,7 +183,7 @@ export default function FiscalConfigPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
               {ATIVIDADES.map((a) => (
                 <button key={a.key} disabled={!podeEditar} onClick={() => setAtividade(a.key)}
-                  className="px-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50 axi-card-premium3d axi-card-faixa"
                   style={{
                     background: atividade === a.key ? `${AZULC}25` : BTN_BG,
                     color: atividade === a.key ? AZULC : TEXTO,

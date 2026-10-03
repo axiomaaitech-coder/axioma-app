@@ -497,7 +497,7 @@ export default function NexusPage() {
               <button
                 onClick={() => carregarEventos(paginaEventos + 1)}
                 disabled={carregandoEventos}
-                className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg focus-visible:outline focus-visible:outline-2"
+                className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 axi-card-premium3d axi-card-faixa"
                 style={{ ...(temaClaro ? VERDE_SOLIDO : { color: CIANO, background: `${CIANO}14`, border: `1px solid ${CIANO}40` }), opacity: carregandoEventos ? 0.6 : 1 }}
               >
                 {carregandoEventos ? L('Carregando...', 'Loading...', 'Cargando...') : L('Ver eventos anteriores', 'Show earlier events', 'Ver eventos anteriores')}

@@ -188,7 +188,7 @@ export default function TesourariaGemeoPage() {
             <h3 className="text-sm font-bold mb-3" style={{ color: TITULO }}>{L('Aplicar uma mudança grande', 'Apply one big change', 'Aplicar un cambio grande')}</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               <button onClick={() => setMudanca('nenhuma')}
-                className="px-3 py-2 rounded-xl text-xs font-semibold"
+                className="px-3 py-2 rounded-xl text-xs font-semibold axi-card-premium3d axi-card-faixa"
                 style={{ background: mudanca === 'nenhuma' ? `${AZULC}25` : BTN_BG, color: mudanca === 'nenhuma' ? AZULC : CINZA, border: `1px solid ${mudanca === 'nenhuma' ? AZULC : BORDA}` }}>
                 {L('Nenhuma (como está)', 'None (as is)', 'Ninguno (como está)')}
               </button>
@@ -196,7 +196,7 @@ export default function TesourariaGemeoPage() {
                 const Icone = m.icone
                 return (
                   <button key={m.chave} onClick={() => setMudanca(m.chave)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold axi-card-premium3d axi-card-faixa"
                     style={{ background: mudanca === m.chave ? `${ROXO}25` : BTN_BG, color: mudanca === m.chave ? ROXO : CINZA, border: `1px solid ${mudanca === m.chave ? ROXO : BORDA}` }}>
                     <Icone size={13} />{m.label}
                   </button>

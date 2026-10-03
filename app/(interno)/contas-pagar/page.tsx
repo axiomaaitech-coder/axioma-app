@@ -2733,11 +2733,11 @@ export default function ContasPagarPage() {
                           placeholder={L("Motivo (obrigatório se rejeitar)", "Reason (required to reject)", "Motivo (obligatorio si rechaza)")}
                           className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         <button onClick={() => decidir(a.id, "aprovada")} disabled={decidindoId === a.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                           <CheckCircle2 size={13} />{L("Aprovar", "Approve", "Aprobar")}
                         </button>
                         <button onClick={() => decidir(a.id, "rejeitada")} disabled={decidindoId === a.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(255,90,107,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(255,90,107,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
                           <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
                         </button>
                       </div>
@@ -2870,18 +2870,18 @@ export default function ContasPagarPage() {
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       {podeEditar && (
                         <button onClick={() => reconferirNota(m)} disabled={reconferindoId === m.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)") }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)") }}>
                           <RotateCcw size={13} />{reconferindoId === m.id ? L("Conferindo…", "Checking…", "Conciliando…") : L("Reconferir", "Re-check", "Reconciliar")}
                         </button>
                       )}
                       {podeEditar && m.status === "excecao" && (
                         <>
                           <button onClick={() => decidirMatch(m, "aprovado")} disabled={decidindoMatchId === m.id}
-                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                             <CheckCircle2 size={13} />{L("Aprovar mesmo assim", "Approve anyway", "Aprobar de todos modos")}
                           </button>
                           <button onClick={() => decidirMatch(m, "rejeitado")} disabled={decidindoMatchId === m.id}
-                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(255,90,107,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(255,90,107,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
                             <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
                           </button>
                         </>
@@ -3576,7 +3576,7 @@ export default function ContasPagarPage() {
                             <p className="text-xs" style={{ color: CINZA }}>{fmt(cf.valor_mensal)} · {L("dia", "day", "día")} {cf.dia_vencimento}</p>
                           </div>
                           <button onClick={() => gerarDeCustoFixo(cf)} disabled={gerando === cf.id}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 disabled:opacity-60"
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 disabled:opacity-60 axi-card-premium3d axi-card-faixa"
                             style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(46,204,155,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(16,27,61,0.3)" : "1px solid rgba(46,204,155,0.3)") }}>
                             {gerando === cf.id ? "..." : L("Gerar", "Generate", "Generar")}
                           </button>
