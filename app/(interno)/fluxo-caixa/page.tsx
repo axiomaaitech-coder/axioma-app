@@ -567,7 +567,7 @@ export default function FluxoCaixa() {
             )}
 
             {/* MODAL ÚNICO */}
-            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
@@ -598,7 +598,7 @@ export default function FluxoCaixa() {
 
             {/* Insights */}
             {insights.length > 0 && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(46,204,155,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
