@@ -1875,27 +1875,27 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "inteligencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "aprovacoes" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "conferencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "conferencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#2ecc9b", color: "#04241a", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" })}>
+          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#ffffff", border: "1px solid #2ecc9b" }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid rgba(46,204,155,0.35)" })}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
