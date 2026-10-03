@@ -600,7 +600,7 @@ export default function EquipePage() {
                   opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
                   onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
                 {meuPapelConvite && precisaAutorizacao && (
-                  <div className="rounded-lg p-2.5 space-y-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(245,158,11,0.06)', border: `1px solid ${AMBAR}66` }}>
+                  <div className="rounded-lg p-2.5 space-y-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(250,204,21,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
                     <p className="text-[11px]" style={{ color: MUTED }}>{t.autAviso}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

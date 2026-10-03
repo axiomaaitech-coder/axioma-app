@@ -38,7 +38,7 @@ function Card({ emoji, rotulo, cores, children }: { emoji: string; rotulo: strin
 }
 
 const corGravidade = (g: string, claro: boolean) =>
-  g === 'alta' ? (claro ? '#dc3545' : '#f87171') : g === 'media' ? (claro ? '#b45309' : '#fbbf24') : (claro ? '#16a97d' : '#34d399')
+  g === 'alta' ? (claro ? '#dc3545' : '#f87171') : g === 'media' ? (claro ? '#b45309' : '#facc15') : (claro ? '#16a97d' : '#34d399')
 
 function Lista({ itens, cores }: { itens: { titulo: string; texto: string; gravidade: string }[]; cores: Cores }) {
   return (
@@ -82,7 +82,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
   const hoje = new Date().toISOString().slice(0, 10)
   const dataFmt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
   const chipConfianca = (c: number): CSSProperties => {
-    const cor = c >= 60 ? (temaClaro ? '#16a97d' : '#34d399') : c >= 40 ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#374151' : '#8aa4c2')
+    const cor = c >= 60 ? (temaClaro ? '#16a97d' : '#34d399') : c >= 40 ? (temaClaro ? '#b45309' : '#facc15') : (temaClaro ? '#374151' : '#8aa4c2')
     // Claro: sempre azul-marinho com letra branca (padrão pedido pelo Elias); Escuro mantém a cor por faixa.
     return temaClaro ? { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' } : { color: cor, border: `1px solid ${cor}80` }
   }

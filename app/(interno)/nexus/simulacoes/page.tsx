@@ -346,7 +346,7 @@ export default function NexusSimulacoesPage() {
                   })}
                 </div>
                 {avisosSemEfeito.length > 0 && (
-                  <div className="rounded-xl p-3 mb-3" style={{ ...aninhada, borderLeft: `3px solid ${temaClaro ? '#b45309' : '#fbbf24'}` }}>
+                  <div className="rounded-xl p-3 mb-3" style={{ ...aninhada, borderLeft: `3px solid ${temaClaro ? '#b45309' : '#facc15'}` }}>
                     <p className="text-xs font-bold mb-1" style={{ color: TITULO }}>{L('Por que alguma parte não mudou?', 'Why did some part not change?', '¿Por qué alguna parte no cambió?')}</p>
                     <ul className="list-disc pl-4 space-y-0.5">{avisosSemEfeito.map((a) => <li key={a} className="text-xs" style={{ color: TEXTO }}>{a}</li>)}</ul>
                   </div>
@@ -395,7 +395,7 @@ export default function NexusSimulacoesPage() {
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <p className="text-sm font-bold leading-snug line-clamp-2" style={{ color: TITULO }}>{s.nome}</p>
                           <button onClick={() => alternarFavorita(s)} aria-label={L('Favoritar', 'Favorite', 'Favorito')} className={icone}>
-                            <Star size={15} fill={s.favorita ? (temaClaro ? '#f5a623' : '#fbbf24') : 'none'} style={{ color: s.favorita ? (temaClaro ? '#f5a623' : '#fbbf24') : CINZA }} />
+                            <Star size={15} fill={s.favorita ? (temaClaro ? '#f5a623' : '#facc15') : 'none'} style={{ color: s.favorita ? (temaClaro ? '#f5a623' : '#facc15') : CINZA }} />
                           </button>
                         </div>
                         <p className="text-xs font-bold" style={{ color: Math.round(d) === 0 ? CINZA : d > 0 ? POS : NEG }}>

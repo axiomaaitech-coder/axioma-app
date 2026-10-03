@@ -1843,7 +1843,7 @@ export default function ContasPagarPage() {
       }
     >
       {!podeEditar && papel && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(245,158,11,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(245,158,11,0.2)"), color: AMBAR }}>
+        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(250,204,21,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(250,204,21,0.2)"), color: AMBAR }}>
           <AlertTriangle size={14} />
           {L("Seu perfil tem acesso somente leitura a Contas a Pagar.", "Your profile has read-only access to Accounts Payable.", "Su perfil tiene acceso solo lectura a Cuentas por Pagar.")}
         </div>
@@ -1931,7 +1931,7 @@ export default function ContasPagarPage() {
 
           {/* Letreiro */}
           {marquee.length > 0 && (
-            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(245,158,11,0.12), rgba(46,204,155,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(245,158,11,0.4)" }}>
+            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(250,204,21,0.12), rgba(46,204,155,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(250,204,21,0.4)" }}>
               <div className="marquee-ap py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
@@ -2245,7 +2245,7 @@ export default function ContasPagarPage() {
             ) : (
               <div className="space-y-2">
                 {padroesRecorrentes.map((p) => (
-                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
+                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2649,7 +2649,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
@@ -2681,7 +2681,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>

@@ -67,8 +67,8 @@ function useCampoEstilos() {
   const { tema } = useThemeAxioma();
   const claro = tema === "xms";
   return {
-    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
-    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
+    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(250,204,21,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
+    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(250,204,21,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
     labelStyle: { color: claro ? "#2ecc9b" : "#d4a017" },
     erroStyle: { color: claro ? "#ff5a6b" : "#f87171" },
   };
@@ -718,7 +718,7 @@ export default function Fornecedores() {
   // Identidade visual do módulo — âmbar/bronze no Escuro. Âmbar não é cor
   // de marca da paleta padrão do Claro (tema-tokens.md §1.1) - vira
   // verde-menta oficial, igual toda outra "identidade" decorativa do app.
-  const AMBAR = temaClaro ? "#2ecc9b" : "#f59e0b";
+  const AMBAR = temaClaro ? "#2ecc9b" : "#facc15";
   const BRONZE = temaClaro ? "#2ecc9b" : "#b45309";
   const PAINEL_BG = temaClaro ? "#f6f7c4" : "rgba(10,20,36,0.7)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(163,177,194,0.15)";
@@ -2225,7 +2225,7 @@ export default function Fornecedores() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBusca(""); setBuscaContas(""); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
-              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(245,158,11,0.2)") : PAINEL_BG, color: aba === a.key ? AMBAR : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(245,158,11,0.4)") : CAMPO_BORDA2}` }}>
+              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(250,204,21,0.2)") : PAINEL_BG, color: aba === a.key ? AMBAR : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(250,204,21,0.4)") : CAMPO_BORDA2}` }}>
               <a.Icon size={15} /> {a.label}
             </motion.button>
           ))}
@@ -2899,7 +2899,7 @@ export default function Fornecedores() {
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
                         {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : "Save Bill")}
                       </motion.button>
                     </div>

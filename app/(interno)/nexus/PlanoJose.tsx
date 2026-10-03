@@ -119,9 +119,9 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
   }, [aberto])
 
   const caixa: CSSProperties = temaClaro ? { background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(16,27,61,0.12)' } : { background: NESTED_BG, border: '1px solid rgba(255,255,255,0.08)' }
-  const corPrio = (p: string) => p === 'alta' ? (temaClaro ? '#dc3545' : '#f87171') : p === 'media' ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#374151' : '#8aa4c2')
+  const corPrio = (p: string) => p === 'alta' ? (temaClaro ? '#dc3545' : '#f87171') : p === 'media' ? (temaClaro ? '#b45309' : '#facc15') : (temaClaro ? '#374151' : '#8aa4c2')
   const nomePrio = (p: string) => p === 'alta' ? L('prioridade alta', 'high priority', 'prioridad alta') : p === 'media' ? L('prioridade média', 'medium priority', 'prioridad media') : L('prioridade baixa', 'low priority', 'prioridad baja')
-  const corRisco = (r: string) => r === 'alto' ? (temaClaro ? '#dc3545' : '#f87171') : r === 'medio' ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#16a97d' : '#34d399')
+  const corRisco = (r: string) => r === 'alto' ? (temaClaro ? '#dc3545' : '#f87171') : r === 'medio' ? (temaClaro ? '#b45309' : '#facc15') : (temaClaro ? '#16a97d' : '#34d399')
   const titulo = (t: string) => <p className="text-xs font-bold mb-2" style={{ color: CINZA }}>{t}</p>
   const horizonteAtual = HORIZONTES.find((x) => x.id === aberto)
   const nomeHorizonte = (id: string) => { const h = HORIZONTES.find((x) => x.id === id); return h ? L3(h.titulo) : id }
@@ -170,8 +170,8 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
         ))}
       </div>
       {vencendo.length > 0 && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(251,191,36,0.10)', border: `1px solid ${temaClaro ? '#f5a623' : '#fbbf24'}` }} role="alert">
-          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#f5a623' : '#fbbf24' }} aria-hidden />
+        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(250,204,21,0.10)', border: `1px solid ${temaClaro ? '#f5a623' : '#facc15'}` }} role="alert">
+          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#f5a623' : '#facc15' }} aria-hidden />
           <p className="text-xs font-semibold" style={{ color: CX_TIT }}>
             {L(`${vencendo.length} plano(s) serão apagados em até ${DIAS_AVISO_ANTES} dias. Salve em PDF para guardar — o Axioma mantém os planos por ${DIAS_GUARDA_PLANO} dias.`, `${vencendo.length} plan(s) will be deleted within ${DIAS_AVISO_ANTES} days. Save as PDF to keep them — Axioma keeps plans for ${DIAS_GUARDA_PLANO} days.`, `${vencendo.length} plan(es) se borrarán en hasta ${DIAS_AVISO_ANTES} días. Guárdelos en PDF — Axioma mantiene los planes por ${DIAS_GUARDA_PLANO} días.`)}
           </p>

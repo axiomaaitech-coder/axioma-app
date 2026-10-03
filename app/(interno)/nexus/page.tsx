@@ -198,7 +198,7 @@ export default function NexusPage() {
     : { background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }
   const corTrava = (nivel: string) => ({
     // Claro: ícone colorido + texto azul-marinho (verde-menta em texto miúdo não lê no creme).
-    icone: nivel === 'oficial' ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#b45309' : '#fbbf24'),
+    icone: nivel === 'oficial' ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#b45309' : '#facc15'),
     texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#fbbf24'),
   })
 
