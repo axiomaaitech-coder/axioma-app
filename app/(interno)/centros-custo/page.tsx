@@ -64,11 +64,11 @@ type Lancamento = {
 // Escuro inalterado. Claro: sequência oficial (tema-tokens.md §1.4) - com
 // 7 centros a distinguir, estende com os 2 semânticos permitidos (âmbar/
 // vermelho) em vez de deixar vazar roxo/laranja/ciano crus do Escuro.
-const CORES_CENTRO = ["#9f1239", "#34d399", "#f87171", "#2ecc9b", "#2ecc9b", "#2ecc9b", "#2ecc9b"];
+const CORES_CENTRO = ["#2ecc9b", "#c8d3e0", "#34d399", "#6b7280", "#4a6fa5", "#7fe3c3", "#16a97d"]; // sequência oficial de gráfico (Escuro padronizado)
 const CORES_CENTRO_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54", "#f5a623", "#ff5a6b"];
 const getCor = (index: number, temaClaro?: boolean) => (temaClaro ? CORES_CENTRO_CLARO : CORES_CENTRO)[index % CORES_CENTRO.length];
 
-function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
+function ModalPremium({ aberto, onFechar, titulo, cor = "#2ecc9b", children }: {
   aberto: boolean; onFechar: () => void; titulo: string; cor?: string; children: React.ReactNode;
 }) {
   const { tema } = useThemeAxioma();
@@ -87,7 +87,7 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
             <CanvasBox {...cartaoTemaModal} cor={temaClaro ? "#2ecc9b" : cor}>
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : "#881337" }}>AXIOMA AI.TECH</p>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : "#16a97d" }}>AXIOMA AI.TECH</p>
                   <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{titulo}</h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
@@ -114,9 +114,9 @@ export default function CentrosCustoPage() {
   // padrão pedido pelo Elias em Contas a Pagar/Estoque/Contas a Receber.
   const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(255,255,255,0.04)";
   const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#94a3b8";
-  const PILL_ATIVA = temaClaro ? "#16a97d" : "#9f1239";
-  const inputStyle = { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(159,18,57,0.2)", color: ct("#c8d8f0") };
-  const selectStyle = { background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(159,18,57,0.2)", color: ct("#c8d8f0") };
+  const PILL_ATIVA = temaClaro ? "#16a97d" : "#2ecc9b";
+  const inputStyle = { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#c8d8f0") };
+  const selectStyle = { background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#c8d8f0") };
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
     setToast({ msg, tipo });
@@ -758,7 +758,7 @@ export default function CentrosCustoPage() {
         {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: cc.totalCentros, valor: centros.length.toString(), cor: ct("#9f1239") },
+            { label: cc.totalCentros, valor: centros.length.toString(), cor: ct("#2ecc9b") },
             { label: L.orcado, valor: fmt(totalOrcado), cor: ct("#2ecc9b") },
             { label: L.realizado + " (custo)", valor: fmt(totalCustos), cor: ct("#f87171") },
             { label: L.resultado, valor: fmt(resultadoGeral), cor: resultadoGeral >= 0 ? ct("#34d399") : ct("#f87171") },
@@ -812,7 +812,7 @@ export default function CentrosCustoPage() {
               className="px-4 py-2 rounded-xl text-sm font-semibold"
               style={temaClaro
                 ? (aba === a.key ? { background: PILL_ATIVA, color: "#ffffff", border: `1px solid ${PILL_ATIVA}` } : { background: PILL_INATIVO, color: PILL_INATIVO_TEXTO, border: `1px solid ${PILL_INATIVO}` })
-                : { background: aba === a.key ? "rgba(159,18,57,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#9f1239" : "#5a7a9a", border: `1px solid ${aba === a.key ? "rgba(159,18,57,0.5)" : "rgba(159,18,57,0.1)"}` }}>
+                : { background: aba === a.key ? "linear-gradient(135deg, #0a4f3b, #0f7d5c)" : "#101b3d", color: "#ffffff", border: `1px solid ${aba === a.key ? "#2ecc9b" : "rgba(46,204,155,0.35)"}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -822,7 +822,7 @@ export default function CentrosCustoPage() {
         {aba === "visao" && (
           <div className="space-y-4">
             {centros.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
               const custos = getCustos(centro.id);
               const receitas = getReceitas(centro.id);
@@ -844,14 +844,14 @@ export default function CentrosCustoPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="w-3 h-3 rounded-full" style={{ background: cor }} />
                         <span className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{centro.nome}</span>
-                        {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#b87333") }}>{centro.codigo}</span>}
+                        {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#2ecc9b") }}>{centro.codigo}</span>}
                         <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
-                        {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(159,18,57,0.1)", color: ct("#9f1239") }}>👤 {centro.responsavel}</span>}
+                        {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>👤 {centro.responsavel}</span>}
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <span className="text-sm font-black" style={{ color: resultado >= 0 ? "#34d399" : "#f87171" }}>{fmt(resultado)}</span>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
-                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
+                          <Pencil size={15} style={{ color: ct("#2ecc9b") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
                           <Trash2 size={15} style={{ color: ct("#f87171") }} />
@@ -885,20 +885,20 @@ export default function CentrosCustoPage() {
                         <div className="flex justify-between text-xs mb-1">
                           <span style={{ color: ct("#5a7a9a") }}>
                             {L.orcado}: {fmt(orcado)} · {L.realizado}: {fmt(custos)}
-                            <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(String(orcado)); }} className="ml-1.5 underline" style={{ color: ct("#9f1239") }}>
+                            <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(String(orcado)); }} className="ml-1.5 underline" style={{ color: ct("#2ecc9b") }}>
                               {idioma === "pt" ? "editar" : idioma === "es" ? "editar" : "edit"}
                             </button>
                           </span>
                           <span style={{ color: corOrc, fontWeight: 700 }}>{usoOrc.toFixed(0)}%</span>
                         </div>
                       ) : (
-                        <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(""); }} className="text-xs underline mb-1" style={{ color: ct("#9f1239") }}>
+                        <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(""); }} className="text-xs underline mb-1" style={{ color: ct("#2ecc9b") }}>
                           + {idioma === "pt" ? "Definir orçamento deste mês" : idioma === "es" ? "Definir presupuesto de este mes" : "Set budget this month"}
                         </button>
                       )}
                       {orcado > 0 && orcamentoEditId !== centro.id && (
                         <>
-                          <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(159,18,57,0.1)" }}>
+                          <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(46,204,155,0.1)" }}>
                             <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoOrc, 100)}%` }}
                               transition={{ duration: 0.8, ease: "easeOut" }}
                               className="h-2 rounded-full" style={{ background: corOrc }} />
@@ -919,7 +919,7 @@ export default function CentrosCustoPage() {
                           </span>
                           <span style={{ color: corMeta, fontWeight: 700 }}>{usoMeta.toFixed(0)}%</span>
                         </div>
-                        <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(159,18,57,0.1)" }}>
+                        <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(46,204,155,0.1)" }}>
                           <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoMeta, 100)}%` }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
                             className="h-2 rounded-full" style={{ background: corMeta }} />
@@ -933,7 +933,7 @@ export default function CentrosCustoPage() {
                     )}
 
                     {/* Resultado / Margem / Participação */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(159,18,57,0.1)" }}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.1)" }}>
                       {[
                         { label: cc.receita, val: fmt(receitas), cor: ct("#34d399") },
                         { label: cc.custo, val: fmt(custos), cor: ct("#f87171") },
@@ -957,7 +957,7 @@ export default function CentrosCustoPage() {
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
               const cor = getCor(i, temaClaro);
               return (
@@ -969,7 +969,7 @@ export default function CentrosCustoPage() {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-sm" style={{ color: ct("#c8d8f0") }}>{centro.nome}</p>
-                            {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#b87333") }}>{centro.codigo}</span>}
+                            {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#2ecc9b") }}>{centro.codigo}</span>}
                           </div>
                           <p className="text-xs mt-0.5 capitalize" style={{ color: ct("#5a7a9a") }}>
                             {centro.tipo}{centro.responsavel ? ` · 👤 ${centro.responsavel}` : ""}
@@ -980,7 +980,7 @@ export default function CentrosCustoPage() {
                       </div>
                       <div className="flex gap-2">
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
-                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
+                          <Pencil size={15} style={{ color: ct("#2ecc9b") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
                           <Trash2 size={15} style={{ color: ct("#f87171") }} />
@@ -1002,11 +1002,11 @@ export default function CentrosCustoPage() {
                 className="w-full text-sm focus:outline-none bg-transparent" style={{ color: ct("#c8d8f0") }} />
             </CanvasBox>
             {lancFiltrados.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semLancamentos}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semLancamentos}</p></div></CanvasBox>
             ) : lancFiltrados.map((lanc, i) => {
               const centro = centros.find(c => c.id === lanc.centro_custo_id);
               const idxCentro = centros.findIndex(c => c.id === lanc.centro_custo_id);
-              const cor = idxCentro >= 0 ? getCor(idxCentro, temaClaro) : (temaClaro ? "#2ecc9b" : "#9f1239");
+              const cor = idxCentro >= 0 ? getCor(idxCentro, temaClaro) : (temaClaro ? "#2ecc9b" : "#2ecc9b");
               return (
                 <motion.div key={lanc.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
                   <CanvasBox {...cartaoTema} cor={lanc.tipo === "receita" ? ct("#34d399") : ct("#f87171")}>
@@ -1023,7 +1023,7 @@ export default function CentrosCustoPage() {
                           {lanc.tipo === "receita" ? "+" : "-"}{fmt(lanc.valor)}
                         </span>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarLancamento(lanc)}>
-                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
+                          <Pencil size={15} style={{ color: ct("#2ecc9b") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirLancamento(lanc.id)}>
                           <Trash2 size={15} style={{ color: ct("#f87171") }} />
@@ -1086,7 +1086,7 @@ export default function CentrosCustoPage() {
         {aba === "causaRaiz" && (
           <div className="space-y-3">
             {causaRaiz.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum aumento fora do padrão detectado nos dados atuais." : idioma === "es" ? "No se detectó ningún aumento fuera de lo normal en los datos actuales." : "No out-of-pattern increase detected."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum aumento fora do padrão detectado nos dados atuais." : idioma === "es" ? "No se detectó ningún aumento fuera de lo normal en los datos actuales." : "No out-of-pattern increase detected."}</p></div></CanvasBox>
             ) : causaRaiz.map((c) => (
               <CanvasBox {...cartaoTema} key={c.id} cor={ct("#f87171")}>
                 <div className="flex justify-between items-start gap-3 flex-wrap">
@@ -1131,7 +1131,7 @@ export default function CentrosCustoPage() {
               </CanvasBox>
             )}
             {oportunidades.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma oportunidade identificada nos dados atuais." : idioma === "es" ? "Ninguna oportunidad identificada en los datos actuales." : "No opportunity identified."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma oportunidade identificada nos dados atuais." : idioma === "es" ? "Ninguna oportunidad identificada en los datos actuales." : "No opportunity identified."}</p></div></CanvasBox>
             ) : oportunidades.map((o) => (
               <CanvasBox {...cartaoTema} key={o.id} cor={ct("#34d399")}>
                 <div className="flex justify-between items-start gap-3 flex-wrap">
@@ -1216,8 +1216,8 @@ export default function CentrosCustoPage() {
               ))}
             </div>
 
-            <CanvasBox {...cartaoTema} cor={ct("#9f1239")}>
-              <p className="text-sm font-bold mb-2" style={{ color: ct("#9f1239") }}>{idioma === "pt" ? "Mapa de Impacto (cenário base)" : idioma === "es" ? "Mapa de Impacto (escenario base)" : "Impact Map (base scenario)"}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
+              <p className="text-sm font-bold mb-2" style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Mapa de Impacto (cenário base)" : idioma === "es" ? "Mapa de Impacto (escenario base)" : "Impact Map (base scenario)"}</p>
               <ReactECharts option={optMapaImpacto} style={{ height: 280, width: "100%" }} notMerge lazyUpdate />
             </CanvasBox>
           </div>
@@ -1229,7 +1229,7 @@ export default function CentrosCustoPage() {
             <div className="space-y-3 mb-4 max-h-[420px] overflow-y-auto">
               {chatMensagens.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(46,204,155,0.1)", color: ct("#c8d8f0") }}>
+                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : "rgba(46,204,155,0.1)", color: ct("#c8d8f0") }}>
                     {m.texto}
                   </div>
                 </div>
@@ -1258,9 +1258,9 @@ export default function CentrosCustoPage() {
               </button>
             </div>
             {planosAcao.length === 0 ? (
-              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : idioma === "es" ? "Ningún plan de acción creado todavía." : "No action plan yet."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : idioma === "es" ? "Ningún plan de acción creado todavía." : "No action plan yet."}</p></div></CanvasBox>
             ) : planosAcao.map(p => {
-              const corStatus = p.status === "concluido" ? ct("#34d399") : p.status === "cancelado" ? ct("#5a7a9a") : p.status === "em_andamento" ? ct("#9f1239") : ct("#2ecc9b");
+              const corStatus = p.status === "concluido" ? ct("#34d399") : p.status === "cancelado" ? ct("#5a7a9a") : p.status === "em_andamento" ? ct("#2ecc9b") : ct("#2ecc9b");
               return (
                 <CanvasBox {...cartaoTema} key={p.id} cor={corStatus}>
                   <div className="flex justify-between items-start gap-3 flex-wrap">
@@ -1290,7 +1290,7 @@ export default function CentrosCustoPage() {
                         <option value="concluido">{idioma === "pt" ? "Concluído" : idioma === "es" ? "Concluido" : "Done"}</option>
                         <option value="cancelado">{idioma === "pt" ? "Cancelado" : idioma === "es" ? "Cancelado" : "Cancelled"}</option>
                       </select>
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoPlano(p)}><Pencil size={15} style={{ color: ct("#9f1239") }} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoPlano(p)}><Pencil size={15} style={{ color: ct("#2ecc9b") }} /></motion.button>
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerPlano(p.id)}><Trash2 size={15} style={{ color: ct("#f87171") }} /></motion.button>
                     </div>
                   </div>
@@ -1312,7 +1312,7 @@ export default function CentrosCustoPage() {
       </div>
 
       {/* Modal Centro */}
-      <ModalPremium aberto={modalCentro} onFechar={fecharModalCentro} titulo={editandoCentro ? cc.editarCentro : cc.novoCentro} cor="#9f1239">
+      <ModalPremium aberto={modalCentro} onFechar={fecharModalCentro} titulo={editandoCentro ? cc.editarCentro : cc.novoCentro} cor="#2ecc9b">
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#2ecc9b") }}>{cc.nomeCentro}</label>
@@ -1336,7 +1336,7 @@ export default function CentrosCustoPage() {
                   className="py-2 rounded-xl text-xs font-semibold capitalize"
                   style={temaClaro
                     ? (tipoCentro === tp ? { background: "rgba(46,204,155,0.15)", color: "#16a97d", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#eef2f7", color: "#374151", border: "1px solid #e2e8f0" })
-                    : { background: tipoCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
+                    : { background: tipoCentro === tp ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.05)", color: tipoCentro === tp ? "#2ecc9b" : "#5a7a9a", border: `1px solid ${tipoCentro === tp ? "rgba(46,204,155,0.4)" : "rgba(46,204,155,0.1)"}` }}>
                   {tp}
                 </motion.button>
               ))}
@@ -1357,7 +1357,7 @@ export default function CentrosCustoPage() {
             <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
 
-          <div className="pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(159,18,57,0.1)" }}>
+          <div className="pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.1)" }}>
             <p className="text-xs font-black uppercase tracking-wider mb-3 mt-3" style={{ color: ct("#5a7a9a") }}>
               {idioma === "pt" ? "Cadastro (opcional)" : idioma === "es" ? "Registro (opcional)" : "Registration (optional)"}
             </p>
@@ -1369,7 +1369,7 @@ export default function CentrosCustoPage() {
                     <button key={tp} onClick={() => setTipoPessoaCentro(tp)} className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
                       style={temaClaro
                         ? (tipoPessoaCentro === tp ? { background: "rgba(46,204,155,0.15)", color: "#16a97d", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#eef2f7", color: "#374151", border: "1px solid #e2e8f0" })
-                        : { background: tipoPessoaCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoPessoaCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoPessoaCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
+                        : { background: tipoPessoaCentro === tp ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.05)", color: tipoPessoaCentro === tp ? "#2ecc9b" : "#5a7a9a", border: `1px solid ${tipoPessoaCentro === tp ? "rgba(46,204,155,0.4)" : "rgba(46,204,155,0.1)"}` }}>
                       {tp === "PJ" ? (idioma === "pt" ? "Jurídica" : idioma === "es" ? "Jurídica" : "Company") : (idioma === "pt" ? "Física" : idioma === "es" ? "Física" : "Individual")}
                     </button>
                   ))}
@@ -1414,7 +1414,7 @@ export default function CentrosCustoPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCentro} disabled={salvandoCentro}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
@@ -1440,7 +1440,7 @@ export default function CentrosCustoPage() {
             <div className="flex gap-2">
               {["custo", "receita"].map((tipo) => (
                 <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
-                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.2)") : (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.2)")) : (temaClaro ? "#eef2f7" : "rgba(159,18,57,0.05)"), color: tipoLanc === tipo ? ct(tipo === "custo" ? "#f87171" : "#34d399") : (temaClaro ? "#374151" : "#a3b1c2"), border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : (temaClaro ? "rgba(22,169,125,0.3)" : "rgba(52,211,153,0.3)")) : (temaClaro ? "#e2e8f0" : "rgba(159,18,57,0.1)")}` }}>
+                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.2)") : (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.2)")) : (temaClaro ? "#eef2f7" : "rgba(46,204,155,0.05)"), color: tipoLanc === tipo ? ct(tipo === "custo" ? "#f87171" : "#34d399") : (temaClaro ? "#374151" : "#a3b1c2"), border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : (temaClaro ? "rgba(22,169,125,0.3)" : "rgba(52,211,153,0.3)")) : (temaClaro ? "#e2e8f0" : "rgba(46,204,155,0.1)")}` }}>
                   {tipo === "custo" ? cc.custo : cc.receita}
                 </motion.button>
               ))}
@@ -1462,7 +1462,7 @@ export default function CentrosCustoPage() {
             <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={fecharModalLancamento} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalLancamento} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarLancamento} disabled={salvandoLanc}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
@@ -1509,7 +1509,7 @@ export default function CentrosCustoPage() {
                     {idioma === "pt" ? "Igualmente" : idioma === "es" ? "Equitativamente" : "Equally"}
                   </button>
                   <button onClick={() => distribuirPorBase("headcount")} className="text-xs font-semibold px-2 py-1 rounded-lg"
-                    style={{ background: `${ct("#9f1239")}25`, color: ct("#9f1239"), border: `1px solid ${ct("#9f1239")}50` }}>
+                    style={{ background: `${ct("#2ecc9b")}25`, color: ct("#2ecc9b"), border: `1px solid ${ct("#2ecc9b")}50` }}>
                     {idioma === "pt" ? "Por headcount" : idioma === "es" ? "Por headcount" : "By headcount"}
                   </button>
                   <button onClick={() => distribuirPorBase("area")} className="text-xs font-semibold px-2 py-1 rounded-lg"
@@ -1547,7 +1547,7 @@ export default function CentrosCustoPage() {
             </div>
           )}
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+            <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRateio}
               disabled={processandoRateio || !origemSelecionada || Math.abs(restanteRateio) > 0.5}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
@@ -1592,7 +1592,7 @@ export default function CentrosCustoPage() {
             <input type="number" value={planoEconomia} onChange={(e) => setPlanoEconomia(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+            <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarPlano} disabled={salvandoPlano || !planoTitulo.trim()}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #5b21b6, #2ecc9b)", color: "#fff" }}>

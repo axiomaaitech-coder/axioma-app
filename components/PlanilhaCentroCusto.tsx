@@ -112,7 +112,7 @@ const COLUNAS: { id: ColunaId; letra: string; editavel: boolean; largura: number
 // dentro do componente, sem inventar novo tom (ver corTema/MAPA_CORES_CLARO
 // em lib/cfoCore.ts). VINHO/BORDO/COBRE eram a identidade "bordô" do módulo;
 // no Claro colapsam pra verde-menta/navy igual ao resto de Centros de Custo.
-const VINHO = "#9f1239", BORDO = "#881337", COBRE = "#b87333";
+const VINHO = "#2ecc9b", BORDO = "#16a97d", COBRE = "#4a6fa5"; // Escuro padronizado 2026-10-03: verde-menta + azul-aço (sequência oficial de gráfico)
 const VERMELHO = "#f87171", AMBAR = "#2ecc9b", VERDE = "#34d399";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -466,7 +466,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
   // mesma cor, senão as 3 classes ficam indistinguíveis no gráfico.
   const optCurvaABC = useMemo(() => optBarrasH(
     curvaABC.map(c => c.valor), curvaABC.map(c => `${c.nome} (${c.classe})`), PRIMARIA, SECUNDARIA,
-    curvaABC.map(c => c.classe === "A" ? (temaClaro ? "#2ecc9b" : VINHO) : c.classe === "B" ? (temaClaro ? "#101b3d" : COBRE) : (temaClaro ? "#6b7280" : "#a3b1c2")),
+    curvaABC.map(c => c.classe === "A" ? (temaClaro ? "#2ecc9b" : VINHO) : c.classe === "B" ? (temaClaro ? "#101b3d" : COBRE) : (temaClaro ? "#6b7280" : "#c8d3e0")),
     temaClaro,
   ), [curvaABC, temaClaro]);
 
