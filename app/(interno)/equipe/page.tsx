@@ -92,7 +92,7 @@ const textos = {
     sucessoSuspenso: 'Acesso suspenso. Dá para restaurar em até 7 dias.',
     sucessoPedido: 'Pedido enviado. A remoção precisa do aval de alguém acima (vale 7 dias).',
     sucessoEncerrado: 'Acesso encerrado de vez (convite com prazo). Para voltar, envie um novo convite.',
-    cortarAvisoPrazo: 'Este acesso tem prazo: cortar encerra DE VEZ, sem restaurar. Para a pessoa voltar, envie um novo convite. O motivo fica na auditoria da empresa com a data.',
+    cortarAvisoPrazo: 'Acesso de até 30 dias: cortar encerra DE VEZ, sem restaurar. Para a pessoa voltar, envie um novo convite. O motivo fica na auditoria da empresa com a data.',
     sucessoSaiu: 'Você saiu da empresa.', sucessoRestaurar: 'Acesso restaurado.',
     statusSuspenso: (ate: string) => `Suspenso — restaurar até ${ate}`, restaurar: 'Restaurar acesso',
     sairEmpresa: 'Sair desta empresa', confirmarSair: 'Sair desta empresa? Você perde o acesso na hora (um Sócio ou acima pode restaurar em até 7 dias).',
@@ -157,7 +157,7 @@ const textos = {
     sucessoSuspenso: 'Access suspended. It can be restored within 7 days.',
     sucessoPedido: 'Request sent. The removal needs approval from someone above (valid 7 days).',
     sucessoEncerrado: 'Access ended for good (invite with a time limit). To come back, send a new invite.',
-    cortarAvisoPrazo: 'This access has a time limit: cutting it ends it FOR GOOD, no restore. For the person to come back, send a new invite. The reason is recorded in the company audit with the date.',
+    cortarAvisoPrazo: 'Access of up to 30 days: cutting it ends it FOR GOOD, no restore. For the person to come back, send a new invite. The reason is recorded in the company audit with the date.',
     sucessoSaiu: 'You left the company.', sucessoRestaurar: 'Access restored.',
     statusSuspenso: (ate: string) => `Suspended — restore until ${ate}`, restaurar: 'Restore access',
     sairEmpresa: 'Leave this company', confirmarSair: 'Leave this company? You lose access right away (a Partner or above can restore it within 7 days).',
@@ -222,7 +222,7 @@ const textos = {
     sucessoSuspenso: 'Acceso suspendido. Se puede restaurar en hasta 7 días.',
     sucessoPedido: 'Solicitud enviada. La eliminación necesita el aval de alguien superior (vale 7 días).',
     sucessoEncerrado: 'Acceso cerrado definitivamente (invitación con plazo). Para volver, envíe una nueva invitación.',
-    cortarAvisoPrazo: 'Este acceso tiene plazo: cortarlo lo cierra DEFINITIVAMENTE, sin restaurar. Para que la persona vuelva, envíe una nueva invitación. El motivo queda en la auditoría de la empresa con la fecha.',
+    cortarAvisoPrazo: 'Acceso de hasta 30 días: cortarlo lo cierra DEFINITIVAMENTE, sin restaurar. Para que la persona vuelva, envíe una nueva invitación. El motivo queda en la auditoría de la empresa con la fecha.',
     sucessoSaiu: 'Usted salió de la empresa.', sucessoRestaurar: 'Acceso restaurado.',
     statusSuspenso: (ate: string) => `Suspendido — restaurar hasta ${ate}`, restaurar: 'Restaurar acceso',
     sairEmpresa: 'Salir de esta empresa', confirmarSair: '¿Salir de esta empresa? Pierde el acceso al instante (un Socio o superior puede restaurarlo en hasta 7 días).',
@@ -236,6 +236,10 @@ const textos = {
     erroPrazoAval: 'El plazo de aval (7 días) aún no venció.', erroRestaurar: 'Pasó el plazo de 7 días para restaurar.',
   },
 }
+
+// Regra do Elias (2026-10-03): acesso de até 30 dias cortado zera de vez; acima disso ou sem prazo, restaura.
+const zeraAoCortar = (m: MembroEquipe) =>
+  !!m.expira_em && new Date(m.expira_em).getTime() - new Date(m.criado_em).getTime() <= 31 * 86400000
 
 export default function EquipePage() {
   const { idioma } = useLanguage()
@@ -943,7 +947,7 @@ export default function EquipePage() {
           </div>
           <div className="rounded-xl p-3 mb-3 flex gap-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(248,113,113,0.08)', border: `1px solid ${VERMELHO}40` }}>
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
-            <p className="text-xs" style={{ color: TEXTO }}>{membroCortar ? `${membroCortar.nome || membroCortar.email} — ${membroCortar.expira_em ? t.cortarAvisoPrazo : t.cortarAviso}` : t.apagarAviso}</p>
+            <p className="text-xs" style={{ color: TEXTO }}>{membroCortar ? `${membroCortar.nome || membroCortar.email} — ${zeraAoCortar(membroCortar) ? t.cortarAvisoPrazo : t.cortarAviso}` : t.apagarAviso}</p>
           </div>
           <p className="text-xs mb-2" style={{ color: MUTED }}>{lang === 'en' ? 'Date' : lang === 'es' ? 'Fecha' : 'Data'}: <strong style={{ color: TEXTO }}>{dataHora(new Date())}</strong></p>
           <label className="text-xs font-semibold mb-1 block" style={{ color: TEXTO }}>{t.apagarMotivo}</label>

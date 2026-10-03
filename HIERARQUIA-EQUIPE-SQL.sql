@@ -433,3 +433,26 @@ $$;
 revoke all on function public.equipe_suspender(uuid, uuid, uuid, text) from public;
 
 SELECT 'bloco 5 ok' AS resultado;
+
+-- ============================== BLOCO 6 =====================================
+-- Regra do Elias (2026-10-03): convite de ATÉ 30 DIAS cortado zera de vez (novo
+-- convite começa do zero). Acima de 30 dias ou sem prazo: suspende e dá para
+-- restaurar com tudo de volta.
+create or replace function public.equipe_suspender(p_empresa uuid, p_alvo uuid, p_por uuid, p_motivo text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from empresa_usuarios eu
+  where eu.empresa_id = p_empresa and eu.user_id = p_alvo and eu.acesso_expira_em is not null
+    and coalesce((select q.acesso_dias from empresa_equipe q where q.id = eu.convite_id), 0) <= 30;
+  update empresa_usuarios
+  set suspenso_em = now(), suspenso_por = p_por, suspenso_motivo = p_motivo
+  where empresa_id = p_empresa and user_id = p_alvo and suspenso_em is null;
+  update equipe_pedidos set situacao = 'cancelado', decidido_em = now()
+  where empresa_id = p_empresa and alvo_user_id = p_alvo and situacao = 'aberto';
+$$;
+revoke all on function public.equipe_suspender(uuid, uuid, uuid, text) from public;
+
+SELECT 'bloco 6 ok' AS resultado;
