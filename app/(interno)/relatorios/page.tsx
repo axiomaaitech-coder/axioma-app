@@ -1,4 +1,5 @@
 "use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -522,6 +523,19 @@ export default function Relatorios() {
           ))}
         </div>
       </div>
+
+      {/* Letreiro (padrão: azul-marinho, letra branca, destaque verde-menta) */}
+      {!carregando && !semDados && dre && (
+        <div className="mb-4">
+          <LetreiroExecutivo cor="#101b3d" itens={[
+            { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+            `${tt.periodo}: ${MESES[mes - 1]}/${ano}`,
+            `${tt.receitaBruta}: ${formatBRL(dre.receita_bruta)}`,
+            `${tt.lucroLiquido}: ${formatBRL(dre.lucro_liquido)}`,
+            `${tt.scoreCFO}: ${scoreCFO.score}/100 (${scoreCFO.nivel})`,
+          ]} />
+        </div>
+      )}
 
       {/* Carregando */}
       {carregando && (

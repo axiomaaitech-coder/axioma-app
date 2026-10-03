@@ -489,7 +489,10 @@ export default function OpenFinancePage() {
 
   // ---- Letreiro executivo — dados reais, prioriza risco > neutro > positivo, máx. 4 ----
   const itensLetreiro: ItemLetreiro[] = useMemo(() => {
-    if (!temBanco) return []
+    if (!temBanco) return [
+      { texto: '🚀 AXIOMA AI.TECH', destaque: true },
+      { texto: lang === 'en' ? 'Connect your bank to reconcile statements automatically' : lang === 'es' ? 'Conecte su banco para conciliar extractos automáticamente' : 'Conecte seu banco para conciliar o extrato automaticamente' },
+    ]
     const itens: ItemLetreiro[] = []
     if (divergenciaRelevante) {
       itens.push({
@@ -606,7 +609,7 @@ export default function OpenFinancePage() {
       )}
       <div className="space-y-4">
 
-        {temBanco && <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />}
+        <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />
 
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}

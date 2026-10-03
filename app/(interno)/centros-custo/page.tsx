@@ -1,4 +1,5 @@
 "use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
@@ -754,6 +755,16 @@ export default function CentrosCustoPage() {
           <input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)}
             className="px-3 py-2 rounded-xl text-sm focus:outline-none" style={inputStyle} />
         </div>
+
+        {/* Letreiro (padrão: azul-marinho, letra branca, destaque verde-menta) */}
+        <LetreiroExecutivo cor="#101b3d" itens={[
+          { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+          `${cc.totalCentros}: ${centros.length}`,
+          `${L.orcado}: ${fmt(totalOrcado)}`,
+          `${L.realizado}: ${fmt(totalCustos)}`,
+          `${L.resultado}: ${fmt(resultadoGeral)}`,
+          `Score: ${scoreModulo.total}/100`,
+        ]} />
 
         {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
