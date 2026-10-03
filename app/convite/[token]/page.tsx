@@ -9,9 +9,10 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterConvitePorToken, definirEmpresaPreferida } from '../../../lib/empresaHelpers'
 
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
-// pela tela de login. Abre o link → preenche o formulário (nome, e-mail,
-// senha nova, LGPD; CPF quando o prazo passa de 30 dias ou é indeterminado)
-// → /api/convite cria a conta e libera o acesso → "Seja bem-vindo" → entra.
+// pela tela de login. Abre o link → preenche o formulário (nome, senha nova,
+// LGPD; CPF quando o prazo passa de 30 dias ou é indeterminado) → recebe um
+// código de 6 dígitos no e-mail do convite (P7: prova que o e-mail é dele) →
+// /api/convite libera o acesso → "Seja bem-vindo" → entra.
 
 const PAPEL_LABEL: Record<string, Record<string, string>> = {
   pt: { admin: 'Admin (acesso total)', financeiro: 'Financeiro', contabil: 'Contábil', leitor: 'Leitor (somente visualização)', operador: 'Operador (caixa/PDV)' },
@@ -38,7 +39,7 @@ function cpfValido(c: string): boolean {
 const mascaraCpf = (v: string) => v.replace(/\D/g, '').slice(0, 11)
   .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
 
-type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'recusado' | 'pronto' | 'enviando' | 'bemvindo'
+type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'recusado' | 'pronto' | 'enviando' | 'codigo' | 'bemvindo'
 type Convite = NonNullable<Awaited<ReturnType<typeof obterConvitePorToken>>>
 
 const COR = { fundo: '#050d1c', card: '#0a1730', linha: 'rgba(147,166,194,0.16)', menta: '#2ecc9b', tinta: '#04241a', texto: '#e8eef7', sec: '#93a6c2', campo: 'rgba(255,255,255,0.035)', erro: '#f87171' }
@@ -59,6 +60,7 @@ export default function AceitarConvite() {
   const [senha, setSenha] = useState('')
   const [aceitaTermos, setAceitaTermos] = useState(false)
   const [empresaId, setEmpresaId] = useState('')
+  const [codigo, setCodigo] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -100,6 +102,9 @@ export default function AceitarConvite() {
     senha_conta: L('Este e-mail já tem conta no Axioma. Digite a senha dessa conta.', 'This e-mail already has an Axioma account. Type that account\'s password.', 'Este correo ya tiene cuenta en Axioma. Escriba la contraseña de esa cuenta.'),
     cpf: L('CPF inválido. Confira os números.', 'Invalid CPF. Check the numbers.', 'CPF inválido. Revise los números.'),
     lgpd: L('Marque que aceita os Termos e a LGPD.', 'Check that you accept the Terms and LGPD.', 'Marque que acepta los Términos y la LGPD.'),
+    codigo: L('Código errado ou vencido. Confira o e-mail ou peça outro.', 'Wrong or expired code. Check the e-mail or ask for another.', 'Código incorrecto o vencido. Revise el correo o pida otro.'),
+    envio: L('Não conseguimos enviar o código agora. Espere 1 minuto e tente de novo.', 'We could not send the code now. Wait 1 minute and try again.', 'No pudimos enviar el código ahora. Espere 1 minuto e intente de nuevo.'),
+    login: L('Confirme o código enviado ao seu e-mail.', 'Confirm the code sent to your e-mail.', 'Confirme el código enviado a su correo.'),
     usado: L('Este convite já foi utilizado.', 'This invite has already been used.', 'Esta invitación ya fue utilizada.'),
     expirado: L('Este convite expirou. Peça um novo a quem convidou você.', 'This invite has expired. Ask for a new one.', 'Esta invitación expiró. Pida una nueva.'),
     ja_dono: L('Você já é o proprietário desta empresa.', 'You already own this company.', 'Usted ya es el propietario de esta empresa.'),
@@ -115,21 +120,46 @@ export default function AceitarConvite() {
     setErro('')
     setEstado('enviando')
     try {
+      // 1) servidor confere o formulário e o convite (sem login)
       const resp = await fetch('/api/convite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: 'aceitar', token, nome: nome.trim(), cpf, email: email.trim(), senha, aceita: aceitaTermos }),
+        body: JSON.stringify({ acao: 'conferir', token, nome: nome.trim(), cpf, email: email.trim(), aceita: aceitaTermos }),
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
-      if (r.erro || !r.empresaId) { setErro(MSG[r.erro] || erroPadrao); setEstado('pronto'); return }
-      // entra direto, sem tela de login
-      if (r.tokenHash) {
-        const { data } = await supabase.auth.verifyOtp({ token_hash: r.tokenHash, type: 'email' })
-        if (data.user) definirEmpresaPreferida(data.user.id, r.empresaId)
+      if (r.erro || !r.ok) { setErro(MSG[r.erro] || erroPadrao); setEstado('pronto'); return }
+      // 2) código de 6 dígitos no e-mail (Supabase Auth → Resend)
+      const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { shouldCreateUser: true, data: { nome: nome.trim() } } })
+      if (error) { console.error('[convite] código', error.message); setErro(MSG.envio); setEstado('pronto'); return }
+      setCodigo('')
+      setEstado('codigo')
+    } catch {
+      setErro(erroPadrao); setEstado('pronto')
+    }
+  }
+
+  async function confirmarCodigo() {
+    const cod = codigo.replace(/\D/g, '')
+    if (cod.length < 6) { setErro(MSG.codigo); return }
+    setErro('')
+    setEstado('enviando')
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: cod, type: 'email' })
+      if (error || !data.user) { setErro(MSG.codigo); setEstado('codigo'); return }
+      // Conta nova (criada agora pelo código): grava a senha escolhida. Conta antiga: senha não muda.
+      if (Date.now() - new Date(data.user.created_at).getTime() < 15 * 60000) {
+        await supabase.auth.updateUser({ password: senha, data: { nome: nome.trim() } })
       }
+      const resp = await fetch('/api/convite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao: 'aceitar', token, nome: nome.trim(), cpf, aceita: aceitaTermos }),
+      })
+      const r = await resp.json().catch(() => ({ erro: 'generico' }))
+      if (r.erro || !r.empresaId) { setErro(MSG[r.erro] || erroPadrao); setEstado('codigo'); return }
+      definirEmpresaPreferida(data.user.id, r.empresaId)
       setEmpresaId(r.empresaId)
       setEstado('bemvindo')
     } catch {
-      setErro(erroPadrao); setEstado('pronto')
+      setErro(erroPadrao); setEstado('codigo')
     }
   }
 
@@ -243,7 +273,7 @@ export default function AceitarConvite() {
                   </button>
                 </div>
                 <p className="text-xs mt-1.5 leading-relaxed" style={{ color: COR.sec }}>
-                  {L('Mínimo de 6 caracteres. Se este e-mail já tem conta no Axioma, use a mesma senha.', 'At least 6 characters. If this e-mail already has an Axioma account, use the same password.', 'Mínimo 6 caracteres. Si este correo ya tiene cuenta en Axioma, use la misma contraseña.')}
+                  {L('Mínimo de 6 caracteres. Se este e-mail já tem conta no Axioma, a senha dela continua a mesma.', 'At least 6 characters. If this e-mail already has an Axioma account, its password stays the same.', 'Mínimo 6 caracteres. Si este correo ya tiene cuenta en Axioma, su contraseña sigue igual.')}
                 </p>
               </div>
 
@@ -270,7 +300,7 @@ export default function AceitarConvite() {
               <motion.button type="submit" disabled={estado === 'enviando'} whileTap={{ scale: 0.98 }}
                 className="w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter,opacity] hover:brightness-110 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
                 style={{ background: COR.menta, color: COR.tinta, opacity: podeEnviar || estado === 'enviando' ? 1 : 0.55 }}>
-                {estado === 'enviando' ? L('Entrando…', 'Entering…', 'Entrando…') : L('Aceitar convite e entrar', 'Accept invite and enter', 'Aceptar invitación y entrar')}
+                {estado === 'enviando' ? L('Enviando código…', 'Sending code…', 'Enviando código…') : L('Receber código no e-mail', 'Get code by e-mail', 'Recibir código por correo')}
               </motion.button>
             </form>
 
@@ -279,6 +309,34 @@ export default function AceitarConvite() {
               {L('Seus dados ficam protegidos e só a empresa que convidou vê.', 'Your data is protected and only the inviting company sees it.', 'Sus datos están protegidos y solo la empresa que invitó los ve.')}
             </p>
           </>
+        )}
+
+        {estado === 'codigo' && convite && (
+          <form onSubmit={(e) => { e.preventDefault(); confirmarCodigo() }} className="text-center py-2" noValidate>
+            <h1 className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: COR.texto }}>{L('Confira seu e-mail', 'Check your e-mail', 'Revise su correo')}</h1>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: COR.sec }}>
+              {L(`Mandamos um código de 6 números para ${email.trim()}. Ele prova que este e-mail é seu.`, `We sent a 6-digit code to ${email.trim()}. It proves this e-mail is yours.`, `Enviamos un código de 6 números a ${email.trim()}. Prueba que este correo es suyo.`)}
+            </p>
+            <input value={codigo} onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6)); setErro('') }}
+              inputMode="numeric" autoComplete="one-time-code" placeholder="000000" aria-label={L('Código', 'Code', 'Código')}
+              className={`${entrada} text-center text-2xl tracking-[0.5em] font-bold`} style={estiloCampo(codigo.length === 6, codigo.length > 0)} />
+            <AnimatePresence>
+              {erro && (
+                <motion.p role="alert" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="mt-3 text-[13px] font-medium flex items-start gap-2 rounded-lg px-3 py-2.5 text-left" style={{ color: COR.erro, background: 'rgba(248,113,113,0.08)' }}>
+                  <AlertCircle size={15} className="mt-[2px] flex-shrink-0" />{erro}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <motion.button type="submit" whileTap={{ scale: 0.98 }}
+              className="mt-4 w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
+              style={{ background: COR.menta, color: COR.tinta, opacity: codigo.length === 6 ? 1 : 0.55 }}>
+              {L('Confirmar e entrar', 'Confirm and enter', 'Confirmar y entrar')}
+            </motion.button>
+            <button type="button" onClick={() => { setEstado('pronto'); setErro('') }} className="mt-3 text-xs font-semibold underline underline-offset-2" style={{ color: COR.sec }}>
+              {L('Não chegou? Voltar e enviar de novo', 'Did not arrive? Go back and resend', '¿No llegó? Volver y reenviar')}
+            </button>
+          </form>
         )}
 
         {estado === 'bemvindo' && convite && (

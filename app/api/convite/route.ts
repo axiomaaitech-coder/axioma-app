@@ -7,8 +7,8 @@ import { cookies } from 'next/headers'
 // - Só Admin, Sócio ou CEO (ou o dono) liberam acesso direto. Qualquer outro
 //   membro precisa da senha de um Admin/Sócio/CEO pra convidar.
 // - Quem recebe NUNCA passa pela tela de login: abre o link, preenche o
-//   formulário (nome, e-mail, senha nova, LGPD; CPF quando o prazo passa de
-//   30 dias ou é indeterminado) e já entra. A conta é criada aqui na hora.
+//   formulário (nome, e-mail, LGPD; CPF quando o prazo passa de 30 dias ou é
+//   indeterminado), digita o código de 6 dígitos que chega no e-mail e já entra.
 // - Prazo começa a contar no aceite; o dono corta o acesso quando quiser.
 
 const PRAZOS = [1, 3, 7, 30, 60, 90, 180, 365]
@@ -52,9 +52,10 @@ async function podeLiberar(db: SupabaseClient, empresaId: string, userId: string
 }
 
 async function vinculo(db: SupabaseClient, empresaId: string, userId: string) {
-  const { data } = await db.from('empresa_usuarios').select('papel, convite_id, acesso_expira_em')
+  const { data } = await db.from('empresa_usuarios').select('papel, convite_id, acesso_expira_em, suspenso_em')
     .eq('empresa_id', empresaId).eq('user_id', userId).maybeSingle()
-  if (!data || (data.acesso_expira_em && new Date(data.acesso_expira_em) < new Date())) return null
+  // Suspenso (hierarquia da Equipe) ou prazo vencido = sem acesso
+  if (!data || data.suspenso_em || (data.acesso_expira_em && new Date(data.acesso_expira_em) < new Date())) return null
   return data
 }
 
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return erro('indisponivel', 503)
   const corpo = await req.json().catch(() => null)
   if (corpo?.acao === 'criar') return criar(corpo)
+  if (corpo?.acao === 'conferir') return aceitar(corpo, true)
   if (corpo?.acao === 'aceitar') return aceitar(corpo)
   return erro('acao')
 }
@@ -134,9 +136,11 @@ async function criar(corpo: any) {
     autorizadoPor = emailAut
   }
 
+  // P7 (Elias 2026-10-02): convite sempre preso a um e-mail — o link só vale pra ele
   const email = String(f.email_convidado || '').trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
   // Mesmo e-mail com convite ainda valendo: reenvia o mesmo link
-  if (email) {
+  {
     const { data: pend } = await db.from('empresa_equipe').select('id, token_convite, expira_em')
       .eq('empresa_id', empresaId).eq('convite_aceito', false).ilike('email_convidado', email).limit(1)
     const p = pend?.[0]
@@ -159,12 +163,14 @@ async function criar(corpo: any) {
   return NextResponse.json({ id: data.id, token })
 }
 
-async function aceitar(corpo: any) {
+// P7 (Elias 2026-10-02): o convidado prova que o e-mail é dele. A tela pede
+// "conferir" (valida o formulário sem login), manda o código de 6 dígitos pelo
+// próprio Supabase Auth (e-mail via Resend), troca o código por sessão e só
+// então chama "aceitar" — aqui o e-mail vem da SESSÃO, nunca do formulário.
+async function aceitar(corpo: any, soConferir = false) {
   const db = admin()
   const token = String(corpo.token || '')
   const nome = String(corpo.nome || '').trim().replace(/\s+/g, ' ')
-  const email = String(corpo.email || '').trim().toLowerCase()
-  const senha = String(corpo.senha || '')
   const cpf = String(corpo.cpf || '').replace(/\D/g, '')
 
   const { data: cv } = await db.from('empresa_equipe').select('*').eq('token_convite', token).maybeSingle()
@@ -174,24 +180,21 @@ async function aceitar(corpo: any) {
 
   const pedeCpf = cv.acesso_dias == null || cv.acesso_dias > 30
   if (nome.split(' ').length < 2) return erro('nome')
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
-  if (cv.email_convidado && cv.email_convidado.toLowerCase() !== email) return erro('email_outro')
-  if (senha.length < 6) return erro('senha_curta')
   if (pedeCpf && !cpfValido(cpf)) return erro('cpf')
   if (!corpo.aceita) return erro('lgpd')
 
-  // Conta nova é criada já confirmada; se o e-mail já tem conta, confere a senha dela.
-  const chave = `aceitar:${token}`
-  if (bloqueado(chave)) return erro('muitas_tentativas', 429)
-  let userId: string | null = null
-  const novo = await db.auth.admin.createUser({ email, password: senha, email_confirm: true, user_metadata: { nome } })
-  if (novo.data.user) userId = novo.data.user.id
-  else if (!/already|exists|registered/i.test(novo.error?.message || '')) {
-    console.error('[convite] criar conta:', novo.error?.message); return erro('senha_fraca')
-  } else {
-    userId = await conferirSenha(email, senha)
-    if (!userId) { registrarFalha(chave); return erro('senha_conta', 401) }
+  if (soConferir) {
+    const email = String(corpo.email || '').trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
+    if (cv.email_convidado && cv.email_convidado.toLowerCase() !== email) return erro('email_outro')
+    return NextResponse.json({ ok: true })
   }
+
+  const user = await usuarioLogado()
+  if (!user?.email) return erro('login', 401)
+  const email = user.email.toLowerCase()
+  if (cv.email_convidado && cv.email_convidado.toLowerCase() !== email) return erro('email_outro', 403)
+  const userId = user.id
 
   const { data: dono } = await db.from('empresas').select('id').eq('id', cv.empresa_id).eq('user_id', userId).maybeSingle()
   if (dono) return erro('ja_dono', 409)
@@ -199,7 +202,8 @@ async function aceitar(corpo: any) {
   const expira = cv.acesso_dias == null ? null : new Date(Date.now() + cv.acesso_dias * 86400000).toISOString()
   const agora = new Date().toISOString()
   const { error: e1 } = await db.from('empresa_usuarios').upsert(
-    { empresa_id: cv.empresa_id, user_id: userId, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id },
+    { empresa_id: cv.empresa_id, user_id: userId, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id,
+      suspenso_em: null, suspenso_por: null, suspenso_motivo: null }, // convite novo aceito = volta a ter acesso
     { onConflict: 'empresa_id,user_id' })
   if (e1) { console.error('[convite] acesso:', e1.message); return erro('generico', 500) }
   await db.from('empresa_equipe').update({
@@ -213,8 +217,6 @@ async function aceitar(corpo: any) {
   })
   if (e2) console.error('[convite] termo:', e2.message)
 
-  // Entra direto: código de uso único que a tela troca por sessão (sem e-mail, sem tela de login)
-  const link = await db.auth.admin.generateLink({ type: 'magiclink', email })
   const { data: emp } = await db.from('empresas').select('nome').eq('id', cv.empresa_id).maybeSingle()
-  return NextResponse.json({ empresaId: cv.empresa_id, empresaNome: emp?.nome || '', tokenHash: link.data?.properties?.hashed_token || null })
+  return NextResponse.json({ empresaId: cv.empresa_id, empresaNome: emp?.nome || '' })
 }

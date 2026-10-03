@@ -907,9 +907,51 @@ export type MembroEquipe = {
   token_convite: string | null;
   expira_em: string | null;
   criado_em: string;
-  situacao?: string | null; // enviado | aguardando_aprovacao | aprovado (EQUIPE-ACESSO-TEMPORARIO-SQL.sql)
+  situacao?: string | null; // enviado | aguardando_aprovacao | aprovado | suspenso
   relacao?: string | null;
+  // Hierarquia (HIERARQUIA-EQUIPE-SQL.sql): 1 Proprietário · 2 CEO · 3 Sócio · 4 Admin · 5 demais
+  nivel?: number | null;
+  suspenso_em?: string | null;
+  suspenso_motivo?: string | null;
 };
+
+// Meu nível na empresa (null = sem acesso). Ver MembroEquipe.nivel.
+export async function obterMeuNivel(empresaId: string, userId: string): Promise<number | null> {
+  const { data } = await supabase.rpc("equipe_nivel", { p_empresa: empresaId, p_user: userId });
+  return typeof data === "number" ? data : null;
+}
+
+export type PedidoEquipe = {
+  id: string; alvo_user_id: string; pedido_por: string; motivo: string; nivel_aval: number;
+  situacao: string; criado_em: string; expira_em: string;
+};
+
+// Pedidos de remoção que precisam de aval (só Admin ou acima enxerga — RLS)
+export async function listarPedidosEquipe(empresaId: string): Promise<PedidoEquipe[]> {
+  const { data, error } = await supabase.from("equipe_pedidos")
+    .select("id, alvo_user_id, pedido_por, motivo, nivel_aval, situacao, criado_em, expira_em")
+    .eq("empresa_id", empresaId).eq("situacao", "aberto").order("criado_em", { ascending: false }).limit(50);
+  if (error) { console.error("[equipe] pedidos", error.code, error.message); return []; }
+  return (data as PedidoEquipe[]) || [];
+}
+
+export async function decidirPedidoEquipe(pedidoId: string, aprovar: boolean, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("equipe_decidir_pedido", { p_pedido: pedidoId, p_aprovar: aprovar, p_motivo: motivo ?? null });
+  if (error) { reportarFalhaEscrita("equipe_pedidos", "rpc equipe_decidir_pedido", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
+}
+
+export async function concluirPedidoEquipe(pedidoId: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("equipe_concluir_pedido", { p_pedido: pedidoId, p_motivo: motivo });
+  if (error) { reportarFalhaEscrita("equipe_pedidos", "rpc equipe_concluir_pedido", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
+}
+
+export async function restaurarMembro(empresaId: string, alvoUserId: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("equipe_restaurar", { p_empresa: empresaId, p_alvo: alvoUserId });
+  if (error) { reportarFalhaEscrita("empresa_usuarios", "rpc equipe_restaurar", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
+}
 
 // Lista unificada (ativos + convites pendentes) — RPC recusa quem não é dono
 // daquela empresa (checagem dentro da própria função, não só na RLS).
@@ -968,11 +1010,17 @@ export async function alterarPapelMembro(
   membro: MembroEquipe, empresaId: string, userId: string, novoPapel: string
 ): Promise<{ erro?: string; codigo?: string }> {
   const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
-  const { data, error } = await supabase.from(tabela).update({ papel: novoPapel }).eq("id", membro.id).eq("empresa_id", empresaId).select("id");
-  if (error || !data || data.length === 0) {
-    const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita(tabela, "update (papel)", motivo);
-    return error ? { erro: motivo, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+  if (membro.origem === "ativo") {
+    // Hierarquia: só quem está acima troca o papel (regra no banco)
+    const { error } = await supabase.rpc("equipe_trocar_papel", { p_empresa: empresaId, p_alvo: membro.user_id, p_papel: novoPapel });
+    if (error) { reportarFalhaEscrita(tabela, "rpc equipe_trocar_papel", error.message); return { erro: error.message, codigo: error.code }; }
+  } else {
+    const { data, error } = await supabase.from(tabela).update({ papel: novoPapel }).eq("id", membro.id).eq("empresa_id", empresaId).select("id");
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || "0 linhas afetadas (RLS?)";
+      reportarFalhaEscrita(tabela, "update (papel)", motivo);
+      return error ? { erro: motivo, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+    }
   }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "editar",
@@ -986,22 +1034,32 @@ export async function alterarPapelMembro(
 // (empresa_equipe) e, pra quem já tinha aceitado, o acesso real continuava
 // valendo (empresa_usuarios nunca era tocado). Agora remove o vínculo real
 // quando a origem é "ativo"; pra convite pendente, cancela o convite.
+// Ativo: passa pela hierarquia no banco (equipe_remover) — suspende por 7 dias
+// (restaurável) ou abre um pedido de aval. Convite pendente: só cancela.
 export async function removerAcessoMembro(
   membro: MembroEquipe, empresaId: string, userId: string, motivo?: string
-): Promise<{ erro?: string; codigo?: string }> {
-  const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
-  const { data, error } = await supabase.from(tabela).delete().eq("id", membro.id).eq("empresa_id", empresaId).select("id");
+): Promise<{ erro?: string; codigo?: string; resultado?: "suspenso" | "pedido" | "saiu" | "cancelado" }> {
+  if (membro.origem === "ativo") {
+    const { data, error } = await supabase.rpc("equipe_remover", { p_empresa: empresaId, p_alvo: membro.user_id, p_motivo: motivo ?? null });
+    if (error) { reportarFalhaEscrita("empresa_usuarios", "rpc equipe_remover", error.message); return { erro: error.message, codigo: error.code }; }
+    const resultado = data as "suspenso" | "pedido" | "saiu";
+    await registrarAuditoria({
+      empresaId, userId, tabela: "empresa_usuarios", registroId: membro.id, acao: "excluir",
+      descricao: `${resultado === "pedido" ? "Pedido de remoção (aguarda aval)" : resultado === "saiu" ? "Saiu da empresa" : "Acesso suspenso (7 dias para restaurar)"}: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
+    });
+    return { resultado };
+  }
+  const { data, error } = await supabase.from("empresa_equipe").delete().eq("id", membro.id).eq("empresa_id", empresaId).select("id");
   if (error || !data || data.length === 0) {
-    const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita(tabela, "delete (acesso)", motivo);
-    return error ? { erro: motivo, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+    const m = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_equipe", "delete (convite)", m);
+    return error ? { erro: m, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
   }
   await registrarAuditoria({
-    empresaId, userId, tabela, registroId: membro.id, acao: "excluir",
-    // motivo obrigatório na tela para Admin/CEO/Sócio; fica na auditoria da empresa
-    descricao: `Acesso removido: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
+    empresaId, userId, tabela: "empresa_equipe", registroId: membro.id, acao: "excluir",
+    descricao: `Convite cancelado: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
   });
-  return {};
+  return { resultado: "cancelado" };
 }
 
 // ============================================================================

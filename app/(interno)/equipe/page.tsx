@@ -6,12 +6,13 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
   listarTermosConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
-  type MembroEquipe,
+  type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
+  concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown, RotateCcw, LogOut, ShieldCheck } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
@@ -85,7 +86,22 @@ const textos = {
     erroUltimoDono: 'Não é possível remover ou rebaixar o único proprietário da empresa.',
     erroConviteExpirado: 'Este convite expirou.',
     erroConviteUsado: 'Este convite já foi utilizado.',
-    erroNaoProprietario: 'Só o proprietário pode ver a equipe.',
+    erroNaoProprietario: 'Só Admin, Sócio, CEO ou Proprietário veem a equipe.',
+    hierarquia: 'Hierarquia: Proprietário › CEO › Sócio › Admin › demais. Remover = suspender por 7 dias (dá para restaurar).',
+    nivel_1: 'Proprietário', nivel_2: 'CEO', nivel_3: 'Sócio', nivel_4: 'Admin',
+    sucessoSuspenso: 'Acesso suspenso. Dá para restaurar em até 7 dias.',
+    sucessoPedido: 'Pedido enviado. A remoção precisa do aval de alguém acima (vale 7 dias).',
+    sucessoSaiu: 'Você saiu da empresa.', sucessoRestaurar: 'Acesso restaurado.',
+    statusSuspenso: (ate: string) => `Suspenso — restaurar até ${ate}`, restaurar: 'Restaurar acesso',
+    sairEmpresa: 'Sair desta empresa', confirmarSair: 'Sair desta empresa? Você perde o acesso na hora (um Sócio ou acima pode restaurar em até 7 dias).',
+    pedidosTitulo: 'Remoções aguardando aval', pedidoDe: (quem: string, alvo: string) => `${quem} pediu para remover ${alvo}`,
+    avalDe: (n: string) => `Aval de: ${n} ou acima`, venceEm: (d: string) => `Vale até ${d}`,
+    concluirSemAval: 'Concluir sem aval', motivoConcluir: 'Ninguém acima respondeu em 7 dias. Motivo para concluir (mín. 5 letras):',
+    sucessoDecidido: 'Pedido decidido.', unicoGestor: 'Só você gerencia esta equipe. Convide um Sócio ou Admin para a empresa nunca ficar sem gestor.',
+    erroHierarquia: 'Seu nível não permite esta ação.', erroProprietario: 'Ninguém remove o Proprietário.',
+    erroProprietarioSair: 'O Proprietário não pode sair: transfira a empresa antes.', erroMotivo: 'Escreva o motivo (mínimo 5 letras).',
+    erroPedidoAberto: 'Já existe um pedido aberto para esta pessoa.', erroAindaAcima: 'Ainda existe alguém acima para decidir.',
+    erroPrazoAval: 'O prazo de aval (7 dias) ainda não venceu.', erroRestaurar: 'Passou o prazo de 7 dias para restaurar.',
   },
   en: {
     titulo: 'Team', sub: 'Who has access to your company and with which role.',
@@ -133,7 +149,22 @@ const textos = {
     erroUltimoDono: 'You cannot remove or demote the company\'s only owner.',
     erroConviteExpirado: 'This invite has expired.',
     erroConviteUsado: 'This invite has already been used.',
-    erroNaoProprietario: 'Only the owner can view the team.',
+    erroNaoProprietario: 'Only Admin, Partner, CEO or Owner can view the team.',
+    hierarquia: 'Hierarchy: Owner › CEO › Partner › Admin › others. Removing = suspending for 7 days (can be restored).',
+    nivel_1: 'Owner', nivel_2: 'CEO', nivel_3: 'Partner', nivel_4: 'Admin',
+    sucessoSuspenso: 'Access suspended. It can be restored within 7 days.',
+    sucessoPedido: 'Request sent. The removal needs approval from someone above (valid 7 days).',
+    sucessoSaiu: 'You left the company.', sucessoRestaurar: 'Access restored.',
+    statusSuspenso: (ate: string) => `Suspended — restore until ${ate}`, restaurar: 'Restore access',
+    sairEmpresa: 'Leave this company', confirmarSair: 'Leave this company? You lose access right away (a Partner or above can restore it within 7 days).',
+    pedidosTitulo: 'Removals awaiting approval', pedidoDe: (quem: string, alvo: string) => `${quem} asked to remove ${alvo}`,
+    avalDe: (n: string) => `Approval by: ${n} or above`, venceEm: (d: string) => `Valid until ${d}`,
+    concluirSemAval: 'Conclude without approval', motivoConcluir: 'Nobody above answered in 7 days. Reason to conclude (min. 5 letters):',
+    sucessoDecidido: 'Request decided.', unicoGestor: 'You are the only one managing this team. Invite a Partner or Admin so the company is never left without a manager.',
+    erroHierarquia: 'Your level does not allow this action.', erroProprietario: 'Nobody removes the Owner.',
+    erroProprietarioSair: 'The Owner cannot leave: transfer the company first.', erroMotivo: 'Write the reason (at least 5 letters).',
+    erroPedidoAberto: 'There is already an open request for this person.', erroAindaAcima: 'There is still someone above to decide.',
+    erroPrazoAval: 'The approval period (7 days) has not ended yet.', erroRestaurar: 'The 7-day restore period has passed.',
   },
   es: {
     titulo: 'Equipo', sub: 'Quién tiene acceso a su empresa y con qué rol.',
@@ -181,7 +212,22 @@ const textos = {
     erroUltimoDono: 'No es posible eliminar o degradar al único propietario de la empresa.',
     erroConviteExpirado: 'Esta invitación expiró.',
     erroConviteUsado: 'Esta invitación ya fue utilizada.',
-    erroNaoProprietario: 'Solo el propietario puede ver el equipo.',
+    erroNaoProprietario: 'Solo Admin, Socio, CEO o Propietario ven el equipo.',
+    hierarquia: 'Jerarquía: Propietario › CEO › Socio › Admin › demás. Eliminar = suspender por 7 días (se puede restaurar).',
+    nivel_1: 'Propietario', nivel_2: 'CEO', nivel_3: 'Socio', nivel_4: 'Admin',
+    sucessoSuspenso: 'Acceso suspendido. Se puede restaurar en hasta 7 días.',
+    sucessoPedido: 'Solicitud enviada. La eliminación necesita el aval de alguien superior (vale 7 días).',
+    sucessoSaiu: 'Usted salió de la empresa.', sucessoRestaurar: 'Acceso restaurado.',
+    statusSuspenso: (ate: string) => `Suspendido — restaurar hasta ${ate}`, restaurar: 'Restaurar acceso',
+    sairEmpresa: 'Salir de esta empresa', confirmarSair: '¿Salir de esta empresa? Pierde el acceso al instante (un Socio o superior puede restaurarlo en hasta 7 días).',
+    pedidosTitulo: 'Eliminaciones esperando aval', pedidoDe: (quem: string, alvo: string) => `${quem} pidió eliminar a ${alvo}`,
+    avalDe: (n: string) => `Aval de: ${n} o superior`, venceEm: (d: string) => `Vale hasta ${d}`,
+    concluirSemAval: 'Concluir sin aval', motivoConcluir: 'Nadie superior respondió en 7 días. Motivo para concluir (mín. 5 letras):',
+    sucessoDecidido: 'Solicitud decidida.', unicoGestor: 'Solo usted gestiona este equipo. Invite a un Socio o Admin para que la empresa nunca quede sin gestor.',
+    erroHierarquia: 'Su nivel no permite esta acción.', erroProprietario: 'Nadie elimina al Propietario.',
+    erroProprietarioSair: 'El Propietario no puede salir: transfiera la empresa antes.', erroMotivo: 'Escriba el motivo (mínimo 5 letras).',
+    erroPedidoAberto: 'Ya existe una solicitud abierta para esta persona.', erroAindaAcima: 'Todavía hay alguien superior para decidir.',
+    erroPrazoAval: 'El plazo de aval (7 días) aún no venció.', erroRestaurar: 'Pasó el plazo de 7 días para restaurar.',
   },
 }
 
@@ -204,6 +250,9 @@ export default function EquipePage() {
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [meuPapel, setMeuPapel] = useState<string | null>(null)
+  const [meuNivel, setMeuNivel] = useState<number | null>(null)
+  const [pedidos, setPedidos] = useState<PedidoEquipe[]>([])
+  const gestor = (meuNivel ?? 99) <= 4
   const [membros, setMembros] = useState<MembroEquipe[]>([])
   const [mensagem, setMensagem] = useState('')
   const [tipoMsg, setTipoMsg] = useState<'sucesso' | 'erro' | ''>('')
@@ -254,6 +303,14 @@ export default function EquipePage() {
       case 'AX004': return t.erroConviteExpirado
       case 'AX006': return t.erroNaoProprietario
       case 'AX008': return t.erroDuplicado
+      case 'AX021': return t.erroProprietarioSair
+      case 'AX022': return t.erroMotivo
+      case 'AX024': return t.erroProprietario
+      case 'AX025': case 'AX028': return t.erroHierarquia
+      case 'AX026': return t.erroPedidoAberto
+      case 'AX029': return t.erroPrazoAval
+      case 'AX030': return t.erroAindaAcima
+      case 'AX032': return t.erroRestaurar
       default: return t.erroGenerico
     }
   }
@@ -273,15 +330,12 @@ export default function EquipePage() {
       if (!id) return
       setEmpresaId(id)
 
-      const papel = await obterMeuPapel(id)
+      const [papel, nivel] = await Promise.all([obterMeuPapel(id), obterMeuNivel(id, user.id)])
       setMeuPapel(papel)
+      setMeuNivel(nivel)
       fetch(`/api/convite?empresaId=${id}`).then((r) => r.json()).then((j) => setPodeLiberar(!!j?.podeLiberar)).catch(() => {})
-      if (papel !== 'dono') return
-
-      const r = await listarEquipe(id)
-      if (r.erro) avisar('erro', mensagemErro(r.codigo))
-      setMembros(r.dados)
-      setTermos(await listarTermosConvite(id))
+      if ((nivel ?? 99) > 4) return
+      await recarregarEquipe(id)
     } catch (err: any) {
       avisar('erro', t.erroGenerico)
     } finally {
@@ -289,11 +343,63 @@ export default function EquipePage() {
     }
   }
 
+  async function recarregarEquipe(id: string) {
+    const r = await listarEquipe(id)
+    if (r.erro) avisar('erro', mensagemErro(r.codigo))
+    setMembros(r.dados)
+    const [tm, pd] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id)])
+    setTermos(tm)
+    setPedidos(pd)
+  }
+
+  // Hierarquia: quem está acima mexe; Sócio↔Sócio, Admin↔Admin e Sócio→CEO viram pedido de aval (regra no banco).
+  const podeRemover = (m: MembroEquipe) => m.origem === 'convite'
+    || (m.nivel != null && m.nivel > 1 && meuNivel != null && (meuNivel < m.nivel || (meuNivel === m.nivel && (m.nivel === 3 || m.nivel === 4)) || (meuNivel === 3 && m.nivel === 2)))
+  const podeTrocarPapel = (m: MembroEquipe) => m.origem === 'convite' || (m.nivel != null && m.nivel > 1 && meuNivel != null && meuNivel < m.nivel)
+  const nomeDe = (uid: string) => { const m = membros.find((x) => x.user_id === uid); return m ? (m.nome || m.email) : '—' }
+  const nomeNivel = (n: number) => (t as any)[`nivel_${n}`] || ''
+
+  async function sairDaEmpresa() {
+    if (!empresaId || !userId || !window.confirm(t.confirmarSair)) return
+    const eu = { id: userId, origem: 'ativo', user_id: userId, email: '' } as MembroEquipe
+    const r = await removerAcessoMembro(eu, empresaId, userId)
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    avisar('sucesso', t.sucessoSaiu)
+    setTimeout(() => { window.location.href = '/dashboard' }, 1500)
+  }
+
+  async function restaurar(m: MembroEquipe) {
+    if (!empresaId || !m.user_id) return
+    const r = await restaurarMembro(empresaId, m.user_id)
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    avisar('sucesso', t.sucessoRestaurar)
+    await recarregarEquipe(empresaId)
+  }
+
+  async function decidirPedido(p: PedidoEquipe, aprovar: boolean) {
+    if (!empresaId) return
+    const r = await decidirPedidoEquipe(p.id, aprovar)
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    avisar('sucesso', t.sucessoDecidido)
+    await recarregarEquipe(empresaId)
+  }
+
+  async function concluirPedido(p: PedidoEquipe) {
+    if (!empresaId) return
+    const motivo = window.prompt(t.motivoConcluir) || ''
+    if (motivo.trim().length < 5) { avisar('erro', t.erroMotivo); return }
+    const r = await concluirPedidoEquipe(p.id, motivo.trim())
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    avisar('sucesso', t.sucessoSuspenso)
+    await recarregarEquipe(empresaId)
+  }
+
   // Gera o convite e já abre o canal escolhido com mensagem + e-mail preenchidos.
   // A aba nova é aberta ANTES do await (clique do usuário) — senão o navegador
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
     if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email_convidado.trim())) { setErroModal(t.erroEmail); return }
     if (!meuPapelConvite) { setErroModal(t.erroMeuPapel); return }
     if (!termoRemetente) { setErroModal(t.erroTermo); return }
     setErroModal('')
@@ -312,7 +418,7 @@ export default function EquipePage() {
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
       if (r.erro || !r.token) {
         aba?.close()
-        setErroModal(r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : t.erroGenerico)
+        setErroModal(r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : r.erro === 'email' ? t.erroEmail : t.erroGenerico)
         return
       }
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
@@ -330,9 +436,8 @@ export default function EquipePage() {
       setForm(FORM_VAZIO)
       setTermoRemetente(false)
       setAutSenha('')
-      if (meuPapel !== 'dono') return
-      const lista = await listarEquipe(empresaId)
-      setMembros(lista.dados)
+      if (!gestor) return
+      await recarregarEquipe(empresaId)
     } finally {
       setEnviando(false)
     }
@@ -344,17 +449,15 @@ export default function EquipePage() {
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
     setEditandoId(null)
     avisar('sucesso', t.sucessoPapel)
-    const lista = await listarEquipe(empresaId)
-    setMembros(lista.dados)
+    await recarregarEquipe(empresaId)
   }
 
   async function removerAcesso(membro: MembroEquipe, motivo?: string) {
     if (!empresaId || !userId) { avisar('erro', t.erroGenerico); return }
     const r = await removerAcessoMembro(membro, empresaId, userId, motivo)
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
-    avisar('sucesso', t.sucessoRemocao)
-    const lista = await listarEquipe(empresaId)
-    setMembros(lista.dados)
+    avisar('sucesso', r.resultado === 'pedido' ? t.sucessoPedido : r.resultado === 'suspenso' ? t.sucessoSuspenso : t.sucessoRemocao, 7000)
+    await recarregarEquipe(empresaId)
   }
 
   const rotuloPrazo = (dias: number | null) => dias == null ? t.semPrazo : dias === 1 ? t.h24 : t.dias(dias)
@@ -412,11 +515,11 @@ export default function EquipePage() {
     setDecidindoId(null)
     if (r.erro) { avisar('erro', r.codigo === 'AX011' ? t.semPrazoRegra : t.erroDecidir); return }
     avisar('sucesso', aprovar ? t.sucessoAprovar : t.sucessoRecusar)
-    setMembros((await listarEquipe(empresaId)).dados)
-    setTermos(await listarTermosConvite(empresaId))
+    await recarregarEquipe(empresaId)
   }
 
   function statusDe(m: MembroEquipe): { label: string; cor: string } {
+    if (m.origem === 'ativo' && m.suspenso_em) return { label: t.statusSuspenso(dataHora(new Date(new Date(m.suspenso_em).getTime() + 7 * 86400000))), cor: VERMELHO }
     if (m.origem === 'convite' && m.situacao === 'aguardando_aprovacao') return { label: t.aguardandoAprovacao, cor: temaClaro ? '#101b3d' : AZUL }
     if (m.origem === 'ativo') {
       if (m.expira_em && new Date(m.expira_em) < new Date()) return { label: t.acessoEncerrado, cor: VERMELHO }
@@ -442,6 +545,12 @@ export default function EquipePage() {
                 <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
               </div>
               <div className="space-y-2.5">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
+                  <input type="email" value={form.email_convidado} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
+                    placeholder="nome@empresa.com.br" autoComplete="off"
+                    className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
@@ -537,7 +646,7 @@ export default function EquipePage() {
     )
   }
 
-  if (meuPapel !== 'dono') {
+  if (!gestor) {
     const podeConvidar = !!meuPapel && meuPapel !== 'operador'
     return (
       <div data-theme={tema}>
@@ -555,6 +664,11 @@ export default function EquipePage() {
               </motion.button>
             )}
             <div><a href="/dashboard" className="inline-block mt-4 text-xs font-semibold underline" style={{ color: AZUL }}>{t.voltarDashboard}</a></div>
+            {meuNivel != null && meuNivel > 1 && (
+              <button onClick={sairDaEmpresa} className="mt-3 text-xs font-semibold inline-flex items-center gap-1" style={{ color: VERMELHO }}>
+                <LogOut size={13} /> {t.sairEmpresa}
+              </button>
+            )}
           </div>
         </CanvasBox>
         {mensagem && <p className="text-sm font-semibold text-center mt-3" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>}
@@ -612,6 +726,46 @@ export default function EquipePage() {
           </CanvasBox>
         )}
 
+        {pedidos.length > 0 && (
+          <CanvasBox cor={VERMELHO} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck size={18} style={{ color: VERMELHO }} />
+              <p className="text-sm font-black" style={{ color: TEXTO }}>{t.pedidosTitulo} ({pedidos.length})</p>
+            </div>
+            <div className="space-y-2">
+              {pedidos.map((p) => {
+                const souParte = p.pedido_por === userId || p.alvo_user_id === userId
+                const possoDecidir = !souParte && (meuNivel ?? 99) <= p.nivel_aval
+                const venceu = new Date(p.expira_em) < new Date()
+                return (
+                  <div key={p.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3" style={{ background: LINHA_BG, border: '1px solid rgba(248,113,113,0.35)' }}>
+                    <div className="flex-1 min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
+                      <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.pedidoDe(nomeDe(p.pedido_por), nomeDe(p.alvo_user_id))}</p>
+                      <p>{t.motivoLabel.split(' (')[0]}: {p.motivo}</p>
+                      <p>{t.avalDe(nomeNivel(p.nivel_aval))} • {t.venceEm(dataHora(p.expira_em))}</p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {possoDecidir && (<>
+                        <button onClick={() => decidirPedido(p, true)} className="px-4 py-2.5 rounded-xl text-sm font-black flex items-center gap-1.5" style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
+                          <CheckCircle size={15} />{t.aprovar}
+                        </button>
+                        <button onClick={() => decidirPedido(p, false)} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
+                          {t.recusar}
+                        </button>
+                      </>)}
+                      {p.pedido_por === userId && venceu && (
+                        <button onClick={() => concluirPedido(p)} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
+                          {t.concluirSemAval}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CanvasBox>
+        )}
+
         <AnimatePresence>
           {mensagem && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -634,6 +788,12 @@ export default function EquipePage() {
                 <p className="text-xs" style={{ color: MUTED }}>{t.titulo}</p>
               </div>
             </div>
+            <p className="text-[11px] flex-1 sm:px-4" style={{ color: MUTED }}>
+              {t.hierarquia}
+              {membros.filter((m) => m.origem === 'ativo' && !m.suspenso_em && (m.nivel ?? 99) <= 4).length <= 1 && (
+                <span className="block mt-1 font-semibold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>⚠ {t.unicoGestor}</span>
+              )}
+            </p>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setErroModal(''); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
@@ -663,7 +823,7 @@ export default function EquipePage() {
                         {m.nome || m.email || t.conviteLink} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
                       </p>
                       <p className="text-xs truncate" style={{ color: MUTED }}>
-                        {m.email || t.conviteLink} {m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
+                        {m.email || t.conviteLink} {m.nivel != null && m.nivel <= 4 ? `• ${nomeNivel(m.nivel)}` : m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
                       </p>
                       <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
@@ -671,7 +831,18 @@ export default function EquipePage() {
                       </span>
                     </div>
 
-                    {!ehVoce && (
+                    {ehVoce && meuNivel != null && meuNivel > 1 && (
+                      <button onClick={sairDaEmpresa} title={t.sairEmpresa} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                        <LogOut size={15} />
+                      </button>
+                    )}
+                    {!ehVoce && m.origem === 'ativo' && m.suspenso_em && (meuNivel ?? 99) <= 3 && (
+                      <button onClick={() => restaurar(m)} title={t.restaurar} className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                        style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
+                        <RotateCcw size={14} /> {t.restaurar}
+                      </button>
+                    )}
+                    {!ehVoce && !m.suspenso_em && podeRemover(m) && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
@@ -697,14 +868,14 @@ export default function EquipePage() {
                               <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
                             ))}
                           </select>
-                        ) : (
+                        ) : podeTrocarPapel(m) && (
                           <button onClick={() => setEditandoId(`${m.origem}-${m.id}`)} title={t.editarPapel}
                             className="p-2 rounded-lg" style={{ background: 'rgba(106,176,255,0.1)', color: AZUL }}>
                             <Pencil size={15} />
                           </button>
                         )}
 
-                        <button onClick={() => ehAltoNivel(m.papel, m.relacao) ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : removerAcesso(m)}
+                        <button onClick={() => m.origem === 'ativo' ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : removerAcesso(m)}
                           title={t.cortarAcesso} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                           <Trash2 size={15} />
                         </button>
