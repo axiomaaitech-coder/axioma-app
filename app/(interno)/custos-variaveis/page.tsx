@@ -379,7 +379,7 @@ export default function CustosVariaveis() {
   };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -503,7 +503,7 @@ export default function CustosVariaveis() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {anomalias.map((a, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)" }}>
+                    <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)" }}>
                       <div className="min-w-0">
                         <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
                         <p className="text-xs font-medium" style={{ color: ct(CORES.laranja) }}>
@@ -526,7 +526,7 @@ export default function CustosVariaveis() {
                 </div>
                 <div className="space-y-2">
                   {sugestoes.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{s}</p>
                     </div>
@@ -544,7 +544,7 @@ export default function CustosVariaveis() {
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa"
                       style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
                       {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} /> : <Zap size={15} style={{ color: ct(CORES.verde), flexShrink: 0 }} />}
                       <p className="text-xs font-medium" style={{ color: ins.tipo === "alerta" ? ct("#fca5a5") : ct("#6ee7b7") }}>{ins.texto}</p>

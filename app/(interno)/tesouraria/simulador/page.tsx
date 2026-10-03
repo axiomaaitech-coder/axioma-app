@@ -252,7 +252,7 @@ export default function TesourariaSimuladorPage() {
                 {cenarios.length > 0 && (
                   <div className="mt-4 space-y-2">
                     {cenarios.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
+                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
                         <span className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{c.nome}</span>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button onClick={() => carregarCenarioNosControles(c)} className="p-1.5 rounded-lg" style={{ color: AZULC }} title={L('Editar', 'Edit', 'Editar')}>
@@ -285,7 +285,7 @@ export default function TesourariaSimuladorPage() {
           {/* RESULTADO */}
           <div className="space-y-4">
             {simulacao.rupturaHorizonte != null && (
-              <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}40` }}>
+              <div className="flex items-start gap-2 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}40` }}>
                 <AlertTriangle size={16} style={{ color: VERMELHO, flexShrink: 0, marginTop: 2 }} />
                 <p className="text-xs font-semibold" style={{ color: VERMELHO }}>
                   {L(`Neste cenário, o caixa rompe a reserva mínima em ${simulacao.rupturaHorizonte} dias.`,

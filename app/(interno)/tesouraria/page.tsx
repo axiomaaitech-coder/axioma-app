@@ -319,7 +319,7 @@ export default function TesourariaPage() {
 
           {/* IDLE CASH */}
           {idle && idle.valor > 0 && (
-            <div className="rounded-2xl p-4" style={{ background: `${AMARELO}0f`, border: `1px solid ${AMARELO}35` }}>
+            <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: `${AMARELO}0f`, border: `1px solid ${AMARELO}35` }}>
               <p className="text-sm font-bold" style={{ color: AMARELO }}>
                 {L('Caixa Potencialmente Ocioso', 'Potentially Idle Cash', 'Caja Potencialmente Ociosa')}: R$ {fBRL2(idle.valor)}
               </p>
@@ -384,7 +384,7 @@ export default function TesourariaPage() {
             ) : (
               <div className="space-y-2">
                 {alertas.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SEVERIDADE[a.severidade]}30` }}>
+                  <div key={a.id} className="flex items-start gap-3 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SEVERIDADE[a.severidade]}30` }}>
                     <span className="text-base leading-none">{EMOJI_SEVERIDADE[a.severidade]}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold" style={{ color: CORES_SEVERIDADE[a.severidade] }}>{tituloAlertaLocalizado(a.tipo, lang)}</p>
@@ -425,11 +425,11 @@ export default function TesourariaPage() {
               ))}
             </div>
             {carregandoRespostaZia ? (
-              <div className="rounded-xl p-3" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
+              <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
                 <p className="text-sm" style={{ color: CINZA }}>{L('Pensando...', 'Thinking...', 'Pensando...')}</p>
               </div>
             ) : respostaZia && (
-              <div className="rounded-xl p-3" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
+              <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
                 <p className="text-sm" style={{ color: TEXTO }}>{respostaZia}</p>
               </div>
             )}

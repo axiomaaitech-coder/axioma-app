@@ -391,7 +391,7 @@ export default function Endividamento() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -512,7 +512,7 @@ export default function Endividamento() {
               </div>
               <div className="space-y-2">
                 {avalanche.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: a.cara ? "rgba(239,68,68,0.08)" : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)"), border: `1px solid ${a.cara ? "rgba(239,68,68,0.25)" : (temaClaro ? NESTED_BORDA : "rgba(255,255,255,0.06)")}` }}>
+                  <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: a.cara ? "rgba(239,68,68,0.08)" : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)"), border: `1px solid ${a.cara ? "rgba(239,68,68,0.25)" : (temaClaro ? NESTED_BORDA : "rgba(255,255,255,0.06)")}` }}>
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(temaClaro ? CORES.verde : CORES.rosa) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
                       <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
@@ -544,7 +544,7 @@ export default function Endividamento() {
                 </div>
 
                 {/* Simulador de Refinanciamento */}
-                <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.rosa) + "20"}` }}>
+                <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.rosa) + "20"}` }}>
                   <div className="flex items-center gap-2 mb-3">
                     <Sliders size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.simuladorTitulo}</p>
@@ -593,7 +593,7 @@ export default function Endividamento() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{s}</p>
                     </div>

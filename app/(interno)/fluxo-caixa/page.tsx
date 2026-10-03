@@ -373,7 +373,7 @@ export default function FluxoCaixa() {
   };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -484,7 +484,7 @@ export default function FluxoCaixa() {
             <div id="ruptura-caixa" className="scroll-mt-28" />
             {/* ALERTA DE RUPTURA — o diferencial mundial, sempre visível quando existe */}
             {ruptura && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: rupturaFundo, border: "1px solid rgba(239,68,68,0.4)" }}>
+              <div className="rounded-2xl p-4 md:p-5 axi-card-premium3d axi-card-faixa" style={{ background: rupturaFundo, border: "1px solid rgba(239,68,68,0.4)" }}>
                 <div className="flex items-center gap-3">
                   <ShieldAlert size={22} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} />
                   <div>
@@ -605,7 +605,7 @@ export default function FluxoCaixa() {
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa"
                       style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
                       {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} /> : <Zap size={15} style={{ color: ct(CORES.verde), flexShrink: 0 }} />}
                       <p className="text-xs font-medium" style={{ color: ins.tipo === "alerta" ? ct("#fca5a5") : ct("#6ee7b7") }}>{ins.texto}</p>

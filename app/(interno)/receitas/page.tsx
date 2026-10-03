@@ -287,7 +287,7 @@ export default function Receitas() {
   // Função de desenho (não componente): como componente criado dentro da tela, o
   // gráfico era recriado do zero a cada atualização — piscava e reiniciava a animação.
   const subChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: subPainelFundo, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: subPainelFundo, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{titulo}</p>
@@ -383,7 +383,7 @@ export default function Receitas() {
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa"
                       style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
                       {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: CORES.vermelho, flexShrink: 0 }} /> : <TrendingUp size={15} style={{ color: CORES.verde, flexShrink: 0 }} />}
                       <p className="text-xs font-medium" style={{ color: ins.tipo === "alerta" ? ct("#fca5a5") : ct("#6ee7b7") }}>{textoInsight(lang, ins.chave)}</p>

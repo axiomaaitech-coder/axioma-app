@@ -480,7 +480,7 @@ export default function DREPage() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -657,7 +657,7 @@ export default function DREPage() {
                     (regra 4), nunca tingido igual pros três (não é alerta). */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {projecaoDRE.map((proj, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: temaClaro ? NESTED_BG : "rgba(16,185,129,0.06)", border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(16,185,129,0.2)"}` }}>
+                    <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(16,185,129,0.06)", border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(16,185,129,0.2)"}` }}>
                       <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{cx.previsao} +{i + 1}</p>
                       <p className="text-base font-black" style={{ color: proj.lucroLiquido.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(proj.lucroLiquido.valor)}</p>
                       <p className="text-xs" style={{ color: TEXTO_SEC }}>{cx.dreLucroLiquido}</p>
@@ -676,7 +676,7 @@ export default function DREPage() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{s}</p>
                     </div>
