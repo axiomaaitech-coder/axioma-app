@@ -113,7 +113,7 @@ const COLUNAS: { id: ColunaId; letra: string; editavel: boolean; largura: number
 // em lib/cfoCore.ts). VINHO/BORDO/COBRE eram a identidade "bordô" do módulo;
 // no Claro colapsam pra verde-menta/navy igual ao resto de Centros de Custo.
 const VINHO = "#9f1239", BORDO = "#881337", COBRE = "#b87333";
-const VERMELHO = "#f87171", AMBAR = "#f59e0b", VERDE = "#34d399";
+const VERMELHO = "#f87171", AMBAR = "#facc15", VERDE = "#34d399";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -690,7 +690,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {l.rateios && l.rateios.length > 0 ? (
                       <td style={{ padding: "4px 10px" }} title={l.rateios.map(r => `${r.centroNome}: ${r.percentual}%`).join(" · ")}>
                         <button onClick={(e) => { e.stopPropagation(); onEditarRateio(l.tabela, l.id); }}
-                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${ct("#a78bfa")}20`, color: ct("#a78bfa") }}>
+                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${ct("#2ecc9b")}20`, color: ct("#2ecc9b") }}>
                           <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")} <Pencil size={8} />
                         </button>
                       </td>

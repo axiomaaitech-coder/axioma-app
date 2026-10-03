@@ -29,7 +29,7 @@ type Props = {
 const VALOR_NOVO = "__novo_centro_custo__";
 
 export function SeletorCentroCusto({
-  value, onChange, centros, empresaId, userId, lang, cor = "#6ab0ff", onCriado, className, style,
+  value, onChange, centros, empresaId, userId, lang, cor = "#2ecc9b", onCriado, className, style,
 }: Props) {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [criando, setCriando] = useState(false);

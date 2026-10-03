@@ -29,7 +29,7 @@ type Props = {
 };
 
 export function CentroCompartilhamento({
-  aberto, onFechar, lang, textoResumo, assunto, textoDetalhado, onExportarPDF, cor = "#8b5cf6", para,
+  aberto, onFechar, lang, textoResumo, assunto, textoDetalhado, onExportarPDF, cor = "#2ecc9b", para,
 }: Props) {
   const cx = cfoT(lang);
   const { tema } = useThemeAxioma();
@@ -92,7 +92,7 @@ export function CentroCompartilhamento({
 }
 
 // Botão padrão que abre o Centro — mesmo visual usado no Receitas.
-export function BotaoCompartilhar({ onClick, texto, cor = "#8b5cf6", corTexto = "#c4b5fd", solido }: {
+export function BotaoCompartilhar({ onClick, texto, cor = "#2ecc9b", corTexto = "#2ecc9b", solido }: {
   onClick: () => void; texto: string; cor?: string; corTexto?: string;
   /** Opt-in — fundo SÓLIDO em degradê verde (igual ao botão Exportar PDF do
    * ModuloLayout), no lugar do pill translúcido de sempre. undefined =

@@ -496,20 +496,20 @@ const T = {
 // vem sempre de tt.destinoLabels/tt.statusLabels, nunca fixo aqui, pra não
 // vazar português/inglês dentro de outro idioma).
 const DESTINOS_BASE: Array<{ key: DestinoTabela; icon: string; cor: string }> = [
-  { key: "fluxo_caixa", icon: "💸", cor: "#6ab0ff" },
+  { key: "fluxo_caixa", icon: "💸", cor: "#2ecc9b" },
   { key: "receitas", icon: "💰", cor: "#34d399" },
-  { key: "custos_fixos", icon: "📌", cor: "#fbbf24" },
-  { key: "custos_variaveis", icon: "📊", cor: "#a78bfa" },
+  { key: "custos_fixos", icon: "📌", cor: "#facc15" },
+  { key: "custos_variaveis", icon: "📊", cor: "#2ecc9b" },
   { key: "contas_pagar", icon: "🧾", cor: "#f87171" },
   { key: "contas_receber", icon: "💵", cor: "#10b981" },
-  { key: "fornecedores", icon: "🏢", cor: "#fb923c" },
+  { key: "fornecedores", icon: "🏢", cor: "#facc15" },
   { key: "dividas", icon: "📋", cor: "#ef4444" },
 ];
 
 const STATUS_INFO_BASE: Record<string, { cor: string }> = {
-  aguardando_revisao: { cor: "#fbbf24" },
+  aguardando_revisao: { cor: "#facc15" },
   concluido: { cor: "#34d399" },
-  parcialmente: { cor: "#6ab0ff" },
+  parcialmente: { cor: "#2ecc9b" },
   revertido: { cor: "#3a5a8a" },
   erro: { cor: "#f87171" },
   processado: { cor: "#34d399" },
@@ -1672,7 +1672,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             style={{
               background: aba === a.key ? PILL_ATIVA : PILL_INATIVO,
               color: aba === a.key ? "#fff" : PILL_INATIVO_TEXTO,
-              border: temaClaro ? "none" : aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+              border: temaClaro ? "none" : aba === a.key ? "1px solid #2ecc9b" : "1px solid rgba(46,204,155,0.2)",
             }}
           >
             {a.label}
@@ -1688,10 +1688,10 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { label: tt.totalImportado, valor: formatBRL(stats.total_importado), cor: "#34d399" },
-              { label: tt.docsProcessados, valor: `${stats.docs_processados}/${stats.docs_total}`, cor: "#6ab0ff" },
-              { label: tt.taxaSucesso, valor: `${stats.taxa_sucesso}%`, cor: "#a78bfa" },
-              { label: tt.duplicadasEvitadas, valor: String(stats.duplicadas_evitadas), cor: "#fbbf24" },
-              { label: tt.tempoMedio, valor: `${stats.tempo_medio_seg}s`, cor: "#fb923c" },
+              { label: tt.docsProcessados, valor: `${stats.docs_processados}/${stats.docs_total}`, cor: "#2ecc9b" },
+              { label: tt.taxaSucesso, valor: `${stats.taxa_sucesso}%`, cor: "#2ecc9b" },
+              { label: tt.duplicadasEvitadas, valor: String(stats.duplicadas_evitadas), cor: "#facc15" },
+              { label: tt.tempoMedio, valor: `${stats.tempo_medio_seg}s`, cor: "#facc15" },
               { label: tt.horasEconomizadas, valor: `${stats.horas_economizadas}h`, cor: "#10b981" },
             ].map((card, i) => {
               const cor = corDestinoClaro(card.cor, temaClaro);
@@ -1706,12 +1706,12 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
           {/* DUPLICATA GLOBAL DETECTADA */}
           {duplicataGlobal && (
-            <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
+            <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <span className="text-3xl">⚠️</span>
                   <div className="flex-1">
-                    <p className="font-bold text-base mb-1" style={{ color: ct("#fbbf24") }}>{tt.duplicataGlobal}</p>
+                    <p className="font-bold text-base mb-1" style={{ color: ct("#facc15") }}>{tt.duplicataGlobal}</p>
                     <p className="text-sm" style={{ color: ct("#c8d8f0") }}>
                       {tt.duplicataGlobalMsg} <strong>{formatDataHora(duplicataGlobal.created_at)}</strong>
                       {duplicataGlobal.linhas_importadas > 0 && ` (${duplicataGlobal.linhas_importadas} ${tt.importadas})`}
@@ -1727,7 +1727,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                   </button>
                   <button onClick={continuarMesmoComDuplicata}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #fbbf24)" : "linear-gradient(135deg, #b45309, #facc15)", color: temaClaro ? "#2b1900" : "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #facc15)" : "linear-gradient(135deg, #b45309, #facc15)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     {tt.importarAssim}
                   </button>
                 </div>
@@ -1737,13 +1737,13 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
           {/* DROP ZONE */}
           {!arquivoSelecionado && !sucesso && !duplicataGlobal && (
-            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : arrastando ? "#6ab0ff" : "#3b6fd4"}>
+            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : arrastando ? "#2ecc9b" : "#2ecc9b"}>
               <div
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 onClick={() => inputRef.current?.click()}
-                className="text-center cursor-pointer py-8 sm:py-12 rounded-xl transition-all"
+                className="text-center cursor-pointer py-8 sm:py-12 rounded-xl transition-all axi-card-premium3d axi-card-faixa"
                 style={{
                   background: arrastando ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)") : "transparent",
                   border: `2px dashed ${arrastando ? (temaClaro ? "#2ecc9b" : "#2ecc9b") : (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.25)")}`,
@@ -1847,11 +1847,11 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
                   {[
                     { label: tt.importadas, valor: sucesso.importadas, cor: "#34d399" },
-                    { label: tt.duplicadas, valor: sucesso.duplicadas, cor: "#fbbf24" },
+                    { label: tt.duplicadas, valor: sucesso.duplicadas, cor: "#facc15" },
                     { label: tt.ignoradas, valor: sucesso.ignoradas, cor: "#5a7a9a" },
                     { label: tt.erros, valor: sucesso.erro, cor: "#f87171" },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: `1px solid ${ct(s.cor)}30` }}>
+                    <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: `1px solid ${ct(s.cor)}30` }}>
                       <p className="text-xl font-bold" style={{ color: ct(s.cor) }}><AnimatedNumber value={String(s.valor)} /></p>
                       <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                     </div>
@@ -1911,7 +1911,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         >
           <div
             className={`w-full max-w-md rounded-2xl p-5${" axi-card-premium3d axi-card-faixa"}`}
-            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(46,204,155,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -1965,7 +1965,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                   onChange={(e) => setFormEdicao({ ...formEdicao, categoria: e.target.value })}
                   placeholder="Ex: Vendas, Aluguel, Salário..."
                   className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-                  style={{ background: fundoInput, color: ct("#a78bfa"), border: bordaInput }}
+                  style={{ background: fundoInput, color: ct("#2ecc9b"), border: bordaInput }}
                 />
               </div>
 
@@ -2005,7 +2005,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         >
           <div
             className={`w-full max-w-lg rounded-2xl p-5${" axi-card-premium3d axi-card-faixa"}`}
-            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(46,204,155,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -2017,14 +2017,14 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             </div>
 
             {/* Mini-preview do resumo */}
-            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)" }}>
+            <div className="rounded-xl p-3 mb-4 text-xs space-y-1 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)" }}>
               <p style={{ color: ct("#5a7a9a") }}>
                 📅 {formatDataHora(shareModal.created_at)} •
                 🎯 <span style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>{destinoLabel(tt, shareModal.destino)}</span>
               </p>
               <p>
                 <span style={{ color: ct("#34d399") }}>✅ {shareModal.linhas_importadas || 0}</span> •
-                <span style={{ color: ct("#fbbf24") }}> ⚠️ {shareModal.linhas_duplicadas || 0}</span> •
+                <span style={{ color: ct("#facc15") }}> ⚠️ {shareModal.linhas_duplicadas || 0}</span> •
                 <span style={{ color: ct("#f87171") }}> ❌ {shareModal.linhas_erro || 0}</span> •
                 <span style={{ color: ct("#c8d8f0") }}> 💰 {formatBRL(Number(shareModal.valor_total_importado) || 0)}</span>
               </p>
@@ -2059,14 +2059,14 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ct("#a78bfa") }}>
+                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ct("#2ecc9b") }}>
                 <span className="text-xl">📋</span>
                 Copiar Resumo
               </button>
               {shareModal.storage_path && (
                 <button onClick={shareCopiarLinkArquivo}
                   className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                  style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)", color: ct("#fb923c") }}>
+                  style={{ background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)", color: ct("#facc15") }}>
                   <span className="text-xl">🔗</span>
                   Link Seguro 24h
                 </button>
@@ -2080,7 +2080,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             </div>
 
             <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
-              ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: ct("#fb923c") }}>Link Seguro</strong> expira em 24h.
+              ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: ct("#facc15") }}>Link Seguro</strong> expira em 24h.
             </div>
 
             <button onClick={fecharShareModal}
@@ -2154,7 +2154,7 @@ function PreviewBlock(props: any) {
     <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
         {perguntasSup.length > 0 && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
             </p>
@@ -2185,7 +2185,7 @@ function PreviewBlock(props: any) {
                   <div key={p.id} className="rounded-lg p-2" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
                     <p className="text-sm font-medium break-words" style={{ color: temaClaro ? "#101b3d" : "#e2e8f0" }}>{p.texto[idiomaNat]}</p>
                     {sugestoesIA[p.id] && (
-                      <div className="mt-2 rounded-lg p-2 text-xs break-words" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(22,169,125,0.12)", borderLeft: "3px solid #16a97d", color: temaClaro ? "#101b3d" : "#e2e8f0" }}>
+                      <div className="mt-2 rounded-lg p-2 text-xs break-words axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(22,169,125,0.12)", borderLeft: "3px solid #16a97d", color: temaClaro ? "#101b3d" : "#e2e8f0" }}>
                         <p className="font-bold" style={{ color: temaClaro ? "#0f6b51" : "#6ee7b7" }}>
                           🤖 {tt.ajudanteSugere}: {opcoes.find(([v]) => v === sugestoesIA[p.id].valor)?.[1]}
                         </p>
@@ -2215,7 +2215,7 @@ function PreviewBlock(props: any) {
           </p>
         )}
         {classif && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>🧾 {tt.deQueECompra}</p>
             <div className="mt-2 space-y-2">
               {Object.entries(classif.porNatureza).map(([natureza, g]) => (
@@ -2236,7 +2236,7 @@ function PreviewBlock(props: any) {
           </div>
         )}
         {textoResumoPag && (
-          <div className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
             <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               💳 {idioma === "en" ? "How it was paid" : idioma === "es" ? "Cómo se pagó" : "Como foi pago"}
             </p>
@@ -2270,7 +2270,7 @@ function PreviewBlock(props: any) {
             <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>
               {tt.tipoDetectado}: <strong style={{ color: destInfo.cor }}>{resultado.formato.toUpperCase()}</strong>
               {multiplosDestinos && (
-                <span className="ml-2" style={{ color: ct("#fbbf24") }}>· {tt.destinoDiferentesPorLinha}</span>
+                <span className="ml-2" style={{ color: ct("#facc15") }}>· {tt.destinoDiferentesPorLinha}</span>
               )}
             </p>
           </div>
@@ -2305,7 +2305,7 @@ function PreviewBlock(props: any) {
               {templates.map((tpl: any) => (
                 <button key={tpl.id} onClick={() => aplicarTemplate(tpl)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ background: "rgba(46,204,155,0.12)", color: ct("#a78bfa"), border: "1px solid rgba(46,204,155,0.25)" }}>
+                  style={{ background: "rgba(46,204,155,0.12)", color: ct("#2ecc9b"), border: "1px solid rgba(46,204,155,0.25)" }}>
                   📋 {tpl.nome}
                 </button>
               ))}
@@ -2315,11 +2315,11 @@ function PreviewBlock(props: any) {
 
         {/* Mapeamento de colunas */}
         {precisaMap && (
-          <div className="rounded-xl p-3" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.25)" }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.25)" }}>
             <div className="flex items-start gap-2 mb-3">
               <span className="text-lg">🗺️</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: ct("#fbbf24") }}>{tt.mapeamentoColunas}</p>
+                <p className="text-sm font-bold" style={{ color: ct("#facc15") }}>{tt.mapeamentoColunas}</p>
                 <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.mapeamentoNecessario}</p>
               </div>
             </div>
@@ -2343,11 +2343,11 @@ function PreviewBlock(props: any) {
             </div>
 
             {/* Salvar template */}
-            <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(251,191,36,0.2)" }}>
+            <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(250,204,21,0.2)" }}>
               {!mostrarSalvarTemplate ? (
                 <button onClick={() => setMostrarSalvarTemplate(true)}
                   className="text-xs font-semibold"
-                  style={{ color: ct("#fbbf24") }}>
+                  style={{ color: ct("#facc15") }}>
                   💾 {tt.salvarTemplate}
                 </button>
               ) : (
@@ -2357,16 +2357,16 @@ function PreviewBlock(props: any) {
                     onChange={(e) => setNomeNovoTemplate(e.target.value)}
                     placeholder={tt.nomeTemplate}
                     className="flex-1 px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: "1px solid rgba(251,191,36,0.3)" }}
+                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: "1px solid rgba(250,204,21,0.3)" }}
                   />
                   <button onClick={salvarComoTemplate}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #fbbf24)" : "linear-gradient(135deg, #b45309, #facc15)", color: temaClaro ? "#2b1900" : "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #facc15)" : "linear-gradient(135deg, #b45309, #facc15)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     💾 OK
                   </button>
                   <button onClick={() => { setMostrarSalvarTemplate(false); setNomeNovoTemplate(""); }}
                     className="px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#6ab0ff") }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#2ecc9b") }}>
                     ✕
                   </button>
                 </div>
@@ -2387,7 +2387,7 @@ function PreviewBlock(props: any) {
           </button>
           <span className="ml-auto text-[11px]" style={{ color: ct("#5a7a9a") }}>
             <strong style={{ color: ct("#34d399") }}>{totalSelecionadas}</strong> {tt.linhasSelecionadas}
-            {totalDuplicadas > 0 && <> · <strong style={{ color: ct("#fbbf24") }}>{totalDuplicadas}</strong> {tt.duplicadasMarcadas}</>}
+            {totalDuplicadas > 0 && <> · <strong style={{ color: ct("#facc15") }}>{totalDuplicadas}</strong> {tt.duplicadasMarcadas}</>}
           </span>
         </div>
 
@@ -2406,7 +2406,7 @@ function PreviewBlock(props: any) {
             ))}
           </select>
           <button onClick={() => aplicarDestinoEmMassa(destinoMassa, true)}
-            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
+            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>
             {tt.aplicar}
           </button>
         </div>
@@ -2434,7 +2434,7 @@ function PreviewBlock(props: any) {
                   return (
                     <tr key={i} className="border-t" style={{
                       borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)"),
-                      background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.05)" : "transparent",
+                      background: !isSel ? fundoInput : isDup ? "rgba(250,204,21,0.05)" : "transparent",
                       opacity: !isSel ? 0.5 : 1,
                     }}>
                       <td className="px-2 py-1.5">
@@ -2477,7 +2477,7 @@ function PreviewBlock(props: any) {
                             onChange={(e) => editarLinha(i, "categoria", e.target.value)}
                             placeholder="—"
                             className="bg-transparent text-xs w-full focus:outline-none"
-                            style={{ color: ct("#a78bfa") }}
+                            style={{ color: ct("#2ecc9b") }}
                           />
                           {!l.categoria && sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria && (
                             <button
@@ -2485,14 +2485,14 @@ function PreviewBlock(props: any) {
                               title={`${tt.motivo}: ${sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}`}
                               onClick={() => editarLinha(i, "categoria", sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria || "")}
                               className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
-                              style={{ background: "rgba(46,204,155,0.15)", color: ct("#d4af37") }}
+                              style={{ background: "rgba(46,204,155,0.15)", color: ct("#2ecc9b") }}
                             >
                               💡 {sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}
                             </button>
                           )}
                           {isDup && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap"
-                              style={{ background: "rgba(251,191,36,0.15)", color: ct("#fbbf24") }}>
+                              style={{ background: "rgba(250,204,21,0.15)", color: ct("#facc15") }}>
                               DUP
                             </span>
                           )}
@@ -2506,8 +2506,8 @@ function PreviewBlock(props: any) {
                             className="text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
                             style={{
                               background: fundoInput,
-                              color: confereDestino ? ct("#fbbf24") : ct("#c8d8f0"),
-                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
+                              color: confereDestino ? ct("#facc15") : ct("#c8d8f0"),
+                              border: `1px solid ${confereDestino ? "rgba(250,204,21,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
                             }}
                           >
                             {DESTINOS.map((d) => (
@@ -2518,7 +2518,7 @@ function PreviewBlock(props: any) {
                             <span
                               title={l.motivoDestino || tt.confiraDestino}
                               className="text-[10px] cursor-help"
-                              style={{ color: ct("#fbbf24") }}
+                              style={{ color: ct("#facc15") }}
                             >
                               ⚠️
                             </span>
@@ -2544,8 +2544,8 @@ function PreviewBlock(props: any) {
             const isDup = duplicadas[i];
             const isSel = selecionadas[i];
             return (
-              <div key={i} className="rounded-lg p-2.5" style={{
-                background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.06)" : fundoCaixaAninhada,
+              <div key={i} className="rounded-lg p-2.5 axi-card-premium3d axi-card-faixa" style={{
+                background: !isSel ? fundoInput : isDup ? "rgba(250,204,21,0.06)" : fundoCaixaAninhada,
                 border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)"),
                 opacity: !isSel ? 0.55 : 1,
               }}>
@@ -2559,11 +2559,11 @@ function PreviewBlock(props: any) {
                     <p className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{l.descricao || "—"}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {l.categoria && (
-                        <span className="text-[10px]" style={{ color: ct("#a78bfa") }}>{l.categoria}</span>
+                        <span className="text-[10px]" style={{ color: ct("#2ecc9b") }}>{l.categoria}</span>
                       )}
                       {isDup && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(251,191,36,0.15)", color: ct("#fbbf24") }}>
+                          style={{ background: "rgba(250,204,21,0.15)", color: ct("#facc15") }}>
                           DUPLICADA
                         </span>
                       )}
@@ -2575,8 +2575,8 @@ function PreviewBlock(props: any) {
                         className="flex-1 text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
                         style={{
                           background: fundoInput,
-                          color: l.confiancaDestino === "baixa" ? ct("#fbbf24") : ct("#c8d8f0"),
-                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
+                          color: l.confiancaDestino === "baixa" ? ct("#facc15") : ct("#c8d8f0"),
+                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(250,204,21,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)")}`,
                         }}
                       >
                         {DESTINOS.map((d) => (
@@ -2584,7 +2584,7 @@ function PreviewBlock(props: any) {
                         ))}
                       </select>
                       {l.confiancaDestino === "baixa" && (
-                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: ct("#fbbf24") }}>⚠️</span>
+                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: ct("#facc15") }}>⚠️</span>
                       )}
                     </div>
                   </div>
@@ -2603,14 +2603,14 @@ function PreviewBlock(props: any) {
             Nada grava sozinho: cada linha suspeita fica desmarcada até o
             usuário decidir. */}
         {verificandoDuplicatas && (
-          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)" }}>
-            <p className="text-xs" style={{ color: ct("#fbbf24") }}>⏳ {tt.verificandoDuplicatas}</p>
+          <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.2)" }}>
+            <p className="text-xs" style={{ color: ct("#facc15") }}>⏳ {tt.verificandoDuplicatas}</p>
           </div>
         )}
         {possiveisDuplicatas.some((p: any) => p) && (
-          <div className="rounded-xl p-3" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.3)" }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.06)", border: "1px solid rgba(250,204,21,0.3)" }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: ct("#fbbf24") }}>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: ct("#facc15") }}>
                 ⚠️ {tt.possivelDuplicata} {pendentesDuplicata > 0 ? `(${pendentesDuplicata})` : ""}
               </p>
               {pendentesDuplicata > 0 && (
@@ -2618,7 +2618,7 @@ function PreviewBlock(props: any) {
                   <span className="text-[10px] self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
                   <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
                   <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>{tt.somar}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>{tt.somar}</button>
                 </div>
               )}
             </div>
@@ -2629,11 +2629,11 @@ function PreviewBlock(props: any) {
                 const decisao = decisoesDuplicata[i];
                 const labelTabela = destinoLabel(tt, pd.candidato.tabela);
                 return (
-                  <div key={i} className="rounded-lg p-2.5" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(251,191,36,0.15)" }}>
+                  <div key={i} className="rounded-lg p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(250,204,21,0.15)" }}>
                     <p className="text-xs font-semibold" style={{ color: ct("#c8d8f0") }}>
                       Linha {i + 1}: {linha.descricao || "—"} · {formatBRL(linha.valor || 0)} · {linha.data ? formatData(linha.data) : "—"}
                     </p>
-                    <p className="text-[11px] mt-1" style={{ color: ct("#fbbf24") }}>
+                    <p className="text-[11px] mt-1" style={{ color: ct("#facc15") }}>
                       {tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
                       {pd.horaComparada && <span style={{ color: ct("#f87171") }}> — {tt.horaConfere}</span>}
                     </p>
@@ -2651,7 +2651,7 @@ function PreviewBlock(props: any) {
                       </button>
                       <button onClick={() => resolverDuplicata(i, "somar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: temaClaro ? "#101b3d" : ct("#6ab0ff"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#6ab0ff")}` : "none" }}>
+                        style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: temaClaro ? "#101b3d" : ct("#2ecc9b"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#2ecc9b")}` : "none" }}>
                         {tt.somar}
                       </button>
                     </div>
@@ -2664,12 +2664,12 @@ function PreviewBlock(props: any) {
 
         {/* Simulador — mesmo caminho da importação real, nada é gravado */}
         {simulacao && (
-          <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(46,204,155,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#6ab0ff") }}>🔍 {tt.resultadoSimulacao}</p>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(46,204,155,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#2ecc9b") }}>🔍 {tt.resultadoSimulacao}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { label: tt.importadas, valor: simulacao.importadas, cor: ct("#34d399") },
-                { label: tt.duplicadas, valor: simulacao.duplicadas, cor: ct("#fbbf24") },
+                { label: tt.duplicadas, valor: simulacao.duplicadas, cor: ct("#facc15") },
                 { label: tt.ignoradas, valor: simulacao.ignoradas, cor: ct("#5a7a9a") },
                 { label: tt.erros, valor: simulacao.erro, cor: ct("#f87171") },
               ].map((s: any, i: number) => (
@@ -2683,7 +2683,7 @@ function PreviewBlock(props: any) {
         )}
 
         {/* Resumo + Ações */}
-        <div className="rounded-xl p-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
+        <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.valorTotal}</p>
@@ -2744,7 +2744,7 @@ function HistoricoBlock(props: any) {
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : ct("#6ab0ff")}>
+      <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : ct("#2ecc9b")}>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroStatus}</label>
@@ -2772,19 +2772,19 @@ function HistoricoBlock(props: any) {
       </CanvasBox>
 
       {loadingHistorico ? (
-        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+        <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
           <div className="py-8 text-center">
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         </CanvasBox>
       ) : historico.length === 0 ? (
-        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+        <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
           <div className="py-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{tt.semImportacoes}</p></div>
         </CanvasBox>
       ) : (
         historico.map((item: any) => {
           const destInfo = DESTINOS.find((d) => d.key === item.destino) || DESTINOS[0];
-          const stInfo = STATUS_INFO[item.status] || { cor: ct("#6ab0ff") };
+          const stInfo = STATUS_INFO[item.status] || { cor: ct("#2ecc9b") };
           const isExp = expandida === item.id;
           const podeDesfazer = item.status === "concluido" || item.status === "parcialmente";
           const podeExcluirRegistro = item.status === "erro" || item.status === "revertido" || item.status === "falhou";
@@ -2810,9 +2810,9 @@ function HistoricoBlock(props: any) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: tt.importadas, valor: item.linhas_importadas || 0, cor: ct("#34d399") },
-                    { label: tt.duplicadas, valor: item.linhas_duplicadas || 0, cor: ct("#fbbf24") },
+                    { label: tt.duplicadas, valor: item.linhas_duplicadas || 0, cor: ct("#facc15") },
                     { label: tt.erros, valor: item.linhas_erro || 0, cor: ct("#f87171") },
-                    { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: ct("#6ab0ff") },
+                    { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: ct("#2ecc9b") },
                   ].map((s, i) => (
                     <div key={i} className="rounded-lg p-2" style={{ background: fundoCaixaAninhada }}>
                       <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
@@ -2825,7 +2825,7 @@ function HistoricoBlock(props: any) {
                 {isExp && (
                   <div className="space-y-3">
                     {/* Metadados */}
-                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
+                    <div className="rounded-lg p-3 text-xs space-y-1 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p style={{ color: ct("#5a7a9a") }}>
                         Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
                       </p>
@@ -2833,11 +2833,11 @@ function HistoricoBlock(props: any) {
                       {item.tamanho_bytes > 0 && <p style={{ color: ct("#5a7a9a") }}>Tamanho: <span style={{ color: ct("#c8d8f0") }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
                       {item.tempo_processamento_ms > 0 && <p style={{ color: ct("#5a7a9a") }}>Tempo: <span style={{ color: ct("#c8d8f0") }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
                       {item.mensagem_erro && <p style={{ color: ct("#f87171") }}>⚠️ {item.mensagem_erro}</p>}
-                      {item.revertido_em && <p style={{ color: ct("#fbbf24") }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
+                      {item.revertido_em && <p style={{ color: ct("#facc15") }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
                     </div>
 
                     {/* Fila de Exceções — o que o sistema não decidiu sozinho */}
-                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(248,113,113,0.15)" }}>
+                    <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(248,113,113,0.15)" }}>
                       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#f87171") }}>⚠️ {tt.excecoes}</p>
                       {(excecoesPorImportacao[item.id] || []).length === 0 ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semExcecoes}</p>
@@ -2850,7 +2850,7 @@ function HistoricoBlock(props: any) {
                                   {exc.tipo} {exc.linha_numero ? `— linha ${exc.linha_numero}` : ""}
                                 </p>
                                 <p className="text-[11px] mt-0.5" style={{ color: ct("#c8d8f0") }}>{tt.motivo}: {exc.motivo}</p>
-                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? ct("#fbbf24") : ct("#34d399") }}>
+                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? ct("#facc15") : ct("#34d399") }}>
                                   {exc.status === "pendente" ? tt.excecaoPendente : tt.excecaoResolvida}
                                 </p>
                               </div>
@@ -2871,7 +2871,7 @@ function HistoricoBlock(props: any) {
                     </div>
 
                     {/* Linha do Tempo */}
-                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
+                    <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>🕒 {tt.timeline}</p>
                       {(timelinePorImportacao[item.id] || []).length === 0 ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semTimeline}</p>
@@ -2881,7 +2881,7 @@ function HistoricoBlock(props: any) {
                             <div key={ev.id} className="flex items-start gap-2 text-xs">
                               <span style={{ color: ct("#5a7a9a") }} className="flex-shrink-0">{formatDataHora(ev.created_at)}</span>
                               <span style={{ color: ct("#c8d8f0") }}>
-                                <strong style={{ color: ct("#6ab0ff") }}>{ev.evento}</strong>{ev.descricao ? ` — ${ev.descricao}` : ""}
+                                <strong style={{ color: ct("#2ecc9b") }}>{ev.evento}</strong>{ev.descricao ? ` — ${ev.descricao}` : ""}
                               </span>
                             </div>
                           ))}
@@ -2930,17 +2930,17 @@ function HistoricoBlock(props: any) {
                                       <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0"), maxWidth: 200 }}>
                                         <div className="truncate">{ln.descricao || "—"}</div>
                                       </td>
-                                      <td className="px-2 py-1.5" style={{ color: ct("#a78bfa") }}>{ln.categoria || "—"}</td>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#2ecc9b") }}>{ln.categoria || "—"}</td>
                                       <td className="px-2 py-1.5 text-center">
                                         <span className="px-1.5 py-0.5 rounded text-[10px]" style={{
                                           background: ln.status === "importada" ? "rgba(52,211,153,0.15)" :
-                                                       ln.status === "duplicada" ? "rgba(251,191,36,0.15)" :
+                                                       ln.status === "duplicada" ? "rgba(250,204,21,0.15)" :
                                                        ln.status === "revertida" ? "rgba(58,90,138,0.2)" :
                                                        ln.status === "erro" ? "rgba(248,113,113,0.15)" : (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"),
                                           color: ln.status === "importada" ? ct("#34d399") :
-                                                 ln.status === "duplicada" ? ct("#fbbf24") :
+                                                 ln.status === "duplicada" ? ct("#facc15") :
                                                  ln.status === "revertida" ? ct("#5a7a9a") :
-                                                 ln.status === "erro" ? ct("#f87171") : ct("#6ab0ff"),
+                                                 ln.status === "erro" ? ct("#f87171") : ct("#2ecc9b"),
                                         }}>
                                           {ln.status}
                                         </span>
@@ -2951,7 +2951,7 @@ function HistoricoBlock(props: any) {
                                             <button onClick={() => abrirEdicao(ln)}
                                               title="Editar"
                                               className="px-1.5 py-1 rounded hover:opacity-80"
-                                              style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
+                                              style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>
                                               ✏️
                                             </button>
                                             <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
@@ -2976,7 +2976,7 @@ function HistoricoBlock(props: any) {
                           {linhasPorImportacao[item.id].map((ln: any) => {
                             const editavel = ln.status === "importada";
                             return (
-                              <div key={ln.id} className="rounded-lg p-2.5" style={{
+                              <div key={ln.id} className="rounded-lg p-2.5 axi-card-premium3d axi-card-faixa" style={{
                                 background: fundoCaixaAninhada,
                                 border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)"),
                                 opacity: editavel ? 1 : 0.55,
@@ -2987,12 +2987,12 @@ function HistoricoBlock(props: any) {
                                 </div>
                                 <p className="text-xs truncate mb-1" style={{ color: ct("#c8d8f0") }}>{ln.descricao || "—"}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[10px]" style={{ color: ct("#a78bfa") }}>{ln.categoria || "—"}</span>
+                                  <span className="text-[10px]" style={{ color: ct("#2ecc9b") }}>{ln.categoria || "—"}</span>
                                   {editavel && (
                                     <div className="flex gap-1">
                                       <button onClick={() => abrirEdicao(ln)}
                                         className="px-2 py-1 rounded text-xs"
-                                        style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#6ab0ff") }}>
+                                        style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>
                                         ✏️ Editar
                                       </button>
                                       <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
@@ -3016,13 +3016,13 @@ function HistoricoBlock(props: any) {
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => expandirImportacao(item.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#6ab0ff") }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: ct("#2ecc9b") }}>
                     {isExp ? "▲" : "▼"} {tt.detalhes}
                   </button>
                   {item.storage_path && (
                     <button onClick={() => baixarOriginal(item)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "rgba(46,204,155,0.1)", color: ct("#a78bfa") }}>
+                      style={{ background: "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>
                       ⬇️ {tt.baixarOriginal}
                     </button>
                   )}

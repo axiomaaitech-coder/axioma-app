@@ -81,7 +81,7 @@ export default function UsoIaPage() {
   const MUTED = temaClaro ? '#374151' : '#a3b1c2'
   const CREME = temaClaro ? '#f6f7c4' : undefined
   // Caixa aninhada: bege translúcido no Claro (regra permanente), padrão original no Escuro.
-  const NESTED = temaClaro ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' } : { background: 'rgba(2,8,16,0.5)', border: '1px solid rgba(106,176,255,0.15)' }
+  const NESTED = temaClaro ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' } : { background: 'rgba(2,8,16,0.5)', border: '1px solid rgba(46,204,155,0.15)' }
   const ACENTO = temaClaro ? '#16a97d' : '#2ecc9b'
   const locale = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
 

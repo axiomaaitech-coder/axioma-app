@@ -46,8 +46,8 @@ const JADE = '#047857'
 const BRONZE = '#065f46'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
-const AMBAR = '#f59e0b'
-const AZUL = '#6ab0ff'
+const AMBAR = '#facc15'
+const AZUL = '#2ecc9b'
 
 const CATEGORIAS_RECEITA = ['Vendas de produtos', 'Prestação de serviços', 'Recorrentes', 'Eventuais', 'Outras']
 const CATEGORIAS_CUSTO = ['Marketing', 'Logística', 'Matéria-prima', 'Comissões', 'Embalagens', 'Outros']
@@ -171,11 +171,11 @@ const textos = {
 
 // Lista de reserva (caso a busca ao Pluggy falhe) — só visual
 const BANCOS_FALLBACK = [
-  { id: 0, name: 'Nubank', primaryColor: '#a855f7', imageUrl: '', isSandbox: false },
+  { id: 0, name: 'Nubank', primaryColor: '#2ecc9b', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Itaú', primaryColor: '#FF8C00', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Bradesco', primaryColor: '#f87171', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Santander', primaryColor: '#f87171', imageUrl: '', isSandbox: false },
-  { id: 0, name: 'Banco do Brasil', primaryColor: '#fbbf24', imageUrl: '', isSandbox: false },
+  { id: 0, name: 'Banco do Brasil', primaryColor: '#facc15', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Caixa', primaryColor: '#38bdf8', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Inter', primaryColor: '#FF8C00', imageUrl: '', isSandbox: false },
   { id: 0, name: 'C6 Bank', primaryColor: '#94a3b8', imageUrl: '', isSandbox: false },
@@ -611,7 +611,7 @@ export default function OpenFinancePage() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'rgba(46,204,155,0.15)', border: temaClaro ? 'none' : '1px solid rgba(46,204,155,0.4)', color: temaClaro ? '#fff' : ct('#c4b5fd') }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'rgba(46,204,155,0.15)', border: temaClaro ? 'none' : '1px solid rgba(46,204,155,0.4)', color: temaClaro ? '#fff' : ct('#2ecc9b') }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -619,7 +619,7 @@ export default function OpenFinancePage() {
         <AnimatePresence>
           {mensagem && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl axi-card-premium3d axi-card-faixa"
               style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(255,90,107,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(255,90,107,0.4)'}` }}>
               {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={ct(VERDE)} /> : <AlertCircle size={18} color={ct(VERMELHO)} />}
               <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? ct(VERDE) : ct(VERMELHO) }}>{mensagem}</p>
@@ -676,7 +676,7 @@ export default function OpenFinancePage() {
         <CanvasBox {...cartaoTema} cor={ct(AZUL)}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.1)' }}>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(46,204,155,0.1)' }}>
                 <Building2 size={28} style={{ color: ct(AZUL) }} />
               </div>
               <div>
@@ -706,9 +706,9 @@ export default function OpenFinancePage() {
         </CanvasBox>
 
         {/* ---- Bancos: busca + prioridade + separação sandbox ---- */}
-        <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+        <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#a78bfa') }}>{t.bancos}</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#2ecc9b') }}>{t.bancos}</p>
             <p className="text-xs" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.cliqueBanco}</p>
           </div>
           <div className="relative mb-4">
@@ -757,7 +757,7 @@ export default function OpenFinancePage() {
             <div className="space-y-3">
               {conexoes.map((c, i) => (
                 <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between gap-3 p-3 rounded-xl flex-wrap"
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa"
                   style={{ background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)' }}>
                   <div className="flex items-center gap-3 min-w-0">
                     <Landmark size={20} style={{ color: ct(VERDE) }} />
@@ -907,7 +907,7 @@ function LinhaTransacao({
 
   return (
     <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-      className="p-3 rounded-xl" style={{ background: temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.02)', border: temaClaro ? '1px solid rgba(46,204,155,0.15)' : '1px solid rgba(46,204,155,0.08)' }}>
+      className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.02)', border: temaClaro ? '1px solid rgba(46,204,155,0.15)' : '1px solid rgba(46,204,155,0.08)' }}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{tx.descricao}</p>
@@ -936,7 +936,7 @@ function LinhaTransacao({
               {tx.candidatos.map((c) => (
                 <button key={c.id} onClick={() => onEscolherCandidato(tx, c)} disabled={criando}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs"
-                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: ct('#c8d8f0') }}>
+                  style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.25)', color: ct('#c8d8f0') }}>
                   <span className="truncate">{c.descricao} — {new Date(c.data + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                   <span className="font-bold flex-shrink-0" style={{ color: ct(AMBAR) }}>{t.confirmarEscolha}</span>
                 </button>
@@ -944,7 +944,7 @@ function LinhaTransacao({
             </div>
           ) : (
             <button onClick={() => setExpandidoCandidatosId(tx.id)}
-              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: ct(AMBAR) }}>
+              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', color: ct(AMBAR) }}>
               {t.escolherLancamento}
             </button>
           )}

@@ -116,7 +116,7 @@ const T = {
 // Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
 // Claro) segue os valores exatos de public/referencias/tema-tokens.md.
 const PALETA = {
-  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#fbbf24", AZULC: "#6ab0ff", ROXO: "#a78bfa", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#facc15", AZULC: "#2ecc9b", ROXO: "#2ecc9b", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
   xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AMARELO: "#f5a623", AZULC: "#2ecc9b", ROXO: "#101b3d", CINZA: "#374151", TEXTO: "#101b3d", CAMPO_BG: "#ffffff", TOOLTIP_BG: "#ffffff" },
 } as const;
 function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR")}`; }
@@ -400,7 +400,7 @@ export default function IATributariaPage() {
             ].map((a) => (
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
-                style={{ background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"), color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC), border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)") }}>{a.label}</button>
+                style={{ background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"), color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC), border: temaClaro ? "none" : (aba === a.key ? "1px solid #2ecc9b" : "1px solid rgba(46,204,155,0.2)") }}>{a.label}</button>
             ))}
           </div>
 
@@ -440,7 +440,7 @@ export default function IATributariaPage() {
               <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
+                    <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap axi-card-premium3d axi-card-faixa"
                       style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(46,204,155,0.1)")}`, color: TEXTO }}>{m.texto}</div>
                   </div>
                 ))}
@@ -514,11 +514,11 @@ export default function IATributariaPage() {
                   <span className="text-sm" style={{ color: CINZA }}>{tt.cargaSobreReceita}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.porMes}</p>
                     <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_mensal)}</p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.porAno}</p>
                     <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_anual)}</p>
                   </div>
@@ -547,15 +547,15 @@ export default function IATributariaPage() {
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.economiaTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.economiaDesc}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
+                  <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.economiaMensal}</p>
                     <p className="text-2xl font-black" style={{ color: VERDE }}><AnimatedNumber value={formatBRL(economia.economia_mensal)} /></p>
                   </div>
-                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
+                  <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.economiaAnual}</p>
                     <p className="text-2xl font-black" style={{ color: VERDE }}><AnimatedNumber value={formatBRL(economia.economia_anual)} /></p>
                   </div>
-                  <div className="rounded-xl p-3 text-center" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)" }}>
+                  <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.regimeIdeal}</p>
                     <p className="text-lg font-bold" style={{ color: AZULC }}>{economia.regime_ideal}</p>
                   </div>
@@ -563,7 +563,7 @@ export default function IATributariaPage() {
                 <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.acoesEconomia}</p>
                 <div className="space-y-2">
                   {economia.acoes.map((a: any, i: number) => (
-                    <div key={i} className="rounded-lg p-3 flex items-center justify-between" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={i} className="rounded-lg p-3 flex items-center justify-between axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(52,211,153,0.15)" }}>
                       <p className="text-xs" style={{ color: TEXTO }}>{ecoTit(a)}</p>
                       <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: VERDE }}>{a.economia}</span>
                     </div>
@@ -607,7 +607,7 @@ export default function IATributariaPage() {
             <CanvasBox cor={AZULC} {...cartaoTema}>
               <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.diagnosticoTitulo}</p>
               <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.diagnosticoDesc}</p>
-              <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
+              <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed axi-card-premium3d axi-card-faixa"
                 style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)", color: TEXTO }}>{diagnostico}</div>
             </CanvasBox>
           )}

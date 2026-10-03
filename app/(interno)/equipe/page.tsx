@@ -30,8 +30,8 @@ const JADE = '#047857'
 const BRONZE = '#065f46'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
-const AMBAR = '#f59e0b'
-const AZUL = '#6ab0ff'
+const AMBAR = '#facc15'
+const AZUL = '#2ecc9b'
 const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" }
 
 // Link do convite sempre no domínio próprio (nunca o endereço da Vercel)
@@ -600,7 +600,7 @@ export default function EquipePage() {
                   opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
                   onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
                 {meuPapelConvite && precisaAutorizacao && (
-                  <div className="rounded-lg p-2.5 space-y-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(250,204,21,0.06)', border: `1px solid ${AMBAR}66` }}>
+                  <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(250,204,21,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
                     <p className="text-[11px]" style={{ color: MUTED }}>{t.autAviso}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -709,7 +709,7 @@ export default function EquipePage() {
               {membros.filter((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao').map((m) => {
                 const tm = termos.find((x) => x.convite_id === m.id && !x.apagado_em)
                 return (
-                  <div key={m.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3"
+                  <div key={m.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3 axi-card-premium3d axi-card-faixa"
                     style={{ background: LINHA_BG, border: '1px solid rgba(22,169,125,0.35)' }}>
                     <div className="flex-1 min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
                       <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm?.nome || m.nome || t.conviteLink}</p>
@@ -750,7 +750,7 @@ export default function EquipePage() {
                 const possoDecidir = !souParte && (meuNivel ?? 99) <= p.nivel_aval
                 const venceu = new Date(p.expira_em) < new Date()
                 return (
-                  <div key={p.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3" style={{ background: LINHA_BG, border: '1px solid rgba(248,113,113,0.35)' }}>
+                  <div key={p.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, border: '1px solid rgba(248,113,113,0.35)' }}>
                     <div className="flex-1 min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
                       <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.pedidoDe(nomeDe(p.pedido_por), nomeDe(p.alvo_user_id))}</p>
                       <p>{t.motivoLabel.split(' (')[0]}: {p.motivo}</p>
@@ -781,7 +781,7 @@ export default function EquipePage() {
         <AnimatePresence>
           {mensagem && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl axi-card-premium3d axi-card-faixa"
               style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(255,90,107,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(255,90,107,0.4)'}` }}>
               {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={VERDE} /> : <AlertCircle size={18} color={VERMELHO} />}
               <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>
@@ -815,7 +815,7 @@ export default function EquipePage() {
           </div>
         </CanvasBox>
 
-        <CanvasBox cor="#a78bfa" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
+        <CanvasBox cor="#2ecc9b" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           {membros.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-4xl mb-3">🧑‍🤝‍🧑</p>
@@ -828,7 +828,7 @@ export default function EquipePage() {
                 const status = statusDe(m)
                 const ehVoce = m.origem === 'ativo' && m.user_id === userId
                 return (
-                  <div key={`${m.origem}-${m.id}`} className="rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap"
+                  <div key={`${m.origem}-${m.id}`} className="rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap axi-card-premium3d axi-card-faixa"
                     style={{ background: LINHA_BG, border: '1px solid rgba(46,204,155,0.15)' }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>
@@ -864,7 +864,7 @@ export default function EquipePage() {
                         )}
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.12)', color: '#a78bfa' }}>
+                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b' }}>
                             <Copy size={15} />
                           </button>
                         )}
@@ -882,7 +882,7 @@ export default function EquipePage() {
                           </select>
                         ) : podeTrocarPapel(m) && (
                           <button onClick={() => setEditandoId(`${m.origem}-${m.id}`)} title={t.editarPapel}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(106,176,255,0.1)', color: AZUL }}>
+                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.1)', color: AZUL }}>
                             <Pencil size={15} />
                           </button>
                         )}
@@ -911,7 +911,7 @@ export default function EquipePage() {
           ) : (
             <div className="space-y-2">
               {termos.map((tm) => (
-                <div key={tm.id} className="rounded-xl p-3 flex items-start justify-between gap-3" style={{ background: LINHA_BG, border: '1px solid rgba(16,27,61,0.10)' }}>
+                <div key={tm.id} className="rounded-xl p-3 flex items-start justify-between gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, border: '1px solid rgba(16,27,61,0.10)' }}>
                   <div className="min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
                     {tm.apagado_em ? (
                       <p className="font-semibold" style={{ color: TEXTO }}>{t.dadosApagados(dataHora(tm.apagado_em), tm.motivo_apagado || '')}</p>
@@ -945,7 +945,7 @@ export default function EquipePage() {
             </div>
             <button onClick={() => { if (!apagando) { setTermoApagar(null); setMembroCortar(null) } }} style={{ color: MUTED }}><X size={20} /></button>
           </div>
-          <div className="rounded-xl p-3 mb-3 flex gap-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(248,113,113,0.08)', border: `1px solid ${VERMELHO}40` }}>
+          <div className="rounded-xl p-3 mb-3 flex gap-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(248,113,113,0.08)', border: `1px solid ${VERMELHO}40` }}>
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
             <p className="text-xs" style={{ color: TEXTO }}>{membroCortar ? `${membroCortar.nome || membroCortar.email} — ${zeraAoCortar(membroCortar) ? t.cortarAvisoPrazo : t.cortarAviso}` : t.apagarAviso}</p>
           </div>

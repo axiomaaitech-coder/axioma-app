@@ -664,7 +664,7 @@ const T = {
 // Claro) segue os valores exatos de public/referencias/tema-tokens.md —
 // mesma paleta já usada em ia-tributaria/mei/relatorios.
 const PALETA = {
-  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#fbbf24", AZULC: "#6ab0ff", ROXO: "#a78bfa", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#facc15", AZULC: "#2ecc9b", ROXO: "#2ecc9b", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
   xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AMARELO: "#f5a623", AZULC: "#2ecc9b", ROXO: "#101b3d", CINZA: "#374151", TEXTO: "#101b3d", CAMPO_BG: "#ffffff", TOOLTIP_BG: "#ffffff" },
 } as const;
 
@@ -1228,7 +1228,7 @@ export default function EmpresaPage() {
   // solido, mesmo degrade usado em Salvar/Exportar - pill claro ficou fraco demais.
   const estiloLimparCampos = temaClaro
     ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-    : { background: "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
+    : { background: "rgba(250,204,21,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
@@ -1337,7 +1337,7 @@ export default function EmpresaPage() {
                 style={{
                   background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
                   color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC),
-                  border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
+                  border: temaClaro ? "none" : (aba === a.key ? "1px solid #2ecc9b" : "1px solid rgba(46,204,155,0.2)"),
                 }}>{a.label}</button>
             ))}
           </div>
@@ -1489,7 +1489,7 @@ export default function EmpresaPage() {
                         placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
                         className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                        style={{ background: "rgba(251,191,36,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
+                        style={{ background: "rgba(250,204,21,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
                     </div>
                     {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cep}</p>}
                   </div>
@@ -1625,7 +1625,7 @@ export default function EmpresaPage() {
                 ) : (
                   <div className="space-y-2">
                     {socios.map((s: any) => (
-                      <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
+                      <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap axi-card-premium3d axi-card-faixa"
                         style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"}` }}>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.nome}</p>
@@ -1683,7 +1683,7 @@ export default function EmpresaPage() {
                       o.status === "atrasada" ? tt.statusAtrasada.toUpperCase() :
                       o.status === "dispensada" ? tt.statusDispensada.toUpperCase() : tt.statusPendente.toUpperCase();
                     return (
-                      <div key={o.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
+                      <div key={o.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap axi-card-premium3d axi-card-faixa"
                         style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${corStatus}30` }}>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold" style={{ color: TEXTO }}>{o.nome}</p>
@@ -1736,7 +1736,7 @@ export default function EmpresaPage() {
                     const hoje = new Date().toISOString().slice(0, 10);
                     const vencido = d.data_validade && d.data_validade < hoje;
                     return (
-                      <div key={d.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${vencido ? VERMELHO : AMARELO}30` }}>
+                      <div key={d.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${vencido ? VERMELHO : AMARELO}30` }}>
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-2xl">{tipo.icon}</span>
                           {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: VERMELHO }}>{tt.documentoVencido}</span>}
@@ -1775,7 +1775,7 @@ export default function EmpresaPage() {
                     const icon = a.acao === "criar" ? "➕" : a.acao === "editar" ? "✏️" : "🗑️";
                     const cor = a.acao === "criar" ? VERDE : a.acao === "editar" ? AZULC : VERMELHO;
                     return (
-                      <div key={a.id} className="rounded-lg p-3 flex items-start gap-3"
+                      <div key={a.id} className="rounded-lg p-3 flex items-start gap-3 axi-card-premium3d axi-card-faixa"
                         style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${cor}20` }}>
                         <span className="text-lg flex-shrink-0">{icon}</span>
                         <div className="flex-1 min-w-0">
@@ -1813,7 +1813,7 @@ export default function EmpresaPage() {
         <ModalGenerico titulo={tt.limparCamposModalTitulo} fechar={() => setModalLimparAberto(false)}>
           <p className="text-sm mb-3" style={{ color: TEXTO }}>{tt.limparCamposModalTexto}</p>
           <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.limparCamposModalNaoAfeta}</p>
-          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: AMARELO, background: "rgba(251,191,36,0.1)" }}>
+          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: AMARELO, background: "rgba(250,204,21,0.1)" }}>
             {tt.limparCamposModalAviso}
           </p>
           <div className="flex flex-col sm:flex-row-reverse gap-2">
@@ -1837,7 +1837,7 @@ export default function EmpresaPage() {
       {resultadoCNPJ && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setResultadoCNPJ(null)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+          <div className="w-full max-w-lg rounded-2xl p-5 axi-card-premium3d axi-card-faixa" onClick={(e) => e.stopPropagation()}
             style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.4)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: ROXO }}>{tt.cnpjResultadoTitulo}</p>
@@ -1866,7 +1866,7 @@ export default function EmpresaPage() {
       {modalScoreDetalhe && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setModalScoreDetalhe(null)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+          <div className="w-full max-w-lg rounded-2xl p-5 axi-card-premium3d axi-card-faixa" onClick={(e) => e.stopPropagation()}
             style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: TEXTO }}>
@@ -1894,8 +1894,8 @@ export default function EmpresaPage() {
       {shareModalAberto && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setShareModalAberto(false)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}>
+          <div className="w-full max-w-lg rounded-2xl p-5 axi-card-premium3d axi-card-faixa" onClick={(e) => e.stopPropagation()}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(46,204,155,0.15)" }}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.centroCompart}</p>
@@ -1904,7 +1904,7 @@ export default function EmpresaPage() {
               <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
             {empresa && (
-              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"}` }}>
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"}` }}>
                 <p style={{ color: TEXTO }}>📄 <strong style={{ color: AZULC }}>{empresa.cnpj || tt.semCnpj}</strong></p>
                 <p style={{ color: TEXTO }}>
                   📊 Health: <strong style={{ color: ct(healthScore.cor) }}>{healthScore.score}/100</strong> • 🛡️ Compliance: <strong style={{ color: ct(complianceScore.cor) }}>{complianceScore.score}/100</strong>
@@ -1999,8 +1999,8 @@ function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: (
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
       style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={fechar}>
-      <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-        style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+      <div className="w-full max-w-lg rounded-2xl p-5 axi-card-premium3d axi-card-faixa" onClick={(e) => e.stopPropagation()}
+        style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.3)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-bold" style={{ color: TEXTO }}>{titulo}</p>
           <button onClick={fechar} className="text-xl" style={{ color: CINZA }}>✕</button>
