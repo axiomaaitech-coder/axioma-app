@@ -515,7 +515,7 @@ export default function Simulacoes() {
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarSimulacao}
                 className="w-full py-3 rounded-xl text-sm font-bold"
-                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                 {cx.simSimular}
               </motion.button>
             </div>

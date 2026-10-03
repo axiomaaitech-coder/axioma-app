@@ -512,12 +512,12 @@ export default function DREPage() {
           <div className="flex gap-2">
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setHistoricoAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", border: temaClaro ? "none" : "1px solid rgba(20,184,166,0.4)", color: temaClaro ? "#fff" : "#5eead4" }}>
+              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: temaClaro ? "none" : "1px solid rgba(20,184,166,0.4)", color: temaClaro ? "#fff" : "#5eead4" }}>
               <History size={16} /> {cx.verHistorico}
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
               <Share2 size={16} /> {cx.compartilhar}
             </motion.button>
           </div>

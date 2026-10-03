@@ -1319,7 +1319,7 @@ export default function EmpresaPage() {
 
           <button onClick={() => setShareModalAberto(true)}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
             {tt.compartilharCartao}
           </button>
 

@@ -687,7 +687,7 @@ export default function Precificacao() {
                         ))}
                       </div>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={aplicarPreco}
-                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {cx.prcAplicarPreco}
                       </motion.button>
                     </>
@@ -733,7 +733,7 @@ export default function Precificacao() {
                     <input placeholder={cx.prcConcorrenteNomeLabel} value={novoConcorrenteNome} onChange={(e) => setNovoConcorrenteNome(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} onBlur={(e) => setNovoConcorrentePreco(precoBlur(e.target.value))} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input placeholder={cx.prcConcorrentePosicionamentoLabel} value={novoConcorrentePosicionamento} onChange={(e) => setNovoConcorrentePosicionamento(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                       <Plus size={16} /> {cx.prcAdicionarConcorrente}
                     </motion.button>
                   </div>
@@ -774,7 +774,7 @@ export default function Precificacao() {
                 ))}
               </div>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarWarRoom}
-                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                 {cx.simSimular}
               </motion.button>
               {warResultado && (

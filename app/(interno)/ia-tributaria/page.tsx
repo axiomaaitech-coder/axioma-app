@@ -388,7 +388,7 @@ export default function IATributariaPage() {
           </div>
 
           <button onClick={() => setShareAberto(true)} className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>{tt.compartilhar}</button>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{tt.compartilhar}</button>
 
           {/* ABAS */}
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -453,7 +453,7 @@ export default function IATributariaPage() {
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
                   placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: campoBorda, color: TEXTO }} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
-                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>➤</button>
+                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>➤</button>
               </div>
             </CanvasBox>
           )}

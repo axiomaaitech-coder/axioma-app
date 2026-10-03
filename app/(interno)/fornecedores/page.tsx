@@ -2899,7 +2899,7 @@ export default function Fornecedores() {
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0f7d5c, #16a97d)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : "Save Bill")}
                       </motion.button>
                     </div>
