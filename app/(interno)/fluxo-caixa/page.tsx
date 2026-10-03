@@ -10,6 +10,7 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { lerTodas } from "../../../lib/lerTodas";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -155,16 +156,17 @@ export default function FluxoCaixa() {
     if (!empresaId) { setCarregando(false); return; }
 
     const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }] = await Promise.all([
-      supabase.from("fluxo_caixa").select("*").eq("empresa_id", empresaId)
+      // lerTodas: o Supabase corta em 1000 linhas por pedido — empresa grande perdia lançamento
+      lerTodas(() => supabase.from("fluxo_caixa").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
-        .order("data", { ascending: false }),
+        .order("data", { ascending: false }).order("id")),
       // Leitura só (SELECT) — base dos previstos automáticos. Nunca escreve nessas tabelas.
-      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
+      lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
       // Sem .neq("status","pago") aqui: contas pagas continuam entrando (resta = 0,
       // já cai fora de saidasAutoContasPagar pelo filtro de valor abaixo) — precisamos
       // delas TAMBÉM quando pagas, pra saber que o custo fixo do mês já virou conta
       // a pagar e não duplicar a saída na projeção de custos fixos logo adiante.
-      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId),
+      lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
       supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
       supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("empresa_id", empresaId),
     ]);

@@ -5,6 +5,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,14 +43,15 @@ export type LancamentoOrigem = {
 
 export async function carregarLancamentosOrigem(empresaId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId).order("descricao");
+    const { data } = await lerTodas(() => supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId).order("descricao").order("id"));
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {
-    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).limit(5000);
+    // lerTodas: o Supabase corta em 1000 por pedido (o .limit(5000) antigo não passava disso)
+    const { data } = await lerTodas(() => supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("empresa_id", empresaId).order("data_vencimento", { ascending: false }).limit(5000);
+  const { data } = await lerTodas(() => supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("empresa_id", empresaId).order("data_vencimento", { ascending: false }).order("id"));
   return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id, status: d.status, valor_pago: Number(d.valor_pago || 0) }));
 }
 
@@ -65,7 +67,7 @@ export async function carregarTodosLancamentosOrigem(empresaId: string): Promise
 export type ReceitaOrigem = { id: string; descricao: string; valor: number; data: string; categoria?: string; centro_custo_id: string | null };
 
 export async function carregarReceitasOrigem(empresaId: string): Promise<ReceitaOrigem[]> {
-  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).limit(5000);
+  const { data } = await lerTodas(() => supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
   return (data || []).map((d: any) => ({ id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
 }
 

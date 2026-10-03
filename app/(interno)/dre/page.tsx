@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { Share2, AlertTriangle, Sparkles, Zap, MessageSquareText, History, X, ShieldCheck, Clock } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { lerTodas } from "../../../lib/lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
@@ -167,15 +168,15 @@ export default function DREPage() {
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: rec }, { data: cv }, { data: cf }, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
-      empId ? supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("custos_variaveis").select("descricao, valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("custos_variaveis").select("descricao, valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("custos_fixos").select("descricao, valor_mensal, categoria").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
       empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
-      empId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
-      empId ? supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido") : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
