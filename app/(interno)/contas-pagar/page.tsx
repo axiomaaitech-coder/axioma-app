@@ -2258,7 +2258,7 @@ export default function ContasPagarPage() {
                       podeEditar && (
                         <button onClick={() => abrirTransformarPadrao(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: "none", color: "#fff" }}>
                           {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
                         </button>
                       )

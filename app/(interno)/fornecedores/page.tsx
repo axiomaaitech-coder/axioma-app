@@ -1802,7 +1802,7 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2 flex-wrap">
               <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={periodoPersonalizado} onChangePersonalizado={setPeriodoPersonalizado} cor={AMBAR} lang={lang} />
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold" style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.12)", border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold" style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: "none", color: "#fff" }}>
                 <Share2 size={14} /> {cx.compartilhar}
               </motion.button>
             </div>
@@ -1893,10 +1893,10 @@ export default function Fornecedores() {
             {rankingAxioma.length === 0 ? (
               <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.rankingVazio}</p>
             ) : (
-              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+              <div className="space-y-1.5">
                 {rankingAxioma.map((r, i) => (
                   <button key={r.fornecedor.id} onClick={() => setScoreDrillId(r.fornecedor.id)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all hover:scale-[1.01]"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all hover:scale-[1.01] axi-card-premium3d axi-card-faixa"
                     style={{ background: `${NIVEL_SCORE_COR[r.score.nivel]}0e`, border: `1px solid ${NIVEL_SCORE_COR[r.score.nivel]}30` }}>
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="text-[10px] font-black w-5 flex-shrink-0" style={{ color: ct("#5a7a9a") }}>#{i + 1}</span>

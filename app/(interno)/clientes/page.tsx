@@ -843,7 +843,7 @@ export default function ClientesPage() {
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
       onClick={() => setShareAberto(true)}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: `1px solid ${CORES.cyan}30` }}>
+      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: "none", color: "#fff" }}>
       <Share2 size={16} /> {tt.compartilhar}
     </motion.button>
   );

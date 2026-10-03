@@ -661,7 +661,7 @@ export default function Metas() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={temaClaro
               ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: ROXO_CHIP_BG_ATIVO, border: `1px solid ${ROXO_CHIP_BORDA}`, color: ct("#2ecc9b") }}>
+              : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: "none", color: "#fff" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
