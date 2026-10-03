@@ -67,7 +67,7 @@ const supabase = createBrowserClient(
 // árvore do data-theme e as CSS var não chegariam nele.
 // ============================================================================
 const PALETA = {
-  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#f59e0b', VERDE: '#34d399', AZUL: '#6ab0ff', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)' },
+  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#facc15', VERDE: '#34d399', AZUL: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)' },
   // INDIGO/SAFIRA são identidade decorativa do Escuro - no Claro colapsam
   // pra verde-menta oficial (tema-tokens.md §1.1), igual toda outra cor de
   // marca/módulo. AMBAR usa o âmbar aprovado (#f5a623), não o marrom
@@ -289,7 +289,7 @@ export default function Inadimplencia() {
     return { critica: L('Crítica', 'Critical', 'Crítica'), alta: L('Alta', 'High', 'Alta'), media: L('Média', 'Medium', 'Media'), baixa: L('Baixa', 'Low', 'Baja') }[p]
   }
   function prioridadeCor(p: NivelPrioridade) {
-    return { critica: VERMELHO, alta: ct('#fb923c'), media: AMBAR, baixa: AZUL }[p]
+    return { critica: VERMELHO, alta: ct('#facc15'), media: AMBAR, baixa: AZUL }[p]
   }
   function corCompromisso(status: CobrancaCompromisso['status']) {
     return status === 'cumprido' ? VERDE : status === 'quebrado' ? VERMELHO : AMBAR
@@ -554,7 +554,7 @@ export default function Inadimplencia() {
   }
 
   const agingLabels = [L('0-30 dias', '0-30 days', '0-30 días'), L('31-60 dias', '31-60 days', '31-60 días'), L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días')]
-  const agingCores = [AMBAR, ct('#f59e0b'), ct('#ef4444'), VERMELHO]
+  const agingCores = [AMBAR, ct('#facc15'), ct('#ef4444'), VERMELHO]
   const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5', agingCores, temaClaro) : null
 
   const gaugeOption = optVelocimetro(kpis.scoreMedioCarteiraInadimplente ?? 0, 1000, [
@@ -588,7 +588,7 @@ export default function Inadimplencia() {
   // categorias. Escuro inalterado.
   const PALETA_GRUPOS = temaClaro
     ? ['#2ecc9b', '#101b3d', '#34d399', '#6b7280', '#122b54', '#f5a623', '#ff5a6b', '#374151']
-    : [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, '#a78bfa', SAFIRA]
+    : [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, '#2ecc9b', SAFIRA]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
     INDIGO, L('Total', 'Total', 'Total'), temaClaro,
@@ -687,7 +687,7 @@ export default function Inadimplencia() {
         {/* ================= TOPO: PERÍODO + BUSCA + FILTRO ================= */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={INDIGO} lang={lang} />
-          <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm px-3 py-2 rounded-xl" style={{ background: BG_CARD, border: `1px solid ${INDIGO}25` }}>
+          <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: BG_CARD, border: `1px solid ${INDIGO}25` }}>
             <Search size={14} style={{ color: CINZA }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar cliente...', 'Search client...', 'Buscar cliente...')} className="bg-transparent flex-1 focus:outline-none text-xs" style={{ color: ct('#c8d8f0') }} />
           </div>
@@ -783,7 +783,7 @@ export default function Inadimplencia() {
             <div className="grid md:grid-cols-2 gap-4 items-center">
               <div className="grid grid-cols-2 gap-3">
                 {aging.map((f, i) => (
-                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${agingCores[i]}12`, border: `1px solid ${agingCores[i]}35` }}>
+                  <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${agingCores[i]}12`, border: `1px solid ${agingCores[i]}35` }}>
                     <p className="text-base font-black" style={{ color: agingCores[i] }}>{fBRL(f.valor)}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('títulos', 'invoices', 'títulos')}</p>
                   </div>
@@ -850,7 +850,7 @@ export default function Inadimplencia() {
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {sinaisPrevencao.map((c, i) => (
-                <div key={i} className="rounded-xl p-3.5" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}20` }}>
+                <div key={i} className="rounded-xl p-3.5 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}20` }}>
                   <p className="text-xs font-black mb-2" style={{ color: INDIGO }}>{c.tema}</p>
                   <p className="text-xs mb-1.5" style={{ color: ct('#c8d8f0') }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
                   <p className="text-xs mb-1.5" style={{ color: ct('#c8d8f0') }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
@@ -890,7 +890,7 @@ export default function Inadimplencia() {
                 if (!etapa) return null
                 const cor = ct(COR_ESTAGIO_ESCALONAMENTO[estagio])
                 return (
-                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${etapa.ativo ? cor + '40' : (temaClaro ? '#e4e7ec' : 'rgba(255,255,255,0.08)')}` }}>
+                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${etapa.ativo ? cor + '40' : (temaClaro ? '#e4e7ec' : 'rgba(255,255,255,0.08)')}` }}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-black" style={{ color: etapa.ativo ? cor : CINZA }}>{nomeEstagioEscalonamento(lang, estagio)}</span>
                       <div className="flex items-center gap-1.5">
@@ -993,7 +993,7 @@ export default function Inadimplencia() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {cenariosRecuperacao.map((c) => (
-                  <div key={c.nome} className="rounded-xl p-3" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCenario(c.nome)}30` }}>
+                  <div key={c.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCenario(c.nome)}30` }}>
                     <p className="text-[10px] font-bold uppercase mb-2" style={{ color: corCenario(c.nome) }}>{nomeCenario(c.nome)}</p>
                     <p className="text-[10px]" style={{ color: CINZA }}>{L('Recuperado', 'Recovered', 'Recuperado')}</p>
                     <p className="text-sm font-black mb-1.5" style={{ color: VERDE }}>{fBRL(c.valorRecuperado)}</p>
@@ -1022,7 +1022,7 @@ export default function Inadimplencia() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
               {previsaoRecuperacao.map((p) => (
-                <div key={p.horizonteDias} className="rounded-xl p-2.5" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
+                <div key={p.horizonteDias} className="rounded-xl p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
                   <p className="text-[10px] font-black mb-1.5" style={{ color: AZUL }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
                   <p className="text-[9px]" style={{ color: VERDE }}>{L('Otimista', 'Optimistic', 'Optimista')}: {fBRL(p.otimista)}</p>
                   <p className="text-[9px]" style={{ color: AZUL }}>{L('Provável', 'Probable', 'Probable')}: {fBRL(p.provavel)}</p>
@@ -1043,7 +1043,7 @@ export default function Inadimplencia() {
           <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Dos valores vencidos, quanto tende a virar perda — por faixa de aging.', 'Of the overdue amounts, how much tends to become a loss — by aging bucket.', 'De los valores vencidos, cuánto tiende a convertirse en pérdida — por rango de antigüedad.')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {perdaPorFaixa.map((f) => (
-              <div key={f.faixa} className="rounded-xl p-3 text-center" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}30` }}>
+              <div key={f.faixa} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}30` }}>
                 <p className="text-[10px] mb-1" style={{ color: CINZA }}>{f.faixa} {L('dias', 'days', 'días')}</p>
                 <p className="text-sm font-black" style={{ color: ct('#c8d8f0') }}>{fBRL(f.valorVencido)}</p>
                 <p className="text-xs font-bold mt-1" style={{ color: f.perdaEsperada != null ? VERMELHO : CINZA }}>{f.perdaEsperada != null ? fBRL(f.perdaEsperada) : L('sem dados suficientes', 'not enough data', 'sin datos suficientes')}</p>
@@ -1052,7 +1052,7 @@ export default function Inadimplencia() {
           </div>
 
           {impactoDRE && (
-            <div className="rounded-xl p-3 mb-4" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}25` }}>
+            <div className="rounded-xl p-3 mb-4 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}25` }}>
               <p className="text-[10px] font-bold uppercase mb-2" style={{ color: INDIGO }}>{L('Impacto Simulado na DRE (mês atual)', 'Simulated DRE Impact (current month)', 'Impacto Simulado en la DRE (mes actual)')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1082,7 +1082,7 @@ export default function Inadimplencia() {
           ) : (
             <div className="space-y-1.5">
               {naoValeAPena.slice(0, 8).map((c) => (
-                <div key={c.linha.s.cliente.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}20` }}>
+                <div key={c.linha.s.cliente.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}20` }}>
                   <span className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{c.linha.s.cliente.nome}</span>
                   <span className="text-[10px]" style={{ color: VERMELHO }}>{L('Custo', 'Cost', 'Costo')} {fBRL(c.custoEstimado)} &gt; {L('recuperável', 'recoverable', 'recuperable')} {fBRL(c.valorRecuperavelEstimado)}</span>
                 </div>
@@ -1174,7 +1174,7 @@ export default function Inadimplencia() {
                   <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Títulos em Aberto', 'Open Invoices', 'Títulos Abiertos')}</p>
                   <div className="space-y-1.5 mb-4">
                     {titulosVencidosCliente.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${VERMELHO}20` }}>
+                      <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${VERMELHO}20` }}>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{c.numero_documento || c.descricao}</p>
                           <p className="text-[10px]" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
@@ -1190,7 +1190,7 @@ export default function Inadimplencia() {
 
                   {/* Estratégia recomendada — destaque da Fase 2 */}
                   {estrategiasCliente.length > 0 && (
-                    <div className="mb-4 rounded-xl p-3" style={{ background: `${INDIGO}0c`, border: `1px solid ${INDIGO}30` }}>
+                    <div className="mb-4 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${INDIGO}0c`, border: `1px solid ${INDIGO}30` }}>
                       <p className="text-[10px] font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {estrategiasCliente.map((e) => (
@@ -1210,7 +1210,7 @@ export default function Inadimplencia() {
                     ) : timelineCliente.map((t) => t.tipo === 'compromisso' ? (() => {
                       const c = t.item as CobrancaCompromisso
                       return (
-                        <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCompromisso(c.status)}25` }}>
+                        <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCompromisso(c.status)}25` }}>
                           <div className="min-w-0">
                             <p className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')} · {fBRL(c.valor_compromissado)}{c.parcelas ? ` · ${c.parcelas}x` : ''}</p>
                             <p className="text-[10px]" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}{c.responsavel ? ` · ${c.responsavel}` : ''}</p>
@@ -1229,7 +1229,7 @@ export default function Inadimplencia() {
                     })() : (() => {
                       const it = t.item as CobrancaInteracao
                       return (
-                        <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
+                        <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
                           <Phone size={12} style={{ color: AZUL }} className="flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{it.descricao}</p>

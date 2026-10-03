@@ -65,7 +65,7 @@ const supabase = createBrowserClient(
 // do data-theme, então var(--axi-*) do CSS não alcança ele. Por isso PAINEL_BG
 // e CAMPO_BG são valores JS por tema (não CSS var).
 const PALETA = {
-  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#6ab0ff", AMBAR: "#f59e0b", CINZA: "#5a7a9a", ROXO: "#a78bfa", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#2ecc9b", AMBAR: "#facc15", CINZA: "#5a7a9a", ROXO: "#2ecc9b", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
   // ROXO no Claro vira azul-marinho (chart-2 da paleta oficial, tema-tokens.md
   // §1.4) em vez de colapsar pra verde-menta como todo outro decorativo -
   // aqui ROXO distingue "aguardando aprovação" de AZUL ("parcial"), que já é
@@ -1843,7 +1843,7 @@ export default function ContasPagarPage() {
       }
     >
       {!podeEditar && papel && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(250,204,21,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(250,204,21,0.2)"), color: AMBAR }}>
+        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(250,204,21,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(250,204,21,0.2)"), color: AMBAR }}>
           <AlertTriangle size={14} />
           {L("Seu perfil tem acesso somente leitura a Contas a Pagar.", "Your profile has read-only access to Accounts Payable.", "Su perfil tiene acceso solo lectura a Cuentas por Pagar.")}
         </div>
@@ -1875,7 +1875,7 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(250,204,21,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
@@ -1887,7 +1887,7 @@ export default function ContasPagarPage() {
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
@@ -1895,7 +1895,7 @@ export default function ContasPagarPage() {
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
@@ -1950,7 +1950,7 @@ export default function ContasPagarPage() {
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
             </div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(46,204,155,0.15)", color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
               <option value="aberto">{L("Em aberto", "Outstanding", "Abiertas")}</option>
               <option value="vence7">{L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días")}</option>
@@ -1961,11 +1961,11 @@ export default function ContasPagarPage() {
               <option value="pago">{statusLabel("pago")}</option>
               <option value="aguardando_aprovacao">{statusLabel("aguardando_aprovacao")}</option>
             </select>
-            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroFornecedor !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroFornecedor !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(46,204,155,0.15)", color: TEXTO }}>
               <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
               {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroCategoria !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroCategoria !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(46,204,155,0.15)", color: TEXTO }}>
               <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
               {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
             </select>
@@ -2099,11 +2099,11 @@ export default function ContasPagarPage() {
                 ))}
               </div>
               {carregandoRespostaCfo ? (
-                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
+                <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
                   <p className="text-sm" style={{ color: CINZA }}>{L("Pensando...", "Thinking...", "Pensando...")}</p>
                 </div>
               ) : respostaCfo && (
-                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
+                <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
                   <p className="text-sm" style={{ color: TEXTO }}>{respostaCfo}</p>
                 </div>
               )}
@@ -2135,19 +2135,19 @@ export default function ContasPagarPage() {
                   ))}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
                     <p className="text-lg font-black" style={{ color: TEXTO }}><AnimatedNumber value={fmt(forecastAp.saldoAtual)} /></p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoOtimista)} /></p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoPessimista)} /></p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+                  <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>
                     <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(pontoForecast.saldoProjetadoSemPagamentos)}</p>
                   </div>
@@ -2162,7 +2162,7 @@ export default function ContasPagarPage() {
                         "Sin historial suficiente de atraso con multa acordada todavía — el escenario pesimista es igual al optimista (nada se estima sin datos reales).")}
                 </p>
                 {pontoForecast.ruptura ? (
-                  <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: (temaClaro ? "rgba(255,90,107,0.1)" : "rgba(248,113,113,0.1)"), border: (temaClaro ? "1px solid rgba(255,90,107,0.35)" : "1px solid rgba(248,113,113,0.35)") }}>
+                  <div className="rounded-xl p-3 flex items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,90,107,0.1)" : "rgba(248,113,113,0.1)"), border: (temaClaro ? "1px solid rgba(255,90,107,0.35)" : "1px solid rgba(248,113,113,0.35)") }}>
                     <AlertTriangle size={16} style={{ color: VERMELHO }} />
                     <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
                       {L(`Saldo fica negativo em ${pontoForecast.ruptura.diasRestantes} dias (${new Date(pontoForecast.ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fmt(pontoForecast.ruptura.saldoProjetado)}.`,
@@ -2245,7 +2245,7 @@ export default function ContasPagarPage() {
             ) : (
               <div className="space-y-2">
                 {padroesRecorrentes.map((p) => (
-                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2258,7 +2258,7 @@ export default function ContasPagarPage() {
                       podeEditar && (
                         <button onClick={() => abrirTransformarPadrao(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(245,158,11,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(250,204,21,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
                           {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
                         </button>
                       )
@@ -2299,7 +2299,7 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {cobrancasAcimaMedia.map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{c.nome}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
@@ -2330,7 +2330,7 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {multasEvitaveis.map((m) => (
-                    <div key={m.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                    <div key={m.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{m.descricao} · {nomeFornecedor(m.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
@@ -2359,7 +2359,7 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {duplicidadesPassadas.map((p) => (
-                    <div key={`${p.contaA.id}-${p.contaB.id}`} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                    <div key={`${p.contaA.id}-${p.contaB.id}`} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>
                           {p.contaA.descricao} ({fmt(p.contaA.valor_total)}) {L("e", "and", "y")} {p.contaB.descricao} ({fmt(p.contaB.valor_total)})
@@ -2395,7 +2395,7 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {descontosComForecast.map((d) => (
-                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <input type="checkbox" checked={descontosSelecionados.has(d.contaId)} onChange={() => alternarDescontoSelecionado(d.contaId)}
                         title={L("Incluir no cálculo de impacto cumulativo", "Include in the cumulative impact calculation", "Incluir en el cálculo de impacto acumulativo")}
                         className="flex-shrink-0" />
@@ -2440,7 +2440,7 @@ export default function ContasPagarPage() {
 
               {/* Impacto cumulativo das selecionadas (Entrega 4, Commit de melhoria) */}
               {descontosSelecionados.size > 0 && (
-                <div className="mt-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: `1px solid ${ROXO}30` }}>
+                <div className="mt-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: `1px solid ${ROXO}30` }}>
                   <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: ROXO }}>
                     {L(`Impacto de Antecipar as ${descontosSelecionados.size} Selecionadas Juntas`, `Impact of Moving Up the ${descontosSelecionados.size} Selected Together`, `Impacto de Anticipar las ${descontosSelecionados.size} Seleccionadas Juntas`)}
                   </p>
@@ -2501,7 +2501,7 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {descontosPerdidos.map((d) => (
-                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
@@ -2649,7 +2649,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
@@ -2681,7 +2681,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
@@ -2719,7 +2719,7 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-3">
               {aprovacoes.map((a) => (
-                <div key={a.id} className="p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
+                <div key={a.id} className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,169,125,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: TEXTO }}>{a.contas_pagar?.descricao || "—"}</p>
@@ -2759,7 +2759,7 @@ export default function ContasPagarPage() {
             </div>
             {podeEditar && (
               <button onClick={abrirNovoPedido} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
-                style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+                style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(46,204,155,0.15)", color: AZUL, border: "1px solid rgba(46,204,155,0.3)" }}>
                 <Plus size={15} />{L("Novo Pedido", "New Order", "Nueva Orden")}
               </button>
             )}
@@ -2775,7 +2775,7 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-1">
               {pedidosCompra.map((p) => (
-                <div key={p.id} className="p-3 rounded-xl flex items-center justify-between gap-3 flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusPedido(p.status)}30` }}>
+                <div key={p.id} className="p-3 rounded-xl flex items-center justify-between gap-3 flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusPedido(p.status)}30` }}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold" style={{ color: TEXTO }}>{p.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}</span>
@@ -2848,7 +2848,7 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-1">
               {matchResultados.map((m) => (
-                <div key={m.id} className="p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusMatch(m.status)}30` }}>
+                <div key={m.id} className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusMatch(m.status)}30` }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -2943,7 +2943,7 @@ export default function ContasPagarPage() {
             )}
             <div className="space-y-2">
               {auditoriaAtiva.map((ev) => (
-                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(245,238,220,0.55)" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.10)" : "1px solid rgba(46,204,155,0.12)") }}>
+                <div key={ev.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(245,238,220,0.55)" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.10)" : "1px solid rgba(46,204,155,0.12)") }}>
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: TEXTO }}>{acaoLabel(ev.acao)}</p>
@@ -2982,7 +2982,7 @@ export default function ContasPagarPage() {
                   {expandido.has(ev.id) && (ev.antes || ev.depois) && (() => {
                     const linhas = linhasAuditoria(ev);
                     return (
-                      <div className="mt-2 rounded-lg p-3 space-y-1.5" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(0,0,0,0.25)", border: temaClaro ? "1px solid rgba(16,27,61,0.08)" : undefined }}>
+                      <div className="mt-2 rounded-lg p-3 space-y-1.5 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(0,0,0,0.25)", border: temaClaro ? "1px solid rgba(16,27,61,0.08)" : undefined }}>
                         {linhas.length === 0 ? (
                           <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum campo visível mudou.", "No visible field changed.", "Ningún campo visible cambió.")}</p>
                         ) : linhas.map((l) => (
@@ -3012,7 +3012,7 @@ export default function ContasPagarPage() {
                     {auditoriaLixeira.map((ev) => {
                       const dias = diasParaApagarHist(ev.excluido_em as string);
                       return (
-                        <div key={ev.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3" style={{ background: temaClaro ? "rgba(245,238,220,0.55)" : "rgba(248,113,113,0.05)", border: `1px dashed ${VERMELHO}55` }}>
+                        <div key={ev.id} className="rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(245,238,220,0.55)" : "rgba(248,113,113,0.05)", border: `1px dashed ${VERMELHO}55` }}>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold" style={{ color: TEXTO, textDecoration: "line-through" }}>{acaoLabel(ev.acao)} · {new Date(ev.criado_em).toLocaleString("pt-BR")}</p>
                             <p className="text-xs break-words" style={{ color: CINZA }}>
@@ -3058,7 +3058,7 @@ export default function ContasPagarPage() {
                     <button onClick={fecharExclusaoHist} disabled={processandoHist} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{acaoLabel(registroExcluir.acao)} · {nomeUsuario(registroExcluir.usuario_id)} · {new Date(registroExcluir.criado_em).toLocaleString("pt-BR")}</p>
-                  <div className="rounded-xl p-3 mb-4 flex gap-2" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(248,113,113,0.08)", border: `1px solid ${VERMELHO}40` }}>
+                  <div className="rounded-xl p-3 mb-4 flex gap-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(248,113,113,0.08)", border: `1px solid ${VERMELHO}40` }}>
                     <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: VERMELHO }} />
                     <p className="text-xs" style={{ color: TEXTO }}>
                       {L(`Atenção: o registro sai do histórico, mas permanece guardado no banco de dados por mais ${DIAS_LIXEIRA} dias na Lixeira do histórico, onde o proprietário pode restaurá-lo. Depois desse prazo ele será apagado definitivamente e não poderá ser recuperado.`,
@@ -3217,7 +3217,7 @@ export default function ContasPagarPage() {
                     <div className="flex gap-3 pt-2">
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarConta} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                        style={{ background: "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
                         {salvando ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Conta", "Save Bill", "Guardar Cuenta")}
                       </button>
                     </div>
@@ -3303,7 +3303,7 @@ export default function ContasPagarPage() {
                     <div className="flex gap-3 pt-2">
                       <button onClick={fecharModalPedido} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarPedido} disabled={salvandoPedido} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #1e40af, #6ab0ff)", color: "#fff" }}>
+                        style={{ background: "linear-gradient(135deg, #1e40af, #2ecc9b)", color: "#fff" }}>
                         {salvandoPedido ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Pedido", "Save Order", "Guardar Orden")}
                       </button>
                     </div>
@@ -3337,7 +3337,7 @@ export default function ContasPagarPage() {
 
                   <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                     {duplicatas.map((d) => (
-                      <div key={d.contas_pagar_id} className="p-3 rounded-xl flex items-center justify-between gap-3"
+                      <div key={d.contas_pagar_id} className="p-3 rounded-xl flex items-center justify-between gap-3 axi-card-premium3d axi-card-faixa"
                         style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${d.score >= 90 ? VERMELHO : AMBAR}40` }}>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao}</p>
@@ -3394,7 +3394,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="flex gap-2 flex-wrap">
                       <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                      <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
                         {L("Salvar mesmo assim", "Save anyway", "Guardar de todos modos")}
                       </button>
                     </div>
@@ -3570,7 +3570,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {custosFixos.map((cf) => (
-                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
+                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                           <div className="min-w-0">
                             <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{cf.descricao}</p>
                             <p className="text-xs" style={{ color: CINZA }}>{fmt(cf.valor_mensal)} · {L("dia", "day", "día")} {cf.dia_vencimento}</p>
@@ -3630,7 +3630,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2">
                       {documentos.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
+                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                           <button onClick={() => abrirDocumento(doc)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
                             <FileText size={16} style={{ color: AZUL }} />
                             <span className="text-sm truncate" style={{ color: TEXTO }}>{doc.nome}</span>
@@ -3673,7 +3673,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2">
                       {/* 1. Fornecedor */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.fornecedor.presente ? VERDE : CINZA)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.fornecedor.presente ? VERDE : CINZA)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.fornecedor.presente ? VERDE : CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Fornecedor", "Supplier", "Proveedor")}</p>
@@ -3684,7 +3684,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 2. Contrato */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.contrato.status === "ativo" ? VERDE : AMBAR)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.contrato.status === "ativo" ? VERDE : AMBAR)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.contrato.status === "ativo" ? VERDE : evidenceGraph.contrato.status === "encerrado" ? AMBAR : CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Contrato", "Contract", "Contrato")}</p>
@@ -3697,7 +3697,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 3. Pedido — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Pedido de Compra", "Purchase Order", "Pedido de Compra")}</p>
@@ -3706,7 +3706,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 4. Recebimento — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Recebimento", "Goods Receipt", "Recepción")}</p>
@@ -3715,7 +3715,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 5. Fatura */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${VERDE}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${VERDE}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: VERDE }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Fatura", "Invoice", "Factura")}</p>
@@ -3728,7 +3728,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 6. Pagamento */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Pagamento", "Payment", "Pago")}</p>
@@ -3745,7 +3745,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 7. Banco */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Banco", "Bank", "Banco")}</p>
@@ -3795,7 +3795,7 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Aprovadores", "Approvers", "Aprobadores")}</label>
                       <p className="text-[10px] mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
-                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
+                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                         {equipe.length === 0 ? (
                           <p className="text-xs px-2 py-1" style={{ color: CINZA }}>{L("Ninguém além de você tem acesso ainda.", "No one besides you has access yet.", "Nadie además de usted tiene acceso todavía.")}</p>
                         ) : equipe.filter((m) => m.origem === "ativo" && m.user_id).map((m) => (
@@ -3909,7 +3909,7 @@ export default function ContasPagarPage() {
                     </p>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #f59e0b)", color: "#fff" }}>
+                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #facc15)", color: "#fff" }}>
                         {transformando ? L("Criando...", "Creating...", "Creando...") : L("Confirmar e Criar", "Confirm and Create", "Confirmar y Crear")}
                       </button>
                     </div>

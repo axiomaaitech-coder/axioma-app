@@ -61,7 +61,7 @@ const supabase = createBrowserClient(
 // neutro/atenção) — o tema nunca substitui essas cores de significado.
 // ============================================================================
 const PALETA = {
-  dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#e2ecf7', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
+  dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#facc15', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#ffffff', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
   // OURO no Escuro é "champagne" decorativo (borda premium/ícone Elite) - no
   // Claro vira verde-menta oficial, igual toda outra identidade decorativa
   // (tema-tokens.md §1.1); AMBAR é semântico ("atenção") e usa o âmbar
@@ -814,7 +814,7 @@ export default function ContasReceber() {
   // categorias. Escuro inalterado.
   const PALETA_GRUPOS = temaClaro
     ? ['#2ecc9b', '#101b3d', '#34d399', '#6b7280', '#122b54', '#f5a623', '#ff5a6b', '#374151']
-    : [ESMERALDA, OURO, AZUL, VERDE, AMBAR, '#a78bfa', VERMELHO, TEAL]
+    : [ESMERALDA, OURO, AZUL, VERDE, AMBAR, '#2ecc9b', VERMELHO, TEAL]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
     ESMERALDA, L('Total', 'Total', 'Total'), temaClaro,
@@ -891,14 +891,14 @@ export default function ContasReceber() {
       <div className="space-y-6">
 
         {avisoSchema && (
-          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs axi-card-premium3d axi-card-faixa" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
             <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
             <span>{L('Responsável, Prioridade e Projeto ainda não foram salvos — peça para rodar o SQL de atualização no Supabase (ver relatório técnico). O resto da conta foi salvo normalmente.', 'Responsible, Priority and Project were not saved yet — run the Supabase schema update SQL first (see technical report). The rest of the record saved normally.', 'Responsable, Prioridad y Proyecto aún no se guardaron — ejecute el SQL de actualización en Supabase (ver informe técnico). El resto del registro se guardó normalmente.')}</span>
           </div>
         )}
 
         {avisoTabelasCobranca && (
-          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs axi-card-premium3d axi-card-faixa" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
             <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
             <span>{L('A Cobrança Inteligente (histórico de contato, promessas/acordos e régua) precisa das tabelas novas no Supabase — peça para rodar o SQL do relatório técnico. O resto do módulo continua funcionando normalmente.', 'Smart Collection (contact history, promises/agreements and the reminder ladder) needs the new Supabase tables — run the SQL from the technical report. The rest of the module keeps working normally.', 'La Cobranza Inteligente (historial de contacto, promesas/acuerdos y regla de cobro) necesita las tablas nuevas en Supabase — ejecute el SQL del informe técnico. El resto del módulo sigue funcionando normalmente.')}</span>
           </div>
@@ -996,11 +996,11 @@ export default function ContasReceber() {
                 {aging.map((f, i) => {
                   // Escala de gravidade 0-30/31-60/61-90/90+ - no Claro usa so
                   // os 2 semanticos oficiais (ambar/vermelho aprovados), sem
-                  // hex cru do Escuro vazando (#f59e0b/#ef4444 nao existiam
+                  // hex cru do Escuro vazando (#facc15/#ef4444 nao existiam
                   // no Claro, cada bucket saia com um tom levemente diferente).
-                  const corAging = temaClaro ? [AMBAR, AMBAR, VERMELHO, VERMELHO][i] : [AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i];
+                  const corAging = temaClaro ? [AMBAR, AMBAR, VERMELHO, VERMELHO][i] : [AMBAR, '#facc15', '#ef4444', '#ff5a6b'][i];
                   return (
-                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${corAging}12`, border: `1px solid ${corAging}35` }}>
+                  <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${corAging}12`, border: `1px solid ${corAging}35` }}>
                     <p className="text-base font-black" style={{ color: corAging }}>{fBRL(f.valor)}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
                   </div>
@@ -1064,7 +1064,7 @@ export default function ContasReceber() {
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {pareceresCobranca.map((c, i) => (
-                <div key={i} className="rounded-xl p-3.5" style={{ background: PAINEL_BG, border: `1px solid ${TEAL}20` }}>
+                <div key={i} className="rounded-xl p-3.5 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${TEAL}20` }}>
                   <p className="text-xs font-black mb-2" style={{ color: TEAL }}>{c.tema}</p>
                   <p className="text-xs mb-1.5" style={{ color: TEXTO }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
                   <p className="text-xs mb-1.5" style={{ color: TEXTO }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
@@ -1134,7 +1134,7 @@ export default function ContasReceber() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {[...etapasRegua].sort((a, b) => a.dias_relativos - b.dias_relativos).map((e) => (
-                <div key={e.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: PAINEL_BG, border: `1px solid ${e.ativo ? OURO + '35' : 'var(--axi-border)'}` }}>
+                <div key={e.id} className="rounded-xl p-3 min-w-[180px] flex-1 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${e.ativo ? OURO + '35' : 'var(--axi-border)'}` }}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-black" style={{ color: e.ativo ? OURO : CINZA }}>
                       {e.dias_relativos === 0 ? L('No vencimento', 'On due date', 'En el vencimiento') : e.dias_relativos < 0 ? `D${e.dias_relativos}` : `D+${e.dias_relativos}`}
@@ -1235,7 +1235,7 @@ export default function ContasReceber() {
                   const cor = c.nome === 'otimista' ? VERDE : c.nome === 'adverso' ? VERMELHO : c.nome === 'conservador' ? AMBAR : AZUL
                   const nomeLabel = { conservador: L('Conservador', 'Conservative', 'Conservador'), base: L('Base', 'Base', 'Base'), otimista: L('Otimista', 'Optimistic', 'Optimista'), adverso: L('Adverso', 'Adverse', 'Adverso') }[c.nome]
                   return (
-                    <div key={c.nome} className="rounded-xl p-3" style={{ background: `${cor}0c`, border: `1px solid ${cor}30` }}>
+                    <div key={c.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${cor}0c`, border: `1px solid ${cor}30` }}>
                       <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: cor }}>{nomeLabel}</p>
                       <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Lucro líquido', 'Net profit', 'Ganancia neta')}</p>
                       <p className="text-sm font-black mb-1.5" style={{ color: TEXTO }}>{fBRL(c.lucroLiquidoMensal)}</p>
@@ -1251,7 +1251,7 @@ export default function ContasReceber() {
           )}
 
           <div className="grid md:grid-cols-2 gap-3">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}25` }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}25` }}>
               <p className="text-xs font-black mb-2" style={{ color: AZUL }}>{L('Antecipação de Recebíveis', 'Receivables Anticipation', 'Anticipación de Cobros')}</p>
               <div className="flex gap-2 mb-3">
                 <div className="flex-1">
@@ -1268,7 +1268,7 @@ export default function ContasReceber() {
               </p>
             </div>
 
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${OURO}25` }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${OURO}25` }}>
               <p className="text-xs font-black mb-2" style={{ color: OURO }}>{L('Impacto do Split Payment (Reforma 2026/2027)', 'Split Payment Impact (2026/2027 Reform)', 'Impacto del Split Payment (Reforma 2026/2027)')}</p>
               <div className="mb-3">
                 <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Alíquota estimada IBS+CBS (%)', 'Estimated IBS+CBS rate (%)', 'Alícuota estimada IBS+CBS (%)')}</label>
@@ -1308,7 +1308,7 @@ export default function ContasReceber() {
                   const valor = itens.reduce((s, i) => s + i.valor, 0)
                   const cor = classe === 'A' ? VERDE : classe === 'B' ? AMBAR : VERMELHO
                   return (
-                    <div key={classe} className="rounded-lg p-2.5 text-center" style={{ background: `${cor}10`, border: `1px solid ${cor}30` }}>
+                    <div key={classe} className="rounded-lg p-2.5 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${cor}10`, border: `1px solid ${cor}30` }}>
                       <p className="text-sm font-black" style={{ color: cor }}>{L('Classe', 'Class', 'Clase')} {classe}</p>
                       <p className="text-[10px]" style={{ color: CINZA }}>{itens.length} {L('clientes', 'clients', 'clientes')} · {fBRL(valor)}</p>
                     </div>
@@ -1367,7 +1367,7 @@ export default function ContasReceber() {
           </p>
 
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${ESMERALDA}25` }}>
+            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${ESMERALDA}25` }}>
               <Search size={15} style={{ color: CINZA }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar por cliente, documento, responsável...', 'Search by client, document, owner...', 'Buscar por cliente, documento, responsable...')} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: TEXTO }} />
             </div>
@@ -1880,7 +1880,7 @@ export default function ContasReceber() {
                           const quebrado = c.status === 'pendente' && c.data_compromissada < hoje
                           const cor = c.status === 'cumprido' ? VERDE : quebrado || c.status === 'quebrado' ? VERMELHO : AMBAR
                           return (
-                            <div key={c.id} className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg" style={{ background: `${cor}0c`, border: `1px solid ${cor}25` }}>
+                            <div key={c.id} className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${cor}0c`, border: `1px solid ${cor}25` }}>
                               <span style={{ color: TEXTO }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')}: {fBRL(c.valor_compromissado)} até {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                               {c.status === 'pendente' ? (
                                 <div className="flex gap-1.5 flex-shrink-0">

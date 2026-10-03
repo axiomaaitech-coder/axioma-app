@@ -55,8 +55,8 @@ const JADE_ESCURO = "#065f46";
 const BRONZE = "#a16207";
 const POSITIVO = "#34d399";
 const NEGATIVO = "#f87171";
-const NEUTRO = "#6ab0ff";
-const ATENCAO = "#f59e0b";
+const NEUTRO = "#2ecc9b";
+const ATENCAO = "#facc15";
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl focus:outline-none text-sm";
 const labelCls = "text-xs font-semibold mb-1 block";
@@ -992,7 +992,7 @@ export default function EstoquePage() {
     >
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
@@ -1276,7 +1276,7 @@ export default function EstoquePage() {
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
                         <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
-                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO_CT }}>
+                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(250,204,21,0.15)", color: ATENCAO_CT }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
                             </button>
                           ) : (
@@ -1318,9 +1318,9 @@ export default function EstoquePage() {
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                       {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
-                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
+                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(250,204,21,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
                       {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: ct(BRONZE) }}>{et.avisoCapitalParado}</span>}
-                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(106,176,255,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
+                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
                     </div>
                   </div>
                 ))}
@@ -1383,7 +1383,7 @@ export default function EstoquePage() {
                           <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{c.pct_acumulado}%</td>
                           <td className="py-2 px-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{
-                              background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(245,158,11,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
+                              background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(250,204,21,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
                               color: c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : c.classe_abc === "C" ? NEGATIVO_CT : ct("#5a7a9a"),
                             }}>{c.classe_abc === "A" ? et.intClasseA : c.classe_abc === "B" ? et.intClasseB : c.classe_abc === "C" ? et.intClasseC : et.intSemGiro}</span>
                           </td>
@@ -1958,7 +1958,7 @@ export default function EstoquePage() {
           )}
 
           {formMov.tipo === "saida" && lotesProdutoMov.length > 0 && (
-            <div className="p-3 rounded-xl" style={{ background: "rgba(245,158,11,0.08)" }}>
+            <div className="p-3 rounded-xl" style={{ background: "rgba(250,204,21,0.08)" }}>
               <CampoSelect label={et.sugestaoFefoTitulo}
                 value={formMov.lote_id || fefoSugestao[0]?.lote.id || ""}
                 onChange={(v) => setFormMov((f: any) => ({ ...f, lote_id: v }))}
