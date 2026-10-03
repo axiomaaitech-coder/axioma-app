@@ -1,4 +1,5 @@
 "use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -1236,6 +1237,17 @@ export default function EmpresaPage() {
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
+      {!carregando && empresa && (
+        <div className="mb-4">
+          <LetreiroExecutivo cor="#101b3d" itens={[
+            { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+            `${empresa.nome || "—"}`,
+            `Regime: ${empresa.regime_tributario || "—"}`,
+            `${(lang === "en" ? "Partners" : lang === "es" ? "Socios" : "Sócios")}: ${socios.length}`,
+            `${(lang === "en" ? "Pending obligations" : lang === "es" ? "Obligaciones pendientes" : "Obrigações pendentes")}: ${obrigacoes.filter((o: any) => o.status === "pendente").length}`,
+          ]} />
+        </div>
+      )}
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{

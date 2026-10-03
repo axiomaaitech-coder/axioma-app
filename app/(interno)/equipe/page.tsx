@@ -1,4 +1,5 @@
 'use client'
+import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -708,6 +709,13 @@ export default function EquipePage() {
     <div data-theme={tema}>
     <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
+        <LetreiroExecutivo cor="#101b3d" itens={[
+          { texto: '🚀 AXIOMA AI.TECH', destaque: true },
+          `${(lang === 'en' ? 'People on the team' : lang === 'es' ? 'Personas en el equipo' : 'Pessoas na equipe')}: ${membros.length}`,
+          `${(lang === 'en' ? 'Open approval requests' : lang === 'es' ? 'Solicitudes de aval abiertas' : 'Pedidos de aval abertos')}: ${pedidos.length}`,
+          `${(lang === 'en' ? 'Accepted terms' : lang === 'es' ? 'Términos aceptados' : 'Termos aceitos')}: ${termos.length}`,
+          `${(lang === 'en' ? 'In the trash (60 days)' : lang === 'es' ? 'En la papelera (60 días)' : 'Na lixeira (60 dias)')}: ${lixeira.length}`,
+        ]} />
 
         {membros.some((m) => m.origem === 'convite' && m.situacao === 'aguardando_aprovacao') && (
           <CanvasBox cor="#16a97d" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>

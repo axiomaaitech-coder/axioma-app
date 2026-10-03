@@ -7,6 +7,7 @@
 // ponytail: soma no navegador com teto de 5000 registros no período; mover a
 // agregação pra RPC no banco quando alguma empresa passar desse volume.
 // ═══════════════════════════════════════════════════════════════
+import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { useEffect, useMemo, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -139,6 +140,13 @@ export default function UsoIaPage() {
     <div data-theme={tema}>
       <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
+          <LetreiroExecutivo cor="#101b3d" itens={[
+            { texto: '🚀 AXIOMA AI.TECH', destaque: true },
+            `${(lang === 'en' ? 'AI questions' : lang === 'es' ? 'Preguntas a la IA' : 'Perguntas à IA')}: ${num(r.total)}`,
+            `${(lang === 'en' ? 'Answered' : lang === 'es' ? 'Respondidas' : 'Respondidas')}: ${num(r.respondidas)}`,
+            `${(lang === 'en' ? 'Numbers checked' : lang === 'es' ? 'Números verificados' : 'Números conferidos')}: ${pct(r.conferidas, r.respondidas)}`,
+            `${(lang === 'en' ? 'Cost' : lang === 'es' ? 'Costo' : 'Custo')}: US$ ${r.custo.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          ]} />
           <div className="flex flex-wrap gap-2">
             {PERIODOS.map((d) => (
               <button key={d} onClick={() => setDias(d)} className="px-3 py-1.5 rounded-lg text-xs font-bold"

@@ -1,4 +1,5 @@
 "use client";
+import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -1648,6 +1649,14 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}
     >
+      <div className="mb-4">
+        <LetreiroExecutivo cor="#101b3d" itens={[
+          { texto: "🚀 AXIOMA AI.TECH", destaque: true },
+          `${(idioma === "en" ? "Imports" : idioma === "es" ? "Importaciones" : "Importações")}: ${historico.length}`,
+          `${(idioma === "en" ? "In the exception queue" : idioma === "es" ? "En la cola de excepciones" : "Na fila de exceções")}: ${Object.values(excecoesPorImportacao).reduce((s, l) => s + l.length, 0)}`,
+          `${(idioma === "en" ? "OFX, e-invoice (XML, PDF, photo), CSV and XLSX" : idioma === "es" ? "OFX, NF-e (XML, PDF, foto), CSV y XLSX" : "OFX, NF-e (XML, PDF, foto), CSV e XLSX")}`,
+        ]} />
+      </div>
       {/* Toast */}
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
