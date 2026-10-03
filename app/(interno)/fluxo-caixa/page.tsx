@@ -16,7 +16,7 @@ import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import Paginacao, { usePagina } from "../../../components/Paginacao";
 import {
-  fBRL, fBRL2, fPct, fK, CORES, corTema, serieRolling, serieSemanal, optLinhaMulti,
+  fBRL, fBRL2, fPct, fK, CORES, corTema, VARS_ESCURO_PADRAO, serieRolling, serieSemanal, optLinhaMulti,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
   detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios,
   proximaOcorrenciaDoDia, projetarRecorrenciaMensal, FONTE_EXEC,
@@ -91,7 +91,7 @@ export default function FluxoCaixa() {
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
-  const ct = (hex: string) => corTema(hex, temaClaro);
+  const ct = (hex: string) => corTema(hex, temaClaro, true); // Escuro padronizado — tela-piloto (2026-10-03)
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
   const rupturaFundo = temaClaro ? RUPTURA_PAINEL_CLARO : RUPTURA_PAINEL_ESCURO;
@@ -100,7 +100,7 @@ export default function FluxoCaixa() {
   const cx = cfoT(lang);
   const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
+  const TEXTO_SEC = temaClaro ? "#374151" : "#a3b1c2";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
   const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(6,182,212,0.14), rgba(16,185,129,0.10))";
@@ -429,7 +429,7 @@ export default function FluxoCaixa() {
   ].join("\n");
 
   return (
-    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif", ...(temaClaro ? {} : VARS_ESCURO_PADRAO) }}>
     <ModuloLayout titulo={t.fluxoCaixa.titulo} subtitulo={t.fluxoCaixa.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" }); setModalAberto(true); }}

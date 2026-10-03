@@ -426,9 +426,31 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   "#a16207": VERDE_MENTA, "#047857": VERDE_MENTA, "#065f46": VERDE_MENTA, "#9f1239": VERDE_MENTA,
   "#b87333": VERDE_MENTA,
 };
-export function corTema(hex: string, claro?: boolean): string {
-  return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
+// Tema Escuro padronizado (proposta aprovada pelo Elias 2026-10-03, em teste no
+// Fluxo de Caixa): mesma lógica do Claro — toda cor decorativa vira verde-menta,
+// só sucesso/erro/alerta têm cor própria, texto secundário cinza neutro (sem
+// azul-acinzentado sobre fundo azul). Opt-in pelo 3º argumento até o rollout.
+const MENTA_C = "#7fe3c3";
+const MAPA_CORES_ESCURO: Record<string, string> = {
+  [CORES.ouro]: VERDE_MENTA, [CORES.roxo]: VERDE_MENTA, [CORES.cyan]: VERDE_MENTA, [CORES.rosa]: VERDE_MENTA,
+  [CORES.azul]: VERDE_MENTA, [CORES.indigo]: VERDE_MENTA, [CORES.teal]: VERDE_MENTA,
+  [CORES.ouroC]: MENTA_C, [CORES.roxoC]: MENTA_C, [CORES.cyanC]: MENTA_C, [CORES.rosaC]: MENTA_C, [CORES.azulC]: MENTA_C,
+  [CORES.verde]: "#34d399", [CORES.vermelho]: "#f87171", [CORES.laranja]: "#f5a623", [CORES.amarelo]: "#f5a623",
+  [CORES.laranjaC]: "#f5a623", [CORES.amareloC]: "#f5a623", "#fbbf24": "#f5a623", "#f59e0b": "#f5a623", "#fb923c": "#f5a623",
+  "#6ab0ff": VERDE_MENTA, "#3b6fd4": VERDE_MENTA, "#2a5fd4": VERDE_MENTA, "#5a8fd4": VERDE_MENTA,
+  "#a78bfa": VERDE_MENTA, "#c4b5fd": MENTA_C, "#67e8f9": MENTA_C, "#b87333": VERDE_MENTA,
+  "#5a7a9a": "#a3b1c2", "#64748b": "#a3b1c2", "#94a3b8": "#a3b1c2", "#3a6090": "#a3b1c2",
+  "#c8d8f0": "#e6edf5", "#e2ecf7": "#ffffff",
+};
+export function corTema(hex: string, claro?: boolean, escuroPadrao?: boolean): string {
+  if (claro) return MAPA_CORES_CLARO[hex] ?? hex;
+  return escuroPadrao ? MAPA_CORES_ESCURO[hex] ?? hex : hex;
 }
+// Variáveis de texto/acento do Escuro padronizado — vão no style da raiz da tela.
+export const VARS_ESCURO_PADRAO = {
+  "--axi-text-heading": "#ffffff", "--axi-text-primary": "#e6edf5", "--axi-text-secondary": "#a3b1c2",
+  "--axi-accent": VERDE_MENTA, "--axi-success": "#34d399", "--axi-warning": "#f5a623", "--axi-error": "#f87171",
+} as Record<string, string>;
 
 // ---------- OPTIONS ECharts REUTILIZÁVEIS ----------
 const tipBase = {
