@@ -16,14 +16,16 @@
   --axi-bg: #020810;
   --axi-surface: rgba(10, 20, 36, 0.7);
   --axi-surface-solid: #0a1628;
-  --axi-border: rgba(106, 176, 255, 0.14);
-  --axi-text-heading: #e2ecf7;
-  --axi-text-primary: #c8d8f0;
-  --axi-text-secondary: #5a7a9a;
+  /* Escuro padronizado (aprovado pelo Elias 2026-10-03): texto quase branco,
+     secundário cinza neutro (sem azul sobre azul), acento verde-menta. */
+  --axi-border: rgba(163, 177, 194, 0.16);
+  --axi-text-heading: #ffffff;
+  --axi-text-primary: #e6edf5;
+  --axi-text-secondary: #a3b1c2;
   --axi-success: #34d399;
-  --axi-warning: #f59e0b;
+  --axi-warning: #f5a623;
   --axi-error: #f87171;
-  --axi-accent: #6ab0ff;
+  --axi-accent: #2ecc9b;
   /* Fundo do card "destaque" (CanvasBox destaque) — igual ao --axi-surface
      normal aqui (nenhuma mudança visual); o tema "xms" redefine pra um
      tingimento azul. Ver bloco [data-theme="xms"] abaixo. */

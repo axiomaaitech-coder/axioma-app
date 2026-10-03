@@ -16,7 +16,7 @@ import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import Paginacao, { usePagina } from "../../../components/Paginacao";
 import {
-  fBRL, fBRL2, fPct, fK, CORES, corTema, VARS_ESCURO_PADRAO, serieRolling, serieSemanal, optLinhaMulti,
+  fBRL, fBRL2, fPct, fK, CORES, corTema, serieRolling, serieSemanal, optLinhaMulti,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
   detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios,
   proximaOcorrenciaDoDia, projetarRecorrenciaMensal, FONTE_EXEC,
@@ -91,7 +91,7 @@ export default function FluxoCaixa() {
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
-  const ct = (hex: string) => corTema(hex, temaClaro, true); // Escuro padronizado — tela-piloto (2026-10-03)
+  const ct = (hex: string) => corTema(hex, temaClaro);
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
   const rupturaFundo = temaClaro ? RUPTURA_PAINEL_CLARO : RUPTURA_PAINEL_ESCURO;
@@ -104,10 +104,11 @@ export default function FluxoCaixa() {
   const TEXTO_SEC = temaClaro ? "#374151" : "#a3b1c2";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(46,204,155,0.14), rgba(16,185,129,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.24)";
-  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
-  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#67e8f9");
+  // Escuro: letreiro sólido verde-menta escuro forte (teste pedido pelo Elias 2026-10-03)
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "#0f7d5c";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.55)";
+  const LETREIRO_TEXTO = "#ffffff";
+  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : "#c9f7e6";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -430,7 +431,7 @@ export default function FluxoCaixa() {
   ].join("\n");
 
   return (
-    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif", ...(temaClaro ? {} : VARS_ESCURO_PADRAO) }}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.fluxoCaixa.titulo} subtitulo={t.fluxoCaixa.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" }); setModalAberto(true); }}

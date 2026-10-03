@@ -57,7 +57,7 @@ export default function ModuloLayout({
               onClick={onExportarPDF}
               disabled={exportando}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-              style={{ background: corExportar || "#ff5a6b", color: "#fff" }}
+              style={{ background: corExportar || "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}
             >
               <Download size={16} />
               {exportando ? "Gerando..." : "Exportar PDF"}
@@ -69,7 +69,7 @@ export default function ModuloLayout({
               whileTap={{ scale: 0.98 }}
               onClick={onNovo}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-              style={{ background: corNovo || "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}
+              style={{ background: corNovo || "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}
             >
               <Plus size={16} />
               {labelBotao}
