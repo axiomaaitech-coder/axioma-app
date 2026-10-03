@@ -912,6 +912,20 @@ export default function ContasReceber() {
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ESMERALDA} lang={lang} />
         </div>
 
+        {/* Letreiro */}
+        {marquee.length > 0 && (
+          <div className="relative rounded-xl overflow-hidden" style={{ background: '#101b3d', border: '1px solid rgba(46,204,155,0.3)'}}>
+            <div className="marquee-cr py-2.5 whitespace-nowrap" style={{ display: 'inline-block' }}>
+              {[0, 1].map((rep) => (
+                <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                  {marquee.map((m, i) => (<span key={i} style={{ color: (i === 0 ? '#2ecc9b' : '#ffffff')}}>{m}<span style={{ color: '#2ecc9b'}}>{'  •  '}</span></span>))}
+                </span>
+              ))}
+            </div>
+            <style>{`.marquee-cr{animation:marqueeCr 32s linear infinite}@keyframes marqueeCr{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-cr:hover{animation-play-state:paused}`}</style>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {kpiTiles.map((k) => (
             <motion.button key={k.key} whileHover={k.drillable ? { scale: 1.02 } : undefined}
@@ -931,19 +945,6 @@ export default function ContasReceber() {
           ))}
         </div>
 
-        {/* Letreiro */}
-        {marquee.length > 0 && (
-          <div className="relative rounded-xl overflow-hidden" style={{ background: 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)', border: '1px solid rgba(46,204,155,0.3)'}}>
-            <div className="marquee-cr py-2.5 whitespace-nowrap" style={{ display: 'inline-block' }}>
-              {[0, 1].map((rep) => (
-                <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                  {marquee.map((m, i) => (<span key={i} style={{ color: (i === 0 ? '#2ecc9b' : '#ffffff')}}>{m}<span style={{ color: '#2ecc9b'}}>{'  •  '}</span></span>))}
-                </span>
-              ))}
-            </div>
-            <style>{`.marquee-cr{animation:marqueeCr 32s linear infinite}@keyframes marqueeCr{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-cr:hover{animation-play-state:paused}`}</style>
-          </div>
-        )}
 
         {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
