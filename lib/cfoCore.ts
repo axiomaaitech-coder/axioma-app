@@ -1042,7 +1042,7 @@ export function decomporVariacaoLucro(atual: DRE, anterior: DRE): FatorVariacaoL
 export type PonteLucroCaixa = {
   lucroLiquido: number; caixaRealizado: number; diferenca: number;
   alerta: boolean;
-  causaProvavel: "recebiveis" | "amortizacaoDivida" | "indefinida" | null;
+  causaProvavel: "recebiveis" | "amortizacaoDivida" | "despesasAPagar" | "indefinida" | null;
 };
 
 export function ponteLucroCaixa(p: {
@@ -1055,7 +1055,10 @@ export function ponteLucroCaixa(p: {
   const relevante = p.lucroLiquido !== 0 ? Math.abs(diferenca) > Math.abs(p.lucroLiquido) * 0.15 : Math.abs(diferenca) > 0;
   const alerta = sinalOposto || relevante;
   let causaProvavel: PonteLucroCaixa["causaProvavel"] = null;
-  if (alerta) {
+  if (alerta && diferenca > 0) {
+    // caixa melhor que o resultado: custo já está no DRE mas ainda não saiu do caixa (recebível/dívida não explicam esse lado)
+    causaProvavel = "despesasAPagar";
+  } else if (alerta) {
     if (p.variacaoRecebiveisAbertos > 0 && p.variacaoRecebiveisAbertos >= p.variacaoAmortizacaoDivida) causaProvavel = "recebiveis";
     else if (p.variacaoAmortizacaoDivida > 0) causaProvavel = "amortizacaoDivida";
     else causaProvavel = "indefinida";

@@ -332,6 +332,13 @@ export default function DREPage() {
     recebiveisParados: recebiveisVencidosNaoRecebidos,
   });
   const conselhos = gatilhosConselho.map(g => montarConselhoCFO(lang, g));
+  // Prejuízo sem outro gatilho não pode cair em "resultado sob controle"
+  if (temDados && conselhos.length === 0 && dreAtual.lucroLiquido.valor < 0) {
+    const v = fBRL(Math.abs(dreAtual.lucroLiquido.valor));
+    conselhos.push(lang === "en" ? `The period closed at a loss of ${v}: hold new spending and review costs or raise revenue first.`
+      : lang === "es" ? `El período cerró con pérdida de ${v}: frene gastos nuevos y revise costos o aumente ingresos primero.`
+      : `O período fechou com prejuízo de ${v}: segure gastos novos e revise custos ou aumente a receita antes.`);
+  }
 
   // ═══════════════════════ HISTÓRICO — SNAPSHOT AUTOMÁTICO ═══════════════════════
   useEffect(() => {

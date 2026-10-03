@@ -14,6 +14,7 @@ import { lerTodas } from "../../../lib/lerTodas";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
+import Paginacao, { usePagina } from "../../../components/Paginacao";
 import {
   fBRL, fBRL2, fPct, fK, CORES, corTema, serieRolling, serieSemanal, optLinhaMulti,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
@@ -228,9 +229,11 @@ export default function FluxoCaixa() {
     await carregarTudo();
   };
 
-  const totalEntradas = lancamentos.filter(l => l.tipo === "entrada").reduce((acc, l) => acc + l.valor, 0);
-  const totalSaidas = lancamentos.filter(l => l.tipo === "saida").reduce((acc, l) => acc + l.valor, 0);
-  const saldoAtual = totalEntradas - totalSaidas;
+  // Tabela e totais do topo respeitam o período escolhido (antes somavam a janela inteira carregada: 12 meses + futuro)
+  const lancamentosPeriodo = lancamentos.filter(l => l.data && l.data >= periodo.inicio && l.data <= periodo.fim);
+  const paginaLanc = usePagina(lancamentosPeriodo);
+  const totalEntradas = lancamentosPeriodo.filter(l => l.tipo === "entrada").reduce((acc, l) => acc + l.valor, 0);
+  const totalSaidas = lancamentosPeriodo.filter(l => l.tipo === "saida").reduce((acc, l) => acc + l.valor, 0);
   const temDados = lancamentos.length > 0;
 
   // ═══════════════════════════ INTELIGÊNCIA CFO ═══════════════════════════
@@ -314,7 +317,7 @@ export default function FluxoCaixa() {
   const bandaCenario = Math.min(50, Math.max(5, (Math.abs(desvioEntradas) + Math.abs(desvioSaidas)) / 2));
 
   const narrativaSaldo = temDados ? montarNarrativaVariacao(lang, {
-    metrica: lang === "en" ? "Cash balance" : lang === "es" ? "Saldo de caja" : "Saldo de caixa",
+    metrica: lang === "en" ? "Inflows minus outflows" : lang === "es" ? "Las entradas menos salidas" : "As entradas menos saídas",
     pct: comparativoSaldo.variacaoPct,
   }) : "";
   const narrativaRuptura = ruptura ? montarNarrativaRuptura(lang, ruptura.data, ruptura.diasRestantes) : "";
@@ -347,7 +350,7 @@ export default function FluxoCaixa() {
     { l: cx.saldoAtual, v: fBRL(saldoAtualReal), c: saldoAtualReal >= 0 ? ct(CORES.cyan) : ct(CORES.vermelho), i: "💰", delta: null as ComparativoPeriodo | null, invertido: false },
     { l: t.fluxoCaixa.totalEntradas, v: fBRL(comparativoEntradas.atual), c: ct(CORES.verde), i: "📈", delta: comparativoEntradas, invertido: false },
     { l: t.fluxoCaixa.totalSaidas, v: fBRL(comparativoSaidas.atual), c: ct(CORES.vermelho), i: "📉", delta: comparativoSaidas, invertido: true },
-    { l: t.fluxoCaixa.saldoAtual, v: fBRL(saldoPeriodoAtual), c: saldoPeriodoAtual >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "⚖️", delta: comparativoSaldo, invertido: false },
+    { l: lang === "en" ? "Period Balance" : lang === "es" ? "Saldo del Período" : "Saldo do Período", v: fBRL(saldoPeriodoAtual), c: saldoPeriodoAtual >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "⚖️", delta: comparativoSaldo, invertido: false },
     { l: cx.rupturaCaixaTitulo, v: ruptura ? `${ruptura.diasRestantes}d` : "—", c: ruptura ? ct(CORES.vermelho) : ct(CORES.verde), i: "🚨", delta: null, invertido: false },
     { l: cx.precisaoPrevisao, v: fPct(precisaoPrevisao), c: precisaoPrevisao >= 80 ? ct(CORES.verde) : precisaoPrevisao >= 60 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯", delta: null, invertido: false },
   ];
@@ -389,7 +392,7 @@ export default function FluxoCaixa() {
           { header: "Data", key: "data", width: 2 }, { header: "Status", key: "status", width: 2 },
           { header: "Valor (R$)", key: "valor", width: 2, align: "right" },
         ],
-        linhas: lancamentos.map((l) => ({
+        linhas: lancamentosPeriodo.map((l) => ({
           descricao: l.descricao, tipo: l.tipo === "entrada" ? "Entrada" : "Saída",
           data: l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "-",
           status: l.status === "realizado" ? "Realizado" : "Previsto",
@@ -419,7 +422,7 @@ export default function FluxoCaixa() {
 
   const textoDetalhado = [
     `🚀 AXIOMA AI.TECH — ${t.fluxoCaixa.titulo} (detalhado)`,
-    ...lancamentos.map((l) =>
+    ...lancamentosPeriodo.map((l) =>
       `${l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${l.descricao} | ${l.tipo === "entrada" ? "Entrada" : "Saída"} | ${l.status === "realizado" ? "Realizado" : "Previsto"} | R$ ${fBRL2(l.valor)}`
     ),
     `_axiomaai.com.br_`,
@@ -460,7 +463,7 @@ export default function FluxoCaixa() {
           {[
             { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString("pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
             { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString("pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
-            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtual.toLocaleString("pt-BR")}`, cor: saldoAtual >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtual >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
+            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtualReal.toLocaleString("pt-BR")}`, cor: saldoAtualReal >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtualReal >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -622,7 +625,7 @@ export default function FluxoCaixa() {
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : lancamentos.length === 0 ? (
+          ) : lancamentosPeriodo.length === 0 ? (
             <div className="text-center py-12"><p style={{ color: TEXTO_SEC }}>{t.fluxoCaixa.semLancamentos}</p></div>
           ) : (
             <div className="overflow-x-auto">
@@ -635,10 +638,10 @@ export default function FluxoCaixa() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lancamentos.map((l, i) => (
+                  {paginaLanc.fatia.map((l, i) => (
                     <motion.tr key={l.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                       whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(167,139,250,0.02)" }}
-                      style={{ borderBottom: i < lancamentos.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
+                      style={{ borderBottom: i < paginaLanc.fatia.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-4 text-sm" style={{ color: "var(--axi-text-primary)" }}>{l.descricao}</td>
                       <td className="px-4 md:px-6 py-4">
                         <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.tipo === "entrada" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: l.tipo === "entrada" ? ct("#34d399") : ct("#f87171") }}>
@@ -664,6 +667,7 @@ export default function FluxoCaixa() {
                   ))}
                 </tbody>
               </table>
+              <Paginacao pagina={paginaLanc.pagina} total={paginaLanc.total} onMudar={paginaLanc.setPagina} lang={lang} temaClaro={temaClaro} />
             </div>
           )}
         </CanvasBox>

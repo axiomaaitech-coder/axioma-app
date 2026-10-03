@@ -739,7 +739,8 @@ export function montarNarrativaCausaRaiz(lang: string, variacaoLucro: number, fa
   return `O lucro líquido ${subiu ? "subiu" : "caiu"} ${fBRL(Math.abs(variacaoLucro))}, puxado principalmente por ${nomeFator} (impacto de ${fBRL(Math.abs(fatorPrincipal.impacto))}).`;
 }
 
-const CAUSA_PONTE: Record<"recebiveis" | "amortizacaoDivida" | "indefinida", Record<CfoLang, string>> = {
+const CAUSA_PONTE: Record<"recebiveis" | "amortizacaoDivida" | "despesasAPagar" | "indefinida", Record<CfoLang, string>> = {
+  despesasAPagar: { pt: "custos já lançados que ainda não foram pagos (entram no resultado, mas não saíram do caixa)", en: "costs already recorded but not yet paid (they hit the P&L but haven't left cash)", es: "costos ya registrados que aún no se pagaron (entran en el resultado, pero no salieron de la caja)" },
   recebiveis: { pt: "recebíveis parados", en: "receivables stuck in receivables", es: "cuentas por cobrar detenidas" },
   amortizacaoDivida: { pt: "amortização de dívida (reduz caixa, mas não é despesa no DRE)", en: "debt principal payments (reduce cash but aren't a P&L expense)", es: "amortización de deuda (reduce la caja, pero no es un gasto en el estado de resultados)" },
   indefinida: { pt: "variação de capital de giro", en: "working capital variation", es: "variación de capital de trabajo" },
@@ -749,6 +750,13 @@ export function montarNarrativaPonte(lang: string, ponte: PonteLucroCaixa): stri
   const l = (lang as CfoLang) in CAUSA_PONTE.recebiveis ? (lang as CfoLang) : "pt";
   const causa = ponte.causaProvavel ? CAUSA_PONTE[ponte.causaProvavel][l] : null;
   const moveu = ponte.caixaRealizado >= 0;
+  const prejuizo = ponte.lucroLiquido < 0;
+  const res = fBRL(Math.abs(ponte.lucroLiquido));
+  if (prejuizo) {
+    if (l === "en") return `You had a loss of ${res}, but cash ${moveu ? "moved" : "dropped"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — likely cause: ${causa}` : ""}.`;
+    if (l === "es") return `Tuvo una pérdida de ${res}, pero la caja ${moveu ? "se movió" : "cayó"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — causa probable: ${causa}` : ""}.`;
+    return `Você teve prejuízo de ${res}, mas o caixa ${moveu ? "se moveu" : "caiu"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — causa provável: ${causa}` : ""}.`;
+  }
   if (l === "en") return `You had a profit of ${fBRL(ponte.lucroLiquido)} but cash ${moveu ? "only moved" : "dropped"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — likely cause: ${causa}` : ""}.`;
   if (l === "es") return `Tuvo una utilidad de ${fBRL(ponte.lucroLiquido)} pero la caja ${moveu ? "solo se movió" : "cayó"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — causa probable: ${causa}` : ""}.`;
   return `Você teve lucro de ${fBRL(ponte.lucroLiquido)} mas o caixa ${moveu ? "só se moveu" : "caiu"} ${fBRL(ponte.caixaRealizado)}${causa ? ` — causa provável: ${causa}` : ""}.`;
