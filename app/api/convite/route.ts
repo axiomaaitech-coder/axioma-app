@@ -8,7 +8,7 @@ import { cookies } from 'next/headers'
 //   membro precisa da senha de um Admin/Sócio/CEO pra convidar.
 // - Quem recebe NUNCA passa pela tela de login: abre o link, preenche o
 //   formulário (nome, e-mail, LGPD; CPF quando o prazo passa de 30 dias ou é
-//   indeterminado), digita o código de 6 dígitos que chega no e-mail e já entra.
+//   indeterminado), digita o código que chega no e-mail e já entra.
 // - Prazo começa a contar no aceite; o dono corta o acesso quando quiser.
 
 const PRAZOS = [1, 3, 7, 30, 60, 90, 180, 365]
@@ -164,7 +164,7 @@ async function criar(corpo: any) {
 }
 
 // P7 (Elias 2026-10-02): o convidado prova que o e-mail é dele. A tela pede
-// "conferir" (valida o formulário sem login), manda o código de 6 dígitos pelo
+// "conferir" (valida o formulário sem login), manda o código pelo
 // próprio Supabase Auth (e-mail via Resend), troca o código por sessão e só
 // então chama "aceitar" — aqui o e-mail vem da SESSÃO, nunca do formulário.
 async function aceitar(corpo: any, soConferir = false) {

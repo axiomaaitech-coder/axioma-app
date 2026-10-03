@@ -315,7 +315,7 @@ export default function AceitarConvite() {
           <form onSubmit={(e) => { e.preventDefault(); confirmarCodigo() }} className="text-center py-2" noValidate>
             <h1 className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: COR.texto }}>{L('Confira seu e-mail', 'Check your e-mail', 'Revise su correo')}</h1>
             <p className="mt-2 text-sm leading-relaxed" style={{ color: COR.sec }}>
-              {L(`Mandamos um código de 6 números para ${email.trim()}. Ele prova que este e-mail é seu.`, `We sent a 6-digit code to ${email.trim()}. It proves this e-mail is yours.`, `Enviamos un código de 6 números a ${email.trim()}. Prueba que este correo es suyo.`)}
+              {L(`Mandamos um código para ${email.trim()}. Ele prova que este e-mail é seu.`, `We sent a code to ${email.trim()}. It proves this e-mail is yours.`, `Enviamos un código a ${email.trim()}. Prueba que este correo es suyo.`)}
             </p>
             <input value={codigo} onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, '').slice(0, 10)); setErro('') }}
               inputMode="numeric" autoComplete="one-time-code" placeholder="000000" aria-label={L('Código', 'Code', 'Código')}
