@@ -556,7 +556,7 @@ export default function FluxoCaixa() {
                     { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.verde : CORES.laranja) },
                     { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.cyan : CORES.rosa) },
                   ].map((o) => (
-                    <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
+                    <div key={o.l} className={`rounded-xl px-3 py-2.5${classePremium3d}`} style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
                       <p className="text-xs uppercase tracking-wider font-bold" style={{ color: TEXTO_SEC }}>{o.l}</p>
                       <p className="text-sm font-black" style={{ color: o.c }}>{fBRL(o.v)}</p>
                     </div>
