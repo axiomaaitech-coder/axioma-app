@@ -15,8 +15,9 @@ const MAX_BYTES = 4_000_000
 export const maxDuration = 120
 
 const texto = { type: 'string' }
-const textoOuNulo = { type: ['string', 'null'] }
-const numeroOuNulo = { type: ['number', 'null'] }
+// "ou vazio" com anyOf — a forma que as saídas estruturadas aceitam com certeza.
+const textoOuNulo = { anyOf: [{ type: 'string' }, { type: 'null' }] }
+const numeroOuNulo = { anyOf: [{ type: 'number' }, { type: 'null' }] }
 const objeto = (props: Record<string, unknown>) => ({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false })
 const ESQUEMA = objeto({
   eh_nota: { type: 'boolean' },
@@ -70,7 +71,9 @@ export async function POST(request: NextRequest) {
   try {
     const uso = usoZerado()
     const base64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64')
-    const r = await lerDocumentoComVisao({ base64, mediaType }, INSTRUCAO, ESQUEMA, uso)
+    const diag: { motivo?: string } = {}
+    const r = await lerDocumentoComVisao({ base64, mediaType }, INSTRUCAO, ESQUEMA, uso, diag)
+    if (!r) Sentry.captureMessage(`[importar/ler-nota] IA não leu a nota: ${diag.motivo ?? '?'}`, { level: 'error', extra: { rota: 'importar/ler-nota', mediaType, tamanho: arquivo.size } })
     // Auditoria no mesmo formato do motor (aparece no painel Uso da IA) — nunca o conteúdo.
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
         tokens_entrada: uso.tokensEntrada, tokens_saida: uso.tokensSaida, tokens_cache_leitura: uso.tokensCacheLeitura, tokens_cache_escrita: uso.tokensCacheEscrita,
         tokens_openai: uso.tokensOpenAI, custo_usd_anthropic: Math.round(uso.custoUsdAnthropic * 1e6) / 1e6 },
     }))
-    return NextResponse.json({ nota: r?.dados ?? null })
+    return NextResponse.json({ nota: r?.dados ?? null, ...(r ? {} : { motivo: diag.motivo ?? null }) })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[importar/ler-nota]', msg)

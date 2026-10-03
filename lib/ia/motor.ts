@@ -132,8 +132,9 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
 // nota com tabela, parcelas e impostos é tarefa de ANÁLISE (Claude), nunca
 // rotina. Resposta presa num esquema JSON (structured outputs). Falha = null.
 export type ArquivoVisao = { base64: string; mediaType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' }
-export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso): Promise<{ dados: unknown; modelo: string } | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null
+// `diag.motivo` diz por que voltou null (sem conteúdo do documento) — a rota manda pro Sentry.
+export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso, diag?: { motivo?: string }): Promise<{ dados: unknown; modelo: string } | null> {
+  if (!process.env.ANTHROPIC_API_KEY) { if (diag) diag.motivo = 'sem_chave'; return null }
   const cfg = MODELOS.analise
   const bloco = arquivo.mediaType === 'application/pdf'
     ? { type: 'document', source: { type: 'base64', media_type: arquivo.mediaType, data: arquivo.base64 } }
@@ -149,11 +150,13 @@ export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: str
     // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão de chamarClaude).
     const r = await new Anthropic().beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
     somarUso(uso, cfg.modelo, r.usage?.input_tokens ?? 0, r.usage?.output_tokens ?? 0, r.usage?.cache_read_input_tokens ?? 0, r.usage?.cache_creation_input_tokens ?? 0)
-    if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') return null
+    if (r.stop_reason === 'refusal' || r.stop_reason === 'max_tokens') { if (diag) diag.motivo = r.stop_reason; return null }
     const texto = r.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('').trim()
+    if (!texto && diag) diag.motivo = 'resposta_vazia'
     return texto ? { dados: JSON.parse(texto), modelo: cfg.modelo } : null
   } catch (err) {
     console.error('[motor-ia] visão', cfg.modelo, err instanceof Error ? err.message : err)
+    if (diag) diag.motivo = err instanceof Anthropic.APIError ? `api_${err.status}: ${err.message.slice(0, 300)}` : `erro: ${err instanceof Error ? err.message.slice(0, 300) : 'desconhecido'}`
     return null
   }
 }
