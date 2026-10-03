@@ -1342,6 +1342,7 @@ async function reduzirImagem(file: File): Promise<Blob> {
 const MSG_LEITURA_IA = {
   falhou: { pt: "Não foi possível ler esta nota automaticamente. Tente uma foto mais nítida ou envie o XML da nota.", en: "Could not read this invoice automatically. Try a sharper photo or upload the invoice XML.", es: "No se pudo leer esta factura automáticamente. Intente una foto más nítida o envíe el XML." },
   grande: { pt: "Arquivo grande demais para leitura automática (máximo 4 MB). Envie o XML da nota ou um PDF menor.", en: "File too large for automatic reading (max 4 MB). Upload the invoice XML or a smaller PDF.", es: "Archivo demasiado grande para lectura automática (máx. 4 MB). Envíe el XML o un PDF más pequeño." },
+  indisponivel: { pt: "A leitura automática de PDF e foto está indisponível agora (não é problema do seu arquivo). Envie o XML da nota ou tente mais tarde.", en: "Automatic PDF/photo reading is unavailable right now (not a problem with your file). Upload the invoice XML or try again later.", es: "La lectura automática de PDF y foto no está disponible ahora (no es un problema de su archivo). Envíe el XML o intente más tarde." },
   naoNota: { pt: "Este arquivo não parece ser uma nota fiscal ou recibo.", en: "This file does not look like an invoice or receipt.", es: "Este archivo no parece una factura o recibo." },
 };
 
@@ -1355,8 +1356,9 @@ async function lerNotaComIA(file: File, formato: "pdf" | "imagem", empresaCnpj: 
   try {
     const r = await fetch("/api/importar/ler-nota", { method: "POST", body: form });
     if (!r.ok) return vazio(MSG_LEITURA_IA.falhou[lang]);
-    const { nota } = (await r.json()) as { nota: NotaLidaIA | null };
-    if (!nota) return vazio(MSG_LEITURA_IA.falhou[lang]);
+    const { nota, motivo } = (await r.json()) as { nota: NotaLidaIA | null; motivo?: string | null };
+    // Falha do serviço de IA (sem crédito, fora do ar, sem chave) não é culpa do arquivo.
+    if (!nota) return vazio((motivo && /^(api_|sem_chave|erro:)/.test(motivo) ? MSG_LEITURA_IA.indisponivel : MSG_LEITURA_IA.falhou)[lang]);
     if (!nota.eh_nota) return vazio(MSG_LEITURA_IA.naoNota[lang]);
     return resultadoDeNotaIA(nota, formato, empresaCnpj, lang);
   } catch {
