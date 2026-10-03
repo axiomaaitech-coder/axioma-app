@@ -9,6 +9,7 @@ export const DIAS_GUARDA_PLANO = 90       // plano do José pra empresa (nexus_p
 export const DIAS_GUARDA_PAINEL = 180     // painel executivo do dia (nexus_briefing)
 export const DIAS_GUARDA_AUDITORIA = 365  // registro de uso de IA (nexus_audit_log)
 export const DIAS_LIXEIRA_HISTORICO_AP = 30 // lixeira do Histórico de Contas a Pagar (HISTORICO-AP-LIXEIRA-SQL.sql)
+export const DIAS_LIXEIRA_TERMOS = 60 // termo de aceite de quem saiu da empresa (bloco 8 do HIERARQUIA-EQUIPE-SQL.sql)
 export const DIAS_AVISO_ANTES = 15       // a partir daqui a tela avisa pra salvar
 
 // Quantos dias faltam pra um registro criado em `criadoEm` ser apagado.

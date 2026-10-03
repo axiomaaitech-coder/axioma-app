@@ -495,3 +495,34 @@ END
 $do$;
 
 SELECT 'bloco 7 ok' AS resultado;
+
+-- ============================== BLOCO 8 =====================================
+-- 2026-10-03 (Elias): termo de quem SAIU da empresa vai para uma lixeira (fora
+-- do painel da Equipe) por 60 dias e depois é apagado pela limpeza diária
+-- (lib/nexusAuditoria.ts → limparDadosVencidos). Nada é apagado aqui.
+ALTER TABLE public.empresa_convite_termo ADD COLUMN IF NOT EXISTS saiu_em timestamptz;
+CREATE INDEX IF NOT EXISTS idx_convite_termo_saiu ON public.empresa_convite_termo (saiu_em) WHERE saiu_em IS NOT NULL;
+
+create or replace function public.termo_para_lixeira_ao_sair()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update empresa_convite_termo set saiu_em = now()
+  where empresa_id = old.empresa_id and user_id = old.user_id and saiu_em is null;
+  return old;
+end;
+$$;
+drop trigger if exists trg_termo_lixeira_ao_sair on public.empresa_usuarios;
+create trigger trg_termo_lixeira_ao_sair after delete on public.empresa_usuarios
+  for each row execute function public.termo_para_lixeira_ao_sair();
+
+-- Quem já saiu antes desta regra: entra na lixeira a partir de hoje (60 dias)
+update empresa_convite_termo t set saiu_em = now()
+where t.saiu_em is null
+  and not exists (select 1 from empresa_usuarios eu where eu.empresa_id = t.empresa_id and eu.user_id = t.user_id)
+  and not exists (select 1 from empresa_equipe q where q.id = t.convite_id and q.situacao in ('enviado', 'aguardando_aprovacao'));
+
+SELECT 'bloco 8 ok' AS resultado, count(*) filter (where saiu_em is not null) AS na_lixeira FROM empresa_convite_termo;

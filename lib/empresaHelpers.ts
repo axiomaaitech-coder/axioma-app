@@ -989,7 +989,8 @@ export type TermoConvite = {
   convidado_em: string | null; aceito_em: string; apagado_em: string | null; apagado_por: string | null; motivo_apagado: string | null;
 };
 export async function listarTermosConvite(empresaId: string): Promise<TermoConvite[]> {
-  const { data } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).order("aceito_em", { ascending: false }).limit(200);
+  // Painel da Equipe mostra só quem está na empresa: termo apagado ou de quem saiu (lixeira 30 dias) fica fora
+  const { data } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).is("apagado_em", null).is("saiu_em", null).order("aceito_em", { ascending: false }).limit(200);
   return (data as TermoConvite[]) || [];
 }
 // Aprovação final do dono/admin: aprovar libera o acesso (com o prazo do convite); recusar encerra.
