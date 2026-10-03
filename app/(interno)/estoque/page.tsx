@@ -52,7 +52,7 @@ const supabase = createBrowserClient(
 // Identidade visual do módulo — jade/verde-mineral + acento bronze
 const JADE = "#047857";
 const JADE_ESCURO = "#065f46";
-const BRONZE = "#a16207";
+const BRONZE = "#16a97d";
 const POSITIVO = "#34d399";
 const NEGATIVO = "#f87171";
 const NEUTRO = "#2ecc9b";

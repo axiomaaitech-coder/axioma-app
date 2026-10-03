@@ -1727,7 +1727,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                   </button>
                   <button onClick={continuarMesmoComDuplicata}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #2ecc9b)" : "linear-gradient(135deg, #b45309, #2ecc9b)", color: temaClaro ? "#2b1900" : "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     {tt.importarAssim}
                   </button>
                 </div>
@@ -2361,7 +2361,7 @@ function PreviewBlock(props: any) {
                   />
                   <button onClick={salvarComoTemplate}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #2ecc9b)" : "linear-gradient(135deg, #b45309, #2ecc9b)", color: temaClaro ? "#2b1900" : "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     💾 OK
                   </button>
                   <button onClick={() => { setMostrarSalvarTemplate(false); setNomeNovoTemplate(""); }}

@@ -938,7 +938,7 @@ export default function Precificacao() {
                     <div className="flex gap-3 w-full">
                       <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{txt.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarProduto} disabled={salvando}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, #92400e, ${COR_PRC})`, color: "#1a1400" }}>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                         {salvando ? "..." : txt.salvar}
                       </motion.button>
                     </div>

@@ -719,7 +719,7 @@ export default function Fornecedores() {
   // de marca da paleta padrão do Claro (tema-tokens.md §1.1) - vira
   // verde-menta oficial, igual toda outra "identidade" decorativa do app.
   const AMBAR = temaClaro ? "#2ecc9b" : "#2ecc9b";
-  const BRONZE = temaClaro ? "#2ecc9b" : "#b45309";
+  const BRONZE = temaClaro ? "#2ecc9b" : "#16a97d";
   const PAINEL_BG = temaClaro ? "#f6f7c4" : "rgba(10,20,36,0.7)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(163,177,194,0.15)";
   const CAMPO_BG2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
@@ -1539,7 +1539,7 @@ export default function Fornecedores() {
   const curvaABCOption = curvaABCData.length > 0 ? optBarrasV(
     curvaABCData.slice(0, 10).map(c => c.valor),
     curvaABCData.slice(0, 10).map(c => c.nome.length > 10 ? c.nome.slice(0, 9) + "…" : c.nome),
-    AMBAR, "#fcd34d",
+    AMBAR, "#7fe3c3",
     curvaABCData.slice(0, 10).map(c => c.classe === "A" ? ct("#f87171") : c.classe === "B" ? "#2ecc9b" : ct("#34d399")),
     temaClaro,
   ) : null;
@@ -1590,7 +1590,7 @@ export default function Fornecedores() {
     ? contas.filter(c => c.fornecedor_id === fornecedorEvolucaoAtual.id).map(c => ({ valor: c.valor_total, data: c.data_emissao || c.data_vencimento || "", categoria: c.categoria, status: c.status, descricao: c.descricao }))
     : [];
   const serieEvolucao = serieRolling(contasEvolucao, 12);
-  const evolucaoOption = contasEvolucao.length > 0 ? optBarrasV(serieEvolucao.map(s => s.value), serieEvolucao.map(s => s.label), AMBAR, "#fcd34d", undefined, temaClaro) : null;
+  const evolucaoOption = contasEvolucao.length > 0 ? optBarrasV(serieEvolucao.map(s => s.value), serieEvolucao.map(s => s.label), AMBAR, "#7fe3c3", undefined, temaClaro) : null;
   const inflacao = fornecedorEvolucaoAtual ? inflacaoFornecedor(contas.filter(c => c.fornecedor_id === fornecedorEvolucaoAtual.id), periodo, periodoAnterior(periodo)) : null;
   const tendenciaFornecedor = detectarAnomaliasHistoricas(contasEvolucao);
 
@@ -2383,7 +2383,7 @@ export default function Fornecedores() {
                           {c.status !== "pago" && (
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => quitarConta(c)}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 axi-card-premium3d axi-card-faixa"
-                              style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), border: "1px solid rgba(52,211,153,0.3)" }}>
+                              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "none" }}>
                               <CheckCircle2 size={13} /> {idioma === "pt" ? "Quitar" : "Settle"}
                             </motion.button>
                           )}
@@ -2496,8 +2496,8 @@ export default function Fornecedores() {
                                 <Campo label={tt.lblWhatsapp} value={novoContato.whatsapp} onChange={(v) => setNovoContato({ ...novoContato, whatsapp: v })} />
                                 <div className="flex items-end"><CampoCheckbox label={tt.contatoPrincipalCheck} checked={novoContato.principal} onChange={(v) => setNovoContato({ ...novoContato, principal: v })} /></div>
                                 <div className="col-span-2 flex gap-2">
-                                  <button onClick={adicionarContato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoContatoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContato}`}</button>
-                                  {editandoContatoId && <button onClick={cancelarEdicaoContato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.cancelarEdicao}</button>}
+                                  <button onClick={adicionarContato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{editandoContatoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContato}`}</button>
+                                  {editandoContatoId && <button onClick={cancelarEdicaoContato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.cancelarEdicao}</button>}
                                 </div>
                               </div>
                             </>
@@ -2585,8 +2585,8 @@ export default function Fornecedores() {
                                 <input type="file" onChange={(e) => setArquivoDocumento(e.target.files?.[0] || null)} className={inputCls} style={inputStyle} />
                               </div>
                               <div className="col-span-2 flex gap-2">
-                                <button onClick={adicionarDocumento} disabled={enviandoDocumento} className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{enviandoDocumento ? tt.enviando : (editandoDocumentoId ? tt.salvarAlteracoes : `+ ${tt.adicionarDocumento}`)}</button>
-                                {editandoDocumentoId && <button onClick={cancelarEdicaoDocumento} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.cancelarEdicao}</button>}
+                                <button onClick={adicionarDocumento} disabled={enviandoDocumento} className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{enviandoDocumento ? tt.enviando : (editandoDocumentoId ? tt.salvarAlteracoes : `+ ${tt.adicionarDocumento}`)}</button>
+                                {editandoDocumentoId && <button onClick={cancelarEdicaoDocumento} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.cancelarEdicao}</button>}
                               </div>
                             </div>
                           </>
@@ -2667,8 +2667,8 @@ export default function Fornecedores() {
                               <Campo label={tt.lblValorContratado} value={novoContrato.valor_contratado} onChange={(v) => setNovoContrato({ ...novoContrato, valor_contratado: v })} tipo="number" />
                               <Campo label={tt.lblValorUtilizado} value={novoContrato.valor_utilizado} onChange={(v) => setNovoContrato({ ...novoContrato, valor_utilizado: v })} tipo="number" />
                               <div className="col-span-2 flex gap-2">
-                                <button onClick={adicionarContrato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoContratoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContrato}`}</button>
-                                {editandoContratoId && <button onClick={cancelarEdicaoContrato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.cancelarEdicao}</button>}
+                                <button onClick={adicionarContrato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{editandoContratoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContrato}`}</button>
+                                {editandoContratoId && <button onClick={cancelarEdicaoContrato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.cancelarEdicao}</button>}
                               </div>
                             </div>
                           </>
@@ -2707,8 +2707,8 @@ export default function Fornecedores() {
                               <Campo label={tt.lblUnidade} value={novoProduto.unidade} onChange={(v) => setNovoProduto({ ...novoProduto, unidade: v })} placeholder="un, kg, hora..." />
                               <Campo label={tt.lblValorUnitario} value={novoProduto.valor_unitario} onChange={(v) => setNovoProduto({ ...novoProduto, valor_unitario: v })} tipo="number" />
                               <div className="flex items-end gap-2">
-                                <button onClick={adicionarProduto} className="flex-1 py-3 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoProdutoId ? tt.salvarAlteracoes : `+ ${tt.adicionarProduto}`}</button>
-                                {editandoProdutoId && <button onClick={cancelarEdicaoProduto} className="px-3 py-3 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.cancelarEdicao}</button>}
+                                <button onClick={adicionarProduto} className="flex-1 py-3 rounded-lg text-xs font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{editandoProdutoId ? tt.salvarAlteracoes : `+ ${tt.adicionarProduto}`}</button>
+                                {editandoProdutoId && <button onClick={cancelarEdicaoProduto} className="px-3 py-3 rounded-lg text-xs font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.cancelarEdicao}</button>}
                               </div>
                             </div>
                           </>
@@ -2777,8 +2777,8 @@ export default function Fornecedores() {
                                 <Campo label={tt.lblTipoInteracao} value={novaInteracao.tipo} onChange={(v) => setNovaInteracao({ ...novaInteracao, tipo: v })} placeholder={lang === "en" ? "Meeting, email..." : lang === "es" ? "Reunión, correo..." : "Reunião, e-mail..."} />
                                 <div className="col-span-2"><Campo label={tt.lblDescricaoInteracao} value={novaInteracao.descricao} onChange={(v) => setNovaInteracao({ ...novaInteracao, descricao: v })} /></div>
                                 <div className="col-span-2 flex gap-2">
-                                  <button onClick={adicionarInteracao} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoInteracaoId ? tt.salvarAlteracoes : `+ ${tt.adicionarInteracao}`}</button>
-                                  {editandoInteracaoId && <button onClick={cancelarEdicaoInteracao} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.cancelarEdicao}</button>}
+                                  <button onClick={adicionarInteracao} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{editandoInteracaoId ? tt.salvarAlteracoes : `+ ${tt.adicionarInteracao}`}</button>
+                                  {editandoInteracaoId && <button onClick={cancelarEdicaoInteracao} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.cancelarEdicao}</button>}
                                 </div>
                               </div>
                             </>
@@ -2790,16 +2790,16 @@ export default function Fornecedores() {
 
                   <div className="flex gap-3 pt-4">
                     {etapaCadastro > 0 ? (
-                      <button onClick={() => setEtapaCadastro(etapaCadastro - 1)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{tt.anterior}</button>
+                      <button onClick={() => setEtapaCadastro(etapaCadastro - 1)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{tt.anterior}</button>
                     ) : (
-                      <button onClick={fecharModalForn} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+                      <button onClick={fecharModalForn} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{t.geral.cancelar}</button>
                     )}
                     {etapaCadastro < ETAPAS_CADASTRO.length - 1 ? (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={avancarEtapa} disabled={salvandoForn}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{salvandoForn ? t.geral.carregando : tt.proximo}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{salvandoForn ? t.geral.carregando : tt.proximo}</motion.button>
                     ) : (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={concluirCadastro} disabled={salvandoForn}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{salvandoForn ? t.geral.carregando : tt.concluirCadastro}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{salvandoForn ? t.geral.carregando : tt.concluirCadastro}</motion.button>
                     )}
                   </div>
                 </CanvasBox>
@@ -2896,7 +2896,7 @@ export default function Fornecedores() {
                       <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
                     </div>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
+                      <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "#101b3d", color: "#ffffff" }}>{t.geral.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                         style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>

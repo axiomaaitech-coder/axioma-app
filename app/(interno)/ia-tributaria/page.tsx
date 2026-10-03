@@ -618,7 +618,7 @@ export default function IATributariaPage() {
               <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.calendarioTitulo}</p>
               <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.calendarioDesc}</p>
               <a href="/empresa" className="inline-block px-4 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>{tt.irParaEmpresa}</a>
+                style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{tt.irParaEmpresa}</a>
             </CanvasBox>
           )}
         </div>

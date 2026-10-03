@@ -457,7 +457,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                     style={{ background: temaClaro
                       // Claro: sem laranja — verde-menta forte até o teto da multa, depois azul-marinho (padrão Axioma)
                       ? `linear-gradient(90deg, #2ecc9b 0%, #16a97d ${pctMulta}%, #17406e ${pctInapto}%, #101b3d 100%)`
-                      : `linear-gradient(90deg, #34d399 0%, #f59e0b ${pctMulta}%, #fb923c ${pctInapto}%, #f87171 100%)` }}>
+                      : `linear-gradient(90deg, #34d399 0%, #2ecc9b ${pctMulta}%, #fca5a5 ${pctInapto}%, #f87171 100%)` }}>
                     <div className="absolute -top-1.5 flex flex-col items-center" style={{ left: `${pctHoje}%` }}>
                       <div className="w-5 h-5 rounded-full border-2" style={{ background: temaClaro ? '#101b3d' : corFase(faseAtual), borderColor: temaClaro ? '#2ecc9b' : '#020810' }} />
                       <span className="text-xs font-bold mt-1 whitespace-nowrap" style={{ color: temaClaro ? '#101b3d' : corFase(faseAtual) }}>{t('marcoHoje')}</span>
