@@ -823,7 +823,7 @@ export default function EquipePage() {
                         {m.nome || m.email || t.conviteLink} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
                       </p>
                       <p className="text-xs truncate" style={{ color: MUTED }}>
-                        {m.email || t.conviteLink} {m.nivel != null && m.nivel <= 4 ? `• ${nomeNivel(m.nivel)}` : m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
+                        {m.email || t.conviteLink} {m.nivel != null && m.nivel <= 4 ? `• ${nomeNivel(m.nivel)}` : m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} {m.nivel === 1 ? '' : `• ${labelPapel(m.papel)}`}
                       </p>
                       <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
