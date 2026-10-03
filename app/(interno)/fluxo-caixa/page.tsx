@@ -571,7 +571,7 @@ export default function FluxoCaixa() {
               <div className="p-4 md:p-5">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#06b6d4,#3b82f6)", boxShadow: "0 0 12px #06b6d4" }} />
+                    <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: "0 0 12px #2ecc9b" }} />
                     <div>
                       <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.previsao}</p>
                       <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.cenarioOtimista} · {cx.cenarioPrevisto} · {cx.cenarioPessimista}</p>
@@ -618,7 +618,7 @@ export default function FluxoCaixa() {
         )}
 
         {/* Tabela lançamentos */}
-        <CanvasBox cor={ct("#a78bfa")} {...cartaoTema}>
+        <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
           <div className="mb-4">
             <h3 className="text-sm font-semibold" style={{ color: "var(--axi-text-primary)" }}>{t.fluxoCaixa.lancamentos}</h3>
           </div>
@@ -651,7 +651,7 @@ export default function FluxoCaixa() {
                       </td>
                       <td className="px-4 md:px-6 py-4 text-sm" style={{ color: TEXTO_SEC }}>{new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-4">
-                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#fbbf24") }}>
+                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#facc15") }}>
                           {l.status === "realizado" ? t.fluxoCaixa.realizado : t.fluxoCaixa.previsto}
                         </span>
                       </td>
@@ -660,7 +660,7 @@ export default function FluxoCaixa() {
                       </td>
                       <td className="px-4 md:px-6 py-4">
                         <div className="flex gap-3">
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(l)} style={{ color: ct("#6ab0ff") }}><Pencil size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(l)} style={{ color: ct("#2ecc9b") }}><Pencil size={15} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(l.id)} style={{ color: ct("#f87171") }}><Trash2 size={15} /></motion.button>
                         </div>
                       </td>
@@ -727,7 +727,7 @@ export default function FluxoCaixa() {
                       {["previsto", "realizado"].map((s) => (
                         <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })}
                           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? "rgba(106,176,255,0.2)" : "rgba(163,177,194,0.05)", color: novo.status === s ? ct("#6ab0ff") : TEXTO_SEC, border: `1px solid ${novo.status === s ? "rgba(106,176,255,0.4)" : "rgba(163,177,194,0.1)"}` }}>
+                          style={{ background: novo.status === s ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.05)", color: novo.status === s ? ct("#2ecc9b") : TEXTO_SEC, border: `1px solid ${novo.status === s ? "rgba(46,204,155,0.4)" : "rgba(163,177,194,0.1)"}` }}>
                           {s === "previsto" ? t.fluxoCaixa.previsto : t.fluxoCaixa.realizado}
                         </motion.button>
                       ))}
@@ -754,7 +754,7 @@ export default function FluxoCaixa() {
         textoDetalhado={textoDetalhado}
         assunto={`${t.fluxoCaixa.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#8b5cf6"
+        cor="#2ecc9b"
       />
     </ModuloLayout>
     </div>

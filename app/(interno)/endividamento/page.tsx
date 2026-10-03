@@ -434,7 +434,7 @@ export default function Endividamento() {
           {[
             { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: ct("#f87171"), ir: "#lista-dividas" },
             { label: t.endividamento.totalPago, value: fBRL(totalPago), cor: ct("#34d399"), ir: "#lista-dividas" },
-            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#fbbf24"), ir: "#escada-vencimentos" },
+            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#facc15"), ir: "#escada-vencimentos" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -532,7 +532,7 @@ export default function Endividamento() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ec4899,#8b5cf6)", boxShadow: "0 0 12px #ec4899" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: "0 0 12px #2ecc9b" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.projecaoQuitacaoTitulo}</p>
                     <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.cenarioMinimoLabel} × {cx.cenarioAvalancheLabel}</p>
@@ -595,7 +595,7 @@ export default function Endividamento() {
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
-                      <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
+                      <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -616,7 +616,7 @@ export default function Endividamento() {
         )}
 
         {/* Busca */}
-        <CanvasBox cor={ct("#3b6fd4")} {...cartaoTema}>
+        <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
           <div className="flex items-center gap-2 py-1">
             <Search size={16} style={{ color: TEXTO_SEC }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.endividamento.buscar}
@@ -650,9 +650,9 @@ export default function Endividamento() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="text-xs mb-1" style={{ color: TEXTO_SEC }}>{t.endividamento.taxaJuros}</p>
-                          <p className="font-black text-sm" style={{ color: ct("#fbbf24") }}>{d.taxa_juros}% a.m.</p>
+                          <p className="font-black text-sm" style={{ color: ct("#facc15") }}>{d.taxa_juros}% a.m.</p>
                         </div>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(d)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(d)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(d.id)} style={{ color: ct("#f87171") }}><Trash2 size={16} /></motion.button>
                       </div>
                     </div>
@@ -660,7 +660,7 @@ export default function Endividamento() {
                       {[
                         { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: ct("#f87171") },
                         { label: t.endividamento.jaPago, value: fBRL(d.valor_pago), cor: ct("#34d399") },
-                        { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#fbbf24") },
+                        { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#facc15") },
                       ].map((item) => (
                         <div key={item.label}>
                           <p className="text-xs mb-1" style={{ color: TEXTO_SEC }}>{item.label}</p>
@@ -671,13 +671,13 @@ export default function Endividamento() {
                     <div className="mb-2">
                       <div className="flex justify-between mb-1">
                         <span className="text-xs" style={{ color: TEXTO_SEC }}>{t.endividamento.progresso}</span>
-                        <span className="text-xs font-black" style={{ color: ct("#6ab0ff") }}>{progresso.toFixed(1)}%</span>
+                        <span className="text-xs font-black" style={{ color: ct("#2ecc9b") }}>{progresso.toFixed(1)}%</span>
                       </div>
                       <div className="w-full h-2 rounded-full" style={{ background: "rgba(163,177,194,0.1)" }}>
                         <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(progresso, 100)}%` }}
                           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 + i * 0.08 }}
                           className="h-2 rounded-full"
-                          style={{ background: `linear-gradient(90deg, #1a3a8f, #6ab0ff)` }} />
+                          style={{ background: `linear-gradient(90deg, #16a97d, #2ecc9b)` }} />
                       </div>
                     </div>
                     <div className="flex justify-between mt-3 flex-wrap gap-1">
@@ -767,7 +767,7 @@ export default function Endividamento() {
         textoDetalhado={textoDetalhado}
         assunto={`${t.endividamento.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#8b5cf6"
+        cor="#2ecc9b"
       />
     </ModuloLayout>
     </div>

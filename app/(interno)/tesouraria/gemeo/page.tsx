@@ -24,7 +24,7 @@ type Mudanca = 'nenhuma' | 'receita30' | 'emprestimo' | 'filial'
 // é cor da nossa paleta padrão — no Claro vira verde-menta.
 const PALETA = {
   dark: {
-    AZULC: '#6ab0ff', ROXO: '#a78bfa', VERDE: '#34d399', AMARELO: '#fbbf24', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    AZULC: '#2ecc9b', ROXO: '#2ecc9b', VERDE: '#34d399', AMARELO: '#facc15', VERMELHO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff',
     PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.04)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)',
   },
   xms: {

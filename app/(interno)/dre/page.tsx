@@ -617,7 +617,7 @@ export default function DREPage() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#10b981,#2ecc9b)" : "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#10b981,#2ecc9b)" : "linear-gradient(180deg,#10b981,#2ecc9b)", boxShadow: "0 0 12px #10b981" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.cascataDRE}</p>
                     <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
@@ -678,7 +678,7 @@ export default function DREPage() {
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
-                      <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
+                      <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -705,7 +705,7 @@ export default function DREPage() {
         textoDetalhado={textoDetalhado}
         assunto={`${d.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#8b5cf6"
+        cor="#2ecc9b"
       />
 
       {/* Histórico de Resultados */}
@@ -763,7 +763,7 @@ export default function DREPage() {
                       <div className="space-y-1.5">
                         <p className="text-xs font-black" style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }}>{cx.conselhoCfoTitulo}</p>
                         {snapshotSelecionado.resultado_completo.gatilhosConselho.map((g: any, i: number) => (
-                          <p key={i} className="text-xs" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{montarConselhoCFO(lang, g)}</p>
+                          <p key={i} className="text-xs" style={{ color: temaClaro ? "#374151" : ct("#2ecc9b") }}>{montarConselhoCFO(lang, g)}</p>
                         ))}
                       </div>
                     )}
