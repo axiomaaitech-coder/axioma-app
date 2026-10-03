@@ -342,9 +342,11 @@ export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: s
   // manual, que ficou de fora até agora.
   const { data: vinculoDono, error: erroVinculo } = await supabase
     .from("empresa_usuarios")
-    .upsert({ empresa_id: data.id, user_id: userId, papel: "dono" }, { onConflict: "empresa_id,user_id" })
+    // ignoreDuplicates = só cria (ON CONFLICT DO NOTHING): alteração direta em
+    // empresa_usuarios está fechada desde a hierarquia da Equipe (HIERARQUIA-EQUIPE-SQL.sql).
+    .upsert({ empresa_id: data.id, user_id: userId, papel: "dono" }, { onConflict: "empresa_id,user_id", ignoreDuplicates: true })
     .select("id");
-  if (erroVinculo || !vinculoDono || vinculoDono.length === 0) {
+  if (erroVinculo) {
     reportarFalhaEscrita("empresa_usuarios", "upsert (vínculo dono)", erroVinculo?.message || "0 linhas afetadas (RLS?)");
   }
 
