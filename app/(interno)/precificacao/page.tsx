@@ -624,7 +624,7 @@ export default function Precificacao() {
                   {oportunidades.map((o, i) => {
                     const corTipo = o.tipo === "destroiMargem" || o.tipo === "sobreprecificado" ? ct(CORES.vermelho) : o.tipo === "subprecificado" ? ct(CORES.amarelo) : ct(CORES.verde);
                     return (
-                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap" style={{ background: `${corTipo}10`, border: `1px solid ${corTipo}25` }}>
+                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: `${corTipo}10`, border: `1px solid ${corTipo}25` }}>
                         <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{montarNarrativaOportunidadePrecificacao(lang, o)}</p>
                         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${corTipo}18`, color: corTipo }}>{nomeTipoOportunidadePrecificacao(lang, o.tipo as TipoOportunidadePrecificacao)}</span>
                       </div>
@@ -706,7 +706,7 @@ export default function Precificacao() {
                     <input type="number" value={descontoPct} onChange={(e) => setDescontoPct(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                   </div>
                   {impactoDesconto && (
-                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
                       {impactoDesconto.dentroDoLimite ? <ShieldCheck size={15} style={{ color: ct(CORES.verdeC), flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle size={15} style={{ color: ct(CORES.vermelhoC), flexShrink: 0, marginTop: 2 }} />}
                       <p className="text-xs md:text-[13px] font-medium" style={{ color: impactoDesconto.dentroDoLimite ? ct("#6ee7b7") : ct("#fca5a5") }}>{montarNarrativaImpactoDesconto(lang, impactoDesconto, parseFloat(descontoPct || "0"))}</p>
                     </div>
@@ -782,7 +782,7 @@ export default function Precificacao() {
                   {warResultado.map((r) => {
                     const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? COR_PRC : ct(CORES.azul);
                     return (
-                      <div key={r.nome} className="rounded-xl p-3" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
+                      <div key={r.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
                         <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
                         <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
                         <p className="text-sm font-black" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
@@ -816,18 +816,18 @@ export default function Precificacao() {
               </div>
               <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
               <div className="space-y-1.5 mb-3">
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                   <Sparkles size={15} style={{ color: corOuro, flexShrink: 0, marginTop: 2 }} />
                   <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#7fe3c3" }}>{montarNarrativaIPPA(lang, ippa)}</p>
                 </div>
                 {piorOportunidade && (
-                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
                     <AlertTriangle size={15} style={{ color: ct(CORES.vermelhoC), flexShrink: 0, marginTop: 2 }} />
                     <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#fca5a5") }}>{montarNarrativaOportunidadePrecificacao(lang, piorOportunidade)}</p>
                   </div>
                 )}
                 {melhorOportunidade && (
-                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
                     <Sparkles size={15} style={{ color: ct(CORES.verdeC), flexShrink: 0, marginTop: 2 }} />
                     <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#6ee7b7") }}>{montarNarrativaOportunidadePrecificacao(lang, melhorOportunidade)}</p>
                   </div>
@@ -873,7 +873,7 @@ export default function Precificacao() {
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-sm truncate mr-2" style={{ color: ct("#c8d8f0") }}>{p.produto_servico}</h3>
                       <div className="flex gap-2 flex-shrink-0">
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}><Pencil size={15} style={{ color: ct("#6ab0ff") }} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}><Pencil size={15} style={{ color: ct("#2ecc9b") }} /></motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirProduto(p.id)}><Trash2 size={15} style={{ color: ct("#f87171") }} /></motion.button>
                       </div>
                     </div>
@@ -917,13 +917,13 @@ export default function Precificacao() {
                       { label: txt.unidadesLabel, value: unidadesVendidasMes, set: setUnidadesVendidasMes, type: "number" },
                     ].map((c, idx) => (
                       <div key={idx}>
-                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{c.label}</label>
+                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{c.label}</label>
                         <input type={c.type} value={c.value} onChange={(e) => c.set(e.target.value)} placeholder="0"
                           className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                       </div>
                     ))}
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.statusLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.statusLabel}</label>
                       <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }}>
                         <option value="ativo">{txt.statusAtivo}</option>
                         <option value="descontinuado">{txt.statusDescontinuado}</option>

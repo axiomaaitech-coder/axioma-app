@@ -637,7 +637,7 @@ export default function Metas() {
   const metasFiltradas = metasVisiveis.filter(m => m.titulo.toLowerCase().includes(busca.toLowerCase()));
 
   const SubChart = ({ titulo: t2, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f8fafc" : "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#f8fafc" : "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-[13px] font-black" style={{ color: ct("#f1f5f9") }}>{t2}</p>
@@ -661,7 +661,7 @@ export default function Metas() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={temaClaro
               ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: ROXO_CHIP_BG_ATIVO, border: `1px solid ${ROXO_CHIP_BORDA}`, color: ct("#c4b5fd") }}>
+              : { background: ROXO_CHIP_BG_ATIVO, border: `1px solid ${ROXO_CHIP_BORDA}`, color: ct("#2ecc9b") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -709,7 +709,7 @@ export default function Metas() {
               <div className="marquee-meta py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? ct("#c4b5fd") : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(CORES.roxo) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? ct("#2ecc9b") : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(CORES.roxo) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -726,7 +726,7 @@ export default function Metas() {
               {narrativasDependencia.length > 0 ? (
                 <div className="space-y-2">
                   {narrativasDependencia.map((n, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(255,90,107,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.25)" : "rgba(239,68,68,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,90,107,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.25)" : "rgba(239,68,68,0.2)"}` }}>
                       <GitBranch size={14} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} />
                       <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#fca5a5") }}>{n}</p>
                     </div>
@@ -770,9 +770,9 @@ export default function Metas() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG_FRACO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG_FRACO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                       <Sparkles size={15} style={{ color: corOuro, flexShrink: 0 }} />
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
+                      <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#2ecc9b") }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -784,13 +784,13 @@ export default function Metas() {
         )}
 
         {legado.length > 0 && (
-          <div className="rounded-xl p-3 text-xs" style={{ background: AMARELO_CHIP_BG, border: `1px solid ${AMARELO_CHIP_BORDA}`, color: ct("#fde68a") }}>
+          <div className="rounded-xl p-3 text-xs axi-card-premium3d axi-card-faixa" style={{ background: AMARELO_CHIP_BG, border: `1px solid ${AMARELO_CHIP_BORDA}`, color: ct("#fde68a") }}>
             {cx.metaSemTipoAviso}
           </div>
         )}
 
         {/* Busca */}
-        <CanvasBox cor={ct("#3b6fd4")} {...cartaoTema}>
+        <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
           <div className="flex items-center gap-2 py-1">
             <Target size={16} style={{ color: ct("#5a7a9a") }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={txt.buscar}
@@ -814,7 +814,7 @@ export default function Metas() {
               const c = metasComputadas.find(x => x.id === m.id);
               const concluida = m.status === "concluida";
               const arquivada = m.status === "arquivada";
-              const corSemaforo = ct(c ? (c.semaforo === "verde" ? CORES.verde : c.semaforo === "amarelo" ? CORES.amarelo : CORES.vermelho) : "#6ab0ff");
+              const corSemaforo = ct(c ? (c.semaforo === "verde" ? CORES.verde : c.semaforo === "amarelo" ? CORES.amarelo : CORES.vermelho) : "#2ecc9b");
               return (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <CanvasBox cor={concluida ? corOuro : corSemaforo} {...cartaoTema}>
@@ -845,7 +845,7 @@ export default function Metas() {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(m)}><Pencil size={16} style={{ color: ct("#6ab0ff") }} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(m)}><Pencil size={16} style={{ color: ct("#2ecc9b") }} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => arquivar(m)}>
                             {arquivada ? <ArchiveRestore size={16} style={{ color: ct("#34d399") }} /> : <Archive size={16} style={{ color: ct("#94a3b8") }} />}
                           </motion.button>
@@ -935,13 +935,13 @@ export default function Metas() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.nomeMeta} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.nomeMeta} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
                     <input value={titulo} onChange={e => setTitulo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.tipoLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.tipoLabel}</label>
                     <select value={tipoMetaSel} onChange={e => trocarTipoModal(e.target.value as TipoMeta)}
                       disabled={!!editando && !!editando.tipo_meta}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm disabled:opacity-50"
@@ -952,13 +952,13 @@ export default function Metas() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.metaValorInicialLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{cx.metaValorInicialLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
                       <input type="number" value={valorInicialInput} onChange={e => setValorInicialInput(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.valorAlvoLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.valorAlvoLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
                       <input type="number" value={valorMeta} onChange={e => setValorMeta(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
@@ -966,7 +966,7 @@ export default function Metas() {
                   </div>
                   <p className="text-[10px] -mt-2" style={{ color: ct("#64748b") }}>{cx.metaValorInicialAjuda}</p>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.metaDirecaoLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{cx.metaDirecaoLabel}</label>
                     <div className="grid grid-cols-2 gap-2">
                       {(["aumentar", "reduzir"] as DirecaoMeta[]).map(d => (
                         <motion.button key={d} type="button" whileTap={{ scale: 0.97 }} onClick={() => setDirecaoSel(d)}
@@ -979,25 +979,25 @@ export default function Metas() {
                     {direcaoInconsistente && <p className="text-[11px] mt-1.5" style={{ color: ct(CORES.amarelo) }}>{cx.metaDirecaoInconsistente}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.prazoLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.prazoLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>
                     <input type="date" value={prazo} onChange={e => setPrazo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.metaResponsavelLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{cx.metaResponsavelLabel}</label>
                     <input value={responsavelInput} onChange={e => setResponsavelInput(e.target.value)} placeholder={cx.metaResponsavelPlaceholder}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.metaDescricaoLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{cx.metaDescricaoLabel}</label>
                     <textarea value={descricaoInput} onChange={e => setDescricaoInput(e.target.value)} placeholder={cx.metaDescricaoPlaceholder} rows={2}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm resize-none"
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                   </div>
                   {erroModal && (
-                    <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: temaClaro ? "rgba(255,90,107,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.3)" : "rgba(239,68,68,0.3)"}`, color: ct("#fca5a5") }}>
+                    <div className="rounded-xl px-3 py-2.5 text-xs axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,90,107,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.3)" : "rgba(239,68,68,0.3)"}`, color: ct("#fca5a5") }}>
                       {erroModal}
                     </div>
                   )}
