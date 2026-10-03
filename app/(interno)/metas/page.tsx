@@ -224,17 +224,17 @@ export default function Metas() {
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app
   // (antes esses painéis "camada CFO" caíam no branco puro, nunca
   // atualizados quando o creme virou o padrão oficial do Claro).
-  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
+  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(46,204,155,0.15)";
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
-  const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
-  const ROXO_CHIP_BG = temaClaro ? "rgba(46,204,155,0.12)" : "rgba(139,92,246,0.12)";
-  const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(139,92,246,0.2)";
-  const ROXO_CHIP_BORDA = temaClaro ? "rgba(46,204,155,0.4)" : "rgba(139,92,246,0.4)";
-  const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.1)";
+  const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
+  const ROXO_CHIP_BG = temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)";
+  const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(46,204,155,0.2)";
+  const ROXO_CHIP_BORDA = temaClaro ? "rgba(46,204,155,0.4)" : "rgba(46,204,155,0.4)";
+  const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.1)";
   const AMARELO_CHIP_BG = temaClaro ? "rgba(245,166,35,0.12)" : "rgba(234,179,8,0.12)";
   const AMARELO_CHIP_BORDA = temaClaro ? "rgba(245,166,35,0.25)" : "rgba(234,179,8,0.25)";
   // Dourado não é cor da nossa paleta padrão (tema-tokens.md) - no Claro
@@ -243,9 +243,9 @@ export default function Metas() {
   const OURO_CLARO = "#2ecc9b";
   const corOuro = temaClaro ? OURO_CLARO : ct(CORES.ouro);
   const corOuroC = temaClaro ? OURO_CLARO : ct(CORES.ouroC);
-  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(212,175,55,0.15)";
-  const OURO_BADGE_BG_FRACO = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)";
+  const OURO_BADGE_BG_FRACO = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)";
 
   const [metas, setMetas] = useState<MetaRow[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -637,7 +637,7 @@ export default function Metas() {
   const metasFiltradas = metasVisiveis.filter(m => m.titulo.toLowerCase().includes(busca.toLowerCase()));
 
   const SubChart = ({ titulo: t2, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f8fafc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f8fafc" : "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-[13px] font-black" style={{ color: ct("#f1f5f9") }}>{t2}</p>
@@ -705,7 +705,7 @@ export default function Metas() {
             </div>
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(139,92,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(139,92,246,0.24)"}` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(46,204,155,0.14), rgba(46,204,155,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.24)"}` }}>
               <div className="marquee-meta py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>

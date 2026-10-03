@@ -267,7 +267,7 @@ export default function IAFinanceiraPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
 
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);

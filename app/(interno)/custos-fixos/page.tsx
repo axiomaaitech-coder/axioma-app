@@ -23,12 +23,12 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 
-const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
 // Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
 // escurecer/saturar mais (ver memória do rollout Claro).
 const PAINEL_CLARO_FUNDO = "#f6f7c4";
-const RENOV_PAINEL_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
+const RENOV_PAINEL_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,22,40,0.95))";
 const RENOV_PAINEL_CLARO = "#f6f7c4";
 
 const supabase = createBrowserClient(
@@ -69,10 +69,10 @@ export default function CustosFixos() {
   const campoFundo3 = temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
-  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
-  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
+  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
   const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(239,68,68,0.12), rgba(249,115,22,0.10))";
   const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(239,68,68,0.22)";
@@ -293,7 +293,7 @@ export default function CustosFixos() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(46,204,155,0.15)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -368,7 +368,7 @@ export default function CustosFixos() {
             )}
 
             {/* MODAL ÚNICO — Análise */}
-            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ef4444,#f97316)", boxShadow: "0 0 12px #ef4444" }} />
@@ -387,7 +387,7 @@ export default function CustosFixos() {
             <div id="insights-custos-fixos" className="scroll-mt-28" />
             {/* Insights */}
             {insights.length > 0 && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(46,204,155,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
@@ -423,7 +423,7 @@ export default function CustosFixos() {
             ) : (
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(59,111,212,0.15)" }}>
+                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(163,177,194,0.15)" }}>
                     {[t.geral.descricao, t.geral.categoria, t.custosFixos.vencimento, t.custosFixos.valorMensal, t.custosFixos.valorAnual, t.geral.acoes].map(h => (
                       <th key={h} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
                     ))}
@@ -435,7 +435,7 @@ export default function CustosFixos() {
                   ) : custosFiltrados.map((c, i) => (
                     <motion.tr key={c.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(248,113,113,0.02)" }}
-                      style={{ borderBottom: i < custosFiltrados.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
+                      style={{ borderBottom: i < custosFiltrados.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[c.categoria] || ct("#6ab0ff") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>Dia {c.dia_vencimento}</td>
@@ -480,13 +480,13 @@ export default function CustosFixos() {
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{label}</label>
                       <input type={type} placeholder={placeholder} value={novo[key as keyof typeof novo]}
                         onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                     </div>
                   ))}
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.categoria}</label>
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
@@ -498,7 +498,7 @@ export default function CustosFixos() {
                       value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
                       centros={centrosCusto} empresaId={empresaIdAtivo} userId={userIdAtivo} lang={lang}
                       onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}
                     />
                   </div>
                   {/* NOVO: data de renovação (radar) */}

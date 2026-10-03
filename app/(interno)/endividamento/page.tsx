@@ -30,8 +30,8 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 
-const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
 // Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
 // escurecer/saturar mais (ver memória do rollout Claro).
 const PAINEL_CLARO_FUNDO = "#f6f7c4";
@@ -78,13 +78,13 @@ export default function Endividamento() {
   const campoFundo3 = temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
-  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
-  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
+  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(236,72,153,0.14), rgba(139,92,246,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(236,72,153,0.24)";
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(46,204,155,0.14), rgba(46,204,155,0.10))";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.24)";
   const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
   const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#f9a8d4");
 
@@ -424,7 +424,7 @@ export default function Endividamento() {
           <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(46,204,155,0.15)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -495,7 +495,7 @@ export default function Endividamento() {
 
             <div id="escada-vencimentos" className="scroll-mt-28" />
             {/* ESCADA DE VENCIMENTOS */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)")}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)")}` }}>
               <div className="flex items-center gap-2 mb-2">
                 {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />}
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.escadaVencimentosTitulo}</p>
@@ -505,7 +505,7 @@ export default function Endividamento() {
             </div>
 
             {/* MÉTODO AVALANCHE */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.avalancheTitulo}</p>
@@ -517,7 +517,7 @@ export default function Endividamento() {
                       <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(temaClaro ? CORES.verde : CORES.rosa) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
                       <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
                       {a.cara && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,68,68,0.15)", color: ct(CORES.vermelho) }}>{cx.dividaCaraTag}</span>}
-                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(236,72,153,0.15)", color: ct(temaClaro ? CORES.verde : CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
+                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(46,204,155,0.15)", color: ct(temaClaro ? CORES.verde : CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-black" style={{ color: a.cara ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(a.taxaJurosAM)}/m</p>
@@ -529,7 +529,7 @@ export default function Endividamento() {
             </div>
 
             {/* MODAL ÚNICO — Projeção de Quitação + Simulador */}
-            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ec4899,#8b5cf6)", boxShadow: "0 0 12px #ec4899" }} />
@@ -552,7 +552,7 @@ export default function Endividamento() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                     <select value={simDividaId} onChange={(e) => setSimDividaId(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo3, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }}>
+                      style={{ background: campoFundo3, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}`, color: "var(--axi-text-primary)" }}>
                       <option value="">{t.geral.descricao}...</option>
                       {dividas.filter(d => d.valor_total - d.valor_pago > 0).map(d => (
                         <option key={d.id} value={d.id}>{d.descricao} ({fPct(d.taxa_juros)}/m)</option>
@@ -560,10 +560,10 @@ export default function Endividamento() {
                     </select>
                     <input type="number" placeholder={cx.novaTaxaLabel} value={simNovaTaxa} onChange={(e) => setSimNovaTaxa(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}`, color: "var(--axi-text-primary)" }} />
                     <input type="number" placeholder={cx.novoPrazoLabel} value={simNovoPrazo} onChange={(e) => setSimNovoPrazo(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}`, color: "var(--axi-text-primary)" }} />
                   </div>
                   {resultadoSim && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -585,7 +585,7 @@ export default function Endividamento() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(212,175,55,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoDividaTitulo}</p>
@@ -593,7 +593,7 @@ export default function Endividamento() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(212,175,55,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
                     </div>
@@ -605,7 +605,7 @@ export default function Endividamento() {
             </div>
 
             {/* Regra de ouro + Runway */}
-            <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)")}` }}>
+            <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)")}` }}>
               <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(temaClaro ? CORES.verde : CORES.rosa), flexShrink: 0 }} />
               <div>
                 <p className="text-sm" style={{ color: runwayMeses === null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
@@ -673,7 +673,7 @@ export default function Endividamento() {
                         <span className="text-xs" style={{ color: TEXTO_SEC }}>{t.endividamento.progresso}</span>
                         <span className="text-xs font-black" style={{ color: ct("#6ab0ff") }}>{progresso.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full h-2 rounded-full" style={{ background: "rgba(59,111,212,0.1)" }}>
+                      <div className="w-full h-2 rounded-full" style={{ background: "rgba(163,177,194,0.1)" }}>
                         <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(progresso, 100)}%` }}
                           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 + i * 0.08 }}
                           className="h-2 rounded-full"
@@ -714,13 +714,13 @@ export default function Endividamento() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.descricao}</label>
                     <input value={novo.descricao} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.categoria}</label>
                     <select value={novo.tipo} onChange={(e) => setNovo({ ...novo, tipo: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
+                      style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
                       {tipos.map(tp => <option key={tp}>{tp}</option>)}
                     </select>
                   </div>
@@ -736,7 +736,7 @@ export default function Endividamento() {
                         <input type="number" value={novo[key as keyof typeof novo]}
                           onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                          style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
+                          style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                       </div>
                     ))}
                   </div>
@@ -744,7 +744,7 @@ export default function Endividamento() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.endividamento.vencimento}</label>
                     <input type="date" value={novo.vencimento} onChange={(e) => setNovo({ ...novo, vencimento: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={salvar} disabled={salvando}

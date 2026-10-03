@@ -34,14 +34,14 @@ import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 
-const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
 // Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
 // escurecer/saturar mais (ver memória do rollout Claro).
 const PAINEL_CLARO_FUNDO = "#f6f7c4";
 // Ponte Lucro×Caixa em alerta é risco real (regra 4, exceção de alerta) —
 // mantém o tingimento de aviso, nunca vira creme neutro.
-const PONTE_ALERTA_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
+const PONTE_ALERTA_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,22,40,0.95))";
 const PONTE_ALERTA_CLARO = "linear-gradient(160deg, #fdf3ee, #f7f8fc)";
 
 const supabase = createBrowserClient(
@@ -115,10 +115,10 @@ export default function DREPage() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const d = t.dre;
-  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
-  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
+  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
   const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(20,184,166,0.10))";
   const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(16,185,129,0.24)";
@@ -517,7 +517,7 @@ export default function DREPage() {
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+              style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(46,204,155,0.15)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
               <Share2 size={16} /> {cx.compartilhar}
             </motion.button>
           </div>
@@ -614,7 +614,7 @@ export default function DREPage() {
             )}
 
             {/* MODAL ÚNICO — Cascata + AV/AH + Projeção */}
-            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#10b981,#2ecc9b)" : "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
@@ -640,7 +640,7 @@ export default function DREPage() {
                     </thead>
                     <tbody>
                       {linhasCascataTabela.map((l, i) => (
-                        <tr key={i} style={{ borderBottom: i < linhasCascataTabela.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.06)"}` : "none" }}>
+                        <tr key={i} style={{ borderBottom: i < linhasCascataTabela.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.06)"}` : "none" }}>
                           <td className="px-4 py-2.5 text-sm" style={{ color: "var(--axi-text-primary)" }}>{l.label}</td>
                           <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: l.linha.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(l.linha.valor)}</td>
                           <td className="px-4 py-2.5 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{l.linha.avPct !== null ? fPct(l.linha.avPct) : "—"}</td>
@@ -668,7 +668,7 @@ export default function DREPage() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(212,175,55,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoCfoTitulo}</p>
@@ -676,7 +676,7 @@ export default function DREPage() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(212,175,55,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(46,204,155,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
                     </div>

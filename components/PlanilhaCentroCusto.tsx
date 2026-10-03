@@ -551,7 +551,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       </div>
 
       {/* Grade */}
-      <div className={`rounded-2xl overflow-hidden${temaClaro ? " axi-card-premium3d" : ""}`} style={{ border: temaClaro ? BORDA_3D : `1px solid ${VINHO}25`, background: FUNDO_PAINEL, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+      <div className={`rounded-2xl overflow-hidden${" axi-card-premium3d axi-card-faixa"}`} style={{ border: temaClaro ? BORDA_3D : `1px solid ${VINHO}25`, background: FUNDO_PAINEL, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
         <div ref={scrollRef} onScroll={e => setScrollTop(e.currentTarget.scrollTop)} style={{ maxHeight: ALTURA_VISIVEL, overflow: "auto", position: "relative" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
             <colgroup>{COLUNAS.map(c => <col key={c.id} style={{ width: c.largura }} />)}</colgroup>
@@ -748,7 +748,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
           { titulo: t.curvaABC, opt: optCurvaABC, vazio: curvaABC.length === 0 },
           { titulo: t.evolucaoMensal, opt: optEvolucao, vazio: evolucaoMensal.length === 0 },
         ].map((g, i) => (
-          <div key={i} className={`rounded-2xl p-3${temaClaro ? " axi-card-premium3d" : ""}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+          <div key={i} className={`rounded-2xl p-3${" axi-card-premium3d axi-card-faixa"}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-xs font-black mb-2" style={{ color: ENFASE }}>{g.titulo}</p>
             {g.vazio ? <p className="text-xs py-10 text-center" style={{ color: TEXTO_SECUNDARIO }}>{t.semDados}</p> : (
               <ReactECharts option={g.opt} style={{ height: 240 }} notMerge lazyUpdate
@@ -756,7 +756,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
             )}
           </div>
         ))}
-        <div className={`rounded-2xl p-3 lg:col-span-2${temaClaro ? " axi-card-premium3d" : ""}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+        <div className={`rounded-2xl p-3 lg:col-span-2${" axi-card-premium3d axi-card-faixa"}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-black mb-2" style={{ color: ENFASE }}>{t.orcadoRealizado}</p>
           {evolucaoMensal.length === 0 ? <p className="text-xs py-10 text-center" style={{ color: TEXTO_SECUNDARIO }}>{t.semDados}</p> : (
             <ReactECharts option={optOrcadoRealizado} style={{ height: 260 }} notMerge lazyUpdate />

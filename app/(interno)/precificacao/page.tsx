@@ -85,15 +85,15 @@ export default function Precificacao() {
   const COR_PRC = temaClaro ? "#2ecc9b" : ct(CORES.amarelo);
   const COR_PRC_C = temaClaro ? "#2ecc9b" : ct(CORES.amareloC);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
-  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
 
   const [produtos, setProdutos] = useState<ProdutoRow[]>([]);
   const [concorrentes, setConcorrentes] = useState<ConcorrenteRow[]>([]);
@@ -919,12 +919,12 @@ export default function Precificacao() {
                       <div key={idx}>
                         <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{c.label}</label>
                         <input type={c.type} value={c.value} onChange={(e) => c.set(e.target.value)} placeholder="0"
-                          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                       </div>
                     ))}
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.statusLabel}</label>
-                      <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }}>
+                      <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }}>
                         <option value="ativo">{txt.statusAtivo}</option>
                         <option value="descontinuado">{txt.statusDescontinuado}</option>
                       </select>

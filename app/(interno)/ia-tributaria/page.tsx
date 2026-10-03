@@ -183,7 +183,7 @@ export default function IATributariaPage() {
   const tooltipStyle = { background: TOOLTIP_BG, border: `1px solid ${temaClaro ? "rgba(16,27,61,0.18)" : "rgba(106,176,255,0.3)"}`, borderRadius: "12px", color: TEXTO, fontSize: "12px" };
   // Card creme + efeito premium3d (borda verde-menta no hover), igual ao
   // Painel MEI/Receitas — spread em todo <CanvasBox> de nível de seção.
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
 
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);

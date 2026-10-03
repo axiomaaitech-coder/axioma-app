@@ -103,17 +103,17 @@ export default function Investimentos() {
     renda_fixa: ct(CORES.verde), renda_variavel: ct(CORES.amarelo), criptomoeda: ct(CORES.roxo), imovel: ct(CORES.azul), outro: ct(CORES.rosa),
   };
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
-  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
     setToast({ msg, tipo });
@@ -518,7 +518,7 @@ export default function Investimentos() {
   ].join("\n");
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.12)" : `${cor}20`}` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.12)" : `${cor}20`}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-[13px] font-black" style={{ color: ct("#f1f5f9") }}>{titulo}</p>
@@ -543,7 +543,7 @@ export default function Investimentos() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={temaClaro
               ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+              : { background: "rgba(46,204,155,0.15)", border: "1px solid rgba(46,204,155,0.4)", color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -629,7 +629,7 @@ export default function Investimentos() {
             )}
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(59,130,246,0.24)"}` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(46,204,155,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(59,130,246,0.24)"}` }}>
               <div className="marquee-inv py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
@@ -684,7 +684,7 @@ export default function Investimentos() {
             {/* MODAL ÚNICO — abre a Análise de Investimentos */}
             <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={() => setAnaliseAberta(true)}
               className={`w-full rounded-2xl overflow-hidden text-left${classePremium3d}`}
-              style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+              style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5 flex items-center gap-3">
                 <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#3b82f6"}` }} />
                 <div>
@@ -695,7 +695,7 @@ export default function Investimentos() {
             </motion.button>
 
             {/* CONSELHO CFO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invConselhoTitulo}</p>
@@ -703,7 +703,7 @@ export default function Investimentos() {
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: corOuro, flexShrink: 0 }} />
                       <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{s}</p>
                     </div>
@@ -789,7 +789,7 @@ export default function Investimentos() {
             </div>
 
             {/* SIMULADOR EXECUTIVO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Sliders size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invSimuladorTitulo}</p>
@@ -809,7 +809,7 @@ export default function Investimentos() {
                     <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#5a8fd4") }}>{f.l}</label>
                     <input type="number" value={f.v} onChange={(e) => f.set(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}`, color: ct("#c8d8f0") }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)"}`, color: ct("#c8d8f0") }} />
                   </div>
                 ))}
               </div>
@@ -915,7 +915,7 @@ export default function Investimentos() {
             onClick={() => setAnaliseAberta(false)}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
               transition={{ duration: 0.22 }} className="w-full max-w-4xl max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.2)" }}>
+              <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(46,204,155,0.2)" }}>
                 <div className="p-4 md:p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
@@ -972,20 +972,20 @@ export default function Investimentos() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.nomeLabel}</label>
                     <input value={nome} onChange={(e) => setNome(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                      style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.valorLabel}</label>
                       <input type="number" value={valor} onChange={(e) => setValor(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.rentLabel}</label>
                       <input type="number" value={rentabilidade} onChange={(e) => setRentabilidade(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -993,20 +993,20 @@ export default function Investimentos() {
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.dataLabel}</label>
                       <input type="date" value={data} onChange={(e) => setData(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.invVencimentoLabel}</label>
                       <input type="date" value={dataVencimento} onChange={(e) => setDataVencimento(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.invInstituicaoLabel}</label>
                     <input value={instituicao} onChange={(e) => setInstituicao(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                      style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.tipoLabel}</label>
@@ -1025,7 +1025,7 @@ export default function Investimentos() {
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.invLiquidezLabel}</label>
                       <select value={liquidez} onChange={(e) => setLiquidez(e.target.value as Liquidez)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }}>
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }}>
                         <option value="diaria">{cx.invLiquidezDiaria}</option>
                         <option value="curto_prazo">{cx.invLiquidezCurtoPrazo}</option>
                         <option value="longo_prazo">{cx.invLiquidezLongoPrazo}</option>
@@ -1036,7 +1036,7 @@ export default function Investimentos() {
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.invStatusLabel}</label>
                       <select value={status} onChange={(e) => setStatus(e.target.value as StatusInvestimento)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }}>
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }}>
                         <option value="ativo">{cx.invStatusAtivo}</option>
                         <option value="resgatado">{cx.invStatusResgatado}</option>
                       </select>
@@ -1046,7 +1046,7 @@ export default function Investimentos() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{cx.invIndexadorLabel}</label>
                     <input value={indexador} onChange={(e) => setIndexador(e.target.value)} placeholder="Ex: 110% CDI, IPCA+6%, Prefixado"
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
+                      style={{ background: CAMPO_BG, border: "1px solid rgba(163,177,194,0.2)", color: ct("#c8d8f0") }} />
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{txt.cancelarBtn}</button>

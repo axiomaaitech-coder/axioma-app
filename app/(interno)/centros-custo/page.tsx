@@ -74,7 +74,7 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   return (
     <AnimatePresence>
       {aberto && (
@@ -108,7 +108,7 @@ export default function CentrosCustoPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   // Padrão de aba/pill: azul-marinho+branco em repouso, verde-menta forte
   // (#16a97d, par "Sucesso" oficial)+branco quando ativa/clicada - mesmo
   // padrão pedido pelo Elias em Contas a Pagar/Estoque/Contas a Receber.
@@ -727,7 +727,7 @@ export default function CentrosCustoPage() {
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
       onClick={abrirRateio}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa"), border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(167,139,250,0.3)" }}>
+      style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct("#a78bfa"), border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)" }}>
       <Split size={15} /> {L.rateio}
     </motion.button>
   );
@@ -1101,7 +1101,7 @@ export default function CentrosCustoPage() {
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <span className="text-sm font-black" style={{ color: ct("#f87171") }}>{fmt(c.impacto)}</span>
                     <button onClick={() => abrirPlanoDeAcao("causa_raiz", c.id, c.centroId, `Investigar: ${c.descricao}`, c.impacto, c.explicacao)}
-                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa") }}>
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct("#a78bfa") }}>
                       {idioma === "pt" ? "Gerar plano de ação" : idioma === "es" ? "Generar plan de acción" : "Create action plan"}
                     </button>
                   </div>
@@ -1142,7 +1142,7 @@ export default function CentrosCustoPage() {
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     {o.economiaEstimada > 0 && <span className="text-sm font-black" style={{ color: ct("#34d399") }}>{fmt(o.economiaEstimada)}</span>}
                     <button onClick={() => abrirPlanoDeAcao("oportunidade", o.id, o.centroId, o.titulo, o.economiaEstimada, o.descricao)}
-                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa") }}>
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct("#a78bfa") }}>
                       {idioma === "pt" ? "Gerar plano de ação" : idioma === "es" ? "Generar plan de acción" : "Create action plan"}
                     </button>
                   </div>
@@ -1229,7 +1229,7 @@ export default function CentrosCustoPage() {
             <div className="space-y-3 mb-4 max-h-[420px] overflow-y-auto">
               {chatMensagens.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(167,139,250,0.1)", color: ct("#c8d8f0") }}>
+                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(46,204,155,0.1)", color: ct("#c8d8f0") }}>
                     {m.texto}
                   </div>
                 </div>

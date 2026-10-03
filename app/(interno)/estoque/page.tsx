@@ -183,7 +183,7 @@ function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
   aberto: boolean; onFechar: () => void; titulo: string; children: React.ReactNode; largo?: boolean;
 }) {
   const { ct, temaClaro } = useEstoqueTema();
-  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   return (
     <AnimatePresence>
       {aberto && (
@@ -236,7 +236,7 @@ export default function EstoquePage() {
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
   const labelStyle = { color: ct(BRONZE) };
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const POSITIVO_CT = ct(POSITIVO);
   const NEGATIVO_CT = ct(NEGATIVO);
   const NEUTRO_CT = ct(NEUTRO);

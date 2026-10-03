@@ -219,7 +219,7 @@ export default function TesourariaPage() {
           {podeConfigurar && (
             <button onClick={() => router.push('/tesouraria/config')}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-              style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+              style={{ background: 'rgba(163,177,194,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
               <Settings size={16} />{L('Configurar', 'Settings', 'Configurar')}
             </button>
           )}

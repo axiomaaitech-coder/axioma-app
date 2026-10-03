@@ -24,12 +24,12 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 
-const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
 // Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
 // escurecer/saturar mais (ver memória do rollout Claro).
 const PAINEL_CLARO_FUNDO = "#f6f7c4";
-const SUB_PAINEL_ESCURO = "rgba(8,6,24,0.5)";
+const SUB_PAINEL_ESCURO = "rgba(2,8,16,0.5)";
 const SUB_PAINEL_CLARO = "rgba(255,255,255,0.5)";
 
 const supabase = createBrowserClient(
@@ -71,14 +71,14 @@ export default function Receitas() {
   // Card premium3d (creme + glow verde no hover, igual ao Painel MEI) —
   // spread em todo <CanvasBox>. Nested = caixinha aninhada dentro de card,
   // sempre bege translúcido (nunca tingida por categoria).
-  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
   // Letreiro — regra absoluta: igual ao do Painel MEI (sólido azul-marinho,
   // texto branco, destaque verde-menta), nunca o degradê roxo/cyan antigo.
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))";
-  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(139,92,246,0.22)";
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(46,204,155,0.22)";
   const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
   const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#c4b5fd");
   const lang = (idioma as "pt" | "en" | "es") || "pt";
@@ -311,7 +311,7 @@ export default function Receitas() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(46,204,155,0.15)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -358,7 +358,7 @@ export default function Receitas() {
               <style>{`.marquee-rec{animation:marqueeRec 30s linear infinite}@keyframes marqueeRec{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-rec:hover{animation-play-state:paused}`}</style>
             </div>
 
-            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#06b6d4)", boxShadow: "0 0 12px #8b5cf6" }} />
@@ -376,7 +376,7 @@ export default function Receitas() {
             </div>
 
             {insights.length > 0 && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(46,204,155,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9") }}>{cx.insights}</p>
@@ -406,7 +406,7 @@ export default function Receitas() {
           </CanvasBox>
           <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
             className="px-4 py-3 rounded-2xl focus:outline-none text-sm"
-            style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.25)", color: "var(--axi-text-primary)" }}>
+            style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.25)", color: "var(--axi-text-primary)" }}>
             <option value="todas">{t.geral.todas}</option>
             {categorias.map(c => <option key={c}>{c}</option>)}
           </select>
@@ -420,7 +420,7 @@ export default function Receitas() {
             ) : (
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(59,111,212,0.15)" }}>
+                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(163,177,194,0.15)" }}>
                     {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
                       <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
                     ))}
@@ -432,7 +432,7 @@ export default function Receitas() {
                   ) : receitasFiltradas.map((r, i) => (
                     <motion.tr key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(106,176,255,0.03)" }}
-                      style={{ borderBottom: i < receitasFiltradas.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
+                      style={{ borderBottom: i < receitasFiltradas.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>
                         {r.descricao}
                         {r.cliente_id && (
@@ -483,18 +483,18 @@ export default function Receitas() {
                     <div key={key}>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{label}</label>
                       <input type={type} value={novo[key as keyof typeof novo]} onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo2, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo2, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                     </div>
                   ))}
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.receitas.categoria}</label>
-                    <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
+                    <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.clientes.cliente} <span style={{ color: TEXTO_SEC, textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span></label>
-                    <select value={novo.cliente_id} onChange={(e) => setNovo({ ...novo, cliente_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
+                    <select value={novo.cliente_id} onChange={(e) => setNovo({ ...novo, cliente_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
                       <option value="">-- {t.clientes.cliente} --</option>
                       {clientesOpcoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
@@ -507,7 +507,7 @@ export default function Receitas() {
                       value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
                       centros={centrosCusto} empresaId={empresaIdAtivo} userId={userIdAtivo} lang={lang}
                       onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}
                     />
                   </div>
                   <div>
@@ -515,7 +515,7 @@ export default function Receitas() {
                     <div className="flex gap-2">
                       {["recebido", "pendente"].map((s) => (
                         <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(59,111,212,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#fbbf24")) : TEXTO_SEC, border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(59,111,212,0.1)"}` }}>
+                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(163,177,194,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#fbbf24")) : TEXTO_SEC, border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(163,177,194,0.1)"}` }}>
                           {s === "recebido" ? t.receitas.recebido : t.receitas.pendente}
                         </motion.button>
                       ))}

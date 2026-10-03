@@ -56,8 +56,8 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
   escuro: {
     fundo: "#020810",
     barraBg: "#020810", barraTexto: "#e2ecf7", barraAcentoBg: "rgba(106,176,255,0.1)", barraAcentoTexto: "#6ab0ff",
-    fundoContainer: "linear-gradient(160deg, rgba(20,15,55,0.5), rgba(10,8,32,0.6))", bordaContainer: "rgba(99,102,241,0.16)",
-    acentoTopo: "linear-gradient(90deg, rgba(99,102,241,0.55), rgba(106,176,255,0.3) 50%, transparent)",
+    fundoContainer: "linear-gradient(160deg, rgba(16,32,58,0.5), rgba(10,22,40,0.6))", bordaContainer: "rgba(46,204,155,0.16)",
+    acentoTopo: "linear-gradient(90deg, rgba(46,204,155,0.55), rgba(106,176,255,0.3) 50%, transparent)",
     texto: "#e2ecf7", textoSecundario: "#c8d8f0", textoMuted: "#5a7a9a",
     cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardTexto: "#e2ecf7", cardBorda: "rgba(106,176,255,0.16)",
     inputBg: "rgba(10,16,32,0.7)", inputTexto: "#e2ecf7", inputBorda: "rgba(106,176,255,0.22)",

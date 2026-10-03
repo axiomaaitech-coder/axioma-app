@@ -201,7 +201,7 @@ export default function Relatorios() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
 
   const hoje = new Date();
   const [ano, setAno] = useState<number>(hoje.getFullYear());
@@ -567,7 +567,7 @@ export default function Relatorios() {
                   { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#a78bfa") },
                   { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#fbbf24") },
                 ].map((c, i) => (
-                  <div key={i} className={`rounded-xl p-3${temaClaro ? " axi-card-premium3d" : ""}`}
+                  <div key={i} className={`rounded-xl p-3${" axi-card-premium3d axi-card-faixa"}`}
                     style={{
                       background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)",
                       border: temaClaro ? BORDA_3D : `1px solid ${c.cor}30`,
@@ -895,12 +895,12 @@ export default function Relatorios() {
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
+                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>Copiar Resumo
               </button>
               <button onClick={shareCopiarDetalhado}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
+                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>Copiar Detalhado
               </button>
               <button onClick={sharePdf} disabled={exportando}

@@ -56,8 +56,8 @@ function useCampoEstilo() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   return {
-    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
-    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(163,177,194,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
     labelStyle: { color: temaClaro ? "#2ecc9b" : "#5a8fd4" },
   };
 }
@@ -392,15 +392,15 @@ export default function ClientesPage() {
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const NIVEL_COR: Record<string, string> = { critico: ct(CORES.vermelho), atencao: ct(CORES.amarelo), bom: ct(CORES.verde), excelente: ct(CORES.verde) };
   const SEVERIDADE_COR: Record<string, string> = { risco: ct(CORES.vermelho), atencao: ct(CORES.amarelo), positivo: ct(CORES.verde) };
-  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilo();
-  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
 
   const [aba, setAba] = useState<"carteira" | "cliente" | "cobrancas">("carteira");
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
@@ -879,7 +879,7 @@ export default function ClientesPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBuscaCarteira(""); setBuscaContas(""); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(106,176,255,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.15)")}` }}>
+              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(106,176,255,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)")}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -1180,7 +1180,7 @@ export default function ClientesPage() {
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.tempoDeCasa} {Math.max(0, Math.round(clienteAtual.s.tempoComoClienteDias / 30))} {tt.meses}</p>
                       </div>
                       {clienteAtual.s.cliente.classificacao && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(212,175,55,0.12)", color: corOuro }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", color: corOuro }}>
                           {nomeClassificacao(lang, clienteAtual.s.cliente.classificacao)}
                         </span>
                       )}
@@ -1326,12 +1326,12 @@ export default function ClientesPage() {
                           <ul className="space-y-1">{parecer.oportunidades.map((p, i) => <li key={i} className="text-xs" style={{ color: ct("#e2e8f0") }}>• {p}</li>)}</ul>
                         </div>
                       )}
-                      <div className="px-3 py-2.5 rounded-xl mb-3" style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                      <div className="px-3 py-2.5 rounded-xl mb-3" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
                         <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct(CORES.cyan) }}>{lang === "en" ? "Revenue Forecast" : lang === "es" ? "Previsión de Facturación" : "Previsão de Faturamento"}</p>
                         <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{previsaoFaturamentoCliente(lang, clienteAtual.s).texto}</p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div className="px-3 py-2.5 rounded-xl" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)" }}>
+                        <div className="px-3 py-2.5 rounded-xl" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
                           <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct("#a78bfa") }}>{tt.parecerSugestao}</p>
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.sugestao}</p>
                         </div>
@@ -1385,8 +1385,8 @@ export default function ClientesPage() {
                       <div className="space-y-2 mb-3 max-h-72 overflow-y-auto pr-1">
                         {mensagensChat.map((m, i) => (
                           <div key={i} className="px-3 py-2 rounded-xl text-xs md:text-[13px]" style={{
-                            background: m.role === "user" ? "rgba(106,176,255,0.1)" : "rgba(139,92,246,0.1)",
-                            border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.25)" : "rgba(139,92,246,0.25)"}`,
+                            background: m.role === "user" ? "rgba(106,176,255,0.1)" : "rgba(46,204,155,0.1)",
+                            border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.25)" : "rgba(46,204,155,0.25)"}`,
                             color: ct("#e2e8f0"), marginLeft: m.role === "user" ? "15%" : 0, marginRight: m.role === "user" ? 0 : "15%",
                           }}>{m.texto}</div>
                         ))}
@@ -1398,7 +1398,7 @@ export default function ClientesPage() {
                         onKeyDown={(e) => e.key === "Enter" && perguntarZIA(inputChat)}
                         placeholder={tt.ziaPlaceholder}
                         className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                        style={{ background: CAMPO_BG, border: "1px solid rgba(139,92,246,0.25)", color: ct("#c8d8f0") }} />
+                        style={{ background: CAMPO_BG, border: "1px solid rgba(46,204,155,0.25)", color: ct("#c8d8f0") }} />
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} disabled={chatCarregando || !inputChat.trim()}
                         onClick={() => perguntarZIA(inputChat)}
                         className="px-3 rounded-xl flex items-center justify-center" style={{ background: ct(CORES.roxo), color: "#fff" }}>

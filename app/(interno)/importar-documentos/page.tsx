@@ -576,7 +576,7 @@ export default function ImportarDocumentosPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)";
   const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#6ab0ff";
   const PILL_ATIVA = temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)";
@@ -1752,7 +1752,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 <div className="text-5xl sm:text-6xl mb-4">📥</div>
                 <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{tt.arrasteAqui}</p>
                 <p className="text-xs sm:text-sm mb-4" style={{ color: ct("#5a7a9a") }}>{tt.ouClique}</p>
-                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.15)", color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
+                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
                   {tt.formatosSuportados}
                 </span>
                 <input
@@ -1910,7 +1910,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
           onClick={fecharEdicao}
         >
           <div
-            className={`w-full max-w-md rounded-2xl p-5${temaClaro ? " axi-card-premium3d" : ""}`}
+            className={`w-full max-w-md rounded-2xl p-5${" axi-card-premium3d axi-card-faixa"}`}
             style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2004,7 +2004,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
           onClick={fecharShareModal}
         >
           <div
-            className={`w-full max-w-lg rounded-2xl p-5${temaClaro ? " axi-card-premium3d" : ""}`}
+            className={`w-full max-w-lg rounded-2xl p-5${" axi-card-premium3d axi-card-faixa"}`}
             style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2059,7 +2059,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
+                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>
                 Copiar Resumo
               </button>
@@ -2120,7 +2120,7 @@ function PreviewBlock(props: any) {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
@@ -2305,7 +2305,7 @@ function PreviewBlock(props: any) {
               {templates.map((tpl: any) => (
                 <button key={tpl.id} onClick={() => aplicarTemplate(tpl)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ background: "rgba(167,139,250,0.12)", color: ct("#a78bfa"), border: "1px solid rgba(167,139,250,0.25)" }}>
+                  style={{ background: "rgba(46,204,155,0.12)", color: ct("#a78bfa"), border: "1px solid rgba(46,204,155,0.25)" }}>
                   📋 {tpl.nome}
                 </button>
               ))}
@@ -2485,7 +2485,7 @@ function PreviewBlock(props: any) {
                               title={`${tt.motivo}: ${sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}`}
                               onClick={() => editarLinha(i, "categoria", sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria || "")}
                               className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
-                              style={{ background: "rgba(212,175,55,0.15)", color: ct("#d4af37") }}
+                              style={{ background: "rgba(46,204,155,0.15)", color: ct("#d4af37") }}
                             >
                               💡 {sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}
                             </button>
@@ -2732,7 +2732,7 @@ function HistoricoBlock(props: any) {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
@@ -3022,7 +3022,7 @@ function HistoricoBlock(props: any) {
                   {item.storage_path && (
                     <button onClick={() => baixarOriginal(item)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "rgba(167,139,250,0.1)", color: ct("#a78bfa") }}>
+                      style={{ background: "rgba(46,204,155,0.1)", color: ct("#a78bfa") }}>
                       ⬇️ {tt.baixarOriginal}
                     </button>
                   )}

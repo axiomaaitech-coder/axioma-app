@@ -829,7 +829,7 @@ export default function EquipePage() {
                 const ehVoce = m.origem === 'ativo' && m.user_id === userId
                 return (
                   <div key={`${m.origem}-${m.id}`} className="rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap"
-                    style={{ background: LINHA_BG, border: '1px solid rgba(167,139,250,0.15)' }}>
+                    style={{ background: LINHA_BG, border: '1px solid rgba(46,204,155,0.15)' }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>
                         {m.nome || m.email || t.conviteLink} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
@@ -864,7 +864,7 @@ export default function EquipePage() {
                         )}
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}>
+                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.12)', color: '#a78bfa' }}>
                             <Copy size={15} />
                           </button>
                         )}

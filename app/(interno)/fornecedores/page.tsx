@@ -721,12 +721,12 @@ export default function Fornecedores() {
   const AMBAR = temaClaro ? "#2ecc9b" : "#f59e0b";
   const BRONZE = temaClaro ? "#2ecc9b" : "#b45309";
   const PAINEL_BG = temaClaro ? "#f6f7c4" : "rgba(10,20,36,0.7)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,111,212,0.15)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(163,177,194,0.15)";
   const CAMPO_BG2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.02)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilos();
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -2349,7 +2349,7 @@ export default function Fornecedores() {
                             <p className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{c.descricao}</p>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               {fnome && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.1)", color: AMBAR }}>🏭 {fnome}</span>}
-                              {c.forma_pagamento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(167,139,250,0.1)", color: (temaClaro ? "#7c3aed" : "#a78bfa") }}>{c.forma_pagamento}</span>}
+                              {c.forma_pagamento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: (temaClaro ? "#7c3aed" : "#a78bfa") }}>{c.forma_pagamento}</span>}
                               {c.numero_nota && <span className="text-xs" style={{ color: ct("#5a7a9a") }}>NF: {c.numero_nota}</span>}
                             </div>
                           </div>

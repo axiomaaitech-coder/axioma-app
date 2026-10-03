@@ -137,9 +137,9 @@ function GC({ children, cor = COR.roxo, onClick, className = "", claro = false }
   return (
     <div onClick={onClick}
       className={`rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-4px] ${onClick ? "cursor-pointer" : ""} ${className}`}
-      style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.92) 0%, rgba(10,8,35,0.96) 100%)", border: "1px solid rgba(99,102,241,0.12)", boxShadow: "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)" }}
+      style={{ background: "linear-gradient(160deg, rgba(16,32,58,0.92) 0%, rgba(10,8,35,0.96) 100%)", border: "1px solid rgba(46,204,155,0.12)", boxShadow: "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)" }}
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 12px 50px rgba(0,0,0,0.5), 0 0 25px ${cor}12, inset 0 1px 0 rgba(255,255,255,0.06)`; e.currentTarget.style.borderColor = `${cor}35`; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.12)"; }}>
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(46,204,155,0.12)"; }}>
       {children}
     </div>
   );
@@ -220,7 +220,7 @@ export default function DashboardPage() {
 
   return (
     <div data-theme={tema} className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: claro ? "#f7f8fa" : "linear-gradient(180deg, #06031a 0%, #020810 50%)", fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-      {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : "rgba(99,102,241,0.95)", color: "#fff", fontWeight: 700, fontSize: 13 }}>{toast.msg}</div>)}
+      {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : "rgba(46,204,155,0.95)", color: "#fff", fontWeight: 700, fontSize: 13 }}>{toast.msg}</div>)}
 
       {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: claro ? "#101b3d" : COR.roxo }}>{tt.carregando}</p></div>)}
 
@@ -249,7 +249,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-3 items-center">
                 <button onClick={() => setShareAberto(true)} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
-                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(139,92,246,0.35)", border: "1px solid rgba(139,92,246,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
+                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(46,204,155,0.35)", border: "1px solid rgba(46,204,155,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
                 <button onClick={exportarPDF} disabled={exportando} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
                   style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
                 <ThemeToggle />

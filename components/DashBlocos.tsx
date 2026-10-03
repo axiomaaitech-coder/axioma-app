@@ -56,8 +56,8 @@ export function KpisDash({ kpis, demo, claro, rotuloDemo }: { kpis: KpiDash[]; d
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {kpis.map((k, i) => (
         <div key={i} onClick={() => router.push(k.p)}
-          className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative${claro ? " axi-card-premium3d" : ""}`}
-          style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+          className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative${" axi-card-premium3d axi-card-faixa"}`}
+          style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
           onMouseEnter={claro ? undefined : (e) => { e.currentTarget.style.borderColor = `${k.c}60`; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.5), 0 0 26px ${k.c}22`; }}
           onMouseLeave={claro ? undefined : (e) => { e.currentTarget.style.borderColor = `${k.c}22`; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}>
           {demo && <span className="absolute top-2 right-2 text-[7px] px-1.5 py-0.5 rounded font-black tracking-wider" style={claro ? SELO_DEMO_CLARO : { background: `${OURO}30`, color: OURO }}>🎭 {rotuloDemo}</span>}
@@ -103,8 +103,8 @@ export function LetreiroDash({ itens, demo, claro, escuro }: { itens: string[]; 
 
 export function PainelDash({ titulo, sub, barraEscuro, claro, children }: { titulo: string; sub: string; barraEscuro: { fundo: string; brilho: string }; claro: boolean; children: ReactNode }) {
   return (
-    <div className={`rounded-2xl overflow-hidden${claro ? " axi-card-premium3d" : ""}`}
-      style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+    <div className={`rounded-2xl overflow-hidden${" axi-card-premium3d axi-card-faixa"}`}
+      style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))", border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
       <div className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <span className="w-1.5 h-6 rounded-full" style={{ background: claro ? "linear-gradient(180deg,#101b3d,#2ecc9b)" : barraEscuro.fundo, boxShadow: claro ? undefined : `0 0 12px ${barraEscuro.brilho}` }} />
@@ -125,7 +125,7 @@ export function ChartDash({ titulo, cor, path, option, altura, vazio, demo, clar
 }) {
   const router = useRouter();
   return (
-    <div className="rounded-xl p-4 relative" style={claro ? NESTED_CLARO : { background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-4 relative" style={claro ? NESTED_CLARO : { background: "rgba(2,8,16,0.55)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="w-1 h-4 rounded-full" style={{ background: claro ? "#2ecc9b" : cor, boxShadow: claro ? undefined : `0 0 8px ${cor}` }} />

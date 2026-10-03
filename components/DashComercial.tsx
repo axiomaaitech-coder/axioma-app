@@ -123,7 +123,7 @@ function linhaMetas(tt: any, claro = false) {
       { name: tt.realizado, type: "line", smooth: true, symbol: "circle", symbolSize: 8,
         lineStyle: { width: 4, color: corReal, shadowColor: corReal + "90", shadowBlur: claro ? 4 : 14 },
         itemStyle: { color: corReal, borderColor: e.bordaPonto, borderWidth: 2 },
-        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(139,92,246,0.38)" }, { offset: 1, color: "rgba(139,92,246,0)" }] } },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(46,204,155,0.38)" }, { offset: 1, color: "rgba(46,204,155,0)" }] } },
         data: D.realizado },
       { name: tt.meta, type: "line", smooth: false, symbol: "none",
         lineStyle: { width: 2.5, color: corMeta, type: "dashed", shadowColor: corMeta + "70", shadowBlur: claro ? 0 : 8 },
@@ -249,7 +249,7 @@ export default function DashComercial() {
       {demo && <BannerDemo claro={claro} texto={tt.modoDemoAtivo} />}
       <KpisDash kpis={kpis} demo={demo} claro={claro} rotuloDemo={tt.demo} />
       <LetreiroDash itens={marquee} demo={demo} claro={claro}
-        escuro={{ primeiro: "#67e8f9", separador: "#06b6d4", fundo: "linear-gradient(90deg, rgba(6,182,212,0.12), rgba(212,175,55,0.10))", borda: "1px solid rgba(6,182,212,0.22)" }} />
+        escuro={{ primeiro: "#67e8f9", separador: "#06b6d4", fundo: "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))", borda: "1px solid rgba(46,204,155,0.22)" }} />
 
       {/* MODAL ÚNICO */}
       <PainelDash titulo={tt.painelTitulo} sub={tt.painelSub} claro={claro} barraEscuro={{ fundo: "linear-gradient(180deg,#06b6d4,#d4af37)", brilho: "#06b6d4" }}>

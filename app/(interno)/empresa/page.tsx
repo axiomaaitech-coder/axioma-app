@@ -702,7 +702,7 @@ export default function EmpresaPage() {
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Card creme + efeito premium3d (borda verde-menta no hover), igual aos
   // demais módulos já repintados — spread em todo <CanvasBox> de nível de seção.
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)";
 
   // Estados principais
@@ -1838,7 +1838,7 @@ export default function EmpresaPage() {
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setResultadoCNPJ(null)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(167,139,250,0.4)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(46,204,155,0.4)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold" style={{ color: ROXO }}>{tt.cnpjResultadoTitulo}</p>
               <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: CINZA }}>✕</button>
@@ -1930,7 +1930,7 @@ export default function EmpresaPage() {
                 <span className="text-xl">📩</span>Outlook
               </button>
               <button onClick={shareCopiarTexto} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ROXO }}>
+                style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)", color: ROXO }}>
                 <span className="text-xl">📋</span>{tt.copiar}
               </button>
               <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
@@ -1981,7 +1981,7 @@ function FieldLabel({ label, children, sugerido, sugeridoTexto, erro }: {
         {label}
         {sugerido && (
           <span className="text-[9px] normal-case font-semibold px-1.5 py-0.5 rounded-full"
-            style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
+            style={{ background: "rgba(46,204,155,0.15)", color: ROXO, border: "1px solid rgba(46,204,155,0.3)" }}>
             ✨ {sugeridoTexto}
           </span>
         )}

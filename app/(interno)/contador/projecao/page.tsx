@@ -54,7 +54,7 @@ export default function ContadorProjecaoPage() {
       botaoExtra={
         <>
           <button onClick={() => router.push('/tesouraria/gemeo')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(46,204,155,0.14)', color: '#a78bfa', border: '1px solid rgba(46,204,155,0.4)' }}>
             {L('Simular uma mudança grande', 'Simulate a big change', 'Simular un cambio grande')}
           </button>
           <ThemeToggle />

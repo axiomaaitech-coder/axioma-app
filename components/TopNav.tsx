@@ -19,7 +19,7 @@ const grupos = [
   {
     label: { pt: "🟡 MEI", en: "🟡 MEI", es: "🟡 MEI" },
     cor: "#d4af37",
-    corBg: "rgba(212,175,55,0.12)",
+    corBg: "rgba(46,204,155,0.12)",
     destaque: true,
     itens: [
       { label: { pt: "Painel MEI", en: "MEI Dashboard", es: "Panel MEI" }, path: "/mei", emoji: "🏪" },
@@ -35,7 +35,7 @@ const grupos = [
   {
     label: { pt: "💰 Financeiro", en: "💰 Financial", es: "💰 Financiero" },
     cor: "#3b6fd4",
-    corBg: "rgba(59,111,212,0.12)",
+    corBg: "rgba(163,177,194,0.12)",
     itens: [
       { label: { pt: "Receitas", en: "Revenue", es: "Ingresos" }, path: "/receitas", emoji: "💵" },
       { label: { pt: "Custos Fixos", en: "Fixed Costs", es: "Costos Fijos" }, path: "/custos-fixos", emoji: "📌" },
@@ -85,7 +85,7 @@ const grupos = [
   {
     label: { pt: "🏢 Gestão", en: "🏢 Management", es: "🏢 Gestión" },
     cor: "#a78bfa",
-    corBg: "rgba(167,139,250,0.12)",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Centros de Custo", en: "Cost Centers", es: "Centros de Costo" }, path: "/centros-custo", emoji: "🗂️" },
       { label: { pt: "Importar Documentos", en: "Import Documents", es: "Importar Documentos" }, path: "/importar-documentos", emoji: "📂" },
@@ -394,7 +394,7 @@ export default function TopNav() {
         className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2.5 h-[108px]"
         style={{
           background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
-          borderBottom: "1px solid rgba(59,111,212,0.25)",
+          borderBottom: "1px solid rgba(163,177,194,0.25)",
           backdropFilter: "blur(20px)",
           boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(106,176,255,0.08)",
         }}
@@ -405,7 +405,7 @@ export default function TopNav() {
           whileTap={{ scale: 0.97 }}
           onClick={() => navegar(destinoLogo)}
           className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3 shrink-0"
-          style={{ borderRight: "1px solid rgba(59,111,212,0.2)" }}
+          style={{ borderRight: "1px solid rgba(163,177,194,0.2)" }}
         >
           <div style={{ filter: "drop-shadow(0 0 12px rgba(106,176,255,0.7))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={28} height={28} className="object-contain" />
@@ -507,7 +507,7 @@ export default function TopNav() {
         className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14"
         style={{
           background: "rgba(6,15,30,0.97)",
-          borderBottom: "1px solid rgba(59,111,212,0.2)",
+          borderBottom: "1px solid rgba(163,177,194,0.2)",
           backdropFilter: "blur(16px)",
         }}
       >
@@ -534,7 +534,7 @@ export default function TopNav() {
             </motion.button>
           )}
           <SeletorIdioma />
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(163,177,194,0.15)", border: "1px solid rgba(163,177,194,0.3)" }}>
             <AnimatePresence mode="wait">
               {menuMobile
                 ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><X size={18} style={{ color: "#6ab0ff" }} /></motion.div>
@@ -554,7 +554,7 @@ export default function TopNav() {
               onClick={() => setMenuMobile(false)} />
             <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.3, ease: "easeOut" }}
               className="md:hidden fixed top-14 right-0 bottom-0 w-80 z-50 overflow-auto"
-              style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(59,111,212,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
+              style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(163,177,194,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
               <div className="p-4 space-y-2">
                 {/* Conectar Banco em destaque no topo do drawer (fora do alcance do operador) */}
                 {!isOperador && (
@@ -570,7 +570,7 @@ export default function TopNav() {
                 {!isOperador && (
                   <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
-                    style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
+                    style={{ background: pathname === "/dashboard" ? "rgba(163,177,194,0.2)" : "rgba(163,177,194,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(163,177,194,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
                     <span>🏠</span>
                     <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
                   </motion.button>
@@ -590,8 +590,8 @@ export default function TopNav() {
                         onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
                         className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
                         style={{
-                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "rgba(59,111,212,0.04)",
-                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(212,175,55,0.25)" : "1px solid rgba(59,111,212,0.08)",
+                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(46,204,155,0.06)" : "rgba(163,177,194,0.04)",
+                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(163,177,194,0.08)",
                           color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
                         }}>
                         <div className="flex items-center gap-2">

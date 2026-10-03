@@ -149,7 +149,7 @@ export default function TesourariaGemeoPage() {
         <>
           <button onClick={() => router.push('/tesouraria')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(163,177,194,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
             {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
           </button>
           <ThemeToggle />

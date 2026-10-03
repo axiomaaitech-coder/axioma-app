@@ -48,7 +48,7 @@ export function CanvasBox({
   premium3d?: boolean;
 }) {
   const classeDestaque = destaque ? " axi-card-destaque" : "";
-  const classePremium3d = premium3d ? " axi-card-premium3d" : "";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const fundo = fundoProp ?? (destaque ? "var(--axi-card-destaque-bg)" : "var(--axi-surface)");
   const conteudo = (
     <>

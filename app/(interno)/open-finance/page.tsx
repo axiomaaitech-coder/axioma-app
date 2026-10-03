@@ -214,7 +214,7 @@ export default function OpenFinancePage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const ct = (hex: string) => corTema(hex, temaClaro)
-  const cartaoTema = temaClaro ? { fundo: ct('#f6f7c4'), premium3d: true } : {}
+  const cartaoTema = temaClaro ? { fundo: ct('#f6f7c4'), premium3d: true } : { premium3d: true }
 
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
@@ -611,7 +611,7 @@ export default function OpenFinancePage() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'rgba(139,92,246,0.15)', border: temaClaro ? 'none' : '1px solid rgba(139,92,246,0.4)', color: temaClaro ? '#fff' : ct('#c4b5fd') }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'rgba(46,204,155,0.15)', border: temaClaro ? 'none' : '1px solid rgba(46,204,155,0.4)', color: temaClaro ? '#fff' : ct('#c4b5fd') }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -716,7 +716,7 @@ export default function OpenFinancePage() {
             <input
               value={buscaBanco} onChange={(e) => setBuscaBanco(e.target.value)} placeholder={t.buscarBanco}
               className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.04)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(167,139,250,0.25)', color: ct('#e2ecf7') }}
+              style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.04)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(46,204,155,0.25)', color: ct('#e2ecf7') }}
             />
           </div>
 
@@ -733,7 +733,7 @@ export default function OpenFinancePage() {
               )}
 
               {bancosSandbox.length > 0 && (
-                <div className="mt-5 pt-4" style={{ borderTop: temaClaro ? '1px dashed rgba(46,204,155,0.25)' : '1px dashed rgba(167,139,250,0.25)' }}>
+                <div className="mt-5 pt-4" style={{ borderTop: temaClaro ? '1px dashed rgba(46,204,155,0.25)' : '1px dashed rgba(46,204,155,0.25)' }}>
                   <div className="flex items-center gap-2 mb-3">
                     <FlaskConical size={14} style={{ color: ct('#94a3b8') }} />
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#94a3b8') }}>{t.ambienteTeste}</p>

@@ -117,7 +117,7 @@ function linhaEndiv(tt: any, claro = false) {
       { name: tt.saldoDevedor, type: "line", smooth: true, symbol: "circle", symbolSize: 8,
         lineStyle: { width: 4, color: corSaldo, shadowColor: corSaldo + "90", shadowBlur: claro ? 4 : 14 },
         itemStyle: { color: corSaldo, borderColor: borda, borderWidth: 2 },
-        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(236,72,153,0.35)" }, { offset: 1, color: "rgba(236,72,153,0)" }] } },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(46,204,155,0.35)" }, { offset: 1, color: "rgba(46,204,155,0)" }] } },
         data: D.saldoDevedor },
       { name: tt.amortizacao, type: "line", smooth: true, symbol: "circle", symbolSize: 7,
         lineStyle: { width: 3, color: corAmort, shadowColor: corAmort + "80", shadowBlur: claro ? 4 : 10 },
@@ -232,7 +232,7 @@ export default function DashFinanceiro() {
       {demo && <BannerDemo claro={claro} texto={tt.modoDemoAtivo} />}
       <KpisDash kpis={kpis} demo={demo} claro={claro} rotuloDemo={tt.demo} />
       <LetreiroDash itens={marquee} demo={demo} claro={claro}
-        escuro={{ primeiro: "#c4b5fd", separador: "#8b5cf6", fundo: "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", borda: "1px solid rgba(139,92,246,0.22)" }} />
+        escuro={{ primeiro: "#c4b5fd", separador: "#8b5cf6", fundo: "linear-gradient(90deg, rgba(46,204,155,0.12), rgba(46,204,155,0.10))", borda: "1px solid rgba(46,204,155,0.22)" }} />
 
       {/* MODAL ÚNICO com TODOS os gráficos */}
       <PainelDash titulo={tt.painelTitulo} sub={tt.painelSub} claro={claro} barraEscuro={{ fundo: "linear-gradient(180deg,#8b5cf6,#06b6d4)", brilho: "#8b5cf6" }}>

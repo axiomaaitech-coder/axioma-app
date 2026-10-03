@@ -71,15 +71,15 @@ export default function Simulacoes() {
   // (tema-tokens.md §1.1). Escuro mantém o dourado original.
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
-  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
-  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
-  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
+  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(46,204,155,0.15)";
+  const classePremium3d = " axi-card-premium3d axi-card-faixa";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG3 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -351,7 +351,7 @@ export default function Simulacoes() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={temaClaro
               ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: PAINEL_BORDA, border: "1px solid rgba(99,102,241,0.4)", color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
+              : { background: PAINEL_BORDA, border: "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -414,7 +414,7 @@ export default function Simulacoes() {
             )}
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(99,102,241,0.28)"}` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(46,204,155,0.16), rgba(148,163,184,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.28)"}` }}>
               <div className="marquee-sim py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
@@ -435,26 +435,26 @@ export default function Simulacoes() {
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("dobrarFaturamento")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjDobrarFaturamento}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={aplicarPresetTriplicarLucro}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjTriplicarLucro}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("melhorarFluxoCaixa")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjMelhorarFluxoCaixa}
                 </motion.button>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
                   <button onClick={() => aplicarPreset("reduzirCustos")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simObjReduzirCustos}</button>
                   <input type="number" value={reduzirCustosPct} onChange={(e) => setReduzirCustosPct(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
                   <span className="text-[10px]" style={{ color: ct("#64748b") }}>%</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
                   <button onClick={() => aplicarPreset("reduzirDivida")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simObjReduzirDivida}</button>
                   <input type="number" value={reduzirJurosPontos} onChange={(e) => setReduzirJurosPontos(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
@@ -619,7 +619,7 @@ export default function Simulacoes() {
                         <div key={t.regime} className="rounded-xl p-3" style={{ background: isMelhor ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${isMelhor ? OURO_BADGE_BORDA : "var(--axi-border)"}` }}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-black" style={{ color: ct("#e2e8f0") }}>{NOME_REGIME[t.regime]}</p>
-                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(212,175,55,0.15)", color: corOuro }}>{cx.simRegimeMelhorTag}</span>}
+                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: corOuro }}>{cx.simRegimeMelhorTag}</span>}
                           </div>
                           <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simImpostoMensalLabel}</p>
                           <p className="text-xs font-black mb-1.5" style={{ color: ct(PRATAC) }}>{fBRL(t.impostoMensal)}</p>

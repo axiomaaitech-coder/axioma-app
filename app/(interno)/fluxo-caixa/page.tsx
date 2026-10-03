@@ -34,7 +34,7 @@ const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.95), rgba
 const PAINEL_CLARO_FUNDO = "#f6f7c4";
 // Alerta de ruptura de caixa é risco real (regra 4, exceção de alerta) —
 // mantém o tingimento vermelho de aviso, nunca vira creme neutro.
-const RUPTURA_PAINEL_ESCURO = "linear-gradient(160deg, rgba(60,10,10,0.7), rgba(10,8,32,0.95))";
+const RUPTURA_PAINEL_ESCURO = "linear-gradient(160deg, rgba(60,10,10,0.7), rgba(10,22,40,0.95))";
 const RUPTURA_PAINEL_CLARO = "linear-gradient(160deg, #fdecec, #f7f8fc)";
 
 const supabase = createBrowserClient(
