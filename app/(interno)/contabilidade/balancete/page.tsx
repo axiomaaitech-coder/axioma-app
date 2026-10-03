@@ -176,7 +176,7 @@ export default function BalancetePage() {
             </table>
           </div>
 
-          <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold w-fit"
+          <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa"
             style={{ background: fecha ? `${VERDE}15` : `${VERMELHO}15`, color: fecha ? VERDE : VERMELHO }}>
             {fecha ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
             {fecha

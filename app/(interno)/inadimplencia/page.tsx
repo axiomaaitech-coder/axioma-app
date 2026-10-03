@@ -1125,7 +1125,7 @@ export default function Inadimplencia() {
               {curvaABC.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {curvaABC.slice(0, 10).map((c) => (
-                    <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
+                    <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
                       <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{c.nome}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: c.classe === 'A' ? VERMELHO : c.classe === 'B' ? AMBAR : VERDE }}>{c.classe} · {fBRL(c.valor)}</span>
                     </div>
@@ -1138,7 +1138,7 @@ export default function Inadimplencia() {
               {rankingRecuperacao.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem recuperações registradas.', 'No recoveries recorded.', 'Sin recuperaciones registradas.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {rankingRecuperacao.map((r, i) => (
-                    <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
+                    <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
                       <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{i + 1}. {r.chave}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: VERDE }}>{fBRL(r.valor)}</span>
                     </div>
@@ -1194,7 +1194,7 @@ export default function Inadimplencia() {
                       <p className="text-[10px] font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {estrategiasCliente.map((e) => (
-                          <div key={e.tipo} className="rounded-lg px-2.5 py-2" style={{ background: (temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)') }}>
+                          <div key={e.tipo} className="rounded-lg px-2.5 py-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)') }}>
                             <p className="text-[11px] font-semibold" style={{ color: ct('#c8d8f0') }}>{e.label}</p>
                             <p className="text-xs font-black" style={{ color: VERDE }}>~{e.probabilidadeEstimada}% {L('de recuperar', 'to recover', 'de recuperar')}</p>
                           </div>

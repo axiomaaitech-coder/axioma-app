@@ -1229,7 +1229,7 @@ export default function CentrosCustoPage() {
             <div className="space-y-3 mb-4 max-h-[420px] overflow-y-auto">
               {chatMensagens.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(46,204,155,0.1)", color: ct("#c8d8f0") }}>
+                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(46,204,155,0.1)", color: ct("#c8d8f0") }}>
                     {m.texto}
                   </div>
                 </div>
@@ -1538,7 +1538,7 @@ export default function CentrosCustoPage() {
                   );
                 })}
               </div>
-              <div className="flex justify-between items-center px-3 py-2 rounded-xl mt-2" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(250,204,21,0.1)" }}>
+              <div className="flex justify-between items-center px-3 py-2 rounded-xl mt-2 axi-card-premium3d axi-card-faixa" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(250,204,21,0.1)" }}>
                 <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Total distribuído" : idioma === "es" ? "Total distribuido" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
                 <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.5 ? "#34d399" : "#facc15" }}>
                   {idioma === "pt" ? "Restante" : idioma === "es" ? "Restante" : "Remaining"}: {restanteRateio.toFixed(1)}%

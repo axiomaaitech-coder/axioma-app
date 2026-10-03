@@ -554,7 +554,7 @@ export default function DREPage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {sinaisSaude.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
                     <CorSemaforo cor={s.cor} size={9} />
                     <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
                   </div>
@@ -753,7 +753,7 @@ export default function DREPage() {
                         { l: cx.dreLucroLiquido, v: fBRL(snapshotSelecionado.lucro_liquido) },
                         { l: cx.dreMargemLiquida, v: fPct(snapshotSelecionado.margem_liquida_pct) },
                       ].map((c, i) => (
-                        <div key={i} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
+                        <div key={i} className="rounded-xl px-3 py-2.5 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
                           <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{c.l}</p>
                           <p className="text-sm font-bold" style={{ color: ct("#e2e8f0") }}>{c.v}</p>
                         </div>

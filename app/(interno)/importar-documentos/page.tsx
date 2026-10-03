@@ -1969,7 +1969,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 />
               </div>
 
-              <div className="rounded-lg p-2 text-[11px]" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+              <div className="rounded-lg p-2 text-[11px] axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
                 ℹ️ A alteração será aplicada em <strong style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
               </div>
             </div>
@@ -2079,7 +2079,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </button>
             </div>
 
-            <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+            <div className="rounded-lg p-2 text-[11px] mb-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
               ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: ct("#facc15") }}>Link Seguro</strong> expira em 24h.
             </div>
 
@@ -2182,7 +2182,7 @@ function PreviewBlock(props: any) {
                   ? [["compra", tt.supCompra], ["venda", tt.supVenda]]
                   : [["certo", tt.supCerto], ["corrigir", tt.supCorrigir]];
                 return (
-                  <div key={p.id} className="rounded-lg p-2" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
+                  <div key={p.id} className="rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.4)" }}>
                     <p className="text-sm font-medium break-words" style={{ color: temaClaro ? "#101b3d" : "#e2e8f0" }}>{p.texto[idiomaNat]}</p>
                     {sugestoesIA[p.id] && (
                       <div className="mt-2 rounded-lg p-2 text-xs break-words axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(22,169,125,0.12)", borderLeft: "3px solid #16a97d", color: temaClaro ? "#101b3d" : "#e2e8f0" }}>
@@ -2673,7 +2673,7 @@ function PreviewBlock(props: any) {
                 { label: tt.ignoradas, valor: simulacao.ignoradas, cor: ct("#5a7a9a") },
                 { label: tt.erros, valor: simulacao.erro, cor: ct("#f87171") },
               ].map((s: any, i: number) => (
-                <div key={i} className="rounded-lg p-2 text-center" style={{ background: fundoCaixaAninhada }}>
+                <div key={i} className="rounded-lg p-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada }}>
                   <p className="text-lg font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
                   <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                 </div>
@@ -2814,7 +2814,7 @@ function HistoricoBlock(props: any) {
                     { label: tt.erros, valor: item.linhas_erro || 0, cor: ct("#f87171") },
                     { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: ct("#2ecc9b") },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-lg p-2" style={{ background: fundoCaixaAninhada }}>
+                    <div key={i} className="rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada }}>
                       <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                       <p className="text-sm font-bold" style={{ color: s.cor }}>{s.valor}</p>
                     </div>
@@ -2844,7 +2844,7 @@ function HistoricoBlock(props: any) {
                       ) : (
                         <div className="space-y-2">
                           {excecoesPorImportacao[item.id].map((exc: any) => (
-                            <div key={exc.id} className="flex items-start justify-between gap-2 rounded-lg p-2" style={{ background: "rgba(248,113,113,0.06)" }}>
+                            <div key={exc.id} className="flex items-start justify-between gap-2 rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(248,113,113,0.06)" }}>
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-semibold" style={{ color: ct("#f87171") }}>
                                   {exc.tipo} {exc.linha_numero ? `— linha ${exc.linha_numero}` : ""}

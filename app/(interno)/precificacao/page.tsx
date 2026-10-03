@@ -602,7 +602,7 @@ export default function Precificacao() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {ippa.subscores.map((s) => (
-                  <div key={s.chave} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                  <div key={s.chave} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{SUB_LABEL[s.chave] || s.chave}</p>
                     <p className="text-sm font-black" style={{ color: COR_PRC_C }}>{Math.round(s.valor)}</p>
                   </div>
@@ -657,7 +657,7 @@ export default function Precificacao() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcPrecoAtualLabel}</label>
-                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
+                      <div className="w-full px-3 py-2.5 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
                     </div>
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcPrecoCandidatoLabel}</label>
@@ -680,7 +680,7 @@ export default function Precificacao() {
                           { l: cx.prcImpactoEbitdaLabel, v: fBRL(impactoPreco.deltaEbitdaEmpresa), c: impactoPreco.deltaEbitdaEmpresa >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                           { l: cx.prcMargemNovaLabel, v: fPct(impactoPreco.margemContribuicaoPct), c: COR_PRC_C },
                         ].map((k, i) => (
-                          <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                          <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{k.l}</p>
                             <p className="text-xs font-black" style={{ color: k.c }}>{k.v}</p>
                           </div>
@@ -742,7 +742,7 @@ export default function Precificacao() {
                   ) : (
                     <div className="space-y-2">
                       {derivadoSelecionado?.concorrentesProduto.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                        <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                           <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{c.nome_concorrente} — R$ {fBRL2(c.preco)}{c.posicionamento ? ` (${c.posicionamento})` : ""}</p>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerConcorrente(c.id)}><Trash2 size={14} style={{ color: ct("#f87171") }} /></motion.button>
                         </div>
@@ -808,7 +808,7 @@ export default function Precificacao() {
                   { l: cx.prcEspecialistaRisco, t: `${cx.prcRadarTitulo}: ${oportunidadesRisco.length}` },
                   { l: cx.prcEspecialistaAnalista, t: elasticidade.temDadosSuficientes ? montarNarrativaElasticidade(lang, elasticidade) : cx.prcElasticidadeDadosInsuficientes },
                 ].map((e, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                  <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.l}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.t}</p>
                   </div>
@@ -850,7 +850,7 @@ export default function Precificacao() {
                   {[...decisoes].reverse().slice(0, 10).map((d) => {
                     const produtoNome = produtos.find((p) => p.id === d.produto_id)?.produto_servico || "—";
                     return (
-                      <div key={d.id} className="px-3 py-2.5 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                      <div key={d.id} className="px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-1.5">
                           <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{produtoNome}</p>
                           <p className="text-[11px]" style={{ color: ct("#94a3b8") }}>{fBRL(d.preco_anterior)} → {fBRL(d.preco_novo)}</p>

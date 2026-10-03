@@ -341,7 +341,7 @@ export default function TesourariaSimuladorPage() {
             </div>
 
             {simulacao.rupturaHorizonte == null && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit" style={{ background: `${VERDE}15`, color: VERDE }}>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}15`, color: VERDE }}>
                 <CheckCircle2 size={14} />{L('Sem ruptura de caixa neste cenário.', 'No cash rupture in this scenario.', 'Sin ruptura de caja en este escenario.')}
               </div>
             )}

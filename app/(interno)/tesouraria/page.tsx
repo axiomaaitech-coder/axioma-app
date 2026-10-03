@@ -254,7 +254,7 @@ export default function TesourariaPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
                 {(['cobertura', 'reserva', 'folga'] as const).map((k) => (
-                  <div key={k} className="rounded-xl p-2 text-center" style={{ background: NESTED_BG }}>
+                  <div key={k} className="rounded-xl p-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: "1px solid rgba(46,204,155,0.22)" }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>
                       {k === 'cobertura' ? L('Cobertura', 'Coverage', 'Cobertura') : k === 'reserva' ? L('Reserva', 'Reserve', 'Reserva') : L('Folga', 'Slack', 'Holgura')}
                     </p>
@@ -378,7 +378,7 @@ export default function TesourariaPage() {
           <div>
             <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Treasury Radar', 'Treasury Radar', 'Treasury Radar')}</h3>
             {alertas.length === 0 ? (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit" style={{ background: `${VERDE}15`, color: VERDE }}>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}15`, color: VERDE }}>
                 <CheckCircle2 size={14} />{L('Nenhum risco detectado no momento.', 'No risk detected right now.', 'Ningún riesgo detectado por ahora.')}
               </div>
             ) : (

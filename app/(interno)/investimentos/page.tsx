@@ -581,7 +581,7 @@ export default function Investimentos() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {radarRisco.map((r, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <span className="inline-block rounded-full flex-shrink-0" style={{ width: 9, height: 9, background: CORHEX[r.cor] }} />
                     <p className="text-xs font-medium" style={{ color: temaClaro ? "#101b3d" : "#cbd5e1" }}>{RISCO_LABEL[r.chave]}</p>
                   </div>
@@ -617,7 +617,7 @@ export default function Investimentos() {
                     { l: cx.invSelic, v: fPct(macro.selic) }, { l: cx.invCdi, v: fPct(macro.cdi) },
                     { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
                   ].map((m, i) => (
-                    <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                    <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                       <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                       <p className="text-sm font-black" style={{ color: ct(CORES.azulC) }}>{m.v}</p>
                     </div>

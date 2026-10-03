@@ -176,7 +176,7 @@ export default function LancamentoManualPage() {
           )}
 
           {!podeEditar && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit" style={{ background: `${CINZA}15`, color: CINZA }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${CINZA}15`, color: CINZA }}>
               <Lock size={14} />
               {L('Só dono ou admin da empresa pode lançar ou estornar — você está vendo em modo leitura.', 'Only the company owner or admin can post or reverse entries — you are viewing in read-only mode.', 'Solo el dueño o admin de la empresa puede asentar o revertir — estás viendo en modo lectura.')}
             </div>
@@ -273,7 +273,7 @@ export default function LancamentoManualPage() {
                       </button>
                       {isExpandido && (
                         <div className="px-4 pb-3">
-                          <div className="rounded-lg p-2.5 mb-2" style={{ background: NESTED_BG }}>
+                          <div className="rounded-lg p-2.5 mb-2 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG }}>
                             {partidas.map((p) => {
                               const conta = contaPorId.get(p.conta_id)
                               return (

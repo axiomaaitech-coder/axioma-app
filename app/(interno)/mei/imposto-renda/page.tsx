@@ -415,7 +415,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : TEAL} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Status obrigatoriedade */}
-        <div className="flex items-center gap-3 p-4 rounded-2xl"
+        <div className="flex items-center gap-3 p-4 rounded-2xl axi-card-premium3d axi-card-faixa"
           style={{
             background: obrigado ? `rgba(${rgbVermelho},0.08)` : `rgba(${rgbVerde},0.08)`,
             border: `1px solid ${obrigado ? `rgba(${rgbVermelho},0.3)` : `rgba(${rgbVerde},0.3)`}`,
@@ -495,7 +495,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           </div>
           <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -530,7 +530,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                   (i === 4 && rendaMensalMedia > 4664.68)
                 )
                 return (
-                  <div key={i} className="grid grid-cols-3 gap-2 p-2 rounded-xl"
+                  <div key={i} className="grid grid-cols-3 gap-2 p-2 rounded-xl axi-card-premium3d axi-card-faixa"
                     style={{
                       background: ehFaixaAtual ? `${row.cor}15` : `${row.cor}05`,
                       border: `1px solid ${ehFaixaAtual ? row.cor + '40' : row.cor + '15'}`,
@@ -571,7 +571,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                 <div
                   key={i}
                   onClick={() => toggleChecklist(i)}
-                  className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                  className="flex items-center gap-3 p-3 rounded-xl transition-all axi-card-premium3d axi-card-faixa"
                   style={{
                     background: marcado ? `rgba(${rgbVerde},0.08)` : neutro(0.05),
                     border: `1px solid ${marcado ? `rgba(${rgbVerde},0.25)` : neutro(0.12)}`,
@@ -604,7 +604,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           </div>
 
           {itensConcluidos === totalItens && (
-            <div className="mt-4 p-3 rounded-xl text-center" style={{ background: `rgba(${rgbVerde},0.1)`, border: `1px solid rgba(${rgbVerde},0.3)` }}>
+            <div className="mt-4 p-3 rounded-xl text-center axi-card-premium3d axi-card-faixa" style={{ background: `rgba(${rgbVerde},0.1)`, border: `1px solid rgba(${rgbVerde},0.3)` }}>
               <p className="text-sm font-bold" style={{ color: VERDE }}>
                 🎉 {lang === 'pt' ? 'Checklist completo! Você está pronto para declarar.' : lang === 'en' ? 'Checklist complete! You are ready to file.' : '¡Checklist completo! Está listo para declarar.'}
               </p>
@@ -624,7 +624,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('docTitulo')}</p>
           <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>{t('docSub')}</p>
 
-          <div className="p-4 rounded-xl mb-4" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
+          <div className="p-4 rounded-xl mb-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
             <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: TEXTO_SEC }}>{t('docEnviarTitulo')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
@@ -699,7 +699,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             <>
               <div className="space-y-2">
                 {documentosPaginaAtual.map((doc) => (
-                  <div key={doc.id} className="p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
+                  <div key={doc.id} className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
                     {editandoDocId === doc.id ? (
                       <div className="space-y-2">
                         <select value={editTipoDoc} onChange={(e) => setEditTipoDoc(e.target.value as TipoDocumentoFiscal)}

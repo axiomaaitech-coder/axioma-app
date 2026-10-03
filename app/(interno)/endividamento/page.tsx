@@ -460,7 +460,7 @@ export default function Endividamento() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {sinaisSolvencia.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
                     <span className="inline-block rounded-full flex-shrink-0" style={{ width: 9, height: 9, background: s.cor === "verde" ? ct(CORES.verde) : s.cor === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho) }} />
                     <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
                   </div>
@@ -573,7 +573,7 @@ export default function Endividamento() {
                         { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(temaClaro ? CORES.verde : CORES.rosa) },
                         { l: "Economia Total", v: fBRL(resultadoSim.economiaJurosTotal), c: resultadoSim.economiaJurosTotal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                       ].map((c, i) => (
-                        <div key={i} className="rounded-xl px-3 py-2" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
+                        <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
                           <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{c.l}</p>
                           <p className="text-sm font-black" style={{ color: c.c }}>{c.v}</p>
                         </div>

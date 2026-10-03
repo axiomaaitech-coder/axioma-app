@@ -525,7 +525,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             </div>
 
             {(modo === 'hora' || modo === 'projeto') && (
-              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
+              <div className="sm:col-span-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('horasPorDiaLbl')}</label>
@@ -621,11 +621,11 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-            <div className="p-4 rounded-xl" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
+            <div className="p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
               <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoMinimoLbl')}</p>
               <p className="text-xl font-black" style={{ color: VERMELHO }}><AnimatedNumber value={fmt(precoMinimo)} /></p>
             </div>
-            <div className="p-4 rounded-xl" style={{ background: `${OURO}12`, border: `1px solid ${OURO}40` }}>
+            <div className="p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: `${OURO}12`, border: `1px solid ${OURO}40` }}>
               <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoSugeridoLbl')}</p>
               <p className="text-xl font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(precoSugerido)} /></p>
             </div>
@@ -684,7 +684,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
           </div>
           {!detector && <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('detectorVazio')}</p>}
           {detector && detector.situacao === 'prejuizo' && (
-            <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERMELHO}12`, border: `1px solid ${VERMELHO}40` }}>
+            <div className="p-4 rounded-xl flex items-start gap-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}12`, border: `1px solid ${VERMELHO}40` }}>
               <AlertTriangle size={20} style={{ color: VERMELHO, flexShrink: 0 }} />
               <div>
                 <p className="text-sm font-black mb-1" style={{ color: VERMELHO }}>{t('prejuizoTitulo')}</p>
@@ -694,7 +694,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             </div>
           )}
           {detector && detector.situacao !== 'prejuizo' && (
-            <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}40` }}>
+            <div className="p-4 rounded-xl flex items-start gap-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}40` }}>
               <CheckCircle2 size={20} style={{ color: VERDE, flexShrink: 0 }} />
               <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>
                 {(detector.situacao === 'saudavel' ? t('margemSaudavel') : t('margemApertada')).replace('{v}', detector.margemRealPct.toFixed(1))}
@@ -715,7 +715,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
           </div>
           <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -730,7 +730,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             <>
               <div className="space-y-2">
                 {precosSalvos.slice(paginaAtual * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA + ITENS_POR_PAGINA).map((row) => (
-                  <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl"
+                  <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa"
                     style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? OURO + '30'}` }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: 'var(--axi-text-primary)' }}>{row.nome}</p>

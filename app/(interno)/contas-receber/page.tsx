@@ -1289,17 +1289,17 @@ export default function ContasReceber() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: VERMELHO }}>{L('Heatmap de Inadimplência', 'Delinquency Heatmap', 'Heatmap de Morosidad')}</p>
               {heatmapOption ? <ReactECharts option={heatmapOption} style={{ height: Math.max(160, new Set(heatmapData.map((c) => c.clienteNome)).size * 26) }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem contas vencidas.', 'No overdue accounts.', 'Sin cuentas vencidas.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Evolução da Carteira (12 meses)', 'Portfolio Evolution (12 months)', 'Evolución de Cartera (12 meses)')}</p>
               {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem histórico suficiente.', 'Not enough history.', 'Sin historial suficiente.')}</p>}
             </div>
           </div>
 
-          <div className="rounded-xl p-4 mb-4" style={{ background: PAINEL_BG }}>
+          <div className="rounded-xl p-4 mb-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
             <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Curva ABC de Clientes', 'Client ABC Curve', 'Curva ABC de Clientes')}</p>
             {curvaABC.length === 0 ? <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
               <div className="grid grid-cols-3 gap-3 mb-3">
@@ -1319,7 +1319,7 @@ export default function ContasReceber() {
             {curvaABC.length > 0 && (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {curvaABC.slice(0, 15).map((i) => (
-                  <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg" style={{ background: PAINEL_BG }}>
+                  <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
                     <span style={{ color: TEXTO }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-[9px] font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
                     <span style={{ color: CINZA }}>{fBRL(i.valor)} · {i.percentual}%</span>
                   </div>
@@ -1329,7 +1329,7 @@ export default function ContasReceber() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: ESMERALDA }}>{L('Receita Recorrente vs Não Recorrente', 'Recurring vs Non-recurring Revenue', 'Ingreso Recurrente vs No Recurrente')}</p>
               {kpis.receitaRecorrente + kpis.receitaNaoRecorrente > 0 ? (
                 <ReactECharts option={optRosca([
@@ -1338,22 +1338,22 @@ export default function ContasReceber() {
                 ], ESMERALDA, L('Total', 'Total', 'Total'), temaClaro)} style={{ height: 200 }} notMerge lazyUpdate />
               ) : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3 flex items-center gap-1.5" style={{ color: AZUL }}><MapIcon size={12} /> {L('Concentração — Top 5 Clientes', 'Concentration — Top 5 Clients', 'Concentración — Top 5 Clientes')}</p>
               {concentracaoTop.length > 0 ? <ReactECharts option={donutGrupos(concentracaoTop) as object} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Por Segmento', 'By Segment', 'Por Segmento')}</p>
               {donutGrupos(gruposSegmento) ? <ReactECharts option={donutGrupos(gruposSegmento) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Por Estado', 'By State', 'Por Estado')}</p>
               {donutGrupos(gruposEstado) ? <ReactECharts option={donutGrupos(gruposEstado) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
+            <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: VERDE }}>{L('Por Cidade', 'By City', 'Por Ciudad')}</p>
               {donutGrupos(gruposCidade) ? <ReactECharts option={donutGrupos(gruposCidade) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
@@ -1486,7 +1486,7 @@ export default function ContasReceber() {
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
 
-                  {erroSalvar && <div className="mb-4 px-3 py-2 rounded-lg text-xs" style={{ background: `${VERMELHO}15`, color: VERMELHO }}>{erroSalvar}</div>}
+                  {erroSalvar && <div className="mb-4 px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}15`, color: VERMELHO }}>{erroSalvar}</div>}
 
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div>
@@ -1744,7 +1744,7 @@ export default function ContasReceber() {
                     {drillLinhas(kpiAtivo.key).length === 0 ? (
                       <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem itens para detalhar.', 'No items to break down.', 'Sin elementos para detallar.')}</p>
                     ) : drillLinhas(kpiAtivo.key).map((l, i) => (
-                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: PAINEL_BG }}>
+                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
                         <span style={{ color: TEXTO }}>{l.label}</span>
                         <span className="font-bold" style={{ color: kpiAtivo.cor }}>{l.valor}</span>
                       </div>
@@ -1780,7 +1780,7 @@ export default function ContasReceber() {
                   </div>
                   <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
                     {[...scoreDrill.score.criterios].sort((a, b) => b.peso - a.peso).map((c) => (
-                      <div key={c.chave} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: PAINEL_BG }}>
+                      <div key={c.chave} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
                         <span style={{ color: TEXTO }}>{nomeCriterioScoreCliente(lang, c.chave)} <span style={{ color: CINZA }}>({c.peso}%)</span></span>
                         <span className="font-bold" style={{ color: c.semDados ? CINZA : TEXTO }}>{c.semDados ? L('sem dados', 'no data', 'sin datos') : `${Math.round(c.valor as number)}/100`}</span>
                       </div>
@@ -1819,11 +1819,11 @@ export default function ContasReceber() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
+                      <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
                         <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}><AnimatedNumber value={prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')} /></p>
                       </div>
-                      <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
+                      <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>
                         <p className="text-xs font-bold" style={{ color: proximaEtapa ? OURO : CINZA }}>{proximaEtapa ? `${proximaEtapa.canal} — ${proximaEtapa.dias_relativos === 0 ? L('hoje', 'today', 'hoy') : proximaEtapa.dias_relativos < 0 ? `D${proximaEtapa.dias_relativos}` : `D+${proximaEtapa.dias_relativos}`}` : L('nenhuma configurada', 'none configured', 'ninguna configurada')}</p>
                       </div>
@@ -1852,7 +1852,7 @@ export default function ContasReceber() {
                         {carregandoInteracoes ? <p className="text-xs" style={{ color: CINZA }}>...</p> : interacoesConta.length === 0 ? (
                           <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum contato registrado ainda.', 'No contact logged yet.', 'Ningún contacto registrado aún.')}</p>
                         ) : interacoesConta.map((it) => (
-                          <div key={it.id} className="text-xs px-2.5 py-1.5 rounded-lg" style={{ background: PAINEL_BG, color: TEXTO }}>
+                          <div key={it.id} className="text-xs px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, color: TEXTO }}>
                             <span style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {it.canal}</span> — {it.descricao}
                           </div>
                         ))}

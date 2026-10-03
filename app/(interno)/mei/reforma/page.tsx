@@ -307,7 +307,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
 
         {/* Calmo pra 2026 — diferencial contra concorrente que assusta o MEI */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-3 p-4 rounded-2xl"
+          className="flex items-start gap-3 p-4 rounded-2xl axi-card-premium3d axi-card-faixa"
           style={{ background: `rgba(${rgbVerde},0.08)`, border: `1px solid rgba(${rgbVerde},0.25)` }}>
           <CheckCircle2 size={20} style={{ color: VERDE, flexShrink: 0, marginTop: 2 }} />
           <div>
@@ -318,7 +318,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
 
         {/* Urgência real: decisão até setembro/2026 pra valer em 2027 */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="flex items-start gap-3 p-4 rounded-2xl"
+          className="flex items-start gap-3 p-4 rounded-2xl axi-card-premium3d axi-card-faixa"
           style={{ background: `rgba(${rgbAmbar},0.08)`, border: `1px solid rgba(${rgbAmbar},0.25)` }}>
           <AlertTriangle size={20} style={{ color: AMBAR, flexShrink: 0, marginTop: 2 }} />
           <div>
@@ -458,7 +458,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           </div>
           <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}

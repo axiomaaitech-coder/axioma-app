@@ -351,7 +351,7 @@ DADOS REAIS DESTE MEI:
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('titulo') as string}</p>
           <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>{t('transparencia') as string}</p>
 
-          <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3"
+          <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3 axi-card-premium3d axi-card-faixa"
             style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
             {chatMensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -363,7 +363,7 @@ DADOS REAIS DESTE MEI:
             )}
             {chatMensagens.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line"
+                <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa"
                   style={{
                     background: msg.role === 'user' ? `${OURO}25` : BOLHA_BG,
                     color: 'var(--axi-text-primary)',
@@ -375,7 +375,7 @@ DADOS REAIS DESTE MEI:
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="px-4 py-3 rounded-xl" style={{ background: BOLHA_BG, border: `1px solid ${BOLHA_BORDA}` }}>
+                <div className="px-4 py-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: BOLHA_BG, border: `1px solid ${BOLHA_BORDA}` }}>
                   <div className="flex gap-1">
                     {[0, 1, 2].map(i => (
                       <motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}

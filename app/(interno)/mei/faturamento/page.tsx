@@ -457,13 +457,13 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           </div>
 
           {semaforo4 === 'laranja' && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-2"
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-2 axi-card-premium3d axi-card-faixa"
               style={{ background: `rgba(${rgbAlerta.laranja},0.1)`, border: `1px solid rgba(${rgbAlerta.laranja},0.2)`, color: ALARANJADO }}>
               <AlertTriangle size={16} /> {t('faixaLaranja')}
             </div>
           )}
           {semaforo4 === 'vermelho' && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-2"
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-2 axi-card-premium3d axi-card-faixa"
               style={{ background: `rgba(${rgbAlerta.vermelho},0.1)`, border: `1px solid rgba(${rgbAlerta.vermelho},0.2)`, color: VERMELHO }}>
               <AlertTriangle size={16} /> {t('faixaVermelha')}
             </div>
@@ -527,7 +527,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           </div>
           <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${neutro(0.1)}`, color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa" style={{ background: POCO_BG, border: `1px solid ${neutro(0.1)}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -583,7 +583,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
               {receitasAno.map((r) => {
                 const conta = r.considera_teto_mei !== false
                 return (
-                  <div key={r.id} className="flex items-center gap-2 p-3 rounded-xl flex-wrap"
+                  <div key={r.id} className="flex items-center gap-2 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa"
                     style={{ background: LINHA_BG, border: `1px solid ${neutro(0.1)}` }}>
                     <div className="flex-1 min-w-[140px]">
                       <p className="text-xs font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{r.descricao}</p>

@@ -792,7 +792,7 @@ export default function EquipePage() {
         <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(4,120,87,0.12)' }}>
+              <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(4,120,87,0.12)' }}>
                 <Users size={26} style={{ color: JADE }} />
               </div>
               <div>

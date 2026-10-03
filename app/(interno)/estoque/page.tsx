@@ -1311,7 +1311,7 @@ export default function EstoquePage() {
             ) : (
               <div className="space-y-2">
                 {avisosEstoque.map((a) => (
-                  <div key={a.produto_id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                  <div key={a.produto_id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{a.nome}</p>
                       <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{et.colSaldo}: {a.saldo_disponivel} · {et.colPrecoMedio}: {fBRL(a.preco_medio)}</p>
@@ -1338,7 +1338,7 @@ export default function EstoquePage() {
                   const cor = v.severidade === "vencido" || v.severidade === "ultimo_dia" || v.severidade === "critico_7" ? NEGATIVO_CT
                     : v.severidade === "atencao_30" || v.severidade === "aviso_60" ? ATENCAO_CT : NEUTRO_CT;
                   return (
-                    <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                    <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                       <div>
                         <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{v.produto_nome}</p>
                         <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {fData(v.data_validade)}</p>
@@ -1749,7 +1749,7 @@ export default function EstoquePage() {
               <button onClick={() => setMostrarNovoCampo(true)} className="text-xs font-semibold" style={{ color: ct(JADE) }}>{et.adicionarCampoPersonalizado}</button>
             )
           ) : (
-            <div className="grid grid-cols-3 gap-3 items-end p-3 rounded-xl" style={{ background: "rgba(4,120,87,0.06)" }}>
+            <div className="grid grid-cols-3 gap-3 items-end p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(4,120,87,0.06)" }}>
               <Campo label={et.campoNomeDoCampo} value={novoCampoNome} onChange={setNovoCampoNome} />
               <CampoSelect label={et.campoTipoDoCampo} value={novoCampoTipo} onChange={(v) => setNovoCampoTipo(v as any)}
                 opcoes={[{ value: "text", label: et.tipoTexto }, { value: "number", label: et.tipoNumero }, { value: "date", label: et.tipoData }]} />
@@ -1767,7 +1767,7 @@ export default function EstoquePage() {
 
           <SecaoTitulo>{et.secaoPrecos}</SecaoTitulo>
           {produtoEditando && (
-            <div className="p-3 rounded-xl mb-1" style={{ background: "rgba(4,120,87,0.08)" }}>
+            <div className="p-3 rounded-xl mb-1 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(4,120,87,0.08)" }}>
               <p className="text-[10px] font-bold uppercase" style={{ color: ct("#5a7a9a") }}>{et.campoCustoMedioSistema}</p>
               <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{moeda(formProduto.preco_medio)}</p>
             </div>
@@ -1958,7 +1958,7 @@ export default function EstoquePage() {
           )}
 
           {formMov.tipo === "saida" && lotesProdutoMov.length > 0 && (
-            <div className="p-3 rounded-xl" style={{ background: "rgba(250,204,21,0.08)" }}>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)" }}>
               <CampoSelect label={et.sugestaoFefoTitulo}
                 value={formMov.lote_id || fefoSugestao[0]?.lote.id || ""}
                 onChange={(v) => setFormMov((f: any) => ({ ...f, lote_id: v }))}

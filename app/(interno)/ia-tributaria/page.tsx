@@ -444,7 +444,7 @@ export default function IATributariaPage() {
                       style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(46,204,155,0.1)")}`, color: TEXTO }}>{m.texto}</div>
                   </div>
                 ))}
-                {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
+                {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
               </div>
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: AZULC }}>{s}</button>))}

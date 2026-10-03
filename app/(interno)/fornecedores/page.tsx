@@ -1983,7 +1983,7 @@ export default function Fornecedores() {
               ) : (
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                   {desperdicios.alertas.slice(0, 8).map((d, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(248,113,113,0.08)" }}>
+                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(248,113,113,0.08)" }}>
                       <p className="text-xs truncate" style={{ color: ct("#e2e8f0") }}>{d.descricao}</p>
                       <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: ct("#f87171") }}>{fmt(d.valorPotencial)}</p>
                     </div>
@@ -2002,7 +2002,7 @@ export default function Fornecedores() {
             ) : (
               <div className="space-y-3">
                 {consolidacao.slice(0, 5).map((g) => (
-                  <div key={g.categoria} className="rounded-lg p-3" style={{ background: CAMPO_BG2 }}>
+                  <div key={g.categoria} className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-black" style={{ color: AMBAR }}>{g.categoria}</p>
                       <p className="text-xs font-black" style={{ color: ct("#34d399") }}>{tt.economiaEstimadaLabel}: {fmt(g.economiaEstimada)}</p>
@@ -2160,7 +2160,7 @@ export default function Fornecedores() {
               </div>
               <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {creditoReforma.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                  <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <p className="text-xs truncate" style={{ color: ct("#e2e8f0") }}>{c.nome}</p>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: `${NIVEL_CREDITO_COR[c.nivel]}18`, color: NIVEL_CREDITO_COR[c.nivel] }}>{NIVEL_CREDITO_LABEL[c.nivel]}</span>
                   </div>
@@ -2297,11 +2297,11 @@ export default function Fornecedores() {
                         </div>
                         {contasForn.length > 0 && (
                           <div className="mt-3 pt-3 grid grid-cols-2 gap-2" style={{ borderTop: "1px solid rgba(250,204,21,0.1)" }}>
-                            <div className="text-center rounded-xl p-2" style={{ background: "rgba(250,204,21,0.08)" }}>
+                            <div className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: ct("#facc15") }}>{fmt(aberto)}</p>
                               <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Em aberto" : "Open"}</p>
                             </div>
-                            <div className="text-center rounded-xl p-2" style={{ background: "rgba(250,204,21,0.08)" }}>
+                            <div className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: AMBAR }}>{contasForn.length}</p>
                               <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Contas" : "Bills"}</p>
                             </div>
@@ -2418,7 +2418,7 @@ export default function Fornecedores() {
                   </div>
 
                   {erroCadastro && (
-                    <div className="mb-4 px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(248,113,113,0.12)", color: ct("#f87171") }}>{erroCadastro}</div>
+                    <div className="mb-4 px-3 py-2 rounded-lg text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: "rgba(248,113,113,0.12)", color: ct("#f87171") }}>{erroCadastro}</div>
                   )}
 
                   {/* Stepper */}
@@ -2475,7 +2475,7 @@ export default function Fornecedores() {
                               ) : (
                                 <div className="space-y-1.5 mb-3">
                                   {contatosForn.map((c) => (
-                                    <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                                    <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{c.nome} {c.principal && <span style={{ color: AMBAR }}>★</span>}</p>
                                         <p className="text-[10px] truncate" style={{ color: ct("#5a7a9a") }}>{[c.cargo, c.telefone, c.email].filter(Boolean).join(" · ")}</p>
@@ -2488,7 +2488,7 @@ export default function Fornecedores() {
                                   ))}
                                 </div>
                               )}
-                              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG2 }}>
+                              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                                 <Campo label={tt.lblNomeContato} value={novoContato.nome} onChange={(v) => setNovoContato({ ...novoContato, nome: v })} />
                                 <Campo label={tt.lblCargoContato} value={novoContato.cargo} onChange={(v) => setNovoContato({ ...novoContato, cargo: v })} />
                                 <Campo label={tt.lblEmail} value={novoContato.email} onChange={(v) => setNovoContato({ ...novoContato, email: v })} />
@@ -2559,7 +2559,7 @@ export default function Fornecedores() {
                                   const aVencer = d.data_validade && !vencido && documentosVencendo([d], 30).aVencer.length > 0;
                                   const tipoInfo = TIPOS_DOCUMENTO_FORNECEDOR.find(t => t.key === d.tipo);
                                   return (
-                                    <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                                    <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{tipoInfo?.icon} {d.nome}</p>
                                         {d.data_validade && <p className="text-[10px]" style={{ color: vencido ? ct("#f87171") : aVencer ? "#facc15" : ct("#5a7a9a") }}>{tt.lblValidade}: {new Date(d.data_validade + "T00:00:00").toLocaleDateString("pt-BR")} {vencido ? `· ${tt.statusVencido}` : aVencer ? `· ${tt.statusAVencer}` : ""}</p>}
@@ -2574,7 +2574,7 @@ export default function Fornecedores() {
                                 })}
                               </div>
                             )}
-                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG2 }}>
+                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                               <CampoSelect label={tt.lblTipoDocumento} value={novoDocumento.tipo} onChange={(v) => setNovoDocumento({ ...novoDocumento, tipo: v })} opcoes={TIPOS_DOCUMENTO_FORNECEDOR.map(t => ({ value: t.key, label: `${t.icon} ${t.label}` }))} />
                               <Campo label={tt.lblNomeDocumento} value={novoDocumento.nome} onChange={(v) => setNovoDocumento({ ...novoDocumento, nome: v })} />
                               <Campo label={tt.lblNumeroDocumento} value={novoDocumento.numero_documento} onChange={(v) => setNovoDocumento({ ...novoDocumento, numero_documento: v })} />
@@ -2640,7 +2640,7 @@ export default function Fornecedores() {
                                   const vencido = c.data_fim && c.data_fim < hoje;
                                   const saldo = (c.valor_contratado || 0) - (c.valor_utilizado || 0);
                                   return (
-                                    <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                                    <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{c.descricao} {c.renovacao_automatica && "🔄"}</p>
                                         <p className="text-[10px]" style={{ color: vencido ? ct("#f87171") : ct("#5a7a9a") }}>
@@ -2658,7 +2658,7 @@ export default function Fornecedores() {
                                 })}
                               </div>
                             )}
-                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG2 }}>
+                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                               <div className="col-span-2"><Campo label={tt.lblDescricaoContrato} value={novoContrato.descricao} onChange={(v) => setNovoContrato({ ...novoContrato, descricao: v })} /></div>
                               <Campo label={tt.lblDataInicio} value={novoContrato.data_inicio} onChange={(v) => setNovoContrato({ ...novoContrato, data_inicio: v })} tipo="date" />
                               <Campo label={tt.lblDataFim} value={novoContrato.data_fim} onChange={(v) => setNovoContrato({ ...novoContrato, data_fim: v })} tipo="date" />
@@ -2688,7 +2688,7 @@ export default function Fornecedores() {
                             ) : (
                               <div className="space-y-1.5 mb-3">
                                 {produtosForn.map((p) => (
-                                  <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                                  <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                     <div className="min-w-0">
                                       <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{p.descricao}</p>
                                       <p className="text-[10px] truncate" style={{ color: ct("#5a7a9a") }}>{[p.categoria, p.unidade, p.valor_unitario ? fmt(p.valor_unitario) : null].filter(Boolean).join(" · ")}</p>
@@ -2701,7 +2701,7 @@ export default function Fornecedores() {
                                 ))}
                               </div>
                             )}
-                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG2 }}>
+                            <div className="grid grid-cols-2 gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                               <div className="col-span-2"><Campo label={tt.lblDescricaoProduto} value={novoProduto.descricao} onChange={(v) => setNovoProduto({ ...novoProduto, descricao: v })} /></div>
                               <Campo label={tt.lblCategoriaProduto} value={novoProduto.categoria} onChange={(v) => setNovoProduto({ ...novoProduto, categoria: v })} />
                               <Campo label={tt.lblUnidade} value={novoProduto.unidade} onChange={(v) => setNovoProduto({ ...novoProduto, unidade: v })} placeholder="un, kg, hora..." />
@@ -2756,7 +2756,7 @@ export default function Fornecedores() {
                               ) : (
                                 <div className="space-y-1.5 mb-3 max-h-40 overflow-y-auto pr-1">
                                   {interacoesForn.map((it) => (
-                                    <div key={it.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                                    <div key={it.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0 flex items-start gap-2">
                                         <Clock size={12} className="mt-0.5 flex-shrink-0" style={{ color: ct("#5a7a9a") }} />
                                         <div className="min-w-0">
@@ -2772,7 +2772,7 @@ export default function Fornecedores() {
                                   ))}
                                 </div>
                               )}
-                              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG2 }}>
+                              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2 }}>
                                 <Campo label={tt.lblDataInteracao} value={novaInteracao.data} onChange={(v) => setNovaInteracao({ ...novaInteracao, data: v })} tipo="date" />
                                 <Campo label={tt.lblTipoInteracao} value={novaInteracao.tipo} onChange={(v) => setNovaInteracao({ ...novaInteracao, tipo: v })} placeholder={lang === "en" ? "Meeting, email..." : lang === "es" ? "Reunión, correo..." : "Reunião, e-mail..."} />
                                 <div className="col-span-2"><Campo label={tt.lblDescricaoInteracao} value={novaInteracao.descricao} onChange={(v) => setNovaInteracao({ ...novaInteracao, descricao: v })} /></div>
@@ -2974,7 +2974,7 @@ export default function Fornecedores() {
                   <p className="text-xs font-black mb-2" style={{ color: AMBAR }}>{tt.criteriosTitulo}</p>
                   <div className="space-y-1.5">
                     {scoreDrillItem.score.criterios.map((c) => (
-                      <div key={c.chave} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                      <div key={c.chave} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold" style={{ color: ct("#e2e8f0") }}>{NOME_CRITERIO[c.chave]}</p>
                           <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{tt.pesoLabel}: {c.peso}</p>

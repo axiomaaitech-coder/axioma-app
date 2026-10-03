@@ -125,7 +125,7 @@ export default function TesourariaConfigPage() {
       ) : (
         <div className="space-y-6">
           {!podeEditar && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit" style={{ background: `${CINZA}15`, color: CINZA }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${CINZA}15`, color: CINZA }}>
               <Lock size={14} />
               {L('Só dono ou admin da empresa pode editar — você está vendo em modo leitura.', 'Only the company owner or admin can edit — you are viewing in read-only mode.', 'Solo el dueño o admin de la empresa puede editar — estás viendo en modo lectura.')}
             </div>

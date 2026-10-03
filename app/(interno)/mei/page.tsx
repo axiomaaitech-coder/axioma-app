@@ -442,7 +442,7 @@ export default function PainelMEI() {
                   <span className="text-xs font-bold" style={{ color: item.cor }}>{fmt(item.valor)}</span>
                 </div>
               ))}
-              <div className="flex justify-between items-center px-3 py-3 rounded-lg mt-3" style={{ background: `${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}15`, border: `1px solid ${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}40` }}>
+              <div className="flex justify-between items-center px-3 py-3 rounded-lg mt-3 axi-card-premium3d axi-card-faixa" style={{ background: `${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}15`, border: `1px solid ${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}40` }}>
                 <span className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{mx.cofreProLabore}</span>
                 <span className="text-lg font-black" style={{ color: cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO }}><CountUp valor={cofre.proLaboreSeguro} formatar={fmt} /></span>
               </div>
@@ -501,7 +501,7 @@ export default function PainelMEI() {
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{mx.guardiaoBaseadoEm}</p>
               </div>
             </div>
-            <div className="rounded-xl p-3" style={{ background: `${VERMELHO}08`, border: `1px solid ${VERMELHO}20` }}>
+            <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}08`, border: `1px solid ${VERMELHO}20` }}>
               <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>
                 {mx.guardiaoConsequencia} {diasAtrasoDasReal > 0
                   ? <><strong style={{ color: VERMELHO }}>{fmt(penalidadeAtual.multa)}</strong> {lang === 'pt' ? 'de multa' : lang === 'en' ? 'in fines' : 'de multa'} + <strong style={{ color: VERMELHO }}>{fmt(penalidadeAtual.juros)}</strong> {lang === 'pt' ? 'de juros até hoje' : lang === 'en' ? 'in interest so far' : 'de intereses hasta hoy'}.</>
@@ -536,7 +536,7 @@ export default function PainelMEI() {
           )}
 
           {emRisco && (
-            <div className="rounded-xl p-4 space-y-2" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
+            <div className="rounded-xl p-4 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
               <div className="flex items-start gap-2">
                 <AlertTriangle size={16} style={{ color: VERMELHO, flexShrink: 0, marginTop: 2 }} />
                 <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>

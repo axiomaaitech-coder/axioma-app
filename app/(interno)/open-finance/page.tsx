@@ -676,7 +676,7 @@ export default function OpenFinancePage() {
         <CanvasBox {...cartaoTema} cor={ct(AZUL)}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(46,204,155,0.1)' }}>
+              <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.1)' }}>
                 <Building2 size={28} style={{ color: ct(AZUL) }} />
               </div>
               <div>

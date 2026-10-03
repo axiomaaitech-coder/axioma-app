@@ -379,7 +379,7 @@ export default function Simulacoes() {
                   { l: cx.simCaixaDisponivelLabel, v: fBRL(caixaDisponivel) },
                   { l: cx.simRegimeAtualLabel, v: regimeTributario || "—" },
                 ].map((m, i) => (
-                  <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                  <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                     <p className="text-xs md:text-sm font-black truncate" style={{ color: ct(PRATAC) }}>{m.v}</p>
                   </div>
@@ -402,7 +402,7 @@ export default function Simulacoes() {
                     { l: cx.invSelic, v: fPct(macro.selic) }, { l: cx.invCdi, v: fPct(macro.cdi) },
                     { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
                   ].map((m, i) => (
-                    <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                    <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                       <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                       <p className="text-sm font-black" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{m.v}</p>
                     </div>
@@ -557,7 +557,7 @@ export default function Simulacoes() {
                   <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simSensibilidadeSub}</p>
                   <div className="space-y-2">
                     {resultado.sensibilidade.map((s) => (
-                      <div key={s.driver} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                      <div key={s.driver} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between mb-1.5">
                           <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{nomeDriverSensibilidade(lang, s.driver as DriverSensibilidade)}</p>
                           <p className="text-[10px] font-black" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
@@ -586,7 +586,7 @@ export default function Simulacoes() {
                       <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbLucroPositivo}</p>
                       <p className="text-xl font-black" style={{ color: ct(CORES.verde) }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)} /></p>
                     </div>
-                    <div className="rounded-xl p-3" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : CAMPO_BG3, border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : "rgba(255,255,255,0.1)"}30` }}>
+                    <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : CAMPO_BG3, border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : "rgba(255,255,255,0.1)"}30` }}>
                       <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbRupturaCaixa}</p>
                       <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : ct("#e2e8f0") }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)} /></p>
                     </div>
@@ -595,7 +595,7 @@ export default function Simulacoes() {
                     {[
                       { l: "P10", v: resultado.monteCarlo.lucroLiquidoP10 }, { l: cx.simMediana, v: resultado.monteCarlo.lucroLiquidoP50 }, { l: "P90", v: resultado.monteCarlo.lucroLiquidoP90 },
                     ].map((m, i) => (
-                      <div key={i} className="rounded-xl px-3 py-2 text-center" style={{ background: CAMPO_BG3 }}>
+                      <div key={i} className="rounded-xl px-3 py-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                         <p className="text-xs font-black" style={{ color: m.v >= 0 ? ct(PRATAC) : ct(CORES.vermelhoC) }}>{fBRL(m.v)}</p>
                       </div>
@@ -676,7 +676,7 @@ export default function Simulacoes() {
                       { l: cx.simPremissaCustoVariavel, v: fBRL(custoVariavelMensalMedia) },
                       { l: cx.invChoqueReceita, v: `${resultado.choque.receitaPct}%` },
                     ].map((p, i) => (
-                      <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                      <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{p.l}</p>
                         <p className="text-xs font-black" style={{ color: ct(PRATAC) }}>{p.v}</p>
                       </div>

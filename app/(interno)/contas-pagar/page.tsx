@@ -2905,7 +2905,7 @@ export default function ContasPagarPage() {
                       ) : (
                         <div className="space-y-1.5">
                           {divergenciasPorMatch[m.id].map((d) => (
-                            <div key={d.id} className="p-2 rounded-lg text-xs" style={{ background: "rgba(0,0,0,0.2)", color: TEXTO }}>
+                            <div key={d.id} className="p-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: "rgba(0,0,0,0.2)", color: TEXTO }}>
                               <span className="font-bold" style={{ color: VERMELHO }}>{labelTipoDivergencia(d.tipo)}</span> — {explicarDivergencia(d)}
                             </div>
                           ))}
@@ -3280,7 +3280,7 @@ export default function ContasPagarPage() {
                       </div>
                       <div className="space-y-2">
                         {itensPedidoForm.map((it, idx) => (
-                          <div key={idx} className="p-2 rounded-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
+                          <div key={idx} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(0,0,0,0.2)" }}>
                             <div className="grid grid-cols-12 gap-2 items-center">
                               <input value={it.descricao} onChange={(e) => atualizarItemPedido(idx, "descricao", e.target.value)} placeholder={L("Descrição", "Description", "Descripción")}
                                 className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />

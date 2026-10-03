@@ -1843,7 +1843,7 @@ export default function EmpresaPage() {
               <p className="text-sm font-bold" style={{ color: ROXO }}>{tt.cnpjResultadoTitulo}</p>
               <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
-            <div className="rounded-lg p-3 space-y-1 mb-3" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)") }}>
+            <div className="rounded-lg p-3 space-y-1 mb-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)") }}>
               <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjRazao}:</span> <strong style={{ color: TEXTO }}>{resultadoCNPJ.razao_social}</strong></p>
               <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjFantasia}:</span> <span style={{ color: TEXTO }}>{resultadoCNPJ.nome_fantasia || "—"}</span></p>
               <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjSituacao}:</span> <span style={{ color: resultadoCNPJ.situacao_cadastral === "ativa" ? VERDE : AMARELO }}>{resultadoCNPJ.situacao_cadastral}</span></p>

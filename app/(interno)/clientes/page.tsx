@@ -944,7 +944,7 @@ export default function ClientesPage() {
                       { label: tt.kpiEmRisco, valor: `${kpisCarteira.qtdEmRisco}`, cor: ct("#f87171") },
                       { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: ct("#facc15") },
                     ].map((k) => (
-                      <div key={k.label} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                      <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
                         <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
@@ -969,7 +969,7 @@ export default function ClientesPage() {
                       { label: lang === "en" ? "Portfolio Health Score" : lang === "es" ? "Health Score de Cartera" : "Health Score da Carteira", valor: `${healthCarteira}/100`, cor: healthCarteira >= 70 ? ct("#34d399") : healthCarteira >= 40 ? "#facc15" : ct("#f87171") },
                       { label: lang === "en" ? "Portfolio Risk" : lang === "es" ? "Riesgo de Cartera" : "Risco da Carteira", valor: `${riscoCarteira}/100`, cor: riscoCarteira <= 30 ? ct("#34d399") : riscoCarteira <= 60 ? "#facc15" : ct("#f87171") },
                     ].map((k) => (
-                      <div key={k.label} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                      <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
                         <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
@@ -977,11 +977,11 @@ export default function ClientesPage() {
                   </div>
                   {temContaRecorrenteMarcada && (
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div className="rounded-xl p-3" style={{ background: "rgba(52,211,153,0.06)" }}>
+                      <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.06)" }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Recurring Revenue" : lang === "es" ? "Ingresos Recurrentes" : "Receita Recorrente"}</p>
                         <p className="text-base font-black" style={{ color: ct("#34d399") }}>{fmt(receitaRecorrente)}</p>
                       </div>
-                      <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                      <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Non-Recurring Revenue" : lang === "es" ? "Ingresos No Recurrentes" : "Receita Não Recorrente"}</p>
                         <p className="text-base font-black" style={{ color: ct("#94a3b8") }}>{fmt(receitaNaoRecorrente)}</p>
                       </div>
@@ -1209,7 +1209,7 @@ export default function ClientesPage() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                       {clienteAtual.ivca.subscores.map((sub) => (
-                        <div key={sub.chave} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                        <div key={sub.chave} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                           <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{nomeSubscoreIVCA(lang, sub.chave)}</p>
                           <p className="text-sm font-black" style={{ color: ct("#2ecc9b") }}>{Math.round(sub.valor)}</p>
                         </div>
@@ -1232,7 +1232,7 @@ export default function ClientesPage() {
                       ].map((g) => {
                         const cor = g.v >= 70 ? ct(CORES.verde) : g.v >= 40 ? ct(CORES.amarelo) : ct(CORES.vermelho);
                         return (
-                          <div key={g.label} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                          <div key={g.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[10px] mb-1.5" style={{ color: ct("#64748b") }}>{g.label}</p>
                             <p className="text-sm font-black mb-1.5" style={{ color: cor }}>{Math.round(g.v)}/100</p>
                             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -1252,15 +1252,15 @@ export default function ClientesPage() {
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.comprasTitulo}</p>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                        <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                           <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.ultimaCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.ultima ? fmt(compras.ultima.valor) : tt.semRegistro}</p>
                         </div>
-                        <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                        <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                           <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.maiorCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.maior ? fmt(compras.maior.valor) : tt.semRegistro}</p>
                         </div>
-                        <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                        <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                           <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.primeiraCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.primeira ? new Date(compras.primeira + "T00:00:00").toLocaleDateString("pt-BR") : tt.semRegistro}</p>
                         </div>
@@ -1353,7 +1353,7 @@ export default function ClientesPage() {
                       <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{tt.conselhoSub}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                         {especialistas.cards.map((e, i) => (
-                          <div key={i} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                          <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.papel}</p>
                             <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.texto}</p>
                           </div>
@@ -1649,7 +1649,7 @@ export default function ClientesPage() {
                         ) : (
                           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                             {contasDoClienteEditando.slice(0, 15).map((c) => (
-                              <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
+                              <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                 <span className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{c.descricao}</span>
                                 <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? ct("#34d399") : ct("#facc15") }}>{fmt(c.valor)}</span>
                               </div>
@@ -1798,11 +1798,11 @@ export default function ClientesPage() {
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.selecioneClientePrevisao}</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.scoreRecebimentoLbl}</p>
                             <p className="text-sm font-black" style={{ color: previewCobranca.score >= 70 ? ct("#34d399") : previewCobranca.score >= 40 ? "#facc15" : ct("#f87171") }}>{previewCobranca.score}/100</p>
                           </div>
-                          <div className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.probInadimplenciaLbl}</p>
                             <p className="text-sm font-black" style={{ color: previewCobranca.prob <= 30 ? ct("#34d399") : previewCobranca.prob <= 60 ? "#facc15" : ct("#f87171") }}>{previewCobranca.prob}%</p>
                           </div>

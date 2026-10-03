@@ -491,7 +491,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               </div>
             )}
 
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `rgba(${rgbVermelho},0.08)`, border: `1px solid rgba(${rgbVermelho},0.2)`, color: VERMELHO }}>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs axi-card-premium3d axi-card-faixa" style={{ background: `rgba(${rgbVermelho},0.08)`, border: `1px solid rgba(${rgbVermelho},0.2)`, color: VERMELHO }}>
               <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {t('alertaINSS')}
             </div>
             <p className="text-xs mt-2" style={{ color: TEXTO_SEC }}>{t('estimativaAviso')}</p>
@@ -538,7 +538,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           </div>
           <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
