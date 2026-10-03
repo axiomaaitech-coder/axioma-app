@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     // Auditoria no mesmo formato do motor (aparece no painel Uso da IA) — nunca o conteúdo.
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
-      parametros: { tela: 'importar-documentos', nivel: 'analise', triagem: 'regra', provedor: r ? 'anthropic' : null, modelo: r?.modelo ?? MODELOS.analise.modelo, escalou: false, valores_nao_conferidos: 0, consultas: 0, setor: null, caracteres_enviados: arquivo.size, respondeu: !!r,
+      parametros: { tela: 'importar-documentos', nivel: 'analise', triagem: 'regra', provedor: r ? (r.modelo.startsWith('claude') ? 'anthropic' : 'openai') : null, modelo: r?.modelo ?? MODELOS.analise.modelo, escalou: false, valores_nao_conferidos: 0, consultas: 0, setor: null, caracteres_enviados: arquivo.size, respondeu: !!r,
         tokens_entrada: uso.tokensEntrada, tokens_saida: uso.tokensSaida, tokens_cache_leitura: uso.tokensCacheLeitura, tokens_cache_escrita: uso.tokensCacheEscrita,
         tokens_openai: uso.tokensOpenAI, custo_usd_anthropic: Math.round(uso.custoUsdAnthropic * 1e6) / 1e6 },
     }))

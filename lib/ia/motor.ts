@@ -133,7 +133,51 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
 // rotina. Resposta presa num esquema JSON (structured outputs). Falha = null.
 export type ArquivoVisao = { base64: string; mediaType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' }
 // `diag.motivo` diz por que voltou null (sem conteúdo do documento) — a rota manda pro Sentry.
+// Claude primeiro; se falhar (sem crédito, fora do ar, recusa), a OpenAI lê no lugar.
 export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso, diag?: { motivo?: string }): Promise<{ dados: unknown; modelo: string } | null> {
+  const claude = await lerDocumentoComClaude(arquivo, instrucao, esquema, uso, diag)
+  if (claude) return claude
+  const reserva = await lerDocumentoComOpenAI(arquivo, instrucao, esquema, uso)
+  if (reserva) return reserva
+  if (diag) diag.motivo = `${diag.motivo ?? '?'} | reserva OpenAI também falhou`
+  return null
+}
+
+const OPENAI_VISAO = ['gpt-4o', 'gpt-4o-mini']
+
+async function lerDocumentoComOpenAI(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso): Promise<{ dados: unknown; modelo: string } | null> {
+  const chave = process.env.OPENAI_API_KEY
+  if (!chave) return null
+  const dataUrl = `data:${arquivo.mediaType};base64,${arquivo.base64}`
+  const bloco = arquivo.mediaType === 'application/pdf'
+    ? { type: 'file', file: { filename: 'documento.pdf', file_data: dataUrl } }
+    : { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } }
+  for (const m of OPENAI_VISAO) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', signal: AbortSignal.timeout(50000), // 2 tentativas cabem nos 120s da rota
+        headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: m, max_completion_tokens: 8000,
+          response_format: { type: 'json_schema', json_schema: { name: 'nota', strict: true, schema: esquema } },
+          messages: [
+            { role: 'system', content: `${instrucao}
+${AVISO_IDENTIDADE}` },
+            { role: 'user', content: [bloco, { type: 'text', text: 'Leia este documento e devolva os dados no formato pedido.' }] },
+          ],
+        }),
+      })
+      if (!res.ok) { console.error('[motor-ia] visão OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
+      const dados = await res.json()
+      somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
+      const texto = dados?.choices?.[0]?.message?.content
+      if (typeof texto === 'string' && texto.trim()) return { dados: JSON.parse(texto), modelo: m }
+    } catch (err) { console.error('[motor-ia] visão OpenAI rede', m, err instanceof Error ? err.message : err) }
+  }
+  return null
+}
+
+async function lerDocumentoComClaude(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso, diag?: { motivo?: string }): Promise<{ dados: unknown; modelo: string } | null> {
   if (!process.env.ANTHROPIC_API_KEY) { if (diag) diag.motivo = 'sem_chave'; return null }
   const cfg = MODELOS.analise
   const bloco = arquivo.mediaType === 'application/pdf'
