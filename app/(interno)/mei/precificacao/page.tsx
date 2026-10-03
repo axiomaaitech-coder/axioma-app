@@ -36,7 +36,7 @@ const supabase = createBrowserClient(
 // Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
-  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
+  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', ROXO: '#2ecc9b', NEUTRO: '#a3b1c2', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
   xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', NEUTRO: '#6b7280', CAMPO_BG: '#ffffff', PAINEL_BG: 'rgba(255,255,255,0.5)', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
@@ -50,7 +50,7 @@ export default function PrecificacaoMEI() {
   const temaClaro = tema === 'xms'
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
   const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined

@@ -104,7 +104,7 @@ export default function CockpitMEI() {
   // branco. VERDE/VERMELHO/AMBAR (semáforo positivo/negativo/atenção)
   // ficam iguais ao tema escuro — mesmo contraste já comprovado.
   const PALETA_COCKPIT = {
-    dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff' },
+    dark: { JADE: '#2ecc9b', BRONZE: '#16a97d', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f5a623', AZUL: '#2ecc9b' },
     xms: { JADE: '#2ecc9b', BRONZE: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR, AZUL } = PALETA_COCKPIT[tema]
@@ -112,7 +112,7 @@ export default function CockpitMEI() {
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"): card creme + efeito 3D no hover, texto secundário legível sobre
   // bege, cabeçalho executivo em degradê. Escuro fica 100% inalterado.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)

@@ -58,7 +58,7 @@ export default function PainelMEI() {
   // azul-royal exato extraído por pixel da imagem de referência
   // (public/referencias/), nunca verde — é o único acento da tela.
   const PALETA = {
-    dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
+    dark: { OURO: '#2ecc9b', ROYAL: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f5a623', AZUL: '#2ecc9b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(46,204,155,0.05)', CHIP_BORDA: 'rgba(46,204,155,0.1)' },
     xms: { OURO: '#101b3d', ROYAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b', CAMPO_BG: '#ffffff', CHIP_BG: 'rgba(16,27,61,0.05)', CHIP_BORDA: 'rgba(16,27,61,0.12)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, AZUL, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
@@ -68,7 +68,7 @@ export default function PainelMEI() {
   // Cards do tema Claro seguem a referência (public/referencias/): fundo
   // creme (#f6f7c4) + sombra com bisel de luz e brilho verde no hover. No
   // Escuro (fundação, inalterado) os cards continuam exatamente como sempre.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   // Indicador de "selecionado" (chips de categoria/perfil): verde no Claro
   // (regra da referência — ativo é sempre verde), dourado no Escuro (inalterado).
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
