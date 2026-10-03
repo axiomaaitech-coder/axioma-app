@@ -1908,6 +1908,20 @@ export default function ContasPagarPage() {
 
       {aba === "central" && (
         <>
+          {/* Letreiro */}
+          {marquee.length > 0 && (
+            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.3)"}}>
+              <div className="marquee-ap py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map((rep) => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: (i === 0 ? "#2ecc9b" : "#ffffff")}}>{m}<span style={{ color: "#2ecc9b"}}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
+              </div>
+              <style>{`.marquee-ap{animation:marqueeAp 32s linear infinite}@keyframes marqueeAp{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-ap:hover{animation-play-state:paused}`}</style>
+            </div>
+          )}
+
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[
@@ -1929,19 +1943,6 @@ export default function ContasPagarPage() {
             ))}
           </div>
 
-          {/* Letreiro */}
-          {marquee.length > 0 && (
-            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.3)"}}>
-              <div className="marquee-ap py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
-                {[0, 1].map((rep) => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: (i === 0 ? "#2ecc9b" : "#ffffff")}}>{m}<span style={{ color: "#2ecc9b"}}>{"  •  "}</span></span>))}
-                  </span>
-                ))}
-              </div>
-              <style>{`.marquee-ap{animation:marqueeAp 32s linear infinite}@keyframes marqueeAp{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-ap:hover{animation-play-state:paused}`}</style>
-            </div>
-          )}
 
           {/* Filtros */}
           <div id="lista-contas-pagar" className="flex flex-wrap gap-2 mb-4 scroll-mt-28">

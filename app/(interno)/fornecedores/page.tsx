@@ -1808,19 +1808,6 @@ export default function Fornecedores() {
             </div>
           </div>
 
-          {/* Grid de 17 KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
-            {kpis.map((k) => (
-              <button key={k.key} onClick={() => setDrillDown(k.key)} className={`text-left rounded-xl p-3 transition-all hover:scale-[1.02]${classePremium3d} axi-card-premium3d axi-card-faixa`}
-                style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
-                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
-                <p className="text-lg font-black" style={{ color: k.cor }}>{k.valor}</p>
-                {k.sub && <p className="text-[10px] truncate mt-0.5" style={{ color: ct("#5a7a9a") }}>{k.sub}</p>}
-                {k.vazio && <p className="text-[9px] mt-1 flex items-center gap-1" style={{ color: ct("#5a7a9a") }}><ChevronRight size={9} /> {tt.semDados}</p>}
-              </button>
-            ))}
-          </div>
-
           {/* Letreiro */}
           {marquee.length > 0 && (
             <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.3)"}}>
@@ -1834,6 +1821,20 @@ export default function Fornecedores() {
               <style>{`.marquee-forn{animation:marqueeForn 32s linear infinite}@keyframes marqueeForn{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-forn:hover{animation-play-state:paused}`}</style>
             </div>
           )}
+
+          {/* Grid de 17 KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+            {kpis.map((k) => (
+              <button key={k.key} onClick={() => setDrillDown(k.key)} className={`text-left rounded-xl p-3 transition-all hover:scale-[1.02]${classePremium3d} axi-card-premium3d axi-card-faixa`}
+                style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
+                <p className="text-lg font-black" style={{ color: k.cor }}>{k.valor}</p>
+                {k.sub && <p className="text-[10px] truncate mt-0.5" style={{ color: ct("#5a7a9a") }}>{k.sub}</p>}
+                {k.vazio && <p className="text-[9px] mt-1 flex items-center gap-1" style={{ color: ct("#5a7a9a") }}><ChevronRight size={9} /> {tt.semDados}</p>}
+              </button>
+            ))}
+          </div>
+
 
           {/* Curva ABC + Distribuição Geográfica */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
