@@ -456,3 +456,42 @@ $$;
 revoke all on function public.equipe_suspender(uuid, uuid, uuid, text) from public;
 
 SELECT 'bloco 6 ok' AS resultado;
+
+-- ============================== BLOCO 7 =====================================
+-- 2026-10-03: remover quem JÁ está com o acesso vencido dava erro (equipe_nivel
+-- só enxerga acesso ativo → AX023). Agora: acesso vencido (prazo acabou) sai de
+-- vez, direto — regra do Elias (prazo curto zera; novo convite começa do zero).
+create or replace function public.equipe_remover_vencido(p_empresa uuid, p_alvo uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if coalesce(public.equipe_nivel(p_empresa, (select auth.uid())), 9) > 4 then return false; end if;
+  delete from empresa_usuarios
+  where empresa_id = p_empresa and user_id = p_alvo
+    and acesso_expira_em is not null and acesso_expira_em <= now();
+  if not found then return false; end if;
+  update equipe_pedidos set situacao = 'cancelado', decidido_em = now()
+  where empresa_id = p_empresa and alvo_user_id = p_alvo and situacao = 'aberto';
+  return true;
+end;
+$$;
+revoke all on function public.equipe_remover_vencido(uuid, uuid) from public;
+
+DO $do$
+DECLARE src text;
+BEGIN
+  src := pg_get_functiondef('public.equipe_remover(uuid,uuid,text)'::regprocedure);
+  src := replace(src,
+    $a$if v_t is null then raise exception 'Esta pessoa não tem acesso ativo' using errcode = 'AX023'; end if;$a$,
+    $b$if v_t is null then
+    if public.equipe_remover_vencido(p_empresa, p_alvo) then return 'removido'; end if;
+    raise exception 'Esta pessoa não tem acesso ativo' using errcode = 'AX023';
+  end if;$b$);
+  EXECUTE src;
+END
+$do$;
+
+SELECT 'bloco 7 ok' AS resultado;
