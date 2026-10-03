@@ -321,7 +321,7 @@ export default function Receitas() {
           {[
             { label: t.receitas.totalReceitas, value: fBRL(totalReceitas), cor: ct("#2ecc9b"), ir: "#lista-receitas" },
             { label: t.receitas.recebido, value: fBRL(totalRecebido), cor: ct("#34d399"), ir: "/fluxo-caixa" },
-            { label: t.receitas.pendente, value: fBRL(totalPendente), cor: ct("#facc15"), ir: "/contas-receber" },
+            { label: t.receitas.pendente, value: fBRL(totalPendente), cor: ct("#2ecc9b"), ir: "/contas-receber" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -443,7 +443,7 @@ export default function Receitas() {
                       </td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: `${catCorAtual[r.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[r.categoria] || ct("#2ecc9b") }}>{r.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? ct("#34d399") : ct("#facc15") }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? ct("#34d399") : ct("#2ecc9b") }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#34d399") }}>{fBRL(r.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
@@ -515,7 +515,7 @@ export default function Receitas() {
                     <div className="flex gap-2">
                       {["recebido", "pendente"].map((s) => (
                         <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(163,177,194,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#facc15")) : TEXTO_SEC, border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(163,177,194,0.1)"}` }}>
+                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(163,177,194,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#2ecc9b")) : TEXTO_SEC, border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(163,177,194,0.1)"}` }}>
                           {s === "recebido" ? t.receitas.recebido : t.receitas.pendente}
                         </motion.button>
                       ))}

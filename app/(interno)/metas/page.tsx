@@ -784,7 +784,7 @@ export default function Metas() {
         )}
 
         {legado.length > 0 && (
-          <div className="rounded-xl p-3 text-xs axi-card-premium3d axi-card-faixa" style={{ background: AMARELO_CHIP_BG, border: `1px solid ${AMARELO_CHIP_BORDA}`, color: ct("#fde68a") }}>
+          <div className="rounded-xl p-3 text-xs axi-card-premium3d axi-card-faixa" style={{ background: AMARELO_CHIP_BG, border: `1px solid ${AMARELO_CHIP_BORDA}`, color: ct("#7fe3c3") }}>
             {cx.metaSemTipoAviso}
           </div>
         )}

@@ -61,7 +61,7 @@ const supabase = createBrowserClient(
 // neutro/atenção) — o tema nunca substitui essas cores de significado.
 // ============================================================================
 const PALETA = {
-  dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#facc15', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#ffffff', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
+  dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#ffffff', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
   // OURO no Escuro é "champagne" decorativo (borda premium/ícone Elite) - no
   // Claro vira verde-menta oficial, igual toda outra identidade decorativa
   // (tema-tokens.md §1.1); AMBAR é semântico ("atenção") e usa o âmbar
@@ -917,7 +917,7 @@ export default function ContasReceber() {
             <motion.button key={k.key} whileHover={k.drillable ? { scale: 1.02 } : undefined}
               onClick={() => k.drillable && setDrillKpi(k.key)}
               disabled={!k.drillable}
-              className={`text-left rounded-2xl p-4 relative overflow-hidden${classePremium3d}`}
+              className={`text-left rounded-2xl p-4 relative overflow-hidden${classePremium3d} axi-card-premium3d axi-card-faixa`}
               style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined, cursor: k.drillable ? 'pointer' : 'default' }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
               <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
@@ -996,9 +996,9 @@ export default function ContasReceber() {
                 {aging.map((f, i) => {
                   // Escala de gravidade 0-30/31-60/61-90/90+ - no Claro usa so
                   // os 2 semanticos oficiais (ambar/vermelho aprovados), sem
-                  // hex cru do Escuro vazando (#facc15/#ef4444 nao existiam
+                  // hex cru do Escuro vazando (#2ecc9b/#ef4444 nao existiam
                   // no Claro, cada bucket saia com um tom levemente diferente).
-                  const corAging = temaClaro ? [AMBAR, AMBAR, VERMELHO, VERMELHO][i] : [AMBAR, '#facc15', '#ef4444', '#ff5a6b'][i];
+                  const corAging = temaClaro ? [AMBAR, AMBAR, VERMELHO, VERMELHO][i] : [AMBAR, '#2ecc9b', '#ef4444', '#ff5a6b'][i];
                   return (
                   <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${corAging}12`, border: `1px solid ${corAging}35` }}>
                     <p className="text-base font-black" style={{ color: corAging }}>{fBRL(f.valor)}</p>

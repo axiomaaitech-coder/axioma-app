@@ -535,10 +535,10 @@ export default function Relatorios() {
 
       {/* Sem dados */}
       {!carregando && semDados && (
-        <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+        <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
           <div className="py-8 text-center">
             <p className="text-3xl mb-3">📭</p>
-            <p className="text-sm font-semibold mb-2" style={{ color: ct("#facc15") }}>{tt.semDadosPeriodo}</p>
+            <p className="text-sm font-semibold mb-2" style={{ color: ct("#2ecc9b") }}>{tt.semDadosPeriodo}</p>
             <p className="text-xs" style={{ color: ct("#5a7a9a") }}>Receitas, Custos Fixos, Custos Variáveis ou Importar Documentos</p>
           </div>
         </CanvasBox>
@@ -565,7 +565,7 @@ export default function Relatorios() {
                   { label: tt.receitaBruta, valor: formatBRL(dre.receita_bruta), cor: ct("#34d399") },
                   { label: tt.lucroLiquido, valor: formatBRL(dre.lucro_liquido), cor: dre.lucro_liquido >= 0 ? ct("#2ecc9b") : ct("#f87171") },
                   { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#2ecc9b") },
-                  { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#facc15") },
+                  { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#2ecc9b") },
                 ].map((c, i) => (
                   <div key={i} className={`rounded-xl p-3${" axi-card-premium3d axi-card-faixa"}`}
                     style={{
@@ -587,7 +587,7 @@ export default function Relatorios() {
               <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>💡 {tt.insightsAutomaticos}</p>
               <div className="space-y-2">
                 {insights.map((ins, i) => {
-                  const cor = ins.tipo === "positivo" ? ct("#34d399") : ins.tipo === "alerta" ? ct("#f87171") : ins.tipo === "atencao" ? ct("#facc15") : ct("#2ecc9b");
+                  const cor = ins.tipo === "positivo" ? ct("#34d399") : ins.tipo === "alerta" ? ct("#f87171") : ins.tipo === "atencao" ? ct("#2ecc9b") : ct("#2ecc9b");
                   const icon = ins.tipo === "positivo" ? "✅" : ins.tipo === "alerta" ? "🚨" : ins.tipo === "atencao" ? "⚠️" : "ℹ️";
                   return (
                     <div key={i} className="rounded-xl p-3 flex items-start gap-3 axi-card-premium3d axi-card-faixa"
@@ -746,7 +746,7 @@ export default function Relatorios() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {distribuicao.length === 0 ? (
             <div className="md:col-span-2">
-              <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                 <div className="py-8 text-center">
                   <p style={{ color: ct("#5a7a9a") }}>Sem custos cadastrados neste período</p>
                 </div>
@@ -775,7 +775,7 @@ export default function Relatorios() {
                 </div>
               </CanvasBox>
 
-              <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>Ranking de Categorias</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={distribuicao} layout="vertical">

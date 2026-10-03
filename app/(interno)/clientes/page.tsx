@@ -728,7 +728,7 @@ export default function ClientesPage() {
   function getStatusCor(status: string | null | undefined, vencimento: string) {
     if (status === "recebido") return { cor: ct("#34d399"), bg: "rgba(52,211,153,0.1)", label: cl.recebido };
     if (vencimento < hoje) return { cor: ct("#f87171"), bg: "rgba(248,113,113,0.1)", label: cl.vencido };
-    return { cor: ct("#facc15"), bg: "rgba(250,204,21,0.1)", label: cl.pendente };
+    return { cor: ct("#2ecc9b"), bg: "rgba(46,204,155,0.1)", label: cl.pendente };
   }
 
   function diasAtrasoConta(conta: ContaRow): number {
@@ -898,7 +898,7 @@ export default function ClientesPage() {
                   {[
                     { label: cl.totalClientes, valor: clientes.length.toString(), cor: ct("#2ecc9b"), ir: "#lista-carteira" },
                     { label: tt.valorCarteira, valor: fmt(snapshotCarteira.valorTotalCarteira), cor: ct("#34d399"), ir: "/contas-receber" },
-                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: ct("#facc15"), ir: "/precificacao" },
+                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: ct("#2ecc9b"), ir: "/precificacao" },
                     { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%`, cor: inadimplenciaCarteiraPct > 15 ? ct("#f87171") : ct("#34d399"), ir: "/inadimplencia" },
                   ].map((card, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
@@ -938,11 +938,11 @@ export default function ClientesPage() {
                       { label: tt.kpiAtivos, valor: `${snapshotCarteira.qtdClientesAtivos}`, cor: ct("#34d399") },
                       { label: tt.kpiNovosMes, valor: `${kpisCarteira.clientesNovosMes}`, cor: ct("#2ecc9b") },
                       { label: tt.kpiInativos, valor: `${kpisCarteira.clientesInativos}`, cor: ct("#94a3b8") },
-                      { label: tt.kpiTempoRelac, valor: `${Math.round(kpisCarteira.tempoMedioRelacionamentoDias / 30)} ${tt.meses}`, cor: ct("#facc15") },
+                      { label: tt.kpiTempoRelac, valor: `${Math.round(kpisCarteira.tempoMedioRelacionamentoDias / 30)} ${tt.meses}`, cor: ct("#2ecc9b") },
                       { label: tt.kpiPremium, valor: `${kpisCarteira.qtdPremium}`, cor: corOuro },
                       { label: tt.kpiEstrategico, valor: `${kpisCarteira.qtdEstrategico}`, cor: ct("#2ecc9b") },
                       { label: tt.kpiEmRisco, valor: `${kpisCarteira.qtdEmRisco}`, cor: ct("#f87171") },
-                      { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: ct("#facc15") },
+                      { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: ct("#2ecc9b") },
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
@@ -966,8 +966,8 @@ export default function ClientesPage() {
                       { label: lang === "en" ? "Top Client Dependency" : lang === "es" ? "Dependencia Mayor Cliente" : "Dependência Maior Cliente", valor: `${fmtN(dependenciaMaiorCliente)}%`, cor: dependenciaMaiorCliente > 30 ? ct("#f87171") : ct("#94a3b8") },
                       { label: lang === "en" ? "Clients Expanding" : lang === "es" ? "Clientes en Expansión" : "Clientes em Expansão", valor: `${qtdExpansao}`, cor: ct("#34d399") },
                       { label: lang === "en" ? "Clients Declining" : lang === "es" ? "Clientes en Caída" : "Clientes em Queda", valor: `${qtdQueda}`, cor: ct("#f87171") },
-                      { label: lang === "en" ? "Portfolio Health Score" : lang === "es" ? "Health Score de Cartera" : "Health Score da Carteira", valor: `${healthCarteira}/100`, cor: healthCarteira >= 70 ? ct("#34d399") : healthCarteira >= 40 ? "#facc15" : ct("#f87171") },
-                      { label: lang === "en" ? "Portfolio Risk" : lang === "es" ? "Riesgo de Cartera" : "Risco da Carteira", valor: `${riscoCarteira}/100`, cor: riscoCarteira <= 30 ? ct("#34d399") : riscoCarteira <= 60 ? "#facc15" : ct("#f87171") },
+                      { label: lang === "en" ? "Portfolio Health Score" : lang === "es" ? "Health Score de Cartera" : "Health Score da Carteira", valor: `${healthCarteira}/100`, cor: healthCarteira >= 70 ? ct("#34d399") : healthCarteira >= 40 ? "#2ecc9b" : ct("#f87171") },
+                      { label: lang === "en" ? "Portfolio Risk" : lang === "es" ? "Riesgo de Cartera" : "Risco da Carteira", valor: `${riscoCarteira}/100`, cor: riscoCarteira <= 30 ? ct("#34d399") : riscoCarteira <= 60 ? "#2ecc9b" : ct("#f87171") },
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
@@ -996,9 +996,9 @@ export default function ClientesPage() {
                 </CanvasBox>
 
                 {/* Radar Executivo */}
-                <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+                <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                   <div className="flex items-center gap-2 mb-1">
-                    <IconRadar size={16} style={{ color: ct("#facc15") }} />
+                    <IconRadar size={16} style={{ color: ct("#2ecc9b") }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.radarExecTitulo}</p>
                   </div>
                   <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.radarExecSub}</p>
@@ -1008,7 +1008,7 @@ export default function ClientesPage() {
                       const cor = SEVERIDADE_COR[radarCarteira[tipo][0]?.severidade || "atencao"];
                       return (
                         <button key={tipo} onClick={() => setFiltroSinalCarteira(ativo ? null : tipo)}
-                          className="rounded-xl p-3 text-left transition-all"
+                          className="rounded-xl p-3 text-left transition-all axi-card-premium3d axi-card-faixa"
                           style={{ background: ativo ? `${cor}20` : CAMPO_BG3, border: `1px solid ${ativo ? cor : "rgba(148,163,184,0.12)"}` }}>
                           <p className="text-lg font-black" style={{ color: cor }}>{radarCarteira[tipo].length}</p>
                           <p className="text-[10px] uppercase tracking-wider flex items-center gap-1" style={{ color: ct("#94a3b8") }}>{SINAL_ICONE[tipo]} {tt.nomeSinalPlural[tipo]}</p>
@@ -1246,9 +1246,9 @@ export default function ClientesPage() {
 
                   {/* Resumo de Compras */}
                   {compras && (
-                    <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+                    <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                       <div className="flex items-center gap-2 mb-3">
-                        <ShoppingBag size={16} style={{ color: ct("#facc15") }} />
+                        <ShoppingBag size={16} style={{ color: ct("#2ecc9b") }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.comprasTitulo}</p>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
@@ -1269,9 +1269,9 @@ export default function ClientesPage() {
                   )}
 
                   {/* Radar de Sinais */}
-                  <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                     <div className="flex items-center gap-2 mb-1">
-                      <AlertTriangle size={16} style={{ color: ct("#facc15") }} />
+                      <AlertTriangle size={16} style={{ color: ct("#2ecc9b") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.radarTitulo}</p>
                     </div>
                     <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.radarSub}</p>
@@ -1528,8 +1528,8 @@ export default function ClientesPage() {
                             {conta.forma_recebimento && <div><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.formaRecebLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.forma_recebimento}</p></div>}
                             {conta.observacoes && <div className="col-span-2 md:col-span-4"><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.observacoesLbl}</p><p className="text-xs" style={{ color: ct("#c8d8f0") }}>{conta.observacoes}</p></div>}
                             {sugestao && (
-                              <div className="col-span-2 md:col-span-4 mt-1 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.2)" }}>
-                                <p className="text-[9px] uppercase font-black mb-0.5" style={{ color: ct("#facc15") }}>{tt.sugestaoAcaoLbl}</p>
+                              <div className="col-span-2 md:col-span-4 mt-1 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
+                                <p className="text-[9px] uppercase font-black mb-0.5" style={{ color: ct("#2ecc9b") }}>{tt.sugestaoAcaoLbl}</p>
                                 <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{sugestao}</p>
                               </div>
                             )}
@@ -1643,7 +1643,7 @@ export default function ClientesPage() {
                     )}
                     {ETAPAS_CADASTRO[etapaCadastro] === "cobrancas" && (
                       <div>
-                        <p className="text-xs font-black mb-2" style={{ color: ct("#facc15") }}>{tt.cobrancasEtapaTitulo}</p>
+                        <p className="text-xs font-black mb-2" style={{ color: ct("#2ecc9b") }}>{tt.cobrancasEtapaTitulo}</p>
                         {contasDoClienteEditando.length === 0 ? (
                           <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semDadosNovoCliente}</p>
                         ) : (
@@ -1651,7 +1651,7 @@ export default function ClientesPage() {
                             {contasDoClienteEditando.slice(0, 15).map((c) => (
                               <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                 <span className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{c.descricao}</span>
-                                <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? ct("#34d399") : ct("#facc15") }}>{fmt(c.valor)}</span>
+                                <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? ct("#34d399") : ct("#2ecc9b") }}>{fmt(c.valor)}</span>
                               </div>
                             ))}
                           </div>
@@ -1800,11 +1800,11 @@ export default function ClientesPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.scoreRecebimentoLbl}</p>
-                            <p className="text-sm font-black" style={{ color: previewCobranca.score >= 70 ? ct("#34d399") : previewCobranca.score >= 40 ? "#facc15" : ct("#f87171") }}>{previewCobranca.score}/100</p>
+                            <p className="text-sm font-black" style={{ color: previewCobranca.score >= 70 ? ct("#34d399") : previewCobranca.score >= 40 ? "#2ecc9b" : ct("#f87171") }}>{previewCobranca.score}/100</p>
                           </div>
                           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                             <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.probInadimplenciaLbl}</p>
-                            <p className="text-sm font-black" style={{ color: previewCobranca.prob <= 30 ? ct("#34d399") : previewCobranca.prob <= 60 ? "#facc15" : ct("#f87171") }}>{previewCobranca.prob}%</p>
+                            <p className="text-sm font-black" style={{ color: previewCobranca.prob <= 30 ? ct("#34d399") : previewCobranca.prob <= 60 ? "#2ecc9b" : ct("#f87171") }}>{previewCobranca.prob}%</p>
                           </div>
                         </div>
                       )}

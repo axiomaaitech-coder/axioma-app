@@ -577,7 +577,7 @@ export default function IAFinanceiraPage() {
                         <PolarGrid stroke="rgba(147,197,253,0.2)" gridType="polygon" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "#c8d8f0", fontSize: 12, fontWeight: 600 }} />
                         <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#7fa3c9", fontSize: 10 }} axisLine={false} />
-                        <Radar name="Benchmark" dataKey="benchmark" stroke="#facc15" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
+                        <Radar name="Benchmark" dataKey="benchmark" stroke="#2ecc9b" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
                         <Radar name="Score" dataKey="score" stroke={score360.cor} fill="url(#radarGrad)" strokeWidth={2.5}
                           dot={(props: any) => {
                             const dim = score360.dimensoes[props.index];
@@ -596,7 +596,7 @@ export default function IAFinanceiraPage() {
                     </ResponsiveContainer>
                     <div className="flex items-center justify-center gap-4 mt-1 text-[10px] flex-wrap pb-1">
                       <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: score360.cor }}></span> <span style={{ color: "#7fa3c9" }}>Score</span></span>
-                      <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: "#facc15", borderTop: "1px dashed #facc15" }}></span> <span style={{ color: "#7fa3c9" }}>Benchmark (70)</span></span>
+                      <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: "#2ecc9b", borderTop: "1px dashed #2ecc9b" }}></span> <span style={{ color: "#7fa3c9" }}>Benchmark (70)</span></span>
                     </div>
                   </div>
                 </RadarEnergyField>
@@ -615,7 +615,7 @@ export default function IAFinanceiraPage() {
                         <div key={j} className="flex items-center justify-between text-xs">
                           <span style={{ color: ct("#c8d8f0") }}>{ind.nome}</span>
                           <div className="flex items-center gap-2">
-                            <span style={{ color: ind.status === "bom" ? ct("#34d399") : ind.status === "atencao" ? ct("#facc15") : ct("#f87171") }}>{ind.valor}</span>
+                            <span style={{ color: ind.status === "bom" ? ct("#34d399") : ind.status === "atencao" ? ct("#2ecc9b") : ct("#f87171") }}>{ind.valor}</span>
                             {ind.status !== "bom" && (
                               <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>✏️</a>
                             )}
@@ -681,14 +681,14 @@ export default function IAFinanceiraPage() {
           {/* ABA ANOMALIAS */}
           {aba === "anomalias" && (
             <div className="space-y-3">
-              <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.anomaliasTitulo}</p>
               </CanvasBox>
               {anomalias.length === 0 ? (
                 <CanvasBox {...cartaoTema} cor={ct("#34d399")}><p className="text-xs py-6 text-center" style={{ color: ct("#34d399") }}>{tt.anomaliasVazio}</p></CanvasBox>
               ) : (
                 anomalias.map((a, i) => {
-                  const cor = a.severidade === "alerta" ? ct("#f87171") : a.severidade === "atencao" ? ct("#facc15") : ct("#34d399");
+                  const cor = a.severidade === "alerta" ? ct("#f87171") : a.severidade === "atencao" ? ct("#2ecc9b") : ct("#34d399");
                   const icon = a.severidade === "alerta" ? "🚨" : a.severidade === "atencao" ? "⚠️" : "ℹ️";
                   return (
                     <CanvasBox {...cartaoTema} key={i} cor={cor}>
@@ -739,7 +739,7 @@ export default function IAFinanceiraPage() {
           {/* ABA WHAT-IF */}
           {aba === "whatif" && (
             <div className="space-y-4">
-              <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.whatIfTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: ct("#c8d8f0") }}>{tt.whatIfDescricao}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
@@ -791,10 +791,10 @@ export default function IAFinanceiraPage() {
                 <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{tt.planoDescricao}</p>
               </CanvasBox>
               {acoes.length === 0 ? (
-                <CanvasBox {...cartaoTema} cor={ct("#facc15")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{tt.planoVazio}</p></CanvasBox>
+                <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{tt.planoVazio}</p></CanvasBox>
               ) : (
                 acoes.map((a, i) => {
-                  const corCat = a.categoria === "custo" ? ct("#f87171") : a.categoria === "receita" ? ct("#34d399") : a.categoria === "cobranca" ? ct("#facc15") : a.categoria === "fiscal" ? ct("#2ecc9b") : ct("#2ecc9b");
+                  const corCat = a.categoria === "custo" ? ct("#f87171") : a.categoria === "receita" ? ct("#34d399") : a.categoria === "cobranca" ? ct("#2ecc9b") : a.categoria === "fiscal" ? ct("#2ecc9b") : ct("#2ecc9b");
                   return (
                     <CanvasBox {...cartaoTema} key={i} cor={corCat}>
                       <div className="flex items-start gap-3">

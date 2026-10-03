@@ -46,7 +46,7 @@ const JADE = '#047857'
 const BRONZE = '#065f46'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
-const AMBAR = '#facc15'
+const AMBAR = '#2ecc9b'
 const AZUL = '#2ecc9b'
 
 const CATEGORIAS_RECEITA = ['Vendas de produtos', 'Prestação de serviços', 'Recorrentes', 'Eventuais', 'Outras']
@@ -175,7 +175,7 @@ const BANCOS_FALLBACK = [
   { id: 0, name: 'Itaú', primaryColor: '#FF8C00', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Bradesco', primaryColor: '#f87171', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Santander', primaryColor: '#f87171', imageUrl: '', isSandbox: false },
-  { id: 0, name: 'Banco do Brasil', primaryColor: '#facc15', imageUrl: '', isSandbox: false },
+  { id: 0, name: 'Banco do Brasil', primaryColor: '#2ecc9b', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Caixa', primaryColor: '#38bdf8', imageUrl: '', isSandbox: false },
   { id: 0, name: 'Inter', primaryColor: '#FF8C00', imageUrl: '', isSandbox: false },
   { id: 0, name: 'C6 Bank', primaryColor: '#94a3b8', imageUrl: '', isSandbox: false },
@@ -774,7 +774,7 @@ export default function OpenFinancePage() {
                         <button onClick={() => setConfirmandoRemocaoId(null)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: temaClaro ? 'rgba(16,27,61,0.06)' : 'rgba(255,255,255,0.05)', color: ct('#5a7a9a') }}>{t.cancelar}</button>
                       </>
                     ) : (
-                      <button onClick={() => setConfirmandoRemocaoId(c.item_id)} title={t.desconectar} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: ct(VERMELHO) }}>
+                      <button onClick={() => setConfirmandoRemocaoId(c.item_id)} title={t.desconectar} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: ct(VERMELHO) }}>
                         <Trash2 size={15} />
                       </button>
                     )}
@@ -866,7 +866,7 @@ function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick, 
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.02 }}
       whileHover={clicavel ? { scale: 1.04, y: -2 } : {}} whileTap={clicavel ? { scale: 0.97 } : {}}
       onClick={() => clicavel && onClick(banco.id)} disabled={conectando || !clicavel}
-      className="relative flex items-center gap-3 p-3 rounded-2xl text-left overflow-hidden"
+      className="relative flex items-center gap-3 p-3 rounded-2xl text-left overflow-hidden axi-card-premium3d axi-card-faixa"
       style={{ background: temaClaro ? `linear-gradient(135deg, ${cor}18, rgba(255,255,255,0.6))` : `linear-gradient(135deg, ${cor}18, rgba(4,10,22,0.6))`, border: `1px solid ${cor}45`, cursor: clicavel ? 'pointer' : 'default', opacity: conectando && !carregandoEste ? 0.6 : 1 }}
     >
       <div className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden" style={{ width: 40, height: 40, background: '#fff' }}>
@@ -936,7 +936,7 @@ function LinhaTransacao({
               {tx.candidatos.map((c) => (
                 <button key={c.id} onClick={() => onEscolherCandidato(tx, c)} disabled={criando}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs"
-                  style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.25)', color: ct('#c8d8f0') }}>
+                  style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)', color: ct('#c8d8f0') }}>
                   <span className="truncate">{c.descricao} — {new Date(c.data + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                   <span className="font-bold flex-shrink-0" style={{ color: ct(AMBAR) }}>{t.confirmarEscolha}</span>
                 </button>
@@ -944,7 +944,7 @@ function LinhaTransacao({
             </div>
           ) : (
             <button onClick={() => setExpandidoCandidatosId(tx.id)}
-              className="text-xs font-bold px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', color: ct(AMBAR) }}>
+              className="text-xs font-bold px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.1)', border: '1px solid rgba(46,204,155,0.3)', color: ct(AMBAR) }}>
               {t.escolherLancamento}
             </button>
           )}

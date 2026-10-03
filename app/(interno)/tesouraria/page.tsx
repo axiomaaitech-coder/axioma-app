@@ -27,7 +27,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Claro) usa as mesmas cores 600/700 já padronizadas no resto do Axioma,
 // nunca a versão pastel do dark (ilegível em fundo branco).
 const PALETA = {
-  dark: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#34d399', AMARELO: '#facc15', LARANJA: '#facc15', VERMELHO: '#f87171', ROXO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', CAMPO_BG: 'rgba(10,22,40,0.95)', PAINEL_BG: 'rgba(10,20,36,0.7)' },
+  dark: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#34d399', AMARELO: '#2ecc9b', LARANJA: '#2ecc9b', VERMELHO: '#f87171', ROXO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', CAMPO_BG: 'rgba(10,22,40,0.95)', PAINEL_BG: 'rgba(10,20,36,0.7)' },
   // Creme #f6f7c4 e cinza secundário #374151 — valores finais aprovados no
   // rollout do Painel MEI (ver memória do rollout Claro). CAMPO_BG branco
   // puro (regra 13, nunca o azul-acinzentado antigo).

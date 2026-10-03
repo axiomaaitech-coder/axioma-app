@@ -67,7 +67,7 @@ const supabase = createBrowserClient(
 // árvore do data-theme e as CSS var não chegariam nele.
 // ============================================================================
 const PALETA = {
-  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#facc15', VERDE: '#34d399', AZUL: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)' },
+  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#2ecc9b', VERDE: '#34d399', AZUL: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)' },
   // INDIGO/SAFIRA são identidade decorativa do Escuro - no Claro colapsam
   // pra verde-menta oficial (tema-tokens.md §1.1), igual toda outra cor de
   // marca/módulo. AMBAR usa o âmbar aprovado (#f5a623), não o marrom
@@ -289,7 +289,7 @@ export default function Inadimplencia() {
     return { critica: L('Crítica', 'Critical', 'Crítica'), alta: L('Alta', 'High', 'Alta'), media: L('Média', 'Medium', 'Media'), baixa: L('Baixa', 'Low', 'Baja') }[p]
   }
   function prioridadeCor(p: NivelPrioridade) {
-    return { critica: VERMELHO, alta: ct('#facc15'), media: AMBAR, baixa: AZUL }[p]
+    return { critica: VERMELHO, alta: ct('#2ecc9b'), media: AMBAR, baixa: AZUL }[p]
   }
   function corCompromisso(status: CobrancaCompromisso['status']) {
     return status === 'cumprido' ? VERDE : status === 'quebrado' ? VERMELHO : AMBAR
@@ -554,7 +554,7 @@ export default function Inadimplencia() {
   }
 
   const agingLabels = [L('0-30 dias', '0-30 days', '0-30 días'), L('31-60 dias', '31-60 days', '31-60 días'), L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días')]
-  const agingCores = [AMBAR, ct('#facc15'), ct('#ef4444'), VERMELHO]
+  const agingCores = [AMBAR, ct('#2ecc9b'), ct('#ef4444'), VERMELHO]
   const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5', agingCores, temaClaro) : null
 
   const gaugeOption = optVelocimetro(kpis.scoreMedioCarteiraInadimplente ?? 0, 1000, [

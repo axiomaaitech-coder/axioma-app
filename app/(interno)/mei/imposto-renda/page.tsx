@@ -32,7 +32,7 @@ const supabase = createBrowserClient(
 // MEI. ON_ACCENT é o texto que vai por cima de um fundo sólido nessas
 // cores (escuro no dark, branco no Claro, senão o texto do botão some).
 const PALETA = {
-  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#facc15', TEAL: '#2ecc9b', NEUTRO: '#a3b1c2', DESABILITADO: '#2a4060', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.03)', BOTAO_SUTIL_BG: 'rgba(255,255,255,0.08)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)', COLOR_SCHEME: 'dark' as const },
+  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#2ecc9b', TEAL: '#2ecc9b', NEUTRO: '#a3b1c2', DESABILITADO: '#2a4060', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.03)', BOTAO_SUTIL_BG: 'rgba(255,255,255,0.08)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)', COLOR_SCHEME: 'dark' as const },
   xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', TEAL: '#0d9488', NEUTRO: '#6b7280', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#ffffff', PAINEL_BG: 'rgba(255,255,255,0.5)', BOTAO_SUTIL_BG: 'rgba(16,27,61,0.1)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)', COLOR_SCHEME: 'light' as const },
 } as const
 
@@ -726,13 +726,13 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                           </p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button onClick={() => visualizarDocumento(doc)} className="p-2 rounded-lg" style={{ background: `${VERDE}15`, border: `1px solid ${VERDE}30` }} title={t('docVisualizar')}>
+                          <button onClick={() => visualizarDocumento(doc)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}15`, border: `1px solid ${VERDE}30` }} title={t('docVisualizar')}>
                             <Eye size={14} style={{ color: VERDE }} />
                           </button>
-                          <button onClick={() => iniciarEdicaoDoc(doc)} className="p-2 rounded-lg" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }} title={t('docEditar')}>
+                          <button onClick={() => iniciarEdicaoDoc(doc)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }} title={t('docEditar')}>
                             <Pencil size={14} style={{ color: AZUL }} />
                           </button>
-                          <button onClick={() => excluirDocumento(doc)} className="p-2 rounded-lg" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }} title={t('docExcluir')}>
+                          <button onClick={() => excluirDocumento(doc)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }} title={t('docExcluir')}>
                             <Trash2 size={14} style={{ color: VERMELHO }} />
                           </button>
                         </div>
@@ -744,7 +744,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               {documentosFiltrados.length > ITENS_POR_PAGINA_DOC && (
                 <div className="flex items-center justify-between mt-4">
                   <button onClick={() => setPaginaDocumentos((p) => Math.max(0, p - 1))} disabled={paginaDocumentos === 0}
-                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
+                    className="p-2 rounded-lg disabled:opacity-30 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG }}>
                     <ChevronLeft size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
                   <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('docPaginaLbl').replace('{a}', String(paginaDocumentos + 1)).replace('{b}', String(totalPaginasDoc))}</p>

@@ -38,7 +38,7 @@ const supabase = createBrowserClient(
 // Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
-  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#facc15', ALARANJADO: '#facc15', NEUTRO: '#a3b1c2', CAMPO_BG: 'rgba(255,255,255,0.06)', POCO_BG: 'rgba(0,0,0,0.3)' },
+  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#2ecc9b', ALARANJADO: '#2ecc9b', NEUTRO: '#a3b1c2', CAMPO_BG: 'rgba(255,255,255,0.06)', POCO_BG: 'rgba(0,0,0,0.3)' },
   xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', CAMPO_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 

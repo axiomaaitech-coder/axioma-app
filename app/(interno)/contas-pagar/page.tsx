@@ -65,7 +65,7 @@ const supabase = createBrowserClient(
 // do data-theme, então var(--axi-*) do CSS não alcança ele. Por isso PAINEL_BG
 // e CAMPO_BG são valores JS por tema (não CSS var).
 const PALETA = {
-  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#2ecc9b", AMBAR: "#facc15", CINZA: "#5a7a9a", ROXO: "#2ecc9b", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#2ecc9b", AMBAR: "#2ecc9b", CINZA: "#5a7a9a", ROXO: "#2ecc9b", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
   // ROXO no Claro vira azul-marinho (chart-2 da paleta oficial, tema-tokens.md
   // §1.4) em vez de colapsar pra verde-menta como todo outro decorativo -
   // aqui ROXO distingue "aguardando aprovação" de AZUL ("parcial"), que já é
@@ -1843,7 +1843,7 @@ export default function ContasPagarPage() {
       }
     >
       {!podeEditar && papel && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(250,204,21,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(250,204,21,0.2)"), color: AMBAR }}>
+        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(245,166,35,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.2)" : "1px solid rgba(46,204,155,0.2)"), color: AMBAR }}>
           <AlertTriangle size={14} />
           {L("Seu perfil tem acesso somente leitura a Contas a Pagar.", "Your profile has read-only access to Accounts Payable.", "Su perfil tiene acceso solo lectura a Cuentas por Pagar.")}
         </div>
@@ -1875,7 +1875,7 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(250,204,21,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(46,204,155,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
@@ -2245,7 +2245,7 @@ export default function ContasPagarPage() {
             ) : (
               <div className="space-y-2">
                 {padroesRecorrentes.map((p) => (
-                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2258,7 +2258,7 @@ export default function ContasPagarPage() {
                       podeEditar && (
                         <button onClick={() => abrirTransformarPadrao(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(250,204,21,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(46,204,155,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
                           {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
                         </button>
                       )
@@ -2649,7 +2649,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
@@ -2681,7 +2681,7 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(250,204,21,0.15)") }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(245,166,35,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
@@ -2791,16 +2791,16 @@ export default function ContasPagarPage() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {p.status === "cancelado" ? (
                         <>
-                          <button onClick={() => reativarPedido(p)} className="p-2 rounded-lg" style={{ color: VERDE }} title={L("Reativar pedido", "Reactivate order", "Reactivar orden")}><RotateCcw size={15} /></button>
-                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir permanentemente", "Delete permanently", "Eliminar permanentemente")}><Trash2 size={15} /></button>
+                          <button onClick={() => reativarPedido(p)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ color: VERDE }} title={L("Reativar pedido", "Reactivate order", "Reactivar orden")}><RotateCcw size={15} /></button>
+                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ color: VERMELHO }} title={L("Excluir permanentemente", "Delete permanently", "Eliminar permanentemente")}><Trash2 size={15} /></button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
+                          <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
                           {(p.status === "aberto" || p.status === "parcial") && (
-                            <button onClick={() => cancelarPedido(p)} className="p-2 rounded-lg" style={{ color: AMBAR }} title={L("Cancelar pedido", "Cancel order", "Cancelar orden")}><XCircle size={15} /></button>
+                            <button onClick={() => cancelarPedido(p)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ color: AMBAR }} title={L("Cancelar pedido", "Cancel order", "Cancelar orden")}><XCircle size={15} /></button>
                           )}
-                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
+                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
                         </>
                       )}
                     </div>
@@ -3217,7 +3217,7 @@ export default function ContasPagarPage() {
                     <div className="flex gap-3 pt-2">
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarConta} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
+                        style={{ background: "linear-gradient(135deg, #92400e, #2ecc9b)", color: "#fff" }}>
                         {salvando ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Conta", "Save Bill", "Guardar Cuenta")}
                       </button>
                     </div>
@@ -3394,7 +3394,7 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="flex gap-2 flex-wrap">
                       <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #92400e, #facc15)", color: "#fff" }}>
+                      <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #92400e, #2ecc9b)", color: "#fff" }}>
                         {L("Salvar mesmo assim", "Save anyway", "Guardar de todos modos")}
                       </button>
                     </div>
@@ -3909,7 +3909,7 @@ export default function ContasPagarPage() {
                     </p>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(163,177,194,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #facc15)", color: "#fff" }}>
+                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #2ecc9b)", color: "#fff" }}>
                         {transformando ? L("Criando...", "Creating...", "Creando...") : L("Confirmar e Criar", "Confirm and Create", "Confirmar y Crear")}
                       </button>
                     </div>

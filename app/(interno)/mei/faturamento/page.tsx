@@ -41,7 +41,7 @@ const supabase = createBrowserClient(
 // escuro no dark (acento é claro/pastel) e branco no Claro (acento vira
 // escuro/saturado), senão o texto do botão some.
 const PALETA = {
-  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#facc15', ALARANJADO: '#facc15', NEUTRO: '#a3b1c2', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', LINHA_BG: '#0a1628', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)' },
+  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', AMBAR: '#2ecc9b', ALARANJADO: '#2ecc9b', NEUTRO: '#a3b1c2', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', LINHA_BG: '#0a1628', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)' },
   xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', ON_ACCENT: '#ffffff', CAMPO_BG: '#ffffff', LINHA_BG: 'rgba(255,255,255,0.5)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 const CATEGORIAS = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"]

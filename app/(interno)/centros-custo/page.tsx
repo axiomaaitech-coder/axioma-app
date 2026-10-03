@@ -64,7 +64,7 @@ type Lancamento = {
 // Escuro inalterado. Claro: sequência oficial (tema-tokens.md §1.4) - com
 // 7 centros a distinguir, estende com os 2 semânticos permitidos (âmbar/
 // vermelho) em vez de deixar vazar roxo/laranja/ciano crus do Escuro.
-const CORES_CENTRO = ["#9f1239", "#34d399", "#f87171", "#facc15", "#2ecc9b", "#facc15", "#2ecc9b"];
+const CORES_CENTRO = ["#9f1239", "#34d399", "#f87171", "#2ecc9b", "#2ecc9b", "#2ecc9b", "#2ecc9b"];
 const CORES_CENTRO_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54", "#f5a623", "#ff5a6b"];
 const getCor = (index: number, temaClaro?: boolean) => (temaClaro ? CORES_CENTRO_CLARO : CORES_CENTRO)[index % CORES_CENTRO.length];
 
@@ -834,9 +834,9 @@ export default function CentrosCustoPage() {
               const participacao = totalCustos > 0 ? (custos / totalCustos) * 100 : 0;
               const meta = centro.meta_receita || 0;
               const usoMeta = meta > 0 ? (receitas / meta) * 100 : 0;
-              const corMeta = usoMeta >= 100 ? "#34d399" : usoMeta >= 70 ? "#2ecc9b" : "#facc15";
+              const corMeta = usoMeta >= 100 ? "#34d399" : usoMeta >= 70 ? "#2ecc9b" : "#2ecc9b";
               const cor = getCor(i, temaClaro);
-              const corOrc = usoOrc > 100 ? "#f87171" : usoOrc > 85 ? "#facc15" : "#34d399";
+              const corOrc = usoOrc > 100 ? "#f87171" : usoOrc > 85 ? "#2ecc9b" : "#34d399";
               return (
                 <motion.div key={centro.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <CanvasBox {...cartaoTema} cor={cor}>
@@ -1047,7 +1047,7 @@ export default function CentrosCustoPage() {
             {[
               { titulo: idioma === "pt" ? "5 Maiores Riscos" : idioma === "es" ? "5 Mayores Riesgos" : "Top 5 Risks", cor: ct("#f87171"), itens: insights.maioresRiscos.map(i => ({ id: i.id, titulo: i.titulo, sub: `${i.urgencia} · ${fmt(i.impacto)}` })) },
               { titulo: idioma === "pt" ? "5 Maiores Oportunidades" : idioma === "es" ? "5 Mayores Oportunidades" : "Top 5 Opportunities", cor: ct("#34d399"), itens: insights.maioresOportunidades.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
-              { titulo: idioma === "pt" ? "5 Maiores Desperdícios" : idioma === "es" ? "5 Mayores Desperdicios" : "Top 5 Waste", cor: ct("#facc15"), itens: insights.maioresDesperdicios.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
+              { titulo: idioma === "pt" ? "5 Maiores Desperdícios" : idioma === "es" ? "5 Mayores Desperdicios" : "Top 5 Waste", cor: ct("#2ecc9b"), itens: insights.maioresDesperdicios.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
               { titulo: idioma === "pt" ? "5 Melhores Resultados" : idioma === "es" ? "5 Mejores Resultados" : "Top 5 Results", cor: ct("#2ecc9b"), itens: insights.melhoresResultados.map(r => ({ id: r.centroId, titulo: r.centroNome, sub: fmt(r.resultado) })) },
             ].map(bloco => (
               <CanvasBox {...cartaoTema} key={bloco.titulo} cor={bloco.cor}>
@@ -1115,13 +1115,13 @@ export default function CentrosCustoPage() {
         {aba === "oportunidades" && (
           <div className="space-y-3">
             {reforecast.length > 0 && (
-              <CanvasBox {...cartaoTema} cor={ct("#facc15")}>
-                <p className="text-sm font-bold mb-2" style={{ color: ct("#facc15") }}>{idioma === "pt" ? "Orçamento Vivo — Projeção de Fechamento" : idioma === "es" ? "Presupuesto Vivo — Proyección de Cierre" : "Live Budget — Closing Projection"}</p>
+              <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
+                <p className="text-sm font-bold mb-2" style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Orçamento Vivo — Projeção de Fechamento" : idioma === "es" ? "Presupuesto Vivo — Proyección de Cierre" : "Live Budget — Closing Projection"}</p>
                 <div className="space-y-1.5">
                   {reforecast.map(r => (
                     <div key={r.centroId} className="flex justify-between text-xs gap-2">
                       <span style={{ color: ct("#c8d8f0") }}>{r.centroNome}</span>
-                      <span style={{ color: r.status === "estouro" ? "#f87171" : r.status === "atencao" ? "#facc15" : "#34d399" }}>
+                      <span style={{ color: r.status === "estouro" ? "#f87171" : r.status === "atencao" ? "#2ecc9b" : "#34d399" }}>
                         {idioma === "pt" ? "projeta" : idioma === "es" ? "proyecta" : "projects"} {fmt(r.projecaoFechamento)} {idioma === "pt" ? "vs orçado" : idioma === "es" ? "vs presupuestado" : "vs budget"} {fmt(r.orcado)} ({r.desvioPct >= 0 ? "+" : ""}{r.desvioPct.toFixed(0)}%)
                       </span>
                     </div>
@@ -1260,7 +1260,7 @@ export default function CentrosCustoPage() {
             {planosAcao.length === 0 ? (
               <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : idioma === "es" ? "Ningún plan de acción creado todavía." : "No action plan yet."}</p></div></CanvasBox>
             ) : planosAcao.map(p => {
-              const corStatus = p.status === "concluido" ? ct("#34d399") : p.status === "cancelado" ? ct("#5a7a9a") : p.status === "em_andamento" ? ct("#9f1239") : ct("#facc15");
+              const corStatus = p.status === "concluido" ? ct("#34d399") : p.status === "cancelado" ? ct("#5a7a9a") : p.status === "em_andamento" ? ct("#9f1239") : ct("#2ecc9b");
               return (
                 <CanvasBox {...cartaoTema} key={p.id} cor={corStatus}>
                   <div className="flex justify-between items-start gap-3 flex-wrap">
@@ -1494,8 +1494,8 @@ export default function CentrosCustoPage() {
             </div>
           </div>
           {rateioExistente.length > 0 && (
-            <div className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)" }}>
-              <p className="text-xs mb-1" style={{ color: ct("#facc15") }}>{idioma === "pt" ? "Já rateado:" : idioma === "es" ? "Ya distribuido:" : "Already allocated:"} {rateioExistente.map(r => `${centros.find(c => c.id === r.centro_custo_id)?.nome || "?"} (${r.percentual}%)`).join(", ")}</p>
+            <div className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.25)" }}>
+              <p className="text-xs mb-1" style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Já rateado:" : idioma === "es" ? "Ya distribuido:" : "Already allocated:"} {rateioExistente.map(r => `${centros.find(c => c.id === r.centro_custo_id)?.nome || "?"} (${r.percentual}%)`).join(", ")}</p>
               <button onClick={excluirRateioAtual} className="text-xs underline" style={{ color: ct("#f87171") }}>{idioma === "pt" ? "Remover rateio atual" : idioma === "es" ? "Eliminar distribución actual" : "Remove current allocation"}</button>
             </div>
           )}
@@ -1518,7 +1518,7 @@ export default function CentrosCustoPage() {
                   </button>
                 </div>
               </div>
-              {avisoRateioBase && <p className="text-xs mb-2" style={{ color: ct("#facc15") }}>{avisoRateioBase}</p>}
+              {avisoRateioBase && <p className="text-xs mb-2" style={{ color: ct("#2ecc9b") }}>{avisoRateioBase}</p>}
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {centros.length === 0 ? (
                   <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p>
@@ -1538,9 +1538,9 @@ export default function CentrosCustoPage() {
                   );
                 })}
               </div>
-              <div className="flex justify-between items-center px-3 py-2 rounded-xl mt-2 axi-card-premium3d axi-card-faixa" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(250,204,21,0.1)" }}>
+              <div className="flex justify-between items-center px-3 py-2 rounded-xl mt-2 axi-card-premium3d axi-card-faixa" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(46,204,155,0.1)" }}>
                 <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Total distribuído" : idioma === "es" ? "Total distribuido" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
-                <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.5 ? "#34d399" : "#facc15" }}>
+                <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.5 ? "#34d399" : "#2ecc9b" }}>
                   {idioma === "pt" ? "Restante" : idioma === "es" ? "Restante" : "Remaining"}: {restanteRateio.toFixed(1)}%
                 </span>
               </div>

@@ -56,7 +56,7 @@ const BRONZE = "#a16207";
 const POSITIVO = "#34d399";
 const NEGATIVO = "#f87171";
 const NEUTRO = "#2ecc9b";
-const ATENCAO = "#facc15";
+const ATENCAO = "#2ecc9b";
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl focus:outline-none text-sm";
 const labelCls = "text-xs font-semibold mb-1 block";
@@ -1276,7 +1276,7 @@ export default function EstoquePage() {
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
                         <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
-                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(250,204,21,0.15)", color: ATENCAO_CT }}>
+                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
                             </button>
                           ) : (
@@ -1318,7 +1318,7 @@ export default function EstoquePage() {
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                       {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
-                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(250,204,21,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
+                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
                       {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: ct(BRONZE) }}>{et.avisoCapitalParado}</span>}
                       {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
                     </div>
@@ -1383,7 +1383,7 @@ export default function EstoquePage() {
                           <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{c.pct_acumulado}%</td>
                           <td className="py-2 px-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{
-                              background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(250,204,21,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
+                              background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(46,204,155,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
                               color: c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : c.classe_abc === "C" ? NEGATIVO_CT : ct("#5a7a9a"),
                             }}>{c.classe_abc === "A" ? et.intClasseA : c.classe_abc === "B" ? et.intClasseB : c.classe_abc === "C" ? et.intClasseC : et.intSemGiro}</span>
                           </td>
@@ -1619,7 +1619,7 @@ export default function EstoquePage() {
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleConsultarEan(); } }} />
               </div>
               <button type="button" onClick={handleConsultarEan} disabled={consultandoEan || !formProduto.codigo_barras?.trim()}
-                title={et.botaoBuscarEan} className="p-2.5 rounded-xl shrink-0 disabled:opacity-40" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
+                title={et.botaoBuscarEan} className="p-2.5 rounded-xl shrink-0 disabled:opacity-40 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
                 <ScanBarcode size={17} className={consultandoEan ? "animate-pulse" : ""} />
               </button>
             </div>
@@ -1738,7 +1738,7 @@ export default function EstoquePage() {
                     value={String((formProduto.atributos_nicho || {})[campo.chave] ?? "")}
                     onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
                 </div>
-                <button type="button" onClick={() => excluirCampoPersonalizadoHandler(campo)} className="p-2.5 rounded-xl shrink-0" style={{ color: NEGATIVO_CT }} title={et.excluirCampoPersonalizado}>
+                <button type="button" onClick={() => excluirCampoPersonalizadoHandler(campo)} className="p-2.5 rounded-xl shrink-0 axi-card-premium3d axi-card-faixa" style={{ color: NEGATIVO_CT }} title={et.excluirCampoPersonalizado}>
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -1958,7 +1958,7 @@ export default function EstoquePage() {
           )}
 
           {formMov.tipo === "saida" && lotesProdutoMov.length > 0 && (
-            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)" }}>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
               <CampoSelect label={et.sugestaoFefoTitulo}
                 value={formMov.lote_id || fefoSugestao[0]?.lote.id || ""}
                 onChange={(v) => setFormMov((f: any) => ({ ...f, lote_id: v }))}

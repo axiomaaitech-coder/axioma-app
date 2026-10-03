@@ -302,7 +302,7 @@ export default function CustosFixos() {
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
             { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct("#f87171"), ir: "#lista-custos-fixos" },
-            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#facc15"), ir: "/dre" },
+            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#2ecc9b"), ir: "/dre" },
             { label: t.custosFixos.itens, value: `${custos.length}`, cor: ct("#2ecc9b"), ir: "#lista-custos-fixos" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
@@ -345,7 +345,7 @@ export default function CustosFixos() {
             <div id="radar-renovacoes" className="scroll-mt-28" />
             {/* RADAR DE RENOVAÇÕES — o diferencial mundial */}
             {renovacoes.length > 0 && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: renovFundo, border: "1px solid rgba(250,204,21,0.25)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: renovFundo, border: "1px solid rgba(46,204,155,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Bell size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
@@ -371,7 +371,7 @@ export default function CustosFixos() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ef4444,#facc15)", boxShadow: "0 0 12px #ef4444" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ef4444,#2ecc9b)", boxShadow: "0 0 12px #ef4444" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.analiseAnual}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.composicao} · {cx.economiaPotencial}</p>
@@ -440,7 +440,7 @@ export default function CustosFixos() {
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[c.categoria] || ct("#2ecc9b") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>Dia {c.dia_vencimento}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f87171") }}>{fBRL(c.valor_mensal)}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#facc15") }}>{fBRL(c.valor_mensal * 12)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#2ecc9b") }}>{fBRL(c.valor_mensal * 12)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
@@ -507,7 +507,7 @@ export default function CustosFixos() {
                       <Bell size={12} /> {cx.radarRenovacoes} <span style={{ color: TEXTO_SEC, textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
                     <input type="date" value={novo.renovacao} onChange={(e) => setNovo({ ...novo, renovacao: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(250,204,21,0.25)", color: "var(--axi-text-primary)" }} />
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(46,204,155,0.25)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #ff5a6b)", color: "#fff" }}>

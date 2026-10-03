@@ -740,10 +740,10 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => editarPrecoSalvo(row)} className="p-2 rounded-lg" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }}>
+                      <button onClick={() => editarPrecoSalvo(row)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }}>
                         <Pencil size={14} style={{ color: AZUL }} />
                       </button>
-                      <button onClick={() => excluirPrecoSalvo(row)} className="p-2 rounded-lg" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }}>
+                      <button onClick={() => excluirPrecoSalvo(row)} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }}>
                         <Trash2 size={14} style={{ color: VERMELHO }} />
                       </button>
                     </div>
@@ -753,7 +753,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               {precosSalvos.length > ITENS_POR_PAGINA && (
                 <div className="flex items-center justify-between mt-4">
                   <button onClick={() => setPaginaAtual((p) => Math.max(0, p - 1))} disabled={paginaAtual === 0}
-                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
+                    className="p-2 rounded-lg disabled:opacity-30 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG }}>
                     <ChevronLeft size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
                   <p className="text-xs" style={{ color: TEXTO_SEC }}>

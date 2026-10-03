@@ -434,7 +434,7 @@ export default function Endividamento() {
           {[
             { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: ct("#f87171"), ir: "#lista-dividas" },
             { label: t.endividamento.totalPago, value: fBRL(totalPago), cor: ct("#34d399"), ir: "#lista-dividas" },
-            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#facc15"), ir: "#escada-vencimentos" },
+            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#2ecc9b"), ir: "#escada-vencimentos" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -650,7 +650,7 @@ export default function Endividamento() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="text-xs mb-1" style={{ color: TEXTO_SEC }}>{t.endividamento.taxaJuros}</p>
-                          <p className="font-black text-sm" style={{ color: ct("#facc15") }}>{d.taxa_juros}% a.m.</p>
+                          <p className="font-black text-sm" style={{ color: ct("#2ecc9b") }}>{d.taxa_juros}% a.m.</p>
                         </div>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(d)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(d.id)} style={{ color: ct("#f87171") }}><Trash2 size={16} /></motion.button>
@@ -660,7 +660,7 @@ export default function Endividamento() {
                       {[
                         { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: ct("#f87171") },
                         { label: t.endividamento.jaPago, value: fBRL(d.valor_pago), cor: ct("#34d399") },
-                        { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#facc15") },
+                        { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#2ecc9b") },
                       ].map((item) => (
                         <div key={item.label}>
                           <p className="text-xs mb-1" style={{ color: TEXTO_SEC }}>{item.label}</p>

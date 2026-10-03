@@ -651,7 +651,7 @@ export default function FluxoCaixa() {
                       </td>
                       <td className="px-4 md:px-6 py-4 text-sm" style={{ color: TEXTO_SEC }}>{new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-4">
-                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#facc15") }}>
+                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#2ecc9b") }}>
                           {l.status === "realizado" ? t.fluxoCaixa.realizado : t.fluxoCaixa.previsto}
                         </span>
                       </td>

@@ -104,7 +104,7 @@ export default function CockpitMEI() {
   // branco. VERDE/VERMELHO/AMBAR (semáforo positivo/negativo/atenção)
   // ficam iguais ao tema escuro — mesmo contraste já comprovado.
   const PALETA_COCKPIT = {
-    dark: { JADE: '#2ecc9b', BRONZE: '#16a97d', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', AZUL: '#2ecc9b' },
+    dark: { JADE: '#2ecc9b', BRONZE: '#16a97d', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#2ecc9b', AZUL: '#2ecc9b' },
     xms: { JADE: '#2ecc9b', BRONZE: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR, AZUL } = PALETA_COCKPIT[tema]

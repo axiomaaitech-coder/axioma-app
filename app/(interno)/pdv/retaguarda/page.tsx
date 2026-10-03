@@ -902,7 +902,7 @@ function NavegacaoVendasPorProduto({ lang, empresaId, data, produtos, verLucro, 
                   </div>
                 )}
                 <button onClick={() => abrirDetalhe(p)} title={t("verDetalhes", lang)}
-                  className="p-2 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
+                  className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: tokens.inputBg, color: tokens.acento }}>
                   <Eye size={16} />
                 </button>
               </div>

@@ -58,7 +58,7 @@ export default function PainelMEI() {
   // azul-royal exato extraído por pixel da imagem de referência
   // (public/referencias/), nunca verde — é o único acento da tela.
   const PALETA = {
-    dark: { OURO: '#2ecc9b', ROYAL: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', AZUL: '#2ecc9b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(46,204,155,0.05)', CHIP_BORDA: 'rgba(46,204,155,0.1)' },
+    dark: { OURO: '#2ecc9b', ROYAL: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#2ecc9b', AZUL: '#2ecc9b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(46,204,155,0.05)', CHIP_BORDA: 'rgba(46,204,155,0.1)' },
     xms: { OURO: '#101b3d', ROYAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b', CAMPO_BG: '#ffffff', CHIP_BG: 'rgba(16,27,61,0.05)', CHIP_BORDA: 'rgba(16,27,61,0.12)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, AZUL, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]

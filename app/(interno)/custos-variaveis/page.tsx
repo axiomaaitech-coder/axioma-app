@@ -415,9 +415,9 @@ export default function CustosVariaveis() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#facc15"), ir: "/dre" },
+            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#2ecc9b"), ir: "/dre" },
             { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#2ecc9b"), ir: "#lista-custos-variaveis" },
-            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#facc15"), ir: "#lista-custos-variaveis" },
+            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#2ecc9b"), ir: "#lista-custos-variaveis" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -459,7 +459,7 @@ export default function CustosVariaveis() {
 
             {/* NARRATIVA AUTOMÁTICA — "o que mudou", sempre citando a origem do número */}
             {(narrativaVariacao || narrativaMargem) && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(250,204,21,0.2)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(46,204,155,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquareText size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
@@ -474,7 +474,7 @@ export default function CustosVariaveis() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#facc15,#facc15)", boxShadow: "0 0 12px #facc15" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: "0 0 12px #2ecc9b" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.analiseMargem}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.subAnaliseMargem}</p>
@@ -496,14 +496,14 @@ export default function CustosVariaveis() {
             <div id="anomalias-custos-variaveis" className="scroll-mt-28" />
             {/* ANOMALIAS HISTÓRICAS / PRICE CREEP */}
             {anomalias.length > 0 && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: anomaliaFundo, border: "1px solid rgba(250,204,21,0.25)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: anomaliaFundo, border: "1px solid rgba(46,204,155,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle size={16} style={{ color: ct(CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.anomaliasTitulo}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {anomalias.map((a, i) => (
-                    <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)" }}>
+                    <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.25)" }}>
                       <div className="min-w-0">
                         <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
                         <p className="text-xs font-medium" style={{ color: ct(CORES.laranja) }}>
@@ -566,7 +566,7 @@ export default function CustosVariaveis() {
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor={ct(temaClaro ? CORES.verde : "#facc15")} {...cartaoTema}>
+        <CanvasBox cor={ct(temaClaro ? CORES.verde : "#2ecc9b")} {...cartaoTema}>
           <div id="lista-custos-variaveis" className="overflow-x-auto scroll-mt-28">
             {carregando ? (
               <div className="flex items-center justify-center py-16">
@@ -586,16 +586,16 @@ export default function CustosVariaveis() {
                     <tr><td colSpan={5} className="text-center py-12 text-sm" style={{ color: TEXTO_SEC }}>{t.custosVariaveis.semCustos}</td></tr>
                   ) : custosFiltrados.map((c, i) => (
                     <motion.tr key={c.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(250,204,21,0.02)" }}
+                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(46,204,155,0.02)" }}
                       style={{ borderBottom: i < custosFiltrados.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[c.categoria] || ct("#2ecc9b") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.verde : "#facc15") }}>{fBRL(c.valor)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.verde : "#facc15") }}><Trash2 size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}><Trash2 size={16} /></motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -616,10 +616,10 @@ export default function CustosVariaveis() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct(temaClaro ? CORES.verde : "#facc15")} {...cartaoTema}>
+              <CanvasBox cor={ct(temaClaro ? CORES.verde : "#2ecc9b")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? CORES.verde : "#facc15") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Variable Cost" : lang === "es" ? "Editar Costo Variable" : "Editar Custo Variável") : t.custosVariaveis.novoCusto}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
@@ -660,7 +660,7 @@ export default function CustosVariaveis() {
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={salvar} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #16a97d, #facc15)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.custosVariaveis.salvarCusto}
                   </motion.button>
                 </div>

@@ -30,7 +30,7 @@ const JADE = '#047857'
 const BRONZE = '#065f46'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
-const AMBAR = '#facc15'
+const AMBAR = '#2ecc9b'
 const AZUL = '#2ecc9b'
 const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" }
 
@@ -600,7 +600,7 @@ export default function EquipePage() {
                   opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
                   onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
                 {meuPapelConvite && precisaAutorizacao && (
-                  <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(250,204,21,0.06)', border: `1px solid ${AMBAR}66` }}>
+                  <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(46,204,155,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
                     <p className="text-[11px]" style={{ color: MUTED }}>{t.autAviso}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -844,7 +844,7 @@ export default function EquipePage() {
                     </div>
 
                     {ehVoce && meuNivel != null && meuNivel > 1 && (
-                      <button onClick={sairDaEmpresa} title={t.sairEmpresa} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                      <button onClick={sairDaEmpresa} title={t.sairEmpresa} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                         <LogOut size={15} />
                       </button>
                     )}
@@ -858,13 +858,13 @@ export default function EquipePage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
-                            className="p-2 rounded-lg" style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
+                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
                             <Send size={15} />
                           </button>
                         )}
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b' }}>
+                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b' }}>
                             <Copy size={15} />
                           </button>
                         )}
@@ -882,13 +882,13 @@ export default function EquipePage() {
                           </select>
                         ) : podeTrocarPapel(m) && (
                           <button onClick={() => setEditandoId(`${m.origem}-${m.id}`)} title={t.editarPapel}
-                            className="p-2 rounded-lg" style={{ background: 'rgba(46,204,155,0.1)', color: AZUL }}>
+                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.1)', color: AZUL }}>
                             <Pencil size={15} />
                           </button>
                         )}
 
                         <button onClick={() => m.origem === 'ativo' ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : removerAcesso(m)}
-                          title={t.cortarAcesso} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                          title={t.cortarAcesso} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -924,7 +924,7 @@ export default function EquipePage() {
                   </div>
                   {!tm.apagado_em && (
                     <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }} onClick={() => ehAltoNivel(tm.papel, tm.relacao) ? (setTermoApagar(tm), setMotivoApagar(''), setCienteApagar(false)) : apagarTermoDireto(tm)}
-                      title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                      title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
                       <Trash2 size={15} />
                     </motion.button>
                   )}

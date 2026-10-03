@@ -31,7 +31,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Por isso as cores aqui são valores JS por tema (não CSS var), inclusive
 // PAINEL_BG/MODAL_BG.
 const PALETA = {
-  dark: { VERMELHO: '#f87171', LARANJA: '#facc15', AMARELO: '#facc15', VERDE: '#34d399', AZULC: '#2ecc9b', ROXO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', MODAL_BG: '#0a1628' },
+  dark: { VERMELHO: '#f87171', LARANJA: '#2ecc9b', AMARELO: '#2ecc9b', VERDE: '#34d399', AZULC: '#2ecc9b', ROXO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', MODAL_BG: '#0a1628' },
   // Creme #f6f7c4, cinza #374151 e modal creme (igual ao CanvasBox dos
   // demais módulos) — valores finais do rollout Claro. PAINEL_BG2 é a
   // caixinha ANINHADA dentro do modal creme, por isso fica bege translúcido.
@@ -181,7 +181,7 @@ export default function ContadorPage() {
             <ClipboardCheck size={15} />{L('Fechamento', 'Close', 'Cierre')}
           </button>
           <button onClick={() => router.push('/contador/lancamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: 'rgba(250,204,21,0.14)', color: AMARELO, border: `1px solid ${AMARELO}40` }}>
+            style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: 'rgba(46,204,155,0.14)', color: AMARELO, border: `1px solid ${AMARELO}40` }}>
             <BookText size={15} />{L('Lançamento Manual', 'Manual Entry', 'Asiento Manual')}
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
@@ -225,7 +225,7 @@ export default function ContadorPage() {
                     setMostrarTodas(false)
                     document.getElementById('lista-descobertas')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }}
-                  className={`rounded-xl p-3 text-left cursor-pointer${classePremium3d}`}
+                  className={`rounded-xl p-3 text-left cursor-pointer${classePremium3d} axi-card-premium3d axi-card-faixa`}
                   style={{ background: PAINEL_BG, border: ativo ? `2px solid ${t.cor}` : `1px solid ${t.cor}30` }}>
                   <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
                   <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>

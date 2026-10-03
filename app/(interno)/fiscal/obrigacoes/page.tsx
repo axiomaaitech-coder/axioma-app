@@ -22,7 +22,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
   dark: {
-    VERMELHO: '#f87171', LARANJA: '#facc15', AMARELO: '#facc15', VERDE: '#34d399', AZULC: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5',
+    VERMELHO: '#f87171', LARANJA: '#2ecc9b', AMARELO: '#2ecc9b', VERDE: '#34d399', AZULC: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5',
     BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', THEAD_BG: 'rgba(255,255,255,0.03)', EMPTY_BG: 'rgba(10,20,36,0.5)',
   },
   xms: {

@@ -20,7 +20,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
   dark: {
-    AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff',
+    AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', TITULO: '#ffffff',
     PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', SELECT_BG: 'rgba(10,22,40,0.9)', NESTED_BG: 'rgba(0,0,0,0.2)',
     ITEM_BG: 'rgba(10,20,36,0.6)', ITEM_BG2: 'rgba(10,20,36,0.5)', BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', FORM_BORDA: 'rgba(46,204,155,0.16)',
   },
@@ -219,7 +219,7 @@ export default function LancamentoManualPage() {
                     <input type="text" inputMode="decimal" value={linha.valor} onChange={(e) => atualizarLinha(i, 'valor', e.target.value)}
                       placeholder="0,00" className="w-28 px-3 py-2.5 rounded-xl text-sm text-right focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     <button type="button" onClick={() => removerLinha(i)} disabled={linhas.length <= 2}
-                      className="p-2.5 rounded-xl disabled:opacity-30" style={{ background: BTN_BG, color: VERMELHO }}>
+                      className="p-2.5 rounded-xl disabled:opacity-30 axi-card-premium3d axi-card-faixa" style={{ background: BTN_BG, color: VERMELHO }}>
                       <Trash2 size={14} />
                     </button>
                   </div>

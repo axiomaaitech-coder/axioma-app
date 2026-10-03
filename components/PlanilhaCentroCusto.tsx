@@ -113,7 +113,7 @@ const COLUNAS: { id: ColunaId; letra: string; editavel: boolean; largura: number
 // em lib/cfoCore.ts). VINHO/BORDO/COBRE eram a identidade "bordô" do módulo;
 // no Claro colapsam pra verde-menta/navy igual ao resto de Centros de Custo.
 const VINHO = "#9f1239", BORDO = "#881337", COBRE = "#b87333";
-const VERMELHO = "#f87171", AMBAR = "#facc15", VERDE = "#34d399";
+const VERMELHO = "#f87171", AMBAR = "#2ecc9b", VERDE = "#34d399";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 

@@ -15,7 +15,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Tela interna (fora do menu principal) — precisa optar no tema local
 // (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
 const PALETA = {
-  dark: { AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', BORDA: 'rgba(255,255,255,0.08)' },
+  dark: { AZULC: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', BORDA: 'rgba(255,255,255,0.08)' },
   xms: { AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 

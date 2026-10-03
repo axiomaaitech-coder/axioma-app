@@ -543,7 +543,7 @@ export default function Precificacao() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={temaClaro
               ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-              : { background: `${COR_PRC}20`, border: `1px solid ${COR_PRC}50`, color: COR_PRC_C }}>
+              : { background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: "none", color: "#fff" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>

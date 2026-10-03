@@ -664,7 +664,7 @@ const T = {
 // Claro) segue os valores exatos de public/referencias/tema-tokens.md —
 // mesma paleta já usada em ia-tributaria/mei/relatorios.
 const PALETA = {
-  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#facc15", AZULC: "#2ecc9b", ROXO: "#2ecc9b", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#2ecc9b", AZULC: "#2ecc9b", ROXO: "#2ecc9b", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
   xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AMARELO: "#f5a623", AZULC: "#2ecc9b", ROXO: "#101b3d", CINZA: "#374151", TEXTO: "#101b3d", CAMPO_BG: "#ffffff", TOOLTIP_BG: "#ffffff" },
 } as const;
 
@@ -1228,7 +1228,7 @@ export default function EmpresaPage() {
   // solido, mesmo degrade usado em Salvar/Exportar - pill claro ficou fraco demais.
   const estiloLimparCampos = temaClaro
     ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
-    : { background: "rgba(250,204,21,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
+    : { background: "rgba(46,204,155,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
@@ -1489,7 +1489,7 @@ export default function EmpresaPage() {
                         placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
                         className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                        style={{ background: "rgba(250,204,21,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
+                        style={{ background: "rgba(46,204,155,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
                     </div>
                     {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cep}</p>}
                   </div>
@@ -1723,7 +1723,7 @@ export default function EmpresaPage() {
                   </div>
                   <button onClick={() => setModalDocumento("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #facc15)"), color: "#fff" }}>{tt.novoDocumento}</button>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #2ecc9b)"), color: "#fff" }}>{tt.novoDocumento}</button>
                 </div>
               </CanvasBox>
 
@@ -1813,7 +1813,7 @@ export default function EmpresaPage() {
         <ModalGenerico titulo={tt.limparCamposModalTitulo} fechar={() => setModalLimparAberto(false)}>
           <p className="text-sm mb-3" style={{ color: TEXTO }}>{tt.limparCamposModalTexto}</p>
           <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.limparCamposModalNaoAfeta}</p>
-          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: AMARELO, background: "rgba(250,204,21,0.1)" }}>
+          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: AMARELO, background: "rgba(46,204,155,0.1)" }}>
             {tt.limparCamposModalAviso}
           </p>
           <div className="flex flex-col sm:flex-row-reverse gap-2">
@@ -2094,7 +2094,7 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
           style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #facc15)"), color: "#fff" }}>{tt.salvar}</button>
+          style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #2ecc9b)"), color: "#fff" }}>{tt.salvar}</button>
       </div>
     </div>
   );
