@@ -148,9 +148,18 @@ async function criar(corpo: any) {
     if (p) await db.from('empresa_equipe').delete().eq('id', p.id)
   }
 
-  // Limite de pessoas do plano (decisão do Elias 2026-10-03, bloco 11). Não contam:
-  // operador de caixa, contador/consultor externo e acesso de até 30 dias.
-  const contaNoLimite = papel !== 'operador' && relacao !== 'contador' && relacao !== 'consultor' && (dias === null || dias > 30)
+  // Limite do plano (decisões do Elias 2026-10-03, blocos 11-12). Operador de caixa e
+  // contador/consultor externo ficam fora. Até 7 dias = convidado temporário: não ocupa
+  // vaga, mas cada plano dá só 3 (usou, acabou; volta ao subir de plano). 8+ dias ocupa vaga.
+  const foraDasContas = papel === 'operador' || relacao === 'contador' || relacao === 'consultor'
+  const temporario = dias !== null && dias <= 7
+  if (!foraDasContas && temporario) {
+    const { data: ct, error: eCt } = await db.rpc('equipe_cota_temporarios', { p_empresa: empresaId })
+    const c = Array.isArray(ct) ? ct[0] : ct
+    if (eCt) console.error('[convite] cota:', eCt.message)
+    else if (c && c.usados >= c.limite) return NextResponse.json({ erro: 'cota_temporarios', limite: c.limite }, { status: 402 })
+  }
+  const contaNoLimite = !foraDasContas && !temporario
   if (contaNoLimite) {
     const { data: vg, error: eVg } = await db.rpc('equipe_vagas', { p_empresa: empresaId })
     const v = Array.isArray(vg) ? vg[0] : vg

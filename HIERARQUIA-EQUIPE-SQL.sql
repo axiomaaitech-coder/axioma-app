@@ -647,3 +647,63 @@ revoke all on function public.equipe_vagas(uuid) from public;
 grant execute on function public.equipe_vagas(uuid) to authenticated, service_role;
 
 SELECT 'bloco 11 ok' AS resultado, count(*) filter (where plano_ativo) AS empresas_com_plano_ativo FROM empresas;
+
+-- ============================== BLOCO 12 ====================================
+-- 2026-10-03 (Elias): convites TEMPORÁRIOS de até 7 dias (analistas convidados)
+-- não ocupam vaga, mas cada plano dá direito a só 3 — usou, acabou; volta só ao
+-- subir de plano (plano_desde marca o início do plano atual). De 8 dias em diante
+-- ocupa vaga. Operador de caixa e contador/consultor externo seguem fora das contas.
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS plano_desde timestamptz;
+update empresas set plano_desde = coalesce(plano_desde, now()) where plano is not null;
+
+create or replace function public.equipe_vagas(p_empresa uuid)
+returns table (plano text, limite integer, ocupadas integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select e.plano,
+    public.plano_limite_pessoas(e.plano),
+    (1
+     + (select count(*) from empresa_usuarios eu
+        left join empresa_equipe q on q.id = eu.convite_id
+        where eu.empresa_id = p_empresa and eu.papel not in ('dono', 'operador')
+          and eu.suspenso_em is null and (eu.acesso_expira_em is null or eu.acesso_expira_em > now())
+          and coalesce(q.relacao, '') not in ('contador', 'consultor')
+          and (q.acesso_dias is null or q.acesso_dias > 7))
+     + (select count(*) from empresa_equipe q
+        where q.empresa_id = p_empresa and q.convite_aceito = false
+          and q.situacao in ('enviado', 'aguardando_aprovacao')
+          and (q.expira_em is null or q.expira_em > now())
+          and coalesce(q.papel, '') <> 'operador'
+          and coalesce(q.relacao, '') not in ('contador', 'consultor')
+          and (q.acesso_dias is null or q.acesso_dias > 7))
+    )::integer
+  from empresas e
+  where e.id = p_empresa
+    and ((select auth.uid()) is null or p_empresa in (select public.empresas_do_usuario()))
+$$;
+
+-- Cota de convites temporários (até 7 dias) do plano atual
+create or replace function public.equipe_cota_temporarios(p_empresa uuid)
+returns table (usados integer, limite integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select (select count(*) from empresa_equipe q
+          where q.empresa_id = p_empresa and q.acesso_dias is not null and q.acesso_dias <= 7
+            and coalesce(q.papel, '') <> 'operador'
+            and coalesce(q.relacao, '') not in ('contador', 'consultor')
+            and q.created_at >= coalesce(e.plano_desde, '-infinity'::timestamptz))::integer,
+         3
+  from empresas e
+  where e.id = p_empresa
+    and ((select auth.uid()) is null or p_empresa in (select public.empresas_do_usuario()))
+$$;
+revoke all on function public.equipe_cota_temporarios(uuid) from public;
+grant execute on function public.equipe_cota_temporarios(uuid) to authenticated, service_role;
+
+SELECT 'bloco 12 ok' AS resultado;

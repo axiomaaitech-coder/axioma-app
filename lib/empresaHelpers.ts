@@ -1003,12 +1003,17 @@ export async function listarLixeiraTermos(empresaId: string): Promise<TermoConvi
   return (data as TermoConvite[]) || [];
 }
 // Vagas do plano (bloco 11): limite de pessoas e quantas já estão ocupadas
-export type VagasEquipe = { plano: string | null; limite: number; ocupadas: number };
+export type VagasEquipe = { plano: string | null; limite: number; ocupadas: number; tempUsados: number; tempLimite: number };
 export async function obterVagasEquipe(empresaId: string): Promise<VagasEquipe | null> {
-  const { data, error } = await supabase.rpc("equipe_vagas", { p_empresa: empresaId });
+  const [{ data, error }, { data: ct, error: eCt }] = await Promise.all([
+    supabase.rpc("equipe_vagas", { p_empresa: empresaId }),
+    supabase.rpc("equipe_cota_temporarios", { p_empresa: empresaId }),
+  ]);
   if (error) { reportarFalhaLeitura("equipe.vagas", error); return null; }
+  if (eCt) reportarFalhaLeitura("equipe.cotaTemporarios", eCt);
   const v = Array.isArray(data) ? data[0] : data;
-  return v ? { plano: v.plano ?? null, limite: Number(v.limite), ocupadas: Number(v.ocupadas) } : null;
+  const c = Array.isArray(ct) ? ct[0] : ct;
+  return v ? { plano: v.plano ?? null, limite: Number(v.limite), ocupadas: Number(v.ocupadas), tempUsados: Number(c?.usados ?? 0), tempLimite: Number(c?.limite ?? 3) } : null;
 }
 // Transferir a propriedade (só o Proprietário; regra no banco — bloco 10)
 export async function transferirPropriedade(empresaId: string, novoUserId: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
