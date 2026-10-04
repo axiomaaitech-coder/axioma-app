@@ -4,8 +4,8 @@
 // ModuloLayout.tsx — decisão explícita do Elias pra não arriscar nenhum
 // outro módulo.
 //
-// Tema escuro (padrão) — APROVADO, não mudar: #020810, cards em glass
-// azul-arroxeado, verde neon só no botão de ação (tokens.acaoBg).
+// Tema escuro (padrão) — paleta única do Axioma desde 2026-10-03 (cards
+// azul-escuro, destaque verde-menta, ação verde-menta escuro com letra branca).
 //
 // Tema claro — mesma paleta de public/referencias/tema-tokens.md usada no
 // resto do Axioma (branco + azul-marinho + verde-menta), não uma paleta
@@ -52,21 +52,22 @@ export type TokensPdv = {
 };
 
 const TOKENS: Record<TemaPdv, TokensPdv> = {
-  // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência.
   escuro: {
+    // Escuro padronizado do Axioma (aprovado pelo Elias 2026-10-03): sem azul-arroxeado
+    // nem verde-neon — cards azul-escuro, destaque verde-menta, ação verde-menta escuro.
     fundo: "#020810",
-    barraBg: "#020810", barraTexto: "#e2ecf7", barraAcentoBg: "rgba(106,176,255,0.1)", barraAcentoTexto: "#6ab0ff",
+    barraBg: "#020810", barraTexto: "#ffffff", barraAcentoBg: "rgba(46,204,155,0.12)", barraAcentoTexto: "#2ecc9b",
     fundoContainer: "linear-gradient(160deg, rgba(16,32,58,0.5), rgba(10,22,40,0.6))", bordaContainer: "rgba(46,204,155,0.16)",
-    acentoTopo: "linear-gradient(90deg, rgba(46,204,155,0.55), rgba(106,176,255,0.3) 50%, transparent)",
-    texto: "#e2ecf7", textoSecundario: "#c8d8f0", textoMuted: "#5a7a9a",
-    cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardTexto: "#e2ecf7", cardBorda: "rgba(106,176,255,0.16)",
-    inputBg: "rgba(10,16,32,0.7)", inputTexto: "#e2ecf7", inputBorda: "rgba(106,176,255,0.22)",
-    acento: "#6ab0ff", acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
-    // Mesmos tons/direção do cardBg acima, só que sem alpha — 100% opaco.
-    modalBg: "linear-gradient(160deg, #18153c, #0d0c22)",
-    acaoBg: "linear-gradient(135deg, #00cc6a, #00ff88)", acaoTexto: "#022",
-    filtroAtivoBg: "rgba(106,176,255,0.22)", filtroAtivoTexto: "#6ab0ff", filtroAtivoBorda: "#6ab0ff",
-    filtroInativoBg: "rgba(106,176,255,0.08)", filtroInativoTexto: "#5a7a9a", filtroInativoBorda: "rgba(106,176,255,0.22)",
+    acentoTopo: "linear-gradient(90deg, rgba(46,204,155,0.55), rgba(46,204,155,0.2) 50%, transparent)",
+    texto: "#e6edf5", textoSecundario: "#d7e0ea", textoMuted: "#a3b1c2",
+    cardBg: "linear-gradient(160deg, rgba(16,32,58,0.8), rgba(10,22,40,0.85))", cardTexto: "#e6edf5", cardBorda: "rgba(46,204,155,0.18)",
+    inputBg: "rgba(10,16,32,0.7)", inputTexto: "#e6edf5", inputBorda: "rgba(163,177,194,0.22)",
+    acento: "#2ecc9b", acentoSuaveBg: "rgba(46,204,155,0.08)", acentoSuaveBorda: "rgba(46,204,155,0.22)",
+    // Mesmos tons do cardBg, 100% opaco.
+    modalBg: "linear-gradient(160deg, #10203a, #0a1628)",
+    acaoBg: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", acaoTexto: "#ffffff",
+    filtroAtivoBg: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", filtroAtivoTexto: "#ffffff", filtroAtivoBorda: "#2ecc9b",
+    filtroInativoBg: "#101b3d", filtroInativoTexto: "#ffffff", filtroInativoBorda: "rgba(46,204,155,0.35)",
   },
   // Tema claro — paleta de public/referencias/tema-tokens.md. Barra
   // superior fica navy (#101b3d, cor de bloco estrutural), fundo/cards

@@ -698,7 +698,7 @@ function Assistente({ lang, configAtual, salvando, podeCancelar, comoModal, onSa
 function CardEstat({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}><AnimatedNumber value={valor} /></p>
     </div>
@@ -730,9 +730,9 @@ function CardsResumo({ lang, resumo, verLucro, carregando, ultimaAtualizacao, on
       </div>
 
       {!!resumo?.itensSemCusto && resumo.itensSemCusto > 0 && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.35)" }}>
-          <AlertTriangle size={14} style={{ color: "#fbbf24" }} className="shrink-0 mt-0.5" />
-          <p className="text-xs" style={{ color: "#fbbf24" }}>{t("itensSemCustoAviso", lang, { n: resumo.itensSemCusto })}</p>
+        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)" }}>
+          <AlertTriangle size={14} style={{ color: "#facc15" }} className="shrink-0 mt-0.5" />
+          <p className="text-xs" style={{ color: "#facc15" }}>{t("itensSemCustoAviso", lang, { n: resumo.itensSemCusto })}</p>
         </div>
       )}
     </div>
@@ -882,7 +882,7 @@ function NavegacaoVendasPorProduto({ lang, empresaId, data, produtos, verLucro, 
         {doNivel.map((p) => {
           const saldoAntes = p.saldoAtual + p.quantidade;
           return (
-            <div key={p.produtoId} className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap"
+            <div key={p.produtoId} className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa"
               style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: tokens.cardTexto }}>{p.produtoNome}</p>
@@ -946,7 +946,7 @@ function ModalDetalheProduto({ lang, produto, vendas, carregando, onFechar }: {
   const totalValor = vendas.reduce((s, v) => s + v.subtotal, 0);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center justify-between mb-4 gap-3">
           <h3 className="text-sm font-bold truncate" style={{ color: tokens.texto }}>{produto.produtoNome}</h3>
           <button onClick={onFechar} className="shrink-0" style={{ color: tokens.textoMuted }}><X size={18} /></button>
@@ -980,7 +980,7 @@ function ModalDetalheProduto({ lang, produto, vendas, carregando, onFechar }: {
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: tokens.acentoSuaveBg }}>
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg }}>
               <span className="text-xs font-bold" style={{ color: tokens.texto }}>{t("totalConsolidado", lang)}</span>
               <span className="text-sm font-black" style={{ color: tokens.texto }}>{totalQtd} {t("colQtd", lang).toLowerCase()} · {moeda(totalValor)}</span>
             </div>
@@ -1033,7 +1033,7 @@ function PainelFechamento({
           onVerComposicao={composicaoDisponivel ? onVerComposicao : undefined} />
       )}
 
-      <div className="rounded-2xl p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         {turnos.length === 0 ? (
           <p className="text-sm text-center py-4" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("nenhumTurnoAberto", lang)}</p>
         ) : (
@@ -1052,7 +1052,7 @@ function PainelFechamento({
                   {t("abertoDesde", lang, { hora: new Date(turno.abertoEm).toLocaleString("pt-BR") })} · {t("fundoAbertura", lang, { valor: moeda(turno.valorAbertura) })}
                 </p>
 
-                <div className="flex items-center justify-between gap-3 mb-4 rounded-xl p-3" style={{ background: tokens.acentoSuaveBg }}>
+                <div className="flex items-center justify-between gap-3 mb-4 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg }}>
                   <div>
                     <p className="text-[11px] font-bold uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
                     {composicaoCarregando && composicaoTotal === null ? (
@@ -1152,7 +1152,7 @@ function ListaMovimentacoes({ lang, movimentacoes, carregando, turnoAberto, user
         const cor = m.tipo === "sangria" ? "#f87171" : "#34d399";
         const Icone = m.tipo === "sangria" ? ArrowUpCircle : ArrowDownCircle;
         return (
-          <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5"
+          <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5 axi-card-premium3d axi-card-faixa"
             style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
             <div className="flex items-center gap-2 min-w-0">
               <Icone size={16} style={{ color: cor }} className="shrink-0" />
@@ -1191,7 +1191,7 @@ function CardResultadoFechamento({ lang, resultado, onVerComposicao }: { lang: I
   const diferenca = resultado.diferenca;
   const corDiferenca = diferenca === null ? tokens.cardTexto : diferenca === 0 ? tokens.acento : diferenca > 0 ? "#34d399" : "#f87171";
   return (
-    <div className="rounded-2xl p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
+    <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("resultadoFechamentoTitulo", lang)}</h3>
         {onVerComposicao && (
@@ -1241,7 +1241,7 @@ function ModalMovimentacao({ lang, tipo, registrando, onConfirmar, onCancelar }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>
           {t(tipo === "sangria" ? "modalSangriaTitulo" : "modalSuprimentoTitulo", lang)}
         </h3>
@@ -1285,7 +1285,7 @@ function SecaoComposicao({ titulo, total, sinal, cor, expandido, onToggle, vazio
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-xl p-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <button onClick={onToggle} disabled={vazio} className="w-full flex items-center justify-between gap-2 text-left disabled:opacity-60">
         <span className="text-xs font-bold flex items-center gap-1.5" style={{ color: tokens.cardTexto }}>
           {!vazio && (expandido ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
@@ -1326,14 +1326,14 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[85vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[85vh] overflow-y-auto axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center justify-between mb-4 gap-3">
           <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("composicaoTitulo", lang)}</h3>
           <button onClick={onFechar} className="shrink-0" style={{ color: tokens.textoMuted }}><X size={18} /></button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl p-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+          <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>{t("compAbertura", lang)}</p>
@@ -1388,7 +1388,7 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
             ))}
           </SecaoComposicao>
 
-          <div className="flex items-center justify-between px-3 py-3 rounded-xl mt-1" style={{ background: tokens.acaoBg }}>
+          <div className="flex items-center justify-between px-3 py-3 rounded-xl mt-1 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acaoBg }}>
             <span className="text-xs font-black" style={{ color: tokens.acaoTexto }}>{t("totalEsperadoLinha", lang)}</span>
             <span className="text-lg font-black" style={{ color: tokens.acaoTexto }}><AnimatedNumber value={moeda(totalEsperado)} /></span>
           </div>
@@ -1414,7 +1414,7 @@ function ModalEditarMovimentacao({ lang, movimentacao, salvando, onConfirmar, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>
           {t("editarMovimentacaoTitulo", lang, { tipo: t(movimentacao.tipo, lang) })}
         </h3>
@@ -1460,7 +1460,7 @@ function ModalConfirmarExclusaoMovimentacao({ lang, movimentacao, excluindo, onC
   const { tokens } = useTemaPdv();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: "2px solid #f87171" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: "2px solid #f87171" }}>
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle size={18} style={{ color: "#f87171" }} />
           <h3 className="text-sm font-bold" style={{ color: "#f87171" }}>{t("confirmarExclusaoTitulo", lang)}</h3>
@@ -1638,7 +1638,7 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
       <div className="w-full max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl p-[20px]" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <CabecalhoModalAxioma titulo={t("calculadoraTitulo", lang)} lang={lang} onFechar={onFechar} />
 
-        <div className="h-[72px] rounded-xl px-4 mb-3 flex items-center justify-end overflow-hidden" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
+        <div className="h-[72px] rounded-xl px-4 mb-3 flex items-center justify-end overflow-hidden axi-card-premium3d axi-card-faixa" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
           <p className="text-[36px] font-black truncate" style={{ color: tokens.inputTexto }}>{estado.display}</p>
         </div>
 
@@ -1651,7 +1651,7 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
         </div>
 
         {estado.historico.length > 0 && (
-          <div className="mb-3 max-h-24 overflow-y-auto rounded-xl p-2" style={{ background: tokens.acentoSuaveBg }}>
+          <div className="mb-3 max-h-24 overflow-y-auto rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg }}>
             <p className="text-xs font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("calculadoraHistorico", lang)}</p>
             {estado.historico.map((linha, i) => (
               <p key={i} className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{linha}</p>
@@ -1772,7 +1772,7 @@ function ModalConfirmarFechamento({ lang, fechando, onConfirmar, onCancelar }: {
   const { tokens } = useTemaPdv();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-2" style={{ color: tokens.texto }}>{t("confirmarFechamentoTitulo", lang)}</h3>
         <p className="text-xs mb-5" style={{ color: tokens.textoMuted }}>{t("confirmarFechamentoTexto", lang)}</p>
         <div className="flex items-center gap-2">

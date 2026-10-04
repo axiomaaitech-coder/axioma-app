@@ -1001,7 +1001,7 @@ export default function PdvVendaPage() {
 
         {baixandoEstoqueFlag && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
-            <div className="rounded-xl px-5 py-4 flex items-center gap-2" style={{ background: "#0b1622", color: "#fff" }}>
+            <div className="rounded-xl px-5 py-4 flex items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: "#0b1622", color: "#fff" }}>
               <Loader2 className="animate-spin" size={16} />
               <span className="text-sm">{t("baixandoEstoque", lang)}</span>
             </div>
@@ -1104,7 +1104,7 @@ function LogoAxioma({ tamanho }: { tamanho: number }) {
 function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" | "info" } }) {
   return (
     <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
       {toast.msg}
     </div>
   );
@@ -1129,7 +1129,7 @@ function EscolherCaixaPanel({ lang, caixas, onEscolher }: { lang: Idioma; caixas
   const { tokens } = useTemaPdv();
   const [selecionado, setSelecionado] = useState("");
   return (
-    <div className="max-w-sm mx-auto rounded-xl p-5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+    <div className="max-w-sm mx-auto rounded-xl p-5 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <h3 className="text-sm font-bold mb-3" style={{ color: tokens.texto }}>{t("escolherCaixaTitulo", lang)}</h3>
       <select value={selecionado} onChange={(e) => setSelecionado(e.target.value)}
         className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-3"
@@ -1153,7 +1153,7 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="max-w-sm mx-auto rounded-xl p-5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+    <div className="max-w-sm mx-auto rounded-xl p-5 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("abrirCaixaTitulo", lang)}</h3>
       <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("abrirCaixaSubtitulo", lang)}</p>
 
@@ -1193,7 +1193,7 @@ function QuadroValor({ label, valor, corValor, grande, tamanho }: {
   const { tokens } = useTemaPdv();
   const tamanhoFinal = tamanho ?? (grande ? "text-4xl md:text-5xl" : "text-xl md:text-2xl");
   return (
-    <div className={(grande ? "shrink-0 rounded-xl px-4 py-3" : "shrink-0 rounded-xl px-3 py-2") + " axi-card-premium3d"}
+    <div className={(grande ? "shrink-0 rounded-xl px-4 py-3" : "shrink-0 rounded-xl px-3 py-2") + " axi-card-premium3d axi-card-faixa"}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className={grande ? "text-xs font-bold uppercase tracking-wide mb-1 truncate" : "text-[10px] font-bold uppercase tracking-wide leading-none truncate"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
@@ -1305,7 +1305,7 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className={`shrink-0 flex items-center justify-between ${grande ? "px-3 py-2" : "px-3 py-1.5"}`} style={{ background: tokens.acentoSuaveBg }}>
         <div className="flex items-center gap-1.5">
           <ShoppingCart size={grande ? 16 : 13} style={{ color: tokens.acento }} />
@@ -1456,7 +1456,7 @@ function FinalizarVendaModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-md rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-md rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("finalizarVenda", lang)}</h3>
         <p className="text-4xl font-black mb-1" style={{ color: tokens.acento }}><AnimatedNumber value={moeda(totalAPagar)} /></p>
         <p className="text-xs flex items-center gap-1 mb-4" style={{ color: tokens.textoMuted }}>
@@ -1512,7 +1512,7 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlu
   const { tokens } = useTemaPdv();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("definirPrecoTitulo", lang)}</h3>
         <p className="text-base font-bold truncate mb-2" style={{ color: tokens.texto }}>{produto.nome}</p>
         <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("definirPrecoSubtitulo", lang)}</p>
@@ -1561,7 +1561,7 @@ function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <div className="flex items-center gap-2 mb-1">
           <Lock size={16} style={{ color: tokens.acento }} />
           <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("reautenticarTitulo", lang)}</h3>
@@ -1604,7 +1604,7 @@ function PendenciaBaixaBanner({ lang, pendencia, tentando, onTentarNovamente }: 
   onTentarNovamente: () => void;
 }) {
   return (
-    <div className="mb-4 rounded-xl p-4" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)" }}>
+    <div className="mb-4 rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)" }}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <p className="text-xs font-bold mb-1" style={{ color: "#f87171" }}>{t("pendenciaBaixaTitulo", lang)}</p>
@@ -1907,7 +1907,7 @@ function ConfigCupomModal({ lang, config, salvando, statusQz, impressorasQz, onT
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto axi-card-premium3d axi-card-faixa" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>{t("configCupomTitulo", lang)}</h3>
 
         <label className="flex items-start gap-2 mb-2 cursor-pointer">

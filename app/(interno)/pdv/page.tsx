@@ -391,7 +391,7 @@ export default function PDV() {
 
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
@@ -569,7 +569,7 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
+      <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
         <Search size={16} style={{ color: tokens.inputTexto, opacity: 0.7 }} />
         <input
           value={busca}

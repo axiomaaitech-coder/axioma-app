@@ -362,7 +362,7 @@ function PDVCadastroInner() {
     <PdvLayout titulo={tituloCadastro} subtitulo={subtituloCadastro} voltarPara="/pdv">
       {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
       {erroProdutoId && (
-        <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
           {erroProdutoId}
         </div>
       )}
@@ -464,7 +464,7 @@ function SeletorNicho({ lang, nichoSel, categoriaSel, subNichoSel, onNicho, onCa
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <Selecao label={t("nicho", lang)} value={nichoSel?.value || ""} onChange={onNicho}
         opcoes={NICHOS_PDV.map((n) => ({ value: n.value, label: n.label[lang] }))} />
       <Selecao label={t("categoria", lang)} value={categoriaSel?.value || ""} onChange={onCategoria}
@@ -530,7 +530,7 @@ function BipagemMassa({
   const { tokens } = useTemaPdv();
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="flex items-center gap-2 px-4 py-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <ScanBarcode size={18} style={{ color: tokens.acento }} />
         <input
           ref={inputRef} autoFocus value={codigoAtual} disabled={!!cartaoPendente}
@@ -546,7 +546,7 @@ function BipagemMassa({
       <AnimatePresence>
         {cartaoPendente && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="p-4 rounded-xl space-y-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            className="p-4 rounded-xl space-y-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
             <p className="text-xs font-semibold" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.cardTexto }}>
               {cartaoPendente.nome && cartaoPendente.categoria ? t("precoParaSalvar", lang) : t("faltaCompletar", lang)}
             </p>
@@ -590,7 +590,7 @@ function BipagemMassa({
         ) : (
           <div className="space-y-1.5">
             {sessaoItens.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+              <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
                 <span className="text-xs font-medium truncate" style={{ color: tokens.cardTexto }}>{item.nome}</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <a href="/estoque" className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85 }} title={t("editar", lang)}><ExternalLink size={13} /></a>

@@ -450,7 +450,7 @@ function ToastPdv({ msg, tipo }: { msg: string; tipo: "ok" | "erro" | "info" }) 
 function SeletorNichoSimples({ lang, nichoSel, onSelecionar }: { lang: Lang; nichoSel: NichoPdvDef | null; onSelecionar: (v: string) => void }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="p-4 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+    <div className="p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{t("escolhaNicho", lang)}</label>
       <select value={nichoSel?.value || ""} onChange={(e) => onSelecionar(e.target.value)}
         className="w-full sm:w-80 px-3 py-2.5 rounded-lg text-sm"
@@ -479,7 +479,7 @@ function AreaUpload({ lang, inputRef, processando, erro, onArquivo }: {
       </button>
       <input ref={inputRef} type="file" accept=".xml" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onArquivo(f); }} />
       {erro && (
-        <div className="flex items-center gap-2 mt-3 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
+        <div className="flex items-center gap-2 mt-3 px-4 py-3 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
           <AlertTriangle size={15} /> {erro}
         </div>
       )}
@@ -490,7 +490,7 @@ function AreaUpload({ lang, inputRef, processando, erro, onArquivo }: {
 function FornecedorCard({ lang, info }: { lang: Lang; info: { existente: FornecedorMinimo | null; cnpj: string; razaoSocial?: string; fantasia?: string } }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div>
         <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("fornecedorTitulo", lang)}</p>
         <p className="text-sm" style={{ color: tokens.cardTexto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
@@ -521,7 +521,7 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
         </button>
       )}
 
-      <div className="flex items-end gap-2 flex-wrap p-3 rounded-xl axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="flex items-end gap-2 flex-wrap p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         <div>
           <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("margemLabel", lang)}</label>
           <input type="number" value={margemPct} onChange={(e) => onMargemChange(e.target.value)}
@@ -559,7 +559,7 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
     : { quantidadeUnidades: item.original.quantidade, custoUnitario: item.original.valorUnitario };
 
   return (
-    <div className="p-4 rounded-xl space-y-3" style={{ background: tokens.cardBg, border: `1px solid ${item.status === "novo" ? "rgba(245,185,66,0.3)" : tokens.cardBorda}` }}>
+    <div className="p-4 rounded-xl space-y-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${item.status === "novo" ? "rgba(245,185,66,0.3)" : tokens.cardBorda}` }}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <input type="checkbox" checked={item.incluir} onChange={(e) => onAtualizar("incluir", e.target.checked)} className="w-4 h-4 rounded shrink-0" />
@@ -636,7 +636,7 @@ function ResumoFinal({ lang, resumo, onImportarOutra }: { lang: Lang; resumo: { 
       <CheckCircle2 size={40} style={{ color: tokens.acento, margin: "0 auto" }} />
       <p className="text-sm font-semibold" style={{ color: tokens.texto }}>{t("resumoSucesso", lang, { n: resumo.sucesso })}</p>
       {resumo.falhas.length > 0 && (
-        <div className="text-left max-w-md mx-auto p-4 rounded-xl" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+        <div className="text-left max-w-md mx-auto p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
           <p className="text-xs font-semibold mb-2" style={{ color: "#fca5a5" }}>{t("resumoFalhas", lang, { n: resumo.falhas.length })}</p>
           {resumo.falhas.map((f, i) => <p key={i} className="text-xs" style={{ color: "#fca5a5" }}>{f}</p>)}
         </div>
