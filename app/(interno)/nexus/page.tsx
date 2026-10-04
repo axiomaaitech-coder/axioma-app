@@ -138,7 +138,7 @@ type Nome3 = [string, string, string]
 type EstiloSelo = { cor: string; escuroTexto?: string; claroFundo: string; claroTexto: string; nome: Nome3 }
 const NATUREZA_EVENTO: Record<string, EstiloSelo> = {
   fact: { cor: '#2ecc9b', escuroTexto: '#ffffff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
-  signal: { cor: '#facc15', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
+  signal: { cor: '#2ecc9b', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
   official_decision: { cor: '#2ecc9b', claroFundo: '#101b3d', claroTexto: '#ffffff', nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
 }
 const NATUREZA_DESCONHECIDA: EstiloSelo = { cor: '#5a7a9a', claroFundo: '#6b7280', claroTexto: '#ffffff', nome: ['Não classificado', 'Unclassified', 'No clasificado'] }
@@ -148,7 +148,7 @@ const NATUREZA_DESCONHECIDA: EstiloSelo = { cor: '#5a7a9a', claroFundo: '#6b7280
 function impactoEvento(severity: number | null): EstiloSelo {
   const s = severity ?? 0
   if (s >= 70) return { cor: '#f87171', claroFundo: 'transparent', claroTexto: '#dc3545', nome: ['Impacto alto', 'High impact', 'Impacto alto'] }
-  if (s >= 45) return { cor: '#facc15', claroFundo: 'transparent', claroTexto: '#b45309', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
+  if (s >= 45) return { cor: '#2ecc9b', claroFundo: 'transparent', claroTexto: '#b45309', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
   return { cor: '#34d399', claroFundo: 'transparent', claroTexto: '#374151', nome: ['Impacto baixo', 'Low impact', 'Impacto bajo'] }
 }
 
@@ -199,7 +199,7 @@ export default function NexusPage() {
   const corTrava = (nivel: string) => ({
     // Claro: ícone colorido + texto azul-marinho (verde-menta em texto miúdo não lê no creme).
     icone: nivel === 'oficial' ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#b45309' : '#2ecc9b'),
-    texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#facc15'),
+    texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#2ecc9b'),
   })
 
   const [loading, setLoading] = useState(true)

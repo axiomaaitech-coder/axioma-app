@@ -226,7 +226,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
                   <div className="flex items-end gap-1 px-3.5 py-2.5 rounded-2xl rounded-tl-sm" style={bolhaJoseph}>
                     <span className="text-xs font-semibold mr-1.5">{L('José interpretando os sinais', 'José interpreting the signs', 'José interpretando las señales')}</span>
                     {[0, 1, 2].map((k) => (
-                      <motion.span key={k} className="w-1 rounded-full" style={{ background: '#f5a623' }}
+                      <motion.span key={k} className="w-1 rounded-full" style={{ background: '#2ecc9b' }}
                         animate={{ height: [4, 12, 4] }} transition={{ duration: 0.9, repeat: Infinity, delay: k * 0.15 }} aria-hidden />
                     ))}
                   </div>

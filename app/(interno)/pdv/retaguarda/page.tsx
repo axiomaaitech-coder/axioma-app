@@ -730,9 +730,9 @@ function CardsResumo({ lang, resumo, verLucro, carregando, ultimaAtualizacao, on
       </div>
 
       {!!resumo?.itensSemCusto && resumo.itensSemCusto > 0 && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(250,204,21,0.12)", border: "1px solid rgba(250,204,21,0.35)" }}>
-          <AlertTriangle size={14} style={{ color: "#facc15" }} className="shrink-0 mt-0.5" />
-          <p className="text-xs" style={{ color: "#facc15" }}>{t("itensSemCustoAviso", lang, { n: resumo.itensSemCusto })}</p>
+        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)" }}>
+          <AlertTriangle size={14} style={{ color: "#2ecc9b" }} className="shrink-0 mt-0.5" />
+          <p className="text-xs" style={{ color: "#2ecc9b" }}>{t("itensSemCustoAviso", lang, { n: resumo.itensSemCusto })}</p>
         </div>
       )}
     </div>

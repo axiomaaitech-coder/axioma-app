@@ -18,13 +18,13 @@ const TIPO_CENARIO: Record<string, { nome: Nome3; escuro: string; claro: string 
 }
 const PRIORIDADE: Record<string, { nome: Nome3; escuro: string; claro: string }> = {
   alta: { nome: ['Prioridade alta', 'High priority', 'Prioridad alta'], escuro: '#f87171', claro: '#dc3545' },
-  media: { nome: ['Prioridade média', 'Medium priority', 'Prioridad media'], escuro: '#facc15', claro: '#b45309' },
+  media: { nome: ['Prioridade média', 'Medium priority', 'Prioridad media'], escuro: '#2ecc9b', claro: '#b45309' },
   baixa: { nome: ['Prioridade baixa', 'Low priority', 'Prioridad baja'], escuro: '#34d399', claro: '#374151' },
 }
 const DIRECAO: Record<string, { simbolo: string; escuro: string; claro: string }> = {
   positivo: { simbolo: '▲', escuro: '#34d399', claro: '#16a97d' },
   negativo: { simbolo: '▼', escuro: '#f87171', claro: '#dc3545' },
-  misto: { simbolo: '◆', escuro: '#facc15', claro: '#b45309' },
+  misto: { simbolo: '◆', escuro: '#2ecc9b', claro: '#b45309' },
 }
 
 
