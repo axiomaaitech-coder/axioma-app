@@ -308,14 +308,22 @@ export default function TopNav() {
         onClick={onClick}
         title={title}
         className="relative flex items-center justify-center gap-1 rounded-lg text-xs font-semibold h-10 w-full px-1.5 transition-all"
-        style={{
-          background: ativo ? `${cor}38` : `${cor}30`,
-          border: `1px solid ${cor}${ativo ? "c0" : "a0"}`,
-          boxShadow: ativo ? `0 0 20px ${cor}70, inset 0 0 12px ${cor}25` : `0 0 16px ${cor}55, inset 0 0 8px ${cor}18`,
+        style={ativo ? {
+          // Seção onde o usuário está (pedido do Elias 2026-10-04): verde-menta escuro forte
+          background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)",
+          border: "2px solid #2ecc9b",
+          boxShadow: "0 0 22px rgba(46,204,155,0.65), inset 0 1px 0 rgba(255,255,255,0.18)",
+          color: "#ffffff",
+          textShadow: "none",
+        } : {
+          background: `${cor}30`,
+          border: `1px solid ${cor}a0`,
+          boxShadow: `0 0 16px ${cor}55, inset 0 0 8px ${cor}18`,
           color: cor,
           textShadow: `0 0 8px ${cor}50`,
         }}
       >
+        {ativo && <span className="absolute top-0 left-2 right-2 h-[3px] rounded-b-full" style={{ background: "#2ecc9b" }} aria-hidden />}
         {children}
       </motion.button>
     );
