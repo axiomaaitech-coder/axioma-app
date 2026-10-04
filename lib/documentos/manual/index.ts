@@ -43,6 +43,8 @@ import m38 from "./38-empresa"
 import m39 from "./39-equipe"
 import m40 from "./40-planos"
 import m41 from "./41-uso-ia"
+import m42 from "./42-pdv"
+import m43 from "./43-nexus"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -87,4 +89,6 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "39", nome: "Configurações — Equipe", doc: m39 },
   { numero: "40", nome: "Configurações — Planos", doc: m40 },
   { numero: "41", nome: "Configurações — Uso da IA", doc: m41 },
+  { numero: "42", nome: "PDV — Ponto de Venda", doc: m42 },
+  { numero: "43", nome: "Nexus — Inteligência Econômica e o José", doc: m43 },
 ]
