@@ -307,7 +307,7 @@ export default function TopNav() {
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         title={title}
-        className="relative flex items-center justify-center gap-1 rounded-lg text-xs font-semibold h-10 w-full px-1.5 transition-all"
+        className="relative flex items-center justify-center gap-1 rounded-lg text-[11px] font-semibold h-8 w-full px-1.5 transition-all"
         style={ativo ? {
           // Seção onde o usuário está (pedido do Elias 2026-10-04): verde-menta escuro forte
           background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)",
@@ -356,24 +356,25 @@ export default function TopNav() {
   // Cada função recebe a posição real (0..13) e devolve o card - garante
   // que a cor (corCasa) sempre bate com a casa onde o card realmente cai,
   // mesmo quando um item (PDV) precisa entrar no meio da lista de grupos.
-  const construtoresCartas: ((indice: number) => React.ReactNode)[] = [];
+  // Cada carta do menu por chave; a ORDEM vem de ORDEM_MENU (fácil de reorganizar).
+  const cartas: Record<string, (indice: number) => React.ReactNode> = {};
   if (!isOperador) {
-    construtoresCartas.push((i) => (
+    cartas["dashboard"] = ((i) => (
       <CardNav key="dashboard" indice={i} ativo={pathname === "/dashboard"} onClick={() => navegar("/dashboard")}>
         <span>🏠</span>
         <span className="truncate">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
       </CardNav>
     ));
-    construtoresCartas.push((i) => (
+    cartas["nexus"] = ((i) => (
       <CardNav key="nexus" indice={i} ativo={nexusAtivo} onClick={() => navegar(nexusModulo.path)}>
         <span className="truncate">{nexusModulo.label[lang]}</span>
       </CardNav>
     ));
     gruposVisiveis.forEach((grupo) => {
       const ehMei = (grupo as any).destaque === true;
-      construtoresCartas.push((i) => renderGrupoDesktop(grupo, i));
+      cartas[grupo.label.pt] = (i) => renderGrupoDesktop(grupo, i);
       if (ehMei) {
-        construtoresCartas.push((i) => (
+        cartas["pdv"] = ((i) => (
           <CardNav key="pdv" indice={i} ativo={pdvAtivo} onClick={() => navegar(pdvModulo.path)} title={pdvTooltip}>
             <span className="truncate">{pdvModulo.label[lang]}</span>
             <BadgeDestaque lang={lang} />
@@ -381,43 +382,49 @@ export default function TopNav() {
         ));
       }
     });
-    construtoresCartas.push((i) => (
+    cartas["banco"] = ((i) => (
       <CardNav key="banco" indice={i} ativo={ofAtivo} onClick={() => navegar("/open-finance")} title={conectarLabel}>
         <Landmark size={13} />
         <span className="truncate">{conectarLabelCurto}</span>
       </CardNav>
     ));
-    construtoresCartas.push((i) => (
-      <div key="idioma" className="col-span-2 h-10 rounded-lg flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
+    cartas["idioma"] = ((i) => (
+      <div key="idioma" className="col-span-2 h-8 rounded-lg flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
         <SeletorIdioma />
       </div>
     ));
     // Documentos do Axioma (pedido do Elias 2026-10-04): manual, termos e privacidade
-    construtoresCartas.push((i) => (
+    cartas["manual"] = ((i) => (
       <CardNav key="manual" indice={i} ativo={pathname === "/manual"} onClick={() => navegar("/manual")}>
         <span>📘</span>
         <span className="truncate">{lang === "pt" ? "Manual" : lang === "en" ? "Manual" : "Manual"}</span>
       </CardNav>
     ));
-    construtoresCartas.push((i) => (
+    cartas["termos"] = ((i) => (
       <CardNav key="termos" indice={i} ativo={pathname === "/termos"} onClick={() => navegar("/termos")}>
         <span>📄</span>
         <span className="truncate">{lang === "pt" ? "Termos de Uso" : lang === "en" ? "Terms of Use" : "Términos de Uso"}</span>
       </CardNav>
     ));
-    construtoresCartas.push((i) => (
+    cartas["privacidade"] = ((i) => (
       <CardNav key="privacidade" indice={i} ativo={pathname === "/privacidade"} onClick={() => navegar("/privacidade")}>
         <span>🔒</span>
         <span className="truncate">{lang === "pt" ? "Privacidade" : lang === "en" ? "Privacy" : "Privacidad"}</span>
       </CardNav>
     ));
-    construtoresCartas.push((i) => (
+    cartas["sair"] = ((i) => (
       <CardNav key="sair" indice={i} ativo={false} onClick={handleLogout} title={lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}>
         <LogOut size={13} />
         <span className="truncate">{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
       </CardNav>
     ));
   }
+  // Ordem do menu (2 linhas de 9; "idioma" ocupa 2 casas). Grupos pelo nome em pt.
+  const ORDEM_MENU = [
+    "dashboard", "nexus", "🟡 MEI", "pdv", "💰 Financeiro", "📒 Contabilidade", "📈 Crescimento", "👥 Comercial", "🏢 Gestão",
+    "🤖 IA Premium", "⚙️ Config", "banco", "idioma", "manual", "termos", "privacidade", "sair",
+  ];
+  const construtoresCartas = ORDEM_MENU.map((k) => cartas[k]).filter(Boolean);
 
   return (
     <>
@@ -427,7 +434,7 @@ export default function TopNav() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2.5 h-[108px]"
+        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2 h-[86px]"
         style={{
           background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
           borderBottom: "1px solid rgba(163,177,194,0.25)",
@@ -459,7 +466,7 @@ export default function TopNav() {
             mesmo tamanho, alternando verde-menta/azul por posição. Substitui
             o scroll horizontal escondido de antes (ninguém sabia que dava
             pra rolar) e o arco-íris de 1 cor por módulo. */}
-        <div className="grid grid-cols-9 gap-1.5 min-w-0 flex-1">
+        <div className="grid grid-cols-9 gap-1 min-w-0 flex-1">
 
         {construtoresCartas.map((construir, i) => construir(i))}
 
@@ -696,7 +703,7 @@ export default function TopNav() {
         )}
       </AnimatePresence>
 
-      <div className="h-16 md:h-[108px]" />
+      <div className="h-16 md:h-[86px]" />
 
       {pedidosAval > 0 && pathname !== "/equipe" && (
         <div
