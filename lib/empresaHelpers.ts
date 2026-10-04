@@ -1,3 +1,4 @@
+import { reportarFalhaLeitura } from "./erroUiHelpers";
 // 🦅 AXIOMA AI.TECH - Helpers do Módulo Empresa
 // Integrações: BrasilAPI (CNPJ), ViaCEP (endereço)
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
@@ -991,12 +992,14 @@ export type TermoConvite = {
 };
 export async function listarTermosConvite(empresaId: string): Promise<TermoConvite[]> {
   // Painel da Equipe mostra só quem está na empresa: termo apagado ou de quem saiu (lixeira 30 dias) fica fora
-  const { data } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).is("apagado_em", null).is("saiu_em", null).order("aceito_em", { ascending: false }).limit(200);
+  const { data, error } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).is("apagado_em", null).is("saiu_em", null).order("aceito_em", { ascending: false }).limit(200);
+  if (error) reportarFalhaLeitura("equipe.termos", error);
   return (data as TermoConvite[]) || [];
 }
 // Lixeira: termos de quem saiu da empresa (60 dias, depois a limpeza diária apaga)
 export async function listarLixeiraTermos(empresaId: string): Promise<TermoConvite[]> {
-  const { data } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).not("saiu_em", "is", null).is("apagado_em", null).order("saiu_em", { ascending: false }).limit(200);
+  const { data, error } = await supabase.from("empresa_convite_termo").select("*").eq("empresa_id", empresaId).not("saiu_em", "is", null).is("apagado_em", null).order("saiu_em", { ascending: false }).limit(200);
+  if (error) reportarFalhaLeitura("equipe.lixeiraTermos", error);
   return (data as TermoConvite[]) || [];
 }
 export async function recuperarTermoConvite(id: string): Promise<{ erro?: string; codigo?: string }> {
@@ -1052,14 +1055,14 @@ export async function alterarPapelMembro(
 // (restaurável) ou abre um pedido de aval. Convite pendente: só cancela.
 export async function removerAcessoMembro(
   membro: MembroEquipe, empresaId: string, userId: string, motivo?: string
-): Promise<{ erro?: string; codigo?: string; resultado?: "suspenso" | "pedido" | "saiu" | "cancelado" }> {
+): Promise<{ erro?: string; codigo?: string; resultado?: "suspenso" | "pedido" | "saiu" | "removido" | "cancelado" }> {
   if (membro.origem === "ativo") {
     const { data, error } = await supabase.rpc("equipe_remover", { p_empresa: empresaId, p_alvo: membro.user_id, p_motivo: motivo ?? null });
     if (error) { reportarFalhaEscrita("empresa_usuarios", "rpc equipe_remover", error.message); return { erro: error.message, codigo: error.code }; }
-    const resultado = data as "suspenso" | "pedido" | "saiu";
+    const resultado = data as "suspenso" | "pedido" | "saiu" | "removido";
     await registrarAuditoria({
       empresaId, userId, tabela: "empresa_usuarios", registroId: membro.id, acao: "excluir",
-      descricao: `${resultado === "pedido" ? "Pedido de remoção (aguarda aval)" : resultado === "saiu" ? "Saiu da empresa" : "Acesso suspenso (7 dias para restaurar)"}: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
+      descricao: `${resultado === "pedido" ? "Pedido de remoção (aguarda aval)" : resultado === "saiu" ? "Saiu da empresa" : resultado === "removido" ? "Acesso vencido removido de vez" : "Acesso cortado (até 30 dias: de vez; acima: suspenso 7 dias)"}: ${membro.email}${motivo ? ` — motivo: ${motivo}` : ""}`,
     });
     return { resultado };
   }

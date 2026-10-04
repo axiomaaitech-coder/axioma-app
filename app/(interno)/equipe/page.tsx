@@ -473,9 +473,10 @@ export default function EquipePage() {
     if (!empresaId || !userId) { avisar('erro', t.erroGenerico); return }
     const r = await removerAcessoMembro(membro, empresaId, userId, motivo)
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
-    // Com prazo (24h…): o banco encerra de vez (regra do Elias); sem prazo: suspensão restaurável
-    const comPrazo = membro.origem === 'ativo' && !!membro.expira_em
-    avisar('sucesso', r.resultado === 'pedido' ? t.sucessoPedido : r.resultado === 'suspenso' ? (comPrazo ? t.sucessoEncerrado : t.sucessoSuspenso) : t.sucessoRemocao, 7000)
+    // Até 30 dias: o banco encerra de vez (regra do Elias); acima ou sem prazo: suspensão restaurável.
+    // 'removido' = o acesso já tinha vencido e saiu de vez.
+    const zera = membro.origem === 'ativo' && zeraAoCortar(membro)
+    avisar('sucesso', r.resultado === 'pedido' ? t.sucessoPedido : r.resultado === 'removido' ? t.sucessoEncerrado : r.resultado === 'suspenso' ? (zera ? t.sucessoEncerrado : t.sucessoSuspenso) : t.sucessoRemocao, 7000)
     await recarregarEquipe(empresaId)
   }
 
