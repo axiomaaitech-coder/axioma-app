@@ -18,6 +18,11 @@ import m13 from "./13-fluxo-caixa"
 import m14 from "./14-dre"
 import m15 from "./15-endividamento"
 import m16 from "./16-tesouraria"
+import m17 from "./17-contador"
+import m18 from "./18-fiscal"
+import m19 from "./19-livro-razao"
+import m20 from "./20-balancete"
+import m21 from "./21-dre-contabil"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -37,4 +42,9 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "14", nome: "Financeiro — DRE", doc: m14 },
   { numero: "15", nome: "Financeiro — Endividamento", doc: m15 },
   { numero: "16", nome: "Financeiro — Tesouraria", doc: m16 },
+  { numero: "17", nome: "Contabilidade — Contador", doc: m17 },
+  { numero: "18", nome: "Contabilidade — Fiscal", doc: m18 },
+  { numero: "19", nome: "Contabilidade — Livro Razão", doc: m19 },
+  { numero: "20", nome: "Contabilidade — Balancete", doc: m20 },
+  { numero: "21", nome: "Contabilidade — DRE Contábil", doc: m21 },
 ]
