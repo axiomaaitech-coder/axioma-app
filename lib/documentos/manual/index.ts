@@ -11,6 +11,13 @@ import m06 from "./06-mei-reforma"
 import m07 from "./07-mei-precificacao"
 import m08 from "./08-mei-ia-advisor"
 import m09 from "./09-mei-imposto-renda"
+import m10 from "./10-receitas"
+import m11 from "./11-custos-fixos"
+import m12 from "./12-custos-variaveis"
+import m13 from "./13-fluxo-caixa"
+import m14 from "./14-dre"
+import m15 from "./15-endividamento"
+import m16 from "./16-tesouraria"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -23,4 +30,11 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "07", nome: "MEI — Precificação MEI", doc: m07 },
   { numero: "08", nome: "MEI — IA MEI Advisor", doc: m08 },
   { numero: "09", nome: "MEI — Imposto de Renda", doc: m09 },
+  { numero: "10", nome: "Financeiro — Receitas", doc: m10 },
+  { numero: "11", nome: "Financeiro — Custos Fixos", doc: m11 },
+  { numero: "12", nome: "Financeiro — Custos Variáveis", doc: m12 },
+  { numero: "13", nome: "Financeiro — Fluxo de Caixa", doc: m13 },
+  { numero: "14", nome: "Financeiro — DRE", doc: m14 },
+  { numero: "15", nome: "Financeiro — Endividamento", doc: m15 },
+  { numero: "16", nome: "Financeiro — Tesouraria", doc: m16 },
 ]
