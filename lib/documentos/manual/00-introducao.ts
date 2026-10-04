@@ -32,6 +32,24 @@ const doc: DocumentoAxioma = {
     { p: 'A maioria das pequenas e médias empresas não tem acesso a um diretor financeiro. Decisões importantes, como quanto cobrar, quando contratar, se cabe um empréstimo ou como pagar menos imposto dentro da lei, acabam sendo tomadas no escuro. O objetivo do Axioma é **colocar a inteligência de um CFO experiente ao alcance de qualquer empresa**, disponível a qualquer hora, com os números reais do negócio, em linguagem simples e com respeito total à privacidade de quem usa.' },
     { p: 'Cada tela do Axioma segue o mesmo princípio: mostrar **o que está acontecendo, por que está acontecendo e qual é o próximo passo**.' },
 
+    { h1: 'Inovação: o melhor da tecnologia mundial, pensado para o Brasil' },
+    { p: 'O Axioma acompanha de perto o que há de mais avançado em gestão financeira e inteligência artificial nos grandes polos de tecnologia do mundo e traz essas ideias para a realidade da empresa brasileira, com as nossas leis, os nossos impostos e o nosso sistema bancário.' },
+    { tabela: { colunas: ['Referência', 'O que inspira', 'Como aparece no Axioma'], larguras: [1900, 3300, 3826], linhas: [
+      ['China', 'Plataformas que integram vendas, pagamentos instantâneos e gestão no mesmo lugar, e o uso intenso de dados em tempo real.', 'PDV integrado ao estoque e ao financeiro; pagamento de contas por Pix dentro da plataforma (em preparação); painéis que se atualizam com os dados do dia.'],
+      ['Europa', 'Open Banking (com a diretiva PSD2) e privacidade desde a concepção (privacy by design, inspirada na GDPR).', 'Conexão bancária por Open Finance com consentimento do titular; isolamento dos dados por empresa; auditoria do uso de IA sem guardar conteúdo; regras de prazo e lixeira para dados pessoais.'],
+      ['Estados Unidos', 'Modelos de linguagem de última geração e ferramentas de planejamento financeiro com IA (FP&A).', 'Motor de orquestração de IA em camadas, com especialistas por área e por setor, conferência automática de números, análises executivas e planos de longo prazo do José.'],
+    ] } },
+    { h2: 'Funções que levam a gestão além do convencional' },
+    { lista: [
+      '**Conferência automática de números da IA:** cada valor citado pela inteligência é checado contra os dados reais da empresa antes de chegar a você.',
+      '**Nexus e o José:** leitura diária da economia do Brasil e do mundo a partir de fontes públicas oficiais (como Banco Central, IBGE, Banco Mundial e OCDE), cruzada com o setor da sua empresa, com um placar que compara o que foi previsto com o que de fato aconteceu.',
+      '**Gêmeo digital do caixa:** simulação do caixa da empresa para testar decisões antes de tomá-las.',
+      '**Leitura inteligente de notas fiscais:** XML, PDF ou foto viram lançamentos distribuídos nos módulos certos, sempre com conferência humana antes de gravar.',
+      '**Equipe com hierarquia e prazos:** convites presos a um e-mail, códigos de confirmação, acesso temporário e trilha de responsabilidade.',
+      '**Tudo em três idiomas:** português, inglês e espanhol em todas as telas.',
+    ] },
+    { p: 'Nosso compromisso é seguir pesquisando e incorporando inovações sempre que elas tragam ganho real para a empresa, sem abrir mão da segurança e da privacidade de quem usa.' },
+
     { h1: 'O motor de inteligência do Axioma' },
     { p: 'O coração da plataforma é um **motor de orquestração de inteligência artificial**: um "cérebro" único, usado por todas as telas, construído em camadas para responder como um diretor financeiro de verdade, com segurança e com custo controlado.' },
     { tabela: { colunas: ['Camada', 'O que faz', 'Usa IA?'], larguras: [2200, 5326, 1500], linhas: [
