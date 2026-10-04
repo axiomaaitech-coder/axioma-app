@@ -10,8 +10,9 @@ import { useThemeAxioma } from "../lib/ThemeContext";
 const LABELS: Record<string, string> = { pt: "PRO", en: "PRO", es: "PRO" };
 
 export function BadgeDestaque({ lang = "pt", label }: { lang?: string; label?: string }) {
-  const { tema } = useThemeAxioma();
-  const cor = tema === "xms" ? "#2ecc9b" : CORES.ouro;
+  // Sem dourado em nenhum tema (padrão Axioma 2026-10-04): verde-menta.
+  void useThemeAxioma; void CORES;
+  const cor = "#2ecc9b";
   const texto = label || LABELS[lang] || LABELS.pt;
   return (
     <span

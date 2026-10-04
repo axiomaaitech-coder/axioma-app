@@ -289,39 +289,38 @@ export default function TopNav() {
   // vizinho, inclusive vertical, sempre cai na cor oposta).
   const CHESS_VERDE = "#34d399";
   const CHESS_AZUL = "#6ab0ff";
+  // Tabuleiro de xadrez (Elias 2026-10-04): creme com letra azul-marinho e
+  // azul-marinho com letra creme, alternando; seção em uso = verde-menta neon.
+  const CASA_CREME = { background: "#f6f7c4", color: "#101b3d", border: "1px solid rgba(16,27,61,0.28)", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" };
+  const CASA_NAVY = { background: "#101b3d", color: "#f6f7c4", border: "1px solid rgba(246,247,196,0.28)", boxShadow: "0 2px 8px rgba(0,0,0,0.35)" };
   function corCasa(indice: number) {
     const linha = Math.floor(indice / 9);
     const coluna = indice % 9;
-    return (linha + coluna) % 2 === 0 ? CHESS_VERDE : CHESS_AZUL;
+    return (linha + coluna) % 2 === 0 ? CASA_CREME : CASA_NAVY;
   }
+
 
   // Card uniforme — mesmo tamanho/formato pra qualquer um dos 14 (módulo,
   // utilidade ou logout), só a cor alterna pelo tabuleiro.
   function CardNav({ indice, ativo, onClick, title, children }: {
     indice: number; ativo: boolean; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title?: string; children: React.ReactNode;
   }) {
-    const cor = corCasa(indice);
+    const casa = corCasa(indice);
     return (
       <motion.button
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         title={title}
-        className="relative flex items-center justify-center gap-1 rounded-lg text-[11px] font-semibold h-8 w-full px-1.5 transition-all"
+        className="axi-menu-card relative flex items-center justify-center gap-1 rounded-lg text-[11px] font-semibold h-8 w-full px-1.5 transition-all"
         style={ativo ? {
           // Seção onde o usuário está (pedido do Elias 2026-10-04): verde-menta escuro forte
           background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)",
           border: "2px solid #2ecc9b",
-          boxShadow: "0 0 22px rgba(46,204,155,0.65), inset 0 1px 0 rgba(255,255,255,0.18)",
+          boxShadow: "0 0 14px #2ecc9b, 0 0 28px rgba(46,204,155,0.55), inset 0 1px 0 rgba(255,255,255,0.18)", // neon
           color: "#ffffff",
           textShadow: "none",
-        } : {
-          background: `${cor}30`,
-          border: `1px solid ${cor}a0`,
-          boxShadow: `0 0 16px ${cor}55, inset 0 0 8px ${cor}18`,
-          color: cor,
-          textShadow: `0 0 8px ${cor}50`,
-        }}
+        } : casa}
       >
         {ativo && <span className="absolute top-0 left-2 right-2 h-[3px] rounded-b-full" style={{ background: "#2ecc9b" }} aria-hidden />}
         {children}
@@ -389,7 +388,7 @@ export default function TopNav() {
       </CardNav>
     ));
     cartas["idioma"] = ((i) => (
-      <div key="idioma" className="col-span-2 h-8 rounded-lg flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
+      <div key="idioma" className="axi-menu-card relative col-span-2 h-8 rounded-lg flex items-center justify-center" style={corCasa(i)}>
         <SeletorIdioma />
       </div>
     ));
@@ -420,11 +419,17 @@ export default function TopNav() {
     ));
   }
   // Ordem do menu (2 linhas de 9; "idioma" ocupa 2 casas). Grupos pelo nome em pt.
+  // Sequência definida pelo Elias (2026-10-04).
   const ORDEM_MENU = [
-    "dashboard", "nexus", "🟡 MEI", "pdv", "💰 Financeiro", "📒 Contabilidade", "📈 Crescimento", "👥 Comercial", "🏢 Gestão",
-    "🤖 IA Premium", "⚙️ Config", "banco", "idioma", "manual", "termos", "privacidade", "sair",
+    "dashboard", "nexus", "💰 Financeiro", "📒 Contabilidade", "👥 Comercial", "📈 Crescimento", "🏢 Gestão", "idioma",
+    "🟡 MEI", "pdv", "🤖 IA Premium", "⚙️ Config", "manual", "termos", "privacidade", "banco", "sair",
   ];
-  const construtoresCartas = ORDEM_MENU.map((k) => cartas[k]).filter(Boolean);
+  // Casa real no tabuleiro (o idioma ocupa 2 casas) — a cor do xadrez segue a casa.
+  let casaAtual = 0;
+  const construtoresCartas = ORDEM_MENU.filter((k) => cartas[k]).map((k) => {
+    const casa = casaAtual; casaAtual += k === "idioma" ? 2 : 1;
+    return () => cartas[k](casa);
+  });
 
   return (
     <>
@@ -468,7 +473,7 @@ export default function TopNav() {
             pra rolar) e o arco-íris de 1 cor por módulo. */}
         <div className="grid grid-cols-9 gap-1 min-w-0 flex-1">
 
-        {construtoresCartas.map((construir, i) => construir(i))}
+        {construtoresCartas.map((construir) => construir())}
 
         {/* Operador: PDV é a única coisa que sobra no menu */}
         {isOperador && pdvBotaoDesktop}
@@ -482,7 +487,7 @@ export default function TopNav() {
             const grupoAberto = gruposVisiveis.find((g) => g.label.pt === dropdown);
             if (!grupoAberto) return null;
             const giAberto = gruposVisiveis.indexOf(grupoAberto);
-            const corAberto = corCasa(giAberto === 0 ? 2 : giAberto + 3);
+            const corAberto = "#2ecc9b";
             return (
               <div ref={dropdownPortalRef} style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 60 }}>
                 <AnimatePresence>

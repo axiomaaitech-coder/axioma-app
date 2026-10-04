@@ -151,6 +151,16 @@ body {
   .axi-card-premium3d, .axi-card-premium3d .axi-card-premium3d-bar { transition: none; }
 }
 
+/* Botões do menu do topo: mesmo efeito dos cards, mais delicado (Elias 2026-10-04) */
+.axi-menu-card { transition: border-color 180ms ease, box-shadow 180ms ease; }
+.axi-menu-card::before {
+  content: ""; position: absolute; top: 0; left: 8px; right: 8px; height: 2px;
+  background: #2ecc9b; border-radius: 0 0 2px 2px; opacity: 0; transition: opacity 180ms ease; pointer-events: none;
+}
+.axi-menu-card:hover { border-color: #2ecc9b !important; box-shadow: 0 0 10px rgba(46, 204, 155, 0.45) !important; }
+.axi-menu-card:hover::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .axi-menu-card, .axi-menu-card::before { transition: none; } }
+
 /* Campo de energia "espaço" (RadarEnergyField) - card azul-marinho fixo (não
    segue tema Claro/Escuro, igual ao restante dos cards "hero" decorativos)
    com 3 camadas: linhas de fundo quase estáticas, feixes de luz correndo por
