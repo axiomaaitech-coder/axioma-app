@@ -13,7 +13,7 @@ import m08 from "./08-mei-ia-advisor"
 import m09 from "./09-mei-imposto-renda"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
-  { numero: "00", nome: "Introdução e primeiros passos", doc: m00 },
+  { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
   { numero: "01", nome: "Dashboard", doc: m01 },
   { numero: "02", nome: "MEI — Painel MEI", doc: m02 },
   { numero: "03", nome: "MEI — Cockpit", doc: m03 },
