@@ -27,6 +27,12 @@ import m22 from "./22-metas"
 import m23 from "./23-investimentos"
 import m24 from "./24-simulacoes"
 import m25 from "./25-precificacao"
+import m26 from "./26-clientes"
+import m27 from "./27-fornecedores"
+import m28 from "./28-contas-pagar"
+import m29 from "./29-estoque"
+import m30 from "./30-contas-receber"
+import m31 from "./31-inadimplencia"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -55,4 +61,10 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "23", nome: "Crescimento — Investimentos", doc: m23 },
   { numero: "24", nome: "Crescimento — Simulações", doc: m24 },
   { numero: "25", nome: "Crescimento — Precificação", doc: m25 },
+  { numero: "26", nome: "Comercial — Clientes", doc: m26 },
+  { numero: "27", nome: "Comercial — Fornecedores", doc: m27 },
+  { numero: "28", nome: "Comercial — Contas a Pagar", doc: m28 },
+  { numero: "29", nome: "Comercial — Estoque", doc: m29 },
+  { numero: "30", nome: "Comercial — Contas a Receber", doc: m30 },
+  { numero: "31", nome: "Comercial — Inadimplência", doc: m31 },
 ]
