@@ -34,6 +34,11 @@ export const MODELOS: Record<Nivel, { provedor: 'openai' | 'anthropic'; modelo: 
   estrategica: { provedor: 'anthropic', modelo: 'claude-opus-5-5', esforco: 'high' },
 }
 const OPENAI_RESERVA = 'gpt-4o-mini' // se o modelo barato principal falhar
+// Regra do Elias (2026-10-03): a Anthropic (paga) só atende IA Financeira, IA Tributária,
+// José/Nexus e relatórios complexos. Em qualquer outra tela, análise e estratégia vão
+// para o modelo forte da OpenAI. (O José usa lib/nexusJoseph/Briefing/Plano direto.)
+export const TELAS_ANTHROPIC = new Set(['ia-financeira', 'ia-tributaria', 'nexus', 'nexus-simulacoes', 'relatorios'])
+const OPENAI_FORTE = 'gpt-4o'
 
 // ─── Medição de consumo (B2 — painel de custo) ───
 // Preço de tabela da Anthropic (US$ por milhão de tokens, consultado 2026-09-28;
@@ -135,11 +140,12 @@ export type ArquivoVisao = { base64: string; mediaType: 'application/pdf' | 'ima
 // `diag.motivo` diz por que voltou null (sem conteúdo do documento) — a rota manda pro Sentry.
 // Claude primeiro; se falhar (sem crédito, fora do ar, recusa), a OpenAI lê no lugar.
 export async function lerDocumentoComVisao(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso, diag?: { motivo?: string }): Promise<{ dados: unknown; modelo: string } | null> {
+  // Leitura de nota (PDF/foto) é OpenAI desde 2026-10-03 (regra do Elias); Claude só de reserva.
+  const openai = await lerDocumentoComOpenAI(arquivo, instrucao, esquema, uso)
+  if (openai) return openai
   const claude = await lerDocumentoComClaude(arquivo, instrucao, esquema, uso, diag)
   if (claude) return claude
-  const reserva = await lerDocumentoComOpenAI(arquivo, instrucao, esquema, uso)
-  if (reserva) return reserva
-  if (diag) diag.motivo = `${diag.motivo ?? '?'} | reserva OpenAI também falhou`
+  if (diag) diag.motivo = `${diag.motivo ?? '?'} | OpenAI e reserva Claude falharam`
   return null
 }
 
@@ -337,6 +343,7 @@ export async function perguntarAoMotor(args: {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
+    if (!TELAS_ANTHROPIC.has(args.tela ?? '')) return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso), provedor: 'openai', modelo: OPENAI_FORTE, enviados }
     const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId }, uso)
     if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
     // Anthropic fora do ar: a OpenAI responde no lugar (sem a regra de escalar), melhor que nada.
