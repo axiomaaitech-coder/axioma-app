@@ -4,6 +4,7 @@
 // calcStatus é REAPROVEITADO de fornecedorHelpers.ts — não duplicado aqui.
 
 import { createBrowserClient } from "@supabase/ssr";
+import { reportarFalhaLeitura } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
@@ -1247,14 +1248,17 @@ export function avaliarDescontosComForecast(
 // Banco. Monta com dado que já existe — reaproveita listarContratos
 // (fornecedorHelpers.ts, corrigido nesta mesma entrega pra filtrar por
 // empresa), listarDocumentos e listarAuditoriaConta (já existem neste
-// arquivo). Pedido e Recebimento não têm tabela hoje (decisão PO-first
-// pendente, ver Commit 4 futuro) — aparecem como "não capturado", nunca
-// inventados. Zero schema novo, zero escrita.
+// arquivo). Pedido e Recebimento vêm da NF-e da conta (mesma chave de
+// acesso): itens da nota ligados a pedido de compra e entradas de estoque
+// vinculadas a esses itens. Sem nota/vínculo = "não capturado", nunca
+// inventado. Zero schema novo, zero escrita.
 // ----------------------------------------------------------------------------
 
 export type EvidenciaFornecedor = { presente: boolean; nome: string };
 export type EvidenciaContrato = { status: "ativo" | "encerrado" | "sem_contrato"; descricao?: string | null; dataFim?: string | null; valorContratado?: number | null };
 export type EvidenciaNaoCapturada = { status: "nao_capturado" };
+export type EvidenciaPedido = EvidenciaNaoCapturada | { status: "vinculado"; numeros: string[] };
+export type EvidenciaRecebimento = EvidenciaNaoCapturada | { status: "recebido"; quantidade: number; itensRecebidos: number; itensNota: number };
 export type EvidenciaFatura = { numeroNota: string | null; valorTotal: number; qtdDocumentosAnexados: number };
 export type EvidenciaPagamento = { status: "pago" | "pendente"; dataPagamento: string | null; valorPago: number; qtdEventosAuditoria: number };
 export type EvidenciaBanco = {
@@ -1266,12 +1270,53 @@ export type EvidenceGraphAp = {
   contaId: string;
   fornecedor: EvidenciaFornecedor;
   contrato: EvidenciaContrato;
-  pedido: EvidenciaNaoCapturada;
-  recebimento: EvidenciaNaoCapturada;
+  pedido: EvidenciaPedido;
+  recebimento: EvidenciaRecebimento;
   fatura: EvidenciaFatura;
   pagamento: EvidenciaPagamento;
   banco: EvidenciaBanco;
 };
+
+// Pedido e Recebimento da conta, a partir da NF-e com a mesma chave de acesso.
+// 3 consultas no máximo (nota → itens → pedidos + entradas), nenhuma por item.
+async function evidenciaPedidoRecebimento(
+  chaveAcesso: string | null,
+  empresaId: string,
+): Promise<{ pedido: EvidenciaPedido; recebimento: EvidenciaRecebimento }> {
+  const nada = { pedido: { status: "nao_capturado" } as EvidenciaPedido, recebimento: { status: "nao_capturado" } as EvidenciaRecebimento };
+  if (!chaveAcesso) return nada;
+  const { data: nfe, error: erroNfe } = await supabase.from("estoque_nfe_importadas").select("id")
+    .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).maybeSingle();
+  if (erroNfe) reportarFalhaLeitura("rastreabilidade: estoque_nfe_importadas", erroNfe);
+  if (!nfe) return nada;
+  const { data: itens, error: erroItens } = await supabase.from("nfe_itens").select("id, pedido_compra_item_id")
+    .eq("empresa_id", empresaId).eq("nfe_importada_id", nfe.id);
+  if (erroItens) reportarFalhaLeitura("rastreabilidade: nfe_itens", erroItens);
+  const listaItens = itens || [];
+  if (listaItens.length === 0) return nada;
+
+  const idsPedidoItem = listaItens.map((i) => i.pedido_compra_item_id).filter(Boolean) as string[];
+  const [pedidoItens, movs] = await Promise.all([
+    idsPedidoItem.length > 0
+      ? supabase.from("pedido_compra_itens").select("pedido:pedido_compra(numero, status)").eq("empresa_id", empresaId).in("id", idsPedidoItem)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    supabase.from("estoque_movimentacoes").select("nfe_item_id, quantidade").eq("empresa_id", empresaId).in("nfe_item_id", listaItens.map((i) => i.id)),
+  ]);
+  if (pedidoItens.error) reportarFalhaLeitura("rastreabilidade: pedido_compra_itens", pedidoItens.error);
+  if (movs.error) reportarFalhaLeitura("rastreabilidade: estoque_movimentacoes", movs.error);
+
+  const numeros = Array.from(new Set(((pedidoItens.data || []) as any[])
+    .map((r) => (Array.isArray(r.pedido) ? r.pedido[0] : r.pedido))
+    .filter((p) => p && p.status !== "cancelado").map((p) => String(p.numero))));
+  const linhasMov = (movs.data || []) as { nfe_item_id: string; quantidade: number }[];
+  const itensRecebidos = new Set(linhasMov.map((m) => m.nfe_item_id)).size;
+  const quantidade = linhasMov.reduce((t, m) => t + (Number(m.quantidade) || 0), 0);
+
+  return {
+    pedido: numeros.length > 0 ? { status: "vinculado", numeros } : { status: "nao_capturado" },
+    recebimento: itensRecebidos > 0 ? { status: "recebido", quantidade, itensRecebidos, itensNota: listaItens.length } : { status: "nao_capturado" },
+  };
+}
 
 export async function montarEvidenceGraph(
   conta: ContaPagar,
@@ -1306,12 +1351,14 @@ export async function montarEvidenceGraph(
     ? { status: "reconciliado", transacao: { descricao: transacaoLigada.data.descricao, valor: Number(transacaoLigada.data.valor) || 0, data: transacaoLigada.data.data } }
     : { status: "nao_reconciliado", transacao: null };
 
+  const { pedido, recebimento } = await evidenciaPedidoRecebimento(conta.chave_acesso || null, empresaId);
+
   return {
     contaId: conta.id,
     fornecedor: { presente: !!conta.fornecedor_id, nome: fornecedorNome || "—" },
     contrato,
-    pedido: { status: "nao_capturado" },
-    recebimento: { status: "nao_capturado" },
+    pedido,
+    recebimento,
     fatura: { numeroNota: conta.numero_nota || null, valorTotal: conta.valor_total, qtdDocumentosAnexados: documentos.length },
     pagamento: {
       status: conta.status === "pago" ? "pago" : "pendente",

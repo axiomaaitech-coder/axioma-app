@@ -3697,21 +3697,25 @@ export default function ContasPagarPage() {
                         </div>
                       </div>
 
-                      {/* 3. Pedido — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
-                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
+                      {/* 3. Pedido — via itens da NF-e ligados a pedido de compra */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: evidenceGraph.pedido.status === "vinculado" ? `1px solid ${VERDE}30` : `1px dashed ${CINZA}40` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.pedido.status === "vinculado" ? VERDE : CINZA }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Pedido de Compra", "Purchase Order", "Pedido de Compra")}</p>
-                          <p className="text-xs" style={{ color: CINZA }}>{L("Não capturado hoje — depende do futuro módulo de Pedido de Compra.", "Not captured today — depends on the future Purchase Order module.", "No capturado hoy — depende del futuro módulo de Pedido de Compra.")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: evidenceGraph.pedido.status === "vinculado" ? TEXTO : CINZA }}>{L("Pedido de Compra", "Purchase Order", "Pedido de Compra")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.pedido.status === "vinculado" ? (evidenceGraph.pedido.status === "vinculado" && L(`Pedido nº ${evidenceGraph.pedido.numeros.join(", ")}`, `Order no. ${evidenceGraph.pedido.numeros.join(", ")}`, `Pedido nº ${evidenceGraph.pedido.numeros.join(", ")}`)) : L("Nenhum pedido de compra ligado à nota desta conta.", "No purchase order linked to this bill's invoice.", "Ningún pedido de compra vinculado a la factura de esta cuenta.")}
+                          </p>
                         </div>
                       </div>
 
-                      {/* 4. Recebimento — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
-                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
+                      {/* 4. Recebimento — entradas de estoque ligadas aos itens da NF-e */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: evidenceGraph.recebimento.status === "recebido" ? `1px solid ${VERDE}30` : `1px dashed ${CINZA}40` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.recebimento.status === "recebido" ? VERDE : CINZA }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Recebimento", "Goods Receipt", "Recepción")}</p>
-                          <p className="text-xs" style={{ color: CINZA }}>{L("Não capturado hoje — depende do futuro módulo de Pedido de Compra.", "Not captured today — depends on the future Purchase Order module.", "No capturado hoy — depende del futuro módulo de Pedido de Compra.")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: evidenceGraph.recebimento.status === "recebido" ? TEXTO : CINZA }}>{L("Recebimento", "Goods Receipt", "Recepción")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.recebimento.status === "recebido" ? (evidenceGraph.recebimento.status === "recebido" && L(`Entrou no estoque: ${evidenceGraph.recebimento.itensRecebidos} de ${evidenceGraph.recebimento.itensNota} item(ns) da nota (${evidenceGraph.recebimento.quantidade} un.)`, `Received into stock: ${evidenceGraph.recebimento.itensRecebidos} of ${evidenceGraph.recebimento.itensNota} invoice item(s) (${evidenceGraph.recebimento.quantidade} units)`, `Ingresó al inventario: ${evidenceGraph.recebimento.itensRecebidos} de ${evidenceGraph.recebimento.itensNota} ítem(s) de la factura (${evidenceGraph.recebimento.quantidade} un.)`)) : L("Nenhuma entrada de estoque ligada à nota desta conta.", "No stock receipt linked to this bill's invoice.", "Ninguna entrada de inventario vinculada a la factura de esta cuenta.")}
+                          </p>
                         </div>
                       </div>
 

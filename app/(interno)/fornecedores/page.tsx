@@ -237,12 +237,12 @@ const contaVazia = {
   data_emissao: "", data_vencimento: "", observacoes: "", centro_custo_id: "",
 };
 
-const ETAPAS_CADASTRO = ["identificacao", "contatos", "endereco", "documentacao", "fiscal", "financeiro", "contratos", "produtos", "qualidade", "risco", "ia", "observacoes"] as const;
+const ETAPAS_CADASTRO = ["identificacao", "contatos", "endereco", "documentacao", "fiscal", "financeiro", "contratos", "produtos", "qualidade", "risco", "observacoes"] as const;
 type EtapaCadastro = typeof ETAPAS_CADASTRO[number];
 
 const T = {
   pt: {
-    etapaNomes: { identificacao: "Identificação", contatos: "Contatos", endereco: "Endereço", documentacao: "Documentos", fiscal: "Fiscal", financeiro: "Financeiro", contratos: "Contratos", produtos: "Produtos", qualidade: "Qualidade", risco: "Risco", ia: "Inteligência IA", observacoes: "Observações" } as Record<EtapaCadastro, string>,
+    etapaNomes: { identificacao: "Identificação", contatos: "Contatos", endereco: "Endereço", documentacao: "Documentos", fiscal: "Fiscal", financeiro: "Financeiro", contratos: "Contratos", produtos: "Produtos", qualidade: "Qualidade", risco: "Risco", observacoes: "Observações" } as Record<EtapaCadastro, string>,
     anterior: "Anterior", proximo: "Próximo", concluirCadastro: "Concluir Cadastro", editarFornecedor: "Editar Fornecedor",
     lblTipoPessoa: "Tipo de Pessoa", pessoaJuridica: "Pessoa Jurídica", pessoaFisica: "Pessoa Física",
     lblRazaoSocial: "Razão Social", lblNomeFantasia: "Nome Fantasia", lblPorte: "Porte",
@@ -291,7 +291,6 @@ const T = {
     classificacoesRisco: [{ value: "baixo", label: "Baixo" }, { value: "medio", label: "Médio" }, { value: "alto", label: "Alto" }],
     lblNivelDependencia: "Dependência do Fornecedor",
     niveisDependencia: [{ value: "baixo", label: "Baixo — facilmente substituível" }, { value: "medio", label: "Médio" }, { value: "alto", label: "Alto — crítico para a operação" }],
-    iaTitulo: "Inteligência Axioma", iaTexto: "Reservado para a próxima fase da inteligência do Axioma. Em breve este espaço vai trazer um parecer executivo automático sobre este fornecedor.",
     lblObservacoesGerais: "Observações", timelineTitulo: "Timeline de Interações", timelineVazio: "Nenhuma interação registrada.",
     lblDataInteracao: "Data", lblTipoInteracao: "Tipo", lblDescricaoInteracao: "Descrição", adicionarInteracao: "Registrar Interação",
     kpiDocumentosVencer: "Documentos a Vencer (30d)", kpiContratosVencer: "Contratos a Vencer (30d)",
@@ -397,7 +396,7 @@ const T = {
     },
   },
   en: {
-    etapaNomes: { identificacao: "Identification", contatos: "Contacts", endereco: "Address", documentacao: "Documents", fiscal: "Tax", financeiro: "Financial", contratos: "Contracts", produtos: "Products", qualidade: "Quality", risco: "Risk", ia: "AI Intelligence", observacoes: "Notes" } as Record<EtapaCadastro, string>,
+    etapaNomes: { identificacao: "Identification", contatos: "Contacts", endereco: "Address", documentacao: "Documents", fiscal: "Tax", financeiro: "Financial", contratos: "Contracts", produtos: "Products", qualidade: "Quality", risco: "Risk", observacoes: "Notes" } as Record<EtapaCadastro, string>,
     anterior: "Back", proximo: "Next", concluirCadastro: "Finish Registration", editarFornecedor: "Edit Supplier",
     lblTipoPessoa: "Type", pessoaJuridica: "Company", pessoaFisica: "Individual",
     lblRazaoSocial: "Legal Name", lblNomeFantasia: "Trade Name", lblPorte: "Company Size",
@@ -446,7 +445,6 @@ const T = {
     classificacoesRisco: [{ value: "baixo", label: "Low" }, { value: "medio", label: "Medium" }, { value: "alto", label: "High" }],
     lblNivelDependencia: "Supplier Dependency",
     niveisDependencia: [{ value: "baixo", label: "Low — easily replaceable" }, { value: "medio", label: "Medium" }, { value: "alto", label: "High — critical to operations" }],
-    iaTitulo: "Axioma Intelligence", iaTexto: "Reserved for the next phase of Axioma intelligence. Soon this space will bring an automatic executive assessment of this supplier.",
     lblObservacoesGerais: "Notes", timelineTitulo: "Interaction Timeline", timelineVazio: "No interactions logged yet.",
     lblDataInteracao: "Date", lblTipoInteracao: "Type", lblDescricaoInteracao: "Description", adicionarInteracao: "Log Interaction",
     kpiDocumentosVencer: "Documents Expiring (30d)", kpiContratosVencer: "Contracts Expiring (30d)",
@@ -552,7 +550,7 @@ const T = {
     },
   },
   es: {
-    etapaNomes: { identificacao: "Identificación", contatos: "Contactos", endereco: "Dirección", documentacao: "Documentos", fiscal: "Fiscal", financeiro: "Financiero", contratos: "Contratos", produtos: "Productos", qualidade: "Calidad", risco: "Riesgo", ia: "Inteligencia IA", observacoes: "Observaciones" } as Record<EtapaCadastro, string>,
+    etapaNomes: { identificacao: "Identificación", contatos: "Contactos", endereco: "Dirección", documentacao: "Documentos", fiscal: "Fiscal", financeiro: "Financiero", contratos: "Contratos", produtos: "Productos", qualidade: "Calidad", risco: "Riesgo", observacoes: "Observaciones" } as Record<EtapaCadastro, string>,
     anterior: "Anterior", proximo: "Siguiente", concluirCadastro: "Finalizar Registro", editarFornecedor: "Editar Proveedor",
     lblTipoPessoa: "Tipo", pessoaJuridica: "Persona Jurídica", pessoaFisica: "Persona Física",
     lblRazaoSocial: "Razón Social", lblNomeFantasia: "Nombre Comercial", lblPorte: "Tamaño",
@@ -601,7 +599,6 @@ const T = {
     classificacoesRisco: [{ value: "baixo", label: "Bajo" }, { value: "medio", label: "Medio" }, { value: "alto", label: "Alto" }],
     lblNivelDependencia: "Dependencia del Proveedor",
     niveisDependencia: [{ value: "baixo", label: "Bajo — fácilmente sustituible" }, { value: "medio", label: "Medio" }, { value: "alto", label: "Alto — crítico para la operación" }],
-    iaTitulo: "Inteligencia Axioma", iaTexto: "Reservado para la próxima fase de la inteligencia de Axioma. Pronto este espacio traerá un dictamen ejecutivo automático sobre este proveedor.",
     lblObservacoesGerais: "Observaciones", timelineTitulo: "Cronología de Interacciones", timelineVazio: "Ninguna interacción registrada.",
     lblDataInteracao: "Fecha", lblTipoInteracao: "Tipo", lblDescricaoInteracao: "Descripción", adicionarInteracao: "Registrar Interacción",
     kpiDocumentosVencer: "Documentos por Vencer (30d)", kpiContratosVencer: "Contratos por Vencer (30d)",
@@ -2732,14 +2729,6 @@ export default function Fornecedores() {
                           <CampoSelect label={tt.lblClassificacaoRisco} value={nf.classificacao_risco} onChange={(v) => setNf({ ...nf, classificacao_risco: v })} opcoes={tt.classificacoesRisco} />
                           <CampoSelect label={tt.lblNivelDependencia} value={nf.nivel_dependencia} onChange={(v) => setNf({ ...nf, nivel_dependencia: v })} opcoes={tt.niveisDependencia} />
                         </div>
-                      </div>
-                    )}
-
-                    {ETAPAS_CADASTRO[etapaCadastro] === "ia" && (
-                      <div className="flex flex-col items-center justify-center text-center py-8 gap-3">
-                        <Sparkles size={28} style={{ color: AMBAR, opacity: 0.6 }} />
-                        <p className="text-xs font-black" style={{ color: AMBAR }}>{tt.iaTitulo}</p>
-                        <p className="text-xs max-w-sm" style={{ color: ct("#5a7a9a") }}>{tt.iaTexto}</p>
                       </div>
                     )}
 
