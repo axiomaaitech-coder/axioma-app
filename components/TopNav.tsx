@@ -505,9 +505,10 @@ export default function TopNav() {
                             onClick={() => navegar(item.path)}
                             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all"
                             style={{
-                              background: itemAtivo ? `linear-gradient(135deg, ${corAberto}25, ${corAberto}10)` : "transparent",
-                              color: itemAtivo ? corAberto : "#7a9aba",
-                              border: itemAtivo ? `1px solid ${corAberto}35` : "1px solid transparent",
+                              // módulo onde o usuário está: verde-menta escuro forte (Elias 2026-10-04)
+                              background: itemAtivo ? "linear-gradient(135deg, #0a4f3b, #0f7d5c)" : "transparent",
+                              color: itemAtivo ? "#ffffff" : "#e6edf5",
+                              border: itemAtivo ? "1px solid #2ecc9b" : "1px solid transparent",
                             }}
                           >
                             <span className="text-base">{item.emoji}</span>
@@ -647,7 +648,7 @@ export default function TopNav() {
                                   <motion.button key={item.path} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                                     whileTap={{ scale: 0.98 }} onClick={() => navegar(item.path)}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
-                                    style={{ background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent", color: itemAtivo ? grupo.cor : "#6a8aaa", border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent" }}>
+                                    style={{ background: itemAtivo ? "linear-gradient(135deg, #0a4f3b, #0f7d5c)" : "transparent", color: itemAtivo ? "#ffffff" : "#e6edf5", border: itemAtivo ? "1px solid #2ecc9b" : "1px solid transparent" }}>
                                     <span>{item.emoji}</span>
                                     <span className="text-sm font-medium">{item.label[lang]}</span>
                                     {item.path === "/open-finance" && !itemAtivo && (
