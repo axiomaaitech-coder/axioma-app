@@ -1,0 +1,101 @@
+// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
+import type { DocumentoAxioma } from "../tipos"
+
+const doc: DocumentoAxioma = {
+  arquivo: '02 - MEI - Painel MEI.docx',
+  titulo: 'Manual 02 — Painel MEI',
+  subtitulo: 'O painel executivo do Microempreendedor Individual',
+  info: ['Menu: MEI → Painel MEI  •  Manual de uso do Axioma AI.Tech'],
+  blocos: [
+    { h1: 'Para que serve' },
+    { p: 'O Painel MEI é a central do Microempreendedor Individual. Em uma tela ele responde as perguntas que mais importam para quem é MEI: **quanto faturei, quanto falta para o teto de R$ 81.000 por ano, quanto do dinheiro que entrou é realmente meu, quando vence o DAS e se a minha saúde financeira está boa**.' },
+    { nota: 'O MEI é um módulo PRO (selo PRO no menu). Os números vêm das receitas marcadas como faturamento MEI, das despesas lançadas e das configurações que você faz no botão **Configurar MEI**.' },
+
+    { h1: 'Primeiro passo: Configurar MEI' },
+    { p: 'Antes de tudo, clique em **Configurar MEI**, no cabeçalho, e preencha:' },
+    { tabela: { colunas: ['Campo', 'Para que serve'], larguras: [3200, 5826], linhas: [
+      ['Categoria MEI', 'Serviços, Comércio, Indústria ou Transporte. Define o valor fixo do DAS mensal; o Axioma preenche o valor sozinho ao escolher.'],
+      ['Valor DAS Mensal (R$)', 'Valor do boleto mensal do MEI. Pode ajustar se o seu for diferente.'],
+      ['Dia de Vencimento do DAS', 'Normalmente dia 20. Usado nos avisos e no Guardião da Reserva.'],
+      ['Data de Abertura do MEI', 'Calcula o teto proporcional no primeiro ano.'],
+      ['Nome / Razão Social, CNPJ, Atividade Principal (CNAE)', 'Identificam o seu MEI nos relatórios.'],
+      ['Seus clientes são principalmente', 'Empresas (B2B), Pessoas físicas (B2C) ou Ambos. Ajuda a IA e a Reforma Tributária a dar orientações certas.'],
+      ['Pró-labore Desejado (R$)', 'Quanto você gostaria de retirar por mês. O painel compara com o pró-labore seguro.'],
+      ['Reserva de Emergência (%)', 'Quanto da sobra você quer guardar como reserva.'],
+    ] } },
+    { p: 'Clique em **Salvar** para gravar ou **Cancelar** para sair sem mudar nada.' },
+
+    { h1: 'Botões do cabeçalho' },
+    { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2600, 6426], linhas: [
+      ['Exportar PDF', 'Gera um PDF do painel (aparece o aviso "PDF pronto — baixado").'],
+      ['Configurar MEI', 'Abre a janela de configuração descrita acima.'],
+      ['Compartilhar', 'Envia o resumo do MEI por WhatsApp, e-mail, Telegram ou copia o texto.'],
+      ['Escuro / Tema Claro', 'Troca a aparência da tela.'],
+    ] } },
+
+    { h1: 'As partes da tela, de cima para baixo' },
+    { h2: 'Letreiro' },
+    { p: 'Faixa azul-marinho com os principais números do MEI passando em sequência.' },
+    { h2: 'Cards principais' },
+    { tabela: { colunas: ['Card', 'O que mostra'], larguras: [2600, 6426], linhas: [
+      ['Faturamento', 'Total faturado no ano como MEI.'],
+      ['Limite Restante', 'Quanto ainda pode faturar no ano sem passar do teto de R$ 81.000.'],
+      ['DAS Mensal', 'Valor do boleto mensal configurado.'],
+    ] } },
+    { h2: 'O que é seu de verdade (Cofre Inteligente)' },
+    { p: 'Pega a sobra do mês (o que entrou menos o que saiu) e separa o que **já tem dono**:' },
+    { lista: [
+      '**DAS do mês** — não é seu, vence no dia configurado.',
+      '**Reserva de IRPF** — guardando para a declaração do ano.',
+      '**Contas a pagar do período** — compromissos já assumidos.',
+      '**Reserva de emergência** — a porcentagem que você configurou.',
+      '**Seu pró-labore seguro este mês** — o que sobra e pode ser retirado sem risco.',
+    ] },
+    { p: 'Também mostra "Guarde deste valor" e "Você deveria ter guardado até agora", e compara o pró-labore desejado com o seguro.' },
+    { h2: 'Retirada acima do seguro' },
+    { p: 'Aviso que aparece quando a sobra não cobre DAS, IRPF e compromissos, ou quando gastos que parecem pessoais passam do pró-labore seguro. Recomenda não retirar dinheiro naquele momento.' },
+    { h2: 'Guardião da Reserva' },
+    { p: 'Mostra quanto da reserva do DAS já foi usado, quantos dias faltam para repor até o vencimento e quanto o atraso custaria (multa de 0,33% ao dia, limitada a 20%, mais juros Selic). O cálculo usa os lançamentos do sistema, não o saldo real do banco.' },
+    { h2: 'Radar do Teto' },
+    { p: 'Semáforo do limite anual: **Confortável** (verde), **Atenção** e **Risco de estouro**. Mostra em quantos meses, no ritmo atual, você atinge o teto, explica a consequência (deixar de ser MEI e virar ME, com imposto em % da receita) e dá duas sugestões: segurar o faturamento até o fim do ano ou preparar a migração para ME com antecedência.' },
+    { h2: 'Progresso do Teto no Tempo' },
+    { p: 'Gráfico do faturamento acumulado no ano contra a linha do teto.' },
+    { h2: 'Evolução de Ganhos e métricas' },
+    { p: 'Gráfico da receita mês a mês e três métricas: **Ticket médio**, **Recebimentos no mês** e **Maior receita do mês**, comparados com a sua média ("acima da sua média" ou "abaixo da sua média").' },
+    { h2: 'Seu dinheiro em 3 linhas' },
+    { p: 'Resumo simples do mês: **Entrou**, **Saiu** e **Sobra**. Cada linha é clicável: Entrou abre Faturamento, Saiu abre Custos Variáveis e Sobra abre Fluxo de Caixa. Também mostra quantos dias faltam para o DAS.' },
+    { h2: 'Fluxo de Caixa Visual e Composição do Cofre' },
+    { p: 'Gráficos que mostram as entradas e saídas e como a sobra se divide entre DAS, IRPF, compromissos, reserva e pró-labore.' },
+    { h2: 'Score de Saúde do MEI' },
+    { p: 'Nota geral formada por quatro partes, cada uma com sua explicação:' },
+    { tabela: { colunas: ['Parte', 'O que avalia'], larguras: [2400, 6626], linhas: [
+      ['Financeiro', 'Se a receita está crescendo mês a mês.'],
+      ['Fiscal', 'Se DAS, DASN e IR estão em dia.'],
+      ['Teto', 'A distância até o limite anual de R$ 81.000.'],
+      ['Fluxo', 'Se sobra dinheiro depois de pagar os custos do mês.'],
+    ] } },
+    { h2: 'Gastos que parecem pessoais' },
+    { p: 'Lista despesas lançadas que parecem gastos da pessoa física (por exemplo, supermercado, farmácia, lazer). Separar o pessoal do empresarial protege você numa fiscalização, porque a Receita cruza CPF e CNPJ cada vez mais.' },
+    { h2: 'Resumo Anual MEI' },
+    { p: 'Total de receitas lançadas, média mensal dos últimos 6 meses e projeção anual.' },
+    { h2: 'Acesso rápido' },
+    { p: 'Atalhos para Faturamento, DAS & Obrigações, Reforma Tributária, Precificação, IA MEI Advisor e Imposto de Renda.' },
+
+    { h1: 'Passo a passo: rotina mensal do MEI' },
+    { numerada: [
+      'Lance as vendas em **MEI → Faturamento** (ou em Receitas) durante o mês.',
+      'Abra o Painel MEI e confira o **Radar do Teto**.',
+      'Veja o **pró-labore seguro** antes de retirar dinheiro para você.',
+      'Pague o DAS até o dia 20 e marque como pago em **DAS & Obrigações**.',
+      'Se aparecer "Gastos que parecem pessoais", revise esses lançamentos.',
+    ] },
+
+    { h1: 'Perguntas frequentes' },
+    { h3: 'O teto de R$ 81.000 vale para o ano todo?' },
+    { p: 'Sim, por ano-calendário. No ano em que o MEI foi aberto, o teto é proporcional aos meses (R$ 6.750 por mês), e o Axioma usa a Data de Abertura para calcular.' },
+    { h3: 'O pró-labore seguro está negativo. O que significa?' },
+    { p: 'Que a sobra do mês não cobre nem os compromissos (DAS, IRPF, contas). O ideal é não retirar dinheiro até a situação melhorar.' },
+  ],
+}
+
+export default doc
