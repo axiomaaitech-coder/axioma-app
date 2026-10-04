@@ -1002,6 +1002,14 @@ export async function listarLixeiraTermos(empresaId: string): Promise<TermoConvi
   if (error) reportarFalhaLeitura("equipe.lixeiraTermos", error);
   return (data as TermoConvite[]) || [];
 }
+// Vagas do plano (bloco 11): limite de pessoas e quantas já estão ocupadas
+export type VagasEquipe = { plano: string | null; limite: number; ocupadas: number };
+export async function obterVagasEquipe(empresaId: string): Promise<VagasEquipe | null> {
+  const { data, error } = await supabase.rpc("equipe_vagas", { p_empresa: empresaId });
+  if (error) { reportarFalhaLeitura("equipe.vagas", error); return null; }
+  const v = Array.isArray(data) ? data[0] : data;
+  return v ? { plano: v.plano ?? null, limite: Number(v.limite), ocupadas: Number(v.ocupadas) } : null;
+}
 // Transferir a propriedade (só o Proprietário; regra no banco — bloco 10)
 export async function transferirPropriedade(empresaId: string, novoUserId: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
   const { error } = await supabase.rpc("equipe_transferir_propriedade", { p_empresa: empresaId, p_novo: novoUserId, p_motivo: motivo });

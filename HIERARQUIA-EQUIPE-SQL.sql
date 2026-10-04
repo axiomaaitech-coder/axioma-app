@@ -590,3 +590,60 @@ revoke all on function public.equipe_transferir_propriedade(uuid, uuid, text) fr
 grant execute on function public.equipe_transferir_propriedade(uuid, uuid, text) to authenticated;
 
 SELECT 'bloco 10 ok' AS resultado;
+
+-- ============================== BLOCO 11 ====================================
+-- 2026-10-03 (decisões do Elias): a ASSINATURA é da EMPRESA (vai junto na
+-- transferência). Limite de pessoas por plano: Starter 1 · Pro 2 · Business 5 ·
+-- Enterprise 10. Contam o dono + equipe fixa; NÃO contam operador de caixa,
+-- contador/consultor externo e acesso temporário de até 30 dias. No limite,
+-- o convite novo é bloqueado (a tela sugere o plano acima).
+ALTER TABLE public.empresas
+  ADD COLUMN IF NOT EXISTS plano text,
+  ADD COLUMN IF NOT EXISTS plano_ativo boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS assinante_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Copia o plano atual de cada dono para a empresa dele (uma vez)
+update empresas e
+set plano = p.plano, plano_ativo = coalesce(p.plano_ativo, false), assinante_user_id = e.user_id
+from perfis p
+where p.user_id = e.user_id and e.assinante_user_id is null;
+
+create or replace function public.plano_limite_pessoas(p_plano text)
+returns integer language sql immutable as $$
+  select case lower(coalesce(p_plano, ''))
+    when 'enterprise' then 10 when 'business' then 5 when 'pro' then 2 else 1 end
+$$;
+
+-- Vagas: limite do plano e quantas já estão ocupadas (membros + convites pendentes que contam)
+create or replace function public.equipe_vagas(p_empresa uuid)
+returns table (plano text, limite integer, ocupadas integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select e.plano,
+    public.plano_limite_pessoas(e.plano),
+    (1
+     + (select count(*) from empresa_usuarios eu
+        left join empresa_equipe q on q.id = eu.convite_id
+        where eu.empresa_id = p_empresa and eu.papel not in ('dono', 'operador')
+          and eu.suspenso_em is null and (eu.acesso_expira_em is null or eu.acesso_expira_em > now())
+          and coalesce(q.relacao, '') not in ('contador', 'consultor')
+          and (q.acesso_dias is null or q.acesso_dias > 30))
+     + (select count(*) from empresa_equipe q
+        where q.empresa_id = p_empresa and q.convite_aceito = false
+          and q.situacao in ('enviado', 'aguardando_aprovacao')
+          and (q.expira_em is null or q.expira_em > now())
+          and coalesce(q.papel, '') <> 'operador'
+          and coalesce(q.relacao, '') not in ('contador', 'consultor')
+          and (q.acesso_dias is null or q.acesso_dias > 30))
+    )::integer
+  from empresas e
+  where e.id = p_empresa
+    and ((select auth.uid()) is null or p_empresa in (select public.empresas_do_usuario()))
+$$;
+revoke all on function public.equipe_vagas(uuid) from public;
+grant execute on function public.equipe_vagas(uuid) to authenticated, service_role;
+
+SELECT 'bloco 11 ok' AS resultado, count(*) filter (where plano_ativo) AS empresas_com_plano_ativo FROM empresas;

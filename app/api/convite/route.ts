@@ -148,6 +148,16 @@ async function criar(corpo: any) {
     if (p) await db.from('empresa_equipe').delete().eq('id', p.id)
   }
 
+  // Limite de pessoas do plano (decisão do Elias 2026-10-03, bloco 11). Não contam:
+  // operador de caixa, contador/consultor externo e acesso de até 30 dias.
+  const contaNoLimite = papel !== 'operador' && relacao !== 'contador' && relacao !== 'consultor' && (dias === null || dias > 30)
+  if (contaNoLimite) {
+    const { data: vg, error: eVg } = await db.rpc('equipe_vagas', { p_empresa: empresaId })
+    const v = Array.isArray(vg) ? vg[0] : vg
+    if (eVg) console.error('[convite] vagas:', eVg.message)
+    else if (v && v.ocupadas >= v.limite) return NextResponse.json({ erro: 'limite_plano', limite: v.limite, plano: v.plano || null }, { status: 402 })
+  }
+
   const nomeRemetente = String(user.user_metadata?.nome || user.user_metadata?.full_name || user.email || '')
   const diasLink = Math.min(dias ?? 7, 7) // link do convite vale no máximo 7 dias
   const token = crypto.randomUUID()

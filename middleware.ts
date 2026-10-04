@@ -143,6 +143,13 @@ export async function middleware(request: NextRequest) {
       membro = !!vinculo?.length
     }
 
+    // Assinatura é da empresa (2026-10-03): dono de empresa com plano ativo entra
+    // (cobre quem recebeu a empresa por transferência de propriedade).
+    if (!membro && !perfil?.plano_ativo) {
+      const { data: empAtiva } = await supabase.from('empresas').select('id').eq('user_id', user.id).eq('plano_ativo', true).limit(1)
+      membro = !!empAtiva?.length
+    }
+
     if (!membro && (!perfil || !perfil.plano_ativo)) {
       const response = NextResponse.redirect(new URL('/planos', request.url))
       return addSecurityHeaders(response)

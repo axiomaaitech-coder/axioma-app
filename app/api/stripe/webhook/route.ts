@@ -22,6 +22,14 @@ function logFalhaWebhook(tabela: string, operacao: string, motivo: string, conte
   Sentry.captureException(new Error(`[stripe webhook] Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo, ...contexto } })
 }
 
+// Espelha o estado da assinatura na EMPRESA (a assinatura é da empresa — vai junto
+// quando a propriedade é transferida; o middleware libera o dono pela empresa).
+async function espelharNaEmpresa(userIds: string[], campos: Record<string, unknown>, evento: string) {
+  if (!userIds.length) return
+  const { error } = await supabase.from('empresas').update(campos).in('assinante_user_id', userIds)
+  if (error) logFalhaWebhook('empresas', `update plano (${evento})`, error.message, { userIds })
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
@@ -60,6 +68,11 @@ export async function POST(request: NextRequest) {
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'upsert (checkout.session.completed)', error?.message || '0 linhas afetadas', { userId, plano })
           }
+          // Assinatura é da EMPRESA (Elias 2026-10-03): a(s) empresa(s) de quem assinou recebem o plano
+          const { error: eEmp } = await supabase.from('empresas')
+            .update({ plano, plano_ativo: true, assinante_user_id: userId })
+            .or(`assinante_user_id.eq.${userId},and(assinante_user_id.is.null,user_id.eq.${userId})`)
+          if (eEmp) logFalhaWebhook('empresas', 'update plano (checkout.session.completed)', eEmp.message, { userId, plano })
         }
         break
       }
@@ -80,6 +93,7 @@ export async function POST(request: NextRequest) {
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (invoice.paid)', error?.message || '0 linhas afetadas', { customerId, subscriptionId })
           }
+          await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano_ativo: true }, 'invoice.paid')
         }
         break
       }
@@ -98,6 +112,7 @@ export async function POST(request: NextRequest) {
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (invoice.payment_failed)', error?.message || '0 linhas afetadas', { customerId })
           }
+          await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano_ativo: false }, 'invoice.payment_failed')
         }
         break
       }
@@ -124,6 +139,7 @@ export async function POST(request: NextRequest) {
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (customer.subscription.deleted)', error?.message || '0 linhas afetadas', { customerId })
           }
+          await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano: 'starter', plano_ativo: false }, 'customer.subscription.deleted')
         }
         break
       }

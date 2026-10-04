@@ -6,7 +6,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, apagarTermoConvite, decidirConvite, type TermoConvite,
+  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
@@ -72,7 +72,7 @@ const textos = {
     acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
     relacaoLabel: 'Quem você está convidando', rel_ceo: 'CEO', rel_socio: 'Sócio', rel_contador: 'Contador', rel_funcionario: 'Funcionário', rel_consultor: 'Consultor (2ª opinião)', rel_outro: 'Outro',
     termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
-    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Dados de quem saiu da empresa. Ficam guardados por 60 dias e depois são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
+    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Dados de quem saiu da empresa. Ficam guardados por 60 dias e depois são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', vagasPlano: (o: number, l: number) => `Vagas do plano: ${o} de ${l}`, erroLimitePlano: (l: number) => `Seu plano permite ${l} pessoa${l > 1 ? 's' : ''} na equipe (contando você). Mude para o plano acima para convidar mais. Operador de caixa, contador/consultor externo e acesso de até 30 dias não contam.`, verPlanos: 'Ver planos', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
     semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
     dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Apagar dados pessoais deste termo',
     apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
@@ -138,7 +138,7 @@ const textos = {
     acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
     relacaoLabel: 'Who you are inviting', rel_ceo: 'CEO', rel_socio: 'Partner', rel_contador: 'Accountant', rel_funcionario: 'Employee', rel_consultor: 'Consultant (2nd opinion)', rel_outro: 'Other',
     termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
-    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Data of people who left the company. Kept for 60 days and then deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
+    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Data of people who left the company. Kept for 60 days and then deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', vagasPlano: (o: number, l: number) => `Plan seats: ${o} of ${l}`, erroLimitePlano: (l: number) => `Your plan allows ${l} ${l > 1 ? 'people' : 'person'} on the team (including you). Move to the plan above to invite more. Cashier operators, external accountant/consultant and access of up to 30 days do not count.`, verPlanos: 'See plans', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
     semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
     dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Delete personal data of this term',
     apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
@@ -204,7 +204,7 @@ const textos = {
     acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
     relacaoLabel: 'A quién está invitando', rel_ceo: 'CEO', rel_socio: 'Socio', rel_contador: 'Contador', rel_funcionario: 'Empleado', rel_consultor: 'Consultor (2ª opinión)', rel_outro: 'Otro',
     termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
-    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Datos de quienes salieron de la empresa. Se guardan 60 días y luego se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
+    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Datos de quienes salieron de la empresa. Se guardan 60 días y luego se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', vagasPlano: (o: number, l: number) => `Plazas del plan: ${o} de ${l}`, erroLimitePlano: (l: number) => `Su plan permite ${l} persona${l > 1 ? 's' : ''} en el equipo (contándole a usted). Cambie al plan superior para invitar a más. Operador de caja, contador/consultor externo y acceso de hasta 30 días no cuentan.`, verPlanos: 'Ver planes', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
     semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
     dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Borrar datos personales de este término',
     apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
@@ -286,6 +286,8 @@ export default function EquipePage() {
   const [lixeira, setLixeira] = useState<TermoConvite[]>([])
   const [lixeiraAberta, setLixeiraAberta] = useState(false)
   const [membroTransferir, setMembroTransferir] = useState<MembroEquipe | null>(null)
+  const [vagas, setVagas] = useState<VagasEquipe | null>(null)
+  const [limiteAtingido, setLimiteAtingido] = useState(false)
   const [transferindo, setTransferindo] = useState(false)
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
   // Admin, CEO, Sócio e Contador: cortar acesso / apagar dados exige formulário simples (data + motivo).
@@ -366,8 +368,9 @@ export default function EquipePage() {
     const r = await listarEquipe(id)
     if (r.erro) avisar('erro', mensagemErro(r.codigo))
     setMembros(r.dados)
-    const [tm, pd, lx] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id), listarLixeiraTermos(id)])
+    const [tm, pd, lx, vg] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id), listarLixeiraTermos(id), obterVagasEquipe(id)])
     setTermos(tm)
+    setVagas(vg)
     setLixeira(lx)
     setPedidos(pd)
   }
@@ -438,7 +441,8 @@ export default function EquipePage() {
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
       if (r.erro || !r.token) {
         aba?.close()
-        setErroModal(r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : r.erro === 'email' ? t.erroEmail : t.erroGenerico)
+        setLimiteAtingido(r.erro === 'limite_plano')
+        setErroModal(r.erro === 'limite_plano' ? t.erroLimitePlano(Number(r.limite) || 1) : r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : r.erro === 'email' ? t.erroEmail : t.erroGenerico)
         return
       }
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
@@ -667,6 +671,9 @@ export default function EquipePage() {
                   {erroModal && (
                     <p className="text-xs font-semibold mt-2 flex items-center gap-1.5" style={{ color: VERMELHO }}><AlertCircle size={14} />{erroModal}</p>
                   )}
+                  {erroModal && limiteAtingido && (
+                    <a href="/planos" className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold" style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>{t.verPlanos} →</a>
+                  )}
                   <motion.button onClick={() => setModalAberto(false)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold"
                     style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(46,204,155,0.1)', color: temaClaro ? '#101b3d' : AZUL }}>{t.cancelar}</motion.button>
@@ -699,9 +706,9 @@ export default function EquipePage() {
             <p className="text-sm font-semibold" style={{ color: TEXTO }}>{podeConvidar ? t.convidarSub : t.somenteProprietario}</p>
             {podeConvidar && (
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                onClick={() => { setErroModal(''); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+                onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
                 className="mt-4 px-5 py-3 rounded-xl font-black text-sm tracking-wide inline-flex items-center justify-center gap-2"
-                style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
+                style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                 <UserPlus size={16} /> {t.convidar}
               </motion.button>
             )}
@@ -835,6 +842,7 @@ export default function EquipePage() {
               <div>
                 <p className="text-lg font-black" style={{ ...FONTE_EXEC, color: TEXTO }}>{membros.length}</p>
                 <p className="text-xs" style={{ color: MUTED }}>{t.titulo}</p>
+                {vagas && <p className="text-[11px] font-bold mt-0.5" style={{ color: vagas.ocupadas >= vagas.limite ? VERMELHO : '#2ecc9b' }}>{t.vagasPlano(vagas.ocupadas, vagas.limite)}</p>}
               </div>
             </div>
             <p className="text-[11px] flex-1 sm:px-4" style={{ color: MUTED }}>
@@ -844,9 +852,9 @@ export default function EquipePage() {
               )}
             </p>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setErroModal(''); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+              onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
-              style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
+              style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}
             </motion.button>
           </div>
