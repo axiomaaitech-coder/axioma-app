@@ -290,8 +290,8 @@ export default function TopNav() {
   const CHESS_VERDE = "#34d399";
   const CHESS_AZUL = "#6ab0ff";
   function corCasa(indice: number) {
-    const linha = Math.floor(indice / 7);
-    const coluna = indice % 7;
+    const linha = Math.floor(indice / 9);
+    const coluna = indice % 9;
     return (linha + coluna) % 2 === 0 ? CHESS_VERDE : CHESS_AZUL;
   }
 
@@ -307,7 +307,7 @@ export default function TopNav() {
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         title={title}
-        className="relative flex items-center justify-center gap-1.5 rounded-xl text-sm font-semibold h-12 w-full px-2 transition-all"
+        className="relative flex items-center justify-center gap-1 rounded-lg text-xs font-semibold h-10 w-full px-1.5 transition-all"
         style={{
           background: ativo ? `${cor}38` : `${cor}30`,
           border: `1px solid ${cor}${ativo ? "c0" : "a0"}`,
@@ -380,9 +380,28 @@ export default function TopNav() {
       </CardNav>
     ));
     construtoresCartas.push((i) => (
-      <div key="idioma" className="h-12 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
+      <div key="idioma" className="col-span-2 h-10 rounded-lg flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
         <SeletorIdioma />
       </div>
+    ));
+    // Documentos do Axioma (pedido do Elias 2026-10-04): manual, termos e privacidade
+    construtoresCartas.push((i) => (
+      <CardNav key="manual" indice={i} ativo={pathname === "/manual"} onClick={() => navegar("/manual")}>
+        <span>📘</span>
+        <span className="truncate">{lang === "pt" ? "Manual" : lang === "en" ? "Manual" : "Manual"}</span>
+      </CardNav>
+    ));
+    construtoresCartas.push((i) => (
+      <CardNav key="termos" indice={i} ativo={pathname === "/termos"} onClick={() => navegar("/termos")}>
+        <span>📄</span>
+        <span className="truncate">{lang === "pt" ? "Termos de Uso" : lang === "en" ? "Terms of Use" : "Términos de Uso"}</span>
+      </CardNav>
+    ));
+    construtoresCartas.push((i) => (
+      <CardNav key="privacidade" indice={i} ativo={pathname === "/privacidade"} onClick={() => navegar("/privacidade")}>
+        <span>🔒</span>
+        <span className="truncate">{lang === "pt" ? "Privacidade" : lang === "en" ? "Privacy" : "Privacidad"}</span>
+      </CardNav>
     ));
     construtoresCartas.push((i) => (
       <CardNav key="sair" indice={i} ativo={false} onClick={handleLogout} title={lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}>
@@ -432,7 +451,7 @@ export default function TopNav() {
             mesmo tamanho, alternando verde-menta/azul por posição. Substitui
             o scroll horizontal escondido de antes (ninguém sabia que dava
             pra rolar) e o arco-íris de 1 cor por módulo. */}
-        <div className="grid grid-cols-7 gap-1.5 min-w-0 flex-1">
+        <div className="grid grid-cols-9 gap-1.5 min-w-0 flex-1">
 
         {construtoresCartas.map((construir, i) => construir(i))}
 
@@ -642,6 +661,19 @@ export default function TopNav() {
                   if (!ehMei) return grupoEl;
                   return [grupoEl, pdvBotaoMobile];
                 })}
+
+                {!isOperador && ([
+                  ["/manual", "📘", lang === "pt" ? "Manual de Uso" : lang === "en" ? "User Manual" : "Manual de Uso"],
+                  ["/termos", "📄", lang === "pt" ? "Termos de Uso" : lang === "en" ? "Terms of Use" : "Términos de Uso"],
+                  ["/privacidade", "🔒", lang === "pt" ? "Política de Privacidade" : lang === "en" ? "Privacy Policy" : "Política de Privacidad"],
+                ] as const).map(([rota, icone, rotulo]) => (
+                  <motion.button key={rota} whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(rota)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl mt-1"
+                    style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.25)", color: "#ffffff" }}>
+                    <span>{icone}</span>
+                    <span className="font-semibold text-sm">{rotulo}</span>
+                  </motion.button>
+                ))}
 
                 <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl mt-4"

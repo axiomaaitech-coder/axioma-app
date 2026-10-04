@@ -1,0 +1,152 @@
+// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
+import type { DocumentoAxioma } from "./tipos"
+
+const doc: DocumentoAxioma = {
+  arquivo: 'Axioma - Política de Privacidade e Proteção de Dados.docx',
+  titulo: 'Política de Privacidade',
+  subtitulo: 'Como o Axioma AI.Tech trata e protege dados pessoais e dados de empresas, conforme a LGPD (Lei nº 13.709/2018)',
+  info: ['Versão 1.0  •  Vigência a partir de [[DATA DE VIGÊNCIA]]', 'Esta Política integra os Termos de Uso do Axioma.'],
+  blocos: [
+    { h1: '1. Nosso compromisso' },
+    { p: 'O Axioma AI.Tech é uma plataforma de gestão financeira para empresas. Para funcionar, ela precisa lidar com informações sensíveis para o negócio do Cliente: números financeiros, contas bancárias, notas fiscais e cadastros de clientes, fornecedores e pessoas da equipe. Tratamos essas informações com o mesmo cuidado que gostaríamos que fosse dado às nossas.' },
+    { p: 'Esta Política explica, em linguagem simples, quais dados tratamos, por que, com quem compartilhamos, por quanto tempo guardamos, como protegemos e quais são os seus direitos. Ela segue a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018), o Marco Civil da Internet (Lei nº 12.965/2014) e as normas da Autoridade Nacional de Proteção de Dados (ANPD).' },
+
+    { h1: '2. Quem é o responsável pelos dados' },
+    { p: 'O Axioma é oferecido por [[RAZÃO SOCIAL]], CNPJ nº [[CNPJ]], com sede em [[ENDEREÇO COMPLETO]].' },
+    { p: 'A LGPD distingue quem decide sobre os dados (**controlador**) de quem os trata em nome de outro (**operador**). No Axioma isso funciona assim:' },
+    { tabela: { colunas: ['Tipo de dado', 'Quem decide (controlador)', 'Papel do Axioma'], larguras: [3600, 2800, 2626], linhas: [
+      ['Dados da sua conta: nome, e-mail, senha, acessos, preferências', 'Axioma', 'Controlador'],
+      ['Dados que a sua empresa lança: clientes, fornecedores, funcionários, sócios, notas, extratos, lançamentos', 'A empresa Cliente', 'Operador (trata só para prestar o serviço)'],
+      ['Termo de aceite de convite (nome, CPF, e-mail do convidado)', 'A empresa Cliente que convidou', 'Operador'],
+      ['Dados de pagamento da assinatura', 'Axioma (com a Stripe)', 'Controlador'],
+    ] } },
+    { p: '**Encarregado pelo Tratamento de Dados Pessoais (DPO):** [[NOME DO ENCARREGADO (DPO)]], e-mail [[E-MAIL DO ENCARREGADO]]. É o canal para qualquer assunto de privacidade (art. 41 da LGPD).' },
+
+    { h1: '3. Quais dados tratamos' },
+    { h2: '3.1 Dados de cadastro e conta' },
+    { lista: ['Nome, e-mail, senha (guardada de forma criptografada e irreversível) e idioma preferido.', 'Empresa vinculada, papel e nível de acesso na Equipe, prazo do acesso.', 'Registros de aceite dos Termos, da Política de Privacidade e dos convites, com data e hora.'] },
+    { h2: '3.2 Dados do convite de equipe' },
+    { lista: ['Nome completo e e-mail do convidado; CPF quando o acesso for superior a 30 dias ou sem prazo (para identificar com segurança quem acessa dados financeiros da empresa).', 'Nome de quem enviou o convite, relação com a empresa, papel, prazo e motivo.'] },
+    { h2: '3.3 Dados da empresa (Dados do Cliente)' },
+    { lista: [
+      'Dados cadastrais da empresa: razão social, CNPJ, CNAE, regime tributário, endereço, sócios.',
+      'Lançamentos financeiros: receitas, custos, contas a pagar e a receber, dívidas, metas, investimentos, centros de custo.',
+      'Cadastros de clientes e fornecedores, que podem conter dados pessoais de terceiros (nome, CPF/CNPJ, contato, histórico de compras e pagamentos).',
+      'Documentos importados: notas fiscais (XML, PDF ou foto), extratos (OFX), planilhas (CSV/XLSX).',
+      'Produtos, estoque e vendas do PDV.',
+    ] },
+    { h2: '3.4 Dados bancários (Open Finance)' },
+    { p: 'Quando o Cliente conecta uma conta bancária, recebemos da Pluggy saldos, extratos e transações da conta autorizada. **Não recebemos nem guardamos senhas bancárias.**' },
+    { h2: '3.5 Dados técnicos e de uso' },
+    { lista: ['Endereço IP, data e hora de acesso, tipo de navegador e dispositivo (registros de acesso exigidos pelo Marco Civil da Internet).', 'Registros de erros técnicos para correção de falhas.', 'Registro de cada uso de inteligência artificial (tela, tipo de pergunta, modelo usado, custo e se os números foram conferidos), **sem guardar o conteúdo da conversa nesse registro de auditoria**.', 'Cookies estritamente necessários para manter a sessão aberta e lembrar preferências como idioma e tema.'] },
+    { h2: '3.6 Dados que não pedimos' },
+    { p: 'O Axioma não foi feito para tratar dados pessoais sensíveis (como saúde, religião, biometria ou opinião política) nem dados de crianças e adolescentes. Pedimos que o Cliente não os lance na Plataforma.' },
+
+    { h1: '4. Para que usamos os dados e com qual base legal' },
+    { tabela: { colunas: ['Finalidade', 'Base legal (LGPD)'], larguras: [5800, 3226], linhas: [
+      ['Criar e manter a conta, autenticar o acesso e prestar o serviço contratado', 'Execução de contrato (art. 7º, V)'],
+      ['Tratar os dados que a empresa lança para gerar relatórios, análises, alertas e cálculos', 'Execução de contrato, conforme instruções do Cliente controlador (arts. 7º, V, e 39)'],
+      ['Identificar com segurança quem recebe acesso aos dados financeiros da empresa (CPF no convite)', 'Legítimo interesse do Cliente e prevenção à fraude (art. 7º, IX) e execução de contrato'],
+      ['Conectar contas bancárias e conciliar extratos', 'Consentimento do titular no Open Finance e execução de contrato (art. 7º, I e V)'],
+      ['Cobrar a assinatura e emitir documentos fiscais', 'Execução de contrato e cumprimento de obrigação legal (art. 7º, II e V)'],
+      ['Guardar registros de acesso por 6 meses', 'Cumprimento de obrigação legal — art. 15 do Marco Civil da Internet (art. 7º, II)'],
+      ['Garantir segurança, prevenir fraudes, abusos e acessos indevidos (inclusive verificação anti-robô)', 'Legítimo interesse (art. 7º, IX)'],
+      ['Corrigir erros e melhorar a Plataforma com dados técnicos', 'Legítimo interesse (art. 7º, IX)'],
+      ['Exercer direitos em processos judiciais, administrativos ou arbitrais', 'Exercício regular de direitos (art. 7º, VI)'],
+    ] } },
+    { nota: 'Não vendemos dados pessoais nem Dados do Cliente, não os usamos para publicidade de terceiros e não os usamos para treinar modelos de inteligência artificial de terceiros.' },
+
+    { h1: '5. Inteligência artificial' },
+    { p: 'Algumas funções do Axioma usam inteligência artificial: IA Financeira, IA Tributária, o assistente José no Nexus, a leitura de notas fiscais em PDF ou foto, a classificação de itens de compra e as explicações nos módulos.' },
+    { lista: [
+      'Para responder, enviamos ao provedor de IA **somente as informações necessárias** para aquela pergunta: um resumo dos números da empresa e o texto ou documento enviado.',
+      'Usamos provedores que, pelas condições contratuais de uso via API, **não utilizam esses dados para treinar seus modelos**: OpenAI (EUA) e Anthropic (EUA).',
+      'Os números citados pela IA são conferidos automaticamente com os dados da empresa; quando algo não pode ser conferido, a tela avisa.',
+      'A IA não toma decisões automatizadas que produzam efeitos jurídicos sobre pessoas. Ela gera análises e sugestões que o Usuário avalia. Caso alguma decisão automatizada venha a afetar interesses de um titular, ele poderá pedir revisão (art. 20 da LGPD).',
+    ] },
+
+    { h1: '6. Com quem compartilhamos' },
+    { p: 'Compartilhamos dados apenas com fornecedores necessários para o funcionamento do Axioma (suboperadores), sob contrato e com obrigações de segurança e confidencialidade:' },
+    { tabela: { colunas: ['Fornecedor', 'Para quê', 'Onde'], larguras: [2400, 4600, 2026], linhas: [
+      ['Supabase', 'Banco de dados, autenticação e armazenamento de arquivos', '[[REGIÃO DO BANCO DE DADOS]]'],
+      ['Vercel', 'Hospedagem e execução da Plataforma', 'Brasil (São Paulo) e rede global'],
+      ['OpenAI', 'Inteligência artificial (respostas, leitura de documentos)', 'EUA'],
+      ['Anthropic', 'Inteligência artificial (IA Financeira, IA Tributária, José, relatórios)', 'EUA'],
+      ['Pluggy', 'Conexão bancária por Open Finance e iniciação de pagamentos', 'Brasil'],
+      ['Stripe', 'Cobrança da assinatura', 'EUA e Brasil'],
+      ['Resend', 'Envio de e-mails (códigos de confirmação e convites)', 'EUA'],
+      ['Sentry', 'Registro de erros técnicos', 'EUA'],
+      ['Cloudflare', 'Verificação anti-robô e proteção contra abusos', 'Rede global'],
+      ['BrasilAPI e ViaCEP', 'Consulta pública de CNPJ e CEP para preencher cadastros', 'Brasil'],
+    ] } },
+    { p: 'Também podemos compartilhar dados quando a lei exigir, por ordem de autoridade competente ou para proteger direitos do Axioma, do Cliente ou de terceiros. As informações de mercado do Nexus vêm de fontes públicas, como Banco Central, IBGE, Banco Mundial e organismos internacionais, e não envolvem dados pessoais.' },
+
+    { h1: '7. Transferência internacional' },
+    { p: 'Alguns fornecedores processam dados fora do Brasil, principalmente nos Estados Unidos. Essas transferências ocorrem para executar o contrato com o Cliente e com garantias contratuais de proteção, conforme o art. 33 da LGPD e a regulamentação da ANPD sobre transferência internacional de dados.' },
+
+    { h1: '8. Por quanto tempo guardamos' },
+    { tabela: { colunas: ['Dado', 'Prazo'], larguras: [5200, 3826], linhas: [
+      ['Dados da conta e Dados do Cliente', 'Enquanto a conta estiver ativa; após o encerramento, 30 dias para exportação e depois exclusão ou anonimização'],
+      ['Registros de acesso (IP, data e hora)', '6 meses (Marco Civil da Internet, art. 15)'],
+      ['Termo de aceite de quem saiu da equipe', '60 dias em lixeira e depois exclusão automática'],
+      ['Histórico de alterações de Contas a Pagar enviado à lixeira', '30 dias e depois exclusão automática'],
+      ['Planos estratégicos gerados pela IA no Nexus', '90 dias'],
+      ['Painéis executivos do Nexus', '180 dias'],
+      ['Registro de auditoria do uso de IA (sem conteúdo)', '365 dias'],
+      ['Dados fiscais e de cobrança da assinatura', 'Pelo prazo exigido pela legislação tributária'],
+    ] } },
+    { p: 'Dados podem ser guardados por mais tempo quando necessários para cumprir obrigação legal ou para defesa em processos, sempre pelo período mínimo necessário.' },
+
+    { h1: '9. Como protegemos' },
+    { lista: [
+      'Criptografia na transmissão dos dados (HTTPS/TLS) e senhas guardadas de forma irreversível.',
+      '**Isolamento por empresa:** regras no próprio banco de dados impedem que uma empresa veja dados de outra.',
+      'Controle de acesso por papel e hierarquia (Proprietário, CEO, Sócio, Administrador e demais), com operador de caixa limitado ao PDV e sem ver custos.',
+      'Convites presos a um e-mail, confirmados por código, com prazo e com termo de responsabilidade.',
+      'Verificação anti-robô no cadastro e no login, e limite de tentativas.',
+      'Registro de auditoria das ações relevantes e das chamadas de IA.',
+      'Monitoramento de erros e correções contínuas de segurança.',
+    ] },
+    { p: 'Nenhum sistema é 100% invulnerável. Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares, comunicaremos o Cliente, os titulares afetados e a ANPD no prazo e na forma da regulamentação (art. 48 da LGPD).' },
+
+    { h1: '10. Seus direitos como titular' },
+    { p: 'A LGPD (art. 18) garante ao titular de dados pessoais o direito de:' },
+    { lista: [
+      'Confirmar se tratamos seus dados e ter acesso a eles.',
+      'Corrigir dados incompletos, inexatos ou desatualizados.',
+      'Pedir anonimização, bloqueio ou eliminação de dados desnecessários, excessivos ou tratados em desconformidade com a lei.',
+      'Pedir a portabilidade dos dados a outro fornecedor.',
+      'Pedir a eliminação dos dados tratados com base em consentimento.',
+      'Saber com quem compartilhamos seus dados.',
+      'Ser informado sobre a possibilidade de não consentir e suas consequências.',
+      'Revogar o consentimento, quando essa for a base legal.',
+      'Peticionar à ANPD.',
+    ] },
+    { p: 'Como exercer: envie o pedido para [[E-MAIL DO ENCARREGADO]]. Responderemos em até 15 dias. Se os dados foram lançados por uma empresa Cliente (por exemplo, você é cliente ou fornecedor dessa empresa), encaminharemos o pedido a ela, que é a controladora, e apoiaremos a resposta.' },
+    { p: 'Muitas ações já podem ser feitas direto na Plataforma: editar dados da conta, exportar relatórios, sair de uma empresa e, para o Proprietário e Administradores, apagar os dados pessoais de termos de convite.' },
+
+    { h1: '11. Cookies' },
+    { p: 'Usamos apenas cookies e armazenamento local estritamente necessários para manter a sessão aberta, proteger o acesso e lembrar preferências (idioma, tema, empresa ativa). Não usamos cookies de publicidade. Se forem adotadas ferramentas de estatística de uso, esta Política será atualizada e, quando exigido, pediremos consentimento.' },
+
+    { h1: '12. Crianças e adolescentes' },
+    { p: 'O Axioma é destinado a empresas e a maiores de 18 anos. Não tratamos intencionalmente dados de crianças e adolescentes. Se identificarmos esse tratamento, os dados serão eliminados.' },
+
+    { h1: '13. Obrigações do Cliente como controlador' },
+    { p: 'Quando a empresa Cliente lança no Axioma dados pessoais de terceiros, ela é a controladora desses dados e se compromete a:' },
+    { lista: [
+      'Ter base legal adequada para cada dado lançado e informar os titulares quando a lei exigir.',
+      'Lançar apenas os dados necessários à finalidade de gestão da empresa.',
+      'Conceder acesso à Equipe somente a quem precisa, pelo menor prazo e no menor nível possível.',
+      'Atender os pedidos dos titulares, com o nosso apoio.',
+    ] },
+
+    { h1: '14. Alterações desta Política' },
+    { p: 'Esta Política pode ser atualizada para refletir mudanças legais, técnicas ou de fornecedores. Alterações relevantes serão avisadas na Plataforma ou por e-mail com antecedência razoável. A data de vigência no início do documento indica a versão atual.' },
+
+    { h1: '15. Contato' },
+    { p: 'Encarregado pelo Tratamento de Dados Pessoais: [[NOME DO ENCARREGADO (DPO)]] — [[E-MAIL DO ENCARREGADO]].' },
+    { p: '[[RAZÃO SOCIAL]] — CNPJ [[CNPJ]] — [[ENDEREÇO COMPLETO]] — [[E-MAIL DE CONTATO]].' },
+  ],
+}
+
+export default doc

@@ -109,7 +109,7 @@ export async function middleware(request: NextRequest) {
 
   // ✅ Usuário logado em rota pública — mas deixa passar recuperar/atualizar senha
   if (user && isRotaPublica) {
-    if (pathname === '/recuperar-senha' || pathname === '/atualizar-senha') {
+    if (pathname === '/recuperar-senha' || pathname === '/atualizar-senha' || pathname === '/termos' || pathname === '/privacidade') {
       return addSecurityHeaders(supabaseResponse)
     }
     const response = NextResponse.redirect(new URL('/dashboard', request.url))
