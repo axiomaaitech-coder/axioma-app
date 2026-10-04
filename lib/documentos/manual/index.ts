@@ -37,6 +37,12 @@ import m32 from "./32-centros-custo"
 import m33 from "./33-importar-documentos"
 import m34 from "./34-relatorios"
 import m35 from "./35-open-finance"
+import m36 from "./36-ia-financeira"
+import m37 from "./37-ia-tributaria"
+import m38 from "./38-empresa"
+import m39 from "./39-equipe"
+import m40 from "./40-planos"
+import m41 from "./41-uso-ia"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -75,4 +81,10 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "33", nome: "Gestão — Importar Documentos", doc: m33 },
   { numero: "34", nome: "Gestão — Relatórios", doc: m34 },
   { numero: "35", nome: "Gestão — Open Finance", doc: m35 },
+  { numero: "36", nome: "IA Premium — IA Financeira", doc: m36 },
+  { numero: "37", nome: "IA Premium — IA Tributária", doc: m37 },
+  { numero: "38", nome: "Configurações — Empresa", doc: m38 },
+  { numero: "39", nome: "Configurações — Equipe", doc: m39 },
+  { numero: "40", nome: "Configurações — Planos", doc: m40 },
+  { numero: "41", nome: "Configurações — Uso da IA", doc: m41 },
 ]
