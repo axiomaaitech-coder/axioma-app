@@ -36,7 +36,7 @@ export function AvisoErro({ texto }: { texto: string }) {
   const { tema } = useTemaPdv();
   const claro = tema !== "escuro";
   return (
-    <div className="mb-4 px-4 py-3 rounded-xl text-sm"
+    <div className="mb-4 px-4 py-3 rounded-xl text-sm axi-card-premium3d axi-card-faixa"
       style={{ background: claro ? "rgba(255,90,107,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(255,90,107,0.25)" : "rgba(239,68,68,0.3)"}` }}>
       {texto}
     </div>
@@ -103,7 +103,7 @@ export function CardGenerico({ label, sublabel, onClick }: { label: string; subl
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px] axi-card-premium3d"
+      className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px] axi-card-premium3d axi-card-faixa"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
     >
       <span className="text-sm font-semibold truncate w-full" style={{ color: tokens.cardTexto }}>{label}</span>
@@ -137,7 +137,7 @@ export function BotaoSimples({ label, onClick, apagado, qtd }: { label: string; 
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="flex flex-col items-start gap-1 p-3.5 rounded-xl text-left text-sm font-medium min-h-[52px]"
+      className="flex flex-col items-start gap-1 p-3.5 rounded-xl text-left text-sm font-medium min-h-[52px] axi-card-premium3d axi-card-faixa"
       style={{
         background: apagado ? tokens.fundoContainer : tokens.cardBg,
         border: `1px solid ${apagado ? tokens.bordaContainer : tokens.cardBorda}`,
@@ -167,7 +167,7 @@ export function LinhaProduto({ produto, estoqueLabel, precoNaoDefinidoLabel, edi
   const { tokens } = useTemaPdv();
   const preco = produto.preco_venda ?? produto.preco_sugerido;
   return (
-    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className="min-w-0">
         <p className="text-sm font-medium truncate" style={{ color: tokens.cardTexto }}>{produto.nome}</p>
         <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.72 }}>

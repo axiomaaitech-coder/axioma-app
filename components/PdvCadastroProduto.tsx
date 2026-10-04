@@ -31,7 +31,7 @@ import { buscarSugestoesSemente } from "../lib/pdvAutocompleteSemente";
 // Botões de ação (Salvar/Consultar) usam tokens.acaoBg/acaoTexto — verde só
 // sobrevive no tema escuro (ver components/PdvLayout.tsx). Âmbar continua
 // fixo nos dois temas: é cor de status (sugestão/alerta), não identidade.
-const AMBAR = "#f5b942";
+const AMBAR = "#2ecc9b"; // sem âmbar/amarelo (padrão Axioma 2026-10-03)
 
 // Botão do assistente é widget de suporte (estilo WhatsApp/Intercom) — cor
 // fixa de destaque, não segue os tokens de tema (precisa saltar aos olhos
@@ -507,7 +507,7 @@ export function Campo({ label, value, onChange, tipo = "text", sugerido, lista, 
         type={tipo} value={value ?? ""} onFocus={onFocus} list={lista ? listId : undefined}
         onChange={(e) => onChange(tipo === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(46,204,155,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
       />
       {lista && <datalist id={listId}>{lista.map((v, i) => <option key={i} value={v} />)}</datalist>}
     </div>
@@ -561,7 +561,7 @@ export function CampoMoeda({ label, value, onChange, sugerido, emCard }: {
           setTexto(formatarMoedaInput(arredondado));
         }}
         className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(46,204,155,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
       />
     </div>
   );
@@ -573,7 +573,7 @@ export function CampoSelectSimples({ label, value, onChange, opcoes, sugerido, e
     <div>
       <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : emCard ? tokens.cardTexto : tokens.textoSecundario }}>{label} {sugerido && <Sparkles size={11} />}</label>
       <select value={value || ""} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(46,204,155,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -620,11 +620,11 @@ export function AvisoDuplicado({ lang, nome, onAbrirExistente, onCriarMesmoAssim
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,185,66,0.1)", border: "1px solid rgba(245,185,66,0.4)" }}>
+    <div className="p-4 rounded-xl mb-4 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.1)", border: "1px solid rgba(46,204,155,0.4)" }}>
       <p className="text-sm font-semibold mb-1" style={{ color: AMBAR }}>{t("nomeDuplicadoTitulo", lang)}</p>
       <p className="text-xs mb-3" style={{ color: tokens.texto }}>"{nome}"</p>
       <div className="flex gap-2 flex-wrap">
-        <button onClick={onAbrirExistente} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,185,66,0.2)", color: AMBAR }}>{t("abrirExistente", lang)}</button>
+        <button onClick={onAbrirExistente} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(46,204,155,0.2)", color: AMBAR }}>{t("abrirExistente", lang)}</button>
         <button onClick={onCriarMesmoAssim} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>{t("criarMesmoAssim", lang)}</button>
         <button onClick={onFechar} className="px-3 py-2 rounded-lg text-xs" style={{ color: tokens.textoMuted }}>✕</button>
       </div>
@@ -649,9 +649,9 @@ export function ModalConfirmacao({ aberto, titulo, mensagem, valorDestaque, text
           style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
           <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full max-w-sm rounded-2xl p-5" style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}` }}>
+            className="w-full max-w-sm rounded-2xl p-5 axi-card-premium3d axi-card-faixa" style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}` }}>
             <div className="flex items-start gap-3 mb-3">
-              <div className="p-2 rounded-xl shrink-0" style={{ background: "rgba(239,68,68,0.15)" }}>
+              <div className="p-2 rounded-xl shrink-0 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.15)" }}>
                 <AlertTriangle size={20} style={{ color: "#f87171" }} />
               </div>
               <div className="min-w-0">
@@ -803,7 +803,7 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl p-4 flex flex-col"
+              className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl p-4 flex flex-col axi-card-premium3d axi-card-faixa"
               style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "100%", height: "min(640px, 100%)" }}>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
@@ -961,7 +961,7 @@ function BlocoPrecificacao({
           </div>
 
           {situacao === "prejuizo" && (
-            <div className="p-3 rounded-xl flex items-start gap-2.5" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}>
+            <div className="p-3 rounded-xl flex items-start gap-2.5 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}>
               <AlertTriangle size={18} style={{ color: "#f87171", flexShrink: 0, marginTop: 1 }} />
               <div className="min-w-0">
                 <p className="text-xs font-bold" style={{ color: "#f87171" }}>{t("alertaPrejuizoTitulo", lang)}</p>
@@ -970,7 +970,7 @@ function BlocoPrecificacao({
             </div>
           )}
           {situacao === "apertada" && (
-            <div className="p-3 rounded-xl flex items-start gap-2.5" style={{ background: "rgba(245,185,66,0.12)", border: "1px solid rgba(245,185,66,0.35)" }}>
+            <div className="p-3 rounded-xl flex items-start gap-2.5 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.12)", border: "1px solid rgba(46,204,155,0.35)" }}>
               <AlertTriangle size={18} style={{ color: AMBAR, flexShrink: 0, marginTop: 1 }} />
               <div className="min-w-0">
                 <p className="text-xs font-bold" style={{ color: AMBAR }}>{t("alertaMargemApertadaTitulo", lang)}</p>
@@ -1023,12 +1023,12 @@ export function FormularioAvulso({
       {duplicado && <AvisoDuplicado lang={lang} nome={duplicado.nome} onAbrirExistente={onAbrirExistente} onCriarMesmoAssim={onCriarMesmoAssim} onFechar={onFecharDuplicado} />}
 
       {origemSugestao === "ia" && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "rgba(245,185,66,0.1)", color: AMBAR }}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.1)", color: AMBAR }}>
           <Sparkles size={13} /> {t("sugeridoIA", lang)}
         </div>
       )}
       {origemSugestao === "cosmos" && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
           <CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}
         </div>
       )}
