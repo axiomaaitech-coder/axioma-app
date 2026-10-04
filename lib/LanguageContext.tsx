@@ -77,13 +77,13 @@ const BANDEIRAS: Record<Idioma, ({ size }: { size?: number }) => ReactNode> = {
   es: BandeiraES,
 };
 
-export function SeletorIdioma() {
+export function SeletorIdioma({ compacto = false }: { compacto?: boolean } = {}) {
   const { idioma, setIdioma } = useLanguage();
 
   return (
     <div
-      className="flex gap-1 rounded-xl p-1"
-      style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}
+      className={compacto ? "flex gap-0.5 items-center" : "flex gap-1 rounded-xl p-1"}
+      style={compacto ? undefined : { background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}
     >
       {(["pt", "en", "es"] as Idioma[]).map((code) => {
         const Flag = BANDEIRAS[code];
@@ -93,16 +93,16 @@ export function SeletorIdioma() {
             key={code}
             onClick={() => setIdioma(code)}
             aria-label={code}
-            className="px-2 py-1.5 rounded-lg transition-all flex items-center justify-center"
+            className={compacto ? "px-1 py-0.5 rounded-md transition-all flex items-center justify-center" : "px-2 py-1.5 rounded-lg transition-all flex items-center justify-center"}
             style={{
-              background: ativo ? "rgba(59,111,212,0.3)" : "transparent",
-              border: ativo ? "1px solid rgba(106,176,255,0.5)" : "1px solid transparent",
-              boxShadow: ativo ? "0 0 12px rgba(106,176,255,0.35)" : "none",
+              background: ativo ? "rgba(46,204,155,0.25)" : "transparent",
+              border: ativo ? "1px solid #2ecc9b" : "1px solid transparent",
+              boxShadow: ativo ? "0 0 10px rgba(46,204,155,0.45)" : "none",
               opacity: ativo ? 1 : 0.55,
               transform: ativo ? "scale(1.05)" : "scale(1)",
             }}
           >
-            <Flag size={22} />
+            <Flag size={compacto ? 17 : 22} />
           </button>
         );
       })}

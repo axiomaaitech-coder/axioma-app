@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
+import { Menu, X, LogOut, ChevronDown, Landmark, Home, Globe, Wallet, BookOpen, Users, TrendingUp, Building2, Store, ShoppingCart, Bot, Settings, BookMarked, FileText, Lock, UsersRound } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 import { obterEmpresaAtiva, carregarEmpresaPorId, obterMeuPapel, obterMeuNivel, listarPedidosEquipe } from "../lib/empresaHelpers";
@@ -293,6 +293,11 @@ export default function TopNav() {
   // azul-marinho com letra creme, alternando; seção em uso = verde-menta neon.
   const CASA_CREME = { background: "#f6f7c4", color: "#101b3d", border: "1px solid rgba(16,27,61,0.28)", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" };
   const CASA_NAVY = { background: "#101b3d", color: "#f6f7c4", border: "1px solid rgba(246,247,196,0.28)", boxShadow: "0 2px 8px rgba(0,0,0,0.35)" };
+  const ICONE_SECAO: Record<string, typeof Home> = {
+    "💰 Financeiro": Wallet, "📒 Contabilidade": BookOpen, "👥 Comercial": Users, "📈 Crescimento": TrendingUp,
+    "🏢 Gestão": Building2, "🟡 MEI": Store, "🤖 IA Premium": Bot, "⚙️ Config": Settings,
+  };
+  const semEmoji = (t: string) => t.replace(/^[^\p{L}\p{N}]+/u, "");
   function corCasa(indice: number) {
     const linha = Math.floor(indice / 9);
     const coluna = indice % 9;
@@ -342,7 +347,8 @@ export default function TopNav() {
         setDropdownPos({ top: r.bottom, left: r.left });
         setDropdown(aberto ? null : grupo.label.pt);
       }}>
-        <span className="truncate">{grupo.label[lang]}</span>
+        {(() => { const Ic = ICONE_SECAO[grupo.label.pt]; return Ic ? <Ic size={13} className="shrink-0" /> : null })()}
+        <span className="truncate">{semEmoji(grupo.label[lang])}</span>
         {ehMei && <BadgeDestaque lang={lang} />}
         <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown size={12} />
@@ -360,13 +366,14 @@ export default function TopNav() {
   if (!isOperador) {
     cartas["dashboard"] = ((i) => (
       <CardNav key="dashboard" indice={i} ativo={pathname === "/dashboard"} onClick={() => navegar("/dashboard")}>
-        <span>🏠</span>
+        <Home size={13} className="shrink-0" />
         <span className="truncate">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
       </CardNav>
     ));
     cartas["nexus"] = ((i) => (
       <CardNav key="nexus" indice={i} ativo={nexusAtivo} onClick={() => navegar(nexusModulo.path)}>
-        <span className="truncate">{nexusModulo.label[lang]}</span>
+        <Globe size={13} className="shrink-0" />
+        <span className="truncate">{semEmoji(nexusModulo.label[lang])}</span>
       </CardNav>
     ));
     gruposVisiveis.forEach((grupo) => {
@@ -375,7 +382,8 @@ export default function TopNav() {
       if (ehMei) {
         cartas["pdv"] = ((i) => (
           <CardNav key="pdv" indice={i} ativo={pdvAtivo} onClick={() => navegar(pdvModulo.path)} title={pdvTooltip}>
-            <span className="truncate">{pdvModulo.label[lang]}</span>
+            <ShoppingCart size={13} className="shrink-0" />
+            <span className="truncate">{semEmoji(pdvModulo.label[lang])}</span>
             <BadgeDestaque lang={lang} />
           </CardNav>
         ));
@@ -388,26 +396,32 @@ export default function TopNav() {
       </CardNav>
     ));
     cartas["idioma"] = ((i) => (
-      <div key="idioma" className="axi-menu-card relative col-span-2 h-8 rounded-lg flex items-center justify-center" style={corCasa(i)}>
-        <SeletorIdioma />
+      <div key="idioma" className="axi-menu-card relative h-8 rounded-lg flex items-center justify-center overflow-hidden" style={corCasa(i)}>
+        <SeletorIdioma compacto />
       </div>
+    ));
+    cartas["equipe"] = ((i) => (
+      <CardNav key="equipe" indice={i} ativo={pathname === "/equipe"} onClick={() => navegar("/equipe")}>
+        <UsersRound size={13} className="shrink-0" />
+        <span className="truncate">{lang === "pt" ? "Equipe" : lang === "en" ? "Team" : "Equipo"}</span>
+      </CardNav>
     ));
     // Documentos do Axioma (pedido do Elias 2026-10-04): manual, termos e privacidade
     cartas["manual"] = ((i) => (
       <CardNav key="manual" indice={i} ativo={pathname === "/manual"} onClick={() => navegar("/manual")}>
-        <span>📘</span>
+        <BookMarked size={13} className="shrink-0" />
         <span className="truncate">{lang === "pt" ? "Manual" : lang === "en" ? "Manual" : "Manual"}</span>
       </CardNav>
     ));
     cartas["termos"] = ((i) => (
       <CardNav key="termos" indice={i} ativo={pathname === "/termos"} onClick={() => navegar("/termos")}>
-        <span>📄</span>
+        <FileText size={13} className="shrink-0" />
         <span className="truncate">{lang === "pt" ? "Termos de Uso" : lang === "en" ? "Terms of Use" : "Términos de Uso"}</span>
       </CardNav>
     ));
     cartas["privacidade"] = ((i) => (
       <CardNav key="privacidade" indice={i} ativo={pathname === "/privacidade"} onClick={() => navegar("/privacidade")}>
-        <span>🔒</span>
+        <Lock size={13} className="shrink-0" />
         <span className="truncate">{lang === "pt" ? "Privacidade" : lang === "en" ? "Privacy" : "Privacidad"}</span>
       </CardNav>
     ));
@@ -421,13 +435,13 @@ export default function TopNav() {
   // Ordem do menu (2 linhas de 9; "idioma" ocupa 2 casas). Grupos pelo nome em pt.
   // Sequência definida pelo Elias (2026-10-04).
   const ORDEM_MENU = [
-    "dashboard", "nexus", "💰 Financeiro", "📒 Contabilidade", "👥 Comercial", "📈 Crescimento", "🏢 Gestão", "idioma",
+    "dashboard", "nexus", "💰 Financeiro", "📒 Contabilidade", "👥 Comercial", "📈 Crescimento", "🏢 Gestão", "equipe", "idioma",
     "🟡 MEI", "pdv", "🤖 IA Premium", "⚙️ Config", "manual", "termos", "privacidade", "banco", "sair",
   ];
   // Casa real no tabuleiro (o idioma ocupa 2 casas) — a cor do xadrez segue a casa.
   let casaAtual = 0;
   const construtoresCartas = ORDEM_MENU.filter((k) => cartas[k]).map((k) => {
-    const casa = casaAtual; casaAtual += k === "idioma" ? 2 : 1;
+    const casa = casaAtual; casaAtual += 1;
     return () => cartas[k](casa);
   });
 
