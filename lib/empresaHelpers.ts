@@ -1002,6 +1002,12 @@ export async function listarLixeiraTermos(empresaId: string): Promise<TermoConvi
   if (error) reportarFalhaLeitura("equipe.lixeiraTermos", error);
   return (data as TermoConvite[]) || [];
 }
+// Transferir a propriedade (só o Proprietário; regra no banco — bloco 10)
+export async function transferirPropriedade(empresaId: string, novoUserId: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("equipe_transferir_propriedade", { p_empresa: empresaId, p_novo: novoUserId, p_motivo: motivo });
+  if (error) { reportarFalhaEscrita("empresas", "rpc equipe_transferir_propriedade", error.message); return { erro: error.message, codigo: error.code }; }
+  return {};
+}
 export async function recuperarTermoConvite(id: string): Promise<{ erro?: string; codigo?: string }> {
   const { error } = await supabase.rpc("recuperar_termo_convite", { p_id: id });
   if (error) { reportarFalhaEscrita("empresa_convite_termo", "rpc recuperar_termo_convite", error.message); return { erro: error.message, codigo: error.code }; }

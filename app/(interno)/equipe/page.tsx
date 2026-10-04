@@ -6,7 +6,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, apagarTermoConvite, decidirConvite, type TermoConvite,
+  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, apagarTermoConvite, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
@@ -72,7 +72,7 @@ const textos = {
     acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
     relacaoLabel: 'Quem você está convidando', rel_ceo: 'CEO', rel_socio: 'Sócio', rel_contador: 'Contador', rel_funcionario: 'Funcionário', rel_consultor: 'Consultor (2ª opinião)', rel_outro: 'Outro',
     termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
-    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Dados de quem saiu da empresa. Ficam guardados por 60 dias e depois são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
+    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Dados de quem saiu da empresa. Ficam guardados por 60 dias e depois são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
     semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
     dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Apagar dados pessoais deste termo',
     apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
@@ -138,7 +138,7 @@ const textos = {
     acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
     relacaoLabel: 'Who you are inviting', rel_ceo: 'CEO', rel_socio: 'Partner', rel_contador: 'Accountant', rel_funcionario: 'Employee', rel_consultor: 'Consultant (2nd opinion)', rel_outro: 'Other',
     termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
-    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Data of people who left the company. Kept for 60 days and then deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
+    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Data of people who left the company. Kept for 60 days and then deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
     semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
     dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Delete personal data of this term',
     apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
@@ -204,7 +204,7 @@ const textos = {
     acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
     relacaoLabel: 'A quién está invitando', rel_ceo: 'CEO', rel_socio: 'Socio', rel_contador: 'Contador', rel_funcionario: 'Empleado', rel_consultor: 'Consultor (2ª opinión)', rel_outro: 'Otro',
     termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
-    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Datos de quienes salieron de la empresa. Se guardan 60 días y luego se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
+    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Datos de quienes salieron de la empresa. Se guardan 60 días y luego se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
     semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
     dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Borrar datos personales de este término',
     apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
@@ -285,6 +285,8 @@ export default function EquipePage() {
   const [termos, setTermos] = useState<TermoConvite[]>([])
   const [lixeira, setLixeira] = useState<TermoConvite[]>([])
   const [lixeiraAberta, setLixeiraAberta] = useState(false)
+  const [membroTransferir, setMembroTransferir] = useState<MembroEquipe | null>(null)
+  const [transferindo, setTransferindo] = useState(false)
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
   // Admin, CEO, Sócio e Contador: cortar acesso / apagar dados exige formulário simples (data + motivo).
   // Funcionário, consultor e outros: direto, sem formulário (pedido do Elias).
@@ -321,6 +323,7 @@ export default function EquipePage() {
       case 'AX008': return t.erroDuplicado
       case 'AX021': return t.erroProprietarioSair
       case 'AX022': return t.erroMotivo
+      case 'AX023': return t.erroSemAtivo
       case 'AX024': return t.erroProprietario
       case 'AX025': case 'AX028': return t.erroHierarquia
       case 'AX026': return t.erroPedidoAberto
@@ -500,6 +503,17 @@ export default function EquipePage() {
     if (r.erro) { avisar('erro', t.erroApagar); return }
     avisar('sucesso', t.sucessoApagar)
     setTermos(await listarTermosConvite(empresaId))
+  }
+
+  async function confirmarTransferencia() {
+    if (!membroTransferir?.user_id || !empresaId || motivoApagar.trim().length < 5 || !cienteApagar) return
+    setTransferindo(true)
+    const r = await transferirPropriedade(empresaId, membroTransferir.user_id, motivoApagar.trim())
+    setTransferindo(false)
+    if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
+    setMembroTransferir(null)
+    avisar('sucesso', t.transferido)
+    await carregarTudo()
   }
 
   async function recuperarTermo(tm: TermoConvite) {
@@ -871,6 +885,12 @@ export default function EquipePage() {
                         <LogOut size={15} />
                       </button>
                     )}
+                    {!ehVoce && meuNivel === 1 && m.origem === 'ativo' && !m.suspenso_em && m.user_id && (
+                      <button onClick={() => { setMembroTransferir(m); setMotivoApagar(''); setCienteApagar(false) }} title={t.transferirBotao}
+                        className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.35)' }}>
+                        <ShieldCheck size={14} /> {t.transferirBotao}
+                      </button>
+                    )}
                     {!ehVoce && m.origem === 'ativo' && m.suspenso_em && (meuNivel ?? 99) <= 3 && (
                       <button onClick={() => restaurar(m)} title={t.restaurar} className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5"
                         style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
@@ -1015,6 +1035,33 @@ export default function EquipePage() {
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: VERMELHO, color: '#fff' }}>
             {apagando ? t.apagando : membroCortar ? t.cortarBotao : t.apagarBotao}
+          </motion.button>
+        </CanvasBox>
+      </Modal>
+      <Modal open={!!membroTransferir} onClose={() => { if (!transferindo) setMembroTransferir(null) }}>
+        <CanvasBox cor="#2ecc9b" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: '#2ecc9b' }}>AXIOMA AI.TECH</p>
+              <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{t.transferirTitulo}</h3>
+            </div>
+            <button onClick={() => { if (!transferindo) setMembroTransferir(null) }} style={{ color: MUTED }}><X size={20} /></button>
+          </div>
+          <div className="rounded-xl p-3 mb-3 flex gap-2 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG }}>
+            <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: '#2ecc9b' }} />
+            <p className="text-xs" style={{ color: TEXTO }}>{membroTransferir ? t.transferirAviso(membroTransferir.nome || membroTransferir.email) : ''}</p>
+          </div>
+          <label className="text-xs font-semibold mb-1 block" style={{ color: TEXTO }}>{t.apagarMotivo}</label>
+          <textarea value={motivoApagar} onChange={(e) => setMotivoApagar(e.target.value)} rows={2} maxLength={500} disabled={transferindo}
+            className="w-full px-3 py-2 rounded-lg text-sm resize-none mb-3" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
+          <label className="flex items-start gap-2 mb-3 cursor-pointer">
+            <input type="checkbox" checked={cienteApagar} onChange={(e) => setCienteApagar(e.target.checked)} disabled={transferindo} className="mt-0.5" />
+            <span className="text-xs" style={{ color: TEXTO }}>{t.transferirCiente}</span>
+          </label>
+          <motion.button onClick={confirmarTransferencia} disabled={transferindo || motivoApagar.trim().length < 5 || !cienteApagar}
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
+            {transferindo ? '…' : t.transferirConfirmar}
           </motion.button>
         </CanvasBox>
       </Modal>

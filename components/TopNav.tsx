@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { obterEmpresaAtiva, carregarEmpresaPorId, obterMeuPapel } from "../lib/empresaHelpers";
+import { obterEmpresaAtiva, carregarEmpresaPorId, obterMeuPapel, obterMeuNivel, listarPedidosEquipe } from "../lib/empresaHelpers";
 import BadgeDestaque from "./BadgeDestaque";
 
 const supabase = createBrowserClient(
@@ -147,6 +147,8 @@ export default function TopNav() {
   const [menuMobile, setMenuMobile] = useState(false);
   const [grupoMobile, setGrupoMobile] = useState<string | null>(null);
   const [cadastroIncompleto, setCadastroIncompleto] = useState(false);
+  // Pedidos de aval da Equipe que ESTA pessoa pode decidir (aviso no topo de toda tela)
+  const [pedidosAval, setPedidosAval] = useState(0);
   // Papel do usuário NA EMPRESA ATIVA (nunca global — recalculado sempre que a
   // rota muda, o que também cobre troca de empresa numa nova sessão/aba).
   const [papel, setPapel] = useState<string | null>(null);
@@ -163,6 +165,13 @@ export default function TopNav() {
       ]);
       setCadastroIncompleto(emp?.cadastro_completo === false);
       setPapel(meuPapel);
+      // Aviso de aval: só quem pode decidir (nível <= nível pedido, sem ser parte do pedido)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || meuPapel === "operador") { setPedidosAval(0); return; }
+      const nivel = await obterMeuNivel(empresaId, user.id);
+      if (nivel == null || nivel > 4) { setPedidosAval(0); return; }
+      const pedidos = await listarPedidosEquipe(empresaId);
+      setPedidosAval(pedidos.filter((p) => p.pedido_por !== user.id && p.alvo_user_id !== user.id && nivel <= p.nivel_aval).length);
     })();
   }, [pathname]);
 
@@ -648,11 +657,28 @@ export default function TopNav() {
 
       <div className="h-16 md:h-[108px]" />
 
+      {pedidosAval > 0 && pathname !== "/equipe" && (
+        <div
+          onClick={() => navegar("/equipe")}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold cursor-pointer text-center"
+          style={{ background: "#101b3d", borderBottom: "1px solid rgba(46,204,155,0.35)", color: "#ffffff" }}
+        >
+          <span>🛡️</span>
+          <span>
+            {lang === "pt" ? `${pedidosAval} pedido${pedidosAval > 1 ? "s" : ""} de aval na Equipe esperando a sua decisão.` :
+             lang === "en" ? `${pedidosAval} approval request${pedidosAval > 1 ? "s" : ""} on the Team waiting for your decision.` :
+             `${pedidosAval} solicitud${pedidosAval > 1 ? "es" : ""} de aval en el Equipo esperando su decisión.`}
+          </span>
+          <span style={{ textDecoration: "underline", color: "#2ecc9b" }}>
+            {lang === "pt" ? "Ver agora →" : lang === "en" ? "See now →" : "Ver ahora →"}
+          </span>
+        </div>
+      )}
       {cadastroIncompleto && (
         <div
           onClick={() => navegar("/empresa")}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold cursor-pointer text-center"
-          style={{ background: "rgba(251,191,36,0.08)", borderBottom: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24" }}
+          style={{ background: "rgba(46,204,155,0.08)", borderBottom: "1px solid rgba(46,204,155,0.25)", color: "#2ecc9b" }}
         >
           <span>🏢</span>
           <span>

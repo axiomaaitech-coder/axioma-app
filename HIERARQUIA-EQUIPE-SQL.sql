@@ -549,3 +549,44 @@ revoke all on function public.recuperar_termo_convite(uuid) from public;
 grant execute on function public.recuperar_termo_convite(uuid) to authenticated;
 
 SELECT 'bloco 9 ok' AS resultado;
+
+-- ============================== BLOCO 10 ====================================
+-- 2026-10-03: Transferir a propriedade da empresa (só o Proprietário, para alguém
+-- ATIVO da equipe, com motivo). O novo vira Proprietário; o antigo fica Admin sem prazo.
+create or replace function public.equipe_transferir_propriedade(p_empresa uuid, p_novo uuid, p_motivo text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_eu uuid := (select auth.uid());
+begin
+  if not exists (select 1 from empresas where id = p_empresa and user_id = v_eu) then
+    raise exception 'Só o proprietário pode transferir a empresa' using errcode = 'AX006';
+  end if;
+  if length(trim(coalesce(p_motivo, ''))) < 5 then
+    raise exception 'Escreva o motivo (mínimo 5 letras)' using errcode = 'AX022';
+  end if;
+  if p_novo = v_eu or not exists (
+    select 1 from empresa_usuarios
+    where empresa_id = p_empresa and user_id = p_novo and suspenso_em is null
+      and (acesso_expira_em is null or acesso_expira_em > now())
+  ) then
+    raise exception 'Escolha alguém com acesso ativo na equipe' using errcode = 'AX023';
+  end if;
+
+  -- novo Proprietário primeiro (a trava "último dono" nunca fica sem dono)
+  update empresa_usuarios set papel = 'dono', acesso_expira_em = null where empresa_id = p_empresa and user_id = p_novo;
+  update empresas set user_id = p_novo where id = p_empresa;
+  insert into empresa_usuarios (empresa_id, user_id, papel)
+  values (p_empresa, v_eu, 'admin')
+  on conflict (empresa_id, user_id) do update set papel = 'admin', acesso_expira_em = null, suspenso_em = null;
+  update equipe_pedidos set situacao = 'cancelado', decidido_em = now()
+  where empresa_id = p_empresa and situacao = 'aberto' and (alvo_user_id = p_novo or alvo_user_id = v_eu);
+end;
+$$;
+revoke all on function public.equipe_transferir_propriedade(uuid, uuid, text) from public;
+grant execute on function public.equipe_transferir_propriedade(uuid, uuid, text) to authenticated;
+
+SELECT 'bloco 10 ok' AS resultado;
