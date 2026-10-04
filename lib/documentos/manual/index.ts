@@ -33,6 +33,10 @@ import m28 from "./28-contas-pagar"
 import m29 from "./29-estoque"
 import m30 from "./30-contas-receber"
 import m31 from "./31-inadimplencia"
+import m32 from "./32-centros-custo"
+import m33 from "./33-importar-documentos"
+import m34 from "./34-relatorios"
+import m35 from "./35-open-finance"
 
 export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
@@ -67,4 +71,8 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "29", nome: "Comercial — Estoque", doc: m29 },
   { numero: "30", nome: "Comercial — Contas a Receber", doc: m30 },
   { numero: "31", nome: "Comercial — Inadimplência", doc: m31 },
+  { numero: "32", nome: "Gestão — Centros de Custo", doc: m32 },
+  { numero: "33", nome: "Gestão — Importar Documentos", doc: m33 },
+  { numero: "34", nome: "Gestão — Relatórios", doc: m34 },
+  { numero: "35", nome: "Gestão — Open Finance", doc: m35 },
 ]
