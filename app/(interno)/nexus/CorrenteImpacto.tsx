@@ -143,7 +143,7 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
   const elos = corrente.elos
 
   return (
-    <div className="mt-3 rounded-xl p-3" style={{ background: fundo, border: `1px solid ${borda}` }}>
+    <div className="mt-3 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundo, border: `1px solid ${borda}` }}>
       <p className="text-xs font-bold mb-2" style={{ color: TIT }}>
         {L(['Como isso chega até a sua empresa', 'How this reaches your company', 'Cómo esto llega a su empresa'])}
       </p>

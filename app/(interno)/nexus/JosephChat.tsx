@@ -170,7 +170,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
           <p className={`${cinzel.className} text-sm md:text-[15px] font-semibold mt-2 leading-relaxed tracking-wide`} style={{ color: TEXTO }}>
             {L('Como José no Egito: ler os sinais de hoje para se preparar para as vacas magras.', 'Like José in Egypt: read today’s signs to prepare for the lean years.', 'Como José en Egipto: leer las señales de hoy para prepararse para las vacas flacas.')}
           </p>
-          <div className="w-full mt-4 text-left rounded-xl p-3" style={{ background: NESTED_BG, border: temaClaro ? '1px solid rgba(16,27,61,0.12)' : '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="w-full mt-4 text-left rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: temaClaro ? '1px solid rgba(16,27,61,0.12)' : '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-[11px] font-bold mb-1.5" style={{ color: CINZA }}>{L('O que o José está vendo agora', 'What José sees right now', 'Lo que José ve ahora')}</p>
             <ul className="space-y-1 text-[11px]" style={{ color: TEXTO }}>
               <li>📊 {indicadores.filter((i) => i.valor != null).length} {L('indicadores oficiais', 'official indicators', 'indicadores oficiales')}</li>
@@ -253,7 +253,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
               placeholder={L('Pergunte ao José… (Enter envia)', 'Ask José… (Enter sends)', 'Pregunte a José… (Enter envía)')}
               aria-label={L('Mensagem para o José', 'Message to José', 'Mensaje para José')}
               className="flex-1 resize-none px-3.5 py-2.5 rounded-xl text-sm max-h-32"
-              style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(106,176,255,0.2)', color: '#e2ecf7' }}
+              style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }}
             />
             <button onClick={() => enviar(texto)} disabled={!texto.trim() || pensando} aria-label={L('Enviar', 'Send', 'Enviar')}
               className="shrink-0 flex items-center justify-center rounded-xl disabled:opacity-50" style={{ ...VERDE_SOLIDO, width: 44, height: 44 }}>

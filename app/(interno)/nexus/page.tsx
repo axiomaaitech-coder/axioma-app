@@ -137,9 +137,9 @@ function CardMiniNoticia({ noticia, lang, localeData, onClick, temaClaro, compac
 type Nome3 = [string, string, string]
 type EstiloSelo = { cor: string; escuroTexto?: string; claroFundo: string; claroTexto: string; nome: Nome3 }
 const NATUREZA_EVENTO: Record<string, EstiloSelo> = {
-  fact: { cor: '#6ab0ff', escuroTexto: '#ffffff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
-  signal: { cor: '#fbbf24', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
-  official_decision: { cor: '#a78bfa', claroFundo: '#101b3d', claroTexto: '#ffffff', nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
+  fact: { cor: '#2ecc9b', escuroTexto: '#ffffff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
+  signal: { cor: '#facc15', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
+  official_decision: { cor: '#2ecc9b', claroFundo: '#101b3d', claroTexto: '#ffffff', nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
 }
 const NATUREZA_DESCONHECIDA: EstiloSelo = { cor: '#5a7a9a', claroFundo: '#6b7280', claroTexto: '#ffffff', nome: ['Não classificado', 'Unclassified', 'No clasificado'] }
 
@@ -148,7 +148,7 @@ const NATUREZA_DESCONHECIDA: EstiloSelo = { cor: '#5a7a9a', claroFundo: '#6b7280
 function impactoEvento(severity: number | null): EstiloSelo {
   const s = severity ?? 0
   if (s >= 70) return { cor: '#f87171', claroFundo: 'transparent', claroTexto: '#dc3545', nome: ['Impacto alto', 'High impact', 'Impacto alto'] }
-  if (s >= 45) return { cor: '#fbbf24', claroFundo: 'transparent', claroTexto: '#b45309', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
+  if (s >= 45) return { cor: '#facc15', claroFundo: 'transparent', claroTexto: '#b45309', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
   return { cor: '#34d399', claroFundo: 'transparent', claroTexto: '#374151', nome: ['Impacto baixo', 'Low impact', 'Impacto bajo'] }
 }
 
@@ -180,7 +180,7 @@ export default function NexusPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { AZULC, CIANO, ROXOTV, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
-  const classePremium3d = ' axi-card-premium3d' // efeito nos 2 temas (pedido 2026-09-27)
+  const classePremium3d = ' axi-card-premium3d axi-card-faixa' // efeito nos 2 temas (pedido 2026-09-27)
   // Portal pro body mantendo o data-theme (fora da árvore do wrapper da página).
   const [montado, setMontado] = useState(false)
   useEffect(() => { setMontado(true) }, [])
@@ -188,7 +188,7 @@ export default function NexusPage() {
     <div data-theme={tema} className="nexus-escala" style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>,
     document.body,
   )
-  const hoverCard = ' axi-card-premium3d'
+  const hoverCard = ' axi-card-premium3d axi-card-faixa'
   // Selo "DEMONSTRAÇÃO" / avisos neutros — no Claro, navy sobre bege translúcido.
   const seloNeutro: CSSProperties = temaClaro
     ? { background: 'rgba(16,27,61,0.08)', color: '#101b3d', border: '1px solid rgba(16,27,61,0.15)' }
@@ -199,7 +199,7 @@ export default function NexusPage() {
   const corTrava = (nivel: string) => ({
     // Claro: ícone colorido + texto azul-marinho (verde-menta em texto miúdo não lê no creme).
     icone: nivel === 'oficial' ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#b45309' : '#2ecc9b'),
-    texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#fbbf24'),
+    texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#facc15'),
   })
 
   const [loading, setLoading] = useState(true)
@@ -363,7 +363,7 @@ export default function NexusPage() {
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={CIANO} corTexto={CIANO} solido={temaClaro} />
           <Link href="/nexus/simulacoes" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}26`, border: `1px solid ${CIANO}66`, color: CIANO }}>
+            style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}>
             <FlaskConical size={16} aria-hidden />{L('Minhas Simulações', 'My Simulations', 'Mis Simulaciones')}
           </Link>
           <ThemeToggle />
@@ -498,7 +498,7 @@ export default function NexusPage() {
                 onClick={() => carregarEventos(paginaEventos + 1)}
                 disabled={carregandoEventos}
                 className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 axi-card-premium3d axi-card-faixa"
-                style={{ ...(temaClaro ? VERDE_SOLIDO : { color: CIANO, background: `${CIANO}14`, border: `1px solid ${CIANO}40` }), opacity: carregandoEventos ? 0.6 : 1 }}
+                style={{ ...(temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }), opacity: carregandoEventos ? 0.6 : 1 }}
               >
                 {carregandoEventos ? L('Carregando...', 'Loading...', 'Cargando...') : L('Ver eventos anteriores', 'Show earlier events', 'Ver eventos anteriores')}
               </button>
@@ -692,7 +692,7 @@ export default function NexusPage() {
               <button
                 onClick={() => setListaAmpliadaAberta(true)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
-                style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
+                style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}
               >
                 <Newspaper size={13} />
                 {L('Ver mais / Reforma Tributária', 'See more / Tax Reform', 'Ver más / Reforma Tributaria')}
@@ -737,7 +737,7 @@ export default function NexusPage() {
                 role="dialog" aria-modal="true" aria-labelledby="nexus-evento-titulo"
                 initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
                 transition={{ duration: 0.22 }}
-                className="w-full max-w-2xl rounded-2xl p-5 h-[85vh] overflow-y-auto"
+                className="w-full max-w-2xl rounded-2xl p-5 h-[85vh] overflow-y-auto axi-card-premium3d axi-card-faixa"
                 style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: temaClaro ? '2px solid #16a97d' : `3px solid ${nat.cor}` }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -752,7 +752,7 @@ export default function NexusPage() {
                 </div>
                 <h3 id="nexus-evento-titulo" className="text-lg font-black leading-snug mb-2" style={{ color: TITULO }}>{texto.titulo}</h3>
                 {texto.descricao && <p className="text-sm leading-relaxed mb-4" style={{ color: TEXTO }}>{texto.descricao}</p>}
-                <div className="rounded-xl p-3 space-y-1.5" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                <div className="rounded-xl p-3 space-y-1.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                   <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: corTrava(trava.nivel).texto }}>
                     {trava.nivel === 'oficial' ? <ShieldCheck size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}
                     {trava.texto}
@@ -775,7 +775,7 @@ export default function NexusPage() {
                   <Link
                     href={`/nexus/simulacoes?serie=${encodeURIComponent(ev.payload.serie)}&variacao=${ev.payload.variacao}&titulo=${encodeURIComponent(texto.titulo)}`}
                     className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                    style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }}
+                    style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}
                   >
                     <FlaskConical size={15} aria-hidden />{L('Simular este evento na minha empresa', 'Simulate this event on my company', 'Simular este evento en mi empresa')}
                   </Link>
@@ -836,7 +836,7 @@ export default function NexusPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
-                  style={temaClaro ? VERDE_SOLIDO : { background: `${ROXOTV}18`, border: `1px solid ${ROXOTV}55`, color: ROXOTV }}
+                  style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}
                 >
                   <ExternalLink size={15} />
                   {L('Ler matéria completa', 'Read full article', 'Leer la noticia completa')}
@@ -903,7 +903,7 @@ export default function NexusPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
-                  style={temaClaro ? VERDE_SOLIDO : { background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}
+                  style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}
                 >
                   <ExternalLink size={13} />
                   {L('Página oficial do Senado sobre a Reforma Tributária', "Senate's official Tax Reform page", 'Página oficial del Senado sobre la Reforma Tributaria')}

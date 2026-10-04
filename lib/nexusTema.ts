@@ -6,9 +6,10 @@
 // card creme #f6f7c4 (aprovado no rollout MEI).
 export const PALETA = {
   dark: {
-    AZULC: '#6ab0ff', CIANO: '#22d3ee', ROXOTV: '#a78bfa', CINZA: '#d7e0ea', TEXTO: '#e6edf5', TITULO: '#ffffff',
+    // Escuro padronizado (2026-10-03): azul/ciano/roxo viram verde-menta; textos aprovados ficam
+    AZULC: '#2ecc9b', CIANO: '#2ecc9b', ROXOTV: '#2ecc9b', CINZA: '#d7e0ea', TEXTO: '#e6edf5', TITULO: '#ffffff',
     PAINEL_BG: 'rgba(10,20,36,0.7)', MODAL_BG: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)',
-    NESTED_BG: 'rgba(255,255,255,0.04)', NESTED_BORDA: 'transparent',
+    NESTED_BG: 'rgba(255,255,255,0.04)', NESTED_BORDA: 'rgba(46,204,155,0.22)',
   },
   xms: {
     AZULC: '#2ecc9b', CIANO: '#2ecc9b', ROXOTV: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',

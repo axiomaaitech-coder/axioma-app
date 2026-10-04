@@ -124,7 +124,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
           {BARRA}
           <p className="text-sm" style={{ color: TEXTO }}>{L('Não foi possível montar o painel agora.', 'Could not build the briefing right now.', 'No fue posible armar el panel ahora.')}</p>
           <button onClick={() => setTentativa((t) => t + 1)} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg"
-            style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }}>
+            style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}>
             <RotateCcw size={12} aria-hidden />{L('Tentar de novo', 'Try again', 'Intentar de nuevo')}
           </button>
         </div>

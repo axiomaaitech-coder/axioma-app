@@ -5,7 +5,7 @@
 // com mais espaço vazio ganharem um elemento vivo e discreto. Só
 // transform (60fps), pointer-events:none, respeita prefers-reduced-motion
 // via CSS. Opt-in — nenhuma tela herda isso sem importar.
-export function AuroraBackground({ corA = "var(--axi-accent)", corB = "#a78bfa" }: { corA?: string; corB?: string }) {
+export function AuroraBackground({ corA = "var(--axi-accent)", corB = "#2ecc9b" }: { corA?: string; corB?: string }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
       <div

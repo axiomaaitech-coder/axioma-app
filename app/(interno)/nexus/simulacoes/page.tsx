@@ -71,13 +71,13 @@ export default function NexusSimulacoesPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
-  const premium = ' axi-card-premium3d' // efeito nos 2 temas (pedido 2026-09-27)
+  const premium = ' axi-card-premium3d axi-card-faixa' // efeito nos 2 temas (pedido 2026-09-27)
   const caixa: CSSProperties = { background: PAINEL_BG, border: `1px solid ${CIANO}30` }
-  const aninhada: CSSProperties = { background: NESTED_BG, border: `1px solid ${NESTED_BORDA === 'transparent' ? 'rgba(255,255,255,0.06)' : NESTED_BORDA}` }
-  const botaoUtil: CSSProperties = temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }
+  const aninhada: CSSProperties = { background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }
+  const botaoUtil: CSSProperties = temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }
   const campo: CSSProperties = temaClaro
     ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' }
-    : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(106,176,255,0.2)', color: '#e2ecf7' }
+    : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }
   const POS = temaClaro ? '#16a97d' : '#34d399'
   const NEG = temaClaro ? '#dc3545' : '#f87171'
 
@@ -432,7 +432,7 @@ export default function NexusSimulacoesPage() {
 
       {confirmarExclusao && naRaiz(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }} onClick={() => setConfirmarExclusao(null)}>
-          <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-2xl p-5" style={{ background: MODAL_BG, border: `1px solid ${NEG}60` }} onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-2xl p-5 axi-card-premium3d axi-card-faixa" style={{ background: MODAL_BG, border: `1px solid ${NEG}60` }} onClick={(e) => e.stopPropagation()}>
             <p className="text-base font-bold mb-2" style={{ color: TITULO }}>{L('Excluir esta simulação?', 'Delete this simulation?', '¿Eliminar esta simulación?')}</p>
             <p className="text-sm mb-4" style={{ color: TEXTO }}>“{confirmarExclusao.nome}” {L('some da sua lista.', 'will disappear from your list.', 'desaparece de su lista.')}</p>
             <div className="flex justify-end gap-2">

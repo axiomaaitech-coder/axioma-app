@@ -74,7 +74,7 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
           </p>
         </div>
         <button onClick={abrir} className="shrink-0 px-4 py-2 rounded-xl font-bold text-xs transition-all hover:scale-[1.02]"
-          style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}>
+          style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}>
           {aberto ? L('Fechar', 'Close', 'Cerrar') : L('Ver fontes', 'See sources', 'Ver fuentes')}
         </button>
       </div>

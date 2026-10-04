@@ -170,7 +170,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
         ))}
       </div>
       {vencendo.length > 0 && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(46,204,155,0.10)', border: `1px solid ${temaClaro ? '#f5a623' : '#2ecc9b'}` }} role="alert">
+        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(46,204,155,0.10)', border: `1px solid ${temaClaro ? '#f5a623' : '#2ecc9b'}` }} role="alert">
           <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#f5a623' : '#2ecc9b' }} aria-hidden />
           <p className="text-xs font-semibold" style={{ color: CX_TIT }}>
             {L(`${vencendo.length} plano(s) serão apagados em até ${DIAS_AVISO_ANTES} dias. Salve em PDF para guardar — o Axioma mantém os planos por ${DIAS_GUARDA_PLANO} dias.`, `${vencendo.length} plan(s) will be deleted within ${DIAS_AVISO_ANTES} days. Save as PDF to keep them — Axioma keeps plans for ${DIAS_GUARDA_PLANO} days.`, `${vencendo.length} plan(es) se borrarán en hasta ${DIAS_AVISO_ANTES} días. Guárdelos en PDF — Axioma mantiene los planes por ${DIAS_GUARDA_PLANO} días.`)}
@@ -219,7 +219,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
                 onClick={() => setAberto(null)}>
                 <motion.div role="dialog" aria-modal="true" aria-labelledby="plano-jose-titulo"
                   initial={{ scale: 0.96, opacity: 0, y: 14 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0, y: 14 }} transition={{ duration: 0.22 }}
-                  className="w-full max-w-4xl h-[88vh] overflow-y-auto rounded-2xl p-5"
+                  className="w-full max-w-4xl h-[88vh] overflow-y-auto rounded-2xl p-5 axi-card-premium3d axi-card-faixa"
                   style={{ background: MODAL_BG, border: '1px solid rgba(46,204,155,0.45)', borderTop: '3px solid #2ecc9b' }}
                   onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-start justify-between gap-3 mb-4">

@@ -60,7 +60,7 @@ export function FuncoesNexus({ lang, temaClaro, eventoRecente, onAbrirEvento }: 
   const rotuloComo = L('Como usar:', 'How to use:', 'Cómo usar:')
   const card = 'relative overflow-hidden rounded-2xl p-4 flex flex-col h-full axi-card-premium3d'
   const estiloCard: CSSProperties = { background: PAINEL_BG, border: `1px solid ${CIANO}30` }
-  const botao: CSSProperties = temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }
+  const botao: CSSProperties = temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }
   const classeBotao = 'mt-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-center'
 
   return (

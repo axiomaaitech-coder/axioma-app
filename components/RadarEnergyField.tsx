@@ -68,7 +68,7 @@ export function RadarEnergyField({ children, className = "" }: { children: React
       style={{
         background: "radial-gradient(120% 90% at 50% 10%, #0f2040 0%, #0a1628 42%, #04070f 100%)",
         border: "1px solid rgba(120,170,255,0.4)",
-        boxShadow: "inset 0 1px 0 0 rgba(255,255,255,.06), 0 0 0 1px rgba(0,0,0,.4), 0 0 60px -10px rgba(106,176,255,.25)",
+        boxShadow: "inset 0 1px 0 0 rgba(255,255,255,.06), 0 0 0 1px rgba(0,0,0,.4), 0 0 60px -10px rgba(46,204,155,.25)",
       }}
     >
       <div className="axi-energy-stars" />
@@ -94,9 +94,9 @@ export function RadarEnergyField({ children, className = "" }: { children: React
       <svg className="axi-energy-field" viewBox="0 0 480 480" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="axiBeamGrad1" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#6ab0ff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#2ecc9b" stopOpacity="0" />
             <stop offset="50%" stopColor="#aee0ff" stopOpacity="1" />
-            <stop offset="100%" stopColor="#6ab0ff" stopOpacity="0" />
+            <stop offset="100%" stopColor="#2ecc9b" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="axiBeamGrad2" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#34d399" stopOpacity="0" />
@@ -113,9 +113,9 @@ export function RadarEnergyField({ children, className = "" }: { children: React
         <path className="axi-base-path" d="M 60 -20 C 10 140, 130 260, 70 500" style={{ animationDelay: "-7s" }} />
         <path className="axi-base-path" d="M 420 -20 C 470 160, 350 260, 430 500" style={{ animationDelay: "-3s" }} />
 
-        <path className="axi-beam-path" d="M -20 90  C 140 40, 260 160, 500 70" stroke="url(#axiBeamGrad1)" style={{ animationDuration: "5s", animationDelay: "-1s", color: "#6ab0ff" }} />
+        <path className="axi-beam-path" d="M -20 90  C 140 40, 260 160, 500 70" stroke="url(#axiBeamGrad1)" style={{ animationDuration: "5s", animationDelay: "-1s", color: "#2ecc9b" }} />
         <path className="axi-beam-path" d="M -20 260 C 160 300, 260 220, 500 300" stroke="url(#axiBeamGrad2)" style={{ animationDuration: "6.4s", animationDelay: "-3s", color: "#34d399" }} />
-        <path className="axi-beam-path" d="M -20 420 C 180 460, 260 400, 500 440" stroke="url(#axiBeamGrad1)" style={{ animationDuration: "5.6s", animationDelay: "-5s", color: "#6ab0ff" }} />
+        <path className="axi-beam-path" d="M -20 420 C 180 460, 260 400, 500 440" stroke="url(#axiBeamGrad1)" style={{ animationDuration: "5.6s", animationDelay: "-5s", color: "#2ecc9b" }} />
         <path className="axi-beam-path" d="M 60 -20 C 10 140, 130 260, 70 500" stroke="url(#axiBeamGrad2)" style={{ animationDuration: "7.2s", animationDelay: "-2s", color: "#34d399" }} />
       </svg>
 

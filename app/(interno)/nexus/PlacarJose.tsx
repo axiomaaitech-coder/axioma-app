@@ -55,7 +55,7 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
         </div>
         <button onClick={() => setAberto((a) => !a)} disabled={!placar?.previsoes.length}
           className="shrink-0 px-4 py-2 rounded-xl font-bold text-xs transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-          style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}>
+          style={temaClaro ? VERDE_SOLIDO : { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', border: 'none', color: '#fff' }}>
           {aberto ? L('Fechar', 'Close', 'Cerrar') : L('Ver previsões', 'See forecasts', 'Ver previsiones')}
         </button>
       </div>
