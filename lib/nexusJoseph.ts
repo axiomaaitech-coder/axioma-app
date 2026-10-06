@@ -12,11 +12,13 @@
 // confiança + porquê + incertezas, fato ≠ interpretação. José observa,
 // interpreta e recomenda — não executa nada (isso é a ZIA, com aprovação).
 // ═══════════════════════════════════════════════════════════════
-import Anthropic from '@anthropic-ai/sdk'
+import { jsonDoJose, MODELO_JOSE } from './ia/motor'
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { textoEvento, fonteDaSerie, type PayloadEvento } from './nexusEventDetector'
 
-export const MODELO_JOSEPH = 'claude-opus-5'
+// Modelo principal do José: decidido no motor (com reserva OpenAI em 2 níveis).
+export const MODELO_JOSEPH = MODELO_JOSE
 export type IdiomaJoseph = 'pt' | 'en' | 'es'
 
 export type AnaliseJoseph = {
@@ -120,9 +122,7 @@ export async function gerarAnaliseJoseph(
   supabase: SupabaseClient,
   evento: { natureza: string; category: string | null; payload: PayloadEvento },
   lang: IdiomaJoseph,
-): Promise<AnaliseJoseph> {
-  if (!process.env.ANTHROPIC_API_KEY) throw new FalhaJoseph('ANTHROPIC_API_KEY ausente')
-  const client = new Anthropic()
+): Promise<{ analise: AnaliseJoseph; modelo: string }> {
   const indicadores = await indicadoresAtuais(supabase)
   const fato = textoEvento(evento.payload, 'pt')
 
@@ -136,34 +136,36 @@ Dados brutos: ${JSON.stringify(evento.payload)}
 INDICADORES OFICIAIS MAIS RECENTES (Banco Central / IBGE)
 ${indicadores || '- (indisponíveis no momento)'}`
 
-  // fallbacks "default": se o modelo recusar por política, a própria API
-  // refaz a chamada num modelo reserva (beta server-side-fallback-2026-07-01).
-  const params = {
-    model: MODELO_JOSEPH,
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    system: [{ type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } }],
-    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
-    messages: [{ role: 'user', content: mensagem }],
-  }
-  // `fallbacks` ainda não está nos tipos do SDK instalado (0.104) — cast só aqui.
-  const resposta = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
-
-  if (resposta.stop_reason === 'refusal') throw new FalhaJoseph('recusa do modelo')
-  if (resposta.stop_reason === 'max_tokens') throw new FalhaJoseph('resposta cortada (max_tokens)')
-  const bloco = resposta.content.find((b) => b.type === 'text')
-  if (!bloco || bloco.type !== 'text') throw new FalhaJoseph('resposta sem texto')
+  // Claude → OpenAI forte → OpenAI reserva (motor). Só falha se as 3 falharem.
   try {
-    return JSON.parse(bloco.text) as AnaliseJoseph
-  } catch {
-    throw new FalhaJoseph('JSON inválido na resposta')
+    const { texto, modelo } = await jsonDoJose({ sistema: SISTEMA, mensagem, esquema: SCHEMA, rotulo: 'análise de evento' })
+    return { analise: JSON.parse(texto) as AnaliseJoseph, modelo }
+  } catch (err) {
+    throw new FalhaJoseph(err instanceof Error ? err.message : String(err))
   }
 }
 
 // Lê a análise guardada; se não houver no idioma pedido, gera, grava e devolve.
 // Merge por idioma: gerar 'en' não apaga o 'pt' já existente.
-export async function obterOuGerarAnalise(supabase: SupabaseClient, eventId: string, lang: IdiomaJoseph): Promise<AnaliseJoseph> {
+// Última rede (as 3 IAs falharam): leitura honesta montada só com o fato oficial do
+// evento. Não é guardada — na próxima abertura o José tenta a IA de novo.
+const AVISO_REGRA: Record<IdiomaJoseph, { leitura: string; vazio: string; agir: string; porque: string; incerteza: string; horizonte: string }> = {
+  pt: { leitura: 'A análise completa do José está temporariamente indisponível. Abaixo, só o fato oficial registrado; o José tenta de novo automaticamente.', vazio: 'Em análise — volte em alguns minutos.', agir: 'Acompanhe o indicador e reabra esta análise mais tarde.', porque: 'Resumo gerado por regra, sem análise de inteligência.', incerteza: 'Impacto ainda não avaliado.', horizonte: 'curto prazo' },
+  en: { leitura: "José's full analysis is temporarily unavailable. Below is only the official fact recorded; José will try again automatically.", vazio: 'Under analysis — check back in a few minutes.', agir: 'Follow the indicator and reopen this analysis later.', porque: 'Rule-based summary, without intelligence analysis.', incerteza: 'Impact not yet assessed.', horizonte: 'short term' },
+  es: { leitura: 'El análisis completo de José no está disponible por ahora. Abajo, solo el hecho oficial registrado; José lo intentará de nuevo automáticamente.', vazio: 'En análisis — vuelva en unos minutos.', agir: 'Siga el indicador y vuelva a abrir este análisis más tarde.', porque: 'Resumen generado por reglas, sin análisis de inteligencia.', incerteza: 'Impacto aún no evaluado.', horizonte: 'corto plazo' },
+}
+export function analisePorRegra(payload: PayloadEvento, lang: IdiomaJoseph): AnaliseJoseph {
+  const fato = textoEvento(payload, lang)
+  const a = AVISO_REGRA[lang]
+  return {
+    resumo: fato.titulo, leitura: `${fato.descricao} ${a.leitura}`,
+    impacto_brasil: a.vazio, impacto_global: a.vazio, impacto_setores: [], impacto_empresa: a.vazio,
+    cenarios: [], o_que_fazer: [{ acao: a.agir, prioridade: 'baixa', horizonte: a.horizonte }],
+    risco: a.vazio, oportunidade: a.vazio, confianca: 0, porque_confianca: [a.porque], incertezas: [a.incerteza], horizonte: a.horizonte,
+  }
+}
+
+export async function obterOuGerarAnalise(supabase: SupabaseClient, eventId: string, lang: IdiomaJoseph, opcoes: { permitirRegra?: boolean } = {}): Promise<AnaliseJoseph & { porRegra?: boolean }> {
   const { data: ev, error } = await supabase
     .from('nexus_global_event')
     .select('event_id, natureza, category, payload, joseph_analise')
@@ -175,12 +177,21 @@ export async function obterOuGerarAnalise(supabase: SupabaseClient, eventId: str
   if (existentes[lang]) return existentes[lang]!
   if (!ev.payload) throw new FalhaJoseph('evento sem payload (anterior à Etapa 3)')
 
-  const analise = await gerarAnaliseJoseph(supabase, { natureza: ev.natureza, category: ev.category, payload: ev.payload as PayloadEvento }, lang)
+  let gerada: Awaited<ReturnType<typeof gerarAnaliseJoseph>>
+  try {
+    gerada = await gerarAnaliseJoseph(supabase, { natureza: ev.natureza, category: ev.category, payload: ev.payload as PayloadEvento }, lang)
+  } catch (err) {
+    // As 3 IAs falharam. Tela: mostra a leitura por regra (não guarda). Robô: repassa a falha.
+    if (opcoes.permitirRegra) return { ...analisePorRegra(ev.payload as PayloadEvento, lang), porRegra: true }
+    throw err
+  }
+  const { analise, modelo } = gerada
   // varredura:ok — service role; erro checado logo abaixo
   const { error: erroGravar } = await supabase
     .from('nexus_global_event')
-    .update({ joseph_analise: { ...existentes, [lang]: analise }, joseph_gerado_em: new Date().toISOString(), joseph_modelo: MODELO_JOSEPH })
+    .update({ joseph_analise: { ...existentes, [lang]: analise }, joseph_gerado_em: new Date().toISOString(), joseph_modelo: modelo })
     .eq('event_id', eventId)
-  if (erroGravar) throw new FalhaJoseph(`gravação da análise: ${erroGravar.message}`)
+  // Análise já gerada (e paga): entrega mesmo sem guardar; a falha fica registrada.
+  if (erroGravar) Sentry.captureException(new FalhaJoseph(`gravação da análise: ${erroGravar.message}`), { extra: { eventId, lang } })
   return analise
 }

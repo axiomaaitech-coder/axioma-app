@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
   if (!url || !serviceRole) return NextResponse.json({ error: 'indisponivel' }, { status: 503 })
 
   try {
-    const analise = await obterOuGerarAnalise(createClient(url, serviceRole), eventId, lang)
+    // permitirRegra: se as 3 IAs falharem, a tela recebe a leitura por regra em vez de erro
+    const analise = await obterOuGerarAnalise(createClient(url, serviceRole), eventId, lang, { permitirRegra: true })
     return NextResponse.json({ analise })
   } catch (err) {
     const motivo = err instanceof Error ? err.message : String(err)

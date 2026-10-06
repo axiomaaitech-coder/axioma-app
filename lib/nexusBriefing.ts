@@ -8,9 +8,9 @@
 // (marcadas como fonte jornalística). Horizontes longos = tendência estrutural
 // com confiança baixa declarada, nunca previsão.
 // ═══════════════════════════════════════════════════════════════
-import Anthropic from '@anthropic-ai/sdk'
+import { jsonDoJose } from './ia/motor'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
+import { type IdiomaJoseph } from './nexusJoseph'
 import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
 import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, textoPlacar, type PrevisaoIA } from './nexusPrevisoes'
 
@@ -141,26 +141,19 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
 
 export class FalhaBriefing extends Error {}
 
-export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<BriefingJose> {
-  if (!process.env.ANTHROPIC_API_KEY) throw new FalhaBriefing('ANTHROPIC_API_KEY ausente')
-  const client = new Anthropic()
+export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<{ conteudo: BriefingJose; modelo: string }> {
   const entrada = await montarContextoMundo(supabase) + (lang === 'pt' ? await pedidoPrevisoes(supabase) : '')
-  const params = {
-    model: MODELO_JOSEPH,
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    system: [{ type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } }],
-    output_config: { format: { type: 'json_schema', schema: lang === 'pt' ? SCHEMA_PT : SCHEMA } },
-    messages: [{ role: 'user', content: `Idioma da resposta: ${NOME_IDIOMA[lang]}.\nData de hoje: ${new Date().toISOString().slice(0, 10)}.\n\n${entrada}` }],
+  const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
+Data de hoje: ${new Date().toISOString().slice(0, 10)}.
+
+${entrada}`
+  // Claude → OpenAI forte → OpenAI reserva (motor). Se as 3 falharem, quem chama devolve o último painel guardado.
+  try {
+    const { texto, modelo } = await jsonDoJose({ sistema: SISTEMA, mensagem, esquema: lang === 'pt' ? SCHEMA_PT : SCHEMA, rotulo: 'painel executivo' })
+    return { conteudo: JSON.parse(texto) as BriefingJose, modelo }
+  } catch (err) {
+    throw new FalhaBriefing(err instanceof Error ? err.message : String(err))
   }
-  // `fallbacks` ainda não está nos tipos do SDK instalado (0.104) — cast só aqui.
-  const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
-  if (r.stop_reason === 'refusal') throw new FalhaBriefing('recusa do modelo')
-  if (r.stop_reason === 'max_tokens') throw new FalhaBriefing('resposta cortada (max_tokens)')
-  const bloco = r.content.find((b) => b.type === 'text')
-  if (!bloco || bloco.type !== 'text') throw new FalhaBriefing('resposta sem texto')
-  try { return JSON.parse(bloco.text) as BriefingJose } catch { throw new FalhaBriefing('JSON inválido') }
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10)
@@ -174,9 +167,9 @@ export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: Idiom
   if (erroLeitura) throw new FalhaBriefing(`leitura de nexus_briefing: ${erroLeitura.message}`)
   if (ultimo?.data === hoje()) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }
   try {
-    const conteudo = await gerarBriefing(supabase, lang)
+    const { conteudo, modelo } = await gerarBriefing(supabase, lang)
     // varredura:ok — service role; erro checado logo abaixo
-    const { error } = await supabase.from('nexus_briefing').upsert({ data: hoje(), lang, conteudo, modelo: MODELO_JOSEPH, gerado_em: new Date().toISOString() }, { onConflict: 'data,lang' })
+    const { error } = await supabase.from('nexus_briefing').upsert({ data: hoje(), lang, conteudo, modelo, gerado_em: new Date().toISOString() }, { onConflict: 'data,lang' })
     if (error) throw new FalhaBriefing(`gravação: ${error.message}`)
     // Melhor-esforço: sem a tabela da Etapa 9 (SQL não rodado) o painel segue normal.
     if (conteudo.previsoes?.length) await registrarPrevisoes(supabase, conteudo.previsoes).catch((e) => console.error('[nexusBriefing] previsões não gravadas:', e instanceof Error ? e.message : e))

@@ -17,6 +17,7 @@
 // O nível sai daqui (triagem) e só pode SUBIR, nunca descer.
 // ═══════════════════════════════════════════════════════════════
 import Anthropic from '@anthropic-ai/sdk'
+import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoEmpresa'
 import { escolherManuais, textoManual } from './manuais'
@@ -131,6 +132,81 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
 // fixa: rotina = OpenAI, pelo MESMO modelo de rotina do motor (nunca outro provedor).
 export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: { maxTokens: number; timeoutMs: number }): Promise<string | null> {
   return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
+}
+
+// ─── José (Nexus): resposta em JSON com 3 níveis de reserva ───
+// Regra do Elias (2026-10-06): nenhum robô/API do Nexus pode travar — sempre
+// uma IA secundária e, se possível, uma terceira. Ordem: Claude (com a reserva
+// automática da própria Anthropic quando o modelo recusa) → OpenAI forte →
+// OpenAI reserva. Lança só se as três falharem (quem chama tem a última rede:
+// conteúdo guardado ou texto por regra).
+export const MODELO_JOSE = 'claude-opus-5-5'
+export class FalhaCadeiaIA extends Error {}
+type EsquemaJson = Record<string, unknown>
+
+async function jsonPelaOpenAI(sistema: string, mensagem: string, esquema: EsquemaJson, uso?: Uso): Promise<{ texto: string; modelo: string } | null> {
+  const chave = process.env.OPENAI_API_KEY
+  if (!chave) return null
+  for (const m of [OPENAI_FORTE, OPENAI_RESERVA]) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', signal: AbortSignal.timeout(90000),
+        headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: m, max_completion_tokens: 12000,
+          // strict:false — os esquemas do José usam limites (ex.: probabilidade) que o modo estrito não aceita
+          response_format: { type: 'json_schema', json_schema: { name: 'resposta', strict: false, schema: esquema } },
+          messages: [{ role: 'system', content: `${sistema}\n${AVISO_IDENTIDADE}\nResponda SOMENTE com o JSON pedido.` }, { role: 'user', content: mensagem }],
+        }),
+      })
+      if (!res.ok) { console.error('[motor-ia] José via OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
+      const dados = await res.json()
+      somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
+      const texto = dados?.choices?.[0]?.message?.content
+      if (typeof texto === 'string' && texto.trim()) { JSON.parse(texto); return { texto, modelo: m } }
+    } catch (err) { console.error('[motor-ia] José via OpenAI falhou', m, err instanceof Error ? err.message : err) }
+  }
+  return null
+}
+
+export async function jsonDoJose(p: { sistema: string; mensagem: string; esquema: EsquemaJson; rotulo: string; uso?: Uso }): Promise<{ texto: string; modelo: string }> {
+  const motivos: string[] = []
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const client = new Anthropic()
+      const params = {
+        model: MODELO_JOSE,
+        max_tokens: 16000,
+        // fallbacks "default": se o modelo recusar por política, a própria API refaz num modelo reserva.
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        system: [{ type: 'text', text: p.sistema, cache_control: { type: 'ephemeral' } }],
+        // Opus 5.5 vem com esforço "medium" por padrão; o José sempre rodou no "high".
+        output_config: { effort: 'high', format: { type: 'json_schema', schema: p.esquema } },
+        messages: [{ role: 'user', content: p.mensagem }],
+      }
+      // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui.
+      const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
+      const u = r.usage as unknown as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }
+      somarUso(p.uso, MODELO_JOSE, u.input_tokens, u.output_tokens, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0)
+      const bloco = r.content.find((b) => b.type === 'text')
+      if (r.stop_reason === 'refusal') motivos.push('Claude: recusa')
+      else if (r.stop_reason === 'max_tokens') motivos.push('Claude: resposta cortada')
+      else if (!bloco || bloco.type !== 'text') motivos.push('Claude: sem texto')
+      else {
+        try { JSON.parse(bloco.text); return { texto: bloco.text, modelo: r.model ?? MODELO_JOSE } }
+        catch { motivos.push('Claude: JSON inválido') }
+      }
+    } catch (err) { motivos.push(`Claude: ${err instanceof Error ? err.message : String(err)}`) }
+  } else motivos.push('Claude: sem chave')
+
+  const reserva = await jsonPelaOpenAI(p.sistema, p.mensagem, p.esquema, p.uso)
+  if (reserva) {
+    // Respondeu pela reserva: fica registrado (sem conteúdo) pra saber quando a Anthropic falha.
+    Sentry.captureMessage(`[José] ${p.rotulo} respondido pela reserva ${reserva.modelo}`, { level: 'warning', extra: { motivos } })
+    return reserva
+  }
+  throw new FalhaCadeiaIA(`${p.rotulo}: as 3 IAs falharam (${motivos.join(' | ')}; OpenAI forte e reserva também)`)
 }
 
 // Assistente de Ajuda (como usar as telas): conversa curta, só com trechos do
@@ -352,9 +428,9 @@ export async function perguntarAoMotor(args: {
     if (!TELAS_ANTHROPIC.has(args.tela ?? '')) return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso), provedor: 'openai', modelo: OPENAI_FORTE, enviados }
     const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId }, uso)
     if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
-    // Anthropic fora do ar: a OpenAI responde no lugar (sem a regra de escalar), melhor que nada.
-    const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_RESERVA, 3000, false, 45000, uso)
-    return { texto: reserva, provedor: 'openai', modelo: OPENAI_RESERVA, enviados }
+    // Anthropic fora do ar: 2ª IA = OpenAI forte; chamarOpenAI cai sozinha pra 3ª (OPENAI_RESERVA).
+    const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso)
+    return { texto: reserva, provedor: 'openai', modelo: OPENAI_FORTE, enviados }
   }
 
   let r = await executar(nivel)

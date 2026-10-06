@@ -8,9 +8,10 @@
 // service_role: a RLS garante que ninguém vê o plano de outra empresa.
 // Cache: 1 plano por empresa × horizonte × idioma × dia.
 // ═══════════════════════════════════════════════════════════════
-import Anthropic from '@anthropic-ai/sdk'
+import { jsonDoJose } from './ia/motor'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
+import { type IdiomaJoseph } from './nexusJoseph'
+import * as Sentry from '@sentry/nextjs'
 import { montarContextoMundo } from './nexusBriefing'
 import { montarRetrato, textoSetor } from './ia/retratoEmpresa'
 
@@ -101,27 +102,23 @@ ${textoSetor(r.setor)}` }
 
 export class FalhaPlano extends Error {}
 
-async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph): Promise<{ plano: PlanoJose; numeros: NumerosEmpresa; caracteresEnviados: number }> {
-  if (!process.env.ANTHROPIC_API_KEY) throw new FalhaPlano('ANTHROPIC_API_KEY ausente')
+async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph): Promise<{ plano: PlanoJose; numeros: NumerosEmpresa; caracteresEnviados: number; modelo: string }> {
   const [{ numeros, texto }, mundo] = await Promise.all([coletarEmpresa(supabase, empresaId), montarContextoMundo(supabase)])
-  const client = new Anthropic()
-  const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.\nHoje: ${new Date().toISOString().slice(0, 10)}.\nHORIZONTE PEDIDO: ${DESC_HORIZONTE[horizonte]}.\n\n${texto}\n\nCENÁRIO ECONÔMICO (Brasil e mundo):\n${mundo}`
-  const params = {
-    model: MODELO_JOSEPH,
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    system: [{ type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } }],
-    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
-    messages: [{ role: 'user', content: mensagem }],
+  const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
+Hoje: ${new Date().toISOString().slice(0, 10)}.
+HORIZONTE PEDIDO: ${DESC_HORIZONTE[horizonte]}.
+
+${texto}
+
+CENÁRIO ECONÔMICO (Brasil e mundo):
+${mundo}`
+  // Claude → OpenAI forte → OpenAI reserva (motor). Se as 3 falharem, quem chama devolve o último plano guardado.
+  try {
+    const { texto: json, modelo } = await jsonDoJose({ sistema: SISTEMA, mensagem, esquema: SCHEMA, rotulo: 'plano da empresa' })
+    return { plano: JSON.parse(json) as PlanoJose, numeros, caracteresEnviados: mensagem.length, modelo }
+  } catch (err) {
+    throw new FalhaPlano(err instanceof Error ? err.message : String(err))
   }
-  // `fallbacks` ainda não está nos tipos do SDK instalado (0.104) — cast só aqui.
-  const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
-  if (r.stop_reason === 'refusal') throw new FalhaPlano('recusa do modelo')
-  if (r.stop_reason === 'max_tokens') throw new FalhaPlano('resposta cortada (max_tokens)')
-  const bloco = r.content.find((b) => b.type === 'text')
-  if (!bloco || bloco.type !== 'text') throw new FalhaPlano('resposta sem texto')
-  try { return { plano: JSON.parse(bloco.text) as PlanoJose, numeros, caracteresEnviados: mensagem.length } } catch { throw new FalhaPlano('JSON inválido') }
 }
 
 // Plano de hoje pra empresa/horizonte/idioma; gera e grava se não houver.
@@ -131,13 +128,24 @@ export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: str
   const { data: salvo, error } = await supabase.from('nexus_plano_empresa').select('data, conteudo')
     .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).eq('data', hoje).maybeSingle()
   if (error) throw new FalhaPlano(`leitura de nexus_plano_empresa: ${error.message}`)
-  if (salvo) return { data: salvo.data as string, origem: 'guardado' as const, caracteresEnviados: 0, ...(salvo.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
-  const { caracteresEnviados, ...conteudo } = await gerarPlano(supabase, empresaId, horizonte, lang)
+  if (salvo) return { data: salvo.data as string, origem: 'guardado' as const, caracteresEnviados: 0, modelo: null, ...(salvo.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
+  let gerado: Awaited<ReturnType<typeof gerarPlano>>
+  try {
+    gerado = await gerarPlano(supabase, empresaId, horizonte, lang)
+  } catch (err) {
+    // As 3 IAs falharam: entrega o último plano guardado deste horizonte (com a data dele) em vez de erro.
+    const { data: anterior } = await supabase.from('nexus_plano_empresa').select('data, conteudo')
+      .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
+    if (anterior) return { data: anterior.data as string, origem: 'anterior' as const, caracteresEnviados: 0, modelo: null, ...(anterior.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
+    throw err
+  }
+  const { caracteresEnviados, modelo, ...conteudo } = gerado
   // varredura:ok — service role; erro checado logo abaixo
   const { error: erroGravar } = await supabase.from('nexus_plano_empresa').upsert(
-    { empresa_id: empresaId, horizonte, lang, data: hoje, conteudo, modelo: MODELO_JOSEPH, criado_por: userId, gerado_em: new Date().toISOString() },
+    { empresa_id: empresaId, horizonte, lang, data: hoje, conteudo, modelo, criado_por: userId, gerado_em: new Date().toISOString() },
     { onConflict: 'empresa_id,horizonte,lang,data' },
   )
-  if (erroGravar) throw new FalhaPlano(`gravação do plano: ${erroGravar.message}`)
-  return { data: hoje, origem: 'gerado' as const, caracteresEnviados, ...conteudo }
+  // Plano já gerado (e pago): entrega mesmo se não conseguiu guardar; a falha fica registrada.
+  if (erroGravar) Sentry.captureException(new FalhaPlano(`gravação do plano: ${erroGravar.message}`), { extra: { empresaId, horizonte, lang } })
+  return { data: hoje, origem: 'gerado' as const, caracteresEnviados, modelo, ...conteudo }
 }

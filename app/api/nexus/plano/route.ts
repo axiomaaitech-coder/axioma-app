@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
   if (!UUID.test(empresaId) || !horizonte) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
   try {
-    const { origem, caracteresEnviados, ...plano } = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id)
+    const { origem, caracteresEnviados, modelo, ...plano } = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id)
     // Auditoria: quem pediu, qual empresa, se a IA foi acionada e quanto dado saiu (nunca o conteúdo).
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'jose.plano', entidade: 'nexus_plano_empresa',
-      parametros: { horizonte, lang, origem, provedor: origem === 'gerado' ? 'anthropic' : null, caracteres_enviados: caracteresEnviados },
-      versaoMotor: MODELO_JOSEPH,
+      parametros: { horizonte, lang, origem, provedor: modelo ? (modelo.startsWith('claude') ? 'anthropic' : 'openai') : null, modelo, caracteres_enviados: caracteresEnviados },
+      versaoMotor: modelo ?? MODELO_JOSEPH,
     }))
     return NextResponse.json({ plano })
   } catch (err) {
