@@ -32,6 +32,7 @@ import {
   type VendaDetalheProduto, type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
   type ComposicaoLinha, type MovimentacaoCaixa,
 } from "../../../../lib/retaguardaHelpers";
+import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
 const INTERVALO_ATUALIZACAO_MS = 30000;
@@ -558,7 +559,7 @@ export default function RetaguardaPage() {
         />
       )}
 
-      {toast && <Toast toast={toast} />}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </PdvLayout>
   );
 }
@@ -573,14 +574,6 @@ function EstadoCarregando({ lang, texto }: { lang: Idioma; texto?: string }) {
   );
 }
 
-function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" } }) {
-  return (
-    <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-      {toast.msg}
-    </div>
-  );
-}
 
 function BotaoSecundario({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   const { tokens } = useTemaPdv();

@@ -37,6 +37,7 @@ import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/PlanilhaCentroCusto";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
 const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
@@ -1613,12 +1614,7 @@ export default function CentrosCustoPage() {
         </div>
       </ModalPremium>
 
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>
   );

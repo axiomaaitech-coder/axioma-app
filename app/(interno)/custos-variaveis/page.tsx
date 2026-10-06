@@ -26,6 +26,7 @@ import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -681,12 +682,7 @@ export default function CustosVariaveis() {
         cor="#2ecc9b"
       />
 
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>
   );

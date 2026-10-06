@@ -15,6 +15,7 @@ import {
   buscarVinculoFornecedor, salvarVinculoFornecedor, converterFardoParaUnidade, precoComMargem, type FornecedorMinimo,
 } from "../../../../lib/pdvNfeHelpers";
 import { conferirNfe } from "../../../../lib/matchEngineHelpers";
+import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 // Botões de ação usam tokens.acaoBg/acaoTexto (verde só sobrevive no tema
 // escuro, ver components/PdvLayout.tsx). Âmbar segue fixo: é cor de status.
@@ -371,7 +372,7 @@ export default function PDVImportarNFe() {
 
   return (
     <PdvLayout titulo={tituloImportar} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-      {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {resumo ? (
         <ResumoFinal lang={lang} resumo={resumo} onImportarOutra={reiniciar} />
@@ -434,18 +435,6 @@ function SpinnerResolvendoItens({ lang }: { lang: Lang }) {
   );
 }
 
-function ToastPdv({ msg, tipo }: { msg: string; tipo: "ok" | "erro" | "info" }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
-      style={{
-        background: tipo === "erro" ? "rgba(239,68,68,0.95)" : tipo === "info" ? "rgba(30,41,59,0.95)" : tokens.acaoBg,
-        color: tipo === "ok" ? tokens.acaoTexto : "#fff",
-      }}>
-      {msg}
-    </div>
-  );
-}
 
 function SeletorNichoSimples({ lang, nichoSel, onSelecionar }: { lang: Lang; nichoSel: NichoPdvDef | null; onSelecionar: (v: string) => void }) {
   const { tokens } = useTemaPdv();

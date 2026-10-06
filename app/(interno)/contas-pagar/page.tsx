@@ -55,6 +55,7 @@ import {
   montarBriefingAp, type ItemBriefingAp,
   responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -3100,12 +3101,7 @@ export default function ContasPagarPage() {
       )}
 
       {/* TOAST */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[200] px-4 py-3 rounded-xl text-sm font-semibold shadow-lg"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#0a1420" }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ====== MODAL NOVA/EDITAR CONTA ====== */}
       {typeof document !== "undefined" && createPortal(

@@ -28,6 +28,7 @@ import {
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
 } from '../../../../lib/meiHelpers'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -660,12 +661,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         cor={OURO}
       />
 
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>
   )

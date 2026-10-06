@@ -14,6 +14,7 @@ import {
   listarCenarios, salvarCenario, atualizarCenario, excluirCenario,
   type PosicaoCaixa, type FluxoProjetadoResultado, type StressVariaveis, type CenarioTesouraria,
 } from '../../../../lib/tesourariaHelpers'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -349,12 +350,7 @@ export default function TesourariaSimuladorPage() {
         </div>
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg"
-          style={{ background: toast.tipo === 'ok' ? `${VERDE}20` : `${VERMELHO}20`, color: toast.tipo === 'ok' ? VERDE : VERMELHO, border: `1px solid ${toast.tipo === 'ok' ? VERDE : VERMELHO}40` }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>
   )

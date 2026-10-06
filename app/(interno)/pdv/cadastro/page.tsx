@@ -23,6 +23,7 @@ import {
   rodarCascataBase, rodarCamadaIA, formVazio, encontrarCategoriaPorLabel, encontrarSubNichoPorLabel,
   type FormPdv, type OrigemSugestao,
 } from "../../../../components/PdvCadastroProduto";
+import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 // Botões de ação (Salvar) usam tokens.acaoBg/acaoTexto — verde só sobrevive
 // no tema escuro (ver components/PdvLayout.tsx). Âmbar continua fixo nos
@@ -360,7 +361,7 @@ function PDVCadastroInner() {
 
   return (
     <PdvLayout titulo={tituloCadastro} subtitulo={subtituloCadastro} voltarPara="/pdv">
-      {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       {erroProdutoId && (
         <div className="mb-4 px-4 py-3 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
           {erroProdutoId}
@@ -442,18 +443,6 @@ function AvisoOperador({ lang }: { lang: Lang }) {
   );
 }
 
-function ToastPdv({ msg, tipo }: { msg: string; tipo: "ok" | "erro" | "info" }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
-      style={{
-        background: tipo === "erro" ? "rgba(239,68,68,0.95)" : tipo === "info" ? "rgba(30,41,59,0.95)" : tokens.acaoBg,
-        color: tipo === "ok" ? tokens.acaoTexto : "#fff",
-      }}>
-      {msg}
-    </div>
-  );
-}
 
 // ============================================================================
 // SELETOR NICHO → CATEGORIA → SUB-NICHO

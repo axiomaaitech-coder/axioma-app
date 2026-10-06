@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { copiarTexto } from '../../../lib/copiar'
+import AvisoAxioma from '../../../components/AvisoAxioma'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
   listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, decidirConvite, type TermoConvite,
@@ -724,7 +725,7 @@ export default function EquipePage() {
             )}
           </div>
         </CanvasBox>
-        {mensagem && <p className="text-sm font-semibold text-center mt-3" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>}
+        <AvisoAxioma aviso={mensagem ? { msg: mensagem, tipo: tipoMsg === 'sucesso' ? 'ok' : 'erro' } : null} onFechar={() => setMensagem('')} duracao={5000} />
         {modalConvite}
       </ModuloLayout>
       </div>
@@ -826,16 +827,7 @@ export default function EquipePage() {
           </CanvasBox>
         )}
 
-        <AnimatePresence>
-          {mensagem && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl axi-card-premium3d axi-card-faixa"
-              style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(255,90,107,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(255,90,107,0.4)'}` }}>
-              {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={VERDE} /> : <AlertCircle size={18} color={VERMELHO} />}
-              <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <AvisoAxioma aviso={mensagem ? { msg: mensagem, tipo: tipoMsg === 'sucesso' ? 'ok' : 'erro' } : null} onFechar={() => setMensagem('')} duracao={5000} />
 
         <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

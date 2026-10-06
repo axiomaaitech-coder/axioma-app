@@ -22,6 +22,7 @@ import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -325,12 +326,7 @@ DADOS REAIS DESTE MEI:
 
         <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : ROXO} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
-        {toast && (
-          <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
+        <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
         {/* Cards contexto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -33,6 +33,7 @@ import {
 } from "../../../../lib/pdvVendaHelpers";
 import { obterDadosCupomEmpresa, salvarConfigCupom, type DadosEmpresaCupom } from "../../../../lib/pdvCupomHelpers";
 import { conectarQz, listarImpressorasQz, imprimirEscPos } from "../../../../lib/qzTrayHelpers";
+import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 // Lei 12.741/2012 (transparência fiscal ao consumidor) — percentual fixo,
 // só informativo. NÃO entra em nenhum cálculo de finalizar_venda nem é
@@ -896,7 +897,7 @@ export default function PdvVendaPage() {
           observacao={observacaoAbertura} onObservacao={setObservacaoAbertura}
           abrindo={abrindoCaixaFlag} onAbrir={handleAbrirCaixa}
         />
-        {toast && <Toast toast={toast} />}
+        <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       </PdvLayout>
     );
   }
@@ -1017,7 +1018,7 @@ export default function PdvVendaPage() {
           />
         )}
 
-        {toast && <Toast toast={toast} />}
+        <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
         {ultimoCupom && (
           <BotaoImprimirNota lang={lang} cupom={ultimoCupom} jaImpresso={cupomJaImpresso} onImprimir={handleImprimirCupom} />
@@ -1101,14 +1102,6 @@ function LogoAxioma({ tamanho }: { tamanho: number }) {
   );
 }
 
-function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" | "info" } }) {
-  return (
-    <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(46,204,155,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-      {toast.msg}
-    </div>
-  );
-}
 
 // cor?: em cima de uma superfície cardBg (dentro de um card), passe
 // tokens.cardTexto explicitamente — tokens.textoMuted (default) só tem

@@ -13,6 +13,7 @@ import {
   type AtividadeFiscalConfig, type ConfigFiscal,
 } from '../../../../lib/fiscalHelpers'
 import { carregarDadosFiscais, calcularImpostoRegime } from '../../../../lib/iaTributariaHelpers'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -238,12 +239,7 @@ export default function FiscalConfigPage() {
             )}
           </div>
 
-          {toast && (
-            <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg"
-              style={{ background: toast.tipo === 'ok' ? `${VERDE}20` : `${VERMELHO}20`, color: toast.tipo === 'ok' ? VERDE : VERMELHO, border: `1px solid ${toast.tipo === 'ok' ? VERDE : VERMELHO}40` }}>
-              {toast.msg}
-            </div>
-          )}
+          <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
         </div>
       )}
     </ModuloLayout>

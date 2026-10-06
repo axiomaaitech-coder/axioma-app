@@ -36,6 +36,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1073,12 +1074,7 @@ export default function Investimentos() {
         cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}
       />
 
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>
   );

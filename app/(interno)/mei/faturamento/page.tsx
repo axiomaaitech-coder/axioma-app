@@ -29,6 +29,7 @@ import {
   dasMensalPorCategoria, percentualIsentoPorCategoria, calcularIRPF, percentualReservaImposto, valorASepararPorReceita,
   tetoProporcionalMEI, percentualDeTeto, semaforoTetoDetalhado, projecaoTetoDetalhada, receitasBrutasPorMes,
 } from '../../../../lib/meiHelpers'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -431,12 +432,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
         <LetreiroExecutivo itens={marquee} cor={OURO} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
-        {toast && (
-          <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: toast.tipo === 'ok' ? 'rgba(52,211,153,0.95)' : 'rgba(248,113,113,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast.msg}
-          </div>
-        )}
+        <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -13,6 +13,7 @@ import {
 } from '../../../../lib/contabilidadeHelpers'
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2 } from '../../../../lib/cfoCore'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -169,11 +170,7 @@ export default function LancamentoManualPage() {
       ) : (
         <div className="space-y-6">
 
-          {toast && (
-            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold axi-card-premium3d axi-card-faixa" style={{ background: toast.tipo === 'ok' ? `${VERDE}15` : `${VERMELHO}15`, border: `1px solid ${toast.tipo === 'ok' ? VERDE : VERMELHO}35`, color: toast.tipo === 'ok' ? VERDE : VERMELHO }}>
-              {toast.msg}
-            </div>
-          )}
+          <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
           {!podeEditar && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${CINZA}15`, color: CINZA }}>

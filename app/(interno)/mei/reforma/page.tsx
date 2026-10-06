@@ -23,6 +23,7 @@ import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -295,12 +296,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         </>
       }
     >
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div ref={conteudoRef} className="space-y-4">
 
         <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERDE} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />

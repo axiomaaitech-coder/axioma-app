@@ -15,6 +15,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -220,7 +221,7 @@ export default function DashboardPage() {
 
   return (
     <div data-theme={tema} className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: claro ? "#f7f8fa" : "linear-gradient(180deg, #06031a 0%, #020810 50%)", fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-      {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : "rgba(46,204,155,0.95)", color: "#fff", fontWeight: 700, fontSize: 13 }}>{toast.msg}</div>)}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: claro ? "#101b3d" : COR.roxo }}>{tt.carregando}</p></div>)}
 

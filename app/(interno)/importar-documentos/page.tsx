@@ -2,6 +2,8 @@
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { copiarTexto } from "../../../lib/copiar";
+import { motion } from "framer-motion";
+import ProgressoEtapas from "../../../components/ProgressoEtapas";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -62,6 +64,7 @@ import {
   type PossivelDuplicata,
 } from "../../../lib/importarHelpers";
 import { obterEmpresaAtiva, carregarEmpresaPorId } from "../../../lib/empresaHelpers";
+import AvisoAxioma from "../../../components/AvisoAxioma";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,6 +94,7 @@ const T = {
     ouClique: "ou clique para selecionar",
     processando: "Processando arquivo...",
     calcHash: "Verificando duplicatas...",
+    soltarAqui: "Pode soltar: o Axioma começa a ler na hora.",
     parseando: "Lendo conteúdo do arquivo...",
     parseandoIA: "A IA está lendo a nota... pode levar até 1 minuto.",
     classificandoItens: "Classificando os itens da compra...",
@@ -110,6 +114,8 @@ const T = {
     lidoPorIA: "Nota lida pela IA a partir do PDF/foto. Confira valores, datas e parcelas antes de importar.",
     uploadStorage: "Salvando no cofre seguro...",
     dedup: "Cruzando com base existente...",
+    registrando: "Registrando a importação...", gravandoLinhas: "Gravando os lançamentos nos módulos...", lancandoCustos: "Lançando os custos da nota...",
+    lendoTitulo: "Lendo o documento", importandoTitulo: "Importando o documento", naoFeche: "não feche esta página", tempoDecorrido: (s: number) => `${s}s decorridos`,
     preview: "Revisão antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
@@ -231,6 +237,7 @@ const T = {
     ouClique: "or click to select",
     processando: "Processing file...",
     calcHash: "Checking for duplicates...",
+    soltarAqui: "Drop it: Axioma starts reading right away.",
     parseando: "Reading file contents...",
     parseandoIA: "AI is reading the invoice... this may take up to 1 minute.",
     classificandoItens: "Classifying the purchase items...",
@@ -250,6 +257,8 @@ const T = {
     lidoPorIA: "Invoice read by AI from the PDF/photo. Check amounts, dates and installments before importing.",
     uploadStorage: "Saving to secure vault...",
     dedup: "Cross-checking existing data...",
+    registrando: "Registering the import...", gravandoLinhas: "Saving the entries to the modules...", lancandoCustos: "Posting the invoice costs...",
+    lendoTitulo: "Reading the document", importandoTitulo: "Importing the document", naoFeche: "do not close this page", tempoDecorrido: (s: number) => `${s}s elapsed`,
     preview: "Review before Import",
     tipoDetectado: "Detected type",
     destino: "Destination",
@@ -371,6 +380,7 @@ const T = {
     ouClique: "o haz clic para seleccionar",
     processando: "Procesando archivo...",
     calcHash: "Verificando duplicados...",
+    soltarAqui: "Suéltelo: Axioma empieza a leer de inmediato.",
     parseando: "Leyendo contenido...",
     parseandoIA: "La IA está leyendo la factura... puede tardar hasta 1 minuto.",
     classificandoItens: "Clasificando los ítems de la compra...",
@@ -390,6 +400,8 @@ const T = {
     lidoPorIA: "Factura leída por IA desde el PDF/foto. Revise valores, fechas y cuotas antes de importar.",
     uploadStorage: "Guardando en bóveda segura...",
     dedup: "Cruzando con base existente...",
+    registrando: "Registrando la importación...", gravandoLinhas: "Guardando los registros en los módulos...", lancandoCustos: "Registrando los costos de la factura...",
+    lendoTitulo: "Leyendo el documento", importandoTitulo: "Importando el documento", naoFeche: "no cierre esta página", tempoDecorrido: (s: number) => `${s}s transcurridos`,
     preview: "Revisión antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
@@ -596,7 +608,7 @@ export default function ImportarDocumentosPage() {
   // Estados de upload/parse
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
   const [arrastando, setArrastando] = useState(false);
-  const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "classificar" | "upload" | "dedup">("");
+  const [etapa, setEtapa] = useState<"" | "hash" | "parse" | "classificar" | "upload" | "dedup" | "registrar" | "gravar" | "lancar">("");
   // Supervisão humana (regra do Elias): respostas às perguntas da nota.
   const [respostasSup, setRespostasSup] = useState<Record<string, string>>({});
   // Ajudante da IA na conferência: só sugere; o humano clica pra aceitar.
@@ -661,6 +673,7 @@ export default function ImportarDocumentosPage() {
   // Modal Centro de Compartilhamento + Excluir registro
   const [shareModal, setShareModal] = useState<any | null>(null);
   const [gerandoPdfIndividual, setGerandoPdfIndividual] = useState(false);
+  const [baixandoId, setBaixandoId] = useState<string | null>(null); // "Preparando download..." no botão do item
   const [excluindoRegistro, setExcluindoRegistro] = useState<string | null>(null);
 
   // Stats
@@ -1142,6 +1155,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       const storagePath = await uploadArquivo(arquivoSelecionado, userId, hashFile);
 
       // 2) Cria cabeçalho
+      setEtapa("registrar");
       const importacaoId = await criarImportacao({
         userId,
         empresaId,
@@ -1162,6 +1176,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       await abrirExcecaoFormatoReforma({ empresaId, userId, importacaoId, resultado });
 
       // 3) Grava linhas — contas a pagar da compra já ligadas ao fornecedor (B3 item 5)
+      setEtapa("gravar");
       const fornecedorId = await resolverFornecedor();
       const result = await gravarLinhas({
         userId,
@@ -1186,6 +1201,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       // 3c) B3 item 4 — lança a parte "custo" da compra onde o humano mandou.
       // Só com conta a pagar criada de verdade (se ele disse "é venda", nada).
       if (empresaId && result.inseridos.some((x) => x.tabela === "contas_pagar")) {
+        setEtapa("lancar");
         const avisos = await lancarCustosDaNota(result.inseridos.filter((x) => x.tabela === "contas_pagar").map((x) => x.id));
         if (avisos.length) {
           await registrarEventoTimeline({ empresaId, userId, importacaoId, evento: "lancamentos_nota", descricao: avisos.join(" · ") });
@@ -1508,14 +1524,14 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       ];
 
       await gerarPdfTabela({
-        titulo: `Importação - ${shareModal.nome_arquivo}`,
+        titulo: `${langAtual === "en" ? "Import" : langAtual === "es" ? "Importación" : "Importação"} - ${shareModal.nome_arquivo}`,
         subtitulo: `${formatDataHora(shareModal.created_at)} • ${dest}`,
         colunas,
         linhas: linhasPdf,
         resumo,
         nomeArquivo: `axioma-importacao-${shareModal.nome_arquivo.replace(/\.[^.]+$/, "")}-${new Date().toISOString().slice(0, 10)}.pdf`,
       }, (msg) => showToast(msg, "erro"), langAtual);
-      showToast("PDF gerado", "ok");
+      showToast(langAtual === "en" ? "PDF generated and downloaded." : langAtual === "es" ? "PDF generado y descargado." : "PDF gerado e baixado.", "ok");
     } catch (err) {
       showToast(tratarFalhaExportacao("importar-documentos.gerarPdfIndividual", err, langAtual), "erro");
     }
@@ -1551,13 +1567,25 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   // ========== AÇÕES LEGADAS ================================================
 
   async function baixarOriginal(item: any) {
+    const L = (pt: string, en: string, es: string) => (langAtual === "en" ? en : langAtual === "es" ? es : pt);
     if (!item.storage_path) {
-      showToast("Arquivo original nao disponivel", "erro");
+      showToast(L("Arquivo original não disponível.", "Original file not available.", "Archivo original no disponible."), "erro");
       return;
     }
+    // A janela abre NA HORA do clique: aberta depois do await, o navegador bloqueia
+    // o pop-up sem avisar (o download "não acontecia nada").
+    const janela = window.open("", "_blank");
+    setBaixandoId(item.id);
+    showToast(L("Preparando o download...", "Preparing the download...", "Preparando la descarga..."), "info");
     const url = await gerarUrlAssinada(item.storage_path);
-    if (url) window.open(url, "_blank");
-    else showToast("Erro ao gerar link", "erro");
+    setBaixandoId(null);
+    if (!url) {
+      janela?.close();
+      showToast(L("Não foi possível gerar o link do arquivo. Tente de novo.", "Could not generate the file link. Try again.", "No se pudo generar el enlace del archivo. Intente de nuevo."), "erro");
+      return;
+    }
+    if (janela) { janela.location.href = url; showToast(L("Download iniciado em uma nova aba.", "Download started in a new tab.", "Descarga iniciada en una nueva pestaña."), "ok"); }
+    else window.location.assign(url); // pop-up bloqueado: baixa na própria aba
   }
 
   // Função antiga renomeada — agora abre o modal Centro de Compartilhamento
@@ -1656,15 +1684,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         ]} />
       </div>
       {/* Toast */}
-      {toast && (
-        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(46,204,155,0.95)",
-            color: "#020810", fontWeight: 600, fontSize: 13,
-          }}>
-          {toast.msg}
-        </div>
-      )}
+      <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ABAS */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
@@ -1756,8 +1776,10 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                   border: `2px dashed ${arrastando ? (temaClaro ? "#2ecc9b" : "#2ecc9b") : (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.25)")}`,
                 }}
               >
-                <div className="text-5xl sm:text-6xl mb-4">📥</div>
-                <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{tt.arrasteAqui}</p>
+                <motion.div className="text-5xl sm:text-6xl mb-4 inline-block"
+                  animate={arrastando ? { y: [0, -10, 0], scale: 1.12 } : { y: 0, scale: 1 }}
+                  transition={arrastando ? { y: { duration: 0.7, repeat: Infinity }, scale: { duration: 0.2 } } : { duration: 0.2 }}>📥</motion.div>
+                <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{arrastando ? tt.soltarAqui : tt.arrasteAqui}</p>
                 <p className="text-xs sm:text-sm mb-4" style={{ color: ct("#5a7a9a") }}>{tt.ouClique}</p>
                 <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
                   {tt.formatosSuportados}
@@ -1773,24 +1795,21 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             </CanvasBox>
           )}
 
-          {/* PROCESSANDO */}
-          {etapa && !duplicataGlobal && (
-            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}>
-              <div className="text-center py-6">
-                <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="font-semibold text-sm" style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
-                  {etapa === "hash" && tt.calcHash}
-                  {etapa === "parse" && (/\.(pdf|jpe?g|png|webp)$/i.test(arquivoSelecionado?.name || "") ? tt.parseandoIA : tt.parseando)}
-                  {etapa === "upload" && tt.uploadStorage}
-                  {etapa === "dedup" && tt.dedup}
-                  {etapa === "classificar" && tt.classificandoItens}
-                </p>
-                {arquivoSelecionado && (
-                  <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{arquivoSelecionado.name}</p>
-                )}
-              </div>
-            </CanvasBox>
-          )}
+          {/* PROCESSANDO — etapas animadas (ler ou importar) */}
+          {etapa && !duplicataGlobal && (() => {
+            const lendoIA = /\.(pdf|jpe?g|png|webp)$/i.test(arquivoSelecionado?.name || "");
+            const importando = ["upload", "registrar", "gravar", "lancar"].includes(etapa);
+            const etapas = importando
+              ? [{ id: "upload", rotulo: tt.uploadStorage }, { id: "registrar", rotulo: tt.registrando }, { id: "gravar", rotulo: tt.gravandoLinhas }, { id: "lancar", rotulo: tt.lancandoCustos }]
+              : [{ id: "hash", rotulo: tt.calcHash }, { id: "parse", rotulo: lendoIA ? tt.parseandoIA : tt.parseando }, { id: "classificar", rotulo: tt.classificandoItens }, { id: "dedup", rotulo: tt.dedup }];
+            return (
+              <CanvasBox {...cartaoTema} cor="#2ecc9b">
+                <ProgressoEtapas etapas={etapas} atual={etapa} claro={temaClaro}
+                  titulo={importando ? tt.importandoTitulo : tt.lendoTitulo}
+                  detalhe={arquivoSelecionado?.name} dica={tt.naoFeche} rotuloTempo={tt.tempoDecorrido} />
+              </CanvasBox>
+            );
+          })()}
 
           {/* PREVIEW */}
           {resultado && !sucesso && !etapa && (
@@ -1890,6 +1909,8 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
           revertendo={revertendo}
           desfazerImportacao={desfazerImportacao}
           baixarOriginal={baixarOriginal}
+          baixandoId={baixandoId}
+          langAtual={langAtual}
           compartilharImportacao={compartilharImportacao}
           filtroStatus={filtroStatus}
           setFiltroStatus={setFiltroStatus}
@@ -2081,8 +2102,8 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               <button onClick={shareBaixarPdfIndividual} disabled={gerandoPdfIndividual}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
                 style={{ background: "rgba(255,90,107,0.12)", border: "1px solid rgba(255,90,107,0.35)", color: "#ff5a6b" }}>
-                <span className="text-xl">{gerandoPdfIndividual ? "⏳" : "📄"}</span>
-                {gerandoPdfIndividual ? "Gerando..." : "PDF Individual"}
+                <span className="text-xl">{gerandoPdfIndividual ? <span className="inline-block w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin" /> : "📄"}</span>
+                {gerandoPdfIndividual ? (langAtual === "en" ? "Generating..." : langAtual === "es" ? "Generando..." : "Gerando...") : (langAtual === "en" ? "Individual PDF" : langAtual === "es" ? "PDF Individual" : "PDF Individual")}
               </button>
             </div>
 
@@ -2729,7 +2750,7 @@ function PreviewBlock(props: any) {
 function HistoricoBlock(props: any) {
   const {
     tt, historico, loadingHistorico, expandida, expandirImportacao,
-    revertendo, desfazerImportacao, baixarOriginal, compartilharImportacao,
+    revertendo, desfazerImportacao, baixarOriginal, baixandoId, langAtual, compartilharImportacao,
     filtroStatus, setFiltroStatus, filtroDestino, setFiltroDestino,
     linhasPorImportacao, carregandoLinhas, abrirEdicao, deletarLinha, deletandoLinha,
     excluirRegistro, excluindoRegistro,
@@ -3027,10 +3048,12 @@ function HistoricoBlock(props: any) {
                     {isExp ? "▲" : "▼"} {tt.detalhes}
                   </button>
                   {item.storage_path && (
-                    <button onClick={() => baixarOriginal(item)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    <button onClick={() => baixarOriginal(item)} disabled={baixandoId === item.id}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-70"
                       style={{ background: "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>
-                      ⬇️ {tt.baixarOriginal}
+                      {baixandoId === item.id
+                        ? <><span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> {langAtual === "en" ? "Preparing..." : langAtual === "es" ? "Preparando..." : "Preparando..."}</>
+                        : <>⬇️ {tt.baixarOriginal}</>}
                     </button>
                   )}
                   <button onClick={() => compartilharImportacao(item)}
