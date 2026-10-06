@@ -8,6 +8,7 @@ import { RESERVA_BCE } from '@/lib/nexusLeitoresFontes'
 import { calcularFreshness, calcularConfiancaFonte, concordanciaPct, fonteEmPausa } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
+import { cobrirComReservas } from '@/lib/nexusReservas'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
 import { buscarComRetentativa } from '@/lib/nexusRede'
@@ -165,6 +166,7 @@ async function registrarSucesso(
 }
 
 export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextResponse> {
+  const inicioColeta = Date.now()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceRoleKey) {
@@ -205,7 +207,9 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
   let sucesso = 0
   let falha = 0
 
-  for (const serie of catalogo as SerieCatalogo[]) {
+  // Séries do BCB 4 de cada vez (antes uma por uma: com o BCB lento, 8 séries × ~37s de
+  // espera estouravam os 300s da função e o robô morria no meio). A reserva cobre quem falhar.
+  const processarSerie = async (serie: SerieCatalogo) => {
     const requestTs = new Date().toISOString()
     const hoje = new Date()
     const janela = janelaEfetivaDias(serie.janela_dias, serie.frequencia)
@@ -227,7 +231,7 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
         logFalhaIngestao(serie.serie_codigo, `HTTP ${httpStatus}`, { url })
         falha++
         detalhes.push({ serie: serie.serie_codigo, status: 'falha', erro: `HTTP ${httpStatus}` })
-        continue
+        return
       }
 
       let pontos: BcbPonto[] = []
@@ -244,7 +248,7 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
         logFalhaIngestao(serie.serie_codigo, 'resposta sem pontos de dado', { url })
         falha++
         detalhes.push({ serie: serie.serie_codigo, status: 'falha', erro: 'resposta vazia' })
-        continue
+        return
       }
 
       const linhas = pontos
@@ -273,7 +277,7 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
         logFalhaIngestao(serie.serie_codigo, 'todos os pontos vieram com valor inválido', { url })
         falha++
         detalhes.push({ serie: serie.serie_codigo, status: 'falha', erro: 'valores inválidos' })
-        continue
+        return
       }
 
       const { data: upsertData, error: upsertError } = await supabase
@@ -289,7 +293,7 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
         logFalhaIngestao(serie.serie_codigo, motivo, { url, pontosRecebidos: linhas.length })
         falha++
         detalhes.push({ serie: serie.serie_codigo, status: 'falha', erro: motivo })
-        continue
+        return
       }
 
       await registrarSucesso(supabase, fonte.source_id, { requestTs, endpoint: url, httpStatus, payloadHash: hash, rawPayload: pontos })
@@ -303,6 +307,10 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
       detalhes.push({ serie: serie.serie_codigo, status: 'falha', erro: motivo })
     }
   }
+  const fila = [...(catalogo as SerieCatalogo[])]
+  await Promise.all(Array.from({ length: Math.min(4, fila.length) }, async () => {
+    for (let s = fila.shift(); s; s = fila.shift()) await processarSerie(s)
+  }))
 
   // Fontes mundiais gratuitas, em paralelo (cada uma isolada; antes do detector,
   // pra ele já ver o dado do dia). Coleta e notícias vêm ANTES do José: a IA é a
@@ -322,6 +330,12 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
     ingestaoNoticias(supabase),
   ])
   const mundo = { brent, bancoMundial, yuan, commodities, ibge, gdelt, anp, comex, ocde }
+  // Fontes reserva (lib/nexusReservas.ts): indicador atrasado ou vazio é coberto pela 2ª/3ª fonte;
+  // reserva superada pela principal sai. Nunca derruba a coleta.
+  const reservas = await cobrirComReservas(supabase).catch((err) => {
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { etapa: 'reservas' } })
+    return { cobertos: [], semReserva: [`erro geral: ${err instanceof Error ? err.message : String(err)}`], aposentadas: 0 }
+  })
   // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
   const limpeza = await limparDadosVencidos(supabase)
   const notasFontes = await atualizarNotasFontes(supabase)
@@ -329,13 +343,18 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
   const previsoes = await conferirPrevisoes(supabase)
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
   // IA (análises + painel) só no cron diário — a coleta pela visita não gasta crédito.
-  const joseph = opcoes.comIA ? await preGerarAnalisesJoseph(supabase) : { geradas: 0, erro: 'sem IA nesta coleta' }
+  // A IA é a parte lenta: se a coleta já usou mais de 3 min dos 5 da função, ela fica pra
+  // próxima rodada/visita (gerada sob demanda) em vez de a função ser cortada no meio.
+  const tempoSobra = () => Date.now() - inicioColeta < 180000
+  const comIA = opcoes.comIA && tempoSobra()
+  const semTempo = opcoes.comIA && !comIA ? 'sem tempo nesta coleta — gerado sob demanda ao abrir o Nexus' : 'sem IA nesta coleta'
+  const joseph = comIA ? await preGerarAnalisesJoseph(supabase) : { geradas: 0, erro: semTempo }
   // Etapa 7 — painel executivo do José de hoje (PT), depois das análises.
   let painel: string
-  try { painel = opcoes.comIA ? (await obterOuGerarBriefing(supabase, 'pt'))?.data ?? 'sem dados' : 'sem IA nesta coleta' }
+  try { painel = comIA && tempoSobra() ? (await obterOuGerarBriefing(supabase, 'pt'))?.data ?? 'sem dados' : semTempo }
   catch (err) { painel = err instanceof Error ? err.message : String(err); console.error('[nexus/ingest/bcb] Falha no painel executivo:', painel) }
 
-  return NextResponse.json({ sucesso, falha, detalhes, mundo, previsoes, eventos, joseph, painel, noticias, limpeza, notasFontes })
+  return NextResponse.json({ sucesso, falha, detalhes, mundo, reservas, previsoes, eventos, joseph, painel, noticias, limpeza, notasFontes })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)

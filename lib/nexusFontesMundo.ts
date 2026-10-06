@@ -16,9 +16,9 @@ import * as XLSX from 'xlsx'
 import { buscarFeedRSS } from './nexusNewsIngest'
 import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerDbnomicsOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
 
-type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
+export type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
-async function garantirFonte(supabase: SupabaseClient, f: Fonte): Promise<string> {
+export async function garantirFonte(supabase: SupabaseClient, f: Fonte): Promise<string> {
   const { data: existente } = await supabase.from('nexus_source').select('source_id').eq('source_name', f.nome).maybeSingle()
   if (existente?.source_id) return existente.source_id as string
   const { data, error } = await supabase.from('nexus_source').insert({
