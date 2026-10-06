@@ -1,5 +1,6 @@
 import TopNav from "../../components/TopNav";
 import NexusEventStream from "../../components/NexusEventStream";
+import AjudaAxioma from "../../components/AjudaAxioma";
 
 export default function InternoLayout({
   children,
@@ -13,6 +14,7 @@ export default function InternoLayout({
         {children}
       </main>
       <NexusEventStream />
+      <AjudaAxioma />
     </div>
   );
 }

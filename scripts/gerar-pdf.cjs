@@ -1,6 +1,7 @@
-// Gerador de PDF dos documentos do Axioma (termos, privacidade e manuais), a partir
-// do mesmo conteúdo do Word (lib/documentos). Monta um HTML e imprime com o Edge.
-// Uso: node scripts/gerar-pdf.cjs <arquivo-de-conteudo.ts> [mais arquivos...] <pasta-de-saida>
+// Gerador de PDF dos documentos do Axioma (termos, privacidade e manuais), nos 3
+// idiomas, a partir do mesmo conteúdo do site (lib/documentos). Monta um HTML e
+// imprime com o Edge. Uso: node scripts/gerar-pdf.cjs "<pasta-de-saida>"
+// Saída: Termos de Uso/ · Política de Privacidade/ · "NN - Módulo"/ (um PDF por idioma).
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
@@ -38,11 +39,18 @@ function bloco(b, ids) {
   return ''
 }
 
-function html(c) {
+const ROTULO = {
+  pt: { idioma: 'Português', sumario: 'Sumário', pagina: 'Página' },
+  en: { idioma: 'English', sumario: 'Contents', pagina: 'Page' },
+  es: { idioma: 'Español', sumario: 'Índice', pagina: 'Página' },
+}
+
+function html(c, lang) {
+  const r = ROTULO[lang]
   const ids = []
   const corpo = c.blocos.map((b) => bloco(b, ids)).join('\n')
-  const sumario = c.sumario === false || !ids.length ? '' : `<section class="sumario"><h1>${esc(c.tituloSumario || 'Sumário')}</h1><ul>${ids.map((s) => `<li class="n${s.nivel}"><a href="#${s.id}">${esc(s.t)}</a></li>`).join('')}</ul></section>`
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(c.titulo)}</title><style>
+  const sumario = c.sumario === false || !ids.length ? '' : `<section class="sumario"><h1>${esc(c.tituloSumario || r.sumario)}</h1><ul>${ids.map((s) => `<li class="n${s.nivel}"><a href="#${s.id}">${esc(s.t)}</a></li>`).join('')}</ul></section>`
+  return `<!doctype html><html lang="${lang === 'pt' ? 'pt-BR' : lang}"><head><meta charset="utf-8"><title>${esc(c.titulo)}</title><style>
 @page { size: A4; margin: 22mm 20mm 20mm;
   @top-right { content: "AXIOMA AI.TECH  •  ${esc(c.titulo).replace(/"/g, '')}"; color: #0F7D5C; font: bold 8pt Arial, sans-serif; }
   @bottom-center { content: "${esc(c.rodape || 'axiomaai.com.br')}   •   Página " counter(page); color: #6B7280; font: 8pt Arial, sans-serif; } }
@@ -78,21 +86,43 @@ ${sumario}
 }
 
 ;(async () => {
-  const args = process.argv.slice(2)
-  const saida = path.resolve(args.pop())
+  const saida = path.resolve(process.argv[2] || '')
+  if (!process.argv[2]) throw new Error('informe a pasta de saída')
   if (!EDGE) throw new Error('Edge/Chrome não encontrado')
-  fs.mkdirSync(saida, { recursive: true })
+  const raiz = path.join(__dirname, '..', 'lib', 'documentos')
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'axioma-pdf-'))
-  for (const arq of args) {
-    const mod = await import(pathToFileURL(path.resolve(arq)).href)
-    const conteudos = mod.default?.default ?? mod.default ?? mod
-    for (const c of (Array.isArray(conteudos) ? conteudos : [conteudos])) {
-      const h = path.join(tmp, 'doc.html')
-      fs.writeFileSync(h, html(c))
-      const destino = path.join(saida, c.arquivo.replace(/\.docx$/i, '.pdf'))
-      execFileSync(EDGE, ['--headless', '--disable-gpu', '--no-pdf-header-footer', `--user-data-dir=${path.join(tmp, 'perfil')}`, `--print-to-pdf=${destino}`, pathToFileURL(h).href], { stdio: 'ignore' })
-      console.log('gerado:', destino)
+  const limpo = (t) => t.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()
+  let total = 0
+  const imprimir = (c, lang, pasta, nome) => {
+    fs.mkdirSync(pasta, { recursive: true })
+    const h = path.join(tmp, 'doc.html')
+    fs.writeFileSync(h, html(c, lang))
+    const destino = path.join(pasta, `${limpo(nome)} - ${ROTULO[lang].idioma}.pdf`)
+    execFileSync(EDGE, ['--headless', '--disable-gpu', '--no-pdf-header-footer', `--user-data-dir=${path.join(tmp, 'perfil')}`, `--print-to-pdf=${destino}`, pathToFileURL(h).href], { stdio: 'ignore' })
+    total++
+  }
+  const carregar = async (arq) => { const mod = await import(pathToFileURL(arq).href); return mod.default?.default ?? mod.default ?? mod }
+  const LANGS = ['pt', 'en', 'es']
+
+  // Termos e Privacidade: uma pasta cada, com os 3 idiomas.
+  for (const [base, pastaNome] of [['termos', 'Termos de Uso'], ['privacidade', 'Política de Privacidade']]) {
+    for (const lang of LANGS) {
+      const c = await carregar(path.join(raiz, `${base}.${lang}.ts`))
+      imprimir(c, lang, path.join(saida, pastaNome), c.titulo)
     }
+    console.log('ok:', pastaNome)
+  }
+  // Manuais: uma pasta por módulo ("NN - Nome"), com um PDF por idioma.
+  const arquivos = fs.readdirSync(path.join(raiz, 'manual')).filter((f) => /^\d\d-.*\.ts$/.test(f)).sort()
+  for (const f of arquivos) {
+    const d = await carregar(path.join(raiz, 'manual', f))
+    const tri = d.pt && d.en && d.es ? d : { pt: d, en: d, es: d }
+    const num = f.slice(0, 2)
+    const nomeDe = (c) => c.titulo.replace(/^[^—]*—\s*/, '')
+    const pasta = path.join(saida, `${num} - ${limpo(nomeDe(tri.pt))}`)
+    for (const lang of LANGS) imprimir(tri[lang], lang, pasta, `${num} - ${nomeDe(tri[lang])}`)
+    console.log('ok:', path.basename(pasta))
   }
   fs.rmSync(tmp, { recursive: true, force: true })
+  console.log(`gerados ${total} PDFs em ${saida}`)
 })()

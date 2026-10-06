@@ -1,4 +1,4 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
+// Fonte única: gera o PDF (scripts/gerar-pdf.cjs) e a página no site.
 import type { DocumentoAxioma } from "./tipos"
 
 const doc: DocumentoAxioma = {
@@ -71,7 +71,7 @@ const doc: DocumentoAxioma = {
     { nota: 'Não vendemos dados pessoais nem Dados do Cliente, não os usamos para publicidade de terceiros e não os usamos para treinar modelos de inteligência artificial de terceiros.' },
 
     { h1: '5. Inteligência artificial' },
-    { p: 'Algumas funções do Axioma usam inteligência artificial: IA Financeira, IA Tributária, o assistente José no Nexus, a leitura de notas fiscais em PDF ou foto, a classificação de itens de compra e as explicações nos módulos.' },
+    { p: 'Algumas funções do Axioma usam inteligência artificial: IA Financeira, IA Tributária, o assistente José no Nexus, a leitura de notas fiscais em PDF ou foto, a classificação de itens de compra, as explicações nos módulos e o **Assistente de Ajuda**, que orienta o uso das telas (este recebe só a pergunta e o trecho do manual, sem os números da empresa).' },
     { lista: [
       'Para responder, enviamos ao provedor de IA **somente as informações necessárias** para aquela pergunta: um resumo dos números da empresa e o texto ou documento enviado.',
       'Usamos provedores que, pelas condições contratuais de uso via API, **não utilizam esses dados para treinar seus modelos**: OpenAI (EUA) e Anthropic (EUA).',

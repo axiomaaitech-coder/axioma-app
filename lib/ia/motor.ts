@@ -133,6 +133,12 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
   return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
 }
 
+// Assistente de Ajuda (como usar as telas): conversa curta, só com trechos do
+// manual — sem retrato da empresa. Rotina = OpenAI barata (regra do Elias).
+export async function respostaDeAjuda(sistema: string, msgs: MensagemHistorico[], uso?: Uso): Promise<string | null> {
+  return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, msgs, MODELOS.rotina.modelo, 900, false, 40000, uso)
+}
+
 // Leitura de documento (PDF ou foto) com visão — B3, nota fiscal sem XML. Ler
 // nota com tabela, parcelas e impostos é tarefa de ANÁLISE (Claude), nunca
 // rotina. Resposta presa num esquema JSON (structured outputs). Falha = null.

@@ -41,7 +41,9 @@ function BlocoWeb({ b }: { b: Bloco }) {
   return null;
 }
 
-export default function DocumentoWeb({ doc, topo }: { doc: DocumentoAxioma; topo?: ReactNode }) {
+const SUMARIO = { pt: "Sumário", en: "Contents", es: "Índice" };
+
+export default function DocumentoWeb({ doc, topo, lang = "pt" }: { doc: DocumentoAxioma; topo?: ReactNode; lang?: "pt" | "en" | "es" }) {
   const secoes = doc.blocos.filter((b): b is { h1: string } => "h1" in b);
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#ffffff", border: "1px solid #e4e7ec" }}>
@@ -55,7 +57,7 @@ export default function DocumentoWeb({ doc, topo }: { doc: DocumentoAxioma; topo
       <div className="px-6 md:px-10 py-8">
         {secoes.length > 3 && (
           <nav className="rounded-xl p-4 mb-6" style={{ background: CREME }}>
-            <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: NAVY }}>Sumário</p>
+            <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: NAVY }}>{SUMARIO[lang]}</p>
             <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
               {secoes.map((s, i) => <li key={i}><a href={`#${idDe(s.h1)}`} className="hover:underline" style={{ color: MENTA }}>{s.h1}</a></li>)}
             </ol>

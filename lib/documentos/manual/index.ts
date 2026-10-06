@@ -1,6 +1,6 @@
-// Lista dos manuais por módulo (numerados). Cada arquivo também gera o Word
-// "NN - Nome.docx" na pasta do Elias. Adicionar aqui ao criar um manual novo.
-import type { DocumentoAxioma } from "../tipos"
+// Lista dos manuais por módulo (numerados), nos 3 idiomas. Cada arquivo também gera
+// os PDFs "NN - Nome - Idioma.pdf" (scripts/gerar-pdf.cjs). Adicionar aqui ao criar um manual novo.
+import { ehTrilingue, type DocumentoAxioma, type DocTrilingue, type IdiomaDoc } from "../tipos"
 import m00 from "./00-introducao"
 import m01 from "./01-dashboard"
 import m02 from "./02-mei-painel"
@@ -46,7 +46,15 @@ import m41 from "./41-uso-ia"
 import m42 from "./42-pdv"
 import m43 from "./43-nexus"
 
-export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] = [
+// Manual ainda só em português aparece igual nos 3 idiomas até ganhar a tradução.
+const tri = (d: DocumentoAxioma | DocTrilingue): DocTrilingue => (ehTrilingue(d) ? d : { pt: d, en: d, es: d })
+
+export type ManualAxioma = { numero: string; nome: string; doc: DocTrilingue }
+// Nome no menu: em português vem da lista; nos outros idiomas, do título do manual traduzido.
+export const nomeManual = (m: ManualAxioma, lang: IdiomaDoc) =>
+  lang === "pt" ? m.nome : m.doc[lang].titulo.replace(/^[^—]*—\s*/, "")
+
+export const MANUAIS: ManualAxioma[] = ([
   { numero: "00", nome: "Prólogo, apresentação e primeiros passos", doc: m00 },
   { numero: "01", nome: "Dashboard", doc: m01 },
   { numero: "02", nome: "MEI — Painel MEI", doc: m02 },
@@ -91,4 +99,37 @@ export const MANUAIS: { numero: string; nome: string; doc: DocumentoAxioma }[] =
   { numero: "41", nome: "Configurações — Uso da IA", doc: m41 },
   { numero: "42", nome: "PDV — Ponto de Venda", doc: m42 },
   { numero: "43", nome: "Nexus — Inteligência Econômica e o José", doc: m43 },
+] as { numero: string; nome: string; doc: DocumentoAxioma | DocTrilingue }[]).map((m) => ({ ...m, doc: tri(m.doc) }))
+
+// Tela → manual (o prefixo mais longo vence). Usado pelo Assistente de Ajuda.
+const ROTAS: [string, string][] = [
+  ["/manual", "00"], ["/dashboard", "01"], ["/mei", "02"], ["/mei/cockpit", "03"], ["/mei/faturamento", "04"], ["/mei/das", "05"],
+  ["/mei/reforma", "06"], ["/mei/precificacao", "07"], ["/mei/ia-advisor", "08"], ["/mei/imposto-renda", "09"], ["/receitas", "10"],
+  ["/custos-fixos", "11"], ["/custos-variaveis", "12"], ["/fluxo-caixa", "13"], ["/dre", "14"], ["/endividamento", "15"], ["/tesouraria", "16"],
+  ["/contador", "17"], ["/fiscal", "18"], ["/contabilidade/razao", "19"], ["/contabilidade/balancete", "20"], ["/contabilidade/dre", "21"],
+  ["/metas", "22"], ["/investimentos", "23"], ["/simulacoes", "24"], ["/precificacao", "25"], ["/clientes", "26"], ["/fornecedores", "27"],
+  ["/contas-pagar", "28"], ["/estoque", "29"], ["/contas-receber", "30"], ["/inadimplencia", "31"], ["/centros-custo", "32"],
+  ["/importar-documentos", "33"], ["/relatorios", "34"], ["/open-finance", "35"], ["/ia-financeira", "36"], ["/ia-tributaria", "37"],
+  ["/empresa", "38"], ["/equipe", "39"], ["/planos", "40"], ["/uso-ia", "41"], ["/pdv", "42"], ["/nexus", "43"],
 ]
+export function manualDaRota(caminho: string): ManualAxioma | null {
+  const achado = ROTAS.filter(([r]) => caminho === r || caminho.startsWith(`${r}/`)).sort((a, b) => b[0].length - a[0].length)[0]
+  return achado ? MANUAIS.find((m) => m.numero === achado[1]) ?? null : null
+}
+
+// Manual em texto corrido (para o Assistente de Ajuda ler).
+export function manualEmTexto(doc: DocumentoAxioma): string {
+  const linhas = [doc.titulo, ...(doc.info ?? [])]
+  for (const b of doc.blocos) {
+    if ("h1" in b) linhas.push(`\n# ${b.h1}`)
+    else if ("h2" in b) linhas.push(`## ${b.h2}`)
+    else if ("h3" in b) linhas.push(`### ${b.h3}`)
+    else if ("p" in b) linhas.push(b.p)
+    else if ("lista" in b) linhas.push(...b.lista.map((i) => `- ${i}`))
+    else if ("numerada" in b) linhas.push(...b.numerada.map((i, n) => `${n + 1}. ${i}`))
+    else if ("nota" in b) linhas.push(`Nota: ${b.nota}`)
+    else if ("alerta" in b) linhas.push(`Atenção: ${b.alerta}`)
+    else if ("tabela" in b) linhas.push(...b.tabela.linhas.map((l) => l.join(" | ")))
+  }
+  return linhas.join("\n").replace(/\*\*/g, "")
+}

@@ -1,4 +1,4 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
+// Fonte única: gera o PDF (scripts/gerar-pdf.cjs) e a página no site.
 import type { DocumentoAxioma } from "./tipos"
 
 const doc: DocumentoAxioma = {
