@@ -2,6 +2,7 @@
 import { X, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { copiarTexto } from "../lib/copiar";
 import { CanvasBox } from "./CanvasBox";
 import Modal from "./Modal";
 import { canaisCompartilhamento, cfoT } from "../lib/cfoTextos";
@@ -36,14 +37,15 @@ export function CentroCompartilhamento({
   const temaClaro = tema === "xms";
   const [copiado, setCopiado] = useState(false);
   const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
+  const [falhaCopia, setFalhaCopia] = useState(false); // navegador bloqueou a cópia: avisa em vez de ficar calado
   const canais = canaisCompartilhamento(textoResumo, assunto, para);
 
   const copiar = async () => {
-    try { await navigator.clipboard.writeText(textoResumo); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {}
+    if (await copiarTexto(textoResumo)) { setFalhaCopia(false); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } else setFalhaCopia(true);
   };
   const copiarDetalhado = async () => {
     if (!textoDetalhado) return;
-    try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {}
+    if (await copiarTexto(textoDetalhado)) { setFalhaCopia(false); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } else setFalhaCopia(true);
   };
 
   return (
@@ -86,6 +88,11 @@ export function CentroCompartilhamento({
             </button>
           )}
         </div>
+        {falhaCopia && (
+          <p className="mt-3 text-xs font-semibold" style={{ color: temaClaro ? "#b42318" : "#fca5a5" }}>
+            {lang === "en" ? "Your browser blocked copying. Use one of the buttons above (WhatsApp, e-mail...) to send the text." : lang === "es" ? "El navegador bloqueó la copia. Use uno de los botones de arriba (WhatsApp, correo...) para enviar el texto." : "O navegador bloqueou a cópia. Use um dos botões acima (WhatsApp, e-mail...) para enviar o texto."}
+          </p>
+        )}
       </CanvasBox>
     </Modal>
   );

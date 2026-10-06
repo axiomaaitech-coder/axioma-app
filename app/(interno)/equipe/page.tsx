@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
+import { copiarTexto } from '../../../lib/copiar'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
   listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, decidirConvite, type TermoConvite,
@@ -60,6 +61,7 @@ const textos = {
     editarPapel: 'Trocar papel', removerAcesso: 'Remover acesso',
     confirmarRemocao: 'Remover o acesso desta pessoa?', confirmar: 'Confirmar',
     linkCopiado: 'Link do convite copiado! Envie pra pessoa (WhatsApp, e-mail etc.)',
+    copiaFalhou: 'O navegador bloqueou a cópia. Copie o link à mão:',
     sucessoConvite: 'Convite gerado', sucessoPapel: 'Papel atualizado', sucessoRemocao: 'Acesso removido',
     copiarLink: 'Copiar link do convite',
     enviarPorApps: 'Enviar convite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
@@ -126,6 +128,7 @@ const textos = {
     editarPapel: 'Change role', removerAcesso: 'Remove access',
     confirmarRemocao: 'Remove this person\'s access?', confirmar: 'Confirm',
     linkCopiado: 'Invite link copied! Send it to the person (WhatsApp, e-mail etc.)',
+    copiaFalhou: 'Your browser blocked copying. Copy the link manually:',
     sucessoConvite: 'Invite generated', sucessoPapel: 'Role updated', sucessoRemocao: 'Access removed',
     copiarLink: 'Copy invite link',
     enviarPorApps: 'Send invite (WhatsApp, Gmail, Outlook, Telegram, e-mail)',
@@ -192,6 +195,7 @@ const textos = {
     editarPapel: 'Cambiar rol', removerAcesso: 'Quitar acceso',
     confirmarRemocao: '¿Quitar el acceso de esta persona?', confirmar: 'Confirmar',
     linkCopiado: '¡Link de invitación copiado! Envíelo a la persona (WhatsApp, correo, etc.)',
+    copiaFalhou: 'El navegador bloqueó la copia. Copie el enlace a mano:',
     sucessoConvite: 'Invitación generada', sucessoPapel: 'Rol actualizado', sucessoRemocao: 'Acceso eliminado',
     copiarLink: 'Copiar link de invitación',
     enviarPorApps: 'Enviar invitación (WhatsApp, Gmail, Outlook, Telegram, correo)',
@@ -448,8 +452,8 @@ export default function EquipePage() {
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
       const texto = textoConvite(membroNovo, form.acesso_dias)
       if (canal === 'copiar') {
-        try { await navigator.clipboard.writeText(texto) } catch {}
-        avisar('sucesso', t.linkCopiado)
+        if (await copiarTexto(texto)) avisar('sucesso', t.linkCopiado)
+        else avisar('erro', `${t.copiaFalhou} ${SITE}/convite/${r.token}`)
       } else {
         const url = canaisCompartilhamento(texto, t.assuntoConvite, membroNovo.email).find((c) => c.nome === canal)?.url
         if (url && aba) aba.location.href = url
@@ -547,10 +551,10 @@ export default function EquipePage() {
     setTermos(await listarTermosConvite(empresaId))
   }
 
-  function copiarLink(token: string) {
+  async function copiarLink(token: string) {
     const link = `${SITE}/convite/${token}`
-    navigator.clipboard.writeText(link)
-    avisar('sucesso', t.linkCopiado)
+    if (await copiarTexto(link)) avisar('sucesso', t.linkCopiado)
+    else avisar('erro', `${t.copiaFalhou} ${link}`)
   }
 
   async function decidir(m: MembroEquipe, aprovar: boolean) {

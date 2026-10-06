@@ -1,6 +1,7 @@
 "use client";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { copiarTexto } from "../../../lib/copiar";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -1440,29 +1441,26 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
   async function shareCopiarTexto() {
     if (!shareModal) return;
-    try {
-      await navigator.clipboard.writeText(montarTextoResumo(shareModal, "longo").replace(/\*/g, ""));
-      showToast(tt.arquivoCopiado, "ok");
-    } catch {
-      showToast("Erro ao copiar", "erro");
-    }
+    const L = (pt: string, en: string, es: string) => (langAtual === "en" ? en : langAtual === "es" ? es : pt);
+    if (await copiarTexto(montarTextoResumo(shareModal, "longo").replace(/\*/g, ""))) showToast(tt.arquivoCopiado, "ok");
+    else showToast(L("Não foi possível copiar. O navegador bloqueou.", "Could not copy. Your browser blocked it.", "No se pudo copiar. El navegador lo bloqueó."), "erro");
   }
 
   async function shareCopiarLinkArquivo() {
+    const L = (pt: string, en: string, es: string) => (langAtual === "en" ? en : langAtual === "es" ? es : pt);
     if (!shareModal || !shareModal.storage_path) {
-      showToast("Arquivo original nao disponivel", "erro");
+      showToast(L("Arquivo original não disponível.", "Original file not available.", "Archivo original no disponible."), "erro");
       return;
     }
     const url = await gerarUrlAssinada(shareModal.storage_path, 86400); // 24h
     if (!url) {
-      showToast("Erro ao gerar link seguro", "erro");
+      showToast(L("Erro ao gerar o link seguro. Tente de novo.", "Error generating the secure link. Try again.", "Error al generar el enlace seguro. Intente de nuevo."), "erro");
       return;
     }
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast("Link seguro copiado (valido por 24h)", "ok");
-    } catch {
-      window.prompt("Link seguro (valido por 24h):", url);
+    if (await copiarTexto(url)) {
+      showToast(L("Link seguro copiado (válido por 24h).", "Secure link copied (valid for 24h).", "Enlace seguro copiado (válido por 24h)."), "ok");
+    } else {
+      window.prompt(L("Link seguro (válido por 24h):", "Secure link (valid for 24h):", "Enlace seguro (válido por 24h):"), url);
     }
   }
 

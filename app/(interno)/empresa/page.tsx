@@ -1,6 +1,7 @@
 "use client";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef } from "react";
+import { copiarTexto } from "../../../lib/copiar";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -1171,10 +1172,8 @@ export default function EmpresaPage() {
     window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
   }
   async function shareCopiarTexto() {
-    try {
-      await navigator.clipboard.writeText(montarTextoCompartilhamento().replace(/\*/g, ""));
-      showToast(tt.toastCartaoCopiado, "ok");
-    } catch { showToast(tt.toastErroCopiar, "erro"); }
+    if (await copiarTexto(montarTextoCompartilhamento().replace(/\*/g, ""))) showToast(tt.toastCartaoCopiado, "ok");
+    else showToast(tt.toastErroCopiar, "erro");
   }
 
   // PDF

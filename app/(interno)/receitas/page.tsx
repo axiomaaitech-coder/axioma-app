@@ -133,12 +133,12 @@ export default function Receitas() {
   const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status, cliente_id: r.cliente_id || "", centro_custo_id: r.centro_custo_id || "" }); setModalAberto(true); };
 
   const salvar = async () => {
-    if (!novo.descricao || !novo.valor) return;
+    // Antes estes guards voltavam calados (o clique em Salvar "não fazia nada").
+    if (!novo.descricao.trim() || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
-    const empresaId = await obterEmpresaAtiva();
-    if (!empresaId) { setSalvando(false); return; }
+    const empresaId = user ? await obterEmpresaAtiva() : null;
+    if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página e tente de novo.", "Session or company not found. Reload the page and try again.", "Sesión o empresa no encontrada. Recargue la página e intente de nuevo."), "erro"); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { data, error } = await supabase.from("receitas").update(payload).eq("id", editando.id).select("id");

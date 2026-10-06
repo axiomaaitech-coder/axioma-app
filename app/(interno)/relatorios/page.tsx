@@ -1,6 +1,7 @@
 "use client";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
+import { copiarTexto } from "../../../lib/copiar";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, LineChart, Line } from "recharts";
@@ -404,12 +405,8 @@ export default function Relatorios() {
     window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
   }
   async function shareCopiarTexto() {
-    try {
-      await navigator.clipboard.writeText(montarTextoCompartilhamento().replace(/\*/g, ""));
-      showToast("Resumo copiado!", "ok");
-    } catch {
-      showToast("Erro ao copiar", "erro");
-    }
+    if (await copiarTexto(montarTextoCompartilhamento().replace(/\*/g, ""))) showToast(lang === "en" ? "Summary copied!" : lang === "es" ? "¡Resumen copiado!" : "Resumo copiado!", "ok");
+    else showToast(lang === "en" ? "Could not copy. Your browser blocked it." : lang === "es" ? "No se pudo copiar. El navegador lo bloqueó." : "Não foi possível copiar. O navegador bloqueou.", "erro");
   }
   function montarTextoDetalhado(): string {
     if (!dre) return "Axioma AI.Tech";
@@ -427,12 +424,8 @@ export default function Relatorios() {
     ].join("\n");
   }
   async function shareCopiarDetalhado() {
-    try {
-      await navigator.clipboard.writeText(montarTextoDetalhado());
-      showToast("Detalhado copiado!", "ok");
-    } catch {
-      showToast("Erro ao copiar", "erro");
-    }
+    if (await copiarTexto(montarTextoDetalhado())) showToast(lang === "en" ? "Detailed report copied!" : lang === "es" ? "¡Detallado copiado!" : "Detalhado copiado!", "ok");
+    else showToast(lang === "en" ? "Could not copy. Your browser blocked it." : lang === "es" ? "No se pudo copiar. El navegador lo bloqueó." : "Não foi possível copiar. O navegador bloqueou.", "erro");
   }
   async function sharePdf() {
     await exportarPDF();
