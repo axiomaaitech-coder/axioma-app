@@ -5,6 +5,7 @@
 // nunca da IA) e, no cron diário, confere as vencidas com o dado oficial.
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 
 export type TextoTrilingue = { pt: string; en: string; es: string }
 export type Direcao = 'sobe' | 'cai' | 'estavel'
@@ -74,6 +75,7 @@ export async function registrarPrevisoes(supabase: SupabaseClient, previsoes: Pr
       data_alvo: somaDias(dataHoje, p.horizonte_dias),
     }))
   if (!linhas.length) return 0
+  // varredura:ok — service role; erro checado logo abaixo
   const { error } = await supabase.from('nexus_previsao').upsert(linhas, { onConflict: 'semana,serie_codigo,horizonte_dias', ignoreDuplicates: true })
   if (error) throw new Error(`gravação de previsões: ${error.message}`)
   return linhas.length
@@ -97,6 +99,7 @@ export async function conferirPrevisoes(supabase: SupabaseClient, hoje = new Dat
       .order('data_referencia', { ascending: false }).limit(5000)
     if (erroPontos) throw new Error(erroPontos.message)
     let conferidas = 0
+    const falhas: string[] = []
     for (const p of abertas) {
       // Dado mais recente com referência até a data-alvo (cron atrasado não
       // "vê o futuro") e mais novo que o de partida.
@@ -109,10 +112,13 @@ export async function conferirPrevisoes(supabase: SupabaseClient, hoje = new Dat
         update = { status: 'sem_dado' }
       }
       if (!update) continue
+      // varredura:ok — service role; erro checado logo abaixo
       const { error: e } = await supabase.from('nexus_previsao').update({ ...update, conferida_em: new Date().toISOString() }).eq('id', p.id)
       if (!e) conferidas++
+      else falhas.push(`${p.id}: ${e.message}`) // antes a falha sumia: o placar do José ficava sem a conferência
     }
-    return { conferidas }
+    if (falhas.length) Sentry.captureException(new Error(`[nexusPrevisoes] ${falhas.length} conferência(s) não gravada(s): ${falhas.slice(0, 3).join(' | ')}`))
+    return falhas.length ? { conferidas, erro: `${falhas.length} conferência(s) não gravada(s)` } : { conferidas }
   } catch (err) {
     return { conferidas: 0, erro: err instanceof Error ? err.message : String(err) }
   }

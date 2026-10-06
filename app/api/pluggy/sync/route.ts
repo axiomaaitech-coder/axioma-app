@@ -132,12 +132,16 @@ export async function POST(request: NextRequest) {
       }
 
       // Marca a conexão como ativa e atualiza o saldo (soma das contas do item)
-      const { error: erroStatus } = await supabase.from('open_finance')
+      const { data: conexao, error: erroStatus } = await supabase.from('open_finance')
         .update({ status: 'UPDATED', saldo_atual: saldoItem, updated_at: new Date().toISOString() })
         .eq('item_id', itemId)
         .eq('empresa_id', empresaId)
-      if (erroStatus) {
-        Sentry.captureException(new Error(`Falha ao update em open_finance: ${erroStatus.message}`), { extra: { tabela: 'open_finance', operacao: 'update', itemId } })
+        .select('id')
+      if (erroStatus || !conexao?.length) {
+        // Sem isto o saldo do banco ficava velho na tela sem ninguém saber (RLS devolvendo 0 linhas).
+        const motivo = erroStatus?.message || '0 linhas afetadas (RLS?)'
+        Sentry.captureException(new Error(`Falha ao update em open_finance: ${motivo}`), { extra: { tabela: 'open_finance', operacao: 'update', itemId } })
+        erros.push(`${itemId}: saldo não atualizado (${motivo})`)
       }
     }
 

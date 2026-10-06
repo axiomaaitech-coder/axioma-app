@@ -628,7 +628,7 @@ export default function ContasPagarPage() {
     try {
       const salvo = localStorage.getItem(chavePinos(empresaId));
       if (salvo) setProximasAPagar(new Set(JSON.parse(salvo)));
-    } catch {}
+    } catch { /* preferência só deste navegador (bloqueado/privado): segue sem os pinos */ }
   }, [empresaId]);
 
   function alternarProximaAPagar(id: string) {
@@ -636,7 +636,7 @@ export default function ContasPagarPage() {
       const novo = new Set(prev);
       if (novo.has(id)) novo.delete(id); else novo.add(id);
       if (empresaId) {
-        try { localStorage.setItem(chavePinos(empresaId), JSON.stringify(Array.from(novo))); } catch {}
+        try { localStorage.setItem(chavePinos(empresaId), JSON.stringify(Array.from(novo))); } catch { /* navegador sem armazenamento: o pino vale só nesta visita */ }
       }
       return novo;
     });

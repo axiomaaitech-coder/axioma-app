@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import * as Sentry from '@sentry/nextjs'
+
+// Falha de gravação no servidor: log + Sentry com contexto (nunca calada).
+function falhaServidor(etapa: string, motivo: string, extra: Record<string, unknown> = {}) {
+  console.error(`[convite] ${etapa}:`, motivo)
+  Sentry.captureException(new Error(`[convite] ${etapa}: ${motivo}`), { extra: { rota: 'api/convite', etapa, ...extra } })
+}
 
 // Convite de equipe (pedido do Elias, 2026-10-02) — tudo no servidor, sem SQL novo.
 // - Só Admin, Sócio ou CEO (ou o dono) liberam acesso direto. Qualquer outro
@@ -145,7 +152,12 @@ async function criar(corpo: any) {
       .eq('empresa_id', empresaId).eq('convite_aceito', false).ilike('email_convidado', email).limit(1)
     const p = pend?.[0]
     if (p && (!p.expira_em || new Date(p.expira_em) > new Date())) return NextResponse.json({ id: p.id, token: p.token_convite })
-    if (p) await db.from('empresa_equipe').delete().eq('id', p.id)
+    if (p) {
+      // Convite vencido do mesmo e-mail: some antes de criar o novo (senão ficariam dois pendentes)
+      // varredura:ok — service role (sem RLS); erro checado na linha de baixo
+      const { error: eDel } = await db.from('empresa_equipe').delete().eq('id', p.id)
+      if (eDel) { falhaServidor('apagar convite vencido', eDel.message, { conviteId: p.id }); return erro('generico', 500) }
+    }
   }
 
   // Limite do plano (decisões do Elias 2026-10-03, blocos 11-12). Operador de caixa e
@@ -220,21 +232,28 @@ async function aceitar(corpo: any, soConferir = false) {
 
   const expira = cv.acesso_dias == null ? null : new Date(Date.now() + cv.acesso_dias * 86400000).toISOString()
   const agora = new Date().toISOString()
+  // varredura:ok — service role (sem RLS); erro checado logo abaixo
   const { error: e1 } = await db.from('empresa_usuarios').upsert(
     { empresa_id: cv.empresa_id, user_id: userId, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id,
       suspenso_em: null, suspenso_por: null, suspenso_motivo: null }, // convite novo aceito = volta a ter acesso
     { onConflict: 'empresa_id,user_id' })
   if (e1) { console.error('[convite] acesso:', e1.message); return erro('generico', 500) }
-  await db.from('empresa_equipe').update({
+  // O acesso já foi dado acima; marcar o convite como aceito tenta 2x (senão o painel
+  // da Equipe mostraria a pessoa como "pendente" mesmo com acesso).
+  const marcarAceito = () => db.from('empresa_equipe').update({
     situacao: 'aprovado', convite_aceito: true, aceito_em: agora, user_id_convidado: userId,
     convidado_nome_termo: nome, convidado_termo_em: agora, decidido_em: agora,
-  }).eq('id', cv.id)
+  }).eq('id', cv.id).select('id')
+  let aceito = await marcarAceito()
+  if (aceito.error || !aceito.data?.length) aceito = await marcarAceito()
+  if (aceito.error || !aceito.data?.length) falhaServidor('marcar convite aceito', aceito.error?.message || '0 linhas', { conviteId: cv.id, empresaId: cv.empresa_id })
   const { error: e2 } = await db.from('empresa_convite_termo').insert({
     empresa_id: cv.empresa_id, convite_id: cv.id, user_id: userId, nome, cpf: cpf || null, email,
     remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: true,
     relacao: cv.relacao, papel: cv.papel, acesso_dias: cv.acesso_dias, motivo_convite: cv.motivo_convite, convidado_em: cv.created_at,
   })
-  if (e2) console.error('[convite] termo:', e2.message)
+  // Termo de aceite é registro LGPD: falha vai pro Sentry pra ser refeito, não só pro log.
+  if (e2) falhaServidor('gravar termo de aceite', e2.message, { conviteId: cv.id, empresaId: cv.empresa_id })
 
   const { data: emp } = await db.from('empresas').select('nome').eq('id', cv.empresa_id).maybeSingle()
   return NextResponse.json({ empresaId: cv.empresa_id, empresaNome: emp?.nome || '' })

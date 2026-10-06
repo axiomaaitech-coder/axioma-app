@@ -133,6 +133,7 @@ export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: str
   if (error) throw new FalhaPlano(`leitura de nexus_plano_empresa: ${error.message}`)
   if (salvo) return { data: salvo.data as string, origem: 'guardado' as const, caracteresEnviados: 0, ...(salvo.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
   const { caracteresEnviados, ...conteudo } = await gerarPlano(supabase, empresaId, horizonte, lang)
+  // varredura:ok — service role; erro checado logo abaixo
   const { error: erroGravar } = await supabase.from('nexus_plano_empresa').upsert(
     { empresa_id: empresaId, horizonte, lang, data: hoje, conteudo, modelo: MODELO_JOSEPH, criado_por: userId, gerado_em: new Date().toISOString() },
     { onConflict: 'empresa_id,horizonte,lang,data' },

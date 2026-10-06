@@ -94,6 +94,16 @@ function janelaEfetivaDias(janelaCatalogo: number, frequencia: string | null): n
   return Math.max(janelaCatalogo || 35, piso)
 }
 
+// O Supabase não lança exceção em erro de banco (devolve { error }): try/catch
+// sozinho deixava estas gravações falharem caladas. Toda escrita de controle do
+// Nexus passa por aqui — falha vira log + Sentry (a regra de "tentar de novo em
+// 6h" depende de last_success/last_failure gravados de verdade).
+function avisarFalhaGravacaoNexus(tabela: string, operacao: string, error: { message: string } | null, extra: Record<string, unknown> = {}) {
+  if (!error) return
+  console.error(`[nexus] falha ao ${operacao} em ${tabela}:`, error.message)
+  Sentry.captureException(new Error(`[nexus] falha ao ${operacao} em ${tabela}: ${error.message}`), { extra: { tabela, operacao, ...extra } })
+}
+
 // Grava a falha em nexus_raw_ingestion + last_failure na fonte, sempre em
 // modo melhor-esforço: se essa própria escrita falhar, não pode derrubar o
 // loop — o resumo final da rota já carrega a falha real de qualquer jeito.
@@ -110,7 +120,7 @@ async function registrarFalha(
   }
 ) {
   try {
-    await supabase.from('nexus_raw_ingestion').insert({
+    const { error } = await supabase.from('nexus_raw_ingestion').insert({
       source_id: sourceId,
       request_ts: params.requestTs,
       response_ts: new Date().toISOString(),
@@ -121,13 +131,16 @@ async function registrarFalha(
       error: params.error,
       raw_payload: params.rawPayload ?? null,
     })
-  } catch {
-    // melhor-esforço — resumo final ({sucesso, falha, detalhes}) já reporta essa falha
+    avisarFalhaGravacaoNexus('nexus_raw_ingestion', 'insert (falha)', error, { sourceId })
+  } catch (err) {
+    // melhor-esforço — resumo final ({sucesso, falha, detalhes}) já reporta a falha da fonte
+    avisarFalhaGravacaoNexus('nexus_raw_ingestion', 'insert (falha)', { message: String(err) }, { sourceId })
   }
   try {
-    await supabase.from('nexus_source').update({ last_failure: new Date().toISOString() }).eq('source_id', sourceId)
-  } catch {
-    // idem
+    const { data, error } = await supabase.from('nexus_source').update({ last_failure: new Date().toISOString() }).eq('source_id', sourceId).select('source_id')
+    avisarFalhaGravacaoNexus('nexus_source', 'update last_failure', error ?? (data?.length ? null : { message: 'fonte não encontrada' }), { sourceId })
+  } catch (err) {
+    avisarFalhaGravacaoNexus('nexus_source', 'update last_failure', { message: String(err) }, { sourceId })
   }
 }
 
@@ -136,7 +149,7 @@ async function registrarSucesso(
   sourceId: string,
   params: { requestTs: string; endpoint: string; httpStatus: number; payloadHash: string; rawPayload: unknown }
 ) {
-  await supabase.from('nexus_raw_ingestion').insert({
+  const { error: erroRaw } = await supabase.from('nexus_raw_ingestion').insert({
     source_id: sourceId,
     request_ts: params.requestTs,
     response_ts: new Date().toISOString(),
@@ -146,7 +159,9 @@ async function registrarSucesso(
     ingestion_status: 'success',
     raw_payload: params.rawPayload,
   })
-  await supabase.from('nexus_source').update({ last_success: new Date().toISOString() }).eq('source_id', sourceId)
+  avisarFalhaGravacaoNexus('nexus_raw_ingestion', 'insert (sucesso)', erroRaw, { sourceId })
+  const { data: fonte, error: erroFonte } = await supabase.from('nexus_source').update({ last_success: new Date().toISOString() }).eq('source_id', sourceId).select('source_id')
+  avisarFalhaGravacaoNexus('nexus_source', 'update last_success', erroFonte ?? (fonte?.length ? null : { message: 'fonte não encontrada' }), { sourceId })
 }
 
 export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextResponse> {
@@ -533,9 +548,11 @@ async function atualizarNotasFontes(supabase: SupabaseClient): Promise<string> {
     for (const f of fontes ?? []) {
       const c = calcularConfiancaFonte(f.source_type as string, f.last_success as string | null, f.last_failure as string | null,
         f.source_name === 'BCB SGS' || f.source_name === 'Banco Central Europeu' ? concordancia : null)
-      await supabase.from('nexus_source').update({
+      // varredura:ok — service role; a fonte acabou de ser lida acima, erro checado abaixo
+      const { error: erroNota } = await supabase.from('nexus_source').update({
         reliability_score: c.nota, authority_score: c.autoridade, freshness_score: c.atualidade, evidence_score: c.consistencia,
       }).eq('source_id', f.source_id)
+      avisarFalhaGravacaoNexus('nexus_source', 'update confiabilidade', erroNota, { sourceId: f.source_id })
     }
     return `${fontes?.length ?? 0} fontes; concordância dólar BCB×BCE: ${concordancia ?? 'sem data em comum'}`
   } catch (err) {

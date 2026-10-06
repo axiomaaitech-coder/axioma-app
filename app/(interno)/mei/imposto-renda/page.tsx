@@ -170,7 +170,7 @@ export default function ImpostoRendaMEI() {
 
     const salvo = localStorage.getItem(`axioma-irpf-checklist-${user.id}`)
     if (salvo) {
-      try { setChecklistMarcado(JSON.parse(salvo)) } catch {}
+      try { setChecklistMarcado(JSON.parse(salvo)) } catch { /* marcação antiga corrompida: começa o checklist em branco */ }
     }
   }
 

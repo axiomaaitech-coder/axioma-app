@@ -657,10 +657,17 @@ export async function carregarHistoricoTrib(userId: string, limit: number = 50):
 }
 
 export async function limparHistoricoTrib(userId: string): Promise<{ erro?: string }> {
+  // varredura:ok — erro checado e sobra conferida por contagem logo abaixo
   const { error } = await supabase.from("ia_tributaria_historico").delete().eq("user_id", userId);
   if (error) {
     reportarFalhaEscrita("ia_tributaria_historico", "delete", error.message);
     return { erro: error.message };
+  }
+  // 0 linhas apagadas pode ser histórico vazio (ok) ou RLS negando: confere se sobrou algo.
+  const { count } = await supabase.from("ia_tributaria_historico").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  if (count && count > 0) {
+    reportarFalhaEscrita("ia_tributaria_historico", "delete", `${count} linha(s) continuam após limpar (RLS?)`);
+    return { erro: "historico_nao_apagado" };
   }
   return {};
 }

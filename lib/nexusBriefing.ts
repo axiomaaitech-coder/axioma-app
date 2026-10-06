@@ -175,6 +175,7 @@ export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: Idiom
   if (ultimo?.data === hoje()) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }
   try {
     const conteudo = await gerarBriefing(supabase, lang)
+    // varredura:ok — service role; erro checado logo abaixo
     const { error } = await supabase.from('nexus_briefing').upsert({ data: hoje(), lang, conteudo, modelo: MODELO_JOSEPH, gerado_em: new Date().toISOString() }, { onConflict: 'data,lang' })
     if (error) throw new FalhaBriefing(`gravação: ${error.message}`)
     // Melhor-esforço: sem a tabela da Etapa 9 (SQL não rodado) o painel segue normal.

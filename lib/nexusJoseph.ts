@@ -176,6 +176,7 @@ export async function obterOuGerarAnalise(supabase: SupabaseClient, eventId: str
   if (!ev.payload) throw new FalhaJoseph('evento sem payload (anterior à Etapa 3)')
 
   const analise = await gerarAnaliseJoseph(supabase, { natureza: ev.natureza, category: ev.category, payload: ev.payload as PayloadEvento }, lang)
+  // varredura:ok — service role; erro checado logo abaixo
   const { error: erroGravar } = await supabase
     .from('nexus_global_event')
     .update({ joseph_analise: { ...existentes, [lang]: analise }, joseph_gerado_em: new Date().toISOString(), joseph_modelo: MODELO_JOSEPH })

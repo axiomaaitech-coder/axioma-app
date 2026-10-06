@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -90,10 +91,12 @@ export async function GET(req: NextRequest) {
   // Grava no cache (global) o que realmente veio da IA — sucesso ou "nada
   // encontrado" — pra nunca mais perguntar por este EAN+idioma. Falha ao
   // gravar não derruba a resposta pro usuário, só perde o cache desta vez.
-  await supabaseAdmin.from("produtos_ia_cache").upsert(
+  // varredura:ok — ignoreDuplicates devolve 0 linhas quando o EAN já está no cache (normal)
+  const { error: erroCache } = await supabaseAdmin.from("produtos_ia_cache").upsert(
     { ean, idioma, encontrado: encontrouAlgo, nome: resposta?.nome || null, marca: resposta?.marca || null, categoria: resposta?.categoria || null },
     { onConflict: "ean,idioma", ignoreDuplicates: true }
   );
+  if (erroCache) Sentry.captureException(new Error(`Falha ao upsert em produtos_ia_cache: ${erroCache.message}`), { extra: { rota: "produto/consulta-ia", ean } });
 
   if (!encontrouAlgo) return NextResponse.json({ status: "nao_encontrado" } satisfies ConsultaIaResposta);
   return NextResponse.json({ status: "ok", ...resposta } satisfies ConsultaIaResposta);

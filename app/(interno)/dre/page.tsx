@@ -373,6 +373,7 @@ export default function DREPage() {
     // Snapshot automático (dispara sozinho ao trocar de período, não é uma ação
     // do usuário) — se falhar, não interrompe a tela nem avisa com toast (seria
     // ruído sem contexto pro usuário); só reporta pro Sentry.
+    // varredura:ok — resultado conferido logo abaixo (ternário update/insert)
     const { data: linhaSalva, error: erroSnapshot } = existente
       ? await supabase.from("dre_historico").update(payload).eq("id", existente.id).select("id")
       : await supabase.from("dre_historico").insert(payload).select("id");

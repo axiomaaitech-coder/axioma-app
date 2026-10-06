@@ -141,6 +141,7 @@ export async function salvarSimulacao(p: {
     assumptions: { ponto_partida: p.ponto }, horizon: String(p.horizonteMeses), result: p.resultado,
     status: "completed", updated_at: new Date().toISOString(),
   };
+  // varredura:ok — .select().maybeSingle() e conferência de linha logo abaixo
   const q = p.id
     ? supabase.from("nexus_simulation").update(linha).eq("id", p.id).eq("empresa_id", p.empresaId).select("id").maybeSingle()
     : supabase.from("nexus_simulation").insert({ ...linha, criado_por: user?.id ?? null }).select("id").maybeSingle();
@@ -169,9 +170,11 @@ export async function favoritarSimulacao(empresaId: string, id: string, favorita
 export const DIAS_AUTO_ARQUIVAR = 90;
 export async function autoArquivarAntigas(empresaId: string): Promise<void> {
   const limite = new Date(Date.now() - DIAS_AUTO_ARQUIVAR * 86400000).toISOString();
-  await supabase.from("nexus_simulation")
+  // varredura:ok — 0 linhas é normal (nada antigo pra arquivar); erro de verdade vai pro Sentry
+  const { error } = await supabase.from("nexus_simulation")
     .update({ status: "archived", archived_at: new Date().toISOString() })
     .eq("empresa_id", empresaId).eq("status", "completed").eq("favorita", false).lt("updated_at", limite);
+  if (error) reportarFalhaEscrita("nexus.autoArquivarAntigas", error);
 }
 
 // Quantas simulações ativas a empresa tem — pro card "Minhas Simulações" em /nexus.

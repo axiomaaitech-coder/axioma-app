@@ -113,9 +113,9 @@ export async function criarPedidoCompra(userId: string, empresaId: string, dados
   // nível 3-way — não existe tela separada em Fornecedores só pra isso.
   // Best-effort: se falhar, o pedido já foi salvo; o motor só não vai casar
   // até o nível ficar '3way' (fica reportado, não silencioso).
-  const { error: erroNivel } = await supabase.from("fornecedores")
-    .update({ nivel_match: "3way" }).eq("empresa_id", empresaId).eq("id", dados.fornecedorId);
-  if (erroNivel) reportarFalhaEscrita("fornecedores", "update nivel_match (ativação 3-way)", erroNivel.message);
+  const { data: fornAtivado, error: erroNivel } = await supabase.from("fornecedores")
+    .update({ nivel_match: "3way" }).eq("empresa_id", empresaId).eq("id", dados.fornecedorId).select("id");
+  if (erroNivel || !fornAtivado?.length) reportarFalhaEscrita("fornecedores", "update nivel_match (ativação 3-way)", erroNivel?.message || "0 linhas afetadas (RLS?)");
 
   return { id: pedido.id };
 }
@@ -145,6 +145,7 @@ export async function editarPedidoCompra(empresaId: string, pedidoCompraId: stri
   // nfe_item que apontava pra um item removido cai pra null (ON DELETE SET
   // NULL); a próxima conferência volta a marcar 'sem_pedido' pra ele, o que
   // é o comportamento correto (o pedido mudou, o vínculo antigo não vale mais).
+  // varredura:ok — 0 linhas é possível (pedido sem itens); erro checado abaixo
   const { error: erroDelete } = await supabase.from("pedido_compra_itens")
     .delete().eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId);
   if (erroDelete) {
@@ -300,7 +301,8 @@ export async function vincularItensAoPedidoAberto(empresaId: string, fornecedorI
   }
 
   if (atualizacoes.length > 0) {
-    const { error } = await supabase.from("nfe_itens").upsert(atualizacoes, { onConflict: "id" });
-    if (error) reportarFalhaEscrita("nfe_itens", "upsert (vínculo pedido)", error.message);
+    const { data: vinculados, error } = await supabase.from("nfe_itens").upsert(atualizacoes, { onConflict: "id" }).select("id");
+    if (error || (vinculados?.length ?? 0) < atualizacoes.length)
+      reportarFalhaEscrita("nfe_itens", "upsert (vínculo pedido)", error?.message || `${atualizacoes.length - (vinculados?.length ?? 0)} de ${atualizacoes.length} item(ns) sem vínculo (RLS?)`);
   }
 }

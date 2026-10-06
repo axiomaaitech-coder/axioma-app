@@ -32,6 +32,11 @@ const achados = []
 for (const arq of arquivos) {
   const txt = fs.readFileSync(arq, 'utf8')
   const linhaDe = (i) => txt.slice(0, i).split('\n').length
+  // `// varredura:ok <motivo>` nas 3 linhas acima = decisão revisada e justificada no código
+  const justificado = (i) => {
+    const ini = txt.lastIndexOf('\n', i)
+    return /varredura:ok/.test(txt.slice(0, ini < 0 ? i : ini).split('\n').slice(-3).join('\n') + txt.slice(ini < 0 ? 0 : ini, i))
+  }
   const re = /\.from\(\s*["'`][\w-]+["'`]\s*\)\s*\.(insert|update|upsert|delete)\(/g
   let m
   while ((m = re.exec(txt))) {
@@ -45,11 +50,12 @@ for (const arq of arquivos) {
     const comando = txt.slice(m.index, fimDoComando(txt, m.index))
     const atribuido = /(const|let|var)\s*[{\[\w]|=\s*await|return\b|\.then\(|Promise\.all|\[\s*$|,\s*$|\(\s*$/.test(antes) || /^\s*$/.test(antes) && /\n\s*(const|let)[^\n]*=\s*await\s*$/.test(txt.slice(Math.max(0, inicioLinha - 200), inicioLinha))
     const confereLinhas = /\.select\(/.test(comando)
+    if (justificado(m.index)) continue
     if (!atribuido) achados.push({ arq, linha: linhaDe(m.index), tipo: 'RESULTADO IGNORADO', op: m[1] })
     else if (!confereLinhas && m[1] !== 'insert') achados.push({ arq, linha: linhaDe(m.index), tipo: 'sem .select (0 linhas/RLS passa calado)', op: m[1] })
   }
   const reCatch = /catch\s*(\([^)]*\))?\s*\{\s*\}/g
-  while ((m = reCatch.exec(txt))) achados.push({ arq, linha: linhaDe(m.index), tipo: 'catch vazio', op: '' })
+  while ((m = reCatch.exec(txt))) if (!justificado(m.index)) achados.push({ arq, linha: linhaDe(m.index), tipo: 'catch vazio', op: '' })
 }
 
 const porArquivo = {}

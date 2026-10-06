@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -100,9 +101,13 @@ export async function POST(req: NextRequest) {
       if (item.ean) linhasParaCache.push({ ean: item.ean, idioma, encontrado: !!(resp.nome || resp.categoria), nome: resp.nome || null, marca: null, categoria: resp.categoria || null, sub_nicho: resp.subNicho || null });
     }
     if (linhasParaCache.length > 0) {
-      await supabaseAdmin.from("produtos_ia_cache").upsert(linhasParaCache, { onConflict: "ean,idioma", ignoreDuplicates: true });
+      // Cache falhando = a IA seria paga de novo nas próximas notas: registra, sem travar a importação.
+      // varredura:ok — ignoreDuplicates devolve 0 linhas quando o EAN já está no cache (normal)
+      const { error: erroCache } = await supabaseAdmin.from("produtos_ia_cache").upsert(linhasParaCache, { onConflict: "ean,idioma", ignoreDuplicates: true });
+      if (erroCache) Sentry.captureException(new Error(`Falha ao upsert em produtos_ia_cache: ${erroCache.message}`), { extra: { rota: "produto/classificar-lote", itens: linhasParaCache.length } });
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "produto/classificar-lote", etapa: "resposta da IA" } });
     // Falha na IA (ou JSON fora do formato) não pode travar a importação — itens pendentes voltam sem
     // sugestão, o dono completa nome/categoria na tela de conferência.
   }

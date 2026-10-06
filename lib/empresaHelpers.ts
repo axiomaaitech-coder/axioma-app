@@ -312,7 +312,7 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
 // Abre o Axioma nesta empresa agora e nas próximas entradas (convite aprovado).
 export function definirEmpresaPreferida(userId: string, empresaId: string) {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(`axioma_empresa_preferida_${userId}`, empresaId); } catch {}
+  try { localStorage.setItem(`axioma_empresa_preferida_${userId}`, empresaId); } catch { /* navegador sem armazenamento: vale só nesta sessão (sessionStorage abaixo) */ }
   sessionStorage.setItem(`axioma_empresa_ativa_${userId}`, empresaId);
   cacheEmpresaAtiva = null;
 }
@@ -613,15 +613,25 @@ export async function excluirDocumento(
   storagePath: string | null,
   nome: string
 ): Promise<{ erro?: string }> {
-  if (storagePath) {
-    await supabase.storage.from("empresa-documentos").remove([storagePath]);
-  }
-  const { error } = await supabase
+  // Primeiro o registro (com conferência de linhas: RLS negando devolve 0 e antes a
+  // tela dizia "excluído"); só depois o arquivo — assim nunca sobra registro apontando
+  // pra arquivo apagado.
+  const { data, error } = await supabase
     .from("empresa_documentos")
     .delete()
     .eq("id", docId)
-    .eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+    .eq("empresa_id", empresaId)
+    .select("id");
+  if (error || !data?.length) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_documentos", "delete", motivo);
+    return { erro: motivo };
+  }
+  if (storagePath) {
+    const { error: erroArquivo } = await supabase.storage.from("empresa-documentos").remove([storagePath]);
+    // Registro já saiu da tela; arquivo órfão no cofre fica registrado pra limpeza.
+    if (erroArquivo) reportarFalhaEscrita("storage:empresa-documentos", "remove", `${storagePath}: ${erroArquivo.message}`);
+  }
   await registrarAuditoria({
     empresaId,
     userId,

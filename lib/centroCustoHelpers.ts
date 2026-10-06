@@ -96,6 +96,7 @@ export async function aplicarRateio(
   // 0 linhas apagadas aqui é normal (pode ser o 1º rateio deste lançamento) —
   // só um `error` de verdade indica falha, senão os splits antigos ficariam
   // convivendo com os novos e o rateio de custo ficaria errado.
+  // varredura:ok — 0 linhas é normal aqui (1º rateio); erro checado abaixo
   const { error: erroLimpeza } = await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
   if (erroLimpeza) {
     reportarFalhaEscrita("centro_custo_rateio", "delete (limpeza antes de novo rateio)", erroLimpeza.message);

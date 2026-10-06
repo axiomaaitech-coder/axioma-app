@@ -607,6 +607,7 @@ async function atualizarPadroesClassificacao(
     };
   });
 
+  // varredura:ok — upsert de aprendizado; erro checado abaixo (não bloqueia a importação)
   const { error } = await supabase
     .from("importacao_padroes_classificacao")
     .upsert(linhasUpsert, { onConflict: "empresa_id,padrao_chave,destino_tabela" });
@@ -784,6 +785,7 @@ export async function excluirRegistroImportacao(
   }
 
   // 3) Deleta as linhas de auditoria (FK CASCADE já faria, mas explicitamos)
+  // varredura:ok — 0 linhas é possível (importação sem linhas); erro checado abaixo
   const { error: errLinhas } = await supabase
     .from("importacao_linhas")
     .delete()
@@ -796,15 +798,18 @@ export async function excluirRegistroImportacao(
   }
 
   // 4) Deleta o cabeçalho
-  const { error: errImp } = await supabase
+  const { data: impApagada, error: errImp } = await supabase
     .from("importacoes")
     .delete()
     .eq("id", importacaoId)
-    .eq("empresa_id", empresaId);
+    .eq("empresa_id", empresaId)
+    .select("id");
 
-  if (errImp) {
-    reportarFalhaEscrita("importacoes", "delete (excluir registro de importação)", errImp.message);
-    return { erro: `Erro ao remover registro: ${errImp.message}` };
+  if (errImp || !impApagada?.length) {
+    // 0 linhas = RLS negou: antes a tela dizia "excluído" e o registro continuava lá.
+    const motivo = errImp?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacoes", "delete (excluir registro de importação)", motivo);
+    return { erro: `Erro ao remover registro: ${motivo}` };
   }
 
   return { erro: null };
@@ -1104,6 +1109,7 @@ export async function gravarLinhas(params: {
   if (resultado.importadas === 0 && resultado.erro > 0) statusFinal = "erro";
   else if (resultado.erro > 0 || resultado.duplicadas > 0) statusFinal = "parcialmente";
 
+  // varredura:ok — .select("id") e conferência de linhas logo abaixo
   let qCabecalho = supabase
     .from("importacoes")
     .update({
@@ -1513,6 +1519,7 @@ export async function reverterImportacao(
     removidas++;
   }
 
+  // varredura:ok — 0 linhas é possível (nada importado/somado); erro checado abaixo
   const { error: erroStatusLinhas } = await supabase
     .from("importacao_linhas")
     .update({ status: "revertida" })
@@ -1524,7 +1531,7 @@ export async function reverterImportacao(
     erros.push(`importacao_linhas: ${erroStatusLinhas.message}`);
   }
 
-  const { error: erroStatusImportacao } = await supabase
+  const { data: impRevertida, error: erroStatusImportacao } = await supabase
     .from("importacoes")
     .update({
       status: "revertido",
@@ -1532,10 +1539,13 @@ export async function reverterImportacao(
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId)
-    .eq("empresa_id", empresaId);
-  if (erroStatusImportacao) {
-    reportarFalhaEscrita("importacoes", "update (status revertido)", erroStatusImportacao.message);
-    erros.push(`importacoes: ${erroStatusImportacao.message}`);
+    .eq("empresa_id", empresaId)
+    .select("id");
+  if (erroStatusImportacao || !impRevertida?.length) {
+    // Sem isto a importação ficava "concluída" na lista mesmo depois de desfeita.
+    const motivo = erroStatusImportacao?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacoes", "update (status revertido)", motivo);
+    erros.push(`importacoes: ${motivo}`);
   }
 
   await registrarEventoTimeline({

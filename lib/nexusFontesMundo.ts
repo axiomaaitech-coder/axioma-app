@@ -9,6 +9,7 @@
 // Cada fonte isolada: uma falhar não derruba a outra nem a coleta do BCB.
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { calcularFreshness } from './nexusFreshness'
 import { buscarComRetentativa } from './nexusRede'
 import * as XLSX from 'xlsx'
@@ -31,8 +32,13 @@ async function garantirFonte(supabase: SupabaseClient, f: Fonte): Promise<string
 // Alimenta a "Saúde das fontes" — falha aqui mostraria status errado sem ninguém
 // saber, então vai pro log do servidor (auditoria 2026-09-28; antes o erro era ignorado).
 async function marcar(supabase: SupabaseClient, sourceId: string, ok: boolean) {
+  // varredura:ok — service role; erro checado logo abaixo
   const { error } = await supabase.from('nexus_source').update(ok ? { last_success: new Date().toISOString() } : { last_failure: new Date().toISOString() }).eq('source_id', sourceId)
-  if (error) console.error('[nexus] falha ao marcar saúde da fonte', sourceId, error.message)
+  if (error) {
+    console.error('[nexus] falha ao marcar saúde da fonte', sourceId, error.message)
+    // A retentativa em 6h depende disto: precisa aparecer no Sentry, não só no log.
+    Sentry.captureException(new Error(`[nexus] falha ao marcar saúde da fonte ${sourceId}: ${error.message}`), { extra: { sourceId, ok } })
+  }
 }
 
 // ─── Petróleo Brent (IPEA) ───
@@ -58,6 +64,7 @@ export async function ingerirBrent(supabase: SupabaseClient): Promise<string> {
         retrieved_at: new Date().toISOString(), freshness_status: calcularFreshness(data, 'diaria'),
       }
     })
+    // varredura:ok — service role; erro checado logo abaixo
     const { error } = await supabase.from('nexus_economic_series').upsert(linhas, { onConflict: 'source_id,serie_codigo,data_referencia' })
     if (error) throw new Error(error.message)
     await marcar(supabase, sourceId, true)
@@ -102,6 +109,7 @@ export async function ingerirBancoMundial(supabase: SupabaseClient): Promise<str
         }
       })
       if (linhas.length) {
+        // varredura:ok — service role; erro checado logo abaixo
         const { error } = await supabase.from('nexus_economic_series').upsert(linhas, { onConflict: 'source_id,serie_codigo,data_referencia' })
         if (error) throw new Error(error.message)
       }
@@ -121,6 +129,7 @@ async function gravarSerie(
   pontos: Ponto[],
 ) {
   if (pontos.length === 0) throw new Error(`${s.codigo}: sem pontos`)
+  // varredura:ok — service role; erro checado logo abaixo
   const { error } = await supabase.from('nexus_economic_series').upsert(pontos.map((p) => ({
     source_id: sourceId, serie_codigo: s.codigo, serie_nome: s.nome, categoria: s.categoria, country: s.country, moeda: s.moeda ?? null,
     unidade: s.unidade, frequencia: s.frequencia, valor: p.valor, data_referencia: p.data,
@@ -426,6 +435,7 @@ export async function ingerirGdelt(supabase: SupabaseClient): Promise<string> {
 
   const linhas = [...vistos.values()]
   if (linhas.length) {
+    // varredura:ok — service role; erro checado logo abaixo
     const { error } = await supabase.from('nexus_news').upsert(linhas, { onConflict: 'canonical_url' })
     if (error) erros.push(error.message)
   }

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 import { XMLParser } from 'fast-xml-parser'
 import { buscarComRetentativa } from './nexusRede'
 
@@ -221,7 +222,8 @@ export async function buscarEGravarFeeds(supabase: SupabaseClient, canal: string
     } catch (err) {
       // Isolado por feed — um feed fora do ar não derruba o canal inteiro.
       // Melhor-esforço: marca a falha pro painel "Saúde das fontes".
-      await supabase.from('nexus_source').update({ last_failure: new Date().toISOString() }).eq('source_name', feed.fonte).then(() => {}, () => {})
+      const { error: erroSaude } = await supabase.from('nexus_source').update({ last_failure: new Date().toISOString() }).eq('source_name', feed.fonte).select('source_id')
+      if (erroSaude) Sentry.captureException(new Error(`[nexusNewsIngest] falha ao marcar last_failure de ${feed.fonte}: ${erroSaude.message}`))
       console.error(`[nexusNewsIngest] Falha lendo feed ${feed.fonte} (${feed.url}) pro canal ${canal}:`, err instanceof Error ? err.message : err)
     }
   }
@@ -264,6 +266,7 @@ export async function buscarEGravarFeeds(supabase: SupabaseClient, canal: string
     canal,
   }))
 
+  // varredura:ok — service role; erro checado logo abaixo
   const { error } = await supabase.from('nexus_news').upsert(linhas, { onConflict: 'canonical_url' })
   if (error) {
     console.error(`[nexusNewsIngest] Falha no upsert pro canal ${canal}:`, error.message)

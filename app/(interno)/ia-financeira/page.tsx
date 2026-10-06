@@ -1,4 +1,5 @@
 ﻿"use client";
+import * as Sentry from "@sentry/nextjs";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useRouter } from "next/navigation"
 import { irParaDestino } from "../../../lib/cfoCore"
@@ -390,7 +391,10 @@ export default function IAFinanceiraPage() {
           const data = await res.json();
           if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; }
         }
-      } catch {}
+      } catch (err) {
+        // Sem rede/motor: a tela responde pelas regras logo abaixo; a falha fica registrada.
+        Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { tela: "ia-financeira", etapa: "motor" } });
+      }
     }
 
     // Fallback: resposta por regras
@@ -407,7 +411,7 @@ export default function IAFinanceiraPage() {
     if (!userId) return;
     if (!window.confirm(tt.chatLimparConfirm)) return;
     const { erro } = await limparHistorico(userId);
-    if (erro) showToast(tt.chatErroLimpar, "erro");
+    if (erro) { showToast(tt.chatErroLimpar, "erro"); return; } // não diz "limpo" se não limpou
     setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared. How can I help?" : lang === "es" ? "Historial limpio. ¿Cómo puedo ayudar?" : "Histórico limpo. Como posso ajudar?" }]);
   }
 

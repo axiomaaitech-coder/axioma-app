@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
-          } catch {}
+          } catch { /* padrão do Supabase SSR: chamado de Server Component, quem grava o cookie é o middleware */ }
         },
       },
     }

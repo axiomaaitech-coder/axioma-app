@@ -1,4 +1,5 @@
 ﻿"use client";
+import * as Sentry from "@sentry/nextjs";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useRouter } from "next/navigation"
 import { irParaDestino } from "../../../lib/cfoCore"
@@ -284,7 +285,10 @@ export default function IATributariaPage() {
           body: JSON.stringify({ pergunta: texto, empresa_id: empresaId, tela: "ia-tributaria", lang, historico: mensagens.slice(-8).map(m => ({ role: m.role, content: m.texto })) }),
         });
         if (res.ok) { const data = await res.json(); if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; } }
-      } catch {}
+      } catch (err) {
+        // Sem rede/motor: a tela responde pelas regras logo abaixo; a falha fica registrada.
+        Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { tela: "ia-tributaria", etapa: "motor" } });
+      }
     }
     if (!resposta) resposta = respostaTributariaPorRegras(dados, scoreFiscal, carga, texto, lang);
 
@@ -296,7 +300,7 @@ export default function IATributariaPage() {
   async function onLimpar() {
     if (!userId || !window.confirm(tt.chatLimparConfirm)) return;
     const { erro } = await limparHistoricoTrib(userId);
-    if (erro) showToast(tt.chatErroLimpar, "erro");
+    if (erro) { showToast(tt.chatErroLimpar, "erro"); return; } // não diz "limpo" se não limpou
     setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared." : lang === "es" ? "Historial limpio." : "Histórico limpo." }]);
   }
 

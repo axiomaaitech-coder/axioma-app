@@ -227,8 +227,8 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
       if (!pedidoAtual || pedidoAtual.status === "cancelado") continue;
       const novoStatus = calcularStatusPedido(totalItens, faturados);
       if (pedidoAtual.status !== novoStatus) {
-        const { error: erroStatusPedido } = await supabase.from("pedido_compra").update({ status: novoStatus }).eq("empresa_id", empresaId).eq("id", pedidoId);
-        if (erroStatusPedido) reportarFalhaEscrita("pedido_compra", "update status", erroStatusPedido.message);
+        const { data: pedidoAtualizado, error: erroStatusPedido } = await supabase.from("pedido_compra").update({ status: novoStatus }).eq("empresa_id", empresaId).eq("id", pedidoId).select("id");
+        if (erroStatusPedido || !pedidoAtualizado?.length) reportarFalhaEscrita("pedido_compra", "update status", erroStatusPedido?.message || "0 linhas afetadas (RLS?)");
       }
     }
   }
@@ -259,6 +259,7 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
 
   // Regravação idempotente: some com as divergências da rodada anterior
   // antes de gravar as atuais — nunca acumula histórico duplicado.
+  // varredura:ok — 0 linhas é normal na 1ª conferência; erro checado abaixo
   const { error: erroLimpeza } = await supabase.from("match_divergencias").delete().eq("empresa_id", empresaId).eq("match_resultado_id", matchResultadoId);
   if (erroLimpeza) {
     reportarFalhaEscrita("match_divergencias", "delete (regravação)", erroLimpeza.message);
