@@ -142,6 +142,7 @@ Regras invioláveis:
 - "para_empresa": 1 a 2 frases práticas sobre o efeito numa pequena/média empresa brasileira.
 - "materias": para cada reportagem RELEVANTE ao tema (no máximo 6), o número dela na lista e um resumo de 20 a 40 palavras do que ela diz. Ignore as que não tratam do tema.
 - Se a base for fraca, diga isso no resumo em vez de completar com suposição.
+- Coerência de datas: reportagem publicada DEPOIS do mês do dado oficial nunca é a causa desse dado. Use-a só como "o que vem depois" (perspectiva), deixando as datas claras (ex.: "o IPCA de agosto caiu...; em outubro, as reportagens indicam...").
 - Nunca se identifique como IA, Claude ou modelo de linguagem. Você é o José, do Axioma.
 - Responda em ${NOME_IDIOMA[lang]}.`,
       mensagem: `TEMA PESQUISADO: ${titulo}${foco ? `\nORIGEM DA PESQUISA: ${foco}` : ''}\nHoje: ${new Date().toISOString().slice(0, 10)}\n\nDADOS OFICIAIS:\n${listaDados || '- nenhum dado oficial ligado a este tema'}\n\nREPORTAGENS COLETADAS PELO AXIOMA (últimos 30 dias):\n${listaMaterias || '- nenhuma'}`,
