@@ -106,7 +106,7 @@ export async function publicarEventoNaoBloqueante(
       return;
     }
     if (eventoId) {
-      processarEventoContabil(tipo, empresaId, origem, payload).catch((e) =>
+      processarEventoContabil(tipo, empresaId, origem, payload, { eventoId }).catch((e) =>
         reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e)));
     }
   } catch (e) {
@@ -185,6 +185,13 @@ const FORMA_RECEBIMENTO_PARA_CODIGO: Record<string, string> = {
   "Cartão de Crédito": "1.02",
 };
 
+// Contexto de um processamento: evento a carimbar nos lançamentos + falhas do caminho.
+type CtxContabil = { eventoId?: string | null; falhas: string[] };
+function falha(ctx: CtxContabil | undefined, tabela: string, operacao: string, motivo: string) {
+  reportarFalhaEscrita(tabela, operacao, motivo);
+  ctx?.falhas.push(`${operacao}: ${motivo}`);
+}
+
 // ============================================================================
 // MAPA DO PLANO DE CONTAS — resolve código → id. Busca tudo de uma vez (o
 // plano tem ~45 linhas) em vez de uma query por conta.
@@ -209,6 +216,7 @@ async function estornarLancamentosPorPapel(
   contaPapelId: string,
   ladoNaConta: "debito" | "credito",
   descricao: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   const { data: cabecalhos, error: erroCabecalhos } = await supabase
     .from("lancamento_contabil")
@@ -216,7 +224,7 @@ async function estornarLancamentosPorPapel(
     .eq("empresa_id", empresaId).eq("origem_tabela", origemTabela).eq("origem_id", origemId)
     .is("estornado_por_id", null);
   if (erroCabecalhos) {
-    reportarFalhaEscrita("lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
+    falha(ctx, "lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
     return;
   }
   if (!cabecalhos || cabecalhos.length === 0) return;
@@ -228,7 +236,7 @@ async function estornarLancamentosPorPapel(
     .in("lancamento_id", idsCandidatos)
     .eq("conta_id", contaPapelId).eq("tipo", ladoNaConta);
   if (erroPartidas) {
-    reportarFalhaEscrita("lancamento_contabil_partida", "buscar partidas p/ estorno automático", erroPartidas.message);
+    falha(ctx, "lancamento_contabil_partida", "buscar partidas p/ estorno automático", erroPartidas.message);
     return;
   }
 
@@ -237,7 +245,7 @@ async function estornarLancamentosPorPapel(
     const { error: erroRpc } = await supabase.rpc("contabil_estornar_lancamento", {
       p_lancamento_id: lancamentoId, p_data: hojeISO(), p_descricao: descricao,
     });
-    if (erroRpc) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
+    if (erroRpc) falha(ctx, "lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
   }
 }
 
@@ -255,6 +263,7 @@ async function estornarLancamentosPorOrigem(
   origemTabela: "estoque_movimentacoes" | "caixa_movimentacao",
   origemId: string,
   descricao: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   const { data: cabecalhos, error: erroCabecalhos } = await supabase
     .from("lancamento_contabil")
@@ -262,14 +271,14 @@ async function estornarLancamentosPorOrigem(
     .eq("empresa_id", empresaId).eq("origem_tabela", origemTabela).eq("origem_id", origemId)
     .is("estornado_por_id", null);
   if (erroCabecalhos) {
-    reportarFalhaEscrita("lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
+    falha(ctx, "lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
     return;
   }
   for (const c of cabecalhos || []) {
     const { error: erroRpc } = await supabase.rpc("contabil_estornar_lancamento", {
       p_lancamento_id: c.id, p_data: hojeISO(), p_descricao: descricao,
     });
-    if (erroRpc) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
+    if (erroRpc) falha(ctx, "lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
   }
 }
 
@@ -287,6 +296,7 @@ async function gerarReconhecimentoDespesa(
   descricaoConta: string | null | undefined,
   dataCompetencia: string,
   centroCustoId?: string | null,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
@@ -294,7 +304,7 @@ async function gerarReconhecimentoDespesa(
   const contaDespesaId = contas[codigoDespesa];
   const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
   if (!contaDespesaId || !contaFornecedoresId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AP_CREATED)", `código ${codigoDespesa} ou ${CODIGO_FORNECEDORES} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (AP_CREATED)", `código ${codigoDespesa} ou ${CODIGO_FORNECEDORES} não encontrado na empresa ${empresaId}`);
     return;
   }
   // centro_custo_id só entra na ponta de despesa — a dimensão de rateio é do
@@ -305,9 +315,9 @@ async function gerarReconhecimentoDespesa(
   ];
   const descricao = descricaoConta ? `Conta a pagar: ${descricaoConta}` : "Conta a pagar";
   const { erro } = await registrarLancamentoContabil(empresaId, dataCompetencia, descricao, partidas, {
-    origemTabela: "contas_pagar", origemId,
+    origemTabela: "contas_pagar", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar reconhecimento de despesa (AP_CREATED)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar reconhecimento de despesa (AP_CREATED)", erro);
 }
 
 async function gerarQuitacao(
@@ -317,6 +327,7 @@ async function gerarQuitacao(
   valor: number,
   dataPagamento: string,
   encargos = 0,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
@@ -328,7 +339,7 @@ async function gerarQuitacao(
   const juros = Math.min(Math.max(0, encargos), valor);
   const contaJurosId = contas[CODIGO_JUROS_PAGOS];
   if (!contaAtivoId || !contaFornecedoresId || (juros > 0 && !contaJurosId)) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AP_PAID)", `código ${codigoAtivo} ou ${CODIGO_FORNECEDORES} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (AP_PAID)", `código ${codigoAtivo} ou ${CODIGO_FORNECEDORES} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -337,9 +348,9 @@ async function gerarQuitacao(
     { contaId: contaAtivoId, tipo: "credito", valor },
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataPagamento, "Pagamento de conta a pagar", partidas, {
-    origemTabela: "contas_pagar", origemId,
+    origemTabela: "contas_pagar", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar quitação (AP_PAID)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar quitação (AP_PAID)", erro);
 }
 
 // ============================================================================
@@ -361,19 +372,20 @@ async function gerarLancamentoVenda(
   vendaId: string,
   formaPagamento: string | null | undefined,
   valorTotal: number,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valorTotal > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
   const codigoAtivo = FORMA_RECEBIMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
   const contaAtivoId = contas[codigoAtivo];
   if (!contaAtivoId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (SALE_CREATED)", `código ${codigoAtivo} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (SALE_CREATED)", `código ${codigoAtivo} não encontrado na empresa ${empresaId}`);
     return;
   }
   const { error } = await supabase.rpc("contabil_registrar_lancamento_venda", {
     p_venda_id: vendaId, p_data: hojeISO(), p_descricao: "Venda PDV", p_conta_ativo_id: contaAtivoId,
   });
-  if (error) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_registrar_lancamento_venda (SALE_CREATED)", error.message);
+  if (error) falha(ctx, "lancamento_contabil", "rpc contabil_registrar_lancamento_venda (SALE_CREATED)", error.message);
 }
 
 // ============================================================================
@@ -392,6 +404,7 @@ async function gerarReconhecimentoReceita(
   descricaoConta: string | null | undefined,
   dataCompetencia: string,
   centroCustoId?: string | null,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
@@ -399,7 +412,7 @@ async function gerarReconhecimentoReceita(
   const contaReceitaId = contas[codigoReceita];
   const contaClientesId = contas[CODIGO_CLIENTES];
   if (!contaReceitaId || !contaClientesId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AR_CREATED)", `código ${codigoReceita} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (AR_CREATED)", `código ${codigoReceita} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -408,9 +421,9 @@ async function gerarReconhecimentoReceita(
   ];
   const descricao = descricaoConta ? `Conta a receber: ${descricaoConta}` : "Conta a receber";
   const { erro } = await registrarLancamentoContabil(empresaId, dataCompetencia, descricao, partidas, {
-    origemTabela: "contas_receber", origemId,
+    origemTabela: "contas_receber", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar reconhecimento de receita (AR_CREATED)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar reconhecimento de receita (AR_CREATED)", erro);
 }
 
 async function gerarBaixaRecebimento(
@@ -420,6 +433,7 @@ async function gerarBaixaRecebimento(
   valor: number,
   dataRecebimento: string,
   encargos = 0,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
@@ -431,7 +445,7 @@ async function gerarBaixaRecebimento(
   const juros = Math.min(Math.max(0, encargos), valor);
   const contaReceitaFinId = contas[CODIGO_RECEITAS_FINANCEIRAS];
   if (!contaAtivoId || !contaClientesId || (juros > 0 && !contaReceitaFinId)) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AR_RECEIVED)", `código ${codigoAtivo} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (AR_RECEIVED)", `código ${codigoAtivo} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -440,9 +454,9 @@ async function gerarBaixaRecebimento(
     ...(juros > 0 ? [{ contaId: contaReceitaFinId, tipo: "credito" as const, valor: juros }] : []),
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataRecebimento, "Recebimento de conta a receber", partidas, {
-    origemTabela: "contas_receber", origemId,
+    origemTabela: "contas_receber", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar baixa de recebimento (AR_RECEIVED)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar baixa de recebimento (AR_RECEIVED)", erro);
 }
 
 // ============================================================================
@@ -483,6 +497,7 @@ async function gerarEntradaEstoqueManual(
   quantidade: number,
   custoUnitario: number | null | undefined,
   dataMovimento: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
   const valor = quantidade * custo;
@@ -491,7 +506,7 @@ async function gerarEntradaEstoqueManual(
   const contaEstoquesId = contas[CODIGO_ESTOQUES];
   const contaAtivoId = contas[CODIGO_ATIVO_PADRAO];
   if (!contaEstoquesId || !contaAtivoId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_ENTRY_MANUAL)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_ATIVO_PADRAO} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (STOCK_ENTRY_MANUAL)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_ATIVO_PADRAO} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -499,9 +514,9 @@ async function gerarEntradaEstoqueManual(
     { contaId: contaAtivoId, tipo: "credito", valor },
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Entrada de estoque (compra manual)", partidas, {
-    origemTabela: "estoque_movimentacoes", origemId,
+    origemTabela: "estoque_movimentacoes", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar entrada de estoque (STOCK_ENTRY_MANUAL)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar entrada de estoque (STOCK_ENTRY_MANUAL)", erro);
 }
 
 async function gerarAjusteEstoque(
@@ -511,6 +526,7 @@ async function gerarAjusteEstoque(
   quantidade: number,
   custoUnitario: number | null | undefined,
   dataMovimento: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
   const valor = quantidade * custo;
@@ -519,7 +535,7 @@ async function gerarAjusteEstoque(
   const contaEstoquesId = contas[CODIGO_ESTOQUES];
   const contaGanhoId = contas[CODIGO_GANHO_AJUSTE_ESTOQUE];
   if (!contaEstoquesId || !contaGanhoId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_ADJUSTMENT)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_GANHO_AJUSTE_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (STOCK_ADJUSTMENT)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_GANHO_AJUSTE_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -527,9 +543,9 @@ async function gerarAjusteEstoque(
     { contaId: contaGanhoId, tipo: "credito", valor },
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Ajuste de estoque (contagem)", partidas, {
-    origemTabela: "estoque_movimentacoes", origemId,
+    origemTabela: "estoque_movimentacoes", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar ajuste de estoque (STOCK_ADJUSTMENT)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar ajuste de estoque (STOCK_ADJUSTMENT)", erro);
 }
 
 async function gerarPerdaEstoque(
@@ -539,6 +555,7 @@ async function gerarPerdaEstoque(
   quantidade: number,
   custoUnitario: number | null | undefined,
   dataMovimento: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
   const valor = quantidade * custo;
@@ -547,7 +564,7 @@ async function gerarPerdaEstoque(
   const contaEstoquesId = contas[CODIGO_ESTOQUES];
   const contaPerdaId = contas[CODIGO_PERDA_ESTOQUE];
   if (!contaEstoquesId || !contaPerdaId) {
-    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_LOSS)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_PERDA_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (STOCK_LOSS)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_PERDA_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -555,9 +572,9 @@ async function gerarPerdaEstoque(
     { contaId: contaEstoquesId, tipo: "credito", valor },
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Perda/quebra de estoque", partidas, {
-    origemTabela: "estoque_movimentacoes", origemId,
+    origemTabela: "estoque_movimentacoes", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar perda de estoque (STOCK_LOSS)", erro);
+  if (erro) falha(ctx, "lancamento_contabil", "gerar perda de estoque (STOCK_LOSS)", erro);
 }
 
 // ============================================================================
@@ -585,13 +602,14 @@ async function gerarLancamentoCaixa(
   tipoMovimento: "sangria" | "suprimento",
   valor: number,
   dataMovimento: string,
+  ctx?: CtxContabil,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
   const contaCaixaId = contas[CODIGO_CAIXA];
   const contaBancosId = contas[CODIGO_BANCOS];
   if (!contaCaixaId || !contaBancosId) {
-    reportarFalhaEscrita("plano_de_contas", `resolver conta do de-para (${tipoMovimento})`, `código ${CODIGO_CAIXA} ou ${CODIGO_BANCOS} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", `resolver conta do de-para (${tipoMovimento})`, `código ${CODIGO_CAIXA} ou ${CODIGO_BANCOS} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = tipoMovimento === "sangria"
@@ -599,9 +617,9 @@ async function gerarLancamentoCaixa(
     : [{ contaId: contaCaixaId, tipo: "debito", valor }, { contaId: contaBancosId, tipo: "credito", valor }];
   const descricao = tipoMovimento === "sangria" ? "Sangria de caixa" : "Suprimento de caixa";
   const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, descricao, partidas, {
-    origemTabela: "caixa_movimentacao", origemId,
+    origemTabela: "caixa_movimentacao", origemId, eventoId: ctx?.eventoId ?? null,
   });
-  if (erro) reportarFalhaEscrita("lancamento_contabil", `gerar lançamento de caixa (${tipoMovimento})`, erro);
+  if (erro) falha(ctx, "lancamento_contabil", `gerar lançamento de caixa (${tipoMovimento})`, erro);
 }
 
 // ============================================================================
@@ -617,9 +635,14 @@ export async function processarEventoContabil(
   empresaId: string,
   origem: OrigemEvento,
   payload: Record<string, unknown>,
-): Promise<void> {
+  opcoes?: { eventoId?: string | null },
+): Promise<{ erro?: string }> {
+  // ctx recolhe toda falha do caminho (o Motor de Rastreabilidade precisa SABER que
+  // quebrou, não só o Sentry) e carimba o evento em cada lançamento — com o índice
+  // único em lancamento_contabil.evento_id, refazer o mesmo evento nunca duplica.
+  const ctx: CtxContabil = { eventoId: opcoes?.eventoId ?? null, falhas: [] };
   const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao"];
-  if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return;
+  if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return {};
   const origemId = origem.id;
 
   try {
@@ -630,8 +653,7 @@ export async function processarEventoContabil(
         // no Postgres, e monta as 4 partidas sem devolver o valor pro
         // navegador do operador.
         await gerarLancamentoVenda(
-          empresaId, origemId, payload.forma_pagamento as string | null, Number(payload.valor_total) || 0,
-        );
+          empresaId, origemId, payload.forma_pagamento as string | null, Number(payload.valor_total) || 0, ctx);
         break;
       }
       case "AP_CREATED": {
@@ -639,16 +661,14 @@ export async function processarEventoContabil(
         await gerarReconhecimentoDespesa(
           empresaId, origemId, payload.categoria as string | null,
           Number(payload.valor) || 0, payload.descricao as string | null, dataCompetencia,
-          payload.centro_custo_id as string | null,
-        );
+          payload.centro_custo_id as string | null, ctx);
         break;
       }
       case "AP_PAID": {
         const incremento = Number(payload.valor_incremento) || 0;
         await gerarQuitacao(
           empresaId, origemId, payload.forma_pagamento as string | null,
-          incremento, (payload.data_pagamento as string) || hojeISO(), Number(payload.valor_encargos) || 0,
-        );
+          incremento, (payload.data_pagamento as string) || hojeISO(), Number(payload.valor_encargos) || 0, ctx);
         break;
       }
       case "AP_PAYMENT_REVERSED": {
@@ -657,7 +677,7 @@ export async function processarEventoContabil(
         if (!contaFornecedoresId) break;
         // Papel do AP_PAID = débito em Fornecedores (quitação) — reverte todo
         // pagamento ainda não estornado, cobre também baixas parciais.
-        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "debito", "Estorno de pagamento");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "debito", "Estorno de pagamento", ctx);
         break;
       }
       case "AP_DELETED": {
@@ -666,7 +686,7 @@ export async function processarEventoContabil(
         if (!contaFornecedoresId) break;
         // Papel do AP_CREATED = crédito em Fornecedores (reconhecimento) —
         // sem isto, excluir uma conta em aberto deixava despesa fantasma no Razão.
-        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por exclusão da conta");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por exclusão da conta", ctx);
         break;
       }
       case "AP_UPDATED": {
@@ -678,13 +698,12 @@ export async function processarEventoContabil(
         const contas = await mapaContasPorCodigo(empresaId);
         const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
         if (!contaFornecedoresId) break;
-        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por edição (valor/categoria alterados)");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por edição (valor/categoria alterados)", ctx);
         const dataCompetencia = (payload.data_emissao_depois as string) || hojeISO();
         await gerarReconhecimentoDespesa(
           empresaId, origemId, payload.categoria_depois as string | null,
           Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
-          payload.centro_custo_id_depois as string | null,
-        );
+          payload.centro_custo_id_depois as string | null, ctx);
         break;
       }
       case "AR_CREATED": {
@@ -692,16 +711,14 @@ export async function processarEventoContabil(
         await gerarReconhecimentoReceita(
           empresaId, origemId, payload.categoria as string | null,
           Number(payload.valor) || 0, payload.descricao as string | null, dataCompetencia,
-          payload.centro_custo_id as string | null,
-        );
+          payload.centro_custo_id as string | null, ctx);
         break;
       }
       case "AR_RECEIVED": {
         const incremento = Number(payload.valor_incremento) || 0;
         await gerarBaixaRecebimento(
           empresaId, origemId, payload.forma_recebimento as string | null,
-          incremento, (payload.data_recebimento as string) || hojeISO(), Number(payload.valor_encargos) || 0,
-        );
+          incremento, (payload.data_recebimento as string) || hojeISO(), Number(payload.valor_encargos) || 0, ctx);
         break;
       }
       case "AR_PAYMENT_REVERSED": {
@@ -710,7 +727,7 @@ export async function processarEventoContabil(
         if (!contaClientesId) break;
         // Papel do AR_RECEIVED = crédito em Clientes (baixa) — reverte todo
         // recebimento ainda não estornado, cobre também baixas parciais.
-        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "credito", "Estorno de recebimento");
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "credito", "Estorno de recebimento", ctx);
         break;
       }
       case "AR_DELETED": {
@@ -719,7 +736,7 @@ export async function processarEventoContabil(
         if (!contaClientesId) break;
         // Papel do AR_CREATED = débito em Clientes (reconhecimento) — sem
         // isto, excluir uma conta em aberto deixava receita fantasma no Razão.
-        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por exclusão da conta");
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por exclusão da conta", ctx);
         break;
       }
       case "AR_UPDATED": {
@@ -731,60 +748,56 @@ export async function processarEventoContabil(
         const contas = await mapaContasPorCodigo(empresaId);
         const contaClientesId = contas[CODIGO_CLIENTES];
         if (!contaClientesId) break;
-        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por edição (valor/categoria alterados)");
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por edição (valor/categoria alterados)", ctx);
         const dataCompetencia = (payload.data_emissao_depois as string) || hojeISO();
         await gerarReconhecimentoReceita(
           empresaId, origemId, payload.categoria_depois as string | null,
           Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
-          payload.centro_custo_id_depois as string | null,
-        );
+          payload.centro_custo_id_depois as string | null, ctx);
         break;
       }
       case "STOCK_ENTRY_MANUAL": {
         await gerarEntradaEstoqueManual(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
-          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
-        );
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "STOCK_ADJUSTMENT": {
         await gerarAjusteEstoque(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
-          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
-        );
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "STOCK_LOSS": {
         await gerarPerdaEstoque(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
-          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
-        );
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "CASH_WITHDRAWAL": {
-        await gerarLancamentoCaixa(empresaId, origemId, "sangria", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO());
+        await gerarLancamentoCaixa(empresaId, origemId, "sangria", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "CASH_DEPOSIT": {
-        await gerarLancamentoCaixa(empresaId, origemId, "suprimento", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO());
+        await gerarLancamentoCaixa(empresaId, origemId, "suprimento", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "CASH_MOVEMENT_UPDATED": {
-        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por edição de movimentação de caixa");
+        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por edição de movimentação de caixa", ctx);
         await gerarLancamentoCaixa(
           empresaId, origemId, payload.tipo as "sangria" | "suprimento",
-          Number(payload.valor_depois) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
-        );
+          Number(payload.valor_depois) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
         break;
       }
       case "CASH_MOVEMENT_DELETED": {
-        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por exclusão de movimentação de caixa");
+        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por exclusão de movimentação de caixa", ctx);
         break;
       }
       default:
-        return; // demais eventos são sinal de workflow, não fato financeiro
+        return {}; // demais eventos são sinal de workflow, não fato financeiro
     }
   } catch (e) {
-    reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e));
+    falha(ctx, "lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e));
   }
+  return ctx.falhas.length ? { erro: ctx.falhas.join(" | ") } : {};
 }

@@ -98,6 +98,12 @@ export async function registrarLancamentoContabil(
     p_origem_tabela: origem?.origemTabela ?? null,
     p_origem_id: origem?.origemId ?? null,
   });
+  // Mesmo evento já lançado (índice único em evento_id): refazer o caminho —
+  // Guardião/botão "Houve falha?" — é seguro, devolve o lançamento que já existe.
+  if (error?.code === "23505" && origem?.eventoId) {
+    const { data: existente } = await supabase.from("lancamento_contabil").select("id").eq("evento_id", origem.eventoId).maybeSingle();
+    if (existente?.id) return { id: existente.id as string };
+  }
   if (error || !novoId) {
     const motivo = error?.message || "RPC não devolveu id do lançamento";
     reportarFalhaEscrita("lancamento_contabil", "rpc contabil_registrar_lancamento", motivo);
