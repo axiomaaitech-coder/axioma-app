@@ -41,6 +41,13 @@ export const ROTULO: Record<SaudeFonte, [string, string, string]> = {
 const COR: Record<SaudeFonte, string> = { ok: '#2ecc9b', falhou: '#ff5a6b', parada: '#f5a623', nunca: '#7f9bb8', desligada: '#7f9bb8' }
 const TEXTO_SOBRE: Record<SaudeFonte, string> = { ok: '#101b3d', falhou: '#2b0007', parada: '#2b1900', nunca: '#101b3d', desligada: '#101b3d' }
 
+// Quem cobre cada fonte quando ela falha (lib/nexusReservas.ts e reservas de notícias).
+const RESERVAS_DA_FONTE: Record<string, string> = {
+  'BCB SGS': 'IBGE, IPEA e Copom', 'IBGE Dados Abertos': 'Banco Central e IPEA', 'IPEA Data': 'Banco Mundial (Pink Sheet)',
+  'Banco Central Europeu': 'Frankfurter', 'FMI': 'Banco Mundial (Pink Sheet)', 'Banco Mundial': 'FMI DataMapper',
+  'Comex Stat': 'IPEA (Secex)', 'OCDE': 'DBnomics', 'GDELT': 'BBC World, ONU News e Al Jazeera',
+}
+
 export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG, NESTED_BG, NESTED_BORDA } = PALETA[temaClaro ? 'xms' : 'dark']
@@ -105,6 +112,14 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                     <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
                     {f.ultimaFalha && <p className="text-[11px]" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
                     {f.nota != null && <p className="text-[11px]" style={{ color: CINZA }}>{L('Confiança da fonte', 'Source confidence', 'Confianza de la fuente')}: <span className="font-bold" style={{ color: TITULO }}>{Math.round(f.nota)}/100</span></p>}
+                    {f.saude !== 'ok' && f.saude !== 'desligada' && RESERVAS_DA_FONTE[f.nome] && (
+                      <p className="text-[11px] font-semibold mt-0.5" style={{ color: temaClaro ? '#0f7d5c' : '#2ecc9b' }}>
+                        ✓ {L('Dados cobertos pela reserva', 'Data covered by backup', 'Datos cubiertos por el respaldo')}: {RESERVAS_DA_FONTE[f.nome]}
+                      </p>
+                    )}
+                    {f.saude === 'desligada' && f.nome === 'Currents' && (
+                      <p className="text-[11px] mt-0.5" style={{ color: CINZA }}>{L('Desligada de propósito: serviço pago. Notícias vêm das fontes gratuitas.', 'Turned off on purpose: paid service. News comes from the free sources.', 'Apagada a propósito: servicio pago. Las noticias vienen de las fuentes gratuitas.')}</p>
+                    )}
                     {f.emPausa && <p className="text-[11px] font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar, tenta de novo em até 6 horas.', 'Paused: source down, retries within 6 hours.', 'En pausa: fuente caída, reintenta en hasta 6 horas.')}</p>}
                   </a>
                 ))}
