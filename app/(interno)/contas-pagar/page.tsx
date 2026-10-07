@@ -56,7 +56,7 @@ import {
   responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, agora } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -168,21 +168,31 @@ export default function ContasPagarPage() {
   // ========== CÁLCULOS ==========
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const hoje = hojeISO();
-  const em7dias = new Date(); em7dias.setDate(em7dias.getDate() + 7);
-  const em7ISO = em7dias.toISOString().split("T")[0];
+  const em7ISO = hojeISO(new Date(agora() + 7 * 86400000));
   const mesAtual = hoje.slice(0, 7);
   const nomeFornecedor = (id?: string | null) => fornecedores.find((f) => f.id === id)?.nome || "—";
   const resta = (c: ContaPagar) => Math.max(0, (c.valor_total || 0) - (c.valor_pago || 0));
+
+  // Regra única de "em aberto" — KPIs do topo e filtros dos cards usam a mesma.
+  const emAberto = (c: ContaPagar) => {
+    const st = statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento);
+    return st !== "pago" && st !== "cancelado" && st !== "cancelada" && resta(c) > 0;
+  };
 
   const kpis = useMemo(() => {
     // BUG CRÍTICO 2026-08-30 — usar o statusEfetivo (mesma função da linha e
     // do filtro) em vez do c.status cru: garante que uma conta paga nunca
     // conte como "em aberto"/"vencida" nem suma de "pagas no mês" por causa
     // de qualquer divergência entre o texto gravado e o valor_pago real.
-    const abertas = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) !== "pago");
+    // Cancelada não é dívida. "Aguardando aprovação" continua sendo dívida: se passou
+    // da data, é vencida (e corre multa) mesmo sem ninguém ter aprovado ainda.
+    const abertas = contas.filter(emAberto);
     const vencendo7 = abertas.filter((c) => c.data_vencimento && c.data_vencimento >= hoje && c.data_vencimento <= em7ISO);
-    const vencidas = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) === "vencido");
-    const pagasNoMes = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) === "pago" && (c.data_pagamento || "").slice(0, 7) === mesAtual);
+    const vencidas = abertas.filter((c) => c.data_vencimento && c.data_vencimento < hoje);
+    // Inclui baixa parcial: dinheiro que saiu no mês, não só conta 100% quitada.
+    // ponytail: soma o valor_pago acumulado da conta cuja última baixa foi no mês — parcial
+    // feita no mês anterior entra junto; histórico por baixa vira tabela própria se precisar.
+    const pagasNoMes = contas.filter((c) => (c.valor_pago || 0) > 0 && (c.data_pagamento || "").slice(0, 7) === mesAtual);
     return {
       totalEmAberto: abertas.reduce((s, c) => s + resta(c), 0),
       vencendoEm7: vencendo7.reduce((s, c) => s + resta(c), 0),
@@ -195,9 +205,10 @@ export default function ContasPagarPage() {
     return contas.filter((c) => {
       const st = statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento);
       // filtros dos cards do topo (mesma regra do cálculo de cada KPI)
-      if (filtroStatus === "aberto") { if (st === "pago") return false; }
-      else if (filtroStatus === "vence7") { if (st === "pago" || !c.data_vencimento || c.data_vencimento < hoje || c.data_vencimento > em7ISO) return false; }
-      else if (filtroStatus === "pago_mes") { if (st !== "pago" || (c.data_pagamento || "").slice(0, 7) !== mesAtual) return false; }
+      if (filtroStatus === "aberto") { if (!emAberto(c)) return false; }
+      else if (filtroStatus === "vence7") { if (!emAberto(c) || !c.data_vencimento || c.data_vencimento < hoje || c.data_vencimento > em7ISO) return false; }
+      else if (filtroStatus === "vencido") { if (!emAberto(c) || !c.data_vencimento || c.data_vencimento >= hoje) return false; }
+      else if (filtroStatus === "pago_mes") { if (!((c.valor_pago || 0) > 0) || (c.data_pagamento || "").slice(0, 7) !== mesAtual) return false; }
       else if (filtroStatus !== "todos" && st !== filtroStatus) return false;
       if (filtroFornecedor && c.fornecedor_id !== filtroFornecedor) return false;
       if (filtroCategoria && c.categoria !== filtroCategoria) return false;
@@ -1644,7 +1655,9 @@ export default function ContasPagarPage() {
     const novoPago = (contaBaixa.valor_pago || 0) + parseFloat(valorBaixa);
     const { erro } = await darBaixaContaPagar(contaBaixa, novoPago, dataBaixa, formaBaixa);
     if (erro) {
-      showToast(L("Não foi possível registrar a baixa. Tente novamente.", "Could not register the payment. Try again.", "No se pudo registrar el pago. Intente de nuevo."), "erro");
+      showToast(
+        erro === "valor_invalido" ? L("Informe um valor maior que zero.", "Enter an amount greater than zero.", "Ingrese un valor mayor que cero.")
+        : L("Não foi possível registrar a baixa. Tente novamente.", "Could not register the payment. Try again.", "No se pudo registrar el pago. Intente de nuevo."), "erro");
       setProcessandoBaixa(false);
       return;
     }
@@ -3424,7 +3437,11 @@ export default function ContasPagarPage() {
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{contaBaixa.descricao}</p>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Pago (R$)", "Amount Paid (R$)", "Valor Pagado (R$)")}</label>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor deste pagamento (R$)", "Amount of this payment (R$)", "Valor de este pago (R$)")}</label>
+                      <p className="text-[11px] mb-1" style={{ color: CINZA }}>{L("Falta pagar", "Left to pay", "Falta pagar")}: {fmt(resta(contaBaixa))}{(contaBaixa.valor_pago || 0) > 0 ? ` · ${L("já pago", "already paid", "ya pagado")}: ${fmt(contaBaixa.valor_pago || 0)}` : ""}</p>
+                      {parseFloat(valorBaixa || "0") - resta(contaBaixa) > 0.005 && (
+                        <p className="text-[11px] mb-1 font-semibold" style={{ color: AMBAR }}>{L("Juros/multa por atraso", "Late interest/penalty", "Intereses/multa por atraso")}: {fmt(parseFloat(valorBaixa) - resta(contaBaixa))} — {L("lançado como despesa financeira", "booked as financial expense", "registrado como gasto financiero")}</p>
+                      )}
                       <input type="number" value={valorBaixa} onChange={(e) => setValorBaixa(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     </div>

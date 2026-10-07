@@ -48,6 +48,7 @@ import {
   agruparCarteiraPorCampo, concentracaoTopClientes,
 } from '../../../lib/previsaoRecebimentoHelpers'
 import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
+import { registrarRecebimento } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { hojeISO } from '../../../lib/datas'
 
@@ -471,26 +472,14 @@ export default function ContasReceber() {
   async function confirmarRecebimento() {
     if (!contaReceber) return
     setRecebendo(true)
-    const valorIncremento = parseFloat(valorReceber || '0')
-    const novoRecebido = (contaReceber.valor_recebido || 0) + valorIncremento
-    const hojeStr = hojeISO()
-    const status = statusEfetivo(null, contaReceber.valor, novoRecebido, contaReceber.data_vencimento, 'recebido')
-    const { data, error } = await supabase.from('contas_receber').update({
-      valor_recebido: novoRecebido, status,
-      data_recebimento: status === 'recebido' ? hojeStr : contaReceber.data_recebimento || null,
-    }).eq('id', contaReceber.id).select('id')
-    if (error || !data || data.length === 0) {
-      showToast(L('Não foi possível confirmar o recebimento. Tente novamente.', 'Could not confirm the payment. Try again.', 'No se pudo confirmar el cobro. Intente de nuevo.'), 'erro')
-      reportarFalhaEscrita('contas_receber', 'update recebimento', error?.message || '0 linhas afetadas (RLS?)')
+    const r = await registrarRecebimento(contaReceber, parseFloat(valorReceber || '0'), empresaId, 'contas_receber')
+    if (r.erro) {
+      showToast(r.erro === 'valor_invalido'
+        ? L('Informe um valor maior que zero.', 'Enter an amount greater than zero.', 'Ingrese un valor mayor que cero.')
+        : L('Não foi possível confirmar o recebimento. Tente novamente.', 'Could not confirm the payment. Try again.', 'No se pudo confirmar el cobro. Intente de nuevo.'), 'erro')
       setRecebendo(false)
       return
     }
-    // COMMIT 9 — valor_incremento é só o que entrou NESTA baixa, não o
-    // acumulado (mesmo cuidado do AP_PAID): uma 2ª baixa parcial não pode
-    // duplicar o que já foi lançado na 1ª.
-    publicarEventoNaoBloqueante(contaReceber.empresa_id ?? empresaId, 'AR_RECEIVED',
-      { conta_id: contaReceber.id, valor_recebido: novoRecebido, valor_incremento: valorIncremento, data_recebimento: hojeStr, forma_recebimento: contaReceber.forma_recebimento },
-      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaReceber.id })
     setModalReceber(false); setContaReceber(null); setValorReceber(''); setRecebendo(false); carregar()
     showToast(L('Recebimento confirmado.', 'Payment confirmed.', 'Cobro confirmado.'), 'ok')
   }
@@ -1507,7 +1496,11 @@ export default function ContasReceber() {
                       </div>
                       <div>
                         <label className={labelInput} style={{ color: TEAL }}>{L('Já Recebido (R$)', 'Received (R$)', 'Recibido (R$)')}</label>
-                        <input type="number" value={nc.valor_recebido} onChange={(e) => setNc({ ...nc, valor_recebido: e.target.value })} className={inputCls} style={inputStyle} />
+                        {/* Só leitura: recebimento entra pelo botão Receber (e sai pelo Estornar), que
+                            avisam a contabilidade. Digitar aqui deixaria Razão/Balancete/Tesouraria
+                            sem o dinheiro que o módulo mostra como recebido. */}
+                        <input type="number" value={nc.valor_recebido || '0'} readOnly disabled className={inputCls} style={{ ...inputStyle, opacity: 0.6 }}
+                          title={L('Use o botão Receber na lista', 'Use the Receive button in the list', 'Use el botón Cobrar en la lista')} />
                       </div>
                       <div>
                         <label className={labelInput} style={{ color: TEAL }}>{L('Desconto (R$)', 'Discount (R$)', 'Descuento (R$)')}</label>

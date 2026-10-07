@@ -123,6 +123,8 @@ export async function publicarEventoNaoBloqueante(
 const CODIGO_FORNECEDORES = "3.01";
 const CODIGO_CLIENTES = "1.04";
 const CODIGO_ESTOQUES = "1.05";
+const CODIGO_RECEITAS_FINANCEIRAS = "6.04";
+const CODIGO_JUROS_PAGOS = "9.01";
 // Contas NOVAS, ainda não existem no plano padrão (SQL em arquivo separado,
 // não aplicado) — até o Elias rodar aquele SQL, um ajuste/perda de estoque
 // não encontra a conta e só reporta no Sentry (mesmo padrão de "conta não
@@ -314,18 +316,24 @@ async function gerarQuitacao(
   formaPagamento: string | null | undefined,
   valor: number,
   dataPagamento: string,
+  encargos = 0,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
   const codigoAtivo = FORMA_PAGAMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
   const contaAtivoId = contas[codigoAtivo];
   const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
-  if (!contaAtivoId || !contaFornecedoresId) {
+  // Pago acima do que se devia = juros/multa por atraso: despesa financeira,
+  // nunca débito extra em Fornecedores (deixaria o fornecedor com saldo negativo).
+  const juros = Math.min(Math.max(0, encargos), valor);
+  const contaJurosId = contas[CODIGO_JUROS_PAGOS];
+  if (!contaAtivoId || !contaFornecedoresId || (juros > 0 && !contaJurosId)) {
     reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AP_PAID)", `código ${codigoAtivo} ou ${CODIGO_FORNECEDORES} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
-    { contaId: contaFornecedoresId, tipo: "debito", valor },
+    ...(valor - juros > 0 ? [{ contaId: contaFornecedoresId, tipo: "debito" as const, valor: valor - juros }] : []),
+    ...(juros > 0 ? [{ contaId: contaJurosId, tipo: "debito" as const, valor: juros }] : []),
     { contaId: contaAtivoId, tipo: "credito", valor },
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataPagamento, "Pagamento de conta a pagar", partidas, {
@@ -411,19 +419,25 @@ async function gerarBaixaRecebimento(
   formaRecebimento: string | null | undefined,
   valor: number,
   dataRecebimento: string,
+  encargos = 0,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
   const codigoAtivo = FORMA_RECEBIMENTO_PARA_CODIGO[formaRecebimento ?? ""] ?? CODIGO_ATIVO_PADRAO;
   const contaAtivoId = contas[codigoAtivo];
   const contaClientesId = contas[CODIGO_CLIENTES];
-  if (!contaAtivoId || !contaClientesId) {
+  // Recebido acima do devido = juros/multa cobrados do cliente: receita financeira,
+  // nunca crédito extra em Clientes (deixaria o cliente com saldo negativo).
+  const juros = Math.min(Math.max(0, encargos), valor);
+  const contaReceitaFinId = contas[CODIGO_RECEITAS_FINANCEIRAS];
+  if (!contaAtivoId || !contaClientesId || (juros > 0 && !contaReceitaFinId)) {
     reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AR_RECEIVED)", `código ${codigoAtivo} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
     { contaId: contaAtivoId, tipo: "debito", valor },
-    { contaId: contaClientesId, tipo: "credito", valor },
+    ...(valor - juros > 0 ? [{ contaId: contaClientesId, tipo: "credito" as const, valor: valor - juros }] : []),
+    ...(juros > 0 ? [{ contaId: contaReceitaFinId, tipo: "credito" as const, valor: juros }] : []),
   ];
   const { erro } = await registrarLancamentoContabil(empresaId, dataRecebimento, "Recebimento de conta a receber", partidas, {
     origemTabela: "contas_receber", origemId,
@@ -633,7 +647,7 @@ export async function processarEventoContabil(
         const incremento = Number(payload.valor_incremento) || 0;
         await gerarQuitacao(
           empresaId, origemId, payload.forma_pagamento as string | null,
-          incremento, (payload.data_pagamento as string) || hojeISO(),
+          incremento, (payload.data_pagamento as string) || hojeISO(), Number(payload.valor_encargos) || 0,
         );
         break;
       }
@@ -686,7 +700,7 @@ export async function processarEventoContabil(
         const incremento = Number(payload.valor_incremento) || 0;
         await gerarBaixaRecebimento(
           empresaId, origemId, payload.forma_recebimento as string | null,
-          incremento, (payload.data_recebimento as string) || hojeISO(),
+          incremento, (payload.data_recebimento as string) || hojeISO(), Number(payload.valor_encargos) || 0,
         );
         break;
       }

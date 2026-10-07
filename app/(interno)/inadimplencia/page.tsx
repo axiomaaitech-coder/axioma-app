@@ -49,8 +49,7 @@ import {
   type LinhaRiscoInadimplencia, type NivelPrioridade, type EstagioEscalonamento,
 } from '../../../lib/inadimplenciaHelpers'
 import { heatmapInadimplencia } from '../../../lib/previsaoRecebimentoHelpers'
-import { statusEfetivo } from '../../../lib/fornecedorHelpers'
-import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
+import { registrarRecebimento, faltaReceber, type ContaParaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
 
@@ -509,21 +508,13 @@ export default function Inadimplencia() {
   // atualiza sozinho em todo o Axioma, sem tela nenhuma pra confirmar valor
   // (baixa integral, um clique, igual excluirCaso acima já fazia).
   async function darBaixaTitulo(c: ContaRow) {
-    const valorTotal = Number(c.valor) || 0
-    const hojeStr = hojeISO()
-    const status = statusEfetivo(null, valorTotal, valorTotal, c.data_vencimento, 'recebido')
-    const { data, error } = await supabase.from('contas_receber').update({
-      valor_recebido: valorTotal, status, data_recebimento: hojeStr,
-    }).eq('id', c.id).select('id')
-    if (error || !data || data.length === 0) {
+    // Baixa integral = o que falta do líquido (valor − desconto − já recebido).
+    const r = await registrarRecebimento(c as ContaParaReceber, faltaReceber(c as ContaParaReceber), empresaId, 'inadimplencia')
+    if (r.erro) {
       showToast(L('Não foi possível dar baixa. Tente novamente.', 'Could not settle the invoice. Try again.', 'No se pudo saldar. Intente de nuevo.'), 'erro')
-      reportarFalhaEscrita('contas_receber', 'update baixa', error?.message || '0 linhas afetadas (RLS?)')
       return
     }
-    publicarEventoNaoBloqueante(c.empresa_id ?? empresaId, 'AR_RECEIVED',
-      { conta_id: c.id, valor_recebido: valorTotal, valor_incremento: valorTotal - (Number(c.valor_recebido) || 0), data_recebimento: hojeStr, forma_recebimento: null },
-      { modulo: 'inadimplencia', tabela: 'contas_receber', id: c.id })
-    setContas(contas.map((x) => x.id === c.id ? { ...x, valor_recebido: valorTotal, status, data_recebimento: hojeStr } : x))
+    setContas(contas.map((x) => x.id === c.id ? { ...x, valor_recebido: r.valorRecebido, valor: r.valor, valor_desconto: r.valorDesconto, status: r.status, data_recebimento: r.dataRecebimento } : x))
     showToast(L('Baixa registrada — dívida quitada.', 'Settled — debt cleared.', 'Saldado — deuda liquidada.'), 'ok')
   }
 

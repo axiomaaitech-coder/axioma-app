@@ -161,6 +161,13 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
 
 export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, dataPagamento: string, formaPagamento: string): Promise<{ erro?: string }> {
   if (conta.status === "aguardando_aprovacao") return { erro: "aguardando_aprovacao" };
+  // A baixa precisa somar algo (> 0). O que passar do que faltava pagar é
+  // juros/multa por atraso — vai pra despesa financeira na contabilidade.
+  const jaPago = Number(conta.valor_pago || 0);
+  const total = Number(conta.valor_total || 0);
+  if (!Number.isFinite(valorPago) || valorPago - jaPago < 0.005) return { erro: "valor_invalido" };
+  const incremento = valorPago - jaPago;
+  const encargos = Math.max(0, Math.round((incremento - Math.max(0, total - jaPago)) * 100) / 100);
   const status = calcStatus(conta.valor_total, valorPago, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
     .update({ valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento, status })
@@ -184,7 +191,8 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
       // valor_incremento: o Accounting Core (Commit 5) lança só o que saiu
       // NESTA baixa, não o acumulado — senão uma 2ª baixa parcial dobraria
       // o valor já reconhecido na 1ª.
-      valor_incremento: valorPago - (conta.valor_pago || 0),
+      valor_incremento: incremento,
+      valor_encargos: encargos,
     },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
   return {};
