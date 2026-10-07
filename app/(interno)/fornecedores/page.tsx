@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   Search, Trash2, Pencil, X, Building2, FileText, CheckCircle2, Check,
-  AlertTriangle, Download, Sparkles, Clock, Share2, ChevronRight, Gauge, Trophy,
+  AlertTriangle, Download, Sparkles, Clock, Share2, ChevronRight, Gauge, Trophy, History,
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import HistoricoConta from "../../../components/HistoricoConta";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
@@ -329,7 +330,7 @@ const T = {
     critConfiabilidade: "Confiabilidade", critPreco: "Preço", critCapacidadeEntrega: "Capacidade de Entrega",
     critSaudeFinanceira: "Saúde Financeira", critSustentabilidade: "Sustentabilidade", critInovacao: "Inovação", critFlexibilidade: "Flexibilidade",
     nivelCritico: "Crítico", nivelAtencao: "Atenção", nivelSaudavel: "Saudável",
-    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score",
+    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score", verContasFornecedor: "Ver as contas deste fornecedor", verHistoricoConta: "Histórico: criação, aprovação, cada pagamento, juros e quanto falta",
     criteriosTitulo: "Critérios do Score", semDadosCriterio: "Sem dados", pesoLabel: "Peso", contribuicaoLabel: "Contribuição",
     rankingTitulo: "Ranking Axioma", rankingSub: "Fornecedores ordenados pelo Score Corporativo Axioma (0-1000).",
     rankingVazio: "Nenhum fornecedor cadastrado ainda.",
@@ -483,7 +484,7 @@ const T = {
     critConfiabilidade: "Reliability", critPreco: "Price", critCapacidadeEntrega: "Delivery Capacity",
     critSaudeFinanceira: "Financial Health", critSustentabilidade: "Sustainability", critInovacao: "Innovation", critFlexibilidade: "Flexibility",
     nivelCritico: "Critical", nivelAtencao: "Attention", nivelSaudavel: "Healthy",
-    scoreAxiomaTitulo: "Axioma Corporate Score", verScore: "View Score",
+    scoreAxiomaTitulo: "Axioma Corporate Score", verScore: "View Score", verContasFornecedor: "See this supplier's bills", verHistoricoConta: "History: creation, approval, each payment, interest and what's left",
     criteriosTitulo: "Score Criteria", semDadosCriterio: "No data", pesoLabel: "Weight", contribuicaoLabel: "Contribution",
     rankingTitulo: "Axioma Ranking", rankingSub: "Suppliers ranked by the Axioma Corporate Score (0-1000).",
     rankingVazio: "No supplier registered yet.",
@@ -637,7 +638,7 @@ const T = {
     critConfiabilidade: "Confiabilidad", critPreco: "Precio", critCapacidadeEntrega: "Capacidad de Entrega",
     critSaudeFinanceira: "Salud Financiera", critSustentabilidade: "Sostenibilidad", critInovacao: "Innovación", critFlexibilidade: "Flexibilidad",
     nivelCritico: "Crítico", nivelAtencao: "Atención", nivelSaudavel: "Saludable",
-    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score",
+    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score", verContasFornecedor: "Ver las cuentas de este proveedor", verHistoricoConta: "Historial: creación, aprobación, cada pago, intereses y lo que falta",
     criteriosTitulo: "Criterios del Score", semDadosCriterio: "Sin datos", pesoLabel: "Peso", contribuicaoLabel: "Contribución",
     rankingTitulo: "Ranking Axioma", rankingSub: "Proveedores ordenados por el Score Corporativo Axioma (0-1000).",
     rankingVazio: "Ningún proveedor registrado aún.",
@@ -769,6 +770,8 @@ export default function Fornecedores() {
   };
 
   const [aba, setAba] = useState<"fornecedores" | "contas">("fornecedores");
+  const [historicoContaId, setHistoricoContaId] = useState<string | null>(null);
+  const verContasDoFornecedor = (nome: string) => { setBuscaContas(nome); setAba("contas"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [todosDocumentos, setTodosDocumentos] = useState<FornecedorDocumento[]>([]);
@@ -1769,6 +1772,7 @@ export default function Fornecedores() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <HistoricoConta tipo="pagar" contaId={historicoContaId} onFechar={() => setHistoricoContaId(null)} />
     <ModuloLayout
       titulo={t.fornecedores.titulo}
       subtitulo={t.fornecedores.subtitulo}
@@ -2291,14 +2295,16 @@ export default function Fornecedores() {
                         </div>
                         {contasForn.length > 0 && (
                           <div className="mt-3 pt-3 grid grid-cols-2 gap-2" style={{ borderTop: "1px solid rgba(46,204,155,0.1)" }}>
-                            <div className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
+                            {/* Os dois levam às contas DESTE fornecedor (aba Contas a Pagar filtrada);
+                                cada conta lá abre o histórico completo (criação, pagamentos, juros, falta). */}
+                            <button onClick={() => verContasDoFornecedor(f.nome)} title={tt.verContasFornecedor} className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: ct("#2ecc9b") }}>{fmt(aberto)}</p>
-                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Em aberto" : "Open"}</p>
-                            </div>
-                            <div className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
+                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Em aberto — ver contas" : idioma === "es" ? "Abierto — ver cuentas" : "Open — see bills"}</p>
+                            </button>
+                            <button onClick={() => verContasDoFornecedor(f.nome)} title={tt.verContasFornecedor} className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: AMBAR }}>{contasForn.length}</p>
-                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Contas" : "Bills"}</p>
-                            </div>
+                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Contas — ver histórico" : idioma === "es" ? "Cuentas — ver historial" : "Bills — see history"}</p>
+                            </button>
                           </div>
                         )}
                       </CanvasBox>
@@ -2340,7 +2346,7 @@ export default function Fornecedores() {
                       <CanvasBox {...cartaoTema} cor={cor}>
                         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{c.descricao}</p>
+                            <button onClick={() => setHistoricoContaId(c.id)} className="font-bold text-sm text-left hover:underline" style={{ color: ct("#c8d8f0") }} title={tt.verHistoricoConta}>{c.descricao}</button>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               {fnome && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: AMBAR }}>🏭 {fnome}</span>}
                               {c.forma_pagamento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: (temaClaro ? "#2ecc9b" : "#7fe3c3") }}>{c.forma_pagamento}</span>}
@@ -2349,6 +2355,7 @@ export default function Fornecedores() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setHistoricoContaId(c.id)} title={tt.verHistoricoConta} style={{ color: AMBAR }}><History size={15} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirConta(c.id)} style={{ color: ct("#f87171") }}><Trash2 size={15} /></motion.button>
                           </div>

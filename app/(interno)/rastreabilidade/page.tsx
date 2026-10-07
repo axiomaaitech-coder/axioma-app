@@ -11,6 +11,7 @@ import { Check, Clock, X, Minus, Sparkles, RotateCcw, ExternalLink } from 'lucid
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import AvisoAxioma from '../../../components/AvisoAxioma'
+import HistoricoConta from '../../../components/HistoricoConta'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
@@ -67,6 +68,7 @@ export default function RastreabilidadePage() {
   const [resolvendo, setResolvendo] = useState(false)
   const [explicacoes, setExplicacoes] = useState<Explicacao[]>([])
   const [aviso, setAviso] = useState<{ msg: string; tipo: 'ok' | 'erro' } | null>(null)
+  const [historico, setHistorico] = useState<{ tipo: 'pagar' | 'receber'; id: string } | null>(null)
 
   const carregar = useCallback(async (emp: string) => {
     const { data, error } = await lerTodas(() => supabase.from('rastreio_movimentacao')
@@ -156,6 +158,7 @@ export default function RastreabilidadePage() {
         }
       >
         <AvisoAxioma aviso={aviso} onFechar={() => setAviso(null)} duracao={7000} />
+        <HistoricoConta tipo={historico?.tipo ?? 'pagar'} contaId={historico?.id ?? null} onFechar={() => setHistorico(null)} />
 
         {carregando ? (
           <p className="text-sm" style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p>
@@ -218,9 +221,14 @@ export default function RastreabilidadePage() {
                         {entrada ? '+' : r.tipo.endsWith('estorno') ? '↺ ' : '−'} R$ {fBRL2(Number(r.valor))}
                       </p>
                       {Number(r.encargos) > 0 && <p className="text-xs" style={{ color: P.AMBAR }}>{L('inclui juros/multa', 'includes interest/penalty', 'incluye intereses/multa')} R$ {fBRL2(Number(r.encargos))}</p>}
-                      <button onClick={() => router.push(rotaOrigem)} className="inline-flex items-center gap-1 text-xs font-semibold underline mt-1" style={{ color: P.VERDE }}>
-                        {L('Abrir a conta', 'Open the bill', 'Abrir la cuenta')}<ExternalLink size={11} aria-hidden />
-                      </button>
+                      <div className="flex flex-col items-end gap-0.5 mt-1">
+                        <button onClick={() => setHistorico({ tipo: r.origem_tabela === 'contas_pagar' ? 'pagar' : 'receber', id: r.origem_id })} className="text-xs font-semibold underline" style={{ color: P.VERDE }}>
+                          {L('Ver histórico da conta', 'See bill history', 'Ver historial de la cuenta')}
+                        </button>
+                        <button onClick={() => router.push(rotaOrigem)} className="inline-flex items-center gap-1 text-xs underline" style={{ color: P.CINZA }}>
+                          {r.origem_tabela === 'contas_pagar' ? L('Ir para Contas a Pagar', 'Go to Payables', 'Ir a Cuentas por Pagar') : L('Ir para Contas a Receber', 'Go to Receivables', 'Ir a Cuentas por Cobrar')}<ExternalLink size={11} aria-hidden />
+                        </button>
+                      </div>
                     </div>
                   </div>
 

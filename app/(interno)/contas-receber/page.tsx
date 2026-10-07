@@ -9,8 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
    Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
-  Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon, Undo2,
+  Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon, Undo2, History,
 } from 'lucide-react'
+import HistoricoConta from '../../../components/HistoricoConta'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { SOMBRA_3D, BORDA_3D } from '../../../components/CanvasBox'
@@ -149,6 +150,7 @@ export default function ContasReceber() {
   }
 
   const [contas, setContas] = useState<Conta[]>([])
+  const [historicoContaId, setHistoricoContaId] = useState<string | null>(null)
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([])
   const [loading, setLoading] = useState(true)
@@ -806,6 +808,7 @@ export default function ContasReceber() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
+    <HistoricoConta tipo="receber" contaId={historicoContaId} onFechar={() => setHistoricoContaId(null)} />
     <ModuloLayout
       titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')}
       subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
@@ -1355,7 +1358,9 @@ export default function ContasReceber() {
                     return (
                       <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
                         style={{ background: PAINEL_BG }}>
-                        <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: TEXTO }}>{cli?.nome || '—'}</td>
+                        <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: TEXTO }}>
+                          <button onClick={() => setHistoricoContaId(c.id)} className="hover:underline text-left" title={L('Ver histórico completo desta conta', "See this bill's full history", 'Ver el historial completo de esta cuenta')}>{cli?.nome || c.descricao || '—'}</button>
+                        </td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.numero_documento || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.competencia ? new Date(c.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.data_emissao ? new Date(c.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
@@ -1379,6 +1384,9 @@ export default function ContasReceber() {
                         <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-[10px] font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? nivelScoreLabel(score.nivel) : '—'}</span></td>
                         <td className="px-2 py-2.5 rounded-r-xl whitespace-nowrap">
                           <div className="flex items-center gap-2">
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setHistoricoContaId(c.id)} title={L('Histórico: criação, cada recebimento, juros e quanto falta', "History: creation, each receipt, interest and what's left", 'Historial: creación, cada cobro, intereses y lo que falta')}>
+                              <History size={14} style={{ color: VERDE }} />
+                            </motion.button>
                             {c.status !== 'recebido' && (
                               <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirReceber(c)} title={L('Receber', 'Receive', 'Cobrar')}>
                                 <CheckCircle2 size={14} style={{ color: VERDE }} />

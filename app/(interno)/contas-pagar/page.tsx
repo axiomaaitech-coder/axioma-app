@@ -14,6 +14,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
+import HistoricoConta from "../../../components/HistoricoConta";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
@@ -114,6 +115,7 @@ export default function ContasPagarPage() {
 
   const [loading, setLoading] = useState(true);
   const [contas, setContas] = useState<ContaPagar[]>([]);
+  const [historicoContaId, setHistoricoContaId] = useState<string | null>(null);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [custosFixos, setCustosFixos] = useState<CustoFixo[]>([]);
@@ -1824,6 +1826,7 @@ export default function ContasPagarPage() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <HistoricoConta tipo="pagar" contaId={historicoContaId} onFechar={() => setHistoricoContaId(null)} />
     <ModuloLayout
       titulo={L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")}
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
@@ -2014,7 +2017,7 @@ export default function ContasPagarPage() {
                             <Pin size={12} fill={ROXO} style={{ color: ROXO }} />
                           </span>
                         )}
-                        {c.descricao}
+                        <button onClick={() => setHistoricoContaId(c.id)} className="truncate text-left hover:underline" title={L("Ver histórico completo desta conta", "See this bill's full history", "Ver el historial completo de esta cuenta")}>{c.descricao}</button>
                       </p>
                       <p className="text-xs flex items-center gap-1.5" style={{ color: CINZA }}>
                         {nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}
@@ -2038,6 +2041,7 @@ export default function ContasPagarPage() {
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 justify-end">
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexar boleto/nota", "Attach invoice/receipt", "Adjuntar boleta/factura")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setHistoricoContaId(c.id)} title={L("Histórico: criação, aprovação, cada pagamento, juros e quanto falta", "History: creation, approval, each payment, interest and what's left", "Historial: creación, aprobación, cada pago, intereses y lo que falta")} style={{ color: VERDE }}><History size={15} /></motion.button>
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirRastreabilidade(c)} title={L("Ver rastreabilidade", "View traceability", "Ver trazabilidad")} style={{ color: ROXO }}><Link2 size={15} /></motion.button>
                       {podeEditar && (
                         <>
