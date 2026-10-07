@@ -47,8 +47,7 @@ import {
   heatmapInadimplencia, curvaABCClientes, evolucaoCarteira,
   agruparCarteiraPorCampo, concentracaoTopClientes,
 } from '../../../lib/previsaoRecebimentoHelpers'
-import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
-import { registrarRecebimento, registrarEstornoRecebimento } from '../../../lib/recebimentoHelpers'
+import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, editarContaReceber, excluirContaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { hojeISO } from '../../../lib/datas'
 
@@ -127,7 +126,6 @@ const contaVazia = {
 // removemos essas 3 chaves e tentamos salvar de novo — não é gambiarra, é
 // degradação graciosa documentada até o ALTER TABLE rodar. O resto do cadastro
 // nunca fica bloqueado por causa de 3 campos novos.
-const COLUNAS_PENDENTES_SQL = ['responsavel', 'prioridade', 'projeto']
 
 export default function ContasReceber() {
   const { idioma } = useLanguage()
@@ -360,67 +358,28 @@ export default function ContasReceber() {
     setSalvando(true); setErroSalvar('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); setErroSalvar(L('Sessão expirada — faça login de novo.', 'Session expired — log in again.', 'Sesión expirada — inicie sesión de nuevo.')); return }
-    const userId = user.id
-    const total = parseFloat(nc.valor || '0')
-    const recebido = parseFloat(nc.valor_recebido || '0')
-    const status = statusEfetivo(null, total, recebido, nc.data_vencimento, 'recebido')
-    const payloadCompleto: any = {
-      descricao: nc.descricao, valor: total, valor_recebido: recebido, valor_desconto: parseFloat(nc.valor_desconto || '0'),
+    if (!empresaId) { setSalvando(false); return }
+    // Porta única (lib/recebimentoHelpers): conta nasce/edita SEM mexer no recebido
+    // (recebimento só pelo botão Receber) e avisa a contabilidade (AR_CREATED/AR_UPDATED).
+    const dados: Record<string, unknown> = {
+      descricao: nc.descricao, valor: parseFloat(nc.valor || '0'), valor_desconto: parseFloat(nc.valor_desconto || '0'),
       data_vencimento: nc.data_vencimento, data_emissao: nc.data_emissao || null, competencia: nc.competencia || null,
       cliente_id: nc.cliente_id || null, forma_recebimento: nc.forma_recebimento, numero_documento: nc.numero_documento,
       categoria: nc.categoria, parcelas: parseInt(nc.parcelas || '1'), taxa_juros: parseFloat(nc.taxa_juros || '0'),
       taxa_multa: parseFloat(nc.taxa_multa || '0'), centro_custo_id: nc.centro_custo_id || null,
       responsavel: nc.responsavel || null, projeto: nc.projeto || null, prioridade: nc.prioridade,
       recorrente: nc.recorrente, frequencia_recorrencia: nc.recorrente ? nc.frequencia_recorrencia : null,
-      observacoes: nc.observacoes, data_recebimento: status === 'recebido' ? hojeISO() : null,
-      status, empresa_id: empresaId,
+      observacoes: nc.observacoes,
     }
-
-    async function tentarSalvar(payload: any): Promise<{ data: any; error: any }> {
-      if (editando) return supabase.from('contas_receber').update(payload).eq('id', editando.id).select('id')
-      return supabase.from('contas_receber').insert({ ...payload, user_id: userId, empresa_id: empresaId }).select('id')
-    }
-
-    let { data, error } = await tentarSalvar(payloadCompleto)
-    if (error && error.code === '42703') {
-      const payloadReduzido = { ...payloadCompleto }
-      COLUNAS_PENDENTES_SQL.forEach((k) => delete payloadReduzido[k])
-      const retry = await tentarSalvar(payloadReduzido)
-      data = retry.data; error = retry.error
-      if (!error) setAvisoSchema(true)
-    }
-
-    if (error || !data || data.length === 0) {
-      setErroSalvar(L('Não foi possível salvar a conta. Tente novamente.', 'Could not save the bill. Try again.', 'No se pudo guardar la cuenta. Intente de nuevo.'))
-      reportarFalhaEscrita('contas_receber', editando ? 'update' : 'insert', error?.message || '0 linhas afetadas (RLS?)')
+    const r = editando ? await editarContaReceber(editando.id, dados) : await criarContaReceber(user.id, empresaId, dados)
+    if (r.erro) {
+      setErroSalvar(r.erro === 'abaixo_do_recebido'
+        ? L('O valor não pode ficar menor que o já recebido. Para devolver um recebimento, use Estornar.', 'The amount cannot be lower than what was already received. To undo a receipt, use Reverse.', 'El valor no puede ser menor que lo ya cobrado. Para deshacer un cobro, use Revertir.')
+        : L('Não foi possível salvar a conta. Tente novamente.', 'Could not save the bill. Try again.', 'No se pudo guardar la cuenta. Intente de nuevo.'))
       setSalvando(false)
       return
     }
-    // COMMIT 9 — liga ao ledger contábil (mesmo encadeamento do Contas a
-    // Pagar): AR_CREATED reconhece a receita na hora que a conta nasce
-    // (regime de competência); AR_UPDATED só reage no ledger se valor ou
-    // categoria mudaram (o consumidor decide isso, aqui só informamos antes/
-    // depois — mesmo padrão de editarContaPagar).
-    if (editando) {
-      publicarEventoNaoBloqueante(empresaId, 'AR_UPDATED',
-        {
-          conta_id: editando.id, campos: Object.keys(payloadCompleto),
-          valor_antes: editando.valor ?? null, valor_depois: total,
-          categoria_antes: editando.categoria ?? null, categoria_depois: nc.categoria,
-          descricao_depois: nc.descricao, data_emissao_depois: nc.data_emissao || null,
-          centro_custo_id_depois: nc.centro_custo_id || null,
-        },
-        { modulo: 'contas_receber', tabela: 'contas_receber', id: editando.id })
-    } else {
-      publicarEventoNaoBloqueante(empresaId, 'AR_CREATED',
-        {
-          conta_id: data[0].id, cliente_id: nc.cliente_id || null, valor: total,
-          descricao: nc.descricao, categoria: nc.categoria,
-          data_emissao: nc.data_emissao || null, competencia: nc.competencia || null,
-          centro_custo_id: nc.centro_custo_id || null,
-        },
-        { modulo: 'contas_receber', tabela: 'contas_receber', id: data[0].id })
-    }
+    if (r.semColunasOpcionais) setAvisoSchema(true)
     fecharModal(); setSalvando(false)
     showToast(L('Conta salva.', 'Bill saved.', 'Cuenta guardada.'), 'ok')
     carregar()
@@ -447,16 +406,14 @@ export default function ContasReceber() {
       return
     }
     setProcessandoExclusao(true)
-    const { data, error } = await supabase.from('contas_receber').delete().eq('id', contaExcluir.id).select('id')
-    if (error || !data || data.length === 0) {
-      showToast(L('Não foi possível excluir a conta. Tente novamente.', 'Could not delete the bill. Try again.', 'No se pudo eliminar la cuenta. Intente de nuevo.'), 'erro')
-      reportarFalhaEscrita('contas_receber', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+    const rExc = await excluirContaReceber(contaExcluir.id)
+    if (rExc.erro) {
+      showToast(rExc.erro === 'ja_recebida'
+        ? L('Esta conta já tem recebimento (mesmo parcial). Estorne o recebimento primeiro.', 'This bill already has a receipt (even partial). Reverse the receipt first.', 'Esta cuenta ya tiene un cobro (aunque sea parcial). Revierta el cobro primero.')
+        : L('Não foi possível excluir a conta. Tente novamente.', 'Could not delete the bill. Try again.', 'No se pudo eliminar la cuenta. Intente de nuevo.'), 'erro')
       setProcessandoExclusao(false)
       return
     }
-    publicarEventoNaoBloqueante(empresaId, 'AR_DELETED',
-      { conta_id: contaExcluir.id },
-      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaExcluir.id })
     fecharConfirmarExclusao()
     carregar()
     setProcessandoExclusao(false)

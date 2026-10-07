@@ -41,7 +41,7 @@ import {
   classificarCategoria, checarNfeJaImportadaNoPdv,
   obterConfigAp, salvarConfigAp, detectarDuplicata, registrarAuditoriaAp,
   calcularForecastAp, priorizarPagamentos, type ForecastAp, type HorizonteForecastDias, HORIZONTES_FORECAST_AP, type ItemPrioridadePagamento,
-  solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
+  listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
   listarAuditoriaConta, type AuditoriaAp, excluirRegistroHistoricoAp, restaurarRegistroHistoricoAp, anotarRegistroHistoricoAp,
   detectarDespesasRecorrentes, transformarPadraoEmCustoFixo, type PadraoRecorrenteDetectado,
   detectarCobrancasAcimaMedia, type CobrancaAcimaMedia,
@@ -1467,7 +1467,9 @@ export default function ContasPagarPage() {
       setSalvando(true);
       const resultado = await editarContaPagar(editando.id, dados);
       if (resultado.erro) {
-        showToast(L("Não foi possível salvar a conta. Tente novamente.", "Could not save the bill. Try again.", "No se pudo guardar la cuenta. Intente de nuevo."), "erro");
+        showToast(resultado.erro === "abaixo_do_pago"
+          ? L(`O valor total não pode ficar menor que o já pago (${fmt(editando.valor_pago || 0)}). Para devolver um pagamento, use Estornar.`, `The total cannot be lower than what was already paid (${fmt(editando.valor_pago || 0)}). To undo a payment, use Reverse.`, `El total no puede ser menor que lo ya pagado (${fmt(editando.valor_pago || 0)}). Para deshacer un pago, use Revertir.`)
+          : L("Não foi possível salvar a conta. Tente novamente.", "Could not save the bill. Try again.", "No se pudo guardar la cuenta. Intente de nuevo."), "erro");
         setSalvando(false);
         return;
       }
@@ -1513,11 +1515,9 @@ export default function ContasPagarPage() {
       const { erro: erroAuditoria } = await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
       if (erroAuditoria) showToast(L("Conta salva, mas o registro de auditoria falhou.", "Bill saved, but the audit record failed.", "Cuenta guardada, pero el registro de auditoría falló."), "erro");
     }
-    // Entrega 2 Commit 4 — só DEPOIS do insert, como pedido: decide sozinha
-    // (auto_aprovada) ou trava a conta em 'aguardando_aprovacao' até alguém
-    // decidir na aba Aprovações Pendentes.
-    const { erro: erroAprovacao } = await solicitarAprovacao(resultado.id);
-    if (erroAprovacao) {
+    // A alçada de aprovação roda dentro de criarContaPagar (porta única — vale pra
+    // Fornecedores e Importar Documentos também): auto_aprovada ou 'aguardando_aprovacao'.
+    if (resultado.avisoAprovacao) {
       showToast(L("Conta salva, mas não foi possível definir o status de aprovação. Verifique na aba Aprovações Pendentes.", "Bill saved, but could not set the approval status. Check the Pending Approvals tab.", "Cuenta guardada, pero no se pudo definir el estado de aprobación. Revise en la pestaña Aprobaciones Pendientes."), "erro");
     }
     // Conta veio de um XML e essa NF-e ainda não tem estoque_nfe_importadas

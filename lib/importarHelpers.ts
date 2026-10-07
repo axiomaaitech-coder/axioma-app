@@ -6,6 +6,9 @@ import CryptoJS from "crypto-js";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarParsers";
+import { criarContaPagar, editarContaPagar, type ContaPagar } from "./contasPagarHelpers";
+import { criarContaReceber, editarContaReceber } from "./recebimentoHelpers";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1037,7 +1040,15 @@ export async function gravarLinhas(params: {
         continue;
       }
       const novoValor = valorAtual + (linha.valor || 0);
-      const { data: somado, error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).eq("empresa_id", empresaId).select("id");
+      // Conta a pagar/receber: soma pela porta única — a contabilidade refaz o
+      // reconhecimento pelo valor novo (AP_UPDATED/AR_UPDATED). Antes o valor mudava
+      // aqui e o Razão ficava com o valor antigo.
+      const viaPorta = alvoSomar.tabela === "contas_pagar" ? await editarContaPagar(alvoSomar.id, { valor_total: novoValor })
+        : alvoSomar.tabela === "contas_receber" ? await editarContaReceber(alvoSomar.id, { valor: novoValor }, "importar_documentos")
+        : null;
+      const { data: somado, error: errUpdate } = viaPorta
+        ? { data: viaPorta.erro ? [] : [{ id: alvoSomar.id }], error: viaPorta.erro ? { message: viaPorta.erro } : null }
+        : await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).eq("empresa_id", empresaId).select("id");
       if (errUpdate || !somado || somado.length === 0) {
         const msg = errUpdate?.message || "0 linhas afetadas (RLS?)";
         resultado.erro++;
@@ -1059,12 +1070,22 @@ export async function gravarLinhas(params: {
       continue;
     }
 
-    // 4c) Inserir no destino de verdade (uma tentativa, sem retry)
-    const { data: inserido, error } = await supabase
-      .from(destino)
-      .insert(build.payload)
-      .select("id")
-      .single();
+    // 4c) Inserir no destino de verdade (uma tentativa, sem retry). Conta a pagar/
+    // receber vai pela porta única: contabilidade, alçada de aprovação e — se a nota
+    // já veio quitada — a baixa oficial pelo Motor de Rastreabilidade. Antes nascia
+    // "paga" direto no banco, sem o pagamento existir em contabilidade/fluxo/DRE.
+    const { data: inserido, error } = await (async () => {
+      if (destino !== "contas_pagar" && destino !== "contas_receber") {
+        return supabase.from(destino).insert(build.payload).select("id").single();
+      }
+      if (!empresaId) return { data: null, error: { message: "Empresa ativa não identificada" } };
+      const p = build.payload as Record<string, unknown>;
+      const r = destino === "contas_pagar"
+        ? await criarContaPagar(userId, empresaId, p as Partial<ContaPagar>,
+            Number(p.valor_pago) > 0 ? { pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : undefined)
+        : await criarContaReceber(userId, empresaId, p, { modulo: "importar_documentos" });
+      return r.id ? { data: { id: r.id }, error: null } : { data: null, error: { message: r.erro || "falha ao criar a conta" } };
+    })();
 
     if (error || !inserido) {
       resultado.erro++;
@@ -1270,12 +1291,13 @@ export async function editarLinhaImportada(
   // 3) UPDATE no destino real — trava dupla de empresa (a linha de auditoria
   // já foi confirmada da empresa ativa acima; aqui filtra de novo, direto na
   // tabela de destino, defesa em profundidade caso as duas divirjam).
-  const { data: editado, error: errUpdate } = await supabase
-    .from(destino)
-    .update(payload)
-    .eq("id", aud.destino_id)
-    .eq("empresa_id", empresaId)
-    .select("id");
+  // Conta a pagar/receber: edita pela porta única (contabilidade acompanha o valor novo).
+  const viaPorta = destino === "contas_pagar" ? await editarContaPagar(aud.destino_id, payload)
+    : destino === "contas_receber" ? await editarContaReceber(aud.destino_id, payload, "importar_documentos")
+    : null;
+  const { data: editado, error: errUpdate } = viaPorta
+    ? { data: viaPorta.erro ? [] : [{ id: aud.destino_id }], error: viaPorta.erro ? { message: viaPorta.erro } : null }
+    : await supabase.from(destino).update(payload).eq("id", aud.destino_id).eq("empresa_id", empresaId).select("id");
 
   if (errUpdate || !editado || editado.length === 0) {
     const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";

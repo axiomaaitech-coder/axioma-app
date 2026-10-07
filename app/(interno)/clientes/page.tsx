@@ -25,6 +25,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import Paginacao, { usePagina } from "../../../components/Paginacao";
+import { criarContaReceber, registrarRecebimento, faltaReceber, type ContaParaReceber } from "../../../lib/recebimentoHelpers";
 import { lerTodas } from "../../../lib/lerTodas";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
@@ -554,9 +555,11 @@ export default function ClientesPage() {
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoConta(false); showToast(tt.erroSalvarConta, "erro"); return; }
-    const { data, error } = await supabase.from("contas_receber").insert({
+    if (!empresaId) { setSalvandoConta(false); return; }
+    // Porta única (lib/recebimentoHelpers): a cobrança nasce avisando a contabilidade (AR_CREATED).
+    const r = await criarContaReceber(user.id, empresaId, {
       descricao: formConta.descricao, valor: parseFloat(formConta.valor), data_vencimento: formConta.vencimento,
-      data_emissao: formConta.emissao || null, status: "pendente", cliente_id: formConta.clienteId || null,
+      data_emissao: formConta.emissao || null, cliente_id: formConta.clienteId || null,
       numero_documento: formConta.numeroDocumento || null, categoria: formConta.categoria || null,
       forma_recebimento: formConta.formaRecebimento || null,
       parcelas: formConta.parcelas ? parseInt(formConta.parcelas) : null,
@@ -569,11 +572,9 @@ export default function ClientesPage() {
       competencia: formConta.competencia || null, recorrente: formConta.recorrente,
       frequencia_recorrencia: formConta.recorrente ? (formConta.frequenciaRecorrencia || null) : null,
       anexo_url: formConta.anexoUrl || null,
-      user_id: user.id, empresa_id: empresaId,
-    }).select("id");
-    if (error || !data || data.length === 0) {
+    }, { modulo: "clientes" });
+    if (r.erro) {
       showToast(tt.erroSalvarConta, "erro");
-      reportarFalhaEscrita("contas_receber", "insert", error?.message || "0 linhas afetadas (RLS?)");
       setSalvandoConta(false);
       return;
     }
@@ -583,14 +584,18 @@ export default function ClientesPage() {
     carregarDados();
   }
 
+  // Receber tudo o que falta pelo caminho oficial (Motor de Rastreabilidade): antes
+  // só trocava o status para "recebido" sem registrar o valor — a conta aparecia paga
+  // aqui e em aberto no Dashboard/IA/Tesouraria, e o dinheiro nunca entrava no caixa.
   async function marcarRecebido(id: string) {
-    const { data, error } = await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: hojeISO() }).eq("id", id).select("id");
-    if (error || !data || data.length === 0) {
+    const conta = contas.find((c) => c.id === id);
+    if (!conta) return;
+    const r = await registrarRecebimento(conta as unknown as ContaParaReceber, faltaReceber(conta as unknown as ContaParaReceber), empresaId, "clientes");
+    if (r.erro) {
       showToast(tt.erroMarcarRecebido, "erro");
-      reportarFalhaEscrita("contas_receber", "update status recebido", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    showToast(lang === "en" ? "Marked as received." : lang === "es" ? "Marcado como recibido." : "Marcado como recebido.", "ok");
+    showToast(lang === "en" ? "Received — recorded in accounting, Cash Flow and Revenue." : lang === "es" ? "Cobrado — registrado en contabilidad, Flujo de Caja e Ingresos." : "Recebido — registrado na contabilidade, no Fluxo de Caixa e em Receitas.", "ok");
     carregarDados();
   }
 

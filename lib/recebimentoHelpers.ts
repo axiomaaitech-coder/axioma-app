@@ -8,6 +8,7 @@
 //     6.04 Receitas Financeiras, nunca crédito extra em Clientes.
 import { createBrowserClient } from "@supabase/ssr";
 import { registrarMovimentacao } from "./rastreio/motor";
+import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import * as Sentry from "@sentry/nextjs";
 import { statusEfetivo } from "./fornecedorHelpers";
 import { hojeISO } from "./datas";
@@ -117,4 +118,95 @@ async function nomeCliente(id: string | null | undefined): Promise<string | null
   if (!id) return null;
   const { data } = await supabase.from("clientes").select("nome").eq("id", id).maybeSingle();
   return (data?.nome as string) ?? null;
+}
+
+// ============================================================================
+// PORTA ÚNICA de criar/editar/excluir conta a receber — Contas a Receber,
+// Clientes, Inadimplência e Importar Documentos usam estas (antes cada tela
+// gravava direto e várias não avisavam a contabilidade).
+//   • A conta SEMPRE nasce sem recebimento: dinheiro recebido só entra por
+//     registrarRecebimento (Motor de Rastreabilidade). recebidoNaOrigem = nota
+//     que já veio recebida → cria e registra o recebimento pelo caminho oficial.
+//   • Editar nunca mexe no já recebido.
+//   • Excluir é bloqueado se já houve QUALQUER recebimento (inclusive parcial):
+//     precisa estornar antes, senão o recebimento ficaria órfão no Razão.
+// ============================================================================
+type Linha = Record<string, unknown>;
+const COLUNAS_OPCIONAIS = ["responsavel", "prioridade", "projeto"]; // ainda sem ALTER TABLE em todo ambiente
+
+async function gravarComReserva(fazer: (p: Linha) => PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }>, payload: Linha) {
+  const r = await fazer(payload);
+  if (r.error?.code !== "42703") return { ...r, semColunasOpcionais: false };
+  const reduzido = { ...payload };
+  COLUNAS_OPCIONAIS.forEach((k) => delete reduzido[k]);
+  return { ...(await fazer(reduzido)), semColunasOpcionais: true };
+}
+
+export async function criarContaReceber(
+  userId: string, empresaId: string, dados: Linha,
+  opcoes?: { recebidoNaOrigem?: number; modulo?: string },
+): Promise<{ id?: string; erro?: string; avisoRecebimento?: string; semColunasOpcionais?: boolean }> {
+  const total = Number(dados.valor) || 0;
+  const status = statusEfetivo(null, total, 0, (dados.data_vencimento as string) ?? null, "recebido");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { valor_recebido: _a, data_recebimento: _b, status: _c, ...resto } = dados;
+  const payload = { ...resto, valor: total, valor_recebido: 0, data_recebimento: null, status, user_id: userId, empresa_id: empresaId };
+  const { data, error, semColunasOpcionais } = await gravarComReserva((p) => supabase.from("contas_receber").insert(p).select("*").single(), payload);
+  const conta = data as (ContaParaReceber & Linha) | null;
+  if (error || !conta) {
+    reportarFalhaEscrita("contas_receber", "insert", error?.message || "0 linhas (RLS?)");
+    return { erro: error?.message || "falha_gravacao" };
+  }
+  const modulo = opcoes?.modulo ?? "contas_receber";
+  publicarEventoNaoBloqueante(empresaId, "AR_CREATED", {
+    conta_id: conta.id, cliente_id: (dados.cliente_id as string) ?? null, valor: total,
+    descricao: (dados.descricao as string) ?? null, categoria: (dados.categoria as string) ?? null,
+    data_emissao: (dados.data_emissao as string) ?? null, competencia: (dados.competencia as string) ?? null,
+    centro_custo_id: (dados.centro_custo_id as string) ?? null,
+  }, { modulo, tabela: "contas_receber", id: conta.id });
+  const recebido = Number(opcoes?.recebidoNaOrigem) || 0;
+  if (recebido > 0) {
+    const r = await registrarRecebimento(conta, Math.min(recebido, total), empresaId, modulo);
+    return { id: conta.id, avisoRecebimento: r.erro, semColunasOpcionais };
+  }
+  return { id: conta.id, semColunasOpcionais };
+}
+
+export async function editarContaReceber(id: string, dados: Linha, modulo = "contas_receber"): Promise<{ erro?: string; semColunasOpcionais?: boolean }> {
+  const { data: antes, error: erroAntes } = await supabase.from("contas_receber")
+    .select("valor, valor_recebido, status, categoria, data_vencimento").eq("id", id).maybeSingle();
+  if (erroAntes || !antes) return { erro: erroAntes?.message || "conta_nao_encontrada" };
+  const total = Number(dados.valor ?? antes.valor) || 0;
+  const recebido = Number(antes.valor_recebido) || 0;
+  if (total + 0.005 < recebido) return { erro: "abaixo_do_recebido" };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { valor_recebido: _a, data_recebimento: _b, status: _c, ...resto } = dados;
+  const venc = (dados.data_vencimento as string) ?? (antes.data_vencimento as string) ?? null;
+  const status = recebido >= total - 0.005 && total > 0 ? "recebido" : statusEfetivo(null, total, recebido, venc, "recebido");
+  const { data, error, semColunasOpcionais } = await gravarComReserva((p) => supabase.from("contas_receber").update(p).eq("id", id).select("id, empresa_id"), { ...resto, valor: total, status });
+  const linhas = data as { id: string; empresa_id: string }[] | null;
+  if (error || !linhas?.length) {
+    reportarFalhaEscrita("contas_receber", "update", error?.message || "0 linhas (RLS?)");
+    return { erro: error?.message || "falha_gravacao" };
+  }
+  publicarEventoNaoBloqueante(linhas[0].empresa_id, "AR_UPDATED", {
+    conta_id: id, campos: Object.keys(resto),
+    valor_antes: antes.valor ?? null, valor_depois: total,
+    categoria_antes: antes.categoria ?? null, categoria_depois: (dados.categoria as string) ?? antes.categoria ?? null,
+    descricao_depois: (dados.descricao as string) ?? null, data_emissao_depois: (dados.data_emissao as string) ?? null,
+    centro_custo_id_depois: (dados.centro_custo_id as string) ?? null,
+  }, { modulo, tabela: "contas_receber", id });
+  return { semColunasOpcionais };
+}
+
+export async function excluirContaReceber(id: string, modulo = "contas_receber"): Promise<{ erro?: string }> {
+  const { data: antes } = await supabase.from("contas_receber").select("valor_recebido").eq("id", id).maybeSingle();
+  if (Number(antes?.valor_recebido) > 0) return { erro: "ja_recebida" };
+  const { data, error } = await supabase.from("contas_receber").delete().eq("id", id).select("id, empresa_id");
+  if (error || !data?.length) {
+    reportarFalhaEscrita("contas_receber", "delete", error?.message || "0 linhas (RLS?)");
+    return { erro: error?.message || "falha_gravacao" };
+  }
+  publicarEventoNaoBloqueante(data[0].empresa_id as string, "AR_DELETED", { conta_id: id }, { modulo, tabela: "contas_receber", id });
+  return {};
 }

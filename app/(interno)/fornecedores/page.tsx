@@ -42,10 +42,11 @@ import {
   riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias,
   rankingScoreAxioma, scoreMedioCarteiraAxioma,
   inflacaoFornecedor, oportunidadesConsolidacao, fornecedoresParados, precoAcimaMediaInterna,
-  pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor, calcStatus,
+  pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
+import { criarContaPagar, editarContaPagar, excluirContaPagar, darBaixaContaPagar, type ContaPagar as ContaPagarOficial } from "../../../lib/contasPagarHelpers";
 import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
@@ -747,6 +748,11 @@ export default function Fornecedores() {
     erroSalvarConta: idioma === "pt" ? "Não foi possível salvar a conta a pagar. Tente novamente." : idioma === "en" ? "Could not save the bill. Try again." : "No se pudo guardar la cuenta por pagar. Intente de nuevo.",
     erroExcluirConta: idioma === "pt" ? "Não foi possível excluir a conta a pagar. Tente novamente." : idioma === "en" ? "Could not delete the bill. Try again." : "No se pudo eliminar la cuenta por pagar. Intente de nuevo.",
     erroQuitarConta: idioma === "pt" ? "Não foi possível quitar a conta. Tente novamente." : idioma === "en" ? "Could not settle the bill. Try again." : "No se pudo saldar la cuenta. Intente de nuevo.",
+    erroQuitarAguardando: idioma === "pt" ? "Esta conta ainda aguarda aprovação. Aprove em Contas a Pagar → Aprovações Pendentes antes de quitar." : idioma === "en" ? "This bill is still awaiting approval. Approve it in Accounts Payable → Pending Approvals before settling." : "Esta cuenta aún espera aprobación. Apruébela en Cuentas por Pagar → Aprobaciones Pendientes antes de saldarla.",
+    contaQuitada: idioma === "pt" ? "Conta quitada — registrada na contabilidade, no Fluxo de Caixa e na DRE." : idioma === "en" ? "Bill settled — recorded in accounting, Cash Flow and P&L." : "Cuenta saldada — registrada en contabilidad, Flujo de Caja y Estado de Resultados.",
+    erroAbaixoDoPago: idioma === "pt" ? "O valor total não pode ficar menor que o já pago. Para devolver um pagamento, estorne em Contas a Pagar." : idioma === "en" ? "The total cannot be lower than what was already paid. To undo a payment, reverse it in Accounts Payable." : "El total no puede ser menor que lo ya pagado. Para deshacer un pago, reviértalo en Cuentas por Pagar.",
+    erroExcluirContaPaga: idioma === "pt" ? "Conta já paga não pode ser excluída. Estorne o pagamento em Contas a Pagar primeiro." : idioma === "en" ? "A paid bill cannot be deleted. Reverse the payment in Accounts Payable first." : "Una cuenta pagada no se puede eliminar. Revierta el pago en Cuentas por Pagar primero.",
+    avisoAprovacaoConta: idioma === "pt" ? "Conta salva, mas a alçada de aprovação não respondeu. Confira em Contas a Pagar → Aprovações Pendentes." : idioma === "en" ? "Bill saved, but the approval check did not respond. Check Accounts Payable → Pending Approvals." : "Cuenta guardada, pero la aprobación no respondió. Revise Cuentas por Pagar → Aprobaciones Pendientes.",
     erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto/serviço. Tente novamente." : idioma === "en" ? "Could not save the product/service. Try again." : "No se pudo guardar el producto/servicio. Intente de nuevo.",
     erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto/serviço. Tente novamente." : idioma === "en" ? "Could not delete the product/service. Try again." : "No se pudo eliminar el producto/servicio. Intente de nuevo.",
     erroSalvarContato: idioma === "pt" ? "Não foi possível salvar o contato. Tente novamente." : idioma === "en" ? "Could not save the contact. Try again." : "No se pudo guardar el contacto. Intente de nuevo.",
@@ -1291,37 +1297,34 @@ export default function Fornecedores() {
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoConta(false); return; }
-    const total = parseFloat(nc.valor_total || "0");
-    const pago = parseFloat(nc.valor_pago || "0");
-    const status = calcStatus(total, pago, nc.data_vencimento);
-    const payload: any = {
+    // Porta única (lib/contasPagarHelpers): a conta passa pela contabilidade, pela
+    // alçada de aprovação e pelo Motor de Rastreabilidade — igual a Contas a Pagar.
+    // Pagamento NUNCA entra por aqui: só pela baixa (botão Quitar → darBaixaContaPagar).
+    const dados = {
       fornecedor_id: nc.fornecedor_id || null, descricao: nc.descricao, numero_nota: nc.numero_nota,
-      categoria: nc.categoria, valor_total: total, valor_pago: pago, forma_pagamento: nc.forma_pagamento,
+      categoria: nc.categoria, valor_total: parseFloat(nc.valor_total || "0"), forma_pagamento: nc.forma_pagamento,
       parcelas: parseInt(nc.parcelas || "1"), data_emissao: nc.data_emissao || null,
-      data_vencimento: nc.data_vencimento || null,
-      data_pagamento: status === "pago" ? hojeISO() : null,
-      status, observacoes: nc.observacoes, empresa_id: empresaId,
+      data_vencimento: nc.data_vencimento || null, observacoes: nc.observacoes,
       centro_custo_id: nc.centro_custo_id || null,
     };
     if (editandoConta) {
-      const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id).select("id");
-      if (error || !data || data.length === 0) {
-        showToast(txt.erroSalvarConta, "erro");
-        reportarFalhaEscrita("contas_pagar", "update", error?.message || "0 linhas afetadas (RLS?)");
+      const r = await editarContaPagar(editandoConta.id, dados);
+      if (r.erro) {
+        showToast(r.erro === "abaixo_do_pago" ? txt.erroAbaixoDoPago : txt.erroSalvarConta, "erro");
         setSalvandoConta(false);
         return;
       }
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
       if (auditoria.erro) showToast(txt.avisoAuditoriaContaSalva, "erro");
     } else {
-      const { data, error } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
-      if (error || !data) {
+      const r = await criarContaPagar(user.id, empresaId, dados);
+      if (r.erro || !r.id) {
         showToast(txt.erroSalvarConta, "erro");
-        reportarFalhaEscrita("contas_pagar", "insert", error?.message || "0 linhas afetadas (RLS?)");
         setSalvandoConta(false);
         return;
       }
-      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
+      if (r.avisoAprovacao) showToast(txt.avisoAprovacaoConta, "erro");
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: r.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
       if (auditoria.erro) showToast(txt.avisoAuditoriaContaSalva, "erro");
     }
     fecharModalConta(); await carregarDados(); setSalvandoConta(false);
@@ -1330,10 +1333,9 @@ export default function Fornecedores() {
   const excluirConta = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     const conta = contas.find(c => c.id === id);
-    const { data, error } = await supabase.from("contas_pagar").delete().eq("id", id).select("id");
-    if (error || !data || data.length === 0) {
-      showToast(txt.erroExcluirConta, "erro");
-      reportarFalhaEscrita("contas_pagar", "delete", error?.message || "0 linhas afetadas (RLS?)");
+    const r = await excluirContaPagar(id, conta?.status);
+    if (r.erro) {
+      showToast(r.erro === "conta_paga" ? txt.erroExcluirContaPaga : txt.erroExcluirConta, "erro");
       return;
     }
     if (user) {
@@ -1343,15 +1345,15 @@ export default function Fornecedores() {
     await carregarDados();
   };
 
+  // Quitar = baixa oficial do que falta (Motor de Rastreabilidade: contabilidade,
+  // Fluxo de Caixa, DRE). Conta aguardando aprovação não pode ser paga daqui.
   const quitarConta = async (c: ContaPagar) => {
-    const { data, error } = await supabase.from("contas_pagar").update({
-      valor_pago: c.valor_total, status: "pago", data_pagamento: hojeISO(),
-    }).eq("id", c.id).select("id");
-    if (error || !data || data.length === 0) {
-      showToast(txt.erroQuitarConta, "erro");
-      reportarFalhaEscrita("contas_pagar", "update quitar", error?.message || "0 linhas afetadas (RLS?)");
+    const r = await darBaixaContaPagar({ ...c, empresa_id: empresaId } as unknown as ContaPagarOficial, c.valor_total, hojeISO(), c.forma_pagamento || "PIX");
+    if (r.erro) {
+      showToast(r.erro === "aguardando_aprovacao" ? txt.erroQuitarAguardando : txt.erroQuitarConta, "erro");
       return;
     }
+    showToast(txt.contaQuitada, "ok");
     await carregarDados();
   };
 
@@ -2834,8 +2836,9 @@ export default function Fornecedores() {
                         <input type="number" value={nc.valor_total} onChange={(e) => setNc({ ...nc, valor_total: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Valor Pago (R$)" : "Paid (R$)"}</label>
-                        <input type="number" value={nc.valor_pago} onChange={(e) => setNc({ ...nc, valor_pago: e.target.value })} className={inputCls} style={inputStyle} />
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Valor Pago (R$)" : idioma === "es" ? "Pagado (R$)" : "Paid (R$)"}</label>
+                        {/* Só leitura: pagamento entra pelo botão Quitar (baixa oficial com rastro). */}
+                        <input type="number" value={nc.valor_pago || "0"} readOnly disabled className={inputCls} style={{ ...inputStyle, opacity: 0.6 }} />
                       </div>
                       <div>
                         <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Forma de Pagamento" : "Payment Method"}</label>

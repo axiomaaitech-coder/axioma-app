@@ -100,16 +100,24 @@ export async function listarContasPagar(empresaId: string, filtros: FiltrosConta
   return (data as ContaPagar[]) || [];
 }
 
-export async function criarContaPagar(userId: string, empresaId: string | null, dados: Partial<ContaPagar>): Promise<{ id?: string; erro?: string }> {
+// PORTA ÚNICA de criação de conta a pagar (tela Contas a Pagar, Fornecedores,
+// Importar Documentos). A conta SEMPRE nasce sem pagamento: dinheiro pago só entra
+// pela baixa (darBaixaContaPagar → Motor de Rastreabilidade), nunca por um campo
+// "valor pago" gravado direto — isso deixava contabilidade/fluxo/DRE sem o pagamento.
+//   pagoNaOrigem: nota que já veio paga (ex.: NF-e quitada na emissão) → a conta
+//   nasce e a baixa é registrada em seguida pelo caminho oficial (sem aprovação:
+//   o dinheiro já saiu, não há o que autorizar).
+//   Sem pagoNaOrigem → passa pela alçada de aprovação (auto ou "aguardando").
+export async function criarContaPagar(
+  userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
+  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string } },
+): Promise<{ id?: string; erro?: string; avisoAprovacao?: string; avisoBaixa?: string }> {
   const total = Number(dados.valor_total) || 0;
-  const pago = Number(dados.valor_pago) || 0;
-  const status = calcStatus(total, pago, dados.data_vencimento);
-  const payload = {
-    ...dados, valor_total: total, valor_pago: pago, status,
-    data_pagamento: status === "pago" ? (dados.data_pagamento || hojeISO()) : null,
-    user_id: userId, empresa_id: empresaId,
-  };
-  const { data, error } = await supabase.from("contas_pagar").insert(payload).select("id").single();
+  const status = calcStatus(total, 0, dados.data_vencimento);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { valor_pago: _ignorado, data_pagamento: _ignorada, ...resto } = dados;
+  const payload = { ...resto, valor_total: total, valor_pago: 0, status, data_pagamento: null, user_id: userId, empresa_id: empresaId };
+  const { data, error } = await supabase.from("contas_pagar").insert(payload).select("*").single();
   if (error || !data) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "insert", motivo);
@@ -118,29 +126,38 @@ export async function criarContaPagar(userId: string, empresaId: string | null, 
   publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
     {
       conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null,
-      // categoria/descricao/data_emissao: usados pelo Accounting Core (Commit
-      // 5) pra reconhecer a despesa na conta certa, na data certa.
+      // categoria/descricao/data_emissao: usados pelo Accounting Core pra reconhecer
+      // a despesa na conta certa, na data certa.
       categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
       centro_custo_id: dados.centro_custo_id ?? null,
     },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
-  return { id: data.id };
+
+  const pago = opcoes?.pagoNaOrigem;
+  if (pago && pago.valor > 0) {
+    const baixa = await darBaixaContaPagar(data as ContaPagar, Math.min(pago.valor, total), pago.data, pago.forma);
+    return { id: data.id, avisoBaixa: baixa.erro };
+  }
+  const aprovacao = await solicitarAprovacao(data.id);
+  return { id: data.id, avisoAprovacao: aprovacao.erro };
 }
 
+// Editar NUNCA mexe no que já foi pago (isso é baixa/estorno) e NUNCA tira a conta
+// de "aguardando aprovação"/"cancelada" — antes, editar uma conta pendente de
+// aprovação a liberava sem ninguém aprovar.
 export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): Promise<{ erro?: string }> {
-  // COMMIT 5 — precisa do estado ANTES do update pra saber se valor/categoria
-  // mudaram (o Accounting Core só estorna+relança quando um dos dois muda;
-  // editar outro campo, ex: observações, não mexe no lançamento já feito).
-  const { data: antes } = await supabase.from("contas_pagar")
-    .select("valor_total, categoria, descricao, data_emissao, centro_custo_id").eq("id", id).maybeSingle();
+  const { data: antes, error: erroAntes } = await supabase.from("contas_pagar")
+    .select("valor_total, valor_pago, status, categoria, descricao, data_emissao, data_vencimento, centro_custo_id").eq("id", id).maybeSingle();
+  if (erroAntes || !antes) return { erro: erroAntes?.message || "conta_nao_encontrada" };
 
-  const total = Number(dados.valor_total) || 0;
-  const pago = Number(dados.valor_pago) || 0;
-  const status = calcStatus(total, pago, dados.data_vencimento);
-  const payload = {
-    ...dados, valor_total: total, valor_pago: pago, status,
-    data_pagamento: status === "pago" ? (dados.data_pagamento || hojeISO()) : null,
-  };
+  const total = Number(dados.valor_total ?? antes.valor_total) || 0;
+  const pago = Number(antes.valor_pago) || 0;
+  if (total + 0.005 < pago) return { erro: "abaixo_do_pago" };
+  const workflow = antes.status === "aguardando_aprovacao" || antes.status === "cancelado" || antes.status === "cancelada";
+  const status = workflow ? antes.status : calcStatus(total, pago, dados.data_vencimento ?? antes.data_vencimento);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { valor_pago: _ignorado, data_pagamento: _ignorada, status: _st, ...resto } = dados;
+  const payload = { ...resto, valor_total: total, status };
   const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", id).select("id, empresa_id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
@@ -149,12 +166,12 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
   }
   publicarEventoNaoBloqueante(data[0].empresa_id, "AP_UPDATED",
     {
-      conta_id: id, campos: Object.keys(dados),
-      valor_antes: antes?.valor_total ?? null, valor_depois: total,
-      categoria_antes: antes?.categoria ?? null, categoria_depois: dados.categoria ?? antes?.categoria ?? null,
-      descricao_depois: dados.descricao ?? antes?.descricao ?? null,
-      data_emissao_depois: dados.data_emissao ?? antes?.data_emissao ?? null,
-      centro_custo_id_depois: dados.centro_custo_id ?? antes?.centro_custo_id ?? null,
+      conta_id: id, campos: Object.keys(resto),
+      valor_antes: antes.valor_total ?? null, valor_depois: total,
+      categoria_antes: antes.categoria ?? null, categoria_depois: dados.categoria ?? antes.categoria ?? null,
+      descricao_depois: dados.descricao ?? antes.descricao ?? null,
+      data_emissao_depois: dados.data_emissao ?? antes.data_emissao ?? null,
+      centro_custo_id_depois: dados.centro_custo_id ?? antes.centro_custo_id ?? null,
     },
     { modulo: "contas_pagar", tabela: "contas_pagar", id });
   return {};
@@ -338,7 +355,12 @@ export async function gerarContaDeCustoFixo(
     return { erro: motivo };
   }
   publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
-    { conta_id: data.id, fornecedor_id: null, valor: custoFixo.valor_mensal, vencimento: dataVencimento },
+    {
+      conta_id: data.id, fornecedor_id: null, valor: custoFixo.valor_mensal, vencimento: dataVencimento,
+      // sem categoria/descrição a contabilidade lançava a despesa na conta padrão, não na do custo fixo
+      categoria: payload.categoria, descricao: custoFixo.descricao, data_emissao: `${mesReferencia}-01`,
+      centro_custo_id: custoFixo.centro_custo_id || null,
+    },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
   return { id: data.id };
 }

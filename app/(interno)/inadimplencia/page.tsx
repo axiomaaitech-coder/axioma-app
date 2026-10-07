@@ -49,7 +49,7 @@ import {
   type LinhaRiscoInadimplencia, type NivelPrioridade, type EstagioEscalonamento,
 } from '../../../lib/inadimplenciaHelpers'
 import { heatmapInadimplencia } from '../../../lib/previsaoRecebimentoHelpers'
-import { registrarRecebimento, faltaReceber, type ContaParaReceber } from '../../../lib/recebimentoHelpers'
+import { registrarRecebimento, faltaReceber, criarContaReceber, editarContaReceber, excluirContaReceber, type ContaParaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
 
@@ -458,28 +458,22 @@ export default function Inadimplencia() {
       return
     }
     setSalvandoCaso(true)
-    const payload: any = {
+    // Porta única (lib/recebimentoHelpers): avisa a contabilidade (AR_CREATED/AR_UPDATED),
+    // nunca mexe no já recebido e passa pela mesma regra de Contas a Receber.
+    const dados: Record<string, unknown> = {
       cliente_id: nc.cliente_id, descricao: nc.descricao, valor: parseFloat(nc.valor),
       data_vencimento: nc.data_vencimento, numero_documento: nc.numero_documento || null,
       categoria: nc.categoria, responsavel: nc.responsavel || null, observacoes: nc.observacoes || null,
-      empresa_id: empresaId,
     }
-    if (editandoCaso) {
-      const { data, error } = await supabase.from('contas_receber').update(payload).eq('id', editandoCaso.id).select('id')
-      if (error || !data || data.length === 0) {
-        showToast(L('Não foi possível salvar o caso. Tente novamente.', 'Could not save the case. Try again.', 'No se pudo guardar el caso. Intente de nuevo.'), 'erro')
-        reportarFalhaEscrita('contas_receber', 'update', error?.message || '0 linhas afetadas (RLS?)')
-        setSalvandoCaso(false)
-        return
-      }
-    } else {
-      const { data, error } = await supabase.from('contas_receber').insert({ ...payload, status: 'pendente', user_id: userId }).select('id')
-      if (error || !data || data.length === 0) {
-        showToast(L('Não foi possível salvar o caso. Tente novamente.', 'Could not save the case. Try again.', 'No se pudo guardar el caso. Intente de nuevo.'), 'erro')
-        reportarFalhaEscrita('contas_receber', 'insert', error?.message || '0 linhas afetadas (RLS?)')
-        setSalvandoCaso(false)
-        return
-      }
+    const r = !empresaId ? { erro: 'sem_empresa' }
+      : editandoCaso ? await editarContaReceber(editandoCaso.id, dados, 'inadimplencia')
+      : await criarContaReceber(userId, empresaId, dados, { modulo: 'inadimplencia' })
+    if (r.erro) {
+      showToast(r.erro === 'abaixo_do_recebido'
+        ? L('O valor não pode ficar menor que o já recebido.', 'The amount cannot be lower than what was already received.', 'El valor no puede ser menor que lo ya cobrado.')
+        : L('Não foi possível salvar o caso. Tente novamente.', 'Could not save the case. Try again.', 'No se pudo guardar el caso. Intente de nuevo.'), 'erro')
+      setSalvandoCaso(false)
+      return
     }
     // empresa_id restaurado aqui — faltava neste refresh específico (o
     // carregamento inicial da tela já filtrava certo, este ponto não).
@@ -491,10 +485,11 @@ export default function Inadimplencia() {
   }
 
   async function excluirCaso(id: string) {
-    const { data, error } = await supabase.from('contas_receber').delete().eq('id', id).select('id')
-    if (error || !data || data.length === 0) {
-      showToast(L('Não foi possível excluir. Tente novamente.', 'Could not delete. Try again.', 'No se pudo eliminar. Intente de nuevo.'), 'erro')
-      reportarFalhaEscrita('contas_receber', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+    const r = await excluirContaReceber(id, 'inadimplencia')
+    if (r.erro) {
+      showToast(r.erro === 'ja_recebida'
+        ? L('Esta conta já tem recebimento (mesmo parcial). Estorne em Contas a Receber antes de excluir.', 'This bill already has a receipt (even partial). Reverse it in Receivables before deleting.', 'Esta cuenta ya tiene un cobro (aunque sea parcial). Reviértalo en Cuentas por Cobrar antes de eliminar.')
+        : L('Não foi possível excluir. Tente novamente.', 'Could not delete. Try again.', 'No se pudo eliminar. Intente de nuevo.'), 'erro')
       return
     }
     setContas(contas.filter((c) => c.id !== id))

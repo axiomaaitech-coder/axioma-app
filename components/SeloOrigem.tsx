@@ -19,7 +19,7 @@ export default function SeloOrigem({ origemTabela, temaClaro }: { origemTabela: 
         `Registrado automáticamente por el pago en ${nome}. Para corregirlo, revierta el pago allí — Axioma actualiza todos los módulos.`)}
       className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md whitespace-nowrap"
       style={temaClaro ? { background: '#101b3d', color: '#fff' } : { color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.45)' }}>
-      <Link2 size={11} aria-hidden />{L('Veio de', 'From', 'Vino de')} {nome}
+      <Link2 size={11} aria-hidden />{L('Origem', 'Source', 'Origen')}: {nome}
     </button>
   )
 }
