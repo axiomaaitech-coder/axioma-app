@@ -20,6 +20,7 @@ import { CorrenteImpacto, CorrenteMini } from './CorrenteImpacto'
 import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
+import { BotaoPesquisaNexus } from './PesquisaNexus'
 import { DivisorNexus } from './DivisorNexus'
 import { EconomiaMundial } from './EconomiaMundial'
 import { SaudeFontes } from './SaudeFontes'
@@ -395,8 +396,9 @@ export default function NexusPage() {
               return (
                 <div key={ind.codigo} className={`${CARD_NEXUS}${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
                   {BARRA_EFEITO}
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2">
                     <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{ind.emoji} {ind.nome[lang]}</p>
+                    <BotaoPesquisaNexus tema={ind.codigo} lang={lang} temaClaro={temaClaro} />
                   </div>
                   <p className="text-2xl font-black leading-none mb-2" style={{ color: TITULO }}>{formatarValorIndicador(ind)}</p>
                   {ind.historico.length >= 2 && (
@@ -760,6 +762,10 @@ export default function NexusPage() {
                 </div>
                 <h3 id="nexus-evento-titulo" className="text-lg font-black leading-snug mb-2" style={{ color: TITULO }}>{texto.titulo}</h3>
                 {texto.descricao && <p className="text-sm leading-relaxed mb-4" style={{ color: TEXTO }}>{texto.descricao}</p>}
+                <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: CINZA }}>
+                  {L('Fontes e reportagens sobre este evento:', 'Sources and news about this event:', 'Fuentes y noticias sobre este evento:')}
+                  <BotaoPesquisaNexus tema={`evento:${ev.id}`} lang={lang} temaClaro={temaClaro} />
+                </div>
                 <div className="rounded-xl p-3 space-y-1.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                   <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: corTrava(trava.nivel).texto }}>
                     {trava.nivel === 'oficial' ? <ShieldCheck size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}
@@ -849,6 +855,12 @@ export default function NexusPage() {
                   <ExternalLink size={15} />
                   {L('Ler matéria completa', 'Read full article', 'Leer la noticia completa')}
                 </a>
+                {!noticiaAberta.isDemo && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs" style={{ color: CINZA }}>
+                    {L('Reportagens relacionadas e o que isso muda:', 'Related news and what it changes:', 'Noticias relacionadas y qué cambia:')}
+                    <BotaoPesquisaNexus tema={`noticia:${noticiaAberta.id}`} lang={lang} temaClaro={temaClaro} />
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>

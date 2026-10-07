@@ -181,6 +181,7 @@ export const COMMODITIES_FMI = [
   { codigo: 'FMI:MILHO', fmi: 'PMAIZMT', nome: 'Milho (US$/tonelada, FMI)', unidade: 'US$/t' },
   { codigo: 'FMI:CAFE', fmi: 'PCOFFOTM', nome: 'Café arábica (centavos de US$ por libra-peso, FMI)', unidade: 'US¢/lb' },
   { codigo: 'FMI:MINERIO', fmi: 'PIORECR', nome: 'Minério de ferro (US$/tonelada seca, FMI)', unidade: 'US$/t' },
+  { codigo: 'FMI:ACUCAR', fmi: 'PSUGAISA', nome: 'Açúcar (centavos de US$ por libra-peso, FMI)', unidade: 'US¢/lb' },
 ] as const
 const urlFmi = () => `https://api.imf.org/external/sdmx/2.1/data/IMF.RES,PCPS/G001.${COMMODITIES_FMI.map((c) => c.fmi).join('+')}.USD.M?startPeriod=${new Date().getUTCFullYear() - 2}-01`
 export async function ingerirCommodities(supabase: SupabaseClient): Promise<string> {

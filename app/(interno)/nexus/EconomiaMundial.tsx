@@ -4,6 +4,7 @@
 // matérias-primas soja/milho/café/minério (FMI, mensal). Fontes gratuitas.
 import { PALETA } from '../../../lib/nexusTema'
 import { TITULO_SECAO } from './fonteJose'
+import { BotaoPesquisaNexus } from './PesquisaNexus'
 import { traduzirFreshness, type EconomiaMundial as TipoEconomia, type PaisMundo, type IndicadorNexus } from '../../../lib/nexusHelpers'
 
 type Lang = 'pt' | 'en' | 'es'
@@ -52,7 +53,10 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
           return (
             <div key={c.iso} className={CARD} style={estilo}>
               {BARRA}
-              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{c.bandeira} {L(...c.nome)}</p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{c.bandeira} {L(...c.nome)}</p>
+                <BotaoPesquisaNexus tema={`pais:${c.iso}`} lang={lang} temaClaro={temaClaro} />
+              </div>
               <p className="text-2xl font-black leading-none" style={{ color: TITULO }}>{pct(p?.pib ?? null, lang)}</p>
               <p className="text-[11px] mt-1" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L('crescimento do PIB', 'GDP growth', 'crecimiento del PIB')}</p>
               <p className="text-xs mt-2" style={{ color: TEXTO }}>{L('Inflação', 'Inflation', 'Inflación')}: <span className="font-bold" style={{ color: TITULO }}>{pct(p?.inflacao ?? null, lang)}</span></p>
@@ -66,7 +70,7 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
 
       <div className="mt-6 mb-3 px-1">
         <h2 className={TITULO_SECAO} style={{ color: TITULO }}>🌾 {L('Matérias-primas', 'Commodities', 'Materias primas')}</h2>
-        <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Preço internacional médio do mês — soja, milho, café e minério, o que o Brasil mais exporta (FMI).', 'Monthly average international price — soybeans, corn, coffee and iron ore, Brazil’s top exports (IMF).', 'Precio internacional medio del mes — soja, maíz, café y mineral de hierro, lo que Brasil más exporta (FMI).')}</p>
+        <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{L('Preço internacional médio do mês — soja, milho, café, minério e açúcar, o que o Brasil mais exporta (FMI; reserva: Banco Mundial).', 'Monthly average international price — soybeans, corn, coffee, iron ore and sugar, Brazil’s top exports (IMF; backup: World Bank).', 'Precio internacional medio del mes — soja, maíz, café, mineral de hierro y azúcar, lo que Brasil más exporta (FMI; respaldo: Banco Mundial).')}</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {(dados?.materias ?? []).map((m) => (
@@ -98,8 +102,8 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
 }
 
 const num = (v: number, lang: Lang) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-// Café vem em centavos de dólar por libra-peso; o resto em US$ por tonelada.
-const precoMateria = (m: IndicadorNexus, lang: Lang) => m.valor == null ? '—' : m.codigo === 'FMI:CAFE' ? `${num(m.valor, lang)} US¢/lb` : `US$ ${num(m.valor, lang)}/t`
+// Café e açúcar vêm em centavos de dólar por libra-peso; o resto em US$ por tonelada.
+const precoMateria = (m: IndicadorNexus, lang: Lang) => m.valor == null ? '—' : m.codigo === 'FMI:CAFE' || m.codigo === 'FMI:ACUCAR' ? `${num(m.valor, lang)} US¢/lb` : `US$ ${num(m.valor, lang)}/t`
 
 // Card de preço com mini-gráfico, data e selo de atualidade (Brent e matérias-primas).
 function CardPreco({ ind, rotulo, valor, mensal, lang, temaClaro }: { ind: IndicadorNexus | null; rotulo: string; valor: string; mensal: boolean; lang: Lang; temaClaro: boolean }) {
@@ -111,7 +115,10 @@ function CardPreco({ ind, rotulo, valor, mensal, lang, temaClaro }: { ind: Indic
   return (
     <div className={CARD} style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
       {BARRA}
-      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{rotulo}</p>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{rotulo}</p>
+        {ind && <BotaoPesquisaNexus tema={ind.codigo} lang={lang} temaClaro={temaClaro} />}
+      </div>
       <p className="text-2xl font-black leading-none mb-1" style={{ color: TITULO }}>{valor}</p>
       {ind && <Sparkline valores={ind.historico.map((p) => p.valor)} cor={temaClaro ? '#16a97d' : CIANO} />}
       <div className="flex items-center justify-between mt-auto">

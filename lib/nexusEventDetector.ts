@@ -228,6 +228,7 @@ const NOME_SERIE: Record<string, Record<Lang, string>> = {
   "FMI:MILHO": { pt: "Milho", en: "Corn", es: "Maíz" },
   "FMI:CAFE": { pt: "Café", en: "Coffee", es: "Café" },
   "FMI:MINERIO": { pt: "Minério de ferro", en: "Iron ore", es: "Mineral de hierro" },
+  "FMI:ACUCAR": { pt: "Açúcar", en: "Sugar", es: "Azúcar" },
   "IBGE:VAREJO": { pt: "Vendas do comércio", en: "Retail sales", es: "Ventas del comercio" },
   "IBGE:SERVICOS": { pt: "Setor de serviços", en: "Services sector", es: "Sector servicios" },
   "IBGE:INDUSTRIA": { pt: "Produção industrial", en: "Industrial output", es: "Producción industrial" },

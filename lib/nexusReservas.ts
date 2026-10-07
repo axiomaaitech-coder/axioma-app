@@ -181,6 +181,8 @@ export const INDICADORES: Indicador[] = [
   { codigo: 'FMI:CAFE', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Café arábica (centavos de US$ por libra-peso, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US¢/lb' },
     reservas: [pink('Coffee, Arabica', (v) => (v * 100) / 2.20462)] }, // Pink Sheet em US$/kg
   { codigo: 'FMI:MINERIO', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Minério de ferro (US$/tonelada seca, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/t' }, reservas: [pink('Iron ore, cfr spot')] },
+  { codigo: 'FMI:ACUCAR', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Açúcar (centavos de US$ por libra-peso, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US¢/lb' },
+    reservas: [pink('Sugar, world', (v) => (v * 100) / 2.20462)] }, // Pink Sheet em US$/kg
   ...(['CNY', 'USD', 'EUR', 'GBP', 'JPY'] as const).map((m): Indicador => ({
     codigo: `BCE:${m}`, principal: 'Banco Central Europeu', frequencia: 'diaria',
     meta: { nome: `${m} em reais (via BCE)`, categoria: 'fx', country: 'WORLD', moeda: 'BRL', unidade: 'R$' }, reservas: [frankfurter(m)],

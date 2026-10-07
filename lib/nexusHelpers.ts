@@ -269,6 +269,7 @@ const MATERIAS: { codigo: string; nome: IndicadorNexus["nome"]; emoji: string }[
   { codigo: "FMI:MILHO", nome: { pt: "Milho", en: "Corn", es: "Maíz" }, emoji: "🌽" },
   { codigo: "FMI:CAFE", nome: { pt: "Café", en: "Coffee", es: "Café" }, emoji: "☕" },
   { codigo: "FMI:MINERIO", nome: { pt: "Minério de ferro", en: "Iron ore", es: "Mineral de hierro" }, emoji: "⛏️" },
+  { codigo: "FMI:ACUCAR", nome: { pt: "Açúcar", en: "Sugar", es: "Azúcar" }, emoji: "🍬" },
 ];
 // Preço médio nos postos do Brasil (ANP, semanal).
 const COMBUSTIVEIS: typeof MATERIAS = [

@@ -170,32 +170,34 @@ async function jsonPelaOpenAI(sistema: string, mensagem: string, esquema: Esquem
   return null
 }
 
-export async function jsonDoJose(p: { sistema: string; mensagem: string; esquema: EsquemaJson; rotulo: string; uso?: Uso }): Promise<{ texto: string; modelo: string }> {
+// nivel 'analise' = Sonnet (pesquisas do Motor de Pesquisa Nexus, mais frequentes); padrão = Opus (painel, plano, análise de evento).
+export async function jsonDoJose(p: { sistema: string; mensagem: string; esquema: EsquemaJson; rotulo: string; uso?: Uso; nivel?: 'analise' | 'estrategica' }): Promise<{ texto: string; modelo: string }> {
+  const modeloClaude = p.nivel === 'analise' ? MODELOS.analise.modelo : MODELO_JOSE
   const motivos: string[] = []
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const client = new Anthropic()
       const params = {
-        model: MODELO_JOSE,
+        model: modeloClaude,
         max_tokens: 16000,
         // fallbacks "default": se o modelo recusar por política, a própria API refaz num modelo reserva.
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
         system: [{ type: 'text', text: p.sistema, cache_control: { type: 'ephemeral' } }],
         // Opus 5.5 vem com esforço "medium" por padrão; o José sempre rodou no "high".
-        output_config: { effort: 'high', format: { type: 'json_schema', schema: p.esquema } },
+        output_config: { effort: p.nivel === 'analise' ? 'medium' : 'high', format: { type: 'json_schema', schema: p.esquema } },
         messages: [{ role: 'user', content: p.mensagem }],
       }
       // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui.
       const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
       const u = r.usage as unknown as { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }
-      somarUso(p.uso, MODELO_JOSE, u.input_tokens, u.output_tokens, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0)
+      somarUso(p.uso, modeloClaude, u.input_tokens, u.output_tokens, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0)
       const bloco = r.content.find((b) => b.type === 'text')
       if (r.stop_reason === 'refusal') motivos.push('Claude: recusa')
       else if (r.stop_reason === 'max_tokens') motivos.push('Claude: resposta cortada')
       else if (!bloco || bloco.type !== 'text') motivos.push('Claude: sem texto')
       else {
-        try { JSON.parse(bloco.text); return { texto: bloco.text, modelo: r.model ?? MODELO_JOSE } }
+        try { JSON.parse(bloco.text); return { texto: bloco.text, modelo: r.model ?? modeloClaude } }
         catch { motivos.push('Claude: JSON inválido') }
       }
     } catch (err) { motivos.push(`Claude: ${err instanceof Error ? err.message : String(err)}`) }
