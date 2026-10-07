@@ -218,6 +218,18 @@ export function projecaoTeto(
 // ============================================================================
 
 // Dias até o próximo vencimento do DAS (dia 20 por padrão, configurável em Configurar MEI).
+// Regra legal do DAS-MEI: a competência de um mês vence no dia 20 do mês SEGUINTE
+// (DAS de setembro vence em 20/10). "O DAS deste mês" = competência do mês anterior,
+// vencendo neste mês. Até 2026-10-07 o Axioma vencia a competência no próprio mês e
+// marcava DAS como atrasado um mês antes da hora.
+export function dasDoMes(hoje: Date = new Date(), diaVencimento: number = 20): { competencia: string; vencimento: Date } {
+  const ant = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  return {
+    competencia: `${ant.getFullYear()}-${String(ant.getMonth() + 1).padStart(2, "0")}`,
+    vencimento: new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento),
+  };
+}
+
 export function diasParaDAS(hoje: Date = new Date(), diaVencimento: number = 20): number {
   const diaEsteMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento);
   if (hoje.getDate() <= diaVencimento) {
@@ -600,8 +612,9 @@ export function competenciasDASDoAno(
   if (aberturaObj && aberturaObj.getFullYear() > anoAtual) return [];
   const resultado: CompetenciaDAS[] = [];
   for (let m = mesInicio; m <= 11; m++) {
-    const dataVencimento = new Date(anoAtual, m, diaVencimento);
-    if (dataVencimento > hoje) break; // mês futuro ainda não é uma obrigação
+    // Competência m vence no dia do mês m+1 (dezembro vence em janeiro do ano seguinte).
+    const dataVencimento = new Date(anoAtual, m + 1, diaVencimento);
+    if (dataVencimento > hoje) break; // ainda não venceu: não é obrigação em aberto
     const competencia = `${anoAtual}-${String(m + 1).padStart(2, "0")}`;
     const registro = obrigacoesCarregadas.find((o) => o.tipo === "DAS" && o.competencia === competencia);
     resultado.push({ mesNum: m, competencia, dataVencimento, status: registro?.status || "Pendente" });

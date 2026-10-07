@@ -612,7 +612,7 @@ export default function Investimentos() {
                     <Landmark size={14} style={{ color: ct(CORES.azul) }} />
                     <p className="text-xs font-black" style={{ color: ct("#f1f5f9") }}>{cx.invIndicadoresMacro}</p>
                   </div>
-                  <p className="text-[9px]" style={{ color: macro.fonte === "bcb" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte === "bcb" ? cx.invFonteBcb : cx.invFonteFallback}</p>
+                  <p className="text-[9px]" style={{ color: macro.fonte !== "fallback" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte !== "fallback" ? cx.invFonteBcb : cx.invFonteFallback}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[

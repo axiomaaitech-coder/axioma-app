@@ -1,4 +1,5 @@
 ﻿'use client'
+import { buscarIndicadoresMacro, FALLBACK_MACRO } from '../../../../lib/bcbApi'
 import { useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../../lib/LanguageContext'
@@ -124,6 +125,7 @@ export default function CockpitMEI() {
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
   const [obrigacoes, setObrigacoes] = useState<any[]>([])
   const [precoSalvo, setPrecoSalvo] = useState<any>(null)
+  const [selicAnual, setSelicAnual] = useState(FALLBACK_MACRO.selic) // substituída pela Selic do dia ao carregar
   const [shareAberto, setShareAberto] = useState(false)
 
   const txt = {
@@ -182,7 +184,7 @@ export default function CockpitMEI() {
     const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
     const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
 
-    const [empresa, meiRes, recRes, cvRes, cfRes, cpRes, obrigacoesRows, precoRes] = await Promise.all([
+    const [empresa, meiRes, recRes, cvRes, cfRes, cpRes, obrigacoesRows, precoRes, macro] = await Promise.all([
       carregarEmpresaPorId(empresaId),
       supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle(),
       supabase.from('receitas').select('valor, data, considera_teto_mei').eq('empresa_id', empresaId),
@@ -191,9 +193,11 @@ export default function CockpitMEI() {
       supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
       carregarObrigacoesAno(empresaId, anoAtual),
       supabase.from('mei_precos_salvos').select('*').eq('empresa_id', empresaId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      buscarIndicadoresMacro(), // Selic do dia (mesma das telas DAS e Painel MEI)
     ])
 
     setNomeEmpresa(empresa?.nome_fantasia || empresa?.razao_social || null)
+    setSelicAnual(macro.selic)
     setMeiDados(meiRes.data || null)
     setReceitas(recRes.data || [])
     setCustosVariaveis(cvRes.data || [])
@@ -254,7 +258,7 @@ export default function CockpitMEI() {
   // ---- Card 3: DAS & Obrigações (mesma detecção por data da tela DAS) ----
   const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
-  const divida = calcularDividaDASAcumulada(competenciasAno, dasMensalAtual, 10.75, hoje)
+  const divida = calcularDividaDASAcumulada(competenciasAno, dasMensalAtual, selicAnual, hoje)
   const faseAtual: FaseRiscoDAS = faseRiscoDAS(divida.piorDiasAtraso)
   const diasAteVencimentoDas = diasParaDAS(hoje, diaVencimentoDas)
   const corDas = faseAtual === 'em_dia' ? VERDE : faseAtual === 'atrasado' ? AMBAR : VERMELHO

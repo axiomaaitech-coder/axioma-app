@@ -16,7 +16,7 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
-import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
+import { buscarIndicadoresMacro, FALLBACK_MACRO } from '../../../lib/bcbApi'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
@@ -27,7 +27,7 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import { CountUp } from '../../../components/CountUp'
 import { AuroraBackground } from '../../../components/AuroraBackground'
 import {
-  LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite, tetoProporcionalMEI,
+  LIMITE_ANUAL_MEI, dasMensalPorCategoria, dasDoMes, faturamentoAnoMEI, limiteRestante, percentualLimite, tetoProporcionalMEI,
   semaforoTeto, projecaoTeto, fluxoMesMEI, pareceGastoPessoal, scoreMEI, carregarObrigacoesAno,
   serieMensalMEI, montarCofre,
   detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
@@ -94,7 +94,7 @@ export default function PainelMEI() {
   const [statusDas, setStatusDas] = useState<StatusObrigacao>('Pendente')
   const [statusDasn, setStatusDasn] = useState<StatusObrigacao>('Pendente')
   const [statusIrpf, setStatusIrpf] = useState<StatusObrigacao>('Não obrigatório')
-  const [selicAnual, setSelicAnual] = useState(10.75)
+  const [selicAnual, setSelicAnual] = useState(FALLBACK_MACRO.selic)
   const [modalConfig, setModalConfig] = useState(false)
   const [categoriaMei, setCategoriaMei] = useState('Serviços')
   const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
@@ -164,7 +164,7 @@ export default function PainelMEI() {
     const anoAtual = hoje.getFullYear()
     const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
     const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
-    const competenciaDas = `${anoAtual}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    const competenciaDas = dasDoMes(hoje).competencia // DAS que vence neste mês = competência do mês anterior
     const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }, obrigacoes, macro] = await Promise.all([
       empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),

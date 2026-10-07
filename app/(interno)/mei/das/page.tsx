@@ -21,10 +21,10 @@ import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
-import { buscarIndicadoresMacro, type IndicadoresMacro } from '../../../../lib/bcbApi'
+import { buscarIndicadoresMacro, FALLBACK_MACRO, type IndicadoresMacro } from '../../../../lib/bcbApi'
 import {
   faturamentoAnoMEI, dasMensalPorCategoria, carregarObrigacoesAno, salvarObrigacao,
-  competenciasDASDoAno, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
+  competenciasDASDoAno, dasDoMes, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
 } from '../../../../lib/meiHelpers'
@@ -180,9 +180,9 @@ export default function DASObrigacoes() {
   const hoje = new Date()
   const anoAtual = hoje.getFullYear()
   const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
-  const competenciaDas = `${anoAtual}-${pad(hoje.getMonth() + 1)}`
+  const { competencia: competenciaDas, vencimento: vencimentoDasDoMes } = dasDoMes(hoje, diaVencimentoDas) // DAS do mês anterior, vence neste mês
   const competenciaAnual = String(anoAtual)
-  const vencimentoDas = new Date(anoAtual, hoje.getMonth(), diaVencimentoDas)
+  const vencimentoDas = vencimentoDasDoMes
   const vencimentoDasn = new Date(anoAtual, 4, 31) // 31 de maio
   const vencimentoIrpf = new Date(anoAtual, 3, 30) // 30 de abril
 
@@ -195,7 +195,7 @@ export default function DASObrigacoes() {
   const statusIrpf: StatusObrigacao = obrigacaoIrpf?.status || 'Não obrigatório'
 
   const dasValorNum = parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))) || 0
-  const selicAnual = indicadores?.selic ?? 10.75
+  const selicAnual = indicadores?.selic ?? FALLBACK_MACRO.selic
 
   // ---- Mapa de Consequências: detecção de atraso sempre por DATA, nunca só por status manual ----
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
@@ -242,6 +242,13 @@ export default function DASObrigacoes() {
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+  // O status é gravado em português (valor do banco); na tela, no idioma escolhido.
+  const rotuloStatus = (s: StatusObrigacao) => ({
+    'Entregue': { pt: 'Entregue', en: 'Filed', es: 'Entregado' },
+    'Pendente': { pt: 'Pendente', en: 'Pending', es: 'Pendiente' },
+    'Atrasado': { pt: 'Atrasado', en: 'Overdue', es: 'Atrasado' },
+    'Não obrigatório': { pt: 'Não obrigatório', en: 'Not required', es: 'No obligatorio' },
+  }[s]?.[lang] ?? s)
   const corStatus = (s: StatusObrigacao) =>
     s === 'Entregue' ? VERDE : s === 'Atrasado' ? VERMELHO : s === 'Não obrigatório' ? NEUTRO : AMBAR
 
@@ -377,14 +384,14 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                   <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus(tipo, s)}
                     className="text-xs px-2 py-1 rounded-full"
                     style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
-                    {s}
+                    {rotuloStatus(s)}
                   </button>
                 ))}
               </motion.div>
             ) : (
               <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
                 <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(status)}15`, color: corStatus(status), border: `1px solid ${corStatus(status)}30` }}>
-                  {status}
+                  {rotuloStatus(status)}
                 </span>
                 <button onClick={() => setEditandoTipo(tipo)} style={{ color: AZUL }}><Pencil size={15} /></button>
               </motion.div>
@@ -579,13 +586,13 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                           {(['Pendente', 'Entregue', 'Atrasado'] as StatusObrigacao[]).map(s => (
                             <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s)}
                               className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
-                              {s}
+                              {rotuloStatus(s)}
                             </button>
                           ))}
                         </motion.div>
                       ) : (
                         <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDas)}15`, color: corStatus(statusDas), border: `1px solid ${corStatus(statusDas)}30` }}>{statusDas}</span>
+                          <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDas)}15`, color: corStatus(statusDas), border: `1px solid ${corStatus(statusDas)}30` }}>{rotuloStatus(statusDas)}</span>
                           <button onClick={() => setEditandoTipo('DAS')} style={{ color: AZUL }}><Pencil size={15} /></button>
                         </motion.div>
                       )}
@@ -620,7 +627,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                   <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
                     style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
                     <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
-                    <p className="text-xs font-semibold mt-1" style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>{c.status}</p>
+                    <p className="text-xs font-semibold mt-1" style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>{rotuloStatus(c.status)}</p>
                   </div>
                 )
               })}
