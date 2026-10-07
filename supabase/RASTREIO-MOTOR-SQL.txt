@@ -1,0 +1,77 @@
+-- ============================================================================
+-- MOTOR DE RASTREABILIDADE — 2026-10-07
+-- Cada movimentação de dinheiro (pagamento, recebimento, estorno) vira um
+-- RASTRO com a lista de DESTINOS que ela precisa atualizar (contabilidade,
+-- fluxo de caixa, DRE gerencial, inadimplência). Cada destino tem status
+-- próprio: se quebrar no caminho, o Guardião sabe exatamente onde e refaz.
+-- Refazer nunca duplica: índices únicos por rastro em cada destino.
+-- ============================================================================
+
+-- ===== BLOCO 1 — tabelas do rastro =====
+create table if not exists public.rastreio_movimentacao (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references public.empresas(id) on delete cascade,
+  tipo text not null check (tipo in ('ap_pagamento','ap_estorno','ar_recebimento','ar_estorno')),
+  origem_tabela text not null,
+  origem_id uuid not null,
+  evento_id uuid references public.eventos_negocio(id) on delete set null,
+  valor numeric(14,2) not null default 0,
+  encargos numeric(14,2) not null default 0,
+  data_movimento date not null,
+  descricao text,
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'pendente' check (status in ('pendente','ok','falhou')),
+  usuario_id uuid default auth.uid(),
+  criado_em timestamptz not null default now(),
+  concluido_em timestamptz
+);
+
+create table if not exists public.rastreio_destino (
+  id uuid primary key default gen_random_uuid(),
+  rastreio_id uuid not null references public.rastreio_movimentacao(id) on delete cascade,
+  empresa_id uuid not null references public.empresas(id) on delete cascade,
+  destino text not null,
+  status text not null default 'pendente' check (status in ('pendente','ok','falhou','nao_aplica')),
+  tentativas int not null default 0,
+  ultimo_erro text,
+  resolvido_por text check (resolvido_por in ('motor','guardiao','usuario')),
+  executado_em timestamptz,
+  unique (rastreio_id, destino)
+);
+
+create index if not exists ix_rastreio_empresa_status on public.rastreio_movimentacao (empresa_id, status, criado_em desc);
+create index if not exists ix_rastreio_origem on public.rastreio_movimentacao (empresa_id, origem_tabela, origem_id);
+create index if not exists ix_rastreio_destino_empresa_status on public.rastreio_destino (empresa_id, status);
+
+alter table public.rastreio_movimentacao enable row level security;
+alter table public.rastreio_destino enable row level security;
+
+drop policy if exists rastreio_mov_select on public.rastreio_movimentacao;
+drop policy if exists rastreio_mov_insert on public.rastreio_movimentacao;
+drop policy if exists rastreio_mov_update on public.rastreio_movimentacao;
+create policy rastreio_mov_select on public.rastreio_movimentacao for select using (empresa_id in (select empresas_do_usuario()));
+create policy rastreio_mov_insert on public.rastreio_movimentacao for insert with check (empresa_id in (select empresas_do_usuario()));
+create policy rastreio_mov_update on public.rastreio_movimentacao for update using (empresa_id in (select empresas_do_usuario())) with check (empresa_id in (select empresas_do_usuario()));
+
+drop policy if exists rastreio_dest_select on public.rastreio_destino;
+drop policy if exists rastreio_dest_insert on public.rastreio_destino;
+drop policy if exists rastreio_dest_update on public.rastreio_destino;
+create policy rastreio_dest_select on public.rastreio_destino for select using (empresa_id in (select empresas_do_usuario()));
+create policy rastreio_dest_insert on public.rastreio_destino for insert with check (empresa_id in (select empresas_do_usuario()));
+create policy rastreio_dest_update on public.rastreio_destino for update using (empresa_id in (select empresas_do_usuario())) with check (empresa_id in (select empresas_do_usuario()));
+
+-- ===== BLOCO 2 — ligação dos módulos ao rastro (anti-duplicação) =====
+alter table public.fluxo_caixa      add column if not exists origem_tabela text, add column if not exists origem_id uuid, add column if not exists rastreio_id uuid references public.rastreio_movimentacao(id) on delete cascade;
+alter table public.receitas         add column if not exists origem_tabela text, add column if not exists origem_id uuid, add column if not exists rastreio_id uuid references public.rastreio_movimentacao(id) on delete cascade;
+alter table public.custos_variaveis add column if not exists origem_tabela text, add column if not exists origem_id uuid, add column if not exists rastreio_id uuid references public.rastreio_movimentacao(id) on delete cascade;
+
+create unique index if not exists ux_fluxo_caixa_rastreio      on public.fluxo_caixa (rastreio_id)      where rastreio_id is not null;
+create unique index if not exists ux_receitas_rastreio         on public.receitas (rastreio_id)         where rastreio_id is not null;
+create unique index if not exists ux_custos_variaveis_rastreio on public.custos_variaveis (rastreio_id) where rastreio_id is not null;
+create index if not exists ix_fluxo_caixa_origem      on public.fluxo_caixa (empresa_id, origem_tabela, origem_id)      where origem_id is not null;
+create index if not exists ix_receitas_origem         on public.receitas (empresa_id, origem_tabela, origem_id)         where origem_id is not null;
+create index if not exists ix_custos_variaveis_origem on public.custos_variaveis (empresa_id, origem_tabela, origem_id) where origem_id is not null;
+
+-- Contabilidade: o mesmo evento nunca vira dois lançamentos (refazer é seguro).
+create unique index if not exists ux_lancamento_contabil_evento on public.lancamento_contabil (evento_id) where evento_id is not null;
+-- ===== FIM =====

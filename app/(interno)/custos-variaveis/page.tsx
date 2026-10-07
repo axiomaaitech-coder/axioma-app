@@ -5,6 +5,8 @@ import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, Messag
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import SeloOrigem from "../../../components/SeloOrigem";
+import { lerTodas } from "../../../lib/lerTodas";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
@@ -137,14 +139,14 @@ export default function CustosVariaveis() {
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: cv }, { data: cf }, { data: rec }] = await Promise.all([
-      supabase.from("custos_variaveis").select("*").eq("empresa_id", empresaId)
-        .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }),
+      lerTodas(() => supabase.from("custos_variaveis").select("*").eq("empresa_id", empresaId)
+        .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }).order("id")),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
       supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId),
       // Leitura só (SELECT) de Receitas — necessária pra Margem de Contribuição. Nunca escreve nessa tabela.
       // Limitada à mesma janela histórica — não traz o histórico inteiro da empresa de uma vez.
-      supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId)
-        .gte("data", inicioHistorico).lte("data", periodo.fim),
+      lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId)
+        .gte("data", inicioHistorico).lte("data", periodo.fim).order("id")),
     ]);
 
     setCustos(cv || []);
@@ -596,8 +598,10 @@ export default function CustosVariaveis() {
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
+                          {(c as { origem_tabela?: string | null }).origem_tabela ? <SeloOrigem origemTabela={String((c as { origem_tabela?: string | null }).origem_tabela)} temaClaro={temaClaro} /> : (<>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}><Trash2 size={16} /></motion.button>
+                          </>)}
                         </div>
                       </td>
                     </motion.tr>

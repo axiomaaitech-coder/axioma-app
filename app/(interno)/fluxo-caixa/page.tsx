@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Spa
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import SeloOrigem from "../../../components/SeloOrigem";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
@@ -650,8 +651,10 @@ export default function FluxoCaixa() {
                       </td>
                       <td className="px-4 md:px-6 py-4">
                         <div className="flex gap-3">
+                          {(l as { origem_tabela?: string | null }).origem_tabela ? <SeloOrigem origemTabela={String((l as { origem_tabela?: string | null }).origem_tabela)} temaClaro={temaClaro} /> : (<>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(l)} style={{ color: ct("#2ecc9b") }}><Pencil size={15} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(l.id)} style={{ color: ct("#f87171") }}><Trash2 size={15} /></motion.button>
+                          </>)}
                         </div>
                       </td>
                     </motion.tr>

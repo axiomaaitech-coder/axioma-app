@@ -5,6 +5,8 @@ import { Search, Trash2, X, Pencil, Share2, TrendingUp, AlertTriangle, Sparkles 
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import SeloOrigem from "../../../components/SeloOrigem";
+import { lerTodas } from "../../../lib/lerTodas";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
@@ -120,7 +122,7 @@ export default function Receitas() {
     setEmpresaIdAtivo(empresaId);
     setUserIdAtivo(user.id);
     const [{ data }, { data: clientesData }, { data: centrosData }] = await Promise.all([
-      supabase.from("receitas").select("*").eq("empresa_id", empresaId).order("data", { ascending: false }),
+      lerTodas(() => supabase.from("receitas").select("*").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id")),
       supabase.from("clientes").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
       supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId),
     ]);
@@ -449,8 +451,10 @@ export default function Receitas() {
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#34d399") }}>{fBRL(r.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
+                          {(r as { origem_tabela?: string | null }).origem_tabela ? <SeloOrigem origemTabela={String((r as { origem_tabela?: string | null }).origem_tabela)} temaClaro={temaClaro} /> : (<>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(r)} style={{ color: ct("#2ecc9b") }}><Pencil size={16} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(r.id)} style={{ color: ct("#f87171") }}><Trash2 size={16} /></motion.button>
+                          </>)}
                         </div>
                       </td>
                     </motion.tr>

@@ -12,6 +12,7 @@ import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import { hojeISO } from "./datas";
+import { registrarMovimentacao } from "./rastreio/motor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -185,17 +186,31 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
     reportarFalhaEscrita("contas_pagar", "update baixa - retorno não confere", `esperado valor_pago=${valorPago} status=${status}, banco devolveu valor_pago=${data[0].valor_pago} status=${data[0].status}`);
     return { erro: "verificacao_pos_escrita_falhou" };
   }
-  publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAID",
-    {
-      conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento,
-      // valor_incremento: o Accounting Core (Commit 5) lança só o que saiu
-      // NESTA baixa, não o acumulado — senão uma 2ª baixa parcial dobraria
-      // o valor já reconhecido na 1ª.
-      valor_incremento: incremento,
-      valor_encargos: encargos,
-    },
-    { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
+  // Motor de Rastreabilidade: a baixa vira um rastro que leva o pagamento até a
+  // contabilidade, o Fluxo de Caixa e a DRE — cada porta com status próprio.
+  if (conta.empresa_id) {
+    await registrarMovimentacao({
+      empresaId: conta.empresa_id, tipo: "ap_pagamento", origemTabela: "contas_pagar", origemId: conta.id,
+      valor: incremento, encargos, data: dataPagamento,
+      payload: {
+        descricao: conta.descricao, contraparte: await nomeFornecedor(conta.fornecedor_id), contraparte_id: conta.fornecedor_id,
+        categoria: conta.categoria ?? null, centro_custo_id: conta.centro_custo_id ?? null, forma: formaPagamento,
+        custo_fixo_id: conta.custo_fixo_id ?? null, evento_tipo: "AP_PAID",
+        evento_payload: {
+          conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento,
+          // valor_incremento: só o que saiu NESTA baixa (uma 2ª parcial não dobra a 1ª).
+          valor_incremento: incremento, valor_encargos: encargos,
+        },
+      },
+    });
+  }
   return {};
+}
+
+async function nomeFornecedor(id: string | null | undefined): Promise<string | null> {
+  if (!id) return null;
+  const { data } = await supabase.from("fornecedores").select("nome").eq("id", id).maybeSingle();
+  return (data?.nome as string) ?? null;
 }
 
 // COMMIT 3 — motivo é obrigatório (a tela não deixa confirmar sem preencher);
@@ -217,9 +232,17 @@ export async function estornarBaixaContaPagar(conta: ContaPagar, motivo: string,
     reportarFalhaEscrita("contas_pagar", "update estorno - retorno não confere", `esperado valor_pago=0 status=${status}, banco devolveu valor_pago=${data[0].valor_pago} status=${data[0].status}`);
     return { erro: "verificacao_pos_escrita_falhou" };
   }
-  publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAYMENT_REVERSED",
-    { conta_id: conta.id, valor: valorEstornado, motivo },
-    { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
+  if (conta.empresa_id) {
+    await registrarMovimentacao({
+      empresaId: conta.empresa_id, tipo: "ap_estorno", origemTabela: "contas_pagar", origemId: conta.id,
+      valor: valorEstornado, data: hojeISO(),
+      payload: {
+        descricao: `Estorno: ${conta.descricao}`, contraparte: await nomeFornecedor(conta.fornecedor_id), contraparte_id: conta.fornecedor_id,
+        categoria: conta.categoria ?? null, evento_tipo: "AP_PAYMENT_REVERSED",
+        evento_payload: { conta_id: conta.id, valor: valorEstornado, motivo },
+      },
+    });
+  }
   // O trigger fn_contas_pagar_auditoria_trigger já registra "estornou" com o
   // before/after da linha (quem/quando isso veio de graça); este registro
   // extra é só pra guardar o motivo/observação/valor, que não são coluna de

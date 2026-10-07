@@ -48,7 +48,7 @@ import {
   agruparCarteiraPorCampo, concentracaoTopClientes,
 } from '../../../lib/previsaoRecebimentoHelpers'
 import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
-import { registrarRecebimento } from '../../../lib/recebimentoHelpers'
+import { registrarRecebimento, registrarEstornoRecebimento } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { hojeISO } from '../../../lib/datas'
 
@@ -517,9 +517,7 @@ export default function ContasReceber() {
     // Sem tabela de auditoria própria de Contas a Receber (diferente do AP) —
     // o motivo vai direto no payload do evento; eventos_negocio já é o
     // registro permanente disso, não precisa duplicar em tabela nova.
-    publicarEventoNaoBloqueante(contaEstornar.empresa_id ?? empresaId, 'AR_PAYMENT_REVERSED',
-      { conta_id: contaEstornar.id, valor: valorEstornado, motivo: motivoEstorno.trim() },
-      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaEstornar.id })
+    await registrarEstornoRecebimento(contaEstornar, valorEstornado, motivoEstorno.trim(), empresaId)
     fecharEstornar()
     carregar()
     setEstornando(false)
