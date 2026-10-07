@@ -16,6 +16,7 @@ import { calcularImpostoRegime, simularRegimes } from '../iaTributariaHelpers'
 import { setorDaEmpresa, type Setor } from './setores'
 import { nomeSerie } from '../nexusEventDetector'
 import { hojeISO, fusoDaEmpresa } from '../datas'
+import { lerTodas } from '../lerTodas'
 
 export type NumerosRetrato = {
   receitaMensal: number
@@ -61,7 +62,6 @@ export type Retrato = {
   texto: string // versão compacta pro prompt
 }
 
-const LIMITE = 5000
 type Linha = Record<string, unknown>
 const n = (v: unknown) => Number(v || 0)
 const soma = (ls: Linha[], c: string) => ls.reduce((t, l) => t + n(l[c]), 0)
@@ -81,15 +81,15 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const inicio12 = iso(new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()))
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr] = await Promise.all([
     supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade').eq('id', empresaId).maybeSingle(),
-    supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).limit(LIMITE),
-    supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).limit(LIMITE),
-    supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).limit(LIMITE),
-    supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).limit(LIMITE),
-    supabase.from('fluxo_caixa').select('tipo, valor, status').eq('empresa_id', empresaId).eq('status', 'realizado').limit(LIMITE),
-    supabase.from('contas_receber').select('cliente_id, valor, valor_recebido, data_vencimento').eq('empresa_id', empresaId).limit(LIMITE),
-    supabase.from('contas_pagar').select('valor_total, valor_pago, data_vencimento').eq('empresa_id', empresaId).limit(LIMITE),
-    supabase.from('vw_estoque_avisos').select('ruptura, baixo_estoque, capital_parado').eq('empresa_id', empresaId).limit(LIMITE),
-    supabase.from('empresa_obrigacoes').select('status, data_vencimento').eq('empresa_id', empresaId).limit(LIMITE),
+    lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
+    lerTodas(() => supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
+    lerTodas(() => supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => supabase.from('fluxo_caixa').select('tipo, valor, status').eq('empresa_id', empresaId).eq('status', 'realizado').order('id')),
+    lerTodas(() => supabase.from('contas_receber').select('cliente_id, valor, valor_recebido, data_vencimento').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => supabase.from('contas_pagar').select('valor_total, valor_pago, data_vencimento').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => supabase.from('vw_estoque_avisos').select('ruptura, baixo_estoque, capital_parado').eq('empresa_id', empresaId).order('produto_id')),
+    lerTodas(() => supabase.from('empresa_obrigacoes').select('status, data_vencimento').eq('empresa_id', empresaId).order('id')),
   ])
   if (!emp.data) throw new Error('empresa não encontrada ou sem acesso')
   const e = emp.data as Linha

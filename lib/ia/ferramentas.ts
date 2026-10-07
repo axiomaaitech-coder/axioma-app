@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { hojeISO } from '../datas'
+import { lerTodas } from '../lerTodas'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -59,7 +60,11 @@ function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: stri
 // Executa uma ferramenta e devolve JSON compacto (texto) — nunca lança: erro vira {"erro": ...}.
 export async function executarFerramenta(supabase: SupabaseClient, empresaId: string, nome: string, input: Linha, fuso = 'America/Sao_Paulo'): Promise<string> {
   try {
-    const q = (t: string, cols: string) => supabase.from(t).select(cols).eq('empresa_id', empresaId).limit(5000)
+    // Lê em lotes até vir tudo: o Supabase devolve no máximo 1000 linhas por pedido (lib/lerTodas.ts)
+    const q = (t: string, cols: string, desde?: string) => lerTodas(() => {
+      const b = supabase.from(t).select(cols).eq('empresa_id', empresaId)
+      return (desde ? b.gte('data', desde) : b).order('id')
+    })
     switch (nome) {
       case 'contas_a_pagar': {
         const { data } = await q('contas_pagar', 'descricao, categoria, fornecedor_id, valor_total, valor_pago, data_vencimento')
@@ -78,7 +83,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
       case 'custos': {
         const fixos = input.tipo === 'fixos'
         const inicio = new Date(new Date().getFullYear(), new Date().getMonth() - 12, new Date().getDate()).toISOString().slice(0, 10)
-        const base = fixos ? q('custos_fixos', 'descricao, categoria, valor_mensal') : q('custos_variaveis', 'descricao, categoria, valor').gte('data', inicio)
+        const base = fixos ? q('custos_fixos', 'descricao, categoria, valor_mensal') : q('custos_variaveis', 'descricao, categoria, valor, data', inicio)
         const { data } = await base
         const m = new Map<string, { categoria: unknown; valor: number }>()
         for (const l of (data ?? []) as unknown as Linha[]) {
@@ -94,7 +99,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         const meses = Math.min(24, Math.max(1, Math.floor(n(input.meses)) || 6))
         const hoje = new Date()
         const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1).toISOString().slice(0, 10)
-        const { data } = await q('receitas', 'valor, data').gte('data', inicio)
+        const { data } = await q('receitas', 'valor, data', inicio)
         const soma = new Map<string, number>()
         for (let i = 0; i < meses; i++) soma.set(new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1 + i, 1).toISOString().slice(0, 7), 0)
         for (const l of (data ?? []) as unknown as Linha[]) { const k = String(l.data).slice(0, 7); if (soma.has(k)) soma.set(k, soma.get(k)! + n(l.valor)) }

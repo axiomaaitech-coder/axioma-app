@@ -4,6 +4,9 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
+import { lerTodas } from "../lib/lerTodas";
+import { hojeISO } from "../lib/datas";
+import { reportarFalhaLeitura } from "../lib/erroUiHelpers";
 import { fBRL, fK, tip, tipClaro, EIXO, barrasV, rosca } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 
@@ -82,7 +85,7 @@ type RealFin = {
   receitaCategorias: { name: string; value: number }[];
   custosFixosTotal: number;
   custosFixosCategorias: { name: string; value: number }[];
-  custosVarMedia: number;
+  custosVarMes: number;
   custosVarSerie: number[];
   saldoCaixa: number;
   dividaTotal: number;
@@ -92,7 +95,7 @@ type RealFin = {
 
 const REAL_VAZIO: RealFin = {
   receitaTotal: 0, receitaCategorias: [], custosFixosTotal: 0, custosFixosCategorias: [],
-  custosVarMedia: 0, custosVarSerie: Array(12).fill(0), saldoCaixa: 0,
+  custosVarMes: 0, custosVarSerie: Array(12).fill(0), saldoCaixa: 0,
   dividaTotal: 0, dividaPaga: 0, temDivida: false,
 };
 
@@ -141,46 +144,55 @@ export default function DashFinanceiro() {
   useEffect(() => {
     let ativo = true;
     (async () => {
-      const hoje = new Date();
-      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
-      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
-      const doze = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1).toISOString().slice(0, 10);
+      // Datas no fuso da empresa (relógio corrigido do Axioma), nunca toISOString/UTC.
+      const hoje = hojeISO();
+      const [ano, mes] = hoje.split("-").map(Number);
+      const inicioMes = `${hoje.slice(0, 7)}-01`;
+      const fimMes = `${hoje.slice(0, 7)}-${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
+      const d12 = new Date(ano, mes - 12, 1);
+      const doze = `${d12.getFullYear()}-${String(d12.getMonth() + 1).padStart(2, "0")}-01`;
       const empresaId = await obterEmpresaAtiva();
       if (!ativo) return;
       if (!empresaId) return;
 
-      const [{ data: receitasMes }, { data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: custosVarMes }, { data: dividas }] = await Promise.all([
-        supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicioMes).lte("data", fimMes),
-        supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", doze),
-        supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId),
-        supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", doze),
-        supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicioMes).lte("data", fimMes),
-        supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId),
+      // lerTodas: o Supabase devolve no máximo 1000 linhas por pedido — sem isso os totais
+      // de uma empresa com muito movimento sairiam menores, sem aviso.
+      const res = await Promise.all([
+        lerTodas(() => supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", doze).order("id")),
+        lerTodas(() => supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId).order("id")),
+        lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", doze).order("id")),
+        lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId).order("id")),
+        // Saldo em caixa = mesma regra do Fluxo de Caixa e da IA: só o que já entrou/saiu de verdade.
+        lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
       ]);
       if (!ativo) return;
+      const falha = res.find((r) => r.error)?.error;
+      if (falha) reportarFalhaLeitura("dashFinanceiro", falha);
+      const [{ data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: dividas }, { data: fluxo }] = res;
+      const doMes = (r: any) => r.data >= inicioMes && r.data <= fimMes;
 
-      const receitaTotal = (receitasMes || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-      const custosFixosTotal = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
-      const custosVarMesTotal = (custosVarMes || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const receitaTotal = receitas12m.filter(doMes).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const custosFixosTotal = custosFix.reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
+      const custosVarMes = custosVar12m.filter(doMes).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const saldoCaixa = fluxo.reduce((s: number, r: any) => s + (r.tipo === "entrada" ? 1 : -1) * Number(r.valor || 0), 0);
 
       const catReceita = new Map<string, number>();
-      (receitas12m || []).forEach((r: any) => { const k = r.categoria || "—"; catReceita.set(k, (catReceita.get(k) || 0) + Number(r.valor || 0)); });
+      receitas12m.forEach((r: any) => { const k = r.categoria || "—"; catReceita.set(k, (catReceita.get(k) || 0) + Number(r.valor || 0)); });
       const receitaCategorias = Array.from(catReceita, ([name, value]) => ({ name, value })).filter(c => c.value > 0);
 
       const catFixo = new Map<string, number>();
-      (custosFix || []).forEach((r: any) => { const k = r.categoria || "—"; catFixo.set(k, (catFixo.get(k) || 0) + Number(r.valor_mensal || 0)); });
+      custosFix.forEach((r: any) => { const k = r.categoria || "—"; catFixo.set(k, (catFixo.get(k) || 0) + Number(r.valor_mensal || 0)); });
       const custosFixosCategorias = Array.from(catFixo, ([name, value]) => ({ name, value })).filter(c => c.value > 0);
 
-      const custosVarSerie = serieRolling((custosVar12m || []).map((r: any) => ({ valor: r.valor, data: r.data })), 12).map(b => b.value);
-      const custosVarMedia = custosVarSerie.reduce((a, b) => a + b, 0) / 12;
+      const custosVarSerie = serieRolling(custosVar12m.map((r: any) => ({ valor: r.valor, data: r.data })), 12).map(b => b.value);
 
-      const dividaTotal = (dividas || []).reduce((s: number, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
-      const dividaPaga = (dividas || []).reduce((s: number, d: any) => s + Number(d.valor_pago || 0), 0);
+      const dividaTotal = dividas.reduce((s: number, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
+      const dividaPaga = dividas.reduce((s: number, d: any) => s + Number(d.valor_pago || 0), 0);
 
       setReal({
         receitaTotal, receitaCategorias, custosFixosTotal, custosFixosCategorias,
-        custosVarMedia, custosVarSerie, saldoCaixa: receitaTotal - custosFixosTotal - custosVarMesTotal,
-        dividaTotal, dividaPaga, temDivida: (dividas || []).length > 0,
+        custosVarMes, custosVarSerie, saldoCaixa,
+        dividaTotal, dividaPaga, temDivida: dividas.length > 0,
       });
     })();
     return () => { ativo = false; };
@@ -202,7 +214,7 @@ export default function DashFinanceiro() {
   ] : [
     { l: tt.receitaTotal, v: fBRL(real.receitaTotal), c: C.ouro, i: "💰", p: "/receitas" },
     { l: tt.custosFixos, v: fBRL(real.custosFixosTotal), c: C.vermelho, i: "📌", p: "/custos-fixos" },
-    { l: tt.custosVariaveis, v: fBRL(real.custosVarMedia), c: C.laranja, i: "📉", p: "/custos-variaveis" },
+    { l: tt.custosVariaveis, v: fBRL(real.custosVarMes), c: C.laranja, i: "📉", p: "/custos-variaveis" },
     { l: tt.saldoCaixa, v: fBRL(real.saldoCaixa), c: C.cyan, i: "💧", p: "/fluxo-caixa" },
     { l: tt.dividaTotal, v: fBRL(real.dividaTotal), c: C.rosa, i: "⚖️", p: "/endividamento" },
   ];
@@ -218,7 +230,7 @@ export default function DashFinanceiro() {
     `🚀 AXIOMA AI.TECH`,
     `${tt.receitaTotal} ${fBRL(real.receitaTotal)}`,
     `${tt.custosFixos} ${fBRL(real.custosFixosTotal)}`,
-    `${tt.custosVariaveis} ${fBRL(real.custosVarMedia)}`,
+    `${tt.custosVariaveis} ${fBRL(real.custosVarMes)}`,
     `${tt.saldoCaixa} ${fBRL(real.saldoCaixa)}`,
     `${tt.dividaTotal} ${fBRL(real.dividaTotal)}`,
   ];
@@ -263,7 +275,7 @@ export default function DashFinanceiro() {
                   option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, tt.meses, C.laranja, C.laranjaC, claro) : undefined}
                   vazio={tt.semCustoVariavel} />
                 <ChartDash {...chartBase} titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" altura={220}
-                  option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: Math.max(0, real.receitaTotal - real.saldoCaixa), color: C.vermelho }], C.cyan, tt.total, claro) : undefined}
+                  option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: real.custosFixosTotal + real.custosVarMes, color: C.vermelho }], C.cyan, tt.total, claro) : undefined}
                   vazio={tt.semReceita} />
                 <ChartDash {...chartBase} titulo={tt.receita} cor={C.ouro} path="/receitas" altura={220}
                   option={real.receitaCategorias.length ? rosca(real.receitaCategorias.map((c, i) => ({ name: c.name, value: c.value, color: serieCores(claro)[i % 5] })), C.ouro, tt.total, claro) : undefined}
