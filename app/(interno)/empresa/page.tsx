@@ -30,6 +30,7 @@ import {
   type ScoreResultado,
 } from "../../../lib/empresaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -987,7 +988,11 @@ export default function EmpresaPage() {
     setSalvando(true);
     const r = await atualizarEmpresa(empresa.id, userId, empresa, empresaForm);
     if (r.erro) showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro");
-    else { showToast(tt.toastDadosSalvos, "ok"); await carregarTudo(); }
+    else {
+      // Estado/cidade mudou: o fuso do Axioma acompanha na hora (lib/datas.ts).
+      definirFusoEmpresa(fusoDaEmpresa(empresaForm.uf, empresaForm.cidade));
+      showToast(tt.toastDadosSalvos, "ok"); await carregarTudo();
+    }
     setSalvando(false);
   }
 
@@ -1681,7 +1686,7 @@ export default function EmpresaPage() {
               ) : (
                 <div className="space-y-2">
                   {obrigacoes.map((o: any) => {
-                    const hoje = new Date().toISOString().slice(0, 10);
+                    const hoje = hojeISO();
                     const vencida = o.status === "pendente" && o.data_vencimento < hoje;
                     const corStatus = o.status === "paga" ? VERDE : vencida ? VERMELHO : o.status === "dispensada" ? CINZA : AMARELO;
                     const labelStatus = vencida ? tt.statusVencida :
@@ -1739,7 +1744,7 @@ export default function EmpresaPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {documentos.map((d: any) => {
                     const tipo = TIPOS_DOCUMENTOS.find((t) => t.key === d.tipo) || TIPOS_DOCUMENTOS[16];
-                    const hoje = new Date().toISOString().slice(0, 10);
+                    const hoje = hojeISO();
                     const vencido = d.data_validade && d.data_validade < hoje;
                     return (
                       <div key={d.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${vencido ? VERMELHO : AMARELO}30` }}>

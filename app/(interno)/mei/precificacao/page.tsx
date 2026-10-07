@@ -27,6 +27,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -186,7 +187,7 @@ export default function PrecificacaoMEI() {
     if (!user) return
     const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11)
     const inicioIso = inicio12m.toISOString().slice(0, 10)
-    const hoje = new Date().toISOString().slice(0, 10)
+    const hoje = hojeISO()
     const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: cf }, { data: cv }, { data: rec }] = await Promise.all([
       empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
@@ -419,7 +420,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-precificacao-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.precificacao.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
@@ -441,7 +442,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         { header: 'Valor', key: 'valor', width: 2, align: 'right' },
       ],
       linhas,
-      nomeArquivo: `axioma-mei-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-precificacao-${hojeISO()}.pdf`,
     }
   }
 

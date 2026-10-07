@@ -38,6 +38,7 @@ import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/Pla
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
 const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
@@ -213,7 +214,7 @@ export default function CentrosCustoPage() {
   const [descricaoLanc, setDescricaoLanc] = useState("");
   const [valorLanc, setValorLanc] = useState("");
   const [tipoLanc, setTipoLanc] = useState("custo");
-  const [dataLanc, setDataLanc] = useState(new Date().toISOString().split("T")[0]);
+  const [dataLanc, setDataLanc] = useState(hojeISO());
   const [centroLanc, setCentroLanc] = useState("");
   const [categoriaLanc, setCategoriaLanc] = useState("");
   const [salvandoLanc, setSalvandoLanc] = useState(false);
@@ -367,7 +368,7 @@ export default function CentrosCustoPage() {
   function abrirNovoLancamento() {
     setEditandoLanc(null);
     setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
-    setDataLanc(new Date().toISOString().split("T")[0]);
+    setDataLanc(hojeISO());
     setCentroLanc(""); setCategoriaLanc("");
     setModalLancamento(true);
   }
@@ -377,7 +378,7 @@ export default function CentrosCustoPage() {
     setDescricaoLanc(lanc.descricao || "");
     setValorLanc(String(lanc.valor || ""));
     setTipoLanc(lanc.tipo || "custo");
-    setDataLanc(lanc.data || new Date().toISOString().split("T")[0]);
+    setDataLanc(lanc.data || hojeISO());
     setCentroLanc(lanc.centro_custo_id || "");
     setCategoriaLanc(lanc.categoria || "");
     setModalLancamento(true);
@@ -386,7 +387,7 @@ export default function CentrosCustoPage() {
   function fecharModalLancamento() {
     setModalLancamento(false); setEditandoLanc(null);
     setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
-    setDataLanc(new Date().toISOString().split("T")[0]);
+    setDataLanc(hojeISO());
     setCentroLanc(""); setCategoriaLanc("");
   }
 

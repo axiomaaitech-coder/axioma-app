@@ -21,6 +21,7 @@ import {
 import { fBRL2, entradasEvidencia } from '../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,7 +73,6 @@ const LABEL_STATUS: Record<StatusDescoberta, Record<Idioma3, string>> = {
 
 const EMOJI_RISCO_OBRIGACAO: Record<string, string> = { atrasada: '🔴', urgente: '🟠', atencao: '🟡', folga: '🟢' }
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 
 export default function FiscalPage() {
   const { idioma } = useLanguage()

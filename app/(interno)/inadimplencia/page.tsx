@@ -52,6 +52,7 @@ import { heatmapInadimplencia } from '../../../lib/previsaoRecebimentoHelpers'
 import { statusEfetivo } from '../../../lib/fornecedorHelpers'
 import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -278,7 +279,7 @@ export default function Inadimplencia() {
     else showToast(L('Provisão salva na DRE.', 'Provision saved to the DRE.', 'Provisión guardada en el DRE.'), 'ok')
   }
 
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = hojeISO()
 
   function nivelScoreLabel(n: ScoreAxiomaCliente['nivel']) {
     return { critico: L('Crítico', 'Critical', 'Crítico'), atencao: L('Atenção', 'Attention', 'Atención'), bom: L('Bom', 'Good', 'Bueno'), excelente: L('Excelente', 'Excellent', 'Excelente'), elite: 'Elite' }[n]
@@ -391,7 +392,7 @@ export default function Inadimplencia() {
     const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: novoContato.conta_id, cliente_id: linhaAberta.s.cliente.id,
       tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao,
-      data: new Date().toISOString().slice(0, 10),
+      data: hojeISO(),
     })
     if (erro) {
       showToast(L('Não foi possível registrar o contato. Tente novamente.', 'Could not register the contact. Try again.', 'No se pudo registrar el contacto. Intente de nuevo.'), 'erro')
@@ -509,7 +510,7 @@ export default function Inadimplencia() {
   // (baixa integral, um clique, igual excluirCaso acima já fazia).
   async function darBaixaTitulo(c: ContaRow) {
     const valorTotal = Number(c.valor) || 0
-    const hojeStr = new Date().toISOString().split('T')[0]
+    const hojeStr = hojeISO()
     const status = statusEfetivo(null, valorTotal, valorTotal, c.data_vencimento, 'recebido')
     const { data, error } = await supabase.from('contas_receber').update({
       valor_recebido: valorTotal, status, data_recebimento: hojeStr,
@@ -634,7 +635,7 @@ export default function Inadimplencia() {
           { label: L('Perda Provável', 'Probable Loss', 'Pérdida Probable'), valor: kpis.perdaProvavel != null ? `R$ ${fBRL2(kpis.perdaProvavel)}` : '—' },
           { label: L('Recuperado no Ano', 'Recovered this Year', 'Recuperado este Año'), valor: `R$ ${fBRL2(kpis.valorRecuperadoAno)}` },
         ],
-        nomeArquivo: `axioma-inadimplencia-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-inadimplencia-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, 'erro'), lang)
     } catch (err) { showToast(tratarFalhaExportacao('inadimplencia.exportarPDF', err, lang), 'erro') }
     setExportando(false)

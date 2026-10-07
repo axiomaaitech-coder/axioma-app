@@ -23,6 +23,7 @@ import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoE
 import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusBriefing'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
+import { hojeISO } from '../datas'
 
 export type Nivel = 'rotina' | 'analise' | 'estrategica'
 export type Idioma = 'pt' | 'en' | 'es'
@@ -122,7 +123,7 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
   const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
   return {
     fixo: `${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
-    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${new Date().toISOString().slice(0, 10)}. Responda em ${NOME_IDIOMA[lang]}.`,
+    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${hojeISO(new Date(), ctx.retrato.fuso)}. Responda em ${NOME_IDIOMA[lang]}.`,
   }
 }
 
@@ -318,7 +319,7 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
 // cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
 const MAX_CONSULTAS = 4
 type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
-async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string }, uso?: Uso): Promise<ConsultaClaude> {
+async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string; fuso: string }, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   if (!process.env.ANTHROPIC_API_KEY) return { texto: null, dadosConsultados }
   const cfg = MODELOS[nivel]
@@ -350,7 +351,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
       conversa.push({ role: 'assistant', content: r.content })
       // Consultas em paralelo; todos os resultados voltam numa mensagem só.
       const resultados = await Promise.all(pedidos.map(async (p) => {
-        const saida = await executarFerramenta(consulta.supabase, consulta.empresaId, p.name, (p.input ?? {}) as Record<string, unknown>)
+        const saida = await executarFerramenta(consulta.supabase, consulta.empresaId, p.name, (p.input ?? {}) as Record<string, unknown>, consulta.fuso)
         dadosConsultados.push(saida)
         return { type: 'tool_result' as const, tool_use_id: p.id, content: saida, is_error: saida.startsWith('{"erro"') }
       }))
@@ -426,7 +427,7 @@ export async function perguntarAoMotor(args: {
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
     if (!TELAS_ANTHROPIC.has(args.tela ?? '')) return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso), provedor: 'openai', modelo: OPENAI_FORTE, enviados }
-    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId }, uso)
+    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso }, uso)
     if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
     // Anthropic fora do ar: 2ª IA = OpenAI forte; chamarOpenAI cai sozinha pra 3ª (OPENAI_RESERVA).
     const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso)

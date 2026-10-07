@@ -22,6 +22,7 @@ import {
   TIPOS_DOCUMENTO_FISCAL, TIPOS_ESPERADOS_IRPF, type TipoDocumentoFiscal, type DocumentoFiscal,
 } from '../../../../lib/documentosFiscaisHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -361,7 +362,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-irpf-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-irpf-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.impostoRenda.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
@@ -380,7 +381,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         { label: t('rendaTributavel'), valor: fmt(rendaTributavelMEI) },
         { label: lang === 'pt' ? 'IRPF estimado/ano' : lang === 'en' ? 'Estimated IRPF/year' : 'IRPF estimado/año', valor: fmt(impostoAnual) },
       ],
-      nomeArquivo: `axioma-mei-irpf-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-irpf-${hojeISO()}.pdf`,
     }
   }
 

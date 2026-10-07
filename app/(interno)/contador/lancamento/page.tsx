@@ -14,6 +14,7 @@ import {
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2 } from '../../../../lib/cfoCore'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -36,7 +37,6 @@ const PAPEIS_EDICAO = ['dono', 'admin']
 
 type LinhaPartida = { contaId: string; tipo: 'debito' | 'credito'; valor: string }
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 function linhaVazia(tipo: 'debito' | 'credito'): LinhaPartida { return { contaId: '', tipo, valor: '' } }
 
 export default function LancamentoManualPage() {

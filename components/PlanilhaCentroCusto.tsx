@@ -20,6 +20,7 @@ import { avaliarFormula, pareceFormula } from "../lib/formulaHelpers";
 import { useThemeAxioma } from "../lib/ThemeContext";
 import { SOMBRA_3D, BORDA_3D } from "./CanvasBox";
 import { LABEL_ORIGEM, type OrigemTabela, type CampoEditavel, atualizarCampoOrigem, type OrcamentoRow, orcamentoDoPeriodo } from "../lib/centroCustoHelpers";
+import { hojeISO } from "../lib/datas";
 
 export type LinhaPlanilha = {
   id: string;
@@ -405,13 +406,13 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
     const ws = XLSX.utils.json_to_sheet(linhasParaExportar());
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Centro de Custo");
-    XLSX.writeFile(wb, `axioma-centro-custo-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `axioma-centro-custo-${hojeISO()}.xlsx`);
   }
   function exportarCSV() {
     const ws = XLSX.utils.json_to_sheet(linhasParaExportar());
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Centro de Custo");
-    XLSX.writeFile(wb, `axioma-centro-custo-${new Date().toISOString().slice(0, 10)}.csv`, { bookType: "csv" });
+    XLSX.writeFile(wb, `axioma-centro-custo-${hojeISO()}.csv`, { bookType: "csv" });
   }
   function exportarPDF() {
     gerarPdfTabela({
@@ -424,7 +425,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       ],
       linhas: linhasOrdenadas.map(l => ({ origem: LABEL_ORIGEM[l.tabela][idioma], descricao: l.descricao, categoria: l.categoria || "-", centro: l.centroNome, valor: fmt(l.valor) })),
       resumo: [{ label: t.totalGeral, valor: fmt(totalGeral) }],
-      nomeArquivo: `axioma-centro-custo-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-centro-custo-${hojeISO()}.pdf`,
     });
   }
 

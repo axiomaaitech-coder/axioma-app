@@ -20,6 +20,7 @@ import {
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
+import { hojeISO } from '../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -45,7 +46,6 @@ const LABEL_TIPO_LIQUIDEZ: Record<string, { pt: string; en: string; es: string }
   restrito: { pt: 'Restrito', en: 'Restricted', es: 'Restringido' },
 }
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 
 export default function TesourariaPage() {
   const { idioma } = useLanguage()

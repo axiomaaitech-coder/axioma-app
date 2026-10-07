@@ -30,6 +30,7 @@ import {
   carregarDadosFiscais, calcularImpostoRegime, calcularEconomiaTributaria, gerarAlertasReforma,
   type AtividadeFiscal as AtividadeFiscalPresuncao, type AlertaReforma,
 } from "./iaTributariaHelpers";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +41,6 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10); }
 
 export type { Idioma3, TipoDescoberta, Prioridade, Confianca, StatusDescoberta, ContagemPrioridade };
 export { contarPorPrioridade };

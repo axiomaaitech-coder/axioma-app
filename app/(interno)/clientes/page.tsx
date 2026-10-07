@@ -38,6 +38,7 @@ import {
   type ClienteRow, type ContaRow, type InadimplenciaRow, type Idioma3, type TipoSinalCliente,
 } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -583,7 +584,7 @@ export default function ClientesPage() {
   }
 
   async function marcarRecebido(id: string) {
-    const { data, error } = await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: new Date().toISOString().split("T")[0] }).eq("id", id).select("id");
+    const { data, error } = await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: hojeISO() }).eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(tt.erroMarcarRecebido, "erro");
       reportarFalhaEscrita("contas_receber", "update status recebido", error?.message || "0 linhas afetadas (RLS?)");
@@ -624,7 +625,7 @@ export default function ClientesPage() {
     setModalCliente(false); setEditandoCliente(null); setForm(FORM_VAZIO); setMunicipios([]); setEtapaCadastro(0);
   }
 
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeISO();
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtN = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -776,7 +777,7 @@ export default function ClientesPage() {
             { label: cl.totalRecebido, valor: `R$ ${fmtN(totalRecebido)}` },
             { label: cl.totalVencido, valor: `R$ ${fmtN(totalVencido)}` },
           ],
-          nomeArquivo: `axioma-cobrancas-${new Date().toISOString().slice(0, 10)}.pdf`,
+          nomeArquivo: `axioma-cobrancas-${hojeISO()}.pdf`,
         }, (msg) => showToast(msg, "erro"), lang);
       } else {
         gerarPdfTabela({
@@ -799,7 +800,7 @@ export default function ClientesPage() {
             { label: tt.ticketMedioCarteira, valor: `R$ ${fmtN(snapshotCarteira.ticketMedioCarteira)}` },
             { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%` },
           ],
-          nomeArquivo: `axioma-carteira-clientes-${new Date().toISOString().slice(0, 10)}.pdf`,
+          nomeArquivo: `axioma-carteira-clientes-${hojeISO()}.pdf`,
         }, (msg) => showToast(msg, "erro"), lang);
       }
     } catch (err) { showToast(tratarFalhaExportacao("clientes.exportarPDF", err, lang), "erro"); }

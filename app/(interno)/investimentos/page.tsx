@@ -37,6 +37,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -494,7 +495,7 @@ export default function Investimentos() {
           { label: cx.invScoreTitulo, valor: `${score.total} (${scoreNivelLabel[score.nivel]})` },
           { label: cx.invRentabilidadeConsolidada, valor: `${rentabilidadeMediaLiquidaAA.toFixed(1)}% a.a.` },
         ],
-        nomeArquivo: `axioma-investimentos-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-investimentos-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("investimentos.exportarPDF", err, lang), "erro"); }
     setExportando(false);

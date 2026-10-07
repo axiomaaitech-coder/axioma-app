@@ -27,6 +27,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -171,7 +172,7 @@ export default function CustosVariaveis() {
     if (!user) { setSalvando(false); return; }
     const empresaId = await obterEmpresaAtiva();
     if (!empresaId) { setSalvando(false); return; }
-    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
+    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || hojeISO(), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { data, error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -290,7 +291,7 @@ export default function CustosVariaveis() {
           { label: "Margem de Contribuição", valor: fPct(mc.pct) },
           { label: "Ponto de Equilíbrio", valor: pe !== null ? `R$ ${fBRL2(pe)}` : cx.semBreakeven },
         ],
-        nomeArquivo: `axioma-custos-variaveis-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-custos-variaveis-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("custos-variaveis.exportarPDF", err, lang), "erro"); }
     setExportando(false);

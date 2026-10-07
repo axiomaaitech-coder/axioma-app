@@ -6,6 +6,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -128,7 +129,7 @@ export async function estornarLancamentoContabil(
   lancamentoId: string,
   descricao: string,
 ): Promise<{ id?: string; erro?: string }> {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const { data: novoId, error } = await supabase.rpc("contabil_estornar_lancamento", {
     p_lancamento_id: lancamentoId, p_data: hoje, p_descricao: descricao,
   });

@@ -9,6 +9,7 @@ import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { obterFechamento, obterDataTrust, type FechamentoInfo, type DataTrust } from '../../../../lib/contadorHelpers'
 import { fBRL2 } from '../../../../lib/cfoCore'
+import { hojeISO } from '../../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -42,7 +43,7 @@ export default function ContadorFechamentoPage() {
       const empId = await obterEmpresaAtiva()
       setEmpresaId(empId)
       if (empId) {
-        const hoje = new Date().toISOString().slice(0, 10)
+        const hoje = hojeISO()
         const [f, dt] = await Promise.all([obterFechamento(empId, hoje), obterDataTrust(empId, hoje)])
         setFechamento(f)
         setDataTrust(dt)

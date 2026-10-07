@@ -16,6 +16,7 @@ import { jsonDoJose, MODELO_JOSE } from './ia/motor'
 import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { textoEvento, fonteDaSerie, type PayloadEvento } from './nexusEventDetector'
+import { hojeISO } from './datas'
 
 // Modelo principal do José: decidido no motor (com reserva OpenAI em 2 níveis).
 export const MODELO_JOSEPH = MODELO_JOSE
@@ -127,7 +128,7 @@ export async function gerarAnaliseJoseph(
   const fato = textoEvento(evento.payload, 'pt')
 
   const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
-Data de hoje: ${new Date().toISOString().slice(0, 10)}.
+Data de hoje: ${hojeISO()}.
 
 EVENTO (natureza: ${evento.natureza}; categoria: ${evento.category ?? 'não informada'}; fonte: série oficial — ${fonteDaSerie(evento.payload.serie, 'pt')})
 ${fato.titulo}. ${fato.descricao}

@@ -71,6 +71,7 @@ import * as Sentry from "@sentry/nextjs";
 import { registrarLancamentoContabil, type PartidaContabilInput } from "./contabilidadeHelpers";
 import { type CategoriaDespesa } from "./categoriasDespesa";
 import { publicarEvento, type OrigemEvento, type TipoEvento } from "./eventFabricHelpers";
+import { hojeISO } from './datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -194,9 +195,6 @@ async function mapaContasPorCodigo(empresaId: string): Promise<Record<string, st
   return mapa;
 }
 
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // ============================================================================
 // ESTORNO POR PAPEL

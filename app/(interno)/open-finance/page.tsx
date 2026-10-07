@@ -31,6 +31,7 @@ import {
   type BaldeConciliacao, type CandidatoLancamento,
 } from '../../../lib/conciliacaoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -572,7 +573,7 @@ export default function OpenFinancePage() {
           { label: t.kpiNaoExplicado, valor: temTransacoes ? `R$ ${fBRL2(kpis.dinheiroNaoExplicado)}` : NAO_DISPONIVEL },
           { label: t.kpiPctConciliado, valor: fPctOuTraco(kpis.percentualConciliado) },
         ],
-        nomeArquivo: `axioma-open-finance-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-open-finance-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, 'erro'), lang)
     } catch (err) { showToast(tratarFalhaExportacao('open-finance.exportarPDF', err, lang), 'erro') }
     setExportando(false)

@@ -24,6 +24,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -140,7 +141,7 @@ export default function Receitas() {
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = user ? await obterEmpresaAtiva() : null;
     if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página e tente de novo.", "Session or company not found. Reload the page and try again.", "Sesión o empresa no encontrada. Recargue la página e intente de nuevo."), "erro"); return; }
-    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
+    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || hojeISO(), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { data, error } = await supabase.from("receitas").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -233,7 +234,7 @@ export default function Receitas() {
           { label: "MRR (Recorrente)", valor: `R$ ${fBRL2(mrr)}` },
           { label: "ARR (Anual)", valor: `R$ ${fBRL2(arr)}` },
         ],
-        nomeArquivo: `axioma-receitas-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-receitas-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("receitas.exportarPDF", err, lang), "erro"); }
     setExportando(false);

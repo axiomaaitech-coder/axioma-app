@@ -48,6 +48,7 @@ import {
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -824,7 +825,7 @@ export default function Fornecedores() {
   const [editandoContratoId, setEditandoContratoId] = useState<string | null>(null);
   const [novoProduto, setNovoProduto] = useState({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
   const [editandoProdutoId, setEditandoProdutoId] = useState<string | null>(null);
-  const hoje0 = new Date().toISOString().split("T")[0];
+  const hoje0 = hojeISO();
   const [novaInteracao, setNovaInteracao] = useState({ data: hoje0, tipo: "", descricao: "" });
   const [editandoInteracaoId, setEditandoInteracaoId] = useState<string | null>(null);
   const [erroCadastro, setErroCadastro] = useState<string | null>(null);
@@ -1298,7 +1299,7 @@ export default function Fornecedores() {
       categoria: nc.categoria, valor_total: total, valor_pago: pago, forma_pagamento: nc.forma_pagamento,
       parcelas: parseInt(nc.parcelas || "1"), data_emissao: nc.data_emissao || null,
       data_vencimento: nc.data_vencimento || null,
-      data_pagamento: status === "pago" ? new Date().toISOString().split("T")[0] : null,
+      data_pagamento: status === "pago" ? hojeISO() : null,
       status, observacoes: nc.observacoes, empresa_id: empresaId,
       centro_custo_id: nc.centro_custo_id || null,
     };
@@ -1344,7 +1345,7 @@ export default function Fornecedores() {
 
   const quitarConta = async (c: ContaPagar) => {
     const { data, error } = await supabase.from("contas_pagar").update({
-      valor_pago: c.valor_total, status: "pago", data_pagamento: new Date().toISOString().split("T")[0],
+      valor_pago: c.valor_total, status: "pago", data_pagamento: hojeISO(),
     }).eq("id", c.id).select("id");
     if (error || !data || data.length === 0) {
       showToast(txt.erroQuitarConta, "erro");
@@ -1356,7 +1357,7 @@ export default function Fornecedores() {
 
   // ---------- Cálculos ----------
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeISO();
 
   const fornecedoresFiltrados = fornecedores.filter(f =>
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -1429,7 +1430,7 @@ export default function Fornecedores() {
             { label: "A Pagar (em aberto)", valor: `R$ ${fmtN(totalEmAberto)}` },
             { label: "Total Pago", valor: `R$ ${fmtN(totalPago)}` },
           ],
-          nomeArquivo: `axioma-fornecedores-${new Date().toISOString().slice(0, 10)}.pdf`,
+          nomeArquivo: `axioma-fornecedores-${hojeISO()}.pdf`,
         }, (msg) => showToast(msg, "erro"), lang);
       } else {
         gerarPdfTabela({
@@ -1461,7 +1462,7 @@ export default function Fornecedores() {
             { label: "A Pagar (em aberto)", valor: `R$ ${fmtN(totalEmAberto)}` },
             { label: "Vencido", valor: `R$ ${fmtN(totalVencido)}` },
           ],
-          nomeArquivo: `axioma-contas-pagar-${new Date().toISOString().slice(0, 10)}.pdf`,
+          nomeArquivo: `axioma-contas-pagar-${hojeISO()}.pdf`,
         }, (msg) => showToast(msg, "erro"), lang);
       }
     } catch (err) { showToast(tratarFalhaExportacao("fornecedores.exportarPDF", err, lang), "erro"); }

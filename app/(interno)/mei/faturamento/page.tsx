@@ -30,6 +30,7 @@ import {
   tetoProporcionalMEI, percentualDeTeto, semaforoTetoDetalhado, projecaoTetoDetalhada, receitasBrutasPorMes,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -177,7 +178,7 @@ export default function FaturamentoMEI() {
 
   function abrirNovaVenda() {
     setEditando(null)
-    setForm({ descricao: '', valor: '', data: new Date().toISOString().slice(0, 10), categoria: CATEGORIAS[0], status: 'recebido' })
+    setForm({ descricao: '', valor: '', data: hojeISO(), categoria: CATEGORIAS[0], status: 'recebido' })
     setCriando(true)
   }
   function fecharFormulario() { setEditando(null); setCriando(false) }
@@ -320,7 +321,7 @@ export default function FaturamentoMEI() {
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-faturamento-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-faturamento-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.faturamento.exportarPDF', err, lang)) }
     setExportando(false)
   }
@@ -407,7 +408,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         valor: fmt(r.valor),
       })),
       resumo: [{ label: t('faturamento'), valor: fmt(faturamentoAnual) }],
-      nomeArquivo: `axioma-mei-faturamento-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-faturamento-${hojeISO()}.pdf`,
     }
   }
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "../lib/LanguageContext";
+import RelogioAxioma from "../components/RelogioAxioma";
 import { ThemeProvider } from "../lib/ThemeContext";
 import { PostHogProvider } from "../components/PostHogProvider";
 import { PostHogPageView } from "../components/PostHogPageView";
@@ -62,6 +63,7 @@ export default function RootLayout({
             <PostHogPageView />
           </Suspense>
           <LanguageProvider>
+            <RelogioAxioma />
             <ThemeProvider>
               {children}
             </ThemeProvider>

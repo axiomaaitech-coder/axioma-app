@@ -9,6 +9,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { scoreRecebimento } from "./clienteIntelHelpers";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -271,7 +272,7 @@ export function detectarAlertasCobranca(
   compromissos: CobrancaCompromisso[],
 ): AlertaCobranca[] {
   const alertas: AlertaCobranca[] = [];
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   const em3dias = new Date(); em3dias.setDate(em3dias.getDate() + 3);
   const em3diasStr = em3dias.toISOString().slice(0, 10);
 
@@ -421,7 +422,7 @@ export function gerarParecerCobranca(
   const cards: CardExplicativo[] = [];
   if (ranking.length === 0) return cards;
 
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   const pendentes = contas.filter((c) => c.status !== "recebido");
   const vencidas = pendentes.filter((c) => c.data_vencimento < hojeStr);
   const valorVencido = vencidas.reduce((s, c) => s + Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)), 0);

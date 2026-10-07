@@ -34,6 +34,7 @@ import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -57,7 +58,7 @@ const categoriasCustoFixo = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços
 // janela rolante (nunca fecha) e "Personalizado" é arbitrário — nenhum dos dois vira arquivo.
 const PRESETS_FECHAVEIS: PeriodoPreset[] = ["mes_atual", "mes_anterior", "trimestre_atual", "ano_atual"];
 
-function isoHoje(): string { return new Date().toISOString().slice(0, 10); }
+function isoHoje(): string { return hojeISO(); }
 
 // Janela de 24 meses pra trás — cobre os 12 meses de série histórica (semáforo/runway/
 // projeção) mais os 12 meses adicionais que a série rolante pode precisar de contexto.
@@ -425,7 +426,7 @@ export default function DREPage() {
           { label: cx.dreLucroLiquido, valor: `R$ ${fBRL2(dreAtual.lucroLiquido.valor)}` },
           ...(narrativaCausaRaiz ? [{ label: cx.causaRaizTitulo, valor: narrativaCausaRaiz }] : []),
         ],
-        nomeArquivo: `axioma-dre-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-dre-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("dre.exportarPDF", err, lang), "erro"); }
     setExportando(false);

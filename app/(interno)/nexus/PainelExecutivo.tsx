@@ -10,6 +10,7 @@ import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import type { BriefingJose } from '../../../lib/nexusBriefing'
 import { TITULO_SECAO } from './fonteJose'
+import { hojeISO } from '../../../lib/datas'
 
 type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
@@ -79,7 +80,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
     return () => { cancelado = true }
   }, [lang, tentativa])
 
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = hojeISO()
   const dataFmt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
   const chipConfianca = (c: number): CSSProperties => {
     const cor = c >= 60 ? (temaClaro ? '#16a97d' : '#34d399') : c >= 40 ? (temaClaro ? '#b45309' : '#2ecc9b') : (temaClaro ? '#374151' : '#8aa4c2')

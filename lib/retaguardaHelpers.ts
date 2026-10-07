@@ -7,6 +7,7 @@
 // servidor já bloqueia. Só listarTurnosAbertos() é query direta (turno_caixa
 // não expõe custo/lucro, é a mesma tabela que a Frente de Caixa já lê hoje).
 
+import { hojeISO } from "./datas";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
@@ -64,8 +65,7 @@ export async function salvarConfigRetaguarda(
 // venda feita às 23h de um dia no Brasil não pode virar "amanhã" só porque
 // o servidor do banco está em outro fuso.
 export function hojeLocal(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return hojeISO(); // fuso da empresa (estado) ou do aparelho — lib/datas.ts
 }
 
 export type ResumoDia = {

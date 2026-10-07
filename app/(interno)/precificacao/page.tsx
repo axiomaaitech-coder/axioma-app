@@ -35,6 +35,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -193,7 +194,7 @@ export default function Precificacao() {
     if (!user) { setCarregando(false); return; }
     const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11);
     const inicioIso = inicio12m.toISOString().slice(0, 10);
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeISO();
 
     const empresaIdAtiva = await obterEmpresaAtiva();
 
@@ -496,7 +497,7 @@ export default function Precificacao() {
           { label: cx.prcIppaTitulo, valor: `${ippa.total}/1000 (${NIVEL_LABEL[ippa.nivel]})` },
           { label: txt.margemMedia, valor: `${margemMedia}%` },
         ],
-        nomeArquivo: `axioma-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-precificacao-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("precificacao.exportarPDF", err, lang), "erro"); }
     setExportando(false);

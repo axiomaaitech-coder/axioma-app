@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { calcularImpostoRegime } from "./iaTributariaHelpers";
 import { nomeMesPt } from "./cfoCore";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
+import { hojeISO } from "./datas";
 export { nomeMesPt };
 
 const supabase = createBrowserClient(
@@ -395,7 +396,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     .from("contas_receber")
     .select("valor, status, data_vencimento")
     .eq("empresa_id", empresaId);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const vencidos = (cRecTodos || []).filter(
     (r: any) => r.status !== "recebido" && r.data_vencimento && r.data_vencimento < hoje
   );

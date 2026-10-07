@@ -10,6 +10,7 @@ import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers
 import { montarDRE, serieRolling, type DRE, type Lancamento } from "./cfoCore";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,7 +96,7 @@ export function montarLinhasRisco(
   const inadimplentes = ranking.filter((r) => r.s.valorVencido > 0);
   const totalVencido = inadimplentes.reduce((s, r) => s + r.s.valorVencido, 0);
   const valorVencidoMedio = inadimplentes.length > 0 ? totalVencido / inadimplentes.length : 0;
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
 
   const linhas = inadimplentes.map(({ s, score }) => {
     const vencidas = s.contas.filter((c) => c.status !== "recebido" && c.data_vencimento < hojeStr);
@@ -343,7 +344,7 @@ export function gerarSinaisPrevencao(
   const base = gerarParecerCobranca(lang, carteira, contas, ranking);
   const extras: CardExplicativo[] = [];
   const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   const em15dias = new Date(); em15dias.setDate(em15dias.getDate() + 15);
   const em15diasStr = em15dias.toISOString().slice(0, 10);
 
@@ -636,7 +637,7 @@ export function curvaABCInadimplencia(linhasRisco: LinhaRiscoInadimplencia[]): I
 }
 
 export function evolucaoInadimplencia(contas: ContaRow[]): { label: string; value: number }[] {
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   // "Ficou inadimplente": venceu e (ainda não foi pago OU foi pago com atraso). Data-base é o
   // vencimento, pra responder "quanto do que venceu em cada mês virou inadimplência" — nunca
   // inventa um snapshot histórico de aging que o Axioma não guarda dia a dia.

@@ -7,6 +7,7 @@
 import { montarDRE, serieRolling, type Lancamento } from "./cfoCore";
 import type { ClienteSnapshot, SnapshotCarteira, ContaRow, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { probabilidadeRecebimentoConta } from "./cobrancaHelpers";
+import { hojeISO } from "./datas";
 
 function diffDias(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
@@ -169,7 +170,7 @@ export function estimarImpactoSplitPayment(valorAReceberTotal: number, aliquotaE
 export type CelulaHeatmap = { clienteNome: string; faixa: string; valor: number };
 
 export function heatmapInadimplencia(carteira: SnapshotCarteira, topN = 12): CelulaHeatmap[] {
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   const faixas = ["0-30", "31-60", "61-90", "90+"];
   const clientesOrdenados = [...carteira.clientesSnapshot].filter((s) => s.valorVencido > 0).sort((a, b) => b.valorVencido - a.valorVencido).slice(0, topN);
   const out: CelulaHeatmap[] = [];

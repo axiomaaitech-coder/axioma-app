@@ -29,6 +29,7 @@ import {
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -229,7 +230,7 @@ export default function DASObrigacoes() {
     const { erro } = await salvarObrigacao({
       userId: user.id, empresaId, tipo, competencia, status,
       dataVencimento: vencimento.toISOString().slice(0, 10),
-      dataEntrega: status === 'Entregue' ? new Date().toISOString().slice(0, 10) : null,
+      dataEntrega: status === 'Entregue' ? hojeISO() : null,
     })
     setSalvandoStatus(false)
     if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
@@ -280,7 +281,7 @@ export default function DASObrigacoes() {
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-das-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-das-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.das.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
@@ -343,7 +344,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         { nome: 'IRPF MEI', status: statusIrpf },
       ],
       resumo: [{ label: 'DAS Mensal', valor: fmt(parseFloat(dasValor || '0')) }],
-      nomeArquivo: `axioma-mei-das-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-das-${hojeISO()}.pdf`,
     }
   }
 

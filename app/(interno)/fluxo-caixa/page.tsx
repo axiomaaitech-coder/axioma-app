@@ -27,6 +27,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.92), rgba(10,22,40,0.96))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.95), rgba(10,22,40,0.98))";
@@ -48,7 +49,7 @@ type LancamentoFC = {
   valor: number; data: string; status: string;
 };
 
-function isoHoje(): string { return new Date().toISOString().slice(0, 10); }
+function isoHoje(): string { return hojeISO(); }
 
 // Janela de histórico buscada — 24 meses pra trás (comparativo/precisão) e até
 // 120 dias pra frente (previstos futuros, base da ruptura de caixa e da projeção).
@@ -406,7 +407,7 @@ export default function FluxoCaixa() {
           { label: "Saldo Atual (realizado)", valor: `R$ ${fBRL2(saldoAtualReal)}` },
           { label: cx.rupturaCaixaTitulo, valor: ruptura ? `${ruptura.data} (${ruptura.diasRestantes}d)` : "—" },
         ],
-        nomeArquivo: `axioma-fluxo-caixa-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-fluxo-caixa-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("fluxo-caixa.exportarPDF", err, lang), "erro"); }
     setExportando(false);

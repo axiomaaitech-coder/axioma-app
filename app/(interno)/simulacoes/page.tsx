@@ -35,6 +35,7 @@ import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -309,7 +310,7 @@ export default function Simulacoes() {
           { label: cx.simProbRupturaCaixa, valor: `${resultado.monteCarlo.probabilidadeRupturaCaixaPct.toFixed(1)}%` },
           { label: cx.simNivelConfiancaLabel, valor: NIVEL_LABEL[nivelConfianca] },
         ] : [],
-        nomeArquivo: `axioma-simulacoes-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-simulacoes-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("simulacoes.exportarPDF", err, lang), "erro"); }
     setExportando(false);

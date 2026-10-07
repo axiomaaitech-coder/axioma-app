@@ -23,6 +23,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -286,7 +287,7 @@ DADOS REAIS DESTE MEI:
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-ia-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-ia-${hojeISO()}.pdf`)
     } catch (err) { setToast(tratarFalhaExportacao('mei.iaAdvisor.exportarPDF', err, lang)); setTimeout(() => setToast(null), 4000) }
     setExportando(false)
   }
@@ -303,7 +304,7 @@ DADOS REAIS DESTE MEI:
         role: m.role === 'user' ? (lang === 'pt' ? 'Você' : lang === 'en' ? 'You' : 'Usted') : 'MEI Advisor',
         content: m.content,
       })),
-      nomeArquivo: `axioma-mei-ia-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-ia-${hojeISO()}.pdf`,
     }
   }
 

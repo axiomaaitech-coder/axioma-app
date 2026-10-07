@@ -15,6 +15,7 @@ import {
   type PosicaoCaixa, type FluxoProjetadoResultado, type StressVariaveis, type CenarioTesouraria,
 } from '../../../../lib/tesourariaHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -34,7 +35,6 @@ const PALETA = {
 
 const PAPEIS_CONFIG = ['dono', 'admin']
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 
 export default function TesourariaSimuladorPage() {
   const { idioma } = useLanguage()

@@ -4,6 +4,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -290,7 +291,7 @@ export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
 // ============================================================================
 
 export function documentosVencendo(docs: FornecedorDocumento[], diasAlerta: number = 30): { vencidos: FornecedorDocumento[]; aVencer: FornecedorDocumento[] } {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const limite = new Date(); limite.setDate(limite.getDate() + diasAlerta);
   const limiteISO = limite.toISOString().slice(0, 10);
   const comValidade = docs.filter((d) => d.data_validade);
@@ -301,7 +302,7 @@ export function documentosVencendo(docs: FornecedorDocumento[], diasAlerta: numb
 }
 
 export function contratosVencendo(contratos: FornecedorContrato[], diasAlerta: number = 30): { vencidos: FornecedorContrato[]; aVencer: FornecedorContrato[] } {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const limite = new Date(); limite.setDate(limite.getDate() + diasAlerta);
   const limiteISO = limite.toISOString().slice(0, 10);
   const comData = contratos.filter((c) => c.data_fim);
@@ -346,7 +347,7 @@ export function calcStatus(total: number, pago: number, venc?: string | null): s
   const p = Number(pago) || 0;
   if (p >= t && t > 0) return "pago";
   if (p > 0 && p < t) return "parcial";
-  const hj = new Date().toISOString().split("T")[0];
+  const hj = hojeISO();
   if (venc && venc < hj) return "vencido";
   return "pendente";
 }
@@ -557,7 +558,7 @@ export function calcularScoreAxiomaFornecedor(
 
   const docsCompliance = documentosDoFornecedor.filter((d) => d.tipo && TIPOS_DOC_COMPLIANCE.includes(d.tipo));
   if (docsCompliance.length > 0) {
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeISO();
     const validos = docsCompliance.filter((d) => !d.data_validade || d.data_validade >= hoje);
     valores.compliance = Math.round((validos.length / docsCompliance.length) * 100);
   } else valores.compliance = null;

@@ -24,6 +24,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -178,7 +179,7 @@ export default function ReformaTributaria() {
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-reforma-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-reforma-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.reforma.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
@@ -195,7 +196,7 @@ export default function ReformaTributaria() {
         { regime: 'MEI (DAS fixo)', valor: fmt(dasValor) },
         { regime: 'ME Simples (estimado ~6%)', valor: fmt((faturamentoAnual * 0.06) / 12) },
       ],
-      nomeArquivo: `axioma-mei-reforma-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-reforma-${hojeISO()}.pdf`,
     }
   }
 

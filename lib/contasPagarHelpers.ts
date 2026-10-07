@@ -11,6 +11,7 @@ import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers"
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,7 +105,7 @@ export async function criarContaPagar(userId: string, empresaId: string | null, 
   const status = calcStatus(total, pago, dados.data_vencimento);
   const payload = {
     ...dados, valor_total: total, valor_pago: pago, status,
-    data_pagamento: status === "pago" ? (dados.data_pagamento || new Date().toISOString().split("T")[0]) : null,
+    data_pagamento: status === "pago" ? (dados.data_pagamento || hojeISO()) : null,
     user_id: userId, empresa_id: empresaId,
   };
   const { data, error } = await supabase.from("contas_pagar").insert(payload).select("id").single();
@@ -137,7 +138,7 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
   const status = calcStatus(total, pago, dados.data_vencimento);
   const payload = {
     ...dados, valor_total: total, valor_pago: pago, status,
-    data_pagamento: status === "pago" ? (dados.data_pagamento || new Date().toISOString().split("T")[0]) : null,
+    data_pagamento: status === "pago" ? (dados.data_pagamento || hojeISO()) : null,
   };
   const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", id).select("id, empresa_id");
   if (error || !data || data.length === 0) {
@@ -604,7 +605,7 @@ function computarPontosForecast(
 }
 
 export async function calcularForecastAp(empresaId: string): Promise<ForecastAp> {
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeISO();
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
 
   const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
@@ -674,7 +675,7 @@ export function priorizarPagamentos(
   const pendentes = contas.filter((c) => c.status !== "pago" && c.status !== "aguardando_aprovacao");
   if (pendentes.length === 0) return [];
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const maiorValor = Math.max(...pendentes.map((c) => c.valor_total || 0), 1);
   const fornecedorDe = (id?: string | null) => fornecedores.find((f) => f.id === id) || null;
 
@@ -1140,7 +1141,7 @@ export type DescontoAproveitavel = {
 // Oportunidade FUTURA: conta ainda não paga, com desconto negociado e prazo
 // que ainda não venceu. Ordenado por urgência (prazo mais próximo primeiro).
 export function detectarDescontosAproveitaveis(contas: ContaPagar[]): DescontoAproveitavel[] {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   return contas
     .filter((c) => c.status !== "pago" && Number(c.desconto_disponivel_pct) > 0 && !!c.desconto_data_limite && (c.desconto_data_limite as string) >= hoje)
     .map((c) => {
@@ -1170,7 +1171,7 @@ export type DescontoPerdido = {
 // passou sem a conta ter sido paga ainda (prazo_expirado_pendente). Sempre
 // informação/sugestão — nunca acusação; o dono decide se valia a pena.
 export function detectarDescontosPerdidos(contas: ContaPagar[]): DescontoPerdido[] {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const out: DescontoPerdido[] = [];
   contas.forEach((c) => {
     if (!(Number(c.desconto_disponivel_pct) > 0) || !c.desconto_data_limite) return;
@@ -1332,7 +1333,7 @@ export async function montarEvidenceGraph(
       .eq("empresa_id", empresaId).eq("lancamento_tabela", "contas_pagar").eq("lancamento_id", conta.id).maybeSingle(),
   ]);
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   // listarContratos já devolve ordenado por data_fim asc com indefinidos
   // (data_fim null) por último — o último item da lista é o contrato mais
   // relevante pra representar aqui (vigente, ou o mais recente encerrado).
@@ -1404,7 +1405,7 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
   };
   if (contaIds.length === 0) return vazio;
 
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeISO();
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
   const selecionadas = new Set(contaIds);
 

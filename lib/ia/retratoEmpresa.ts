@@ -15,6 +15,7 @@ import { montarDRE } from '../cfoCore'
 import { calcularImpostoRegime, simularRegimes } from '../iaTributariaHelpers'
 import { setorDaEmpresa, type Setor } from './setores'
 import { nomeSerie } from '../nexusEventDetector'
+import { hojeISO, fusoDaEmpresa } from '../datas'
 
 export type NumerosRetrato = {
   receitaMensal: number
@@ -49,6 +50,7 @@ export type NumerosRetrato = {
 export type Retrato = {
   empresaId: string
   nome: string
+  fuso: string // fuso da empresa (lib/datas.ts)
   regime: string | null
   porte: string | null
   cnae: string | null
@@ -76,11 +78,9 @@ function maiores(ls: Linha[], campo: string, divisor: number, qtd = 8): string {
 export async function montarRetrato(supabase: SupabaseClient, empresaId: string): Promise<Retrato> {
   const hoje = new Date()
   const iso = (d: Date) => d.toISOString().slice(0, 10)
-  const hojeIso = iso(hoje)
-  const em30 = iso(new Date(hoje.getTime() + 30 * 86400000))
   const inicio12 = iso(new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()))
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr] = await Promise.all([
-    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao').eq('id', empresaId).maybeSingle(),
+    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade').eq('id', empresaId).maybeSingle(),
     supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).limit(LIMITE),
     supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).limit(LIMITE),
     supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).limit(LIMITE),
@@ -93,6 +93,10 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   ])
   if (!emp.data) throw new Error('empresa não encontrada ou sem acesso')
   const e = emp.data as Linha
+  // "Hoje" no fuso da empresa (estado/cidade do cadastro), não em UTC — lib/datas.ts
+  const fuso = fusoDaEmpresa(e.uf as string | null, e.cidade as string | null) ?? 'America/Sao_Paulo'
+  const hojeIso = hojeISO(hoje, fuso)
+  const em30 = hojeISO(new Date(hoje.getTime() + 30 * 86400000), fuso)
   const L = (r: { data: unknown }) => (r.data ?? []) as Linha[] // tabela ausente/erro = módulo sem dado, nunca derruba o retrato
 
   // Receita: média 12m + série dos 6 últimos meses fechados
@@ -172,7 +176,7 @@ MAIORES FONTES DE RECEITA (média/mês): ${maiores(receitas, 'valor', 12) || 'ne
 DÍVIDAS: ${dividas.map((d) => `${d.descricao || 'dívida'} saldo ${fBRL(saldoDiv(d))} juros ${d.taxa_juros ?? '?'}%`).join('; ') || 'nenhuma'}
 ALERTAS DA SITUAÇÃO: ${alertas.join(' | ') || 'nenhum'}`
 
-  return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto }
+  return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso }
 }
 
 // Situação da empresa em frases (ordem = prioridade). Regras fixas e explicáveis.
@@ -219,5 +223,5 @@ export function textoFiscal(r: Retrato): string {
     obrigacoes_pendentes: 0, obrigacoes_vencidas: x.obrigacoesAtrasadas, total_obrigacoes: 0,
   })
   const linhas = sims.map((s) => `${s.regime_label}: ${fBRL(s.imposto_mensal)}/mês (${s.aliquota_efetiva.toFixed(1)}%)${s.elegivel ? '' : ` — não elegível: ${s.motivo_inelegivel ?? ''}`}${s.elegivel && s.economia_vs_atual > 0 ? ` — economia estimada de ${fBRL(s.economia_vs_atual)}/ano vs atual` : ''}`)
-  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${new Date().toISOString().slice(0, 10)}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
+  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${hojeISO()}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
 }

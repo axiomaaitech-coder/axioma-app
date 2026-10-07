@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { type IdiomaJoseph } from './nexusJoseph'
 import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
 import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, textoPlacar, type PrevisaoIA } from './nexusPrevisoes'
+import { hojeISO } from './datas'
 
 type Bloco = { titulo: string; texto: string }
 type Item = { titulo: string; texto: string; gravidade: 'alta' | 'media' | 'baixa' }
@@ -144,7 +145,7 @@ export class FalhaBriefing extends Error {}
 export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<{ conteudo: BriefingJose; modelo: string }> {
   const entrada = await montarContextoMundo(supabase) + (lang === 'pt' ? await pedidoPrevisoes(supabase) : '')
   const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
-Data de hoje: ${new Date().toISOString().slice(0, 10)}.
+Data de hoje: ${hojeISO()}.
 
 ${entrada}`
   // Claude → OpenAI forte → OpenAI reserva (motor). Se as 3 falharem, quem chama devolve o último painel guardado.
@@ -156,7 +157,7 @@ ${entrada}`
   }
 }
 
-const hoje = () => new Date().toISOString().slice(0, 10)
+const hoje = () => hojeISO()
 
 // Devolve o painel de hoje; se não existir, gera e grava (upsert por data+idioma).
 // Se a geração falhar, devolve o último painel disponível (marcado com a data dele).

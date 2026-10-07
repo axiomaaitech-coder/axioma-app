@@ -6,6 +6,7 @@ import { reportarFalhaLeitura } from "./erroUiHelpers";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP } from "./enderecoHelpers";
+import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "./datas";
 export { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP };
 
 const supabase = createBrowserClient(
@@ -252,6 +253,9 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
 
   const salvar = (empresaId: string | null) => {
     cacheEmpresaAtiva = { userId, empresaId };
+    // Fuso automático pelo estado/cidade da empresa (lib/datas.ts) — sem travar quem chamou.
+    if (empresaId) void supabase.from("empresas").select("uf, cidade").eq("id", empresaId).maybeSingle()
+      .then(({ data }) => definirFusoEmpresa(fusoDaEmpresa(data?.uf, data?.cidade)), () => { /* sem leitura: fica o fuso do aparelho */ });
     if (typeof window !== "undefined") {
       const chave = `axioma_empresa_ativa_${userId}`;
       if (empresaId) sessionStorage.setItem(chave, empresaId);
@@ -1157,7 +1161,7 @@ export function calcularHealthScore(empresa: any, socios: any[], documentos: any
 export function calcularComplianceScore(empresa: any, obrigacoes: any[], documentos: any[]): ScoreResultado {
   if (!empresa) return { score: 0, nivel: "Sem dados", cor: "#f87171", itens: [] };
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeISO();
   const docsValidos = documentos.filter((d: any) => !d.data_validade || d.data_validade >= hoje);
   const obrigVencidasNaoPagas = obrigacoes.filter((o: any) => o.status === "pendente" && o.data_vencimento < hoje);
 

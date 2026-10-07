@@ -65,6 +65,7 @@ import {
 } from "../../../lib/importarHelpers";
 import { obterEmpresaAtiva, carregarEmpresaPorId } from "../../../lib/empresaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -906,7 +907,7 @@ export default function ImportarDocumentosPage() {
     const m = resultado.metadados ?? {};
     const grupos = (m.classificacao_itens?.porNatureza ?? {}) as Record<string, { valor: number; itens: string[] }>;
     const categoria = m.classificacao_itens?.categoriaPrincipal as string | undefined;
-    const emissao: string = m.data_emissao || new Date().toISOString().slice(0, 10);
+    const emissao: string = m.data_emissao || hojeISO();
     const base = `NF ${m.numero_nf ?? "?"} - ${m.razao_social ?? (langAtual === "en" ? "supplier" : langAtual === "es" ? "proveedor" : "fornecedor")}`;
     const L = (pt: string, en: string, es: string) => (langAtual === "en" ? en : langAtual === "es" ? es : pt);
     const avisos: string[] = [];
@@ -1529,7 +1530,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         colunas,
         linhas: linhasPdf,
         resumo,
-        nomeArquivo: `axioma-importacao-${shareModal.nome_arquivo.replace(/\.[^.]+$/, "")}-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-importacao-${shareModal.nome_arquivo.replace(/\.[^.]+$/, "")}-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), langAtual);
       showToast(langAtual === "en" ? "PDF generated and downloaded." : langAtual === "es" ? "PDF generado y descargado." : "PDF gerado e baixado.", "ok");
     } catch (err) {
@@ -1632,7 +1633,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         colunas,
         linhas: linhasPdf,
         resumo,
-        nomeArquivo: `axioma-importacoes-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-importacoes-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), langAtual);
     } catch (err) {
       showToast(tratarFalhaExportacao("importar-documentos.exportarPDF", err, langAtual), "erro");

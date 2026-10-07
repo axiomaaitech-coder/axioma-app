@@ -9,6 +9,7 @@ import { obterPainelSalvo, obterPlacarJose, obterLeiturasRecentes, obterManchete
 import { textoEvento, nomeSerie, fonteDaSerie } from '../../../lib/nexusEventDetector'
 import { PAISES_CARD } from './EconomiaMundial'
 import { ROTULO as ROTULO_FONTE } from './SaudeFontes'
+import { hojeISO } from '../../../lib/datas'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -133,7 +134,7 @@ export async function exportarPdfNexus(d: DadosPdfNexus): Promise<boolean> {
   })
 
   const ind = (cod: string) => d.indicadores.find((i) => i.codigo === cod)
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = hojeISO()
   return gerarPdfRelatorio({
     lang,
     titulo: L('Nexus — Inteligência Econômica', 'Nexus — Economic Intelligence', 'Nexus — Inteligencia Económica'),

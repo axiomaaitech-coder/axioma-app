@@ -49,6 +49,7 @@ import {
 } from '../../../lib/previsaoRecebimentoHelpers'
 import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
 import AvisoAxioma from '../../../components/AvisoAxioma'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -277,7 +278,7 @@ export default function ContasReceber() {
   const kpis = useMemo(() => calcularKpisRecebimento(contas as ContaRow[], carteira, ranking), [contas, carteira, ranking])
   const aging = useMemo(() => agingCarteiraRecebiveis(contas as ContaRow[]), [contas])
 
-  const hoje = new Date().toISOString().split('T')[0]
+  const hoje = hojeISO()
 
   function diasAtraso(venc?: string, status?: string | null) {
     if (!venc || status === 'recebido' || venc >= hoje) return 0
@@ -370,7 +371,7 @@ export default function ContasReceber() {
       taxa_multa: parseFloat(nc.taxa_multa || '0'), centro_custo_id: nc.centro_custo_id || null,
       responsavel: nc.responsavel || null, projeto: nc.projeto || null, prioridade: nc.prioridade,
       recorrente: nc.recorrente, frequencia_recorrencia: nc.recorrente ? nc.frequencia_recorrencia : null,
-      observacoes: nc.observacoes, data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : null,
+      observacoes: nc.observacoes, data_recebimento: status === 'recebido' ? hojeISO() : null,
       status, empresa_id: empresaId,
     }
 
@@ -472,7 +473,7 @@ export default function ContasReceber() {
     setRecebendo(true)
     const valorIncremento = parseFloat(valorReceber || '0')
     const novoRecebido = (contaReceber.valor_recebido || 0) + valorIncremento
-    const hojeStr = new Date().toISOString().split('T')[0]
+    const hojeStr = hojeISO()
     const status = statusEfetivo(null, contaReceber.valor, novoRecebido, contaReceber.data_vencimento, 'recebido')
     const { data, error } = await supabase.from('contas_receber').update({
       valor_recebido: novoRecebido, status,
@@ -579,7 +580,7 @@ export default function ContasReceber() {
           { label: L('Recebido no Mês', 'Received this Month', 'Recibido este Mes'), valor: `R$ ${fBRL2(kpis.recebidoNoMes)}` },
           { label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—' },
         ],
-        nomeArquivo: `axioma-contas-receber-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-contas-receber-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, 'erro'), lang)
     } catch (err) { showToast(tratarFalhaExportacao('contas-receber.exportarPDF', err, lang), 'erro') }
     setExportando(false)

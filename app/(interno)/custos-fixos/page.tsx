@@ -23,6 +23,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -220,7 +221,7 @@ export default function CustosFixos() {
           { label: "Itens", valor: `${custos.length}` },
           { label: "Economia Potencial/mês", valor: `R$ ${fBRL2(economiaPotencial)}` },
         ],
-        nomeArquivo: `axioma-custos-fixos-${new Date().toISOString().slice(0, 10)}.pdf`,
+        nomeArquivo: `axioma-custos-fixos-${hojeISO()}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("custos-fixos.exportarPDF", err, lang), "erro"); }
     setExportando(false);

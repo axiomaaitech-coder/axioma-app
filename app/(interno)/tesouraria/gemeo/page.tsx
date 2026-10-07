@@ -15,6 +15,7 @@ import {
   calcularLiquidityScore, calcularSimulacaoEstresse, STRESS_VARIAVEIS_NEUTRAS,
   type PosicaoCaixa, type FluxoProjetadoResultado, type CapitalDeGiro, type StressVariaveis,
 } from '../../../../lib/tesourariaHelpers'
+import { hojeISO } from '../../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 type Mudanca = 'nenhuma' | 'receita30' | 'emprestimo' | 'filial'
@@ -41,7 +42,6 @@ const NIVEL_LABEL: Record<string, { pt: string; en: string; es: string }> = {
   excelente: { pt: 'Excelente', en: 'Excellent', es: 'Excelente' },
 }
 
-function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 
 export default function TesourariaGemeoPage() {
   const { idioma } = useLanguage()

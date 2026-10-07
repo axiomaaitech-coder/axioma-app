@@ -8,6 +8,7 @@
 import type { CorSaude } from "./cfoCore";
 import { perguntarAoAxioma } from "./ia/cliente";
 import { obterEmpresaAtiva } from "./empresaHelpers";
+import { hojeISO } from "./datas";
 
 // ============================================================================
 // TIPOS — LINHAS DO SUPABASE
@@ -955,7 +956,7 @@ export function calcularKpisRecebimento(
 export type FaixaAging = { chave: "d30" | "d60" | "d90" | "d90mais"; label: string; valor: number; qtdContas: number };
 
 export function agingCarteiraRecebiveis(contas: ContaRow[]): FaixaAging[] {
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  const hojeStr = hojeISO();
   const faixas: FaixaAging[] = [
     { chave: "d30", label: "0-30", valor: 0, qtdContas: 0 },
     { chave: "d60", label: "31-60", valor: 0, qtdContas: 0 },

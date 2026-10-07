@@ -8,6 +8,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -373,7 +374,7 @@ export async function salvarObrigacao(params: {
       user_id: params.userId,
       empresa_id: params.empresaId,
       competencia: params.competencia,
-      data_entrega: params.dataEntrega || new Date().toISOString().slice(0, 10),
+      data_entrega: params.dataEntrega || hojeISO(),
     }).select("id");
     if (erroDeclaracao || !declaracao || declaracao.length === 0) {
       const motivo = erroDeclaracao?.message || "0 linhas afetadas (RLS?)";

@@ -24,6 +24,7 @@ import { detectarDescontosPerdidos, type ContaPagar } from "./contasPagarHelpers
 import { carregarAvisosEstoque } from "./estoqueHelpers";
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow, saldoNatural } from "./contabilidadeRelatoriosHelpers";
 import { listarPlanoDeContas, type ContaContabil } from "./contabilidadeHelpers";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +36,6 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 }
 
 export type Idioma3 = "pt" | "en" | "es";
-function hojeISO(): string { return new Date().toISOString().slice(0, 10); }
 
 // ============================================================================
 // DESCOBERTA — leitura, ações (revisar/resolver/ignorar) e Decision Journal.

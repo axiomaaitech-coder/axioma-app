@@ -31,6 +31,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +54,6 @@ const DIRECAO_PADRAO: Record<TipoMeta, DirecaoMeta> = {
 };
 
 // ═══════════════════════ HELPERS DE DATA (mesmo padrão do DRE/Endividamento) ═══════════════════════
-function hojeISO(): string { return new Date().toISOString().slice(0, 10); }
 
 function inicioJanela24m(ate: string): string {
   const d = new Date(ate + "T00:00:00");

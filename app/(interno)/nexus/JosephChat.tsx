@@ -19,6 +19,7 @@ import { ramoDoCnae } from '../../../lib/ia/setores'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
+import { hojeISO } from '../../../lib/datas'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -132,7 +133,7 @@ EMPRESA DO USUÁRIO (média dos últimos 12 meses):
 ${emp}
 ${empRamo}
 
-Hoje: ${new Date().toISOString().slice(0, 10)}.`
+Hoje: ${hojeISO()}.`
   }
 
   async function enviar(pergunta: string) {

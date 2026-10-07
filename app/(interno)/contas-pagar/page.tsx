@@ -56,6 +56,7 @@ import {
   responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -166,7 +167,7 @@ export default function ContasPagarPage() {
 
   // ========== CÁLCULOS ==========
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = hojeISO();
   const em7dias = new Date(); em7dias.setDate(em7dias.getDate() + 7);
   const em7ISO = em7dias.toISOString().split("T")[0];
   const mesAtual = hoje.slice(0, 7);

@@ -14,6 +14,7 @@ import { type IdiomaJoseph } from './nexusJoseph'
 import * as Sentry from '@sentry/nextjs'
 import { montarContextoMundo } from './nexusBriefing'
 import { montarRetrato, textoSetor } from './ia/retratoEmpresa'
+import { hojeISO } from './datas'
 
 export type HorizontePlano = '1-3' | '4-7' | '8-10'
 
@@ -105,7 +106,7 @@ export class FalhaPlano extends Error {}
 async function gerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph): Promise<{ plano: PlanoJose; numeros: NumerosEmpresa; caracteresEnviados: number; modelo: string }> {
   const [{ numeros, texto }, mundo] = await Promise.all([coletarEmpresa(supabase, empresaId), montarContextoMundo(supabase)])
   const mensagem = `Idioma da resposta: ${NOME_IDIOMA[lang]}.
-Hoje: ${new Date().toISOString().slice(0, 10)}.
+Hoje: ${hojeISO()}.
 HORIZONTE PEDIDO: ${DESC_HORIZONTE[horizonte]}.
 
 ${texto}
@@ -124,7 +125,7 @@ ${mundo}`
 // Plano de hoje pra empresa/horizonte/idioma; gera e grava se não houver.
 // Sem conseguir ler a tabela (SQL da Etapa 8 não rodado), NÃO gera (evita gasto repetido).
 export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: string, horizonte: HorizontePlano, lang: IdiomaJoseph, userId: string) {
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = hojeISO()
   const { data: salvo, error } = await supabase.from('nexus_plano_empresa').select('data, conteudo')
     .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).eq('data', hoje).maybeSingle()
   if (error) throw new FalhaPlano(`leitura de nexus_plano_empresa: ${error.message}`)

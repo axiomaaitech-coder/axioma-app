@@ -33,6 +33,7 @@ import {
   detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
   type StatusObrigacao, type ContaPagarMEI,
 } from '../../../lib/meiHelpers'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -354,7 +355,7 @@ export default function PainelMEI() {
         remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
-      pdf.save(`axioma-mei-painel-${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(`axioma-mei-painel-${hojeISO()}.pdf`)
     } catch (err) { showToast(tratarFalhaExportacao('mei.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
@@ -375,7 +376,7 @@ export default function PainelMEI() {
         { label: mx.cofreReserva, valor: fmt(cofre.reservaEmergencia) },
         { label: mx.cofreProLabore, valor: fmt(cofre.proLaboreSeguro) },
       ],
-      nomeArquivo: `axioma-mei-painel-${new Date().toISOString().slice(0, 10)}.pdf`,
+      nomeArquivo: `axioma-mei-painel-${hojeISO()}.pdf`,
     }
   }
 

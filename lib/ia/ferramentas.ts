@@ -7,6 +7,7 @@
 // MCP do Axioma (mesmas ferramentas, outro transporte).
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { hojeISO } from '../datas'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -36,8 +37,10 @@ export const FERRAMENTAS: Ferramenta[] = [
 type Linha = Record<string, unknown>
 const n = (v: unknown) => Number(v || 0)
 const r2 = (v: number) => Math.round(v * 100) / 100
-const hojeIso = () => new Date().toISOString().slice(0, 10)
-const em30 = () => new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+// "Hoje" no fuso da empresa da consulta (parâmetro, nunca variável global: no servidor
+// várias empresas consultam ao mesmo tempo).
+const hojeIso = (fuso: string) => hojeISO(new Date(), fuso)
+const em30 = (fuso: string) => hojeISO(new Date(Date.now() + 30 * 86400000), fuso)
 const lim = (v: unknown) => Math.min(30, Math.max(1, Math.floor(n(v)) || 10))
 
 async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedores', ids: unknown[]): Promise<Map<string, string>> {
@@ -46,29 +49,29 @@ async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedore
   const { data } = await supabase.from(tabela).select('id, nome').in('id', unicos)
   return new Map(((data ?? []) as Linha[]).map((l) => [String(l.id), String(l.nome ?? '')]))
 }
-function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown): T[] {
-  const h = hojeIso(), f = em30()
+function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: string): T[] {
+  const h = hojeIso(fuso), f = em30(fuso)
   if (situacao === 'vencidas') return ls.filter((c) => c.data_vencimento && String(c.data_vencimento) < h)
   if (situacao === 'proximos_30_dias') return ls.filter((c) => c.data_vencimento && String(c.data_vencimento) >= h && String(c.data_vencimento) <= f)
   return ls
 }
 
 // Executa uma ferramenta e devolve JSON compacto (texto) — nunca lança: erro vira {"erro": ...}.
-export async function executarFerramenta(supabase: SupabaseClient, empresaId: string, nome: string, input: Linha): Promise<string> {
+export async function executarFerramenta(supabase: SupabaseClient, empresaId: string, nome: string, input: Linha, fuso = 'America/Sao_Paulo'): Promise<string> {
   try {
     const q = (t: string, cols: string) => supabase.from(t).select(cols).eq('empresa_id', empresaId).limit(5000)
     switch (nome) {
       case 'contas_a_pagar': {
         const { data } = await q('contas_pagar', 'descricao, categoria, fornecedor_id, valor_total, valor_pago, data_vencimento')
         const abertas = ((data ?? []) as unknown as Linha[]).map((c): Linha & { saldo: number } => ({ ...c, saldo: r2(Math.max(0, n(c.valor_total) - n(c.valor_pago))) })).filter((c) => c.saldo > 0)
-        const sel = filtrarSituacao(abertas, input.situacao).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
+        const sel = filtrarSituacao(abertas, input.situacao, fuso).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
         const forn = await nomes(supabase, 'fornecedores', sel.map((c) => c.fornecedor_id))
         return JSON.stringify({ total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ descricao: c.descricao, fornecedor: forn.get(String(c.fornecedor_id)) ?? null, categoria: c.categoria ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
       }
       case 'contas_a_receber': {
         const { data } = await q('contas_receber', 'cliente_id, valor, valor_recebido, data_vencimento')
         const abertas = ((data ?? []) as unknown as Linha[]).map((c): Linha & { saldo: number } => ({ ...c, saldo: r2(Math.max(0, n(c.valor) - n(c.valor_recebido))) })).filter((c) => c.saldo > 0)
-        const sel = filtrarSituacao(abertas, input.situacao).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
+        const sel = filtrarSituacao(abertas, input.situacao, fuso).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
         const cli = await nomes(supabase, 'clientes', sel.map((c) => c.cliente_id))
         return JSON.stringify({ total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ cliente: cli.get(String(c.cliente_id)) ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
       }
@@ -122,7 +125,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
       }
       case 'maiores_devedores': {
         const { data } = await q('contas_receber', 'cliente_id, valor, valor_recebido, data_vencimento')
-        const h = hojeIso(), m = new Map<string, { saldo: number; vencido: number }>()
+        const h = hojeIso(fuso), m = new Map<string, { saldo: number; vencido: number }>()
         for (const c of (data ?? []) as unknown as Linha[]) {
           const saldo = Math.max(0, n(c.valor) - n(c.valor_recebido))
           if (!c.cliente_id || saldo <= 0) continue
