@@ -24,7 +24,7 @@ import { optLinhaMulti } from '../../../../lib/cfoCore'
 import { buscarIndicadoresMacro, FALLBACK_MACRO, type IndicadoresMacro } from '../../../../lib/bcbApi'
 import {
   faturamentoAnoMEI, dasMensalPorCategoria, carregarObrigacoesAno, salvarObrigacao,
-  competenciasDASDoAno, dasDoMes, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
+  competenciasDASDoAno, dasDoMes, prazoIrpf, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
 } from '../../../../lib/meiHelpers'
@@ -88,7 +88,7 @@ export default function DASObrigacoes() {
     calendario: { pt: 'Calendário de Obrigações Fiscais', en: 'Tax Obligations Calendar', es: 'Calendario de Obligaciones Fiscales' },
     dasnPrazo: { pt: 'Até 31 de maio de cada ano', en: 'By May 31st each year', es: 'Hasta el 31 de mayo de cada año' },
     dasnDesc: { pt: 'Declaração Anual de Faturamento', en: 'Annual Revenue Declaration', es: 'Declaración Anual de Facturación' },
-    irpfPrazo: { pt: 'Até 30 de abril de cada ano', en: 'By April 30th each year', es: 'Hasta el 30 de abril de cada año' },
+    irpfPrazo: { pt: 'Até o último dia útil de maio de cada ano', en: 'By the last business day of May each year', es: 'Hasta el último día hábil de mayo de cada año' },
     calculadora: { pt: 'Calculadora DASN-SIMEI', en: 'DASN-SIMEI Calculator', es: 'Calculadora DASN-SIMEI' },
     receitaBruta: { pt: 'Receita Bruta', en: 'Gross Revenue', es: 'Ingresos Brutos' },
     categoria: { pt: 'Categoria', en: 'Category', es: 'Categoría' },
@@ -184,7 +184,7 @@ export default function DASObrigacoes() {
   const competenciaAnual = String(anoAtual)
   const vencimentoDas = vencimentoDasDoMes
   const vencimentoDasn = new Date(anoAtual, 4, 31) // 31 de maio
-  const vencimentoIrpf = new Date(anoAtual, 3, 30) // 30 de abril
+  const vencimentoIrpf = prazoIrpf(anoAtual) // último dia útil de maio (regra da Receita desde 2023)
 
   const obrigacaoDas = obrigacoes.find(o => o.tipo === 'DAS' && o.competencia === competenciaDas)
   const obrigacaoDasn = obrigacoes.find(o => o.tipo === 'DASN' && o.competencia === competenciaAnual)
@@ -317,9 +317,9 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
   function gerarAnaliseFallbackDas(): string {
     if (!temAtrasoReal) {
-      if (lang === 'en') return `Everything is up to date. Your monthly DAS is ${fmt(dasValorNum)}, due on day ${diaVencimentoDas}. Keep an eye on DASN-SIMEI (by May 31) and IRPF (by April 30) if applicable.`
-      if (lang === 'es') return `Todo está al día. Su DAS mensual es ${fmt(dasValorNum)}, vence el día ${diaVencimentoDas}. Esté atento a la DASN-SIMEI (hasta el 31 de mayo) y al IRPF (hasta el 30 de abril) si aplica.`
-      return `Está tudo em dia. Seu DAS mensal é ${fmt(dasValorNum)}, vence dia ${diaVencimentoDas}. Fique de olho na DASN-SIMEI (até 31/05) e no IRPF (até 30/04) se for o caso.`
+      if (lang === 'en') return `Everything is up to date. Your monthly DAS is ${fmt(dasValorNum)}, due on day ${diaVencimentoDas}. Keep an eye on DASN-SIMEI (by May 31) and IRPF (by the last business day of May) if applicable.`
+      if (lang === 'es') return `Todo está al día. Su DAS mensual es ${fmt(dasValorNum)}, vence el día ${diaVencimentoDas}. Esté atento a la DASN-SIMEI (hasta el 31 de mayo) y al IRPF (hasta el último día hábil de mayo) si aplica.`
+      return `Está tudo em dia. Seu DAS mensal é ${fmt(dasValorNum)}, vence dia ${diaVencimentoDas}. Fique de olho na DASN-SIMEI (até 31/05) e no IRPF (até o último dia útil de maio) se for o caso.`
     }
     if (lang === 'en') return `You have ${divida.atrasos.length} overdue DAS competence(s), updated debt of ${fmt(divida.totalAtualizado)} (worst delay: ${divida.piorDiasAtraso} days). Priority: pay or negotiate installments now — the fine caps at 20% after ${DIAS_MULTA_TETO} days, but the risk grows to CNPJ inactivation after 12 months and Federal Active Debt after 24 months.`
     if (lang === 'es') return `Tiene ${divida.atrasos.length} competencia(s) de DAS atrasadas, deuda actualizada de ${fmt(divida.totalAtualizado)} (peor atraso: ${divida.piorDiasAtraso} días). Prioridad: pagar o negociar cuotas ahora — la multa se topa en 20% después de ${DIAS_MULTA_TETO} días, pero el riesgo crece hasta CNPJ inapto tras 12 meses y Deuda Activa tras 24 meses.`

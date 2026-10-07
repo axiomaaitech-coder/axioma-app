@@ -230,6 +230,14 @@ export function dasDoMes(hoje: Date = new Date(), diaVencimento: number = 20): {
   };
 }
 
+// Prazo da declaração do Imposto de Renda (pessoa física): desde 2023 a Receita
+// usa o último dia útil de maio (antes era 30/04). Sábado/domingo recuam pra sexta.
+export function prazoIrpf(ano: number): Date {
+  const d = new Date(ano, 4, 31);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+  return d;
+}
+
 export function diasParaDAS(hoje: Date = new Date(), diaVencimento: number = 20): number {
   const diaEsteMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento);
   if (hoje.getDate() <= diaVencimento) {
