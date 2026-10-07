@@ -5,6 +5,8 @@
 // Sem dependência de React, Supabase ou UI — só cálculo.
 // ═══════════════════════════════════════════════════════════════
 
+import { agora } from "./datas";
+
 export type Lancamento = {
   valor: number;
   data: string;        // ISO "YYYY-MM-DD"
@@ -25,7 +27,7 @@ export const fK = (n: number) =>
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
-// Data "2026-10-02" (só dia, sem hora) vira meia-noite UTC no new Date() e o
+// Data "2026-10-02" (só dia, sem hora) vira meia-noite UTC no new Date(agora()) e o
 // Brasil (UTC-3) mostrava 01/10. Aqui o dia é lido como data local. Aceita
 // também data com hora (timestamp), que já vem certa.
 export function fData(iso: string | null | undefined, lang = "pt", opcoes?: Intl.DateTimeFormatOptions): string {
@@ -81,7 +83,7 @@ export const mesesPorLang = (lang: string) => lang === "en" ? mesesEn : lang ===
 
 // ---------- SÉRIE MENSAL (12 meses do ano corrente) ----------
 export function serieMensal(itens: Lancamento[], ano?: number): number[] {
-  const y = ano ?? new Date().getFullYear();
+  const y = ano ?? new Date(agora()).getFullYear();
   const serie = Array(12).fill(0);
   itens.forEach((it) => {
     if (!it.data) return;
@@ -95,7 +97,7 @@ export function serieMensal(itens: Lancamento[], ano?: number): number[] {
 // ateData opcional (ISO "YYYY-MM-DD") — permite ancorar em qualquer período
 // selecionado, não só em "hoje". Sem ateData, comportamento igual a antes.
 export function serieRolling(itens: Lancamento[], meses = 12, ateData?: string): { label: string; value: number }[] {
-  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date();
+  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date(agora());
   const buckets: { ano: number; mes: number; value: number }[] = [];
   for (let i = meses - 1; i >= 0; i--) {
     const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
@@ -127,7 +129,7 @@ function inicioSemana(d: Date): Date {
 export type BucketSemanal = { label: string; inicio: string; fim: string; value: number };
 
 export function serieSemanal(itens: Lancamento[], semanas = 13, ateData?: string): BucketSemanal[] {
-  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date();
+  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date(agora());
   const semanaAtual = inicioSemana(hoje);
   const buckets: { inicio: Date; fim: Date; value: number }[] = [];
   for (let i = semanas - 1; i >= 0; i--) {
@@ -162,7 +164,7 @@ export function detectarRupturaCaixa(
   saidasPrevistas: EventoCaixa[],
   horizonteDias = 90
 ): RupturaCaixa | null {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   let saldo = saldoAtual;
 
   const eventos = [
@@ -207,14 +209,14 @@ export function desvioMedioPrevistoRealizado(itens: { valor: number; status?: st
 // por data da próxima parcela). Base da auto-população do Fluxo de Caixa.
 // ═══════════════════════════════════════════════════════════════
 export function proximaOcorrenciaDoDia(dia: number): string {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   let d = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
   if (d < hoje) d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, dia);
   return d.toISOString().slice(0, 10);
 }
 
 export function projetarRecorrenciaMensal(valor: number, primeiraData: string, horizonteDias: number, maxOcorrencias?: number): EventoCaixa[] {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   const limite = new Date(hoje); limite.setDate(hoje.getDate() + horizonteDias);
   const out: EventoCaixa[] = [];
   let d = new Date(primeiraData + "T00:00:00");
@@ -234,7 +236,7 @@ export function projecaoSaldoComCenarios(
   semanas = 13,
   bandaPct = 15
 ): { labels: string[]; previsto: number[]; otimista: number[]; pessimista: number[] } {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   const labels: string[] = [];
   const previsto: number[] = [];
   const otimista: number[] = [];
@@ -264,7 +266,7 @@ export function projecaoSaldoComCenarios(
 
 // ---------- CRESCIMENTO MÊS-A-MÊS ----------
 export function crescimentoMoM(serie: number[], mesRef?: number): number {
-  const m = mesRef ?? new Date().getMonth();
+  const m = mesRef ?? new Date(agora()).getMonth();
   const atual = serie[m] || 0;
   const anterior = m > 0 ? serie[m - 1] || 0 : 0;
   if (anterior <= 0) return 0;
@@ -344,7 +346,7 @@ export function preverTendencia(serieHistorica: number[], horizonte = 3): number
 
 // Mantido por compatibilidade com módulos que já usam serieMensal (ano calendário atual)
 export function preverProximosMeses(serie: number[], mesRef?: number, horizonte = 3): number[] {
-  const m = mesRef ?? new Date().getMonth();
+  const m = mesRef ?? new Date(agora()).getMonth();
   return preverTendencia(serie.slice(0, m + 1), horizonte);
 }
 
@@ -742,7 +744,7 @@ export type Renovacao = {
 };
 
 export function radarRenovacoes(itens: ItemRenovavel[], janelaDias = 60): Renovacao[] {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   const out: Renovacao[] = [];
   itens.forEach((it) => {
     if (!it.data_renovacao) return;
@@ -875,7 +877,7 @@ function isoData(d: Date): string {
 }
 
 export function resolverPeriodo(preset: PeriodoPreset, personalizado?: Periodo): Periodo {
-  const hoje = new Date();
+  const hoje = new Date(agora());
   const y = hoje.getFullYear();
   const m = hoje.getMonth();
   switch (preset) {
@@ -1285,19 +1287,14 @@ export type BucketVencimento = { mes: string; label: string; valor: number; muro
 export function escadaVencimentos(
   dividas: DividaBase[], capacidadeMensalPagamento: number, horizonteMeses = 24, limiarMuroPct = 40
 ): BucketVencimento[] {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   const buckets: BucketVencimento[] = [];
   for (let i = 0; i < horizonteMeses; i++) {
     const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
     buckets.push({ mes: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: `${mesesPt[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, valor: 0, muro: false });
   }
   dividas.forEach((dv) => {
-    const saldo = Math.max(0, dv.valor_total - dv.valor_pago);
-    const parcelas = Math.max(1, dv.parcelas);
-    if (saldo <= 0 || !dv.vencimento) return;
-    const valorParcela = saldo / parcelas;
-    const eventos = projetarRecorrenciaMensal(valorParcela, dv.vencimento, horizonteMeses * 31, parcelas);
-    eventos.forEach((ev) => {
+    parcelasFuturasDivida(dv).forEach((ev) => {
       const d = new Date(ev.data + "T00:00:00");
       const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const b = buckets.find((x) => x.mes === chave);
@@ -1310,6 +1307,31 @@ export function escadaVencimentos(
     ...b,
     muro: b.valor > 0 && (capacidadeMensalPagamento <= 0 || (b.valor / capacidadeMensalPagamento) * 100 > limiarMuroPct),
   }));
+}
+
+// Parcelas que ainda faltam pagar de uma dívida. Convenção do cadastro (rótulos do
+// formulário): "parcelas" = parcelas RESTANTES e "vencimento" = data da PRÓXIMA parcela.
+// Parcela com data já passada e não quitada (saldo ainda existe) é atraso: entra hoje,
+// nunca some — senão a escada e o fluxo escondem justamente a dívida vencida.
+// Dia 29–31 em mês curto cai no último dia do mês, sem "escorregar" pro mês seguinte.
+export function parcelasFuturasDivida(dv: Pick<DividaBase, "valor_total" | "valor_pago" | "parcelas" | "vencimento">, hoje: Date = new Date(agora())): EventoCaixa[] {
+  const saldo = Math.max(0, Number(dv.valor_total || 0) - Number(dv.valor_pago || 0));
+  if (saldo <= 0 || !dv.vencimento) return [];
+  const n = Math.max(1, Math.round(Number(dv.parcelas) || 1));
+  const base = new Date(dv.vencimento + "T00:00:00");
+  if (isNaN(base.getTime())) return [];
+  const h = new Date(hoje); h.setHours(0, 0, 0, 0);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const valorParcela = Math.round((saldo / n) * 100) / 100;
+  const out: EventoCaixa[] = [];
+  for (let i = 0; i < n; i++) {
+    const ultimoDia = new Date(base.getFullYear(), base.getMonth() + i + 1, 0).getDate();
+    const d = new Date(base.getFullYear(), base.getMonth() + i, Math.min(base.getDate(), ultimoDia));
+    // Última parcela absorve o arredondamento: a soma bate centavo a centavo com o saldo.
+    const valor = i === n - 1 ? Math.round((saldo - valorParcela * (n - 1)) * 100) / 100 : valorParcela;
+    out.push({ data: iso(d < h ? h : d), valor });
+  }
+  return out;
 }
 
 // ---------- MÉTODO AVALANCHE ----------
@@ -1462,7 +1484,7 @@ export function runwayDivida(dividas: DividaBase[], horizonteMeses = 120): numbe
 // ---------- CONSELHO CFO DE DÍVIDA ----------
 export type GatilhoConselhoDivida =
   | { tipo: "quitarPrimeiro"; descricao: string; taxaJurosAM: number; economiaEstimada: number }
-  | { tipo: "refinanciarAntesMuro"; mesMuro: string; valorMuro: number }
+  | { tipo: "refinanciarAntesMuro"; mesMuro: string /* AAAA-MM */; valorMuro: number }
   | { tipo: "coberturaJurosBaixa"; coberturaAtual: number }
   | { tipo: "dividaAltaSobreEbitda"; multiplo: number };
 
@@ -1478,7 +1500,7 @@ export function gerarConselhoDivida(p: {
   }
 
   const proximoMuro = p.escada.find((b) => b.muro);
-  if (proximoMuro) out.push({ tipo: "refinanciarAntesMuro", mesMuro: proximoMuro.label, valorMuro: proximoMuro.valor });
+  if (proximoMuro) out.push({ tipo: "refinanciarAntesMuro", mesMuro: proximoMuro.mes, valorMuro: proximoMuro.valor });
 
   if (p.coberturaJurosX !== null && p.coberturaJurosX < 1.5) out.push({ tipo: "coberturaJurosBaixa", coberturaAtual: p.coberturaJurosX });
 
@@ -1501,7 +1523,7 @@ export type RitmoMeta = { ritmoNecessarioMensal: number; ritmoAtualMensal: numbe
 export function calcularRitmoMeta(p: {
   valorInicial: number; valorMeta: number; valorAtual: number; dataInicio: string; prazo: string; hoje?: string;
 }): RitmoMeta {
-  const hoje = p.hoje ? new Date(p.hoje + "T00:00:00") : new Date();
+  const hoje = p.hoje ? new Date(p.hoje + "T00:00:00") : new Date(agora());
   const inicio = new Date(p.dataInicio + "T00:00:00");
   const fim = new Date(p.prazo + "T00:00:00");
   const diasTotais = Math.max(1, (fim.getTime() - inicio.getTime()) / 86400000);
@@ -1693,7 +1715,7 @@ export function aliquotaIRRegressiva(diasDecorridos: number): number {
 // então ficam nominais aqui (mais honesto que aplicar uma alíquota genérica errada).
 export function rentabilidadeLiquidaAnual(item: { tipo: TipoInvestimento; rentabilidade: number; data: string }, hojeISO?: string): number {
   if (item.tipo !== "renda_fixa") return item.rentabilidade;
-  const hoje = hojeISO ? new Date(hojeISO + "T00:00:00") : new Date();
+  const hoje = hojeISO ? new Date(hojeISO + "T00:00:00") : new Date(agora());
   const aplicacao = new Date(item.data + "T00:00:00");
   const dias = Math.max(0, Math.round((hoje.getTime() - aplicacao.getTime()) / 86400000));
   const aliquota = aliquotaIRRegressiva(dias);
@@ -1741,7 +1763,7 @@ export function detectarCustoOportunidade(itens: InvestimentoItem[], dividas: Di
 export type BucketLiquidez = { label: string; valor: number; mesIndex: number };
 
 export function escadaLiquidezInvestimentos(itens: InvestimentoItem[], horizonteMeses = 24): BucketLiquidez[] {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   const buckets: BucketLiquidez[] = Array.from({ length: horizonteMeses + 1 }, (_, i) => ({
     label: i === 0 ? "Imediata" : `M${i}`, valor: 0, mesIndex: i,
   }));

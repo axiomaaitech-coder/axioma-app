@@ -357,7 +357,7 @@ export default function Endividamento() {
   ].join("\n");
 
   // ═══════════════════════ GRÁFICOS ═══════════════════════
-  const escadaLabels = escada.map(b => b.label);
+  const escadaLabels = escada.map(b => new Date(b.mes + "-01T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "2-digit" }));
   const escadaValores = escada.map(b => b.valor);
   const escadaCores = escada.map(b => b.muro ? ct(CORES.vermelho) : null);
   const optEscada = optBarrasV(escadaValores, escadaLabels, ct(temaClaro ? CORES.verde : CORES.rosa), temaClaro ? CORES.verde : CORES.rosaC, escadaCores, temaClaro);
@@ -675,8 +675,8 @@ export default function Endividamento() {
                       </div>
                     </div>
                     <div className="flex justify-between mt-3 flex-wrap gap-1">
-                      <span className="text-xs" style={{ color: TEXTO_SEC }}>{t.endividamento.vencimento}: {new Date(d.vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                      <span className="text-xs" style={{ color: TEXTO_SEC }}>{d.parcelas}x {t.endividamento.parcelas}</span>
+                      <span className="text-xs" style={{ color: TEXTO_SEC }}>{t.endividamento.vencimento}: {d.vencimento ? new Date(d.vencimento + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "—"}</span>
+                      <span className="text-xs" style={{ color: TEXTO_SEC }}>{d.parcelas} {t.endividamento.parcelas}</span>
                     </div>
                   </CanvasBox>
                 </motion.div>

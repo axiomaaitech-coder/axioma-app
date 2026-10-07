@@ -19,7 +19,7 @@ import {
   fBRL, fBRL2, fPct, fK, CORES, corTema, serieRolling, serieSemanal, optLinhaMulti,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
   detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios,
-  proximaOcorrenciaDoDia, projetarRecorrenciaMensal, FONTE_EXEC,
+  proximaOcorrenciaDoDia, projetarRecorrenciaMensal, parcelasFuturasDivida, FONTE_EXEC,
   type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, type EventoCaixa, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT, montarNarrativaVariacao, montarNarrativaRuptura } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -27,7 +27,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, agora } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.92), rgba(10,22,40,0.96))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.95), rgba(10,22,40,0.98))";
@@ -298,13 +298,9 @@ export default function FluxoCaixa() {
   });
 
   // Dívidas — parcelas restantes projetadas a partir da próxima data de vencimento
-  const saidasAutoDividas: EventoCaixa[] = dividasRows.flatMap((d: any) => {
-    const saldo = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
-    const parcelas = Math.max(1, Number(d.parcelas || 1));
-    if (saldo <= 0 || !d.vencimento) return [];
-    const valorParcela = saldo / parcelas;
-    return projetarRecorrenciaMensal(valorParcela, d.vencimento, 120, parcelas);
-  });
+  // (horizonte de 120 dias, igual às outras projeções automáticas desta tela)
+  const limiteAuto = hojeISO(new Date(agora() + 120 * 86400000));
+  const saidasAutoDividas: EventoCaixa[] = dividasRows.flatMap((d: any) => parcelasFuturasDivida(d).filter((ev) => ev.data <= limiteAuto));
 
   const totalAutoEntradas = entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0);
   const totalAutoSaidas = [...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas].reduce((a, e) => a + e.valor, 0);

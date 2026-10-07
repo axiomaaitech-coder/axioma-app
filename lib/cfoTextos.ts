@@ -795,7 +795,13 @@ export function montarConselhoCFO(lang: string, g: GatilhoConselho): string {
 // ENDIVIDAMENTO — NARRATIVAS (muro de vencimentos, avalanche, runway,
 // conselho CFO de dívida). Mesma regra: sempre citar o número/origem real.
 // ═══════════════════════════════════════════════════════════════
+// "2026-10" → "out. de 26" / "Oct 26" / "oct 26", no idioma de quem lê.
+function mesAnoLegivel(lang: string, mes: string): string {
+  return new Date(mes + "-01T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "2-digit" });
+}
+
 export function montarNarrativaMuro(lang: string, bucket: BucketVencimento): string {
+  bucket = { ...bucket, label: mesAnoLegivel(lang, bucket.mes) };
   if (lang === "en") return `You have ${fBRL(bucket.valor)} coming due in ${bucket.label}. Start renegotiating now, while you still have bargaining power.`;
   if (lang === "es") return `Tiene ${fBRL(bucket.valor)} venciendo en ${bucket.label}. Empiece a renegociar ahora, mientras tiene poder de negociación.`;
   return `Você tem ${fBRL(bucket.valor)} vencendo em ${bucket.label}. Comece a renegociar agora, enquanto tem poder de barganha.`;
@@ -816,9 +822,9 @@ export function montarConselhoDivida(lang: string, g: GatilhoConselhoDivida): st
     return `Quite primeiro "${g.descricao}" (${fPct(g.taxaJurosAM)}/mês): é a dívida mais cara do seu portfólio. Priorizá-la economiza cerca de ${fBRL(g.economiaEstimada)} em 6 meses.`;
   }
   if (g.tipo === "refinanciarAntesMuro") {
-    if (lang === "en") return `Refinance before ${g.mesMuro}: ${fBRL(g.valorMuro)} in installments come due that month — a maturity wall risking cash flow.`;
-    if (lang === "es") return `Refinancie antes de ${g.mesMuro}: ${fBRL(g.valorMuro)} en cuotas vencen ese mes — un muro de vencimientos que arriesga el flujo de caja.`;
-    return `Refinancie antes de ${g.mesMuro}: ${fBRL(g.valorMuro)} em parcelas vencem nesse mês — um muro de vencimentos que arrisca o caixa.`;
+    if (lang === "en") return `Refinance before ${mesAnoLegivel(lang, g.mesMuro)}: ${fBRL(g.valorMuro)} in installments come due that month — a maturity wall risking cash flow.`;
+    if (lang === "es") return `Refinancie antes de ${mesAnoLegivel(lang, g.mesMuro)}: ${fBRL(g.valorMuro)} en cuotas vencen ese mes — un muro de vencimientos que arriesga el flujo de caja.`;
+    return `Refinancie antes de ${mesAnoLegivel(lang, g.mesMuro)}: ${fBRL(g.valorMuro)} em parcelas vencem nesse mês — um muro de vencimentos que arrisca o caixa.`;
   }
   if (g.tipo === "coberturaJurosBaixa") {
     if (lang === "en") return `Interest coverage is only ${g.coberturaAtual.toFixed(1)}x — EBITDA barely covers financial expenses. Any drop in results risks default.`;
