@@ -14,6 +14,7 @@ const supabase = createBrowserClient(
 );
 
 import { resumirPlacar } from "./nexusPrevisoes";
+import { paginaDaFonte } from "./nexusFontesLinks";
 import { calcularFreshness, calcularSaudeFonte, fonteEmPausa, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
 import { RESERVA_BCE, usarReserva } from "./nexusLeitoresFontes";
 export type { FreshnessStatus };
@@ -31,6 +32,9 @@ export type IndicadorNexus = {
   casas: number; // casas decimais na tela (iene precisa de 4, o resto 2)
   historico: PontoSerie[]; // ascendente por data, pro mini-gráfico
   fonteReserva?: boolean; // true = BCB atrasou, valor veio do Banco Central Europeu
+  frequencia?: string | null; // "mensal" mostra mês/ano no cartão em vez do dia 1º
+  fonte?: { nome: string; pagina: string | null } | null; // de onde veio o valor mostrado (procedência)
+  coletadoEm?: string | null; // quando o Axioma buscou esse valor
 };
 
 // CDI (12) continua no catálogo/ingestão, mas fora da tela: repete a Selic
@@ -66,7 +70,7 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
       CATALOGO.map((c) =>
         supabase
           .from("nexus_economic_series")
-          .select("valor, data_referencia, frequencia")
+          .select("valor, data_referencia, frequencia, retrieved_at, source_id")
           .eq("serie_codigo", c.codigo)
           .order("data_referencia", { ascending: false })
           .limit(PONTOS_HISTORICO)
@@ -76,11 +80,14 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
     // Fonte reserva do câmbio: mesma moeda pelo Banco Central Europeu.
     const { data: reserva } = await supabase
       .from("nexus_economic_series")
-      .select("serie_codigo, valor, data_referencia, frequencia")
+      .select("serie_codigo, valor, data_referencia, frequencia, retrieved_at, source_id")
       .in("serie_codigo", Object.values(RESERVA_BCE))
       .order("data_referencia", { ascending: false })
       .limit(Object.keys(RESERVA_BCE).length * PONTOS_HISTORICO);
 
+    // Nome de cada fonte (procedência no cartão). Falha aqui não esconde o indicador.
+    const { data: fontes } = await supabase.from("nexus_source").select("source_id, source_name");
+    const nomeFonte = (id: unknown) => (fontes ?? []).find((f) => f.source_id === id)?.source_name as string | undefined;
     const algumErro = resultados.some((r) => r.error);
     const indicadores: IndicadorNexus[] = CATALOGO.map((c, i) => {
       const doBce = RESERVA_BCE[c.codigo] ? (reserva ?? []).filter((l) => l.serie_codigo === RESERVA_BCE[c.codigo]) : [];
@@ -100,6 +107,9 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
         freshness: maisRecente?.data_referencia ? calcularFreshness(maisRecente.data_referencia as string, maisRecente.frequencia as string | null) : null,
         historico,
         fonteReserva,
+        frequencia: (maisRecente?.frequencia as string | null) ?? null,
+        fonte: nomeFonte(maisRecente?.source_id) ? { nome: nomeFonte(maisRecente?.source_id)!, pagina: paginaDaFonte(nomeFonte(maisRecente?.source_id)) } : null,
+        coletadoEm: (maisRecente?.retrieved_at as string | null) ?? null,
       };
     });
 

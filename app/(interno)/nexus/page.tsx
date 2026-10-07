@@ -406,7 +406,15 @@ export default function NexusPage() {
                   )}
                   <div className="flex items-center justify-between mt-auto">
                     <span className="text-[10px]" style={{ color: CINZA }}>
-                      {ind.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData) : '—'}
+                      {ind.dataReferencia
+                        ? (ind.frequencia === 'mensal' || ind.frequencia === 'mensal_defasada')
+                          // Série mensal: "ago/2026" (o mês inteiro), não "01/08/2026" — que parecia dado velho.
+                          ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData, { month: 'short', year: 'numeric' })
+                          : new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData)
+                        : '—'}
+                      {ind.fonte && (ind.fonte.pagina
+                        ? <> · <a href={ind.fonte.pagina} target="_blank" rel="noopener noreferrer" className="underline" title={ind.coletadoEm ? `${L('Coletado em', 'Collected on', 'Recolectado el')} ${new Date(ind.coletadoEm).toLocaleString(localeData)}` : undefined}>{ind.fonte.nome}</a></>
+                        : <> · {ind.fonte.nome}</>)}
                       {ind.fonteReserva && <span title={L('O Banco Central do Brasil atrasou; valor do Banco Central Europeu (fonte reserva).', 'The Central Bank of Brazil is late; value from the European Central Bank (backup source).', 'El Banco Central de Brasil se atrasó; valor del Banco Central Europeo (fuente de respaldo).')}> · {L('reserva BCE', 'ECB backup', 'respaldo BCE')}</span>}
                     </span>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloFreshness(ind.freshness, fresh.cor, temaClaro)}>

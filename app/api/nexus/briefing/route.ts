@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
   if (!url || !serviceRole) return NextResponse.json({ error: 'indisponivel' }, { status: 503 })
 
   try {
-    const painel = await obterOuGerarBriefing(createClient(url, serviceRole), lang)
+    // atualizar: botão "Atualizar" do painel — gera de novo se o anterior tiver 3h+ (custo controlado).
+    const painel = await obterOuGerarBriefing(createClient(url, serviceRole), lang, { forcar: corpo?.atualizar === true })
     return NextResponse.json({ painel })
   } catch (err) {
     const motivo = err instanceof Error ? err.message : String(err)

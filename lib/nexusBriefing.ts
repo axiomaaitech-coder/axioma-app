@@ -14,10 +14,15 @@ import { type IdiomaJoseph } from './nexusJoseph'
 import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
 import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, textoPlacar, type PrevisaoIA } from './nexusPrevisoes'
 import { hojeISO } from './datas'
+import { paginaDaFonte } from './nexusFontesLinks'
 
-type Bloco = { titulo: string; texto: string }
-type Item = { titulo: string; texto: string; gravidade: 'alta' | 'media' | 'baixa' }
-type Horizonte = { titulo: string; texto: string; confianca: number }
+// Procedência de cada afirmação: nome da fonte, data e link (só links que o Axioma
+// coletou de verdade — o servidor apaga qualquer outro). Opcionais no tipo porque
+// painéis guardados antes de 2026-10-06 não têm.
+export type FonteBriefing = { nome: string; data: string; url: string }
+type Bloco = { titulo: string; texto: string; pontos?: string[]; fontes?: FonteBriefing[] }
+type Item = { titulo: string; texto: string; gravidade: 'alta' | 'media' | 'baixa'; fontes?: FonteBriefing[] }
+type Horizonte = { titulo: string; texto: string; confianca: number; sinais?: string[] }
 
 export type BriefingJose = {
   mundo: Bloco
@@ -38,9 +43,12 @@ export type BriefingJose = {
 }
 
 const s = { type: 'string' }
-const bloco = { type: 'object', additionalProperties: false, required: ['titulo', 'texto'], properties: { titulo: s, texto: s } }
-const item = { type: 'object', additionalProperties: false, required: ['titulo', 'texto', 'gravidade'], properties: { titulo: s, texto: s, gravidade: { type: 'string', enum: ['alta', 'media', 'baixa'] } } }
-const horizonte = { type: 'object', additionalProperties: false, required: ['titulo', 'texto', 'confianca'], properties: { titulo: s, texto: s, confianca: { type: 'integer' } } }
+const fonte = { type: 'object', additionalProperties: false, required: ['nome', 'data', 'url'], properties: { nome: s, data: s, url: s } }
+const listaTexto = { type: 'array', items: s }
+const listaFontes = { type: 'array', items: fonte }
+const bloco = { type: 'object', additionalProperties: false, required: ['titulo', 'texto', 'pontos', 'fontes'], properties: { titulo: s, texto: s, pontos: listaTexto, fontes: listaFontes } }
+const item = { type: 'object', additionalProperties: false, required: ['titulo', 'texto', 'gravidade', 'fontes'], properties: { titulo: s, texto: s, gravidade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, fontes: listaFontes } }
+const horizonte = { type: 'object', additionalProperties: false, required: ['titulo', 'texto', 'confianca', 'sinais'], properties: { titulo: s, texto: s, confianca: { type: 'integer' }, sinais: listaTexto } }
 const SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['mundo', 'brasil', 'alertas', 'riscos', 'oportunidades', 'horizonte_12m', 'horizonte_3a', 'horizonte_5a', 'horizonte_10a', 'nao_estou_vendo', 'jose_faria', 'confianca_geral', 'base_usada', 'limitacoes'],
@@ -91,7 +99,10 @@ Regras invioláveis:
 - "nao_estou_vendo": um ponto cego útil que o empresário provavelmente não está considerando, derivado dos dados (ex.: juro real alto mesmo com Selic caindo).
 - "jose_faria": exatamente 3 ações práticas e prudentes para a empresa. Nada de recomendar investimento específico.
 - "base_usada": 3 a 6 itens curtos citando o que você usou (ex.: "Selic 13,75% (BCB, 17/09)"). "limitacoes": 2 a 4 itens sobre o que falta na base.
-- Cada "texto": no máximo 45 palavras, linguagem simples de CFO conversando com empresário.
+- Cada "texto": 50 a 90 palavras — robusto e conciso: o fato, por que importa para a empresa e o efeito provável. Linguagem simples de CFO conversando com empresário, sem enrolação.
+- "pontos" (em mundo, brasil, nao_estou_vendo): 2 a 4 itens curtos, cada um com o número e a data do dado (ex.: "IPCA de agosto: -0,32% (IBGE)").
+- "sinais" (horizontes): 2 a 3 sinais concretos para acompanhar, que confirmariam ou mudariam o cenário.
+- "fontes" (em blocos e itens): 1 a 3, de onde veio a informação — nome da fonte ou veículo como aparece nos dados, data (AAAA-MM-DD) e "url" COPIADA EXATAMENTE da lista de manchetes; para dado oficial sem link na lista, url "". Nunca invente link, veículo ou matéria.
 - Nunca se identifique como IA, modelo de linguagem, Claude ou Anthropic. Você é o José, do Axioma.
 - Escreva no idioma pedido.`
 
@@ -126,8 +137,8 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
   const evs = ((eventos ?? []) as { title: string; description: string | null; natureza: string; published_at: string; joseph_analise: Record<string, { leitura?: string }> | null }[])
     .map((e) => `- ${e.published_at.slice(0, 10)} [${e.natureza}] ${e.title}. ${e.description ?? ''}${e.joseph_analise?.pt?.leitura ? `\n  Leitura do José: ${e.joseph_analise.pt.leitura.slice(0, 500)}` : ''}`).join('\n')
 
-  const news = ((noticias ?? []) as unknown as { title: string; publication_date: string; canal: string | null; nexus_source: { source_name: string } | null }[])
-    .map((n) => `- ${n.publication_date?.slice(0, 10)} (${n.canal ?? 'geral'}, ${n.nexus_source?.source_name ?? 'fonte jornalística'}): ${n.title}`).join('\n')
+  const news = ((noticias ?? []) as unknown as { title: string; publication_date: string; canal: string | null; canonical_url: string | null; nexus_source: { source_name: string } | null }[])
+    .map((n) => `- ${n.publication_date?.slice(0, 10)} (${n.canal ?? 'geral'}, ${n.nexus_source?.source_name ?? 'fonte jornalística'}): ${n.title}${n.canonical_url ? ` — ${n.canonical_url}` : ''}`).join('\n')
 
   // Mais recente de cada série do Banco Mundial (lista já vem do mais novo pro mais antigo).
   const bmUltimo = new Map<string, string>()
@@ -135,12 +146,31 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
     if (!bmUltimo.has(l.serie_codigo)) bmUltimo.set(l.serie_codigo, `- ${l.serie_nome ?? l.serie_codigo}: ${Number(l.valor).toFixed(1)}% (ano ${l.data_referencia.slice(0, 4)})`)
   const bancoMundial = [...bmUltimo.values()].join('\n')
 
-  const geopolitica = ((geo ?? []) as { title: string; publication_date: string }[]).map((n) => `- ${n.publication_date?.slice(0, 10)}: ${n.title}`).join('\n')
+  const geopolitica = ((geo ?? []) as unknown as { title: string; publication_date: string; canonical_url: string | null; nexus_source: { source_name: string } | null }[])
+    .map((n) => `- ${n.publication_date?.slice(0, 10)} (${n.nexus_source?.source_name ?? 'fonte jornalística'}): ${n.title}${n.canonical_url ? ` — ${n.canonical_url}` : ''}`).join('\n')
 
   return `INDICADORES OFICIAIS (Banco Central / IBGE):\n${indicadores || '- indisponíveis'}\n\nEVENTOS DETECTADOS (últimos 30 dias):\n${evs || '- nenhum'}\n\nMANCHETES COLETADAS (últimos 3 dias — fonte jornalística, não confirmado oficialmente):\n${news || '- nenhuma'}\n\nECONOMIA DOS PARCEIROS (Banco Mundial, oficial, anual):\n${bancoMundial || '- indisponível'}\n\nGEOPOLÍTICA E COMÉRCIO MUNDIAL (GDELT, BBC World, ONU News e Al Jazeera — manchetes internacionais em inglês dos últimos 3 dias, fonte jornalística, não confirmado oficialmente):\n${geopolitica || '- nenhuma'}`
 }
 
 export class FalhaBriefing extends Error {}
+
+// Fonte honesta: link que NÃO veio da lista de manchetes coletadas é apagado (a IA não
+// pode inventar endereço); dado oficial sem link ganha a página pública do órgão.
+const OFICIAIS: [RegExp, string][] = [
+  [/bcb|banco central do brasil|copom|selic/i, 'BCB SGS'], [/ibge|ipca|pnad/i, 'IBGE Dados Abertos'], [/ipea/i, 'IPEA Data'],
+  [/bce|banco central europeu|ecb/i, 'Banco Central Europeu'], [/fmi|imf/i, 'FMI'], [/banco mundial|world bank/i, 'Banco Mundial'],
+  [/comex|mdic|secex/i, 'Comex Stat'], [/anp/i, 'ANP'], [/ocde|oecd/i, 'OCDE'],
+]
+function conferirFontes(c: BriefingJose, contexto: string): BriefingJose {
+  const permitidos = new Set(contexto.match(/https?:\/\/[^\s)]+/g) ?? [])
+  const limpar = (fs?: FonteBriefing[]) => (fs ?? []).map((f) => {
+    if (f.url && permitidos.has(f.url)) return f
+    const oficial = OFICIAIS.find(([re]) => re.test(f.nome))
+    return { ...f, url: oficial ? paginaDaFonte(oficial[1]) ?? '' : '' }
+  })
+  const b = <T extends { fontes?: FonteBriefing[] }>(x: T): T => ({ ...x, fontes: limpar(x.fontes) })
+  return { ...c, mundo: b(c.mundo), brasil: b(c.brasil), nao_estou_vendo: b(c.nao_estou_vendo), alertas: c.alertas.map(b), riscos: c.riscos.map(b), oportunidades: c.oportunidades.map(b) }
+}
 
 export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<{ conteudo: BriefingJose; modelo: string }> {
   const entrada = await montarContextoMundo(supabase) + (lang === 'pt' ? await pedidoPrevisoes(supabase) : '')
@@ -151,7 +181,7 @@ ${entrada}`
   // Claude → OpenAI forte → OpenAI reserva (motor). Se as 3 falharem, quem chama devolve o último painel guardado.
   try {
     const { texto, modelo } = await jsonDoJose({ sistema: SISTEMA, mensagem, esquema: lang === 'pt' ? SCHEMA_PT : SCHEMA, rotulo: 'painel executivo' })
-    return { conteudo: JSON.parse(texto) as BriefingJose, modelo }
+    return { conteudo: conferirFontes(JSON.parse(texto) as BriefingJose, entrada), modelo }
   } catch (err) {
     throw new FalhaBriefing(err instanceof Error ? err.message : String(err))
   }
@@ -161,12 +191,21 @@ const hoje = () => hojeISO()
 
 // Devolve o painel de hoje; se não existir, gera e grava (upsert por data+idioma).
 // Se a geração falhar, devolve o último painel disponível (marcado com a data dele).
-export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<{ data: string; conteudo: BriefingJose } | null> {
-  const { data: ultimo, error: erroLeitura } = await supabase.from('nexus_briefing').select('data, conteudo').eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
+// Atualizar sob demanda: o painel é um só pra todos os clientes (custo de IA), então
+// gerar de novo no mesmo dia só depois de 3 horas do anterior.
+export const INTERVALO_ATUALIZAR_MS = 3 * 3600000
+export type PainelJose = { data: string; conteudo: BriefingJose; geradoEm: string | null; podeAtualizarEm: string | null }
+
+export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph, opcoes: { forcar?: boolean } = {}): Promise<PainelJose | null> {
+  const { data: ultimo, error: erroLeitura } = await supabase.from('nexus_briefing').select('data, conteudo, gerado_em').eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
   // Sem conseguir ler a tabela (ex.: SQL da Etapa 7 ainda não rodado), NÃO gera:
   // geraria na IA e não conseguiria guardar — gasto repetido a cada abertura.
   if (erroLeitura) throw new FalhaBriefing(`leitura de nexus_briefing: ${erroLeitura.message}`)
-  if (ultimo?.data === hoje()) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }
+  const geradoEm = (ultimo?.gerado_em as string | null) ?? null
+  const liberadoEm = geradoEm ? new Date(new Date(geradoEm).getTime() + INTERVALO_ATUALIZAR_MS) : null
+  const podeAtualizar = !liberadoEm || liberadoEm.getTime() <= Date.now()
+  const doUltimo = (): PainelJose => ({ data: ultimo!.data as string, conteudo: ultimo!.conteudo as BriefingJose, geradoEm, podeAtualizarEm: podeAtualizar ? null : liberadoEm!.toISOString() })
+  if (ultimo?.data === hoje() && !(opcoes.forcar && podeAtualizar)) return doUltimo()
   try {
     const { conteudo, modelo } = await gerarBriefing(supabase, lang)
     // varredura:ok — service role; erro checado logo abaixo
@@ -174,9 +213,10 @@ export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: Idiom
     if (error) throw new FalhaBriefing(`gravação: ${error.message}`)
     // Melhor-esforço: sem a tabela da Etapa 9 (SQL não rodado) o painel segue normal.
     if (conteudo.previsoes?.length) await registrarPrevisoes(supabase, conteudo.previsoes).catch((e) => console.error('[nexusBriefing] previsões não gravadas:', e instanceof Error ? e.message : e))
-    return { data: hoje(), conteudo }
+    const agoraIso = new Date().toISOString()
+    return { data: hoje(), conteudo, geradoEm: agoraIso, podeAtualizarEm: new Date(Date.now() + INTERVALO_ATUALIZAR_MS).toISOString() }
   } catch (err) {
-    if (ultimo) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }
+    if (ultimo) return doUltimo()
     throw err
   }
 }

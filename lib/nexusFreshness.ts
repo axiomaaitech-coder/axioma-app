@@ -2,11 +2,17 @@
 // tela (recalcula na leitura — o valor gravado só vale no dia da coleta; se o
 // cron parar, a tela precisa mostrar "desatualizado" sozinha, nunca congelar
 // em "atualizado hoje").
+import { agora } from "./datas";
+
 export type FreshnessStatus = "live" | "fresh" | "recent" | "stale" | "expired" | "unknown"
 
-export function calcularFreshness(dataReferenciaISO: string, frequencia: string | null, hoje = new Date()): FreshnessStatus {
-  const ref = new Date(`${dataReferenciaISO}T00:00:00Z`)
+export function calcularFreshness(dataReferenciaISO: string, frequencia: string | null, hoje = new Date(agora())): FreshnessStatus {
+  let ref = new Date(`${dataReferenciaISO}T00:00:00Z`)
   if (Number.isNaN(ref.getTime())) return "unknown"
+  // Série mensal: o mês de referência só termina no último dia (o BCB grava "01/08" pro
+  // IPCA de agosto inteiro). Medir a partir do dia 1 marcava como "desatualizado" o
+  // último dado que o IBGE já tinha divulgado — a régua conta a partir do fim do mês.
+  if (frequencia === "mensal" || frequencia === "mensal_defasada") ref = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 0))
   let dias = Math.floor((Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()) - ref.getTime()) / 86400000)
   const ehDiaria = frequencia === "diaria" || frequencia === "event_driven"
   if (ehDiaria) {
