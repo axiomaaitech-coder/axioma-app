@@ -1160,6 +1160,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         dryRun: true,
         somarAlvo: montarSomarAlvo(),
         baixarAlvo: montarBaixarAlvo(),
+        arquivo: { nome: arquivoSelecionado?.name || "", formato: resultado?.formato || "" },
       });
       setSimulacao(result);
     } catch (err) {
@@ -1226,6 +1227,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         destinos,
         somarAlvo: montarSomarAlvo(),
         baixarAlvo: montarBaixarAlvo(),
+        arquivo: { nome: arquivoSelecionado?.name || "", formato: resultado?.formato || "" },
       });
 
       // 3b) Guarda o que o humano respondeu na supervisão (quem conferiu o quê).

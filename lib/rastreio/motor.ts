@@ -54,6 +54,9 @@ export type PayloadRastreio = {
   custo_fixo_id?: string | null;  // conta gerada de custo fixo: o custo já está no módulo Custos Fixos
   quitou?: boolean;               // recebimento quitou a conta (fecha promessas de cobrança)
   origem_modulo?: string | null;  // nascimento: de qual tela/módulo a conta veio
+  // Proveniência (Financial Core 1.6): de onde veio o número — arquivo, formato,
+  // documento, chave, como o fornecedor foi reconhecido e a confiança.
+  proveniencia?: Record<string, string | number | null> | null;
   // Lançamento manual: natureza (receita/custo/aporte/emprestimo/pag_emprestimo/retirada/transferencia)
   natureza?: string | null;
   rastreio_original_id?: string | null; // manual_estorno: qual rastro ele desfaz

@@ -857,8 +857,10 @@ export async function gravarLinhas(params: {
   somarAlvo?: ({ tabela: DestinoTabela; id: string } | null)[];
   // Motor de Baixa: a linha é o pagamento desta conta em aberto → dá baixa nela.
   baixarAlvo?: ({ tabela: "contas_pagar" | "contas_receber"; id: string } | null)[];
+  // Proveniência: arquivo e formato de onde as contas nasceram (vai no evento).
+  arquivo?: { nome: string; formato: string };
 }): Promise<ResultadoGravacao> {
-  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destinos, dryRun, somarAlvo, baixarAlvo } = params;
+  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destinos, dryRun, somarAlvo, baixarAlvo, arquivo } = params;
 
   const resultado: ResultadoGravacao = {
     importadas: 0,
@@ -1052,10 +1054,16 @@ export async function gravarLinhas(params: {
       }
       if (!empresaId) return { data: null, error: { message: "Empresa ativa não identificada" } };
       const p = build.payload as Record<string, unknown>;
+      // Código (a tela traduz): "regra" = formato estruturado lido por regra; "ia" = PDF/foto lido pela IA e conferido por humano.
+      const metodo = !arquivo?.formato ? null : arquivo.formato === "pdf" || arquivo.formato === "imagem" ? "ia" : "regra";
+      const proveniencia = {
+        importacao_id: importacaoId, arquivo: arquivo?.nome ?? null, formato: arquivo?.formato ?? null, metodo, documento: linha.documento ?? null,
+        chave_acesso: linha.chaveAcesso ?? null, cnpj_contraparte: linha.cnpj ?? null, linha: numLinha,
+      };
       const r = destino === "contas_pagar"
         ? await criarContaPagar(userId, empresaId, p as Partial<ContaPagar>,
-            Number(p.valor_pago) > 0 ? { origem: "importar_documentos", pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : { origem: "importar_documentos" })
-        : await criarContaReceber(userId, empresaId, p, { modulo: "importar_documentos" });
+            Number(p.valor_pago) > 0 ? { origem: "importar_documentos", proveniencia, pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : { origem: "importar_documentos", proveniencia })
+        : await criarContaReceber(userId, empresaId, p, { modulo: "importar_documentos", proveniencia });
       return r.id ? { data: { id: r.id }, error: null } : { data: null, error: { message: r.erro || "falha ao criar a conta" } };
     })();
 

@@ -28,7 +28,7 @@ type DestinoRow = { destino: Destino; status: StatusDestino; ultimo_erro: string
 type RastroRow = {
   id: string; tipo: TipoRastreio; origem_tabela: string; origem_id: string; valor: number; encargos: number;
   data_movimento: string; descricao: string | null; status: 'pendente' | 'ok' | 'falhou'; criado_em: string;
-  payload: { contraparte?: string | null; forma?: string | null; origem_modulo?: string | null; natureza?: string | null }; rastreio_destino: DestinoRow[];
+  payload: { contraparte?: string | null; forma?: string | null; origem_modulo?: string | null; natureza?: string | null; proveniencia?: { arquivo?: string | null; metodo?: string | null; documento?: string | null; chave_acesso?: string | null } | null }; rastreio_destino: DestinoRow[];
 }
 type Explicacao = { rastreio_id: string; explicacao: string; acao: string }
 
@@ -239,6 +239,14 @@ export default function RastreabilidadePage() {
                       {(r.tipo.endsWith('criacao') || r.tipo === 'manual') && (
                         <p className="text-xs mt-0.5 font-semibold" style={{ color: P.VERDE }}>
                           {L('Nasceu em', 'Created in', 'Nació en')}: {(NOME_ORIGEM[r.payload?.origem_modulo || ''] || NOME_ORIGEM[r.origem_tabela])?.[lang] || r.payload?.origem_modulo}
+                        </p>
+                      )}
+                      {r.payload?.proveniencia?.arquivo && (
+                        <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>
+                          {L('Origem', 'Source', 'Origen')}: {r.payload.proveniencia.arquivo}
+                          {r.payload.proveniencia.documento ? ` · NF ${r.payload.proveniencia.documento}` : ''}
+                          {r.payload.proveniencia.chave_acesso ? ` · ${L('chave', 'key', 'clave')} …${String(r.payload.proveniencia.chave_acesso).slice(-8)}` : ''}
+                          {r.payload.proveniencia.metodo === 'ia' ? ` · ${L('lido pela IA e conferido por humano', 'read by AI and checked by a person', 'leído por IA y revisado por una persona')}` : r.payload.proveniencia.metodo === 'regra' ? ` · ${L('lido por regra (formato estruturado)', 'read by rule (structured format)', 'leído por regla (formato estructurado)')}` : ''}
                         </p>
                       )}
                     </div>

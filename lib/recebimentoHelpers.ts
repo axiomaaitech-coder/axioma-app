@@ -145,7 +145,7 @@ async function gravarComReserva(fazer: (p: Linha) => PromiseLike<{ data: unknown
 
 export async function criarContaReceber(
   userId: string, empresaId: string, dados: Linha,
-  opcoes?: { recebidoNaOrigem?: number; modulo?: string },
+  opcoes?: { recebidoNaOrigem?: number; modulo?: string; proveniencia?: Record<string, string | number | null> },
 ): Promise<{ id?: string; erro?: string; avisoRecebimento?: string; semColunasOpcionais?: boolean }> {
   const total = Number(dados.valor) || 0;
   const status = statusEfetivo(null, total, 0, (dados.data_vencimento as string) ?? null, "recebido");
@@ -165,12 +165,12 @@ export async function criarContaReceber(
     data: (dados.data_emissao as string) || hojeISO(),
     payload: {
       descricao: (dados.descricao as string) || "", categoria: (dados.categoria as string) ?? null,
-      centro_custo_id: (dados.centro_custo_id as string) ?? null, origem_modulo: modulo, evento_tipo: "AR_CREATED",
+      centro_custo_id: (dados.centro_custo_id as string) ?? null, origem_modulo: modulo, proveniencia: opcoes?.proveniencia ?? null, evento_tipo: "AR_CREATED",
       evento_payload: {
         conta_id: conta.id, cliente_id: (dados.cliente_id as string) ?? null, valor: total,
         descricao: (dados.descricao as string) ?? null, categoria: (dados.categoria as string) ?? null,
         data_emissao: (dados.data_emissao as string) ?? null, competencia: (dados.competencia as string) ?? null,
-        centro_custo_id: (dados.centro_custo_id as string) ?? null,
+        centro_custo_id: (dados.centro_custo_id as string) ?? null, proveniencia: opcoes?.proveniencia ?? null,
       },
     },
   });

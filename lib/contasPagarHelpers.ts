@@ -111,7 +111,7 @@ export async function listarContasPagar(empresaId: string, filtros: FiltrosConta
 //   Sem pagoNaOrigem → passa pela alçada de aprovação (auto ou "aguardando").
 export async function criarContaPagar(
   userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
-  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string },
+  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string; proveniencia?: Record<string, string | number | null> },
 ): Promise<{ id?: string; erro?: string; avisoAprovacao?: string; avisoBaixa?: string }> {
   const total = Number(dados.valor_total) || 0;
   const status = calcStatus(total, 0, dados.data_vencimento);
@@ -130,13 +130,13 @@ export async function criarContaPagar(
     data: dados.data_emissao || hojeISO(),
     payload: {
       descricao: dados.descricao || "", categoria: dados.categoria ?? null, centro_custo_id: dados.centro_custo_id ?? null,
-      origem_modulo: opcoes?.origem ?? "contas_pagar", evento_tipo: "AP_CREATED",
+      origem_modulo: opcoes?.origem ?? "contas_pagar", proveniencia: opcoes?.proveniencia ?? null, evento_tipo: "AP_CREATED",
       evento_payload: {
         conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null,
         // categoria/descricao/data_emissao: usados pelo Accounting Core pra reconhecer
         // a despesa na conta certa, na data certa.
         categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
-        centro_custo_id: dados.centro_custo_id ?? null,
+        centro_custo_id: dados.centro_custo_id ?? null, proveniencia: opcoes?.proveniencia ?? null,
       },
     },
   });
