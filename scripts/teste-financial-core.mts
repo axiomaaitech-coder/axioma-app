@@ -37,3 +37,12 @@ assert.deepEqual(nomeEmpresaNormalizado('ABC LTDA.'), nomeEmpresaNormalizado('Ab
 assert.deepEqual(nomeEmpresaNormalizado('Papel Info - EIRELI'), ['papel', 'info'])
 assert.notDeepEqual(nomeEmpresaNormalizado('ABC DISTRIBUIDORA LTDA'), nomeEmpresaNormalizado('ABC LTDA'))
 console.log('OK — fornecedor: "ABC LTDA." = "Abc Ltda"; "ABC DISTRIBUIDORA" é só parecido (pergunta)')
+
+// 5) Regra absoluta: nenhuma inteligência apaga/altera dado da empresa sozinha
+import { readFileSync } from 'node:fs'
+const motorSrc = readFileSync('lib/ia/motor.ts', 'utf8')
+assert.ok(motorSrc.includes('terminantemente proibido apagar'), 'regra de não apagar no aviso fixo das IAs')
+assert.ok(motorSrc.includes('text: `${p.sistema}\\n${AVISO_IDENTIDADE}`'), 'José via Claude também recebe a regra')
+assert.ok(readFileSync('lib/axiomaChat.ts', 'utf8').includes('terminantemente proibido apagar'), 'chat também recebe a regra')
+assert.ok(!/\.(insert|update|upsert|delete)\(/.test(readFileSync('lib/ia/ferramentas.ts', 'utf8')), 'ferramentas da IA só leem')
+console.log('OK — toda IA proibida de apagar/alterar dado; ferramentas da IA só leem')
