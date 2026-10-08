@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
   if (corpo?.acao === 'aceitar') return aceitar(corpo)
   if (corpo?.acao === 'decidir') return decidir(corpo)
   if (corpo?.acao === 'termo_lixeira' || corpo?.acao === 'termo_apagar') return termo(corpo)
+  if (['lixeira_listar', 'convite_lixeira', 'convite_recuperar', 'convite_apagar'].includes(corpo?.acao)) return lixeiraConvite(corpo)
   return erro('acao')
 }
 
@@ -282,6 +283,61 @@ async function termo(corpo: any) {
     nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: motivo,
   }).eq('id', tm.id)
   if (error) { console.error('[termo] apagar:', error.message); return erro('generico', 500) }
+  return NextResponse.json({ ok: true })
+}
+
+// Lixeira de convites (Elias 2026-10-08): convite vai pra lixeira (fica "recusado",
+// some da equipe, junto com o termo dele), dá pra recuperar em 60 dias ou apagar de vez.
+// ponytail: convite na lixeira há mais de 60 dias só some da lista; limpeza física se pesar.
+async function lixeiraConvite(corpo: any) {
+  const user = await usuarioLogado()
+  if (!user) return erro('login', 401)
+  const db = admin()
+  const agora = new Date().toISOString()
+  if (corpo.acao === 'lixeira_listar') {
+    const empresaId = String(corpo.empresaId || '')
+    if (!(await podeLiberar(db, empresaId, user.id))) return erro('sem_permissao', 403)
+    const { data, error } = await db.from('empresa_equipe')
+      .select('id, nome, email_convidado, convidado_nome_termo, papel, relacao, decidido_em, motivo_recusa, user_id_convidado')
+      .eq('empresa_id', empresaId).eq('situacao', 'recusado')
+      .gte('decidido_em', new Date(Date.now() - 60 * 86400000).toISOString())
+      .order('decidido_em', { ascending: false }).limit(200)
+    if (error) { console.error('[lixeira] listar:', error.message); return erro('generico', 500) }
+    return NextResponse.json({ itens: data || [] })
+  }
+  const { data: cv } = await db.from('empresa_equipe').select('id, empresa_id, situacao, convite_aceito, user_id_convidado').eq('id', String(corpo.conviteId || '')).maybeSingle()
+  if (!cv) return erro('invalido', 404)
+  if (!(await podeLiberar(db, cv.empresa_id, user.id))) return erro('sem_permissao', 403)
+
+  if (corpo.acao === 'convite_lixeira') {
+    if (cv.convite_aceito) return erro('usado', 409) // quem já entrou sai por "Cortar acesso"
+    const { error } = await db.from('empresa_equipe').update({
+      situacao: 'recusado', decidido_por: user.id, decidido_em: agora, motivo_recusa: 'lixeira',
+    }).eq('id', cv.id)
+    if (error) { console.error('[lixeira] convite:', error.message); return erro('generico', 500) }
+    await db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null)
+    return NextResponse.json({ ok: true })
+  }
+  if (corpo.acao === 'convite_recuperar') {
+    if (cv.situacao !== 'recusado') return erro('invalido', 409)
+    const { error } = await db.from('empresa_equipe').update({
+      situacao: cv.user_id_convidado ? 'aguardando_aprovacao' : 'enviado', decidido_por: null, decidido_em: null, motivo_recusa: null,
+    }).eq('id', cv.id)
+    if (error) { console.error('[lixeira] recuperar:', error.message); return erro('generico', 500) }
+    await db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null)
+    return NextResponse.json({ ok: true })
+  }
+  // Apagar de vez: o termo perde nome/CPF/e-mail (fica só quem apagou, quando e por quê) e o convite some.
+  // Convite que ainda não deu acesso apaga direto (Elias 2026-10-08: quer de novo, manda do zero).
+  if (cv.convite_aceito) return erro('usado', 409)
+  const motivo = String(corpo.motivo || '').trim() || 'Convite apagado pelo responsável'
+  if (motivo.length < 5) return erro('motivo')
+  const { error: eT } = await db.from('empresa_convite_termo').update({
+    nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: motivo, convite_id: null,
+  }).eq('convite_id', cv.id)
+  if (eT) { console.error('[lixeira] termo:', eT.message); return erro('generico', 500) }
+  const { error } = await db.from('empresa_equipe').delete().eq('id', cv.id)
+  if (error) { console.error('[lixeira] apagar:', error.message); return erro('generico', 500) }
   return NextResponse.json({ ok: true })
 }
 

@@ -1057,6 +1057,17 @@ export async function apagarTermoConvite(id: string, motivo: string): Promise<{ 
 export async function termoParaLixeira(id: string): Promise<{ erro?: string; codigo?: string }> {
   return acaoTermo({ acao: "termo_lixeira", termoId: id });
 }
+// Lixeira de convites: listar, mandar, recuperar e apagar de vez (pelo servidor)
+export type ConviteLixeira = { id: string; nome: string | null; email_convidado: string | null; convidado_nome_termo: string | null; papel: string | null; relacao: string | null; decidido_em: string | null; motivo_recusa: string | null };
+export async function listarLixeiraConvites(empresaId: string): Promise<ConviteLixeira[]> {
+  const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "lixeira_listar", empresaId }) });
+  const r = await resp.json().catch(() => ({ erro: "generico" }));
+  if (r.erro) { reportarFalhaLeitura("equipe.lixeiraConvites", { message: String(r.erro) }); return []; }
+  return r.itens || [];
+}
+export async function acaoLixeiraConvite(acao: "convite_lixeira" | "convite_recuperar" | "convite_apagar", conviteId: string, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
+  return acaoTermo({ acao, conviteId, motivo: motivo || "" });
+}
 async function acaoTermo(corpo: Record<string, string>): Promise<{ erro?: string; codigo?: string }> {
   const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
   const r = await resp.json().catch(() => ({ erro: "generico" }));

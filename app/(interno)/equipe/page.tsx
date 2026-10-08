@@ -8,7 +8,7 @@ import { copiarTexto } from '../../../lib/copiar'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, decidirConvite, type TermoConvite,
+  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, listarLixeiraConvites, acaoLixeiraConvite, type ConviteLixeira, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
@@ -75,12 +75,12 @@ const textos = {
     acessoAte: (d: string) => `Acesso até ${d}`, acessoEncerrado: 'Acesso encerrado', cortarAcesso: 'Cortar acesso agora',
     relacaoLabel: 'Quem você está convidando', rel_ceo: 'CEO', rel_socio: 'Sócio', rel_contador: 'Contador', rel_funcionario: 'Funcionário', rel_consultor: 'Consultor (2ª opinião)', rel_outro: 'Outro',
     termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
-    lixeiraTitulo: 'Lixeira de termos', lixeiraSub: 'Termos que você mandou para a lixeira e de quem saiu da empresa. Ficam 60 dias: dá pra recuperar ou apagar de vez. Depois disso são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', vagasPlano: (o: number, l: number) => `Vagas do plano: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Convites temporários (até 7 dias): ${u} de ${l}`, erroLimitePlano: (l: number) => `Seu plano permite ${l} pessoa${l > 1 ? 's' : ''} na equipe (contando você). Mude para o plano acima para convidar mais. Não contam: operador de caixa, contador/consultor externo e convidado de até 7 dias.`, erroCotaTemp: (l: number) => `Você já usou os ${l} convites temporários (até 7 dias) do seu plano. Para convidar mais, suba de plano.`, verPlanos: 'Ver planos', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
+    lixeiraTitulo: 'Lixeira', lixeiraSub: 'CEO, Sócio e Admin que saíram ou foram para a lixeira (os demais são apagados de vez). Ficam 60 dias: dá pra recuperar ou apagar de vez. Depois disso são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', vagasPlano: (o: number, l: number) => `Vagas do plano: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Convites temporários (até 7 dias): ${u} de ${l}`, erroLimitePlano: (l: number) => `Seu plano permite ${l} pessoa${l > 1 ? 's' : ''} na equipe (contando você). Mude para o plano acima para convidar mais. Não contam: operador de caixa, contador/consultor externo e convidado de até 7 dias.`, erroCotaTemp: (l: number) => `Você já usou os ${l} convites temporários (até 7 dias) do seu plano. Para convidar mais, suba de plano.`, verPlanos: 'Ver planos', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
     semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
-    dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Mandar este termo para a lixeira', apagarDeVez: 'Apagar de vez', movidoLixeira: 'Termo movido para a lixeira.',
+    dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Mandar para a lixeira', apagarDeVez: 'Apagar de vez', movidoLixeira: 'Termo movido para a lixeira.',
     apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
     apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tenho autorização para apagar estes dados e que a ação não pode ser desfeita.', apagarBotao: 'Apagar dados', apagando: 'Apagando...',
-    sucessoApagar: 'Dados pessoais apagados.', erroApagar: 'Não foi possível apagar. Tente novamente.',
+    sucessoApagar: 'Apagado.', erroApagar: 'Não foi possível apagar. Tente novamente.',
     enviarPor: 'Gerar e enviar o convite por:', conviteLink: 'Convite por link', outroEmail: 'Outro e-mail', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Convite para a equipe no Axioma',
     msgConvite: 'Olá{nome}! {remetente} convidou você para entrar na nossa empresa no Axioma como {papel}{prazo}.\n\nToque no link, preencha o formulário e pronto, você já entra:\n{link}\n\nO link vale por {validade}.',
@@ -142,12 +142,12 @@ const textos = {
     acessoAte: (d: string) => `Access until ${d}`, acessoEncerrado: 'Access ended', cortarAcesso: 'Cut access now',
     relacaoLabel: 'Who you are inviting', rel_ceo: 'CEO', rel_socio: 'Partner', rel_contador: 'Accountant', rel_funcionario: 'Employee', rel_consultor: 'Consultant (2nd opinion)', rel_outro: 'Other',
     termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
-    lixeiraTitulo: 'Terms trash', lixeiraSub: 'Terms you moved to the trash and of people who left the company. Kept for 60 days: you can restore or delete them for good. After that they are deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', vagasPlano: (o: number, l: number) => `Plan seats: ${o} of ${l}`, tempPlano: (u: number, l: number) => `Temporary invites (up to 7 days): ${u} of ${l}`, erroLimitePlano: (l: number) => `Your plan allows ${l} ${l > 1 ? 'people' : 'person'} on the team (including you). Move to the plan above to invite more. Not counted: cashier operator, external accountant/consultant and guests of up to 7 days.`, erroCotaTemp: (l: number) => `You have used the ${l} temporary invites (up to 7 days) of your plan. Upgrade your plan to invite more.`, verPlanos: 'See plans', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
+    lixeiraTitulo: 'Trash', lixeiraSub: 'CEO, Partner and Admin who left or were moved to the trash (others are deleted for good). Kept for 60 days: you can restore or delete them for good. After that they are deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', vagasPlano: (o: number, l: number) => `Plan seats: ${o} of ${l}`, tempPlano: (u: number, l: number) => `Temporary invites (up to 7 days): ${u} of ${l}`, erroLimitePlano: (l: number) => `Your plan allows ${l} ${l > 1 ? 'people' : 'person'} on the team (including you). Move to the plan above to invite more. Not counted: cashier operator, external accountant/consultant and guests of up to 7 days.`, erroCotaTemp: (l: number) => `You have used the ${l} temporary invites (up to 7 days) of your plan. Upgrade your plan to invite more.`, verPlanos: 'See plans', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
     semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
-    dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Move this term to the trash', apagarDeVez: 'Delete for good', movidoLixeira: 'Term moved to the trash.',
+    dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Move to the trash', apagarDeVez: 'Delete for good', movidoLixeira: 'Term moved to the trash.',
     apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
     apagarMotivo: 'Reason *', apagarCiente: 'I confirm I am authorized to delete this data and that it cannot be undone.', apagarBotao: 'Delete data', apagando: 'Deleting...',
-    sucessoApagar: 'Personal data deleted.', erroApagar: 'Could not delete. Try again.',
+    sucessoApagar: 'Deleted.', erroApagar: 'Could not delete. Try again.',
     enviarPor: 'Create and send the invite via:', conviteLink: 'Invite by link', outroEmail: 'Other e-mail', copiarLinkCurto: 'Copy link',
     assuntoConvite: 'Invitation to join the team on Axioma',
     msgConvite: 'Hi{nome}! {remetente} invited you to join our company on Axioma as {papel}{prazo}.\n\nTap the link, fill in the form and you are in:\n{link}\n\nThe link is valid for {validade}.',
@@ -209,12 +209,12 @@ const textos = {
     acessoAte: (d: string) => `Acceso hasta ${d}`, acessoEncerrado: 'Acceso finalizado', cortarAcesso: 'Cortar acceso ahora',
     relacaoLabel: 'A quién está invitando', rel_ceo: 'CEO', rel_socio: 'Socio', rel_contador: 'Contador', rel_funcionario: 'Empleado', rel_consultor: 'Consultor (2ª opinión)', rel_outro: 'Otro',
     termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
-    lixeiraTitulo: 'Papelera de términos', lixeiraSub: 'Términos que envió a la papelera y de quienes salieron de la empresa. Se guardan 60 días: puede recuperarlos o borrarlos para siempre. Después se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', vagasPlano: (o: number, l: number) => `Plazas del plan: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Invitaciones temporales (hasta 7 días): ${u} de ${l}`, erroLimitePlano: (l: number) => `Su plan permite ${l} persona${l > 1 ? 's' : ''} en el equipo (contándole a usted). Cambie al plan superior para invitar a más. No cuentan: operador de caja, contador/consultor externo e invitado de hasta 7 días.`, erroCotaTemp: (l: number) => `Ya usó las ${l} invitaciones temporales (hasta 7 días) de su plan. Suba de plan para invitar a más.`, verPlanos: 'Ver planes', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
+    lixeiraTitulo: 'Papelera', lixeiraSub: 'CEO, Socio y Admin que salieron o fueron enviados a la papelera (los demás se borran para siempre). Se guardan 60 días: puede recuperarlos o borrarlos para siempre. Después se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', vagasPlano: (o: number, l: number) => `Plazas del plan: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Invitaciones temporales (hasta 7 días): ${u} de ${l}`, erroLimitePlano: (l: number) => `Su plan permite ${l} persona${l > 1 ? 's' : ''} en el equipo (contándole a usted). Cambie al plan superior para invitar a más. No cuentan: operador de caja, contador/consultor externo e invitado de hasta 7 días.`, erroCotaTemp: (l: number) => `Ya usó las ${l} invitaciones temporales (hasta 7 días) de su plan. Suba de plan para invitar a más.`, verPlanos: 'Ver planes', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
     semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
-    dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Enviar este término a la papelera', apagarDeVez: 'Borrar para siempre', movidoLixeira: 'Término enviado a la papelera.',
+    dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Enviar a la papelera', apagarDeVez: 'Borrar para siempre', movidoLixeira: 'Término enviado a la papelera.',
     apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
     apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tengo autorización para borrar estos datos y que la acción no se puede deshacer.', apagarBotao: 'Borrar datos', apagando: 'Borrando...',
-    sucessoApagar: 'Datos personales borrados.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
+    sucessoApagar: 'Borrado.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
     enviarPor: 'Generar y enviar la invitación por:', conviteLink: 'Invitación por link', outroEmail: 'Otro correo', copiarLinkCurto: 'Copiar link',
     assuntoConvite: 'Invitación al equipo en Axioma',
     msgConvite: '¡Hola{nome}! {remetente} te invitó a entrar en nuestra empresa en Axioma como {papel}{prazo}.\n\nToca el link, completa el formulario y listo, ya entras:\n{link}\n\nEl link vale por {validade}.',
@@ -306,7 +306,9 @@ export default function EquipePage() {
   function ajustarForm(novo: typeof FORM_VAZIO) {
     setForm(novo.acesso_dias === null && !podeSemPrazo(novo) ? { ...novo, acesso_dias: 7 } : novo)
   }
-  const [termoApagar, setTermoApagar] = useState<TermoConvite | null>(null)
+  // Apagar de vez (na Lixeira): um termo solto ou um convite (junto com o termo dele)
+  const [termoApagar, setTermoApagar] = useState<{ termo?: TermoConvite; conviteId?: string } | null>(null)
+  const [lixeiraConvites, setLixeiraConvites] = useState<ConviteLixeira[]>([])
   const [motivoApagar, setMotivoApagar] = useState('')
   const [cienteApagar, setCienteApagar] = useState(false)
   const [apagando, setApagando] = useState(false)
@@ -375,8 +377,9 @@ export default function EquipePage() {
     const r = await listarEquipe(id)
     if (r.erro) avisar('erro', mensagemErro(r.codigo))
     setMembros(r.dados)
-    const [tm, pd, lx, vg] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id), listarLixeiraTermos(id), obterVagasEquipe(id)])
+    const [tm, pd, lx, vg, lc] = await Promise.all([listarTermosConvite(id), listarPedidosEquipe(id), listarLixeiraTermos(id), obterVagasEquipe(id), listarLixeiraConvites(id)])
     setTermos(tm)
+    setLixeiraConvites(lc)
     setVagas(vg)
     setLixeira(lx)
     setPedidos(pd)
@@ -511,11 +514,30 @@ export default function EquipePage() {
       .replace('{link}', `${SITE}/convite/${m.token_convite}`)
   }
 
+  // Elias 2026-10-08: lixeira com prazo só pra CEO, Sócio e Admin; o resto apaga de vez
+  // (convite apagado = se quiser, manda outro do zero).
+  const vaiPraLixeira = (papel?: string | null, relacao?: string | null) => papel === 'admin' || relacao === 'ceo' || relacao === 'socio'
+  async function conviteLixeira(m: MembroEquipe) {
+    if (!empresaId) return
+    const r = await acaoLixeiraConvite(vaiPraLixeira(m.papel, m.relacao) ? 'convite_lixeira' : 'convite_apagar', m.id, t.motivoTerceiro)
+    if (r.erro) { avisar('erro', t.erroApagar); return }
+    avisar('sucesso', vaiPraLixeira(m.papel, m.relacao) ? t.movidoLixeira : t.sucessoApagar)
+    await recarregarEquipe(empresaId)
+  }
+  async function recuperarConvite(id: string) {
+    if (!empresaId) return
+    const r = await acaoLixeiraConvite('convite_recuperar', id)
+    if (r.erro) { avisar('erro', t.erroApagar); return }
+    avisar('sucesso', t.recuperado)
+    await recarregarEquipe(empresaId)
+  }
+
   async function termoLixeira(tm: TermoConvite) {
     if (!empresaId) return
-    const r = await termoParaLixeira(tm.id)
+    const lixeira = vaiPraLixeira(tm.papel, tm.relacao)
+    const r = lixeira ? await termoParaLixeira(tm.id) : await apagarTermoConvite(tm.id, t.motivoTerceiro)
     if (r.erro) { avisar('erro', t.erroApagar); return }
-    avisar('sucesso', t.movidoLixeira)
+    avisar('sucesso', lixeira ? t.movidoLixeira : t.sucessoApagar)
     await recarregarEquipe(empresaId)
   }
 
@@ -549,7 +571,9 @@ export default function EquipePage() {
   async function confirmarApagarTermo() {
     if (!termoApagar || !empresaId || motivoApagar.trim().length < 5 || !cienteApagar) return
     setApagando(true)
-    const r = await apagarTermoConvite(termoApagar.id, motivoApagar.trim())
+    const r = termoApagar.conviteId
+      ? await acaoLixeiraConvite('convite_apagar', termoApagar.conviteId, motivoApagar.trim())
+      : await apagarTermoConvite(termoApagar.termo!.id, motivoApagar.trim())
     setApagando(false)
     if (r.erro) { avisar('erro', t.erroApagar); return }
     setTermoApagar(null)
@@ -573,6 +597,18 @@ export default function EquipePage() {
     avisar('sucesso', aprovar ? t.sucessoAprovar : t.sucessoRecusar)
     await recarregarEquipe(empresaId)
   }
+
+  // Um card só por pessoa (Elias 2026-10-08): o termo aceito aparece dentro do card dela
+  const termoDe = (m: MembroEquipe) => termos.find((x) => m.origem === 'convite' ? x.convite_id === m.id : !!m.user_id && x.user_id === m.user_id)
+  const termosSoltos = termos.filter((x) => !membros.some((m) => termoDe(m)?.id === x.id))
+  const blocoTermo = (tm: TermoConvite) => (
+    <div className="mt-2 rounded-lg p-2 text-xs space-y-0.5" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', color: MUTED }}>
+      <p className="font-bold" style={{ color: TEXTO }}><FileText size={12} className="inline mr-1" />{tm.nome || '—'} <span className="font-normal" style={{ color: MUTED }}>• CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email || '—'}</span></p>
+      <p>{tm.relacao ? `${(t as any)[`rel_${tm.relacao}`] || tm.relacao} • ` : ''}{tm.papel ? labelPapel(tm.papel) : ''}{` • ${rotuloPrazo(tm.acesso_dias)}`}</p>
+      <p>{t.convidadoPorEm(tm.remetente_nome || '—', tm.convidado_em ? dataHora(tm.convidado_em) : '—')} • {t.aceitoEm(dataHora(tm.aceito_em))}</p>
+      {tm.motivo_convite && <p>{t.motivoLabel.split(' (')[0]}: {tm.motivo_convite}</p>}
+    </div>
+  )
 
   function statusDe(m: MembroEquipe): { label: string; cor: string } {
     if (m.origem === 'ativo' && m.suspenso_em) return { label: t.statusSuspenso(dataHora(new Date(new Date(m.suspenso_em).getTime() + 7 * 86400000))), cor: VERMELHO }
@@ -871,8 +907,9 @@ export default function EquipePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {membros.map((m) => {
+              {membros.filter((m) => !(m.origem === 'convite' && m.situacao === 'aguardando_aprovacao')).map((m) => {
                 const status = statusDe(m)
+                const tmP = termoDe(m)
                 const ehVoce = m.origem === 'ativo' && m.user_id === userId
                 return (
                   <div key={`${m.origem}-${m.id}`} className="rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap axi-card-premium3d axi-card-faixa"
@@ -888,6 +925,7 @@ export default function EquipePage() {
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
                         {status.label}
                       </span>
+                      {tmP && blocoTermo(tmP)}
                     </div>
 
                     {ehVoce && meuNivel != null && meuNivel > 1 && (
@@ -907,7 +945,7 @@ export default function EquipePage() {
                         <RotateCcw size={14} /> {t.restaurar}
                       </button>
                     )}
-                    {!ehVoce && !m.suspenso_em && podeRemover(m) && (
+                    {!ehVoce && !m.suspenso_em && (m.origem === 'convite' || podeRemover(m)) && (
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.origem === 'convite' && m.token_convite && (
                           <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
@@ -940,8 +978,8 @@ export default function EquipePage() {
                           </button>
                         )}
 
-                        <button onClick={() => m.origem === 'ativo' ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : removerAcesso(m)}
-                          title={t.cortarAcesso} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                        <button onClick={() => m.origem === 'ativo' ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : conviteLixeira(m)}
+                          title={m.origem === 'ativo' ? t.cortarAcesso : t.apagarDados} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: VERMELHO, color: '#ffffff' }}>
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -949,78 +987,77 @@ export default function EquipePage() {
                   </div>
                 )
               })}
-            </div>
-          )}
-        </CanvasBox>
-
-        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
-          <div className="flex items-center gap-2 mb-1">
-            <FileText size={16} style={{ color: temaClaro ? '#101b3d' : VERDE }} />
-            <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.termosTitulo}</p>
-          </div>
-          <p className="text-xs mb-3" style={{ color: MUTED }}>{t.termosSub}</p>
-          {termos.length === 0 ? (
-            <p className="text-xs" style={{ color: MUTED }}>{t.semTermos}</p>
-          ) : (
-            <div className="space-y-2">
-              {termos.map((tm) => (
-                <div key={tm.id} className="rounded-xl p-3 flex items-start justify-between gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, border: '1px solid rgba(16,27,61,0.10)' }}>
-                  <div className="min-w-0 text-xs space-y-0.5" style={{ color: MUTED }}>
-                    {tm.apagado_em ? (
-                      <p className="font-semibold" style={{ color: TEXTO }}>{t.dadosApagados(dataHora(tm.apagado_em), tm.motivo_apagado || '')}</p>
-                    ) : (
-                      <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm.nome} <span className="font-normal" style={{ color: MUTED }}>• CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email}</span></p>
-                    )}
-                    <p>{tm.relacao ? `${(t as any)[`rel_${tm.relacao}`] || tm.relacao} • ` : ''}{tm.papel ? labelPapel(tm.papel) : ''}{` • ${rotuloPrazo(tm.acesso_dias)}`}</p>
-                    <p>{t.convidadoPorEm(tm.remetente_nome || '—', tm.convidado_em ? dataHora(tm.convidado_em) : '—')} • {t.aceitoEm(dataHora(tm.aceito_em))}</p>
-                    {tm.motivo_convite && <p>{t.motivoLabel.split(' (')[0]}: {tm.motivo_convite}</p>}
-                  </div>
-                  {!tm.apagado_em && (
-                    <motion.button whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }} onClick={() => termoLixeira(tm)}
-                      title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
-                      <Trash2 size={15} />
-                    </motion.button>
-                  )}
+              {termosSoltos.map((tm) => (
+                <div key={`termo-${tm.id}`} className="rounded-xl p-3 flex items-start justify-between gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, border: '1px solid rgba(46,204,155,0.15)' }}>
+                  <div className="min-w-0 flex-1">{blocoTermo(tm)}</div>
+                  <button onClick={() => termoLixeira(tm)} title={t.apagarDados} className="p-2 rounded-lg flex-shrink-0 axi-card-premium3d axi-card-faixa" style={{ background: VERMELHO, color: '#ffffff' }}>
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               ))}
             </div>
           )}
         </CanvasBox>
 
-        {/* Lixeira de termos — quem saiu da empresa; 60 dias e a limpeza diária apaga */}
+        {/* Lixeira (convites + termos): 60 dias pra recuperar ou apagar de vez */}
         <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           <button type="button" onClick={() => setLixeiraAberta(v => !v)} className="w-full flex items-center justify-between gap-2" aria-expanded={lixeiraAberta}>
             <span className="flex items-center gap-2">
               <Trash2 size={16} style={{ color: temaClaro ? '#101b3d' : VERDE }} />
-              <span className="text-sm font-bold" style={{ color: TEXTO }}>{t.lixeiraTitulo} ({lixeira.length})</span>
+              <span className="text-sm font-bold" style={{ color: TEXTO }}>{t.lixeiraTitulo} ({lixeiraConvites.length + lixeira.filter((tm) => !lixeiraConvites.some((c) => c.id === tm.convite_id)).length})</span>
             </span>
             <ChevronDown size={16} style={{ color: MUTED, transform: lixeiraAberta ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
           </button>
           <p className="text-xs mt-1" style={{ color: MUTED }}>{t.lixeiraSub}</p>
-          {lixeiraAberta && (lixeira.length === 0 ? (
+          {lixeiraAberta && (lixeiraConvites.length + lixeira.length === 0 ? (
             <p className="text-xs mt-3" style={{ color: MUTED }}>{t.lixeiraVazia}</p>
           ) : (
             <div className="space-y-2 mt-3">
-              {lixeira.map((tm) => (
-                <div key={tm.id} className="rounded-xl p-3 text-xs flex items-start justify-between gap-3 axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, color: MUTED }}>
-                  <div className="min-w-0 space-y-0.5">
-                  <p className="text-sm font-bold" style={{ color: TEXTO }}>{tm.nome || '—'} <span className="font-normal" style={{ color: MUTED }}>• CPF {tm.cpf ? `${tm.cpf.slice(0, 3)}.***.***-${tm.cpf.slice(9)}` : '—'} • {tm.email || '—'}</span></p>
-                  <p>{tm.relacao ? `${(t as any)[`rel_${tm.relacao}`] || tm.relacao} • ` : ''}{tm.papel ? labelPapel(tm.papel) : ''}</p>
-                  {tm.saiu_em && <p>{t.saiuEm(dataHora(tm.saiu_em))} • <span style={{ color: VERMELHO }}>{t.apagaEm(dataHora(new Date(new Date(tm.saiu_em).getTime() + 60 * 86400000)))}</span></p>}
+              {lixeiraConvites.map((c) => {
+                const tm = lixeira.find((x) => x.convite_id === c.id)
+                return (
+                  <div key={`lc-${c.id}`} className="rounded-xl p-3 text-xs flex items-start justify-between gap-3 flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, color: MUTED }}>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="text-sm font-bold" style={{ color: TEXTO }}>{c.convidado_nome_termo || c.nome || c.email_convidado || t.conviteLink}</p>
+                      <p>{c.email_convidado || t.conviteLink}{c.relacao ? ` • ${(t as any)[`rel_${c.relacao}`] || c.relacao}` : ''}{c.papel ? ` • ${labelPapel(c.papel)}` : ''}</p>
+                      {c.decidido_em && <p><span style={{ color: VERMELHO }}>{t.apagaEm(dataHora(new Date(new Date(c.decidido_em).getTime() + 60 * 86400000)))}</span></p>}
+                      {tm && blocoTermo(tm)}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button type="button" onClick={() => recuperarConvite(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+                        style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
+                        <RotateCcw size={13} />{t.recuperar}
+                      </button>
+                      <button type="button" onClick={() => { setTermoApagar({ conviteId: c.id }); setMotivoApagar(''); setCienteApagar(false) }} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+                        style={{ background: VERMELHO, color: '#fff' }}>
+                        <Trash2 size={13} />{t.apagarDeVez}
+                      </button>
+                    </div>
                   </div>
-                  <button type="button" onClick={() => recuperarTermo(tm)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
-                    <RotateCcw size={13} />{t.recuperar}
-                  </button>
-                  <button type="button" onClick={() => { setTermoApagar(tm); setMotivoApagar(''); setCienteApagar(false) }} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0"
-                    style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: VERMELHO }}>
-                    <Trash2 size={13} />{t.apagarDeVez}
-                  </button>
+                )
+              })}
+              {lixeira.filter((tm) => !lixeiraConvites.some((c) => c.id === tm.convite_id)).map((tm) => (
+                <div key={tm.id} className="rounded-xl p-3 text-xs flex items-start justify-between gap-3 flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: LINHA_BG, color: MUTED }}>
+                  <div className="min-w-0 flex-1">
+                    {blocoTermo(tm)}
+                    {tm.saiu_em && <p className="mt-1">{t.saiuEm(dataHora(tm.saiu_em))} • <span style={{ color: VERMELHO }}>{t.apagaEm(dataHora(new Date(new Date(tm.saiu_em).getTime() + 60 * 86400000)))}</span></p>}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button type="button" onClick={() => recuperarTermo(tm)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+                      style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
+                      <RotateCcw size={13} />{t.recuperar}
+                    </button>
+                    <button type="button" onClick={() => { setTermoApagar({ termo: tm }); setMotivoApagar(''); setCienteApagar(false) }} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+                      style={{ background: VERMELHO, color: '#fff' }}>
+                      <Trash2 size={13} />{t.apagarDeVez}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           ))}
         </CanvasBox>
+
 
       </div>
 
