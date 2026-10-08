@@ -39,8 +39,9 @@ import {
   listarInteracoes, criarInteracao, listarCompromissos, criarCompromisso, atualizarStatusCompromisso,
   listarEtapasRegua, salvarEtapaRegua, excluirEtapaRegua, etapasReguaPadrao, etapaAplicavelHoje,
   probabilidadeRecebimentoConta, detectarAlertasCobranca, type AlertaCobranca,
-  filaCobrancaPriorizada, gerarParecerCobranca,
+  filaCobrancaPriorizada, gerarParecerCobranca, preencherModeloMensagem,
 } from '../../../lib/cobrancaHelpers'
+import { MessageCircle } from 'lucide-react'
 import {
   HORIZONTES_PADRAO, previsaoCaixaMultiHorizonte,
   simularCenariosRecebimento, type AlavancasRecebimento,
@@ -181,6 +182,9 @@ export default function ContasReceber() {
   const [estornando, setEstornando] = useState(false)
 
   const [shareAberto, setShareAberto] = useState(false)
+  // Fase 2 item 3 (Elias 2026-10-08): "Enviar cobrança" na conta vencida — abre
+  // WhatsApp/Gmail/Outlook/Telegram com a mensagem pronta e registra na régua.
+  const [cobrancaEnviar, setCobrancaEnviar] = useState<{ texto: string; para?: string } | null>(null)
   const [drillKpi, setDrillKpi] = useState<string | null>(null)
   const [clienteScoreDrill, setClienteScoreDrill] = useState<string | null>(null)
 
@@ -619,6 +623,25 @@ export default function ContasReceber() {
 
   function severidadeCor(s: AlertaCobranca['severidade']) {
     return s === 'critico' ? VERMELHO : s === 'atencao' ? AMBAR : VERDE
+  }
+
+  async function enviarCobranca(c: Conta) {
+    const cli = cliente(c.cliente_id)
+    const { dias, valorAtualizado } = calcularLinha(c)
+    const venc = new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
+    const valor = `R$ ${fBRL2(valorAtualizado)}`
+    const etapa = etapaAplicavelHoje(etapasRegua, c.data_vencimento)
+    const texto = etapa?.mensagem_modelo
+      ? preencherModeloMensagem(etapa.mensagem_modelo, { cliente: cli?.nome || '', documento: c.numero_documento || c.descricao || '-', valor })
+      : L(`Olá${cli?.nome ? `, ${cli.nome}` : ''}! Consta em aberto o pagamento de ${c.descricao || c.numero_documento || 'sua conta'}, no valor de ${valor}, vencido em ${venc} (${dias} dia${dias === 1 ? '' : 's'} de atraso). Podemos combinar o pagamento? Se já pagou, desconsidere esta mensagem.`,
+          `Hello${cli?.nome ? `, ${cli.nome}` : ''}! The payment of ${c.descricao || c.numero_documento || 'your bill'}, amount ${valor}, due on ${venc}, is still open (${dias} day${dias === 1 ? '' : 's'} late). Can we arrange the payment? If you have already paid, please disregard this message.`,
+          `¡Hola${cli?.nome ? `, ${cli.nome}` : ''}! Consta pendiente el pago de ${c.descricao || c.numero_documento || 'su cuenta'}, por ${valor}, vencido el ${venc} (${dias} día${dias === 1 ? '' : 's'} de atraso). ¿Podemos acordar el pago? Si ya pagó, ignore este mensaje.`)
+    setCobrancaEnviar({ texto, para: cli?.email || undefined })
+    if (userId && empresaId) {
+      const r = await criarInteracao(userId, empresaId, { conta_id: c.id, cliente_id: c.cliente_id ?? null, tipo: 'contato', canal: 'mensagem',
+        descricao: L(`Cobrança enviada: ${valor}, ${dias} dia(s) de atraso`, `Collection sent: ${valor}, ${dias} day(s) late`, `Cobranza enviada: ${valor}, ${dias} día(s) de atraso`), data: hojeISO() })
+      if (r.erro) showToast(L('Mensagem pronta, mas o registro na régua de cobrança falhou.', 'Message ready, but logging it in the collection timeline failed.', 'Mensaje listo, pero el registro en la regla de cobranza falló.'))
+    }
   }
 
   async function abrirCobranca(c: Conta) {
@@ -1397,6 +1420,11 @@ export default function ContasReceber() {
                                 <Undo2 size={14} style={{ color: CINZA }} />
                               </motion.button>
                             )}
+                            {statusExibido === 'vencido' && saldo > 0 && (
+                              <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => enviarCobranca(c)} title={L('Enviar cobrança (WhatsApp, Gmail, Outlook, Telegram)', 'Send collection notice (WhatsApp, Gmail, Outlook, Telegram)', 'Enviar cobranza (WhatsApp, Gmail, Outlook, Telegram)')}>
+                                <MessageCircle size={14} style={{ color: VERMELHO }} />
+                              </motion.button>
+                            )}
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirCobranca(c)} title={L('Cobrança', 'Collection', 'Cobranza')}><HandCoins size={14} style={{ color: OURO }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)}><Pencil size={14} style={{ color: AZUL }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L('Excluir conta', 'Delete bill', 'Eliminar cuenta')}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
@@ -1910,6 +1938,15 @@ export default function ContasReceber() {
         textoDetalhado={textoDetalhado}
         assunto={L('Contas a Receber — Axioma', 'Accounts Receivable — Axioma', 'Cuentas por Cobrar — Axioma')}
         cor={ESMERALDA}
+      />
+      <CentroCompartilhamento
+        aberto={!!cobrancaEnviar}
+        onFechar={() => setCobrancaEnviar(null)}
+        lang={lang}
+        textoResumo={cobrancaEnviar?.texto || ''}
+        assunto={L('Pagamento em aberto', 'Open payment', 'Pago pendiente')}
+        cor={ESMERALDA}
+        para={cobrancaEnviar?.para}
       />
     </ModuloLayout>
     </div>
