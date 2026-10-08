@@ -37,6 +37,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -97,6 +98,7 @@ export default function Investimentos() {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
   // (tema-tokens.md §1.1). Escuro mantém o dourado original.
@@ -281,6 +283,8 @@ export default function Investimentos() {
   }
 
   async function excluir(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(investimentos.find((i) => i.id === id), { pt: "este investimento", en: "this investment", es: "esta inversión" }), efeito: EFEITO.planejamento, tabela: "investimentos", registroId: id }))) return;
     const { data, error } = await supabase.from("investimentos").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(L("Não foi possível excluir o investimento. Tente novamente.", "Could not delete the investment. Try again.", "No se pudo eliminar la inversión. Intente de nuevo."), "erro");
@@ -1075,6 +1079,7 @@ export default function Investimentos() {
         cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}
       />
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

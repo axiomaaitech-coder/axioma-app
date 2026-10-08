@@ -65,6 +65,7 @@ import {
 } from "../../../lib/importarHelpers";
 import { obterEmpresaAtiva, carregarEmpresaPorId } from "../../../lib/empresaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -605,6 +606,7 @@ export default function ImportarDocumentosPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)";
@@ -1377,7 +1379,8 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
   async function deletarLinha(linha: any) {
     if (!userId || !empresaId) return;
-    if (!window.confirm(tt.confirmaRemoverLinha)) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este lançamento importado", en: "this imported entry", es: "este registro importado" }, efeito: EFEITO.financeiro, tabela: "importacao_linhas", registroId: linha.id }))) return;
     setDeletandoLinha(linha.id);
     try {
       const r = await deletarLinhaImportada(linha.id, userId, empresaId);
@@ -1401,7 +1404,8 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
   async function desfazerImportacao(id: string) {
     if (!userId || !empresaId) return;
-    if (!window.confirm(tt.desfazerConfirma)) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "todos os lançamentos desta importação", en: "all entries from this import", es: "todos los registros de esta importación" }, efeito: EFEITO.financeiro, tabela: "importacoes", registroId: id }))) return;
     setRevertendo(id);
     try {
       const r = await reverterImportacao(id, userId, empresaId);
@@ -1584,9 +1588,8 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   async function excluirRegistro(item: any) {
     if (!userId || !empresaId) return;
     const msgConfirma = `${tt.confirmaExcluirRegistroTitulo.replace("{arquivo}", item.nome_arquivo)}\n\n${tt.confirmaExcluirRegistroDetalhe.replace("{status}", item.status)}`;
-    if (!window.confirm(msgConfirma)) {
-      return;
-    }
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${item.nome_arquivo}" (${msgConfirma})`, efeito: EFEITO.financeiro, tabela: "importacoes", registroId: item.id }))) return;
     setExcluindoRegistro(item.id);
     try {
       const r = await excluirRegistroImportacao(item.id, userId, empresaId);
@@ -1725,6 +1728,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         ]} />
       </div>
       {/* Toast */}
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ABAS */}

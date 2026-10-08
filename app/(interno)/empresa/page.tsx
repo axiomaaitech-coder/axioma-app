@@ -30,6 +30,7 @@ import {
   type ScoreResultado,
 } from "../../../lib/empresaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -702,6 +703,7 @@ export default function EmpresaPage() {
   const inputLogoRef = useRef<HTMLInputElement>(null);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const { VERDE, VERMELHO, AMARELO, AZULC, ROXO, CINZA, TEXTO, CAMPO_BG, TOOLTIP_BG } = PALETA[tema];
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Card creme + efeito premium3d (borda verde-menta no hover), igual aos
@@ -1048,7 +1050,8 @@ export default function EmpresaPage() {
 
   async function removerSocio(socio: any) {
     if (!empresa || !userId) return;
-    if (!window.confirm(tt.toastConfirmRemoverSocio(socio.nome))) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${socio.nome}"`, efeito: EFEITO.cadastro, tabela: "empresa_socios", registroId: socio.id }))) return;
     const r = await excluirSocio(socio.id, empresa.id, userId);
     if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     showToast(tt.toastSocioRemovido, "ok");
@@ -1075,7 +1078,8 @@ export default function EmpresaPage() {
 
   async function removerDocumento(doc: any) {
     if (!empresa || !userId) return;
-    if (!window.confirm(tt.toastConfirmRemoverDoc(doc.nome))) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${doc.nome}"`, efeito: EFEITO.planejamento, tabela: "empresa_documentos", registroId: doc.id }))) return;
     const r = await excluirDocumento(doc.id, empresa.id, userId, doc.storage_path, doc.nome);
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastDocRemovido, "ok");
@@ -1129,7 +1133,8 @@ export default function EmpresaPage() {
 
   async function removerObrigacao(obr: any) {
     if (!empresa || !userId) return;
-    if (!window.confirm(tt.toastConfirmRemoverObrig(obr.nome))) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${obr.nome}"`, efeito: EFEITO.planejamento, tabela: "empresa_obrigacoes", registroId: obr.id }))) return;
     const r = await excluirObrigacao(obr.id, empresa.id, userId, obr.nome);
     if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     await carregarTudo();
@@ -1253,6 +1258,7 @@ export default function EmpresaPage() {
           ]} />
         </div>
       )}
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {carregando && (

@@ -27,6 +27,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { useConfirmarExclusao, EFEITO } from "../../../../components/ConfirmarExclusao";
 import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
@@ -50,6 +51,7 @@ export default function PrecificacaoMEI() {
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, ROXO, NEUTRO, CAMPO_BG, PAINEL_BG, POCO_BG } = PALETA[tema]
   const temaClaro = tema === 'xms'
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
@@ -379,7 +381,8 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
   }
 
   async function excluirPrecoSalvo(row: typeof precosSalvos[number]) {
-    if (!window.confirm(t('confirmarExcluir').replace('{v}', row.nome))) return
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${row.nome}"`, efeito: EFEITO.planejamento, tabela: "mei_precos_salvos", registroId: row.id }))) return;
     const { data, error } = await supabase.from('mei_precos_salvos').delete().eq('id', row.id).select('id')
     if (error || !data || data.length === 0) {
       reportarFalhaEscrita('mei_precos_salvos', 'delete', error?.message || '0 linhas afetadas (RLS?)')
@@ -798,6 +801,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         cor={OURO}
       />
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

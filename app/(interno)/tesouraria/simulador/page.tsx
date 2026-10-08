@@ -15,6 +15,7 @@ import {
   type PosicaoCaixa, type FluxoProjetadoResultado, type StressVariaveis, type CenarioTesouraria,
 } from '../../../../lib/tesourariaHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { useConfirmarExclusao, EFEITO } from "../../../../components/ConfirmarExclusao";
 import { hojeISO } from '../../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
@@ -43,6 +44,7 @@ export default function TesourariaSimuladorPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const classePremium3d = ' axi-card-premium3d axi-card-faixa'
   const { AZULC, ROXO, VERDE, AMARELO, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, BORDA, BORDA_SUAVE, FORM_BORDA } = PALETA[tema]
 
@@ -135,6 +137,8 @@ export default function TesourariaSimuladorPage() {
 
   async function handleExcluir(id: string) {
     if (!empresaId) return
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este cenário salvo", en: "this saved scenario", es: "este escenario guardado" }, efeito: EFEITO.planejamento, tabela: "tesouraria_cenario", registroId: id }))) return;
     setExcluindoId(id)
     const r = await excluirCenario(id, empresaId)
     setExcluindoId(null)
@@ -350,6 +354,7 @@ export default function TesourariaSimuladorPage() {
         </div>
       )}
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

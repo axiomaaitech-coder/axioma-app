@@ -51,6 +51,7 @@ import {
 } from '../../../lib/previsaoRecebimentoHelpers'
 import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, editarContaReceber, excluirContaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
@@ -135,6 +136,7 @@ export default function ContasReceber() {
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro)
   const { ESMERALDA, TEAL, OURO, VERDE, VERMELHO, AZUL, AMBAR, CINZA, BG_CARD, TITULO, TEXTO, PAINEL_BG, CAMPO_BG, SELECT_BG, BOTAO_BG } = PALETA[tema]
   const classePremium3d = ' axi-card-premium3d axi-card-faixa'
 
@@ -404,6 +406,8 @@ export default function ContasReceber() {
 
   async function confirmarExclusao() {
     if (!contaExcluir) return
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${contaExcluir.descricao}"`, efeito: EFEITO.financeiro, tabela: "contas_receber", registroId: contaExcluir.id }))) return
     // COMMIT 9 — mesma trava do Contas a Pagar: não deixa excluir uma conta
     // já recebida (precisa estornar o recebimento primeiro), pra nunca
     // deixar receita fantasma no Razão sem alguém decidir isso de propósito.
@@ -721,6 +725,8 @@ export default function ContasReceber() {
     showToast(L('Etapa salva.', 'Step saved.', 'Etapa guardada.'), 'ok')
   }
   async function excluirEtapa(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "esta etapa da régua de cobrança", en: "this collection step", es: "esta etapa de cobranza" }, efeito: EFEITO.planejamento, tabela: "regua_cobranca", registroId: id }))) return;
     const { erro } = await excluirEtapaRegua(id)
     if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     if (empresaId) setEtapasRegua(await listarEtapasRegua(empresaId))
@@ -851,6 +857,7 @@ export default function ContasReceber() {
         </>
       }
     >
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div className="space-y-6">
 

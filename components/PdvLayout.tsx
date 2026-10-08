@@ -94,6 +94,10 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
 };
 
 const CHAVE_TEMA = "axioma_pdv_tema";
+// Para telas do PDV fora do provider (ex.: janela de autorização de exclusão).
+export function temaPdvSalvoClaro(): boolean {
+  try { return typeof window !== "undefined" && window.localStorage.getItem(CHAVE_TEMA) === "claro"; } catch { return false; }
+}
 
 const TemaContext = createContext<{ tema: TemaPdv; tokens: TokensPdv; setTema: (t: TemaPdv) => void }>({
   tema: "escuro", tokens: TOKENS.escuro, setTema: () => {},

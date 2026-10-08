@@ -58,6 +58,7 @@ import {
 } from "../../../lib/contasPagarHelpers";
 import { avaliarDuplicidade, type Avaliacao, type Suspeita } from "@/lib/motorDuplicidade";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, agora } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -104,6 +105,7 @@ export default function ContasPagarPage() {
   const cat = (c: string) => labelCategoriaDespesa(c, idioma as "pt" | "en" | "es");
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const { VERDE, VERMELHO, AZUL, AMBAR, CINZA, ROXO, TEXTO } = PALETA[tema];
   const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
@@ -1008,6 +1010,8 @@ export default function ContasPagarPage() {
   }
 
   async function excluirPedido(p: PedidoCompraListado) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este pedido de compra", en: "this purchase order", es: "este pedido de compra" }, efeito: EFEITO.planejamento, tabela: "pedido_compra", registroId: p.id }))) return;
     if (!empresaId) { showToast(L("Nenhuma empresa ativa — recarregue a página e tente de novo.", "No active company — reload the page and try again.", "Ninguna empresa activa — recargue la página e intente de nuevo."), "erro"); return; }
     const { erro } = await excluirPedidoCompra(empresaId, p.id);
     if (erro === "tem_nota_vinculada") {
@@ -1631,6 +1635,8 @@ export default function ContasPagarPage() {
 
   async function confirmarExclusao() {
     if (!contaExcluir) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${contaExcluir.descricao}"`, efeito: EFEITO.financeiro, tabela: "contas_pagar", registroId: contaExcluir.id }))) return;
     setProcessandoExclusao(true);
     const { erro } = await excluirContaPagar(contaExcluir.id, contaExcluir.status);
     if (erro === "conta_paga") {
@@ -1771,6 +1777,8 @@ export default function ContasPagarPage() {
   }
 
   async function removerDocumento(doc: ContaPagarDocumento) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(doc, { pt: "este documento", en: "this document", es: "este documento" }), efeito: EFEITO.planejamento, tabela: "contas_pagar_documentos", registroId: doc.id }))) return;
     const { erro } = await excluirDocumento(doc);
     if (erro) {
       showToast(L("Não foi possível excluir o documento. Tente novamente.", "Could not delete the document. Try again.", "No se pudo eliminar el documento. Intente de nuevo."), "erro");
@@ -3133,6 +3141,7 @@ export default function ContasPagarPage() {
       )}
 
       {/* TOAST */}
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ====== MODAL NOVA/EDITAR CONTA ====== */}

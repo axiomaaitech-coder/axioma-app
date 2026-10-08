@@ -28,6 +28,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, naturezaDoFluxo, NATUREZAS_FLUXO, type Natureza, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 import { hojeISO, agora } from "../../../lib/datas";
@@ -96,6 +97,7 @@ export default function FluxoCaixa() {
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
@@ -245,6 +247,8 @@ export default function FluxoCaixa() {
   };
 
   const excluir = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(lancamentos.find((l) => l.id === id), { pt: "este lançamento", en: "this entry", es: "este registro" }), efeito: EFEITO.financeiro, tabela: "fluxo_caixa", registroId: id }))) return;
     const empresaId = await obterEmpresaAtiva();
     if (empresaId) {
       const desf = await desfazerLancamentoManual(empresaId, "fluxo_caixa", id);
@@ -464,6 +468,7 @@ export default function FluxoCaixa() {
       corExportar="linear-gradient(135deg, #16a97d, #2ecc9b)"
       corNovo="linear-gradient(135deg, #16a97d, #2ecc9b)"
       botaoExtra={<ThemeToggle />}>
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
       <div className="space-y-4">

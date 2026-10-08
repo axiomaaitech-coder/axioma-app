@@ -38,6 +38,7 @@ import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/Pla
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
@@ -110,6 +111,7 @@ export default function CentrosCustoPage() {
   const Lt = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   // Padrão de aba/pill: azul-marinho+branco em repouso, verde-menta forte
@@ -321,6 +323,8 @@ export default function CentrosCustoPage() {
   }
 
   async function excluirCentro(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(centros.find((c) => c.id === id), { pt: "este centro de custo", en: "this cost center", es: "este centro de costo" }), efeito: EFEITO.cadastro, tabela: "centros_custo", registroId: id }))) return;
     if (!userId) return;
     const centro = centros.find(c => c.id === id);
     const { data, error } = await supabase.from("centros_custo").delete().eq("id", id).select("id");
@@ -392,6 +396,8 @@ export default function CentrosCustoPage() {
   }
 
   async function excluirLancamento(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(lancamentos.find((l) => l.id === id), { pt: "este lançamento do centro de custo", en: "this cost center entry", es: "este registro del centro de costo" }), efeito: EFEITO.planejamento, tabela: "lancamentos_centro", registroId: id }))) return;
     const { data, error } = await supabase.from("lancamentos_centro").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(Lt("Não foi possível excluir o lançamento. Tente novamente.", "Could not delete the entry. Try again.", "No se pudo eliminar el movimiento. Intente de nuevo."), "erro");
@@ -695,6 +701,8 @@ export default function CentrosCustoPage() {
   }
 
   async function removerPlano(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este plano de ação", en: "this action plan", es: "este plan de acción" }, efeito: EFEITO.planejamento, tabela: "plano_acao", registroId: id }))) return;
     const { erro } = await excluirPlanoAcao(id);
     if (erro) {
       showToast(Lt("Não foi possível remover o plano. Tente novamente.", "Could not remove the plan. Try again.", "No se pudo eliminar el plan. Intente de nuevo."), "erro");
@@ -1615,6 +1623,7 @@ export default function CentrosCustoPage() {
         </div>
       </ModalPremium>
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

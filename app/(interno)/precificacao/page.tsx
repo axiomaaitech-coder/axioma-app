@@ -35,6 +35,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -76,6 +77,7 @@ export default function Precificacao() {
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
   // (tema-tokens.md §1.1). Escuro mantém o dourado original.
@@ -274,6 +276,8 @@ export default function Precificacao() {
     fecharModal(); setSalvando(false); showToast(txt.sucessoSalvarProduto, "ok"); await carregarTudo();
   }
   async function excluirProduto(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(produtos.find((p) => p.id === id), { pt: "este produto", en: "this product", es: "este producto" }), efeito: EFEITO.planejamento, tabela: "precificacao", registroId: id }))) return;
     const { data, error } = await supabase.from("precificacao").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(txt.erroExcluirProduto, "erro");
@@ -416,6 +420,8 @@ export default function Precificacao() {
     await carregarTudo();
   }
   async function removerConcorrente(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(concorrentes.find((c) => c.id === id), { pt: "este concorrente", en: "this competitor", es: "este competidor" }), efeito: EFEITO.planejamento, tabela: "concorrentes", registroId: id }))) return;
     const { data, error } = await supabase.from("concorrentes").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(txt.erroRemoverConcorrente, "erro");
@@ -529,6 +535,7 @@ export default function Precificacao() {
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div className="space-y-4">
 

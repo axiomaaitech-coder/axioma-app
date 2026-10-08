@@ -31,6 +31,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -221,6 +222,7 @@ export default function Metas() {
   const cx = cfoT(lang);
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app
   // (antes esses painéis "camada CFO" caíam no branco puro, nunca
@@ -474,6 +476,8 @@ export default function Metas() {
   };
 
   const excluir = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(metas.find((m) => m.id === id), { pt: "esta meta", en: "this goal", es: "esta meta" }), efeito: EFEITO.planejamento, tabela: "metas", registroId: id }))) return;
     const { data, error } = await supabase.from("metas").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(L("Não foi possível excluir a meta. Tente novamente.", "Could not delete the goal. Try again.", "No se pudo eliminar la meta. Intente de nuevo."), "erro");
@@ -1029,6 +1033,7 @@ export default function Metas() {
         cor={temaClaro ? "#2ecc9b" : "#2ecc9b"}
       />
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

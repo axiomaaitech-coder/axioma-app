@@ -22,6 +22,8 @@ import {
   type NivelCatalogo,
 } from "../../../components/PdvCatalogoNav";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
+import { temaPdvSalvoClaro } from "../../../components/PdvLayout";
 
 // Botões de ação e preço usam tokens.acaoBg/acento (verde só sobrevive no
 // tema escuro, via tokens — ver components/PdvLayout.tsx). Nenhuma cor fixa
@@ -102,6 +104,7 @@ const ORDEM_MODO: ModoNicho[] = ["produto", "misto", "servico"];
 export default function PDV() {
   const { idioma } = useLanguage();
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaPdvSalvoClaro());
   const router = useRouter();
 
   const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
@@ -182,7 +185,8 @@ export default function PDV() {
   }, [nivel, empresaId, nichoSel, categoriaSel, subNichoSel, buscaDebounced, pagina, lang, recarregarTick]);
 
   async function excluirProdutoHandler(produto: ProdutoPdv) {
-    if (!confirm(t("confirmarExclusao", lang, { nome: produto.nome }))) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${produto.nome}"`, efeito: EFEITO.cadastro, tabela: "produtos", registroId: produto.id }))) return;
     const { erro: erroExclusao, inativadoEmVezDeExcluir, temVenda } = await excluirProduto(produto.id);
     if (temVenda) { mostrarToast(t("produtoTemVenda", lang, { nome: produto.nome }), "erro"); return; }
     if (erroExclusao) { mostrarToast(t("erroExcluir", lang), "erro"); return; }
@@ -390,6 +394,7 @@ export default function PDV() {
         </>
       )}
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </PdvLayout>
   );

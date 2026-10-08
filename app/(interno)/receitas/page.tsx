@@ -26,6 +26,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
@@ -65,6 +66,7 @@ export default function Receitas() {
   const { t, idioma } = useLanguage();
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
@@ -190,6 +192,8 @@ export default function Receitas() {
     setSalvando(false);
   };
   const excluir = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(receitas.find((r) => r.id === id), { pt: "esta receita", en: "this revenue", es: "este ingreso" }), efeito: EFEITO.financeiro, tabela: "receitas", registroId: id }))) return;
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const receita = receitas.find(r => r.id === id);
@@ -572,6 +576,7 @@ export default function Receitas() {
         cor="#2ecc9b"
       />
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
     </ModuloLayout>

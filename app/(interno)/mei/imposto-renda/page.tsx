@@ -22,6 +22,7 @@ import {
   TIPOS_DOCUMENTO_FISCAL, TIPOS_ESPERADOS_IRPF, type TipoDocumentoFiscal, type DocumentoFiscal,
 } from '../../../../lib/documentosFiscaisHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { useConfirmarExclusao, EFEITO } from "../../../../components/ConfirmarExclusao";
 import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
@@ -43,6 +44,7 @@ export default function ImpostoRendaMEI() {
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, AMBAR, TEAL, NEUTRO, DESABILITADO, ON_ACCENT, CAMPO_BG, PAINEL_BG, BOTAO_SUTIL_BG, SELECT_BG, POCO_BG, COLOR_SCHEME } = PALETA[tema]
   const temaClaro = tema === 'xms'
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
@@ -228,7 +230,8 @@ export default function ImpostoRendaMEI() {
   }
 
   async function excluirDocumento(doc: DocumentoFiscal) {
-    if (!window.confirm(t('docConfirmarExcluir').replace('{v}', doc.nome_arquivo))) return
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${doc.nome_arquivo}"`, efeito: EFEITO.planejamento, tabela: "documentos_fiscais", registroId: doc.id }))) return;
     const { erro } = await excluirDocumentoFiscal(doc)
     if (erro) { mostrarToastDoc(erro, 'erro'); return }
     mostrarToastDoc(t('toastDocumentoExcluido'), 'info')
@@ -387,6 +390,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
 
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
+    {janelaConfirmacao}
     <AvisoAxioma aviso={toastDoc} onFechar={() => setToastDoc(null)} />
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}

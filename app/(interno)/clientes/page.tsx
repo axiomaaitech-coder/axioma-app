@@ -39,6 +39,7 @@ import {
   type ClienteRow, type ContaRow, type InadimplenciaRow, type Idioma3, type TipoSinalCliente,
 } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -389,6 +390,7 @@ export default function ClientesPage() {
   const tt = T[lang];
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
   // (tema-tokens.md §1.1). Escuro mantém o dourado original.
@@ -536,6 +538,8 @@ export default function ClientesPage() {
   }
 
   async function excluirCliente(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(clientes.find((c) => c.id === id), { pt: "este cliente", en: "this customer", es: "este cliente" }), efeito: EFEITO.cadastro, tabela: "clientes", registroId: id }))) return;
     const { data, error } = await supabase.from("clientes").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(tt.erroExcluirCliente, "erro");
@@ -869,6 +873,7 @@ export default function ClientesPage() {
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}>
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div className="space-y-4">
 

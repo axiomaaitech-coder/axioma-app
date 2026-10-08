@@ -51,6 +51,7 @@ import {
 import { heatmapInadimplencia } from '../../../lib/previsaoRecebimentoHelpers'
 import { registrarRecebimento, faltaReceber, criarContaReceber, editarContaReceber, excluirContaReceber, type ContaParaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -89,6 +90,7 @@ export default function Inadimplencia() {
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const { INDIGO, SAFIRA, PLATINA, VERMELHO, AMBAR, VERDE, AZUL, CINZA, BG_CARD } = PALETA[tema]
   const ct = (hex: string) => corTema(hex, temaClaro)
   const classePremium3d = ' axi-card-premium3d axi-card-faixa'
@@ -419,6 +421,8 @@ export default function Inadimplencia() {
     showToast(L('Etapa salva.', 'Step saved.', 'Etapa guardada.'), 'ok')
   }
   async function excluirEtapa(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "esta etapa da régua de cobrança", en: "this collection step", es: "esta etapa de cobranza" }, efeito: EFEITO.planejamento, tabela: "regua_cobranca", registroId: id }))) return;
     const { erro } = await excluirEtapaRegua(id)
     if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(etapasRegua.filter((e) => e.id !== id))
@@ -485,6 +489,8 @@ export default function Inadimplencia() {
   }
 
   async function excluirCaso(id: string) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(contas.find((c) => c.id === id), { pt: "esta conta a receber", en: "this receivable", es: "esta cuenta por cobrar" }), efeito: EFEITO.financeiro, tabela: "contas_receber", registroId: id }))) return;
     const r = await excluirContaReceber(id, 'inadimplencia')
     if (r.erro) {
       showToast(r.erro === 'ja_recebida'
@@ -1440,6 +1446,7 @@ export default function Inadimplencia() {
         cor={INDIGO}
       />
 
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
     </ModuloLayout>
     </div>

@@ -50,6 +50,7 @@ import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { criarContaPagar, editarContaPagar, excluirContaPagar, darBaixaContaPagar, type ContaPagar as ContaPagarOficial } from "../../../lib/contasPagarHelpers";
 import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
@@ -715,6 +716,7 @@ export default function Fornecedores() {
   const tt = T[lang];
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Identidade visual do módulo — âmbar/bronze no Escuro. Âmbar não é cor
   // de marca da paleta padrão do Claro (tema-tokens.md §1.1) - vira
@@ -1074,6 +1076,8 @@ export default function Fornecedores() {
   };
 
   const excluirForn = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(fornecedores.find((f) => f.id === id), { pt: "este fornecedor", en: "this supplier", es: "este proveedor" }), efeito: EFEITO.cascata, tabela: "fornecedores", registroId: id }))) return;
     // ponytail: apaga o fornecedor e os registros filhos (cascade no banco), mas não
     // remove os arquivos órfãos do Storage — upgrade futuro se o volume de documentos justificar.
     const { data, error } = await supabase.from("fornecedores").delete().eq("id", id).select("id");
@@ -1112,6 +1116,8 @@ export default function Fornecedores() {
     setEditandoContatoId(null);
   };
   const removerContato = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este contato", en: "this contact", es: "este contacto" }, efeito: EFEITO.planejamento, tabela: "fornecedor_contatos", registroId: id }))) return;
     const { erro } = await excluirContato(id);
     if (erro) { showToast(txt.erroExcluirContato, "erro"); return; }
     if (editandoContatoId === id) cancelarEdicaoContato();
@@ -1157,6 +1163,8 @@ export default function Fornecedores() {
     setEditandoDocumentoId(null);
   };
   const removerDocumento = async (doc: FornecedorDocumento) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(doc, { pt: "este documento", en: "this document", es: "este documento" }), efeito: EFEITO.planejamento, tabela: "fornecedor_documentos", registroId: doc.id }))) return;
     const { erro } = await excluirDocumentoFornecedor(doc);
     if (erro) { showToast(txt.erroExcluirDocumento, "erro"); return; }
     if (editandoDocumentoId === doc.id) cancelarEdicaoDocumento();
@@ -1201,6 +1209,8 @@ export default function Fornecedores() {
     setEditandoContratoId(null);
   };
   const removerContrato = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este contrato", en: "this contract", es: "este contrato" }, efeito: EFEITO.planejamento, tabela: "fornecedor_contratos", registroId: id }))) return;
     const { erro } = await excluirContrato(id);
     if (erro) { showToast(txt.erroExcluirContrato, "erro"); return; }
     if (editandoContratoId === id) cancelarEdicaoContrato();
@@ -1239,6 +1249,8 @@ export default function Fornecedores() {
     setEditandoProdutoId(null);
   };
   const removerProduto = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este produto do fornecedor", en: "this supplier product", es: "este producto del proveedor" }, efeito: EFEITO.planejamento, tabela: "fornecedor_produtos", registroId: id }))) return;
     const { erro } = await excluirProduto(id);
     if (erro) {
       showToast(txt.erroExcluirProduto, "erro");
@@ -1271,6 +1283,8 @@ export default function Fornecedores() {
     setEditandoInteracaoId(null);
   };
   const removerInteracao = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "este registro de interação", en: "this interaction record", es: "este registro de interacción" }, efeito: EFEITO.planejamento, tabela: "fornecedor_interacoes", registroId: id }))) return;
     const { erro } = await excluirInteracao(id);
     if (erro) { showToast(txt.erroExcluirInteracao, "erro"); return; }
     if (editandoInteracaoId === id) cancelarEdicaoInteracao();
@@ -1334,6 +1348,8 @@ export default function Fornecedores() {
   };
 
   const excluirConta = async (id: string) => {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(contas.find((c) => c.id === id), { pt: "esta conta a pagar", en: "this bill", es: "esta cuenta por pagar" }), efeito: EFEITO.financeiro, tabela: "contas_pagar", registroId: id }))) return;
     const { data: { user } } = await supabase.auth.getUser();
     const conta = contas.find(c => c.id === id);
     const r = await excluirContaPagar(id, conta?.status);
@@ -1785,6 +1801,7 @@ export default function Fornecedores() {
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
     >
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div className="space-y-4">
 

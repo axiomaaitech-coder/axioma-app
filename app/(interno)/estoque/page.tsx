@@ -44,6 +44,7 @@ import {
 import { gerarEtiquetasPDF } from "../../../lib/etiquetaHelpers";
 import { buscarSugestoesColuna, buscarSugestoesAtributo, buscarCombosLocalizacao, type ColunaComSugestao, type ComboLocalizacao } from "../../../lib/sugestaoInteligente";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -235,6 +236,7 @@ export default function EstoquePage() {
   const et = t.estoque;
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const ct = (hex: string) => corTema(hex, temaClaro);
   const labelStyle = { color: ct(BRONZE) };
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
@@ -695,7 +697,8 @@ export default function EstoquePage() {
   }
 
   async function excluirProdutoHandler(produto: Produto) {
-    if (!confirm(`${et.confirmarExclusaoProduto} "${produto.nome}"?`)) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${produto.nome}"`, efeito: EFEITO.cadastro, tabela: "produtos", registroId: produto.id }))) return;
     const { erro, inativadoEmVezDeExcluir, temVenda } = await excluirProduto(produto.id);
     if (temVenda) { mostrarToast(et.toastProdutoTemVenda, "erro"); return; }
     if (erro) { mostrarToast(erro, "erro"); return; }
@@ -705,7 +708,8 @@ export default function EstoquePage() {
 
   async function excluirCampoPersonalizadoHandler(campo: CampoPersonalizadoEmpresa) {
     if (!empresaId) return;
-    if (!confirm(`${et.confirmarExclusaoCampoPersonalizado} "${campo.nome}"?`)) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: `"${campo.nome}"`, efeito: EFEITO.cadastro, tabela: "campos_personalizados", registroId: undefined }))) return;
     const { erro } = await removerCampoPersonalizado(empresaId, campo.chave);
     if (erro) { mostrarToast(erro, "erro"); return; }
     setCamposPersonalizados((c) => c.filter((x) => x.chave !== campo.chave));
@@ -865,7 +869,8 @@ export default function EstoquePage() {
   }
 
   async function excluirMovimentacaoHandler(id: string) {
-    if (!confirm(et.confirmarExclusaoMov)) return;
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: { pt: "esta movimentação de estoque (o saldo do produto será recalculado)", en: "this stock movement (the product balance will be recalculated)", es: "este movimiento de stock (el saldo del producto se recalculará)" }, efeito: EFEITO.planejamento, tabela: "estoque_movimentacoes", registroId: id }))) return;
     const { erro } = await excluirMovimentacao(id);
     if (erro) { mostrarToast(erro, "erro"); return; }
     mostrarToast(et.toastMovExcluida);
@@ -991,6 +996,7 @@ export default function EstoquePage() {
         </>
       }
     >
+      {janelaConfirmacao}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ABAS */}
