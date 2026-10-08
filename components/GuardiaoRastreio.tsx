@@ -36,7 +36,7 @@ export default function GuardiaoRastreio() {
         if (!jaRodouHoje && ['dono', 'admin'].includes((await obterMeuPapel(empresaId)) || '')) {
           const { data: { user } } = await createClient().auth.getUser()
           if (user) {
-            const g = await gerarContasCustoFixoDoMes(user.id, empresaId, hoje.slice(0, 7))
+            const g = await gerarContasCustoFixoDoMes(user.id, empresaId, hoje)
             geradas = g.geradas
             if (g.falhas === 0) { try { localStorage.setItem(chave, hoje) } catch { /* idem */ } } // varredura:ok
           }

@@ -387,13 +387,18 @@ export async function gerarContaDeCustoFixo(
 // do mês sozinho (o Guardião chama ao abrir o Axioma). Idempotente por mês.
 // ponytail: duas abas abertas no mesmo segundo podem gerar 2 contas — índice único
 // (custo_fixo_id, mês) no banco fecha isso de vez.
-export async function gerarContasCustoFixoDoMes(userId: string, empresaId: string, mesReferencia: string): Promise<{ geradas: number; falhas: number }> {
+// Gera a PRÓXIMA conta de cada custo fixo: a deste mês se o dia de vencimento ainda
+// não passou; senão a do mês que vem (antes nascia já vencida a do dia que passou).
+export async function gerarContasCustoFixoDoMes(userId: string, empresaId: string, hoje: string): Promise<{ geradas: number; falhas: number }> {
   const { data, error } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empresaId);
   if (error) { reportarFalhaLeitura("custos_fixos.contasDoMes", error); return { geradas: 0, falhas: 1 }; }
+  const [ano, mes, dia] = hoje.split("-").map(Number);
+  const mesQueVem = `${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, "0")}`;
   let geradas = 0, falhas = 0;
   for (const cf of data || []) {
     if (!(Number(cf.valor_mensal) > 0)) continue;
-    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, mesReferencia);
+    const diaVenc = Math.min(28, Math.max(1, Number(cf.dia_vencimento) || 1));
+    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, diaVenc >= dia ? hoje.slice(0, 7) : mesQueVem);
     if (r.erro) falhas++; else if (!r.jaExiste) geradas++;
   }
   return { geradas, falhas };
