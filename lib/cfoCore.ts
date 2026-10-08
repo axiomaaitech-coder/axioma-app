@@ -52,7 +52,7 @@ export function entradasEvidencia(
   L: (pt: string, en: string, es: string) => string,
 ): [string, string][] {
   return Object.entries(evidencia)
-    .filter(([k, v]) => k !== "chave" && k !== "id" && !k.endsWith("_id") && v !== null && v !== undefined && typeof v !== "object" && !(typeof v === "string" && RE_UUID.test(v)))
+    .filter(([k, v]) => k !== "chave" && k !== "acao" && k !== "id" && !k.endsWith("_id") && v !== null && v !== undefined && typeof v !== "object" && !(typeof v === "string" && RE_UUID.test(v)))
     .map(([k, v]) => [
       k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
       typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("pt-BR") : fBRL2(v))

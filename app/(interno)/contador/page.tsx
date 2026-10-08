@@ -333,6 +333,13 @@ export default function ContadorPage() {
                     </div>
                   )}
 
+                  {typeof selecionada.evidencia?.acao === 'string' && (
+                    <div className="rounded-lg p-3 mb-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG2, border: '1px solid rgba(46,204,155,0.35)' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: '#2ecc9b' }}>{L('O que fazer', 'What to do', 'Qué hacer')}</p>
+                      <p className="text-xs font-semibold" style={{ color: TEXTO }}>{selecionada.evidencia.acao}</p>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3 mb-3">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Confiança', 'Confidence', 'Confianza')}</p>
