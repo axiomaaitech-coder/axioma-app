@@ -9,6 +9,7 @@ import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarPa
 import { criarContaPagar, editarContaPagar, type ContaPagar } from "./contasPagarHelpers";
 import { criarContaReceber, editarContaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
+import { avaliarDuplicidade, type Idioma } from "./motorDuplicidade";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -159,6 +160,8 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         status,
         categoria: linha.categoria || null,
         numero_nota: linha.documento || null,
+        chave_acesso: linha.chaveAcesso || null,
+        forma_pagamento: linha.forma || null,
         fornecedor_id: linha.fornecedorId || null,
       },
     };
@@ -243,11 +246,10 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
 };
 
 // ============================================================================
-// POSSÍVEL DUPLICATA — cross-módulo, "estilo aviso de PIX repetido"
+// POSSÍVEL DUPLICATA — Motor Antiduplicidade (lib/motorDuplicidade.ts)
 // Camada A MAIS além da duplicata exata por hash (marcarDuplicatasPorLinha):
-// aqui o sistema NUNCA soma/descarta sozinho, só avisa quando valor+data
-// batem E nenhum campo disponível (hora, nº de documento, CNPJ da
-// contraparte) consegue provar que são lançamentos diferentes.
+// regra (chave/nº da nota, fornecedor, parcela, forma de pagamento, horário)
+// → Inteligência do Axioma → pergunta ao humano. Nada some sem ele ver.
 // ============================================================================
 
 const LABEL_TABELA: Record<DestinoTabela, string> = {
@@ -261,34 +263,13 @@ const LABEL_TABELA: Record<DestinoTabela, string> = {
   dividas: "Endividamento",
 };
 
-type ConfigTabelaTransacao = {
-  tabela: DestinoTabela;
-  colValor: string;
-  colData: string;
-  colDataHora?: string;
-  colDescricao: string;
-  colDistintivo?: string;
-  colVencimento?: string;
-  colContraparteId?: string;
-  tabelaContraparte?: "fornecedores" | "clientes";
-};
-
-// Só as 6 tabelas que são LANÇAMENTO datado — custos_fixos (cadastro
-// recorrente, sem data de transação) e fornecedores (cadastro) ficam fora.
-const TABELAS_TRANSACAO: ConfigTabelaTransacao[] = [
-  { tabela: "fluxo_caixa", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
-  { tabela: "receitas", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
-  { tabela: "custos_variaveis", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
-  { tabela: "contas_pagar", colValor: "valor_total", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_nota", colVencimento: "data_vencimento", colContraparteId: "fornecedor_id", tabelaContraparte: "fornecedores" },
-  { tabela: "contas_receber", colValor: "valor", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_documento", colVencimento: "data_vencimento", colContraparteId: "cliente_id", tabelaContraparte: "clientes" },
-  { tabela: "dividas", colValor: "valor_total", colData: "vencimento", colDescricao: "descricao" },
-];
-
+// Tabelas que são LANÇAMENTO datado (custos_fixos e fornecedores são cadastro).
 // Reaproveitado tanto pra gravar "Somar" (soma no registro existente em vez
 // de inserir um novo) quanto pra reverter (subtrai de volta o que foi somado).
-const COLUNA_VALOR_DESTINO: Partial<Record<DestinoTabela, string>> = Object.fromEntries(
-  TABELAS_TRANSACAO.map((t) => [t.tabela, t.colValor])
-);
+const COLUNA_VALOR_DESTINO: Partial<Record<DestinoTabela, string>> = {
+  fluxo_caixa: "valor", receitas: "valor", custos_variaveis: "valor",
+  contas_pagar: "valor_total", contas_receber: "valor", dividas: "valor_total",
+};
 
 // Lê o valor atual de uma coluna cujo NOME é dinâmico (vem de
 // COLUNA_VALOR_DESTINO, não de input externo) sem confiar cegamente no
@@ -304,135 +285,54 @@ function lerValorColunaDinamica(atual: unknown, colValor: string): number | null
 }
 
 export type CandidatoDuplicata = {
-  tabela: DestinoTabela;
+  tabela: DestinoTabela | "lote";
   id: string;
   descricao: string;
   valor: number;
   data: string;
-  dataHora: string | null;
-  distintivo: string | null;
-  vencimento: string | null;
-  contraparteDocumento: string | null;
-  temCampoContraparte: boolean;
+  modulo: string;
 };
 
 export type PossivelDuplicata = {
   candidato: CandidatoDuplicata;
-  horaComparada: boolean;
+  // "duplicata" = o motor provou (ou a IA tem certeza) que já existe → linha nasce em "Pular".
+  // "perguntar" = dúvida real → o humano decide, com a explicação e a pergunta da IA.
+  decisao: "duplicata" | "perguntar";
   motivo: string;
+  pergunta: string | null;
+  porIA: boolean;
 };
 
-function valorBate(a: number, b: number): boolean {
-  return Math.abs(a - b) < 0.005;
-}
-
-// 1 consulta por tabela (+ no máximo 1 pra resolver fornecedor/cliente) — nunca
-// uma consulta por linha, mesmo com centenas de linhas na leva.
-async function buscarCandidatosPorTabela(
-  empresaId: string,
-  cfg: ConfigTabelaTransacao,
-  datas: string[],
-  valores: number[]
-): Promise<CandidatoDuplicata[]> {
-  const { data } = await supabase.from(cfg.tabela).select("*").eq("empresa_id", empresaId).in(cfg.colData, datas);
-  const linhas = (data || []).filter((r: any) => valores.some((v) => valorBate(v, Number(r[cfg.colValor]))));
-  if (linhas.length === 0) return [];
-
-  const contrapartes = new Map<string, string | null>();
-  if (cfg.colContraparteId && cfg.tabelaContraparte) {
-    const ids = Array.from(new Set(linhas.map((r: any) => r[cfg.colContraparteId!]).filter(Boolean)));
-    if (ids.length > 0) {
-      const { data: cad } = await supabase.from(cfg.tabelaContraparte).select("id, documento").eq("empresa_id", empresaId).in("id", ids);
-      (cad || []).forEach((c: any) => contrapartes.set(c.id, c.documento || null));
-    }
-  }
-
-  return linhas.map((r: any) => ({
-    tabela: cfg.tabela,
-    id: r.id,
-    descricao: r[cfg.colDescricao],
-    valor: Number(r[cfg.colValor]),
-    data: r[cfg.colData],
-    dataHora: cfg.colDataHora ? r[cfg.colDataHora] || null : null,
-    distintivo: cfg.colDistintivo ? r[cfg.colDistintivo] || null : null,
-    vencimento: cfg.colVencimento ? r[cfg.colVencimento] || null : null,
-    contraparteDocumento: cfg.colContraparteId ? contrapartes.get(r[cfg.colContraparteId]) || null : null,
-    temCampoContraparte: !!(cfg.colContraparteId && cfg.tabelaContraparte),
-  }));
-}
-
-// Busca candidatos reais nas 6 tabelas (paralelo, 1 consulta cada) e decide,
-// linha a linha, se algum bate a ponto de merecer aviso. Índice do array de
-// retorno corresponde ao índice da linha importada; null = sem suspeita.
+// Porta única: Motor Antiduplicidade (lib/motorDuplicidade.ts) — regra → IA → humano.
+// Índice do retorno = índice da linha; null = sem suspeita (ou a IA conferiu que é outra conta).
 export async function detectarPossiveisDuplicatas(
   empresaId: string | null,
-  linhas: LinhaImportada[]
+  linhas: LinhaImportada[],
+  destinos: DestinoTabela[],
+  lang: Idioma = "pt"
 ): Promise<(PossivelDuplicata | null)[]> {
+  if (!empresaId) return linhas.map(() => null);
+  const idx = linhas.map((l, i) => i).filter((i) => linhas[i].valor !== undefined && !isNaN(Number(linhas[i].valor)) && !!COLUNA_VALOR_DESTINO[destinos[i]]);
+  const avaliacoes = await avaliarDuplicidade(empresaId, idx.map((i) => {
+    const l = linhas[i];
+    const entrada = destinos[i] === "receitas" || destinos[i] === "contas_receber" || (destinos[i] === "fluxo_caixa" && l.tipo !== "saida");
+    return {
+      valor: Number(l.valor), data: l.data ?? null, dataHora: l.dataHora ?? null, vencimento: l.vencimento ?? null,
+      descricao: l.descricao ?? null, documento: l.documento ?? null, chaveAcesso: l.chaveAcesso ?? null, forma: l.forma ?? null,
+      contraparteId: l.fornecedorId ?? null, contraparteDoc: l.cnpj ?? null, entrada, destino: destinos[i],
+    };
+  }), lang);
   const resultado: (PossivelDuplicata | null)[] = linhas.map(() => null);
-  if (!empresaId) return resultado;
-
-  const comData = linhas
-    .map((l, i) => ({ l, i }))
-    .filter(({ l }) => l.data && l.valor !== undefined && !isNaN(l.valor));
-  if (comData.length === 0) return resultado;
-
-  const datas = Array.from(new Set(comData.map(({ l }) => l.data!)));
-  const valores = Array.from(new Set(comData.map(({ l }) => Number(l.valor))));
-
-  const porTabela = await Promise.all(TABELAS_TRANSACAO.map((cfg) => buscarCandidatosPorTabela(empresaId, cfg, datas, valores)));
-  const todosCandidatos = porTabela.flat();
-
-  for (const { l, i } of comData) {
-    const candidatos = todosCandidatos.filter((c) => c.data === l.data && valorBate(c.valor, Number(l.valor)));
-    if (candidatos.length === 0) continue;
-
-    for (const cand of candidatos) {
-      // 0) Vencimento diferente = parcela/conta diferente (mesmo valor e mesma
-      // emissão é normal em nota parcelada) — nunca é duplicata (regra do Elias).
-      if (l.vencimento && cand.vencimento && l.vencimento !== String(cand.vencimento).slice(0, 10)) continue;
-
-      // 1) Os dois lados têm hora → hora decide, sem ambiguidade.
-      if (l.dataHora && cand.dataHora) {
-        const horaLinha = l.dataHora.slice(11, 19);
-        const horaCand = cand.dataHora.slice(11, 19);
-        if (horaLinha !== horaCand) continue; // hora diferente = lançamentos legítimos, não avisa
-        resultado[i] = {
-          candidato: cand,
-          horaComparada: true,
-          motivo: `Mesmo valor, data e horário (${horaLinha}) de um lançamento já existente em ${LABEL_TABELA[cand.tabela]}.`,
-        };
-        break;
-      }
-
-      // 2) Sem hora de um dos lados (ou dos dois) → nº de documento decide, se existir dos dois lados.
-      const docLinha = l.documento?.trim();
-      const docCand = cand.distintivo?.trim();
-      if (docLinha && docCand && docLinha !== docCand) continue;
-
-      // 3) CNPJ da contraparte (fornecedor/cliente), se a linha trouxe e o registro tem.
-      const cnpjLinha = l.cnpj?.replace(/\D/g, "");
-      const cnpjCand = cand.contraparteDocumento?.replace(/\D/g, "");
-      if (cnpjLinha && cnpjCand && cnpjLinha !== cnpjCand) continue;
-
-      // 4) Sem campo de cliente/fornecedor estruturado (ex: Fluxo de Caixa, onde o
-      // cliente vira parte da descrição) → a descrição é o único jeito de provar que
-      // são lançamentos diferentes. "cliente Gama" vs "cliente Alfa" nunca é duplicata.
-      if (!cand.temCampoContraparte) {
-        const descLinha = normalizarPadraoChave(l.descricao || "");
-        const descCand = normalizarPadraoChave(cand.descricao || "");
-        if (descLinha && descCand && descLinha !== descCand) continue;
-      }
-
-      // Nada provou que são diferentes → avisa.
-      resultado[i] = {
-        candidato: cand,
-        horaComparada: false,
-        motivo: `Mesmo valor e data de um lançamento já existente em ${LABEL_TABELA[cand.tabela]} — hora não disponível dos dois lados para confirmar automaticamente.`,
-      };
-      break;
-    }
-  }
-
+  idx.forEach((i, k) => {
+    const a = avaliacoes[k];
+    const top = a.suspeitas[0];
+    if (a.decisao === "segue" || !top) return;
+    const c = top.candidato;
+    resultado[i] = {
+      candidato: { tabela: c.tabela === "lote" ? "lote" : (c.tabela as DestinoTabela), id: c.id, descricao: c.descricao || "", valor: c.valor, data: c.data || c.vencimento || "", modulo: c.modulo[lang] },
+      decisao: a.decisao, motivo: a.explicacao, pergunta: a.pergunta, porIA: a.porIA,
+    };
+  });
   return resultado;
 }
 

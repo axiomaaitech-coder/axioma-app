@@ -36,11 +36,11 @@ import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorR
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
 import {
-  type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp, type DuplicataDetectada,
+  type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp,
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
   gerarContaDeCustoFixo, listarDocumentos, anexarDocumento, excluirDocumento, gerarUrlDocumento,
   classificarCategoria, checarNfeJaImportadaNoPdv,
-  obterConfigAp, salvarConfigAp, detectarDuplicata, registrarAuditoriaAp,
+  obterConfigAp, salvarConfigAp, registrarAuditoriaAp,
   calcularForecastAp, priorizarPagamentos, type ForecastAp, type HorizonteForecastDias, HORIZONTES_FORECAST_AP, type ItemPrioridadePagamento,
   listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
   listarAuditoriaConta, type AuditoriaAp, excluirRegistroHistoricoAp, restaurarRegistroHistoricoAp, anotarRegistroHistoricoAp,
@@ -56,6 +56,7 @@ import {
   montarBriefingAp, type ItemBriefingAp,
   responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
+import { avaliarDuplicidade, type Avaliacao, type Suspeita } from "@/lib/motorDuplicidade";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO, agora } from "../../../lib/datas";
 
@@ -1492,22 +1493,28 @@ export default function ContasPagarPage() {
     // caindo neste modal antes de salvar).
     if (!empresaId) { showToast(L("Nenhuma empresa ativa — recarregue a página e tente de novo.", "No active company — reload the page and try again.", "Ninguna empresa activa — recargue la página e intente de nuevo."), "erro"); return; }
     setSalvando(true);
-    const { duplicatas } = await detectarDuplicata({
-      empresaId, fornecedorId: nc.fornecedor_id || null, valorTotal: dados.valor_total,
-      dataEmissao: nc.data_emissao || nc.data_vencimento, numeroNota: nc.numero_nota || null,
-      diasJanela: configAp?.dias_janela_duplicata,
-    });
-    const relevantes = duplicatas.filter((d) => d.score >= 70);
-    if (relevantes.length === 0) {
+    // Motor Antiduplicidade: regra (chave/nº da nota, fornecedor, parcela, forma de
+    // pagamento) → Inteligência do Axioma → pergunta ao humano só se continuar a dúvida.
+    // A forma padrão do formulário não é prova (a pessoa pode nem ter mexido).
+    const [aval] = await avaliarDuplicidade(empresaId, [{
+      valor: dados.valor_total, data: nc.data_emissao || null, vencimento: nc.data_vencimento || null,
+      descricao: nc.descricao, documento: nc.numero_nota || null, chaveAcesso: nc.chave_acesso || null,
+      forma: nc.forma_pagamento !== FORMAS_PAGAMENTO[0] ? nc.forma_pagamento : null,
+      contraparteId: nc.fornecedor_id || null, entrada: false, destino: "contas_pagar",
+    }], idioma as "pt" | "en" | "es");
+    if (aval.decisao === "segue") {
       await inserirContaDeFato(dados);
       return;
     }
-    setDuplicatas(relevantes);
+    setAvaliacaoDup(aval);
     setDadosPendentes(dados);
     setSenhaForcar(""); setErroForcar("");
     setModalDuplicata(true);
-    const { erro: erroAuditoria } = await registrarAuditoriaAp(relevantes[0].contas_pagar_id, "duplicata_detectada", null, { candidata: dados, similares: relevantes });
-    if (erroAuditoria) showToast(L("O registro de auditoria desta duplicidade falhou.", "The audit record for this duplicate failed.", "El registro de auditoría de este duplicado falló."), "erro");
+    const alvo = aval.suspeitas.find((x) => x.candidato.tabela === "contas_pagar");
+    if (alvo) {
+      const { erro: erroAuditoria } = await registrarAuditoriaAp(alvo.candidato.id, "duplicata_detectada", null, { candidata: dados, decisao: aval.decisao, motivo: aval.explicacao, por_ia: aval.porIA });
+      if (erroAuditoria) showToast(L("O registro de auditoria desta duplicidade falhou.", "The audit record for this duplicate failed.", "El registro de auditoría de este duplicado falló."), "erro");
+    }
     setSalvando(false);
   }
 
@@ -1521,7 +1528,7 @@ export default function ContasPagarPage() {
       return;
     }
     if (ignorouDuplicata) {
-      const { erro: erroAuditoria } = await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
+      const { erro: erroAuditoria } = await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { decisao: avaliacaoDup?.decisao, motivo: avaliacaoDup?.explicacao, similares: duplicatas.map((d) => ({ modulo: d.candidato.modulo.pt, id: d.candidato.id })) });
       if (erroAuditoria) showToast(L("Conta salva, mas o registro de auditoria falhou.", "Bill saved, but the audit record failed.", "Cuenta guardada, pero el registro de auditoría falló."), "erro");
     }
     // A alçada de aprovação roda dentro de criarContaPagar (porta única — vale pra
@@ -1568,7 +1575,8 @@ export default function ContasPagarPage() {
 
   // ========== COMMIT 2 — MODAL DE POSSÍVEL DUPLICATA ==========
   const [modalDuplicata, setModalDuplicata] = useState(false);
-  const [duplicatas, setDuplicatas] = useState<DuplicataDetectada[]>([]);
+  const [avaliacaoDup, setAvaliacaoDup] = useState<Avaliacao | null>(null);
+  const duplicatas: Suspeita[] = avaliacaoDup?.suspeitas.slice(0, 5) ?? [];
   const [dadosPendentes, setDadosPendentes] = useState<Record<string, any> | null>(null);
   const [mostrarForcar, setMostrarForcar] = useState(false);
   const [senhaForcar, setSenhaForcar] = useState("");
@@ -1576,11 +1584,10 @@ export default function ContasPagarPage() {
   const [erroForcar, setErroForcar] = useState("");
   const [forcando, setForcando] = useState(false);
 
-  const maiorScoreDuplicata = duplicatas.reduce((m, d) => Math.max(m, d.score), 0);
-  const duplicataBloqueada = maiorScoreDuplicata >= 90 && (configAp?.bloquear_duplicata ?? true);
+  const duplicataBloqueada = avaliacaoDup?.decisao === "duplicata" && (configAp?.bloquear_duplicata ?? true);
 
   function fecharModalDuplicata() {
-    setModalDuplicata(false); setDuplicatas([]); setDadosPendentes(null);
+    setModalDuplicata(false); setAvaliacaoDup(null); setDadosPendentes(null);
     setMostrarForcar(false); setSenhaForcar(""); setErroForcar("");
   }
 
@@ -1589,8 +1596,8 @@ export default function ContasPagarPage() {
     await inserirContaDeFato(dadosPendentes, true);
   }
 
-  function vincularAExistente(dup: DuplicataDetectada) {
-    const existente = contas.find((c) => c.id === dup.contas_pagar_id);
+  function vincularAExistente(dup: Suspeita) {
+    const existente = contas.find((c) => c.id === dup.candidato.id);
     if (!existente) return;
     fecharModalDuplicata();
     fecharModalConta();
@@ -3351,40 +3358,53 @@ export default function ContasPagarPage() {
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}>
-                        ⚠️ {L("Possível conta duplicada", "Possible duplicate bill", "Posible cuenta duplicada")}
+                        ⚠️ {avaliacaoDup?.decisao === "duplicata" ? L("Esta conta já está lançada", "This bill is already recorded", "Esta cuenta ya está registrada") : L("Confirme: é a mesma conta?", "Confirm: is it the same bill?", "Confirme: ¿es la misma cuenta?")}
                       </h3>
                     </div>
                     <button onClick={fecharModalDuplicata} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
 
                   <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                    {duplicatas.map((d) => (
-                      <div key={d.contas_pagar_id} className="p-3 rounded-xl flex items-center justify-between gap-3 axi-card-premium3d axi-card-faixa"
-                        style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${d.score >= 90 ? VERMELHO : AMBAR}40` }}>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao}</p>
-                          <p className="text-xs" style={{ color: CINZA }}>
-                            {L("Nº nota", "Invoice no.", "Nº factura")} {d.numero_nota || "—"} · {fmt(d.valor_total)} · {L("emissão", "issued", "emisión")} {d.data_emissao ? new Date(d.data_emissao + "T00:00:00").toLocaleDateString("pt-BR") : "—"} · {L("vencimento", "due", "vencimiento")} {d.data_vencimento ? new Date(d.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
-                          </p>
+                    {duplicatas.map((d) => {
+                      const c = d.candidato;
+                      const certa = d.par.veredicto === "mesma";
+                      const dataBR = (iso?: string | null) => (iso ? new Date(iso.slice(0, 10) + "T00:00:00").toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR") : "—");
+                      return (
+                        <div key={`${c.tabela}-${c.id}`} className="p-3 rounded-xl flex items-center justify-between gap-3 axi-card-premium3d axi-card-faixa"
+                          style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${certa ? VERMELHO : AMBAR}40` }}>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{c.descricao || "—"}</p>
+                            <p className="text-xs" style={{ color: CINZA }}>
+                              {c.modulo[idioma === "en" ? "en" : idioma === "es" ? "es" : "pt"]} · {L("Nº nota", "Invoice no.", "Nº factura")} {c.documento || "—"} · {fmt(c.valor)} · {L("emissão", "issued", "emisión")} {dataBR(c.data)} · {L("vencimento", "due", "vencimiento")} {dataBR(c.vencimento)}{c.forma ? ` · ${c.forma}` : ""}
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: TEXTO }}>{d.motivo}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className="px-2 py-1 rounded-lg text-xs font-black" style={{ background: `${certa ? VERMELHO : AMBAR}20`, color: certa ? VERMELHO : AMBAR }}>
+                              {certa ? L("Mesma", "Same", "Misma") : L("Dúvida", "Unsure", "Duda")}
+                            </span>
+                            {podeEditar && c.tabela === "contas_pagar" && (
+                              <button onClick={() => vincularAExistente(d)} className="text-[10px] font-semibold underline" style={{ color: AZUL }}>
+                                {L("Abrir esta", "Open this one", "Abrir esta")}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className="px-2 py-1 rounded-lg text-xs font-black" style={{ background: `${d.score >= 90 ? VERMELHO : AMBAR}20`, color: d.score >= 90 ? VERMELHO : AMBAR }}>
-                            {d.score}%
-                          </span>
-                          {podeEditar && (
-                            <button onClick={() => vincularAExistente(d)} className="text-[10px] font-semibold underline" style={{ color: AZUL }}>
-                              {L("Vincular a esta", "Link to this one", "Vincular a esta")}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  {avaliacaoDup && (
+                    <div className="p-3 rounded-xl mb-4 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(245,238,220,0.7)" : "rgba(255,255,255,0.04)", border: `1px solid ${AMBAR}40` }}>
+                      <p className="text-xs" style={{ color: TEXTO }}>{avaliacaoDup.porIA ? `🧠 ${L("Inteligência do Axioma", "Axioma Intelligence", "Inteligencia de Axioma")}: ` : ""}{avaliacaoDup.explicacao}</p>
+                      {avaliacaoDup.pergunta && <p className="text-sm font-semibold mt-2" style={{ color: TEXTO }}>❓ {avaliacaoDup.pergunta}</p>}
+                    </div>
+                  )}
 
                   {duplicataBloqueada ? (
                     <div className="space-y-3">
                       <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
-                        {L("Semelhança muito alta — salvar foi bloqueado por padrão. Só dono/admin pode forçar, confirmando a senha.", "Very high similarity — saving was blocked by default. Only owner/admin can force it, confirming their password.", "Similitud muy alta — guardar fue bloqueado por defecto. Solo dueño/admin puede forzar, confirmando su contraseña.")}
+                        {L("Não lancei de novo, para não contar duas vezes. Se for mesmo outra conta, só dono/admin pode forçar, confirmando a senha.", "I did not record it again, to avoid counting it twice. If it really is another bill, only owner/admin can force it, confirming their password.", "No lo registré de nuevo, para no contarlo dos veces. Si de verdad es otra cuenta, solo dueño/admin puede forzar, confirmando su contraseña.")}
                       </p>
                       {(papel === "dono" || papel === "admin") ? (
                         !mostrarForcar ? (
@@ -3415,9 +3435,9 @@ export default function ContasPagarPage() {
                     </div>
                   ) : (
                     <div className="flex gap-2 flex-wrap">
-                      <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={() => { fecharModalDuplicata(); fecharModalConta(); showToast(L("Não lancei: a conta já existe.", "Not recorded: the bill already exists.", "No registrado: la cuenta ya existe."), "ok"); }} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("É a mesma — não lançar", "Same bill — don't record", "Es la misma — no registrar")}</button>
                       <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
-                        {L("Salvar mesmo assim", "Save anyway", "Guardar de todos modos")}
+                        {L("São diferentes — lançar", "They differ — record it", "Son diferentes — registrar")}
                       </button>
                     </div>
                   )}

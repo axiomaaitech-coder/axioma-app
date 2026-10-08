@@ -11,6 +11,7 @@ import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers"
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
+import { compararPar } from "./motorDuplicidade";
 import { hojeISO } from "./datas";
 import { registrarMovimentacao } from "./rastreio/motor";
 
@@ -530,31 +531,6 @@ export async function salvarConfigAp(empresaId: string, config: ConfigAp): Promi
     return { erro: motivo };
   }
   return {};
-}
-
-// ----------------------------------------------------------------------------
-// DETECÇÃO DE DUPLICIDADE — RPC ap_detectar_duplicata (mesmo fornecedor +
-// valor ±1% na janela, ou mesmo número de nota). Score >=70 = aviso,
-// score >=90 (+ bloquear_duplicata) = trava por padrão no client (Commit 2).
-// ----------------------------------------------------------------------------
-
-export type DuplicataDetectada = {
-  contas_pagar_id: string; descricao: string; numero_nota: string | null;
-  valor_total: number; data_emissao: string | null; data_vencimento: string | null; score: number;
-};
-
-export async function detectarDuplicata(params: {
-  empresaId: string; fornecedorId: string | null; valorTotal: number; dataEmissao: string; numeroNota?: string | null; diasJanela?: number;
-}): Promise<{ duplicatas: DuplicataDetectada[]; erro?: string }> {
-  const { data, error } = await supabase.rpc("ap_detectar_duplicata", {
-    p_empresa_id: params.empresaId, p_fornecedor_id: params.fornecedorId, p_valor_total: params.valorTotal,
-    p_data_emissao: params.dataEmissao, p_numero_nota: params.numeroNota || null, p_dias_janela: params.diasJanela ?? 30,
-  });
-  if (error) {
-    reportarFalhaEscrita("ap_detectar_duplicata", "rpc", error.message);
-    return { duplicatas: [], erro: error.message };
-  }
-  return { duplicatas: (data as DuplicataDetectada[]) || [] };
 }
 
 // ----------------------------------------------------------------------------
@@ -1145,15 +1121,11 @@ export async function detectarMultasEvitaveis(empresaId: string): Promise<{ mult
   return { multas, totalRecuperavel };
 }
 
-// 3) DUPLICIDADES PASSADAS — varredura no que já está gravado (não é checagem
-// no ato de lançar, essa já existe desde a Entrega 2 via ap_detectar_duplicata).
-// Mesmo peso de score do RPC (60 base + 25 nº nota + 15 mesmo dia de emissão)
-// pra manter a leitura do score consistente em todo o módulo. Conta já
-// vinculada a um custo_fixo_id nunca entra no par com OUTRA conta do MESMO
-// custo fixo — isso já é recorrência conhecida (Commit 3), não duplicata.
-const TOLERANCIA_VALOR_DUPLICATA_PASSADA_PCT = 0.01; // ±1%, igual ap_detectar_duplicata
-const JANELA_DIAS_DUPLICATA_PASSADA = 30; // igual ao default de ap_detectar_duplicata
-
+// 3) DUPLICIDADES PASSADAS — varredura no que já está gravado, com a MESMA regra
+// do Motor Antiduplicidade (lib/motorDuplicidade.ts): chave/nº da nota, parcela,
+// forma de pagamento (cartão × boleto não é duplicata), datas. Score = certeza da
+// regra (100 = mesma nota; 50-85 = dúvida para revisar). Contas do mesmo custo fixo
+// são recorrência conhecida, nunca duplicata.
 export type ParDuplicidadePassada = {
   contaA: ContaPagar;
   contaB: ContaPagar;
@@ -1162,10 +1134,13 @@ export type ParDuplicidadePassada = {
 };
 
 export function detectarDuplicidadesPassadas(contas: ContaPagar[]): ParDuplicidadePassada[] {
-  const elegiveis = contas.filter((c) => c.fornecedor_id && c.data_emissao && Number(c.valor_total) > 0);
+  const elegiveis = contas.filter((c) => c.fornecedor_id && Number(c.valor_total) > 0 && !["cancelado", "cancelada"].includes(c.status || ""));
+  const comoLancamento = (c: ContaPagar) => ({
+    valor: Number(c.valor_total), data: c.data_emissao, vencimento: c.data_vencimento, descricao: c.descricao,
+    documento: c.numero_nota, chaveAcesso: c.chave_acesso, forma: c.forma_pagamento, contraparteId: c.fornecedor_id, entrada: false,
+  });
 
-  // Agrupa por fornecedor primeiro — duplicata só existe dentro do mesmo
-  // fornecedor, então nunca precisa comparar entre fornecedores diferentes.
+  // Agrupa por fornecedor — fornecedores diferentes nunca são a mesma conta.
   const porFornecedor = new Map<string, ContaPagar[]>();
   elegiveis.forEach((c) => {
     const key = c.fornecedor_id as string;
@@ -1178,25 +1153,10 @@ export function detectarDuplicidadesPassadas(contas: ContaPagar[]): ParDuplicida
     for (let i = 0; i < lista.length; i++) {
       for (let j = i + 1; j < lista.length; j++) {
         const a = lista[i], b = lista[j];
-        // Mesmo custo fixo = recorrência já conhecida (Commit 3), nunca duplicata.
         if (a.custo_fixo_id && a.custo_fixo_id === b.custo_fixo_id) continue;
-
-        const diasEntre = Math.abs(
-          (new Date(a.data_emissao + "T00:00:00").getTime() - new Date(b.data_emissao + "T00:00:00").getTime()) / 86400000
-        );
-        if (diasEntre > JANELA_DIAS_DUPLICATA_PASSADA) continue;
-
-        const notaBate = !!(a.numero_nota && b.numero_nota && a.numero_nota === b.numero_nota);
-        const valorBate = Math.abs(a.valor_total - b.valor_total) <= a.valor_total * TOLERANCIA_VALOR_DUPLICATA_PASSADA_PCT;
-        if (!valorBate && !notaBate) continue;
-
-        let score = 60;
-        const motivos: string[] = [];
-        if (valorBate) motivos.push("valor_igual");
-        if (notaBate) { score += 25; motivos.push("mesma_nota"); }
-        if (a.data_emissao === b.data_emissao) { score += 15; motivos.push("mesma_data_emissao"); }
-
-        pares.push({ contaA: a, contaB: b, score, motivos });
+        const par = compararPar(comoLancamento(a), comoLancamento(b));
+        if (par.veredicto === "diferente") continue;
+        pares.push({ contaA: a, contaB: b, score: Math.round(par.certeza * 100), motivos: [par.motivo.pt] });
       }
     }
   });

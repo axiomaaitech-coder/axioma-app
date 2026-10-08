@@ -135,6 +135,12 @@ export async function tarefaDeRotina(sistema: string, entrada: string, opcoes: {
   return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], MODELOS.rotina.modelo, opcoes.maxTokens, true, opcoes.timeoutMs)
 }
 
+// Tarefa de servidor que exige raciocínio cuidadoso (ex.: decidir se duas contas são
+// a mesma), fora das telas Anthropic: modelo forte da OpenAI, reserva barata se falhar.
+export async function tarefaDeAnalise(sistema: string, entrada: string, opcoes: { maxTokens: number; timeoutMs: number }): Promise<string | null> {
+  return chamarOpenAI(`${sistema}\n${AVISO_IDENTIDADE}`, [{ role: 'user', content: entrada }], OPENAI_FORTE, opcoes.maxTokens, true, opcoes.timeoutMs)
+}
+
 // ─── José (Nexus): resposta em JSON com 3 níveis de reserva ───
 // Regra do Elias (2026-10-06): nenhum robô/API do Nexus pode travar — sempre
 // uma IA secundária e, se possível, uma terceira. Ordem: Claude (com a reserva

@@ -32,6 +32,10 @@ export type LinhaImportada = {
   documento?: string;
   cnpj?: string;
   tipo?: "entrada" | "saida";
+  // Motor Antiduplicidade: forma de pagamento (cartão × boleto × Pix nunca é a mesma
+  // conta) e chave de acesso da NF-e (identidade única do documento).
+  forma?: string;
+  chaveAcesso?: string;
   // NF-e (B3, 2026-09-28): vencimento de verdade (duplicata da nota) e quanto já
   // foi quitado na emissão (grupo de pagamento). Sem isso a conta nascia "vencendo
   // no dia da emissão" e sempre em aberto, mesmo paga à vista.
@@ -836,6 +840,7 @@ function montarResultadoNFe(
 
   const base = {
     data: metadados.data_emissao, documento: String(ide.nNF || ""), cnpj: cnpjContraparte,
+    chaveAcesso: metadados.chave_acesso, forma: [...new Set(pagamentos.map((p) => p.meio))].join(" + ") || undefined,
     tipo: (ehVenda ? "entrada" : "saida") as "entrada" | "saida",
     destinoSugerido: destinoLinha, confiancaDestino: confiancaLinha, motivoDestino: motivoLinha,
     raw: { emit, ide, total, dest },

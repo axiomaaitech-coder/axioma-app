@@ -209,7 +209,9 @@ const T = {
     motivo: "Motivo",
     possivelDuplicata: "Possível Duplicata",
     pareceIgualA: "Parece igual a",
-    horaConfere: "Mesma hora exata — bate perfeito",
+    duplicataConfirmada: "Já lançada — marcada para pular",
+    perguntaHumano: "Pergunta para você (ou o contador)",
+    conferidoIA: "Conferido pela Inteligência do Axioma",
     semHoraDisponivel: "hora não disponível pra confirmar automaticamente",
     importarMesmoAssim: "Importar mesmo assim",
     pular: "Pular",
@@ -352,7 +354,9 @@ const T = {
     motivo: "Reason",
     possivelDuplicata: "Possible Duplicate",
     pareceIgualA: "Looks like",
-    horaConfere: "Exact same time — perfect match",
+    duplicataConfirmada: "Already recorded — set to skip",
+    perguntaHumano: "Question for you (or your accountant)",
+    conferidoIA: "Checked by Axioma Intelligence",
     semHoraDisponivel: "time not available to auto-confirm",
     importarMesmoAssim: "Import anyway",
     pular: "Skip",
@@ -495,7 +499,9 @@ const T = {
     motivo: "Motivo",
     possivelDuplicata: "Posible Duplicado",
     pareceIgualA: "Parece igual a",
-    horaConfere: "Misma hora exacta — coincide perfecto",
+    duplicataConfirmada: "Ya registrado — marcado para omitir",
+    perguntaHumano: "Pregunta para usted (o el contador)",
+    conferidoIA: "Revisado por la Inteligencia de Axioma",
     semHoraDisponivel: "hora no disponible para confirmar automáticamente",
     importarMesmoAssim: "Importar de todos modos",
     pular: "Omitir",
@@ -813,9 +819,10 @@ export default function ImportarDocumentosPage() {
     setDecisoesDuplicata(res.linhas.map(() => null));
     if (empresaId) {
       setVerificandoDuplicatas(true);
-      detectarPossiveisDuplicatas(empresaId, res.linhas).then((possiveis) => {
+      detectarPossiveisDuplicatas(empresaId, res.linhas, destinosIniciais, langAtual).then((possiveis) => {
         setPossiveisDuplicatas(possiveis);
-        setDecisoesDuplicata(possiveis.map(() => null));
+        // Duplicata PROVADA (mesma nota) já nasce em "Pular" — visível e reversível.
+        setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : null)));
         setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
         setVerificandoDuplicatas(false);
       });
@@ -985,8 +992,10 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   }
 
   function resolverDuplicataEmMassa(decisao: "importar" | "pular" | "somar") {
-    setDecisoesDuplicata((prev) => prev.map((d, i) => (possiveisDuplicatas[i] && d === null ? decisao : d)));
-    setSelecionadas((prev) => prev.map((s, i) => (possiveisDuplicatas[i] && decisoesDuplicata[i] === null ? decisao !== "pular" : s)));
+    // "Somar" não existe contra outra linha do mesmo arquivo — ali vale "Pular".
+    const efetiva = (i: number) => (decisao === "somar" && possiveisDuplicatas[i]?.candidato.tabela === "lote" ? "pular" : decisao);
+    setDecisoesDuplicata((prev) => prev.map((d, i) => (possiveisDuplicatas[i] && d === null ? efetiva(i) : d)));
+    setSelecionadas((prev) => prev.map((s, i) => (possiveisDuplicatas[i] && decisoesDuplicata[i] === null ? efetiva(i) !== "pular" : s)));
   }
 
   function editarLinha(i: number, campo: "data" | "valor" | "descricao" | "categoria", valor: any) {
@@ -1031,9 +1040,9 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
       }
       if (empresaId) {
         setVerificandoDuplicatas(true);
-        detectarPossiveisDuplicatas(empresaId, novoResult.linhas).then((possiveis) => {
+        detectarPossiveisDuplicatas(empresaId, novoResult.linhas, novosDestinos, langAtual).then((possiveis) => {
           setPossiveisDuplicatas(possiveis);
-          setDecisoesDuplicata(possiveis.map(() => null));
+          setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : null)));
           setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
           setVerificandoDuplicatas(false);
         });
@@ -1091,7 +1100,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   function montarSomarAlvo() {
     return linhas.map((_, i) => {
       const pd = possiveisDuplicatas[i];
-      return decisoesDuplicata[i] === "somar" && pd ? { tabela: pd.candidato.tabela, id: pd.candidato.id } : null;
+      return decisoesDuplicata[i] === "somar" && pd && pd.candidato.tabela !== "lote" ? { tabela: pd.candidato.tabela, id: pd.candidato.id } : null;
     });
   }
 
@@ -2656,7 +2665,7 @@ function PreviewBlock(props: any) {
                 if (!pd) return null;
                 const linha = linhas[i];
                 const decisao = decisoesDuplicata[i];
-                const labelTabela = destinoLabel(tt, pd.candidato.tabela);
+                const labelTabela = pd.candidato.tabela === "lote" ? pd.candidato.modulo : destinoLabel(tt, pd.candidato.tabela);
                 return (
                   <div key={i} className="rounded-lg p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(46,204,155,0.15)" }}>
                     <p className="text-xs font-semibold" style={{ color: ct("#c8d8f0") }}>
@@ -2664,9 +2673,12 @@ function PreviewBlock(props: any) {
                     </p>
                     <p className="text-[11px] mt-1" style={{ color: ct("#2ecc9b") }}>
                       {tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
-                      {pd.horaComparada && <span style={{ color: ct("#f87171") }}> — {tt.horaConfere}</span>}
+                      {pd.decisao === "duplicata" && <span style={{ color: ct("#f87171") }}> — {tt.duplicataConfirmada}</span>}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.motivo}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.porIA ? `🧠 ${tt.conferidoIA}: ` : ""}{pd.motivo}</p>
+                    {pd.decisao === "perguntar" && pd.pergunta && (
+                      <p className="text-[11px] mt-1 font-semibold" style={{ color: ct("#c8d8f0") }}>❓ {tt.perguntaHumano}: {pd.pergunta}</p>
+                    )}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <button onClick={() => resolverDuplicata(i, "importar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
@@ -2678,11 +2690,11 @@ function PreviewBlock(props: any) {
                         style={{ background: decisao === "pular" ? "rgba(148,163,184,0.3)" : "rgba(148,163,184,0.12)", color: ct("#cbd5e1"), border: decisao === "pular" ? `1px solid ${ct("#cbd5e1")}` : "none" }}>
                         {tt.pular}
                       </button>
-                      <button onClick={() => resolverDuplicata(i, "somar")}
+                      {pd.candidato.tabela !== "lote" && <button onClick={() => resolverDuplicata(i, "somar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
                         style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: temaClaro ? "#101b3d" : ct("#2ecc9b"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#2ecc9b")}` : "none" }}>
                         {tt.somar}
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 );
