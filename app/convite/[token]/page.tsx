@@ -104,7 +104,6 @@ export default function AceitarConvite() {
     if (estado !== 'bemvindo') return
     (async () => {
       await supabase.auth.updateUser({ data: { convite_token: null } }).catch(() => {})
-      setTimeout(() => { window.location.href = '/dashboard' }, 2500)
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado, token])

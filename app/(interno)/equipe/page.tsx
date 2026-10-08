@@ -500,6 +500,14 @@ export default function EquipePage() {
     await recarregarEquipe(empresaId)
   }
 
+  // Aprovou pelo aviso flutuante (qualquer tela): a lista da Equipe se atualiza sozinha
+  useEffect(() => {
+    const atualizar = () => { if (empresaId) void recarregarEquipe(empresaId) }
+    window.addEventListener('axioma:dados-atualizados', atualizar)
+    return () => window.removeEventListener('axioma:dados-atualizados', atualizar)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId])
+
   const rotuloPrazo = (dias: number | null) => dias == null ? t.semPrazo : dias === 1 ? t.h24 : t.dias(dias)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const dataHora = (iso: string | Date) => new Date(iso).toLocaleString(localeData, { dateStyle: 'short', timeStyle: 'short' })

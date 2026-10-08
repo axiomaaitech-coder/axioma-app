@@ -98,8 +98,25 @@ export async function GET(req: NextRequest) {
   const user = await usuarioLogado()
   if (!user) return erro('login', 401)
   const empresaId = req.nextUrl.searchParams.get('empresaId') || ''
-  const papel = await papelLiberador(admin(), empresaId, user.id)
-  return NextResponse.json({ podeLiberar: !!papel, meuPapel: papel })
+  const db = admin()
+  const papel = await papelLiberador(db, empresaId, user.id)
+  // Pedidos de entrada (convite com e-mail confirmado) pra quem pode aprovar
+  let pendentes: { id: string; nome: string; email: string; cpf: string; papel: string; relacao: string | null }[] = []
+  if (papel) {
+    const { data: cvs } = await db.from('empresa_equipe').select('id, papel, relacao, convidado_nome_termo')
+      .eq('empresa_id', empresaId).eq('situacao', 'aguardando_aprovacao').limit(20)
+    if (cvs?.length) {
+      const { data: tms } = await db.from('empresa_convite_termo').select('convite_id, nome, email, cpf')
+        .in('convite_id', cvs.map((c) => c.id)).is('apagado_em', null)
+      pendentes = cvs.map((c) => {
+        const tm = tms?.find((x) => x.convite_id === c.id)
+        const cpf = String(tm?.cpf || '')
+        return { id: c.id, nome: tm?.nome || c.convidado_nome_termo || '', email: tm?.email || '', papel: c.papel || 'leitor', relacao: c.relacao,
+          cpf: cpf.length === 11 ? `${cpf.slice(0, 3)}.***.***-${cpf.slice(9)}` : '' }
+      })
+    }
+  }
+  return NextResponse.json({ podeLiberar: !!papel, meuPapel: papel, pendentes })
 }
 
 export async function POST(req: NextRequest) {
