@@ -210,6 +210,9 @@ const T = {
     possivelDuplicata: "Possível Duplicata",
     pareceIgualA: "Parece igual a",
     duplicataConfirmada: "Já lançada — marcada para pular",
+    darBaixa: "Dar baixa nesta conta",
+    contaEmAberto: "Conta em aberto",
+    pagamentoDeConta: "pagamento de conta em aberto — marcado para dar baixa",
     perguntaHumano: "Pergunta para você (ou o contador)",
     conferidoIA: "Conferido pela Inteligência do Axioma",
     semHoraDisponivel: "hora não disponível pra confirmar automaticamente",
@@ -355,6 +358,9 @@ const T = {
     possivelDuplicata: "Possible Duplicate",
     pareceIgualA: "Looks like",
     duplicataConfirmada: "Already recorded — set to skip",
+    darBaixa: "Settle this bill",
+    contaEmAberto: "Open bill",
+    pagamentoDeConta: "payment of an open bill — set to settle",
     perguntaHumano: "Question for you (or your accountant)",
     conferidoIA: "Checked by Axioma Intelligence",
     semHoraDisponivel: "time not available to auto-confirm",
@@ -500,6 +506,9 @@ const T = {
     possivelDuplicata: "Posible Duplicado",
     pareceIgualA: "Parece igual a",
     duplicataConfirmada: "Ya registrado — marcado para omitir",
+    darBaixa: "Dar de baja esta cuenta",
+    contaEmAberto: "Cuenta abierta",
+    pagamentoDeConta: "pago de cuenta abierta — marcado para dar de baja",
     perguntaHumano: "Pregunta para usted (o el contador)",
     conferidoIA: "Revisado por la Inteligencia de Axioma",
     semHoraDisponivel: "hora no disponible para confirmar automáticamente",
@@ -644,7 +653,7 @@ export default function ImportarDocumentosPage() {
   // Possível duplicata cross-módulo: null = sem suspeita nessa linha.
   // decisoesDuplicata: null = pendente (linha fica desmarcada até decidir).
   const [possiveisDuplicatas, setPossiveisDuplicatas] = useState<(PossivelDuplicata | null)[]>([]);
-  const [decisoesDuplicata, setDecisoesDuplicata] = useState<("importar" | "pular" | "somar" | null)[]>([]);
+  const [decisoesDuplicata, setDecisoesDuplicata] = useState<("importar" | "pular" | "somar" | "baixar" | null)[]>([]);
   const [verificandoDuplicatas, setVerificandoDuplicatas] = useState(false);
 
   // Templates
@@ -822,7 +831,7 @@ export default function ImportarDocumentosPage() {
       detectarPossiveisDuplicatas(empresaId, res.linhas, destinosIniciais, langAtual).then((possiveis) => {
         setPossiveisDuplicatas(possiveis);
         // Duplicata PROVADA (mesma nota) já nasce em "Pular" — visível e reversível.
-        setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : null)));
+        setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : p?.decisao === "baixar" ? "baixar" : null)));
         setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
         setVerificandoDuplicatas(false);
       });
@@ -986,16 +995,18 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
   // Decisão do usuário sobre 1 linha com possível duplicata — nada grava
   // sozinho, isso só resolve a pendência que libera (ou não) a linha.
-  function resolverDuplicata(i: number, decisao: "importar" | "pular" | "somar") {
+  function resolverDuplicata(i: number, decisao: "importar" | "pular" | "somar" | "baixar") {
     setDecisoesDuplicata((prev) => prev.map((d, idx) => (idx === i ? decisao : d)));
     setSelecionadas((prev) => prev.map((s, idx) => (idx === i ? decisao !== "pular" : s)));
   }
 
-  function resolverDuplicataEmMassa(decisao: "importar" | "pular" | "somar") {
+  function resolverDuplicataEmMassa(decisao: "importar" | "pular" | "somar" | "baixar") {
     // "Somar" não existe contra outra linha do mesmo arquivo — ali vale "Pular".
     const efetiva = (i: number) => (decisao === "somar" && possiveisDuplicatas[i]?.candidato.tabela === "lote" ? "pular" : decisao);
-    setDecisoesDuplicata((prev) => prev.map((d, i) => (possiveisDuplicatas[i] && d === null ? efetiva(i) : d)));
-    setSelecionadas((prev) => prev.map((s, i) => (possiveisDuplicatas[i] && decisoesDuplicata[i] === null ? efetiva(i) !== "pular" : s)));
+    // "Dar baixa" em massa só vale para linhas que têm uma conta aberta achada.
+    const aplica = (i: number) => decisao !== "baixar" || !!possiveisDuplicatas[i]?.baixa;
+    setDecisoesDuplicata((prev) => prev.map((d, i) => (possiveisDuplicatas[i] && d === null && aplica(i) ? efetiva(i) : d)));
+    setSelecionadas((prev) => prev.map((s, i) => (possiveisDuplicatas[i] && decisoesDuplicata[i] === null && aplica(i) ? efetiva(i) !== "pular" : s)));
   }
 
   function editarLinha(i: number, campo: "data" | "valor" | "descricao" | "categoria", valor: any) {
@@ -1042,7 +1053,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         setVerificandoDuplicatas(true);
         detectarPossiveisDuplicatas(empresaId, novoResult.linhas, novosDestinos, langAtual).then((possiveis) => {
           setPossiveisDuplicatas(possiveis);
-          setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : null)));
+          setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : p?.decisao === "baixar" ? "baixar" : null)));
           setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
           setVerificandoDuplicatas(false);
         });
@@ -1097,6 +1108,13 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   // validação de linha), só que com dryRun=true — sem upload, sem cabeçalho,
   // sem gravar nada real. É por isso que não existe uma função de simulação
   // paralela: se um dia o caminho real mudar, o simulador muda junto.
+  function montarBaixarAlvo() {
+    return linhas.map((_, i) => {
+      const pd = possiveisDuplicatas[i];
+      return decisoesDuplicata[i] === "baixar" && pd?.baixa ? { tabela: pd.baixa.tabela, id: pd.baixa.id } : null;
+    });
+  }
+
   function montarSomarAlvo() {
     return linhas.map((_, i) => {
       const pd = possiveisDuplicatas[i];
@@ -1132,6 +1150,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         destinos,
         dryRun: true,
         somarAlvo: montarSomarAlvo(),
+        baixarAlvo: montarBaixarAlvo(),
       });
       setSimulacao(result);
     } catch (err) {
@@ -1197,6 +1216,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         duplicadas,
         destinos,
         somarAlvo: montarSomarAlvo(),
+        baixarAlvo: montarBaixarAlvo(),
       });
 
       // 3b) Guarda o que o humano respondeu na supervisão (quem conferiu o quê).
@@ -2654,6 +2674,9 @@ function PreviewBlock(props: any) {
               {pendentesDuplicata > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   <span className="text-[10px] self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
+                  {possiveisDuplicatas.some((p: any, k: number) => p?.baixa && decisoesDuplicata[k] === null) && (
+                    <button onClick={() => resolverDuplicataEmMassa("baixar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(22,169,125,0.15)", color: ct("#2ecc9b") }}>{tt.darBaixa}</button>
+                  )}
                   <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
                   <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
                   <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>{tt.somar}</button>
@@ -2672,14 +2695,22 @@ function PreviewBlock(props: any) {
                       Linha {i + 1}: {linha.descricao || "—"} · {formatBRL(linha.valor || 0)} · {linha.data ? formatData(linha.data) : "—"}
                     </p>
                     <p className="text-[11px] mt-1" style={{ color: ct("#2ecc9b") }}>
-                      {tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
+                      {pd.baixa ? tt.contaEmAberto : tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
                       {pd.decisao === "duplicata" && <span style={{ color: ct("#f87171") }}> — {tt.duplicataConfirmada}</span>}
+                      {pd.decisao === "baixar" && <span style={{ color: ct("#2ecc9b") }}> — {tt.pagamentoDeConta}</span>}
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.porIA ? `🧠 ${tt.conferidoIA}: ` : ""}{pd.motivo}</p>
                     {pd.decisao === "perguntar" && pd.pergunta && (
                       <p className="text-[11px] mt-1 font-semibold" style={{ color: ct("#c8d8f0") }}>❓ {tt.perguntaHumano}: {pd.pergunta}</p>
                     )}
                     <div className="flex flex-wrap gap-1.5 mt-2">
+                      {pd.baixa && (
+                        <button onClick={() => resolverDuplicata(i, "baixar")}
+                          className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                          style={{ background: decisao === "baixar" ? "#16a97d" : "rgba(22,169,125,0.15)", color: decisao === "baixar" ? "#ffffff" : ct("#2ecc9b"), border: decisao === "baixar" ? "1px solid #16a97d" : "none" }}>
+                          ✓ {tt.darBaixa}
+                        </button>
+                      )}
                       <button onClick={() => resolverDuplicata(i, "importar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
                         style={{ background: decisao === "importar" ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.12)", color: ct("#34d399"), border: decisao === "importar" ? `1px solid ${ct("#34d399")}` : "none" }}>

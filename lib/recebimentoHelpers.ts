@@ -41,6 +41,7 @@ export function faltaReceber(c: ContaParaReceber): number {
 
 export async function registrarRecebimento(
   c: ContaParaReceber, incremento: number, empresaId: string | null, modulo: string,
+  dataReal?: string, // dia em que o dinheiro entrou (extrato/comprovante); padrão = hoje
 ): Promise<ResultadoRecebimento> {
   const valorIncremento = r2(incremento);
   if (!Number.isFinite(valorIncremento) || valorIncremento < 0.01) return { erro: "valor_invalido" };
@@ -52,7 +53,7 @@ export async function registrarRecebimento(
   const quitou = novoRecebido >= devidoLiquido - 0.005;
   const encargos = Math.max(0, r2(valorIncremento - Math.max(0, devidoLiquido - jaRecebido)));
   const aplicarDesconto = quitou && desconto > 0;
-  const dataRecebimento = hojeISO();
+  const dataRecebimento = dataReal && /^\d{4}-\d{2}-\d{2}$/.test(dataReal) ? dataReal : hojeISO();
   const status = quitou ? "recebido" : statusEfetivo(null, devidoLiquido, novoRecebido, c.data_vencimento, "recebido");
   const valorFinal = aplicarDesconto ? devidoLiquido : valorBruto;
   const descontoFinal = aplicarDesconto ? 0 : desconto;

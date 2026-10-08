@@ -6,10 +6,10 @@ import CryptoJS from "crypto-js";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarParsers";
-import { criarContaPagar, editarContaPagar, type ContaPagar } from "./contasPagarHelpers";
-import { criarContaReceber, editarContaReceber } from "./recebimentoHelpers";
+import { criarContaPagar, editarContaPagar, darBaixaContaPagar, type ContaPagar } from "./contasPagarHelpers";
+import { criarContaReceber, editarContaReceber, registrarRecebimento, type ContaParaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
-import { avaliarDuplicidade, type Idioma } from "./motorDuplicidade";
+import { avaliarDuplicidade, acharObrigacaoParaPagamento, type EstadoMatch, type Idioma, type Lancamento } from "./motorDuplicidade";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -297,7 +297,11 @@ export type PossivelDuplicata = {
   candidato: CandidatoDuplicata;
   // "duplicata" = o motor provou (ou a IA tem certeza) que já existe → linha nasce em "Pular".
   // "perguntar" = dúvida real → o humano decide, com a explicação e a pergunta da IA.
-  decisao: "duplicata" | "perguntar";
+  // "baixar" = é o PAGAMENTO de uma conta em aberto → linha nasce em "Dar baixa".
+  decisao: "duplicata" | "perguntar" | "baixar";
+  // Conta em aberto que este pagamento quita (Motor de Baixa). Em "perguntar" com
+  // baixa, a tela oferece o botão "Dar baixa nesta conta".
+  baixa?: { tabela: "contas_pagar" | "contas_receber"; id: string; estado: EstadoMatch; descricao: string; saldo: number };
   motivo: string;
   pergunta: string | null;
   porIA: boolean;
@@ -313,7 +317,7 @@ export async function detectarPossiveisDuplicatas(
 ): Promise<(PossivelDuplicata | null)[]> {
   if (!empresaId) return linhas.map(() => null);
   const idx = linhas.map((l, i) => i).filter((i) => linhas[i].valor !== undefined && !isNaN(Number(linhas[i].valor)) && !!COLUNA_VALOR_DESTINO[destinos[i]]);
-  const avaliacoes = await avaliarDuplicidade(empresaId, idx.map((i) => {
+  const lancs: Lancamento[] = idx.map((i) => {
     const l = linhas[i];
     const entrada = destinos[i] === "receitas" || destinos[i] === "contas_receber" || (destinos[i] === "fluxo_caixa" && l.tipo !== "saida");
     return {
@@ -321,11 +325,31 @@ export async function detectarPossiveisDuplicatas(
       descricao: l.descricao ?? null, documento: l.documento ?? null, chaveAcesso: l.chaveAcesso ?? null, forma: l.forma ?? null,
       contraparteId: l.fornecedorId ?? null, contraparteDoc: l.cnpj ?? null, entrada, destino: destinos[i],
     };
-  }), lang);
+  });
+  // Dinheiro que já se moveu (extrato, comprovante, caixa) pode ser o PAGAMENTO de
+  // uma conta aberta: o Motor de Baixa procura antes de virar lançamento solto.
+  const ehPagamento = (k: number) => ["fluxo_caixa", "custos_variaveis", "receitas"].includes(destinos[idx[k]]);
+  const kPag = idx.map((_, k) => k).filter(ehPagamento);
+  const [avaliacoes, baixas] = await Promise.all([
+    avaliarDuplicidade(empresaId, lancs, lang),
+    acharObrigacaoParaPagamento(empresaId, kPag.map((k) => lancs[k]), lang),
+  ]);
+  const baixaDe = new Map(kPag.map((k, j) => [k, baixas[j]]));
   const resultado: (PossivelDuplicata | null)[] = linhas.map(() => null);
   idx.forEach((i, k) => {
     const a = avaliacoes[k];
     const top = a.suspeitas[0];
+    const b = baixaDe.get(k);
+    // Duplicata provada vence; senão, pagamento de conta aberta vence a dúvida.
+    if (b && b.obrigacao && b.estado !== "UNMATCHED" && a.decisao !== "duplicata") {
+      const o = b.obrigacao;
+      resultado[i] = {
+        candidato: { tabela: o.tabela, id: o.id, descricao: o.descricao, valor: o.saldo, data: o.vencimento || "", modulo: LABEL_TABELA[o.tabela] },
+        decisao: b.estado === "POSSIBLE_MATCH" ? "perguntar" : "baixar", motivo: b.motivo, pergunta: b.estado === "POSSIBLE_MATCH" ? ({ pt: "Este pagamento quita essa conta?", en: "Does this payment settle that bill?", es: "¿Este pago liquida esa cuenta?" })[lang] : null, porIA: false,
+        baixa: { tabela: o.tabela, id: o.id, estado: b.estado, descricao: o.descricao, saldo: o.saldo },
+      };
+      return;
+    }
     if (a.decisao === "segue" || !top) return;
     const c = top.candidato;
     resultado[i] = {
@@ -780,6 +804,7 @@ export async function criarImportacao(params: {
 export type ResultadoGravacao = {
   importadas: number;
   somadas: number;
+  baixadas: number; // pagamentos que deram baixa numa conta em aberto (sem lançamento novo)
   duplicadas: number;
   ignoradas: number;
   erro: number;
@@ -789,6 +814,24 @@ export type ResultadoGravacao = {
   // ao custo fixo que o usuário pediu pra criar a partir dela).
   inseridos: { tabela: DestinoTabela; id: string }[];
 };
+
+// Baixa de 1 conta pela importação: lê a conta (da empresa ativa) e usa a MESMA
+// porta das telas — darBaixaContaPagar / registrarRecebimento — na data real do pagamento.
+async function baixarContaPelaImportacao(
+  empresaId: string, alvo: { tabela: "contas_pagar" | "contas_receber"; id: string }, linha: LinhaImportada,
+): Promise<{ erro?: string }> {
+  const valor = Math.round((Number(linha.valor) || 0) * 100) / 100;
+  if (!(valor > 0)) return { erro: "valor inválido" };
+  const data = linha.data || hojeISO();
+  const { data: conta, error } = await supabase.from(alvo.tabela).select("*").eq("id", alvo.id).eq("empresa_id", empresaId).maybeSingle();
+  if (error || !conta) return { erro: error?.message || "conta não encontrada nesta empresa" };
+  if (alvo.tabela === "contas_pagar") {
+    const r = await darBaixaContaPagar(conta as ContaPagar, Number(conta.valor_pago || 0) + valor, data, linha.forma || "Outros");
+    return { erro: r.erro };
+  }
+  const r = await registrarRecebimento(conta as ContaParaReceber, valor, empresaId, "importar_documentos", data);
+  return { erro: r.erro };
+}
 
 export async function gravarLinhas(params: {
   userId: string;
@@ -809,12 +852,15 @@ export async function gravarLinhas(params: {
   // "Somar", soma no registro existente (que pode estar em OUTRA tabela,
   // por isso tabela+id) em vez de inserir uma linha nova.
   somarAlvo?: ({ tabela: DestinoTabela; id: string } | null)[];
+  // Motor de Baixa: a linha é o pagamento desta conta em aberto → dá baixa nela.
+  baixarAlvo?: ({ tabela: "contas_pagar" | "contas_receber"; id: string } | null)[];
 }): Promise<ResultadoGravacao> {
-  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destinos, dryRun, somarAlvo } = params;
+  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destinos, dryRun, somarAlvo, baixarAlvo } = params;
 
   const resultado: ResultadoGravacao = {
     importadas: 0,
     somadas: 0,
+    baixadas: 0,
     duplicadas: 0,
     ignoradas: 0,
     erro: 0,
@@ -885,14 +931,37 @@ export async function gravarLinhas(params: {
     }
 
     const alvoSomar = somarAlvo?.[i] || null;
+    const alvoBaixar = baixarAlvo?.[i] || null;
 
     // 4) dryRun (Simulador): mesma validação acima, mas não toca no banco —
     // conta como se tivesse dado certo, sem gravar nada real.
     if (dryRun) {
       resultado.importadas++;
       if (alvoSomar) resultado.somadas++;
+      if (alvoBaixar) resultado.baixadas++;
       resultado.valor_total += linha.valor || 0;
       auditoriaRows.push({ ...auditoriaBase, status: alvoSomar ? "somada" : "importada" });
+      continue;
+    }
+
+    // 4a) Pagamento de conta em aberto (Motor de Baixa): baixa pela porta oficial —
+    // o rastro leva o dinheiro a Contabilidade, Fluxo, DRE, Inadimplência e Fornecedor.
+    // Nenhum lançamento novo é criado (seria o mesmo dinheiro 2 vezes). Desfazer =
+    // Estornar na própria conta (a reversão da importação não mexe em baixa).
+    if (alvoBaixar) {
+      const r = empresaId ? await baixarContaPelaImportacao(empresaId, alvoBaixar, linha) : { erro: "Empresa ativa não identificada" };
+      if (r.erro) {
+        resultado.erro++;
+        resultado.mensagens_erro.push(`Linha ${numLinha}: baixa não feita — ${r.erro}`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: `Baixa não feita: ${r.erro}` });
+        continue;
+      }
+      resultado.baixadas++;
+      resultado.valor_total += linha.valor || 0;
+      auditoriaRows.push({
+        ...auditoriaBase, destino_tabela: alvoBaixar.tabela, destino_id: alvoBaixar.id, status: "ignorada",
+        mensagem: `Pagamento usado para dar baixa na conta já existente em ${LABEL_TABELA[alvoBaixar.tabela]} (sem lançamento novo)`,
+      });
       continue;
     }
 
@@ -1088,10 +1157,11 @@ export async function gravarLinhas(params: {
     userId,
     importacaoId,
     evento: "linhas_gravadas",
-    descricao: `${resultado.importadas} importadas (${resultado.somadas} somadas a lançamentos existentes), ${resultado.duplicadas} duplicadas, ${resultado.ignoradas} ignoradas, ${resultado.erro} com erro`,
+    descricao: `${resultado.importadas} importadas (${resultado.somadas} somadas a lançamentos existentes), ${resultado.baixadas} baixas em contas abertas, ${resultado.duplicadas} duplicadas, ${resultado.ignoradas} ignoradas, ${resultado.erro} com erro`,
     dados: {
       importadas: resultado.importadas,
       somadas: resultado.somadas,
+      baixadas: resultado.baixadas,
       duplicadas: resultado.duplicadas,
       ignoradas: resultado.ignoradas,
       erro: resultado.erro,

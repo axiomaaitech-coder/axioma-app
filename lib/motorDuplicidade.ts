@@ -345,6 +345,117 @@ export async function avaliarDuplicidade(empresaId: string, novos: Lancamento[],
 }
 
 // ============================================================================
+// MOTOR DE BAIXA — "pagamento não é obrigação" (Financial Core 1.3)
+// Um dinheiro que ENTRA no Axioma como pagamento (extrato, comprovante, lançamento
+// de caixa) primeiro procura a conta em aberto que ele quita. Achou com certeza →
+// dá baixa nela (o Motor de Rastreabilidade leva a baixa a Contabilidade, Fluxo,
+// DRE, Inadimplência e Fornecedor) em vez de virar um lançamento solto em dobro.
+// ============================================================================
+export type EstadoMatch = "MATCHED" | "PARTIALLY_MATCHED" | "OVERPAID" | "POSSIBLE_MATCH" | "UNMATCHED";
+export type ObrigacaoAberta = {
+  tabela: "contas_pagar" | "contas_receber"; id: string; descricao: string; valorTotal: number; jaPago: number; saldo: number;
+  vencimento: string | null; documento: string | null; forma: string | null; contraparteId: string | null;
+  contraparteNome: string | null; contraparteDoc: string | null; linha: Record<string, unknown>;
+};
+export type MatchPagamento = { estado: EstadoMatch; obrigacao: ObrigacaoAberta | null; score: number; motivo: string };
+
+// Pesos do MATCH SCORE (configuráveis aqui; regra, nunca IA).
+export const PESOS_MATCH = { valorExato: 50, valorComJuros: 35, valorParcial: 25, contraparte: 30, documento: 20, vencimento3d: 15, vencimento15d: 8, vencimento45d: 3, nomeNoTexto: 15, forma: 5 };
+const LIMIAR_MATCH = 80; // com folga de 15 pontos sobre a 2ª melhor
+const LIMIAR_POSSIVEL = 50;
+const STATUS_ABERTOS_FORA = ["pago", "recebido", "cancelado", "cancelada", "aguardando_aprovacao"];
+
+function pontuar(p: Lancamento, o: ObrigacaoAberta): { score: number; tipoValor: "exato" | "juros" | "parcial" } | null {
+  let score = 0;
+  let tipoValor: "exato" | "juros" | "parcial";
+  if (valorIgual(p.valor, o.saldo)) { score += PESOS_MATCH.valorExato; tipoValor = "exato"; }
+  else if (p.valor > o.saldo && p.valor <= o.saldo * 1.1) { score += PESOS_MATCH.valorComJuros; tipoValor = "juros"; }
+  else if (p.valor < o.saldo) { score += PESOS_MATCH.valorParcial; tipoValor = "parcial"; }
+  else return null;
+  const dP = digitos(p.contraparteDoc), dO = digitos(o.contraparteDoc);
+  if ((dP && dO && dP !== dO) || (p.contraparteId && o.contraparteId && p.contraparteId !== o.contraparteId)) return null;
+  if ((dP && dP === dO) || (p.contraparteId && p.contraparteId === o.contraparteId)) score += PESOS_MATCH.contraparte;
+  const docP = docNorm(p.documento), docO = docNorm(o.documento);
+  if (docP && docO) { if (docP !== docO) return null; score += PESOS_MATCH.documento; }
+  const dt = p.data || p.dataHora?.slice(0, 10);
+  if (dt && o.vencimento) {
+    const d = diasEntre(dt, o.vencimento);
+    score += d <= 3 ? PESOS_MATCH.vencimento3d : d <= 15 ? PESOS_MATCH.vencimento15d : d <= 45 ? PESOS_MATCH.vencimento45d : 0;
+  }
+  if (o.contraparteNome && textoParecido(p.descricao, o.contraparteNome)) score += PESOS_MATCH.nomeNoTexto;
+  const fP = normalizarForma(p.forma), fO = normalizarForma(o.forma);
+  if (fP && fO && fP === fO) score += PESOS_MATCH.forma; // forma diferente não elimina: boleto pode ser pago via Pix
+  return { score, tipoValor };
+}
+
+async function buscarObrigacoesAbertas(empresaId: string, pagamentos: Lancamento[]): Promise<ObrigacaoAberta[]> {
+  const datas = pagamentos.map((p) => p.data || p.dataHora?.slice(0, 10)).filter(Boolean).sort() as string[];
+  if (!datas.length) return [];
+  const ini = somaDias(datas[0], -60), fim = somaDias(datas[datas.length - 1], 60);
+  const lados = [
+    ...(pagamentos.some((p) => !p.entrada) ? [{ tabela: "contas_pagar" as const, valor: "valor_total", pago: "valor_pago", doc: "numero_nota", forma: "forma_pagamento", contra: "fornecedor_id", cad: "fornecedores" }] : []),
+    ...(pagamentos.some((p) => p.entrada) ? [{ tabela: "contas_receber" as const, valor: "valor", pago: "valor_recebido", doc: "numero_documento", forma: "forma_recebimento", contra: "cliente_id", cad: "clientes" }] : []),
+  ];
+  const saida: ObrigacaoAberta[] = [];
+  for (const l of lados) {
+    const { data } = await supabase.from(l.tabela).select("*").eq("empresa_id", empresaId)
+      .not("status", "in", `(${STATUS_ABERTOS_FORA.join(",")})`).gte("data_vencimento", ini).lte("data_vencimento", fim).limit(1000);
+    const linhas = (data || []) as Record<string, unknown>[];
+    const ids = [...new Set(linhas.map((r) => r[l.contra] as string).filter(Boolean))];
+    const cad = new Map<string, { nome: string | null; documento: string | null }>();
+    if (ids.length) {
+      const { data: c } = await supabase.from(l.cad).select("id, nome, documento").eq("empresa_id", empresaId).in("id", ids);
+      (c || []).forEach((x: { id: string; nome: string | null; documento: string | null }) => cad.set(x.id, x));
+    }
+    linhas.forEach((r) => {
+      const total = Number(r[l.valor]) || 0, pago = Number(r[l.pago]) || 0;
+      const desconto = l.tabela === "contas_receber" ? Number(r.valor_desconto) || 0 : 0;
+      const saldo = Math.round((total - desconto - pago) * 100) / 100;
+      if (saldo <= 0.005) return;
+      const cId = (r[l.contra] as string | null) ?? null;
+      saida.push({
+        tabela: l.tabela, id: r.id as string, descricao: (r.descricao as string) || "", valorTotal: total, jaPago: pago, saldo,
+        vencimento: (r.data_vencimento as string | null) ?? null, documento: (r[l.doc] as string | null) ?? null, forma: (r[l.forma] as string | null) ?? null,
+        contraparteId: cId, contraparteNome: cId ? cad.get(cId)?.nome ?? null : null, contraparteDoc: cId ? cad.get(cId)?.documento ?? null : null, linha: r,
+      });
+    });
+  }
+  return saida;
+}
+
+export async function acharObrigacaoParaPagamento(empresaId: string, pagamentos: Lancamento[], lang: Idioma = "pt"): Promise<MatchPagamento[]> {
+  const nada = (): MatchPagamento => ({ estado: "UNMATCHED", obrigacao: null, score: 0, motivo: "" });
+  if (!empresaId || !pagamentos.length) return pagamentos.map(nada);
+  const abertas = await buscarObrigacoesAbertas(empresaId, pagamentos);
+  // O mesmo saldo não pode ser usado 2 vezes no mesmo lote (proteção de dupla utilização).
+  const saldoRestante = new Map(abertas.map((o) => [o.id, o.saldo]));
+  return pagamentos.map((p) => {
+    const opcoes = abertas
+      .filter((o) => (o.tabela === "contas_receber") === p.entrada && (saldoRestante.get(o.id) ?? 0) > 0.005)
+      .map((o) => ({ o: { ...o, saldo: saldoRestante.get(o.id)! }, r: pontuar(p, { ...o, saldo: saldoRestante.get(o.id)! }) }))
+      .filter((x) => x.r)
+      .sort((a, b) => b.r!.score - a.r!.score);
+    const top = opcoes[0];
+    if (!top || top.r!.score < LIMIAR_POSSIVEL) return nada();
+    const unico = !opcoes[1] || top.r!.score - opcoes[1].r!.score >= 15;
+    const certo = top.r!.score >= LIMIAR_MATCH && unico;
+    const tv = top.r!.tipoValor;
+    const estado: EstadoMatch = !certo ? "POSSIBLE_MATCH" : tv === "parcial" ? "PARTIALLY_MATCHED" : tv === "juros" ? "OVERPAID" : "MATCHED";
+    if (certo) saldoRestante.set(top.o.id, Math.max(0, top.o.saldo - p.valor));
+    const quem = top.o.contraparteNome ? ` (${top.o.contraparteNome})` : "";
+    const venc = top.o.vencimento ? new Date(`${top.o.vencimento}T12:00:00Z`).toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "—";
+    const txt: Texto = {
+      MATCHED: { pt: `Pagamento da conta "${top.o.descricao}"${quem}, vencimento ${venc}, saldo ${brl(top.o.saldo)}: vou dar baixa nela.`, en: `Payment of the bill "${top.o.descricao}"${quem}, due ${venc}, balance ${brl(top.o.saldo)}: I will settle it.`, es: `Pago de la cuenta "${top.o.descricao}"${quem}, vencimiento ${venc}, saldo ${brl(top.o.saldo)}: voy a darla de baja.` },
+      PARTIALLY_MATCHED: { pt: `Pagamento PARCIAL da conta "${top.o.descricao}"${quem}: ${brl(p.valor)} de ${brl(top.o.saldo)}. A conta fica parcial com o restante em aberto.`, en: `PARTIAL payment of "${top.o.descricao}"${quem}: ${brl(p.valor)} of ${brl(top.o.saldo)}. The rest stays open.`, es: `Pago PARCIAL de "${top.o.descricao}"${quem}: ${brl(p.valor)} de ${brl(top.o.saldo)}. El resto queda abierto.` },
+      OVERPAID: { pt: `Pagamento da conta "${top.o.descricao}"${quem} com ${brl(p.valor - top.o.saldo)} a mais (juros/multa por atraso).`, en: `Payment of "${top.o.descricao}"${quem} with ${brl(p.valor - top.o.saldo)} extra (late interest/fee).`, es: `Pago de "${top.o.descricao}"${quem} con ${brl(p.valor - top.o.saldo)} de más (intereses/multa por atraso).` },
+      POSSIBLE_MATCH: { pt: `Pode ser o pagamento da conta "${top.o.descricao}"${quem}, vencimento ${venc}, saldo ${brl(top.o.saldo)}. Confirme antes de dar baixa.`, en: `It may be the payment of "${top.o.descricao}"${quem}, due ${venc}, balance ${brl(top.o.saldo)}. Confirm before settling.`, es: `Puede ser el pago de "${top.o.descricao}"${quem}, vencimiento ${venc}, saldo ${brl(top.o.saldo)}. Confirme antes de dar de baja.` },
+      UNMATCHED: { pt: "", en: "", es: "" },
+    }[estado];
+    return { estado, obrigacao: top.o, score: top.r!.score, motivo: txt[lang] };
+  });
+}
+
+// ============================================================================
 // Autoteste da regra (rode: npx tsx lib/motorDuplicidade.ts --teste)
 // ============================================================================
 export function autoteste(): void {
@@ -361,5 +472,13 @@ export function autoteste(): void {
   ok(compararPar({ ...base, data: "2026-11-05" }, base).veredicto === "diferente", "mês seguinte");
   ok(compararPar({ ...base, descricao: "Aluguel parcela 2/12" }, { ...base, descricao: "Aluguel parcela 3/12" }).veredicto === "diferente", "parcela no texto");
   ok(normalizarForma("Crédito loja") === "credito_loja" && normalizarForma("Outros") === null, "formas");
+  // Motor de Baixa
+  const conta: ObrigacaoAberta = { tabela: "contas_pagar", id: "c1", descricao: "NF 4410", valorTotal: 1500, jaPago: 0, saldo: 1500, vencimento: "2026-10-10", documento: null, forma: "Boleto", contraparteId: "f1", contraparteNome: "Papel Info Ltda", contraparteDoc: "11222333000181", linha: {} };
+  const pag: Lancamento = { valor: 1500, data: "2026-10-10", descricao: "PAGTO BOLETO PAPEL INFO", entrada: false };
+  ok((pontuar(pag, conta)?.score ?? 0) >= LIMIAR_MATCH, "extrato com nome do fornecedor no vencimento = baixa");
+  ok(pontuar({ ...pag, valor: 600 }, conta)?.tipoValor === "parcial", "pagamento parcial");
+  ok(pontuar({ ...pag, valor: 1530 }, conta)?.tipoValor === "juros", "pagamento com juros");
+  ok(pontuar({ ...pag, contraparteDoc: "99888777000166" }, conta) === null, "outro fornecedor não baixa");
+  ok(pontuar({ ...pag, valor: 1800 }, conta) === null, "valor muito acima não baixa");
 }
 if (typeof process !== "undefined" && process.argv?.includes("--teste")) { autoteste(); console.log("motorDuplicidade: autoteste ok"); }
