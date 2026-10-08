@@ -24,12 +24,12 @@ const doc: DocumentoAxioma = {
     { h1: 'Convidar uma pessoa' },
     { numerada: [
       'Clique em **Convidar pessoa**.',
-      'Informe **E-mail** (obrigatório), nome, cargo, quem você está convidando (CEO, Sócio, Contador, Funcionário, Consultor, Outro) e o **Papel**.',
+      'Informe nome, **E-mail** (opcional: se preencher, o link só vale para ele), cargo, quem você está convidando (CEO, Sócio, Contador, Funcionário, Consultor, Outro) e o **Papel**.',
       'Escolha o **Tempo de acesso** (de 24 horas até indeterminado; indeterminado só para Admin, Sócio ou CEO) e o motivo.',
       'Marque o termo de responsabilidade e clique em **Gerar convite**.',
       'Envie pelo canal que preferir: WhatsApp, Gmail, Outlook, Telegram, e-mail ou **Copiar link**.',
     ] },
-    { p: 'A pessoa abre o link, preenche o formulário e confirma com o **código enviado ao e-mail dela**. Se quem convida não é Admin, Sócio ou CEO, o convite precisa da autorização (e-mail e senha) de um deles, ou fica **Aguardando sua aprovação** para o responsável **Aprovar** ou **Recusar**.' },
+    { p: 'A pessoa abre o link, preenche nome, CPF e e-mail e confirma com o **código enviado ao e-mail dela**. Acesso de 60 dias ou mais (ou sem prazo) também pede o aceite dos Termos e da LGPD. Se quem convida não é Admin, Sócio ou CEO, o convite precisa da autorização (e-mail e senha) de um deles, ou fica **Aguardando sua aprovação** para o responsável **Aprovar** ou **Recusar**.' },
 
     { h1: 'Vagas do plano' },
     { p: 'A assinatura pertence à **empresa**. Cada plano tem um número de pessoas: **Starter 1**, **Pro 2**, **Business 5**, **Enterprise 10**. Contam: o dono, a equipe fixa e convites de **8 dias ou mais**. **Não contam**: operador de caixa e contador ou consultor externo.' },

@@ -143,11 +143,12 @@ async function criar(corpo: any) {
     autorizadoPor = emailAut
   }
 
-  // P7 (Elias 2026-10-02): convite sempre preso a um e-mail — o link só vale pra ele
+  // E-mail opcional no envio (Elias 2026-10-07). Se vier, o link só vale pra ele;
+  // sem e-mail, a pessoa informa e confirma o dela (código) ao entrar.
   const email = String(f.email_convidado || '').trim().toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
   // Mesmo e-mail com convite ainda valendo: reenvia o mesmo link
-  {
+  if (email) {
     const { data: pend } = await db.from('empresa_equipe').select('id, token_convite, expira_em')
       .eq('empresa_id', empresaId).eq('convite_aceito', false).ilike('email_convidado', email).limit(1)
     const p = pend?.[0]
@@ -183,7 +184,7 @@ async function criar(corpo: any) {
   const diasLink = Math.min(dias ?? 7, 7) // link do convite vale no máximo 7 dias
   const token = crypto.randomUUID()
   const { data, error } = await db.from('empresa_equipe').insert({
-    empresa_id: empresaId, user_id: user.id, token_convite: token, email_convidado: email,
+    empresa_id: empresaId, user_id: user.id, token_convite: token, email_convidado: email || null,
     nome: String(f.nome || '').trim() || null, cargo: String(f.cargo || '').trim() || null,
     papel, relacao, acesso_dias: dias, motivo_convite: String(f.motivo_convite || '').trim() || null,
     remetente_nome: `${nomeRemetente} (${meuPapelDecl})` + (autorizadoPor ? ` — autorizado por ${autorizadoPor}` : ''),
@@ -209,10 +210,12 @@ async function aceitar(corpo: any, soConferir = false) {
   if (cv.situacao === 'aprovado' || cv.situacao === 'recusado' || cv.convite_aceito) return erro('usado', 409)
   if (cv.expira_em && new Date(cv.expira_em) < new Date()) return erro('expirado', 410)
 
-  const pedeCpf = cv.acesso_dias == null || cv.acesso_dias > 30
+  const pedeCpf = true // Elias 2026-10-07: todo convidado informa CPF ao entrar
   if (nome.split(' ').length < 2) return erro('nome')
   if (pedeCpf && !cpfValido(cpf)) return erro('cpf')
-  if (!corpo.aceita) return erro('lgpd')
+  // Termos + LGPD só no acesso de 60 dias pra cima ou sem prazo (Elias 2026-10-07)
+  const acessoLongo = cv.acesso_dias == null || cv.acesso_dias > 30
+  if (acessoLongo && !corpo.aceita) return erro('lgpd')
 
   if (soConferir) {
     const email = String(corpo.email || '').trim().toLowerCase()
@@ -249,7 +252,7 @@ async function aceitar(corpo: any, soConferir = false) {
   if (aceito.error || !aceito.data?.length) falhaServidor('marcar convite aceito', aceito.error?.message || '0 linhas', { conviteId: cv.id, empresaId: cv.empresa_id })
   const { error: e2 } = await db.from('empresa_convite_termo').insert({
     empresa_id: cv.empresa_id, convite_id: cv.id, user_id: userId, nome, cpf: cpf || null, email,
-    remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: true,
+    remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: acessoLongo,
     relacao: cv.relacao, papel: cv.papel, acesso_dias: cv.acesso_dias, motivo_convite: cv.motivo_convite, convidado_em: cv.created_at,
   })
   // Termo de aceite é registro LGPD: falha vai pro Sentry pra ser refeito, não só pro log.

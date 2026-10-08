@@ -10,7 +10,7 @@ import { obterConvitePorToken, definirEmpresaPreferida } from '../../../lib/empr
 
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
 // pela tela de login. Abre o link → preenche o formulário (nome, senha nova,
-// LGPD; CPF quando o prazo passa de 30 dias ou é indeterminado) → recebe um
+// LGPD; CPF sempre) → recebe um
 // código no e-mail do convite (P7: prova que o e-mail é dele) →
 // /api/convite libera o acesso → "Seja bem-vindo" → entra.
 
@@ -85,13 +85,15 @@ export default function AceitarConvite() {
     : L(`${d} dias`, `${d} days`, `${d} días`)
   const remetente = (convite?.remetente_nome || '').replace(/\s*\(.*$/, '') || L('o responsável pela empresa', 'the company owner', 'el responsable de la empresa')
 
-  // CPF só para acesso acima de 30 dias ou indeterminado (regra do Elias)
-  const pedeCpf = convite ? (convite.acesso_dias == null || convite.acesso_dias > 30) : false
+  // Elias 2026-10-07: todo convidado informa nome + CPF e confirma o e-mail (código).
+  // Acesso de 60 dias pra cima (ou sem prazo) também aceita Termos + LGPD.
+  const pedeCpf = !!convite
+  const acessoLongo = !!convite && (convite.acesso_dias == null || convite.acesso_dias > 30)
   const nomeOk = nome.trim().split(/\s+/).length >= 2
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
   const senhaOk = senha.length >= 6
   const cpfOk = !pedeCpf || cpfValido(cpf)
-  const podeEnviar = nomeOk && emailOk && senhaOk && cpfOk && aceitaTermos && estado === 'pronto'
+  const podeEnviar = nomeOk && emailOk && senhaOk && cpfOk && (aceitaTermos || !acessoLongo) && estado === 'pronto'
 
   const MSG: Record<string, string> = {
     nome: L('Digite seu nome completo (nome e sobrenome).', 'Enter your full name (first and last).', 'Escriba su nombre completo (nombre y apellido).'),
@@ -123,7 +125,7 @@ export default function AceitarConvite() {
       // 1) servidor confere o formulário e o convite (sem login)
       const resp = await fetch('/api/convite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: 'conferir', token, nome: nome.trim(), cpf, email: email.trim(), aceita: aceitaTermos }),
+        body: JSON.stringify({ acao: 'conferir', token, nome: nome.trim(), cpf, email: email.trim(), aceita: aceitaTermos && acessoLongo }),
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
       if (r.erro || !r.ok) { setErro(MSG[r.erro] || erroPadrao); setEstado('pronto'); return }
@@ -277,7 +279,7 @@ export default function AceitarConvite() {
                 </p>
               </div>
 
-              <label className="flex items-start gap-3 pt-1 cursor-pointer">
+              {acessoLongo && <label className="flex items-start gap-3 pt-1 cursor-pointer">
                 <input type="checkbox" checked={aceitaTermos} onChange={(e) => { setAceitaTermos(e.target.checked); setErro('') }} className="mt-[3px] w-4 h-4 accent-[#2ecc9b] flex-shrink-0" />
                 <span className="text-[13px] leading-relaxed" style={{ color: COR.sec }}>
                   {L('Li e aceito os ', 'I accept the ', 'Acepto los ')}
@@ -286,7 +288,7 @@ export default function AceitarConvite() {
                   <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: COR.texto }}>{L('Política de Privacidade (LGPD)', 'Privacy Policy (LGPD)', 'Política de Privacidad (LGPD)')}</a>
                   {L('. Sei que o acesso pode ser encerrado a qualquer momento.', '. I know access can be ended at any time.', '. Sé que el acceso puede cerrarse en cualquier momento.')}
                 </span>
-              </label>
+              </label>}
 
               <AnimatePresence>
                 {erro && (

@@ -54,7 +54,7 @@ const textos = {
     convidarSub: 'Você pode convidar pessoas para esta empresa. Sem ser Admin, Sócio ou CEO, o convite precisa da senha de um deles.',
     voltarDashboard: 'Voltar ao Dashboard',
     convidar: 'Convidar pessoa', novoConvite: 'Convidar pessoa',
-    emailLabel: 'E-mail *', nomeLabel: 'Nome', cargoLabel: 'Cargo', papelLabel: 'Papel',
+    emailLabel: 'E-mail (opcional)', nomeLabel: 'Nome', cargoLabel: 'Cargo', papelLabel: 'Papel',
     enviarConvite: 'Gerar convite', enviando: 'Gerando...', cancelar: 'Cancelar',
     voce: '(você)',
     statusAtivo: 'Ativo', statusConvidado: 'Convidado', statusExpirado: 'Expirado',
@@ -121,7 +121,7 @@ const textos = {
     convidarSub: 'You can invite people to this company. If you are not Admin, Partner or CEO, the invite needs one of their passwords.',
     voltarDashboard: 'Back to Dashboard',
     convidar: 'Invite person', novoConvite: 'Invite person',
-    emailLabel: 'E-mail *', nomeLabel: 'Name', cargoLabel: 'Position', papelLabel: 'Role',
+    emailLabel: 'E-mail (optional)', nomeLabel: 'Name', cargoLabel: 'Position', papelLabel: 'Role',
     enviarConvite: 'Generate invite', enviando: 'Generating...', cancelar: 'Cancel',
     voce: '(you)',
     statusAtivo: 'Active', statusConvidado: 'Invited', statusExpirado: 'Expired',
@@ -188,7 +188,7 @@ const textos = {
     convidarSub: 'Puede invitar personas a esta empresa. Si no es Admin, Socio o CEO, la invitación necesita la contraseña de uno de ellos.',
     voltarDashboard: 'Volver al Panel',
     convidar: 'Invitar persona', novoConvite: 'Invitar persona',
-    emailLabel: 'Correo *', nomeLabel: 'Nombre', cargoLabel: 'Cargo', papelLabel: 'Rol',
+    emailLabel: 'Correo (opcional)', nomeLabel: 'Nombre', cargoLabel: 'Cargo', papelLabel: 'Rol',
     enviarConvite: 'Generar invitación', enviando: 'Generando...', cancelar: 'Cancelar',
     voce: '(usted)',
     statusAtivo: 'Activo', statusConvidado: 'Invitado', statusExpirado: 'Expirado',
@@ -427,7 +427,9 @@ export default function EquipePage() {
   // bloqueia como pop-up; depois só recebe o endereço certo.
   async function enviarConvite(canal: string) {
     if (!empresaId || !userId) { setErroModal(t.erroGenerico); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email_convidado.trim())) { setErroModal(t.erroEmail); return }
+    // E-mail no envio é opcional (Elias 2026-10-07): a pessoa informa o dela ao entrar
+    const emailDigitado = form.email_convidado.trim()
+    if (emailDigitado && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDigitado)) { setErroModal(t.erroEmail); return }
     if (!meuPapelConvite) { setErroModal(t.erroMeuPapel); return }
     if (!termoRemetente) { setErroModal(t.erroTermo); return }
     setErroModal('')
@@ -711,7 +713,7 @@ export default function EquipePage() {
             <p className="text-sm font-semibold" style={{ color: TEXTO }}>{podeConvidar ? t.convidarSub : t.somenteProprietario}</p>
             {podeConvidar && (
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+                onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(meuNivel === 1 ? 'ceo' : ''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
                 className="mt-4 px-5 py-3 rounded-xl font-black text-sm tracking-wide inline-flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                 <UserPlus size={16} /> {t.convidar}
@@ -849,7 +851,7 @@ export default function EquipePage() {
               )}
             </p>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+              onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(meuNivel === 1 ? 'ceo' : ''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}
