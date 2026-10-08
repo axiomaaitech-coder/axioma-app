@@ -134,7 +134,7 @@ async function criar(corpo: any) {
   const meu = liberaDireto ? null : await vinculo(db, empresaId, user.id)
   if (!liberaDireto && (!meu || meu.papel === 'operador')) return erro('sem_permissao', 403)
 
-  const meuPapelDecl = papelReal || String(corpo.meuPapel || '')
+  const meuPapelDecl = String(corpo.meuPapel || '') || papelReal || ''
   if (!MEU_PAPEL.includes(meuPapelDecl)) return erro('meu_papel')
 
   let autorizadoPor = ''

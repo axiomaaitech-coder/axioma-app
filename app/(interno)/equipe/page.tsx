@@ -432,7 +432,7 @@ export default function EquipePage() {
     // E-mail no envio é opcional (Elias 2026-10-07): a pessoa informa o dela ao entrar
     const emailDigitado = form.email_convidado.trim()
     if (emailDigitado && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDigitado)) { setErroModal(t.erroEmail); return }
-    if (!meuPapelConvite && !podeLiberar) { setErroModal(t.erroMeuPapel); return }
+    if (!meuPapelConvite) { setErroModal(t.erroMeuPapel); return }
     if (!termoRemetente) { setErroModal(t.erroTermo); return }
     if (precisaAutorizacao && form.motivo_convite.trim().length < 5) { setErroModal(t.erroMotivo); return }
     setErroModal('')
@@ -639,10 +639,10 @@ export default function EquipePage() {
                   <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
                     className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
-                {!podeLiberar && <MenuEscolha rotulo={t.meuPapelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                <MenuEscolha rotulo={t.meuPapelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
                   valor={meuPapelConvite}
                   opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
-                  onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />}
+                  onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
                 {meuPapelConvite && precisaAutorizacao && (
                   <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(46,204,155,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
