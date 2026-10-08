@@ -134,6 +134,13 @@ export default function ContasPagarPage() {
   const [filtroVencAte, setFiltroVencAte] = useState("");
 
   useEffect(() => { carregar(); }, []);
+  // Conta nova de custo fixo (gerada sozinha) ou rastro consertado pelo Guardião: recarrega
+  useEffect(() => {
+    const mudou = () => { void carregar(); };
+    window.addEventListener("axioma:dados-atualizados", mudou);
+    return () => window.removeEventListener("axioma:dados-atualizados", mudou);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function carregar() {
     setLoading(true);
