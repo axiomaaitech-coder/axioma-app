@@ -285,7 +285,9 @@ export default function EquipePage() {
   const [podeLiberar, setPodeLiberar] = useState(false)
   const [autEmail, setAutEmail] = useState('')
   const [autSenha, setAutSenha] = useState('')
-  const precisaAutorizacao = !podeLiberar || !['ceo', 'socio', 'admin'].includes(meuPapelConvite)
+  // CEO/Sócio/Admin convidam direto; os demais precisam da senha de um deles + motivo
+  const precisaAutorizacao = !podeLiberar
+  const [papelLiberador, setPapelLiberador] = useState('')
   const [nomeRemetente, setNomeRemetente] = useState('')
   const [termos, setTermos] = useState<TermoConvite[]>([])
   const [lixeira, setLixeira] = useState<TermoConvite[]>([])
@@ -359,7 +361,7 @@ export default function EquipePage() {
       const [papel, nivel] = await Promise.all([obterMeuPapel(id), obterMeuNivel(id, user.id)])
       setMeuPapel(papel)
       setMeuNivel(nivel)
-      fetch(`/api/convite?empresaId=${id}`).then((r) => r.json()).then((j) => setPodeLiberar(!!j?.podeLiberar)).catch(() => {})
+      fetch(`/api/convite?empresaId=${id}`).then((r) => r.json()).then((j) => { setPodeLiberar(!!j?.podeLiberar); setPapelLiberador(j?.meuPapel || '') }).catch(() => {})
       if ((nivel ?? 99) > 4) return
       await recarregarEquipe(id)
     } catch (err: any) {
@@ -430,8 +432,9 @@ export default function EquipePage() {
     // E-mail no envio é opcional (Elias 2026-10-07): a pessoa informa o dela ao entrar
     const emailDigitado = form.email_convidado.trim()
     if (emailDigitado && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDigitado)) { setErroModal(t.erroEmail); return }
-    if (!meuPapelConvite) { setErroModal(t.erroMeuPapel); return }
+    if (!meuPapelConvite && !podeLiberar) { setErroModal(t.erroMeuPapel); return }
     if (!termoRemetente) { setErroModal(t.erroTermo); return }
+    if (precisaAutorizacao && form.motivo_convite.trim().length < 5) { setErroModal(t.erroMotivo); return }
     setErroModal('')
     const abreAba = canal !== 'E-mail' && canal !== 'copiar'
     const aba = abreAba ? window.open('', '_blank') : null
@@ -449,7 +452,7 @@ export default function EquipePage() {
       if (r.erro || !r.token) {
         aba?.close()
         setLimiteAtingido(r.erro === 'limite_plano' || r.erro === 'cota_temporarios')
-        setErroModal(r.erro === 'limite_plano' ? t.erroLimitePlano(Number(r.limite) || 1) : r.erro === 'cota_temporarios' ? t.erroCotaTemp(Number(r.limite) || 3) : r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : r.erro === 'email' ? t.erroEmail : t.erroGenerico)
+        setErroModal(r.erro === 'limite_plano' ? t.erroLimitePlano(Number(r.limite) || 1) : r.erro === 'cota_temporarios' ? t.erroCotaTemp(Number(r.limite) || 3) : r.erro === 'autorizador' ? t.erroAutorizador : r.erro === 'muitas_tentativas' ? t.erroMuitas : r.erro === 'sem_prazo' ? t.semPrazoRegra : r.erro === 'termo' ? t.erroTermo : r.erro === 'email' ? t.erroEmail : r.erro === 'motivo' ? t.erroMotivo : t.erroGenerico)
         return
       }
       const membroNovo = { id: r.id, origem: 'convite', user_id: null, email: dadosForm.email_convidado.trim().toLowerCase(), nome: dadosForm.nome, cargo: dadosForm.cargo, papel: dadosForm.papel, token_convite: r.token, expira_em: dadosForm.expira_em } as unknown as MembroEquipe
@@ -632,14 +635,14 @@ export default function EquipePage() {
                   onEscolher={(v) => ajustarForm({ ...form, acesso_dias: v === 'null' ? null : Number(v) })} />
                 {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}{precisaAutorizacao ? ' *' : ''}</label>
                   <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
                     className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
-                <MenuEscolha rotulo={t.meuPapelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
+                {!podeLiberar && <MenuEscolha rotulo={t.meuPapelLabel} temaClaro={temaClaro} cores={{ texto: TEXTO, muted: MUTED, campo: CAMPO_BG, borda: CAMPO_BORDA }}
                   valor={meuPapelConvite}
                   opcoes={(['ceo', 'socio', 'admin', 'contador', 'funcionario', 'consultor', 'outro'] as const).map((r) => ({ valor: r, label: r === 'admin' ? t.mp_admin : (t as any)[`rel_${r}`] }))}
-                  onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />
+                  onEscolher={(r) => { setMeuPapelConvite(r); setErroModal('') }} />}
                 {meuPapelConvite && precisaAutorizacao && (
                   <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(46,204,155,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
@@ -713,7 +716,7 @@ export default function EquipePage() {
             <p className="text-sm font-semibold" style={{ color: TEXTO }}>{podeConvidar ? t.convidarSub : t.somenteProprietario}</p>
             {podeConvidar && (
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(meuNivel === 1 ? 'ceo' : ''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+                onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(papelLiberador); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
                 className="mt-4 px-5 py-3 rounded-xl font-black text-sm tracking-wide inline-flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                 <UserPlus size={16} /> {t.convidar}
@@ -851,7 +854,7 @@ export default function EquipePage() {
               )}
             </p>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(meuNivel === 1 ? 'ceo' : ''); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
+              onClick={() => { setErroModal(''); setLimiteAtingido(false); setTermoRemetente(false); setMeuPapelConvite(papelLiberador); setAutEmail(''); setAutSenha(''); setForm(FORM_VAZIO); setModalAberto(true) }}
               className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm tracking-wide flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
               <UserPlus size={16} /> {t.convidar}

@@ -29,7 +29,7 @@ const doc: DocumentoAxioma = {
       'Marque o termo de responsabilidade e clique em **Gerar convite**.',
       'Envie pelo canal que preferir: WhatsApp, Gmail, Outlook, Telegram, e-mail ou **Copiar link**.',
     ] },
-    { p: 'A pessoa abre o link, preenche nome, CPF e e-mail e confirma com o **código enviado ao e-mail dela**. Acesso de 60 dias ou mais (ou sem prazo) também pede o aceite dos Termos e da LGPD. Se quem convida não é Admin, Sócio ou CEO, o convite precisa da autorização (e-mail e senha) de um deles, ou fica **Aguardando sua aprovação** para o responsável **Aprovar** ou **Recusar**.' },
+    { p: 'A pessoa abre o link, preenche nome, CPF e e-mail e confirma com o **código enviado ao e-mail dela**. Ela cria uma senha e aceita os Termos e a LGPD, declarando quem enviou o convite (a responsabilidade é de quem enviou). CEO, Sócio e Admin enviam direto. Se quem convida é outra pessoa (ex.: funcionário), o convite precisa do **motivo** e da autorização (e-mail e senha) de um deles, ou fica **Aguardando sua aprovação** para o responsável **Aprovar** ou **Recusar**.' },
 
     { h1: 'Vagas do plano' },
     { p: 'A assinatura pertence à **empresa**. Cada plano tem um número de pessoas: **Starter 1**, **Pro 2**, **Business 5**, **Enterprise 10**. Contam: o dono, a equipe fixa e convites de **8 dias ou mais**. **Não contam**: operador de caixa e contador ou consultor externo.' },

@@ -47,16 +47,20 @@ async function conferirSenha(email: string, senha: string): Promise<string | nul
 }
 
 // Dono, Admin, Sócio ou CEO com acesso valendo nesta empresa.
-async function podeLiberar(db: SupabaseClient, empresaId: string, userId: string): Promise<boolean> {
+// CEO, Sócio ou Admin desta empresa (quem libera acesso direto). Devolve o papel real.
+async function papelLiberador(db: SupabaseClient, empresaId: string, userId: string): Promise<'ceo' | 'socio' | 'admin' | null> {
   const { data: emp } = await db.from('empresas').select('id').eq('id', empresaId).eq('user_id', userId).maybeSingle()
-  if (emp) return true
+  if (emp) return 'ceo'
   const v = await vinculo(db, empresaId, userId)
-  if (!v) return false
-  if (v.papel === 'dono' || v.papel === 'admin') return true
-  if (!v.convite_id) return false
-  const { data: cv } = await db.from('empresa_equipe').select('relacao').eq('id', v.convite_id).maybeSingle()
-  return cv?.relacao === 'socio' || cv?.relacao === 'ceo'
+  if (!v) return null
+  if (v.papel === 'dono') return 'ceo'
+  if (v.convite_id) {
+    const { data: cv } = await db.from('empresa_equipe').select('relacao').eq('id', v.convite_id).maybeSingle()
+    if (cv?.relacao === 'socio' || cv?.relacao === 'ceo') return cv.relacao
+  }
+  return v.papel === 'admin' ? 'admin' : null
 }
+const podeLiberar = async (db: SupabaseClient, empresaId: string, userId: string) => !!(await papelLiberador(db, empresaId, userId))
 
 async function vinculo(db: SupabaseClient, empresaId: string, userId: string) {
   const { data } = await db.from('empresa_usuarios').select('papel, convite_id, acesso_expira_em, suspenso_em')
@@ -94,7 +98,8 @@ export async function GET(req: NextRequest) {
   const user = await usuarioLogado()
   if (!user) return erro('login', 401)
   const empresaId = req.nextUrl.searchParams.get('empresaId') || ''
-  return NextResponse.json({ podeLiberar: await podeLiberar(admin(), empresaId, user.id) })
+  const papel = await papelLiberador(admin(), empresaId, user.id)
+  return NextResponse.json({ podeLiberar: !!papel, meuPapel: papel })
 }
 
 export async function POST(req: NextRequest) {
@@ -122,19 +127,19 @@ async function criar(corpo: any) {
   if (dias === null && !(papel === 'admin' || relacao === 'socio' || relacao === 'ceo')) return erro('sem_prazo')
 
   // Quem convida precisa ser da empresa (operador de caixa não convida)
-  const souDono = await podeLiberar(db, empresaId, user.id)
-  const meu = souDono ? null : await vinculo(db, empresaId, user.id)
-  if (!souDono && (!meu || meu.papel === 'operador')) return erro('sem_permissao', 403)
+  // Trava (Elias 2026-10-07): CEO, Sócio e Admin convidam direto (papel lido do
+  // banco, não do formulário). Qualquer outro precisa da senha de um deles + motivo.
+  const papelReal = await papelLiberador(db, empresaId, user.id)
+  const liberaDireto = !!papelReal
+  const meu = liberaDireto ? null : await vinculo(db, empresaId, user.id)
+  if (!liberaDireto && (!meu || meu.papel === 'operador')) return erro('sem_permissao', 403)
 
-  // Trava: "qual é o seu papel?" declarado no formulário. Admin/Sócio/CEO libera
-  // direto SE o banco confirmar; qualquer outro papel (ou declaração que não
-  // bate com o banco) exige a senha de um Admin/Sócio/CEO.
-  const meuPapelDecl = String(corpo.meuPapel || '')
+  const meuPapelDecl = papelReal || String(corpo.meuPapel || '')
   if (!MEU_PAPEL.includes(meuPapelDecl)) return erro('meu_papel')
-  const liberaDireto = souDono && ['ceo', 'socio', 'admin'].includes(meuPapelDecl)
 
   let autorizadoPor = ''
   if (!liberaDireto) {
+    if (String(f.motivo_convite || '').trim().length < 5) return erro('motivo')
     const chave = `criar:${user.id}`
     if (bloqueado(chave)) return erro('muitas_tentativas', 429)
     const emailAut = String(corpo.autorizador?.email || '').trim().toLowerCase()
@@ -213,9 +218,7 @@ async function aceitar(corpo: any, soConferir = false) {
   const pedeCpf = true // Elias 2026-10-07: todo convidado informa CPF ao entrar
   if (nome.split(' ').length < 2) return erro('nome')
   if (pedeCpf && !cpfValido(cpf)) return erro('cpf')
-  // Termos + LGPD só no acesso de 60 dias pra cima ou sem prazo (Elias 2026-10-07)
-  const acessoLongo = cv.acesso_dias == null || cv.acesso_dias > 30
-  if (acessoLongo && !corpo.aceita) return erro('lgpd')
+  if (!corpo.aceita) return erro('lgpd')
 
   if (soConferir) {
     const email = String(corpo.email || '').trim().toLowerCase()
@@ -252,7 +255,7 @@ async function aceitar(corpo: any, soConferir = false) {
   if (aceito.error || !aceito.data?.length) falhaServidor('marcar convite aceito', aceito.error?.message || '0 linhas', { conviteId: cv.id, empresaId: cv.empresa_id })
   const { error: e2 } = await db.from('empresa_convite_termo').insert({
     empresa_id: cv.empresa_id, convite_id: cv.id, user_id: userId, nome, cpf: cpf || null, email,
-    remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: acessoLongo,
+    remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: true,
     relacao: cv.relacao, papel: cv.papel, acesso_dias: cv.acesso_dias, motivo_convite: cv.motivo_convite, convidado_em: cv.created_at,
   })
   // Termo de aceite é registro LGPD: falha vai pro Sentry pra ser refeito, não só pro log.
