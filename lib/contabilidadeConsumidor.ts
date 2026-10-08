@@ -283,6 +283,68 @@ async function estornarLancamentosPorOrigem(
 }
 
 // ============================================================================
+// LANÇAMENTO MANUAL (Receitas, Custos Variáveis, Fluxo de Caixa — Elias 2026-10-08):
+// dinheiro que já entrou/saiu, à vista. UM lançamento por evento (o índice único de
+// evento_id é o que impede duplicar quando o motor refaz). Natureza decide o par:
+//   receita  → D Caixa/Bancos (forma)   C Receita (categoria)
+//   custo    → D Despesa (categoria)    C Caixa/Bancos (forma)
+//   aporte   → D Caixa/Bancos           C 5.01 Capital Social
+//   emprestimo → D Caixa/Bancos         C 3.05 Empréstimos (curto prazo)
+//   pag_emprestimo → D 3.05             C Caixa/Bancos
+//   retirada → D 5.02 Lucros Acumulados C Caixa/Bancos
+//   transferencia → nada (dinheiro mudou de lugar dentro da empresa)
+// ============================================================================
+const CATEGORIA_RECEITA_MANUAL: Record<string, string> = {
+  "Vendas de produtos": "6.01", "Prestação de serviços": "6.02", "Recorrentes": "6.02", "Eventuais": "6.01", "Outras": "6.01",
+};
+const CATEGORIA_CUSTO_MANUAL: Record<string, string> = {
+  "Matéria-prima": "7.01", "Embalagens": "7.01", "Comissões": "8.03", "Marketing": "8.03", "Logística": "8.07", "Outros": "8.02",
+};
+
+async function gerarLancamentoManual(
+  empresaId: string, origemTabela: string, origemId: string, p: Record<string, unknown>, ctx?: CtxContabil,
+): Promise<void> {
+  const valor = Number(p.valor) || 0;
+  const natureza = String(p.natureza || "");
+  if (!(valor > 0) || natureza === "transferencia") return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const forma = (p.forma as string | null) ?? "";
+  const entra = natureza === "receita" || natureza === "aporte" || natureza === "emprestimo";
+  const codigoAtivo = (entra ? FORMA_RECEBIMENTO_PARA_CODIGO[forma] : FORMA_PAGAMENTO_PARA_CODIGO[forma]) ?? CODIGO_ATIVO_PADRAO;
+  const categoria = (p.categoria as string | null) ?? "";
+  const codigoContra = natureza === "receita" ? (CATEGORIA_RECEITA_MANUAL[categoria] ?? CATEGORIA_RECEITA_PARA_CODIGO[categoria] ?? CODIGO_RECEITA_PADRAO)
+    : natureza === "custo" ? (CATEGORIA_CUSTO_MANUAL[categoria] ?? CATEGORIA_PARA_CODIGO[categoria as CategoriaDespesa] ?? CODIGO_DESPESA_PADRAO)
+    : natureza === "aporte" ? "5.01" : natureza === "retirada" ? "5.02" : "3.05";
+  const contaAtivoId = contas[codigoAtivo];
+  const contaContraId = contas[codigoContra];
+  if (!contaAtivoId || !contaContraId) {
+    falha(ctx, "plano_de_contas", `resolver conta do de-para (manual ${natureza})`, `código ${codigoAtivo} ou ${codigoContra} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const centro = (p.centro_custo_id as string | null) ?? null;
+  const partidas: PartidaContabilInput[] = entra
+    ? [{ contaId: contaAtivoId, tipo: "debito", valor }, { contaId: contaContraId, tipo: "credito", valor, centroCustoId: natureza === "receita" ? centro : null }]
+    : [{ contaId: contaContraId, tipo: "debito", valor, centroCustoId: natureza === "custo" ? centro : null }, { contaId: contaAtivoId, tipo: "credito", valor }];
+  const { erro } = await registrarLancamentoContabil(empresaId, (p.data as string) || hojeISO(), `Lançamento manual: ${(p.descricao as string) || natureza}`, partidas, {
+    origemTabela, origemId, eventoId: ctx?.eventoId ?? null,
+  });
+  if (erro) falha(ctx, "lancamento_contabil", `gerar lançamento manual (${natureza})`, erro);
+}
+
+// Estorna SÓ o lançamento daquele evento (nunca "tudo da linha"): numa edição, o
+// lançamento novo da mesma linha fica intacto mesmo se o estorno for refeito depois.
+async function estornarLancamentoDoEvento(empresaId: string, eventoId: string, descricao: string, ctx?: CtxContabil): Promise<void> {
+  if (!eventoId) return;
+  const { data, error } = await supabase.from("lancamento_contabil").select("id")
+    .eq("empresa_id", empresaId).eq("evento_id", eventoId).is("estornado_por_id", null);
+  if (error) { falha(ctx, "lancamento_contabil", "buscar lançamento do evento p/ estorno", error.message); return; }
+  for (const c of data || []) {
+    const { error: e } = await supabase.rpc("contabil_estornar_lancamento", { p_lancamento_id: c.id, p_data: hojeISO(), p_descricao: descricao });
+    if (e) falha(ctx, "lancamento_contabil", "rpc contabil_estornar_lancamento (manual)", e.message);
+  }
+}
+
+// ============================================================================
 // GERADORES — um por PAPEL de lançamento, reaproveitado por mais de um
 // evento (AP_UPDATED chama o mesmo gerador de reconhecimento de despesa que
 // AP_CREATED usa, ao relançar).
@@ -641,7 +703,7 @@ export async function processarEventoContabil(
   // quebrou, não só o Sentry) e carimba o evento em cada lançamento — com o índice
   // único em lancamento_contabil.evento_id, refazer o mesmo evento nunca duplica.
   const ctx: CtxContabil = { eventoId: opcoes?.eventoId ?? null, falhas: [] };
-  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao"];
+  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao", "receitas", "custos_variaveis", "fluxo_caixa"];
   if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return {};
   const origemId = origem.id;
 
@@ -791,6 +853,14 @@ export async function processarEventoContabil(
       }
       case "CASH_MOVEMENT_DELETED": {
         await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por exclusão de movimentação de caixa", ctx);
+        break;
+      }
+      case "MANUAL_ENTRY_RECORDED": {
+        await gerarLancamentoManual(empresaId, origem.tabela, origemId, payload, ctx);
+        break;
+      }
+      case "MANUAL_ENTRY_REVERSED": {
+        await estornarLancamentoDoEvento(empresaId, String(payload.evento_original_id || ""), "Estorno de lançamento manual (edição/exclusão)", ctx);
         break;
       }
       default:

@@ -7,6 +7,8 @@
 //   ap_estorno / ar_estorno → desfaz o que o pagamento/recebimento deixou em cada porta
 //   ap_criacao / ar_criacao → nascimento da conta (de onde veio) → contabilidade. O fluxo
 //     previsto não precisa de porta: o Fluxo de Caixa lê as contas em aberto direto.
+//   manual / manual_estorno → lançamento à mão em Receitas, Custos Variáveis ou Fluxo de
+//     Caixa: contabilidade + a porta que falta (Receitas/Custos → Fluxo; Fluxo → DRE).
 // Cada destino guarda status próprio (ok / falhou + motivo + tentativas). Se o
 // caminho quebrar, o Guardião (guardiao.ts) e o botão "Houve falha?" refazem só
 // o que falta — e refazer NUNCA duplica: índice único por rastro em fluxo_caixa,
@@ -24,7 +26,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-export type TipoRastreio = "ap_pagamento" | "ap_estorno" | "ar_recebimento" | "ar_estorno" | "ap_criacao" | "ar_criacao";
+export type TipoRastreio = "ap_pagamento" | "ap_estorno" | "ar_recebimento" | "ar_estorno" | "ap_criacao" | "ar_criacao" | "manual" | "manual_estorno";
 export type Destino = "contabilidade" | "fluxo_caixa" | "dre_gerencial" | "inadimplencia";
 export type StatusDestino = "pendente" | "ok" | "falhou" | "nao_aplica";
 export type ResolvidoPor = "motor" | "guardiao" | "usuario";
@@ -36,6 +38,8 @@ export const DESTINOS_POR_TIPO: Record<TipoRastreio, Destino[]> = {
   ar_estorno: ["contabilidade", "fluxo_caixa", "dre_gerencial"],
   ap_criacao: ["contabilidade"],
   ar_criacao: ["contabilidade"],
+  manual: ["contabilidade", "fluxo_caixa", "dre_gerencial"],
+  manual_estorno: ["contabilidade", "fluxo_caixa", "dre_gerencial"],
 };
 
 // Tudo que os destinos precisam fica gravado no próprio rastro (payload): refazer
@@ -50,6 +54,9 @@ export type PayloadRastreio = {
   custo_fixo_id?: string | null;  // conta gerada de custo fixo: o custo já está no módulo Custos Fixos
   quitou?: boolean;               // recebimento quitou a conta (fecha promessas de cobrança)
   origem_modulo?: string | null;  // nascimento: de qual tela/módulo a conta veio
+  // Lançamento manual: natureza (receita/custo/aporte/emprestimo/pag_emprestimo/retirada/transferencia)
+  natureza?: string | null;
+  rastreio_original_id?: string | null; // manual_estorno: qual rastro ele desfaz
   evento_tipo: string;            // AP_PAID / AR_RECEIVED / AP_PAYMENT_REVERSED / AR_PAYMENT_REVERSED / AP_CREATED / AR_CREATED
   evento_payload: Record<string, unknown>;
   // Desconto concedido na quitação: reconhecimento da receita refeito pelo líquido.
@@ -85,8 +92,9 @@ const CATEGORIA_AR_PARA_RECEITA: Record<string, string> = {
 // REGISTRAR — cria o evento + o rastro + os destinos e já tenta percorrer.
 // ============================================================================
 export async function registrarMovimentacao(p: {
-  empresaId: string; tipo: TipoRastreio; origemTabela: "contas_pagar" | "contas_receber"; origemId: string;
+  empresaId: string; tipo: TipoRastreio; origemTabela: "contas_pagar" | "contas_receber" | "receitas" | "custos_variaveis" | "fluxo_caixa"; origemId: string;
   valor: number; encargos?: number; data: string; payload: PayloadRastreio;
+  aguardar?: boolean; // estorno de lançamento manual: termina antes do lançamento novo nascer
 }): Promise<{ rastreioId?: string; erro?: string }> {
   const evento = await publicarEvento(p.empresaId, p.payload.evento_tipo, p.payload.evento_payload,
     { modulo: p.origemTabela, tabela: p.origemTabela, id: p.origemId });
@@ -110,7 +118,7 @@ export async function registrarMovimentacao(p: {
   );
   if (erroDest) reportar("criar destinos", erroDest.message);
   // Percorre em segundo plano: a tela não espera a contabilidade/fluxo/DRE pra liberar o usuário.
-  void percorrerRastreio(rastreioId, "motor");
+  if (p.aguardar) await percorrerRastreio(rastreioId, "motor"); else void percorrerRastreio(rastreioId, "motor");
   return { rastreioId };
 }
 
@@ -133,13 +141,22 @@ export async function percorrerRastreio(rastreioId: string, quem: ResolvidoPor):
     for (const d of (novos || []) as RastreioDestino[]) existentes.set(d.destino, d);
   }
 
+  // Lançamento manual que já foi estornado (editado/apagado) antes de chegar em
+  // alguma porta: o que faltava não deve mais acontecer.
+  let cancelado = false;
+  if (rastro.tipo === "manual") {
+    const { data: est } = await supabase.from("rastreio_movimentacao").select("id")
+      .eq("empresa_id", rastro.empresa_id).eq("tipo", "manual_estorno").contains("payload", { rastreio_original_id: rastro.id }).limit(1);
+    cancelado = !!est?.length;
+  }
+
   const falhas: string[] = [];
   for (const destino of DESTINOS_POR_TIPO[rastro.tipo]) {
     const d = existentes.get(destino);
     if (!d || d.status === "ok" || d.status === "nao_aplica") continue;
     let resultado: { status: StatusDestino; erro?: string };
     try {
-      resultado = await EXECUTORES[destino](rastro);
+      resultado = cancelado ? { status: "nao_aplica" } : await EXECUTORES[destino](rastro);
     } catch (e) {
       resultado = { status: "falhou", erro: e instanceof Error ? e.message : String(e) };
     }
@@ -206,14 +223,18 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
       if (res.erro) return { status: "falhou", erro: res.erro };
     }
   }
+  if (r.tipo === "manual_estorno" && !r.payload.evento_payload.evento_original_id && r.payload.rastreio_original_id) {
+    const { data: orig } = await supabase.from("rastreio_movimentacao").select("evento_id").eq("id", r.payload.rastreio_original_id).maybeSingle();
+    if (orig?.evento_id) r.payload.evento_payload = { ...r.payload.evento_payload, evento_original_id: orig.evento_id };
+  }
   // 2) O fato principal (pagamento, recebimento ou estorno).
   const evId = await garantirEvento(r, r.payload.evento_tipo, r.payload.evento_payload, "evento_id");
   if (!evId) return { status: "falhou", erro: "não foi possível registrar o evento" };
-  const ehEstorno = r.tipo === "ap_estorno" || r.tipo === "ar_estorno";
+  const ehEstorno = r.tipo === "ap_estorno" || r.tipo === "ar_estorno" || r.tipo === "manual_estorno";
   // O estorno contábil desfaz "todo pagamento ainda não estornado" da conta. Se já
   // houve pagamento DEPOIS deste estorno, refazê-lo às cegas desfaria o pagamento
   // novo — então para e pede revisão em vez de arriscar o dinheiro.
-  if (ehEstorno) {
+  if (r.tipo === "ap_estorno" || r.tipo === "ar_estorno") {
     const { data: posteriores } = await supabase.from("rastreio_movimentacao").select("id")
       .eq("empresa_id", r.empresa_id).eq("origem_tabela", r.origem_tabela).eq("origem_id", r.origem_id)
       .eq("tipo", r.tipo === "ap_estorno" ? "ap_pagamento" : "ar_recebimento").gt("criado_em", r.criado_em).limit(1);
@@ -228,12 +249,15 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
 
 async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
   if (r.tipo === "ap_estorno" || r.tipo === "ar_estorno") return apagarDaOrigem("fluxo_caixa", r);
-  const entrada = r.tipo === "ar_recebimento";
+  if (r.tipo === "manual_estorno") return r.origem_tabela === "fluxo_caixa" ? { status: "nao_aplica" } : apagarDoRastro("fluxo_caixa", r);
+  // Lançado no próprio Fluxo de Caixa: já está lá.
+  if (r.tipo === "manual" && r.origem_tabela === "fluxo_caixa") return { status: "nao_aplica" };
+  const entrada = r.tipo === "ar_recebimento" || (r.tipo === "manual" && r.payload.natureza === "receita");
   const quem = r.payload.contraparte ? ` — ${r.payload.contraparte}` : "";
   const { error } = await supabase.from("fluxo_caixa").insert({
     empresa_id: r.empresa_id, user_id: r.usuario_id, rastreio_id: r.id,
     origem_tabela: r.origem_tabela, origem_id: r.origem_id,
-    descricao: `${entrada ? "Recebido" : "Pago"}: ${r.payload.descricao}${quem}`,
+    descricao: r.tipo === "manual" ? r.payload.descricao : `${entrada ? "Recebido" : "Pago"}: ${r.payload.descricao}${quem}`,
     tipo: entrada ? "entrada" : "saida", valor: r2(r.valor), data: r.data_movimento, status: "realizado",
     categoria: r.payload.categoria ?? null, forma_pagamento: r.payload.forma ?? null,
   });
@@ -244,6 +268,25 @@ async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
 async function executarDreGerencial(r: Rastreio): Promise<Resultado> {
   if (r.tipo === "ap_estorno") return apagarDaOrigem("custos_variaveis", r);
   if (r.tipo === "ar_estorno") return apagarDaOrigem("receitas", r);
+  // Manual: Receitas/Custos JÁ são a DRE gerencial. Do Fluxo de Caixa, só entra o que é
+  // receita ou custo de verdade (aporte, empréstimo, retirada e transferência não são resultado).
+  if (r.tipo === "manual_estorno") {
+    if (r.origem_tabela !== "fluxo_caixa") return { status: "nao_aplica" };
+    const a = await apagarDoRastro("receitas", r); if (a.status === "falhou") return a;
+    return apagarDoRastro("custos_variaveis", r);
+  }
+  if (r.tipo === "manual") {
+    if (r.origem_tabela !== "fluxo_caixa" || (r.payload.natureza !== "receita" && r.payload.natureza !== "custo")) return { status: "nao_aplica" };
+    const ehReceita = r.payload.natureza === "receita";
+    const { error } = await supabase.from(ehReceita ? "receitas" : "custos_variaveis").insert({
+      empresa_id: r.empresa_id, user_id: r.usuario_id, rastreio_id: r.id, origem_tabela: r.origem_tabela, origem_id: r.origem_id,
+      descricao: r.payload.descricao, valor: r2(r.valor), data: r.data_movimento,
+      categoria: r.payload.categoria || (ehReceita ? "Outras" : "Outros"), centro_custo_id: r.payload.centro_custo_id ?? null,
+      ...(ehReceita ? { status: "recebido", considera_teto_mei: true } : {}),
+    });
+    if (error && !ehDuplicado(error)) return { status: "falhou", erro: error.message };
+    return { status: "ok" };
+  }
   const quem = r.payload.contraparte ? ` — ${r.payload.contraparte}` : "";
   if (r.tipo === "ap_pagamento") {
     // Conta nascida de um Custo Fixo já está somada no módulo Custos Fixos (DRE
@@ -281,6 +324,15 @@ async function executarInadimplencia(r: Rastreio): Promise<Resultado> {
   // varredura:ok 0 linhas é normal aqui (conta sem promessa de pagamento pendente)
   const { error } = await supabase.from("cobranca_compromissos").update({ status: "cumprido" })
     .eq("empresa_id", r.empresa_id).eq("conta_id", r.origem_id).eq("status", "pendente");
+  return error ? { status: "falhou", erro: error.message } : { status: "ok" };
+}
+
+// Estorno de lançamento manual: tira só o que AQUELE rastro deixou (edição nunca
+// apaga o lançamento novo da mesma linha).
+async function apagarDoRastro(tabela: "fluxo_caixa" | "receitas" | "custos_variaveis", r: Rastreio): Promise<Resultado> {
+  const original = r.payload.rastreio_original_id;
+  if (!original) return { status: "nao_aplica" };
+  const { error } = await supabase.from(tabela).delete().eq("empresa_id", r.empresa_id).eq("rastreio_id", original);
   return error ? { status: "falhou", erro: error.message } : { status: "ok" };
 }
 

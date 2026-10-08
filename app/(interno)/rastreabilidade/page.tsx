@@ -28,7 +28,7 @@ type DestinoRow = { destino: Destino; status: StatusDestino; ultimo_erro: string
 type RastroRow = {
   id: string; tipo: TipoRastreio; origem_tabela: string; origem_id: string; valor: number; encargos: number;
   data_movimento: string; descricao: string | null; status: 'pendente' | 'ok' | 'falhou'; criado_em: string;
-  payload: { contraparte?: string | null; forma?: string | null; origem_modulo?: string | null }; rastreio_destino: DestinoRow[];
+  payload: { contraparte?: string | null; forma?: string | null; origem_modulo?: string | null; natureza?: string | null }; rastreio_destino: DestinoRow[];
 }
 type Explicacao = { rastreio_id: string; explicacao: string; acao: string }
 
@@ -50,6 +50,8 @@ const NOME_TIPO: Record<TipoRastreio, Record<Idioma3, string>> = {
   ar_estorno: { pt: 'Estorno de recebimento', en: 'Receipt reversal', es: 'Reversión de cobro' },
   ap_criacao: { pt: 'Nova conta a pagar', en: 'New bill to pay', es: 'Nueva cuenta por pagar' },
   ar_criacao: { pt: 'Nova conta a receber', en: 'New bill to receive', es: 'Nueva cuenta por cobrar' },
+  manual: { pt: 'Lançamento manual', en: 'Manual entry', es: 'Registro manual' },
+  manual_estorno: { pt: 'Lançamento manual desfeito (edição/exclusão)', en: 'Manual entry undone (edit/delete)', es: 'Registro manual deshecho (edición/eliminación)' },
 }
 // Nascimento: de qual tela/módulo a conta veio
 const NOME_ORIGEM: Record<string, Record<Idioma3, string>> = {
@@ -60,6 +62,11 @@ const NOME_ORIGEM: Record<string, Record<Idioma3, string>> = {
   inadimplencia: { pt: 'Inadimplência', en: 'Delinquency', es: 'Morosidad' },
   importar_documentos: { pt: 'Nota importada (Importar Documentos)', en: 'Imported invoice (Import Documents)', es: 'Nota importada (Importar Documentos)' },
   custos_fixos: { pt: 'Custo Fixo (gerada sozinha no mês)', en: 'Fixed Cost (generated automatically)', es: 'Costo Fijo (generada sola en el mes)' },
+  receitas: { pt: 'Receitas', en: 'Revenue', es: 'Ingresos' },
+  custos_variaveis: { pt: 'Custos Variáveis', en: 'Variable Costs', es: 'Costos Variables' },
+  fluxo_caixa: { pt: 'Fluxo de Caixa', en: 'Cash Flow', es: 'Flujo de Caja' },
+  faturamento_mei: { pt: 'Faturamento MEI', en: 'MEI Revenue', es: 'Facturación MEI' },
+  importar_documentos_custo: { pt: 'Nota importada (Importar Documentos)', en: 'Imported invoice (Import Documents)', es: 'Nota importada (Importar Documentos)' },
 }
 
 export default function RastreabilidadePage() {
@@ -213,8 +220,10 @@ export default function RastreabilidadePage() {
             ) : visiveis.map((r) => {
               const exp = explicacoes.find((e) => e.rastreio_id === r.id)
               const destinos = DESTINOS_POR_TIPO[r.tipo].map((d) => r.rastreio_destino.find((x) => x.destino === d) ?? { destino: d, status: 'pendente' as StatusDestino, ultimo_erro: null, tentativas: 0, resolvido_por: null, executado_em: null })
-              const entrada = r.tipo === 'ar_recebimento'
-              const rotaOrigem = r.origem_tabela === 'contas_pagar' ? '/contas-pagar' : '/contas-receber'
+              const entrada = r.tipo === 'ar_recebimento' || (r.tipo === 'manual' && ['receita', 'aporte', 'emprestimo'].includes(r.payload?.natureza || ''))
+              const ROTAS: Record<string, string> = { contas_pagar: '/contas-pagar', contas_receber: '/contas-receber', receitas: '/receitas', custos_variaveis: '/custos-variaveis', fluxo_caixa: '/fluxo-caixa' }
+              const rotaOrigem = ROTAS[r.origem_tabela] || '/contas-receber'
+              const ehConta = r.origem_tabela === 'contas_pagar' || r.origem_tabela === 'contas_receber'
               return (
                 <article key={r.id} className={`rounded-2xl p-4 md:p-5${classePremium3d}`}
                   style={{ background: P.PAINEL_BG, border: `1px solid ${r.status === 'falhou' ? P.VERMELHO + '66' : P.BORDA}` }}>
@@ -227,7 +236,7 @@ export default function RastreabilidadePage() {
                         {' · '}{L('registrado em', 'recorded on', 'registrado el')} {new Date(r.criado_em).toLocaleString(local, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         {r.payload?.forma ? ` · ${r.payload.forma}` : ''}
                       </p>
-                      {r.tipo.endsWith('criacao') && (
+                      {(r.tipo.endsWith('criacao') || r.tipo === 'manual') && (
                         <p className="text-xs mt-0.5 font-semibold" style={{ color: P.VERDE }}>
                           {L('Nasceu em', 'Created in', 'Nació en')}: {(NOME_ORIGEM[r.payload?.origem_modulo || ''] || NOME_ORIGEM[r.origem_tabela])?.[lang] || r.payload?.origem_modulo}
                         </p>
@@ -239,11 +248,13 @@ export default function RastreabilidadePage() {
                       </p>
                       {Number(r.encargos) > 0 && <p className="text-xs" style={{ color: P.AMBAR }}>{L('inclui juros/multa', 'includes interest/penalty', 'incluye intereses/multa')} R$ {fBRL2(Number(r.encargos))}</p>}
                       <div className="flex flex-col items-end gap-0.5 mt-1">
+{ehConta && (
                         <button onClick={() => setHistorico({ tipo: r.origem_tabela === 'contas_pagar' ? 'pagar' : 'receber', id: r.origem_id })} className="text-xs font-semibold underline" style={{ color: P.VERDE }}>
                           {L('Ver histórico da conta', 'See bill history', 'Ver historial de la cuenta')}
                         </button>
+                        )}
                         <button onClick={() => router.push(rotaOrigem)} className="inline-flex items-center gap-1 text-xs underline" style={{ color: P.CINZA }}>
-                          {r.origem_tabela === 'contas_pagar' ? L('Ir para Contas a Pagar', 'Go to Payables', 'Ir a Cuentas por Pagar') : L('Ir para Contas a Receber', 'Go to Receivables', 'Ir a Cuentas por Cobrar')}<ExternalLink size={11} aria-hidden />
+                          {L('Ir para', 'Go to', 'Ir a')} {(NOME_ORIGEM[r.origem_tabela] || NOME_ORIGEM.contas_receber)[lang].replace(/^Nova Conta em /, '').replace(/^New Bill in /, '').replace(/^Nueva Cuenta en /, '')}<ExternalLink size={11} aria-hidden />
                         </button>
                       </div>
                     </div>

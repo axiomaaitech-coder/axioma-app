@@ -27,6 +27,8 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
+import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
+import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -136,7 +138,9 @@ export default function Receitas() {
   const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" }); };
   const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status, cliente_id: r.cliente_id || "", centro_custo_id: r.centro_custo_id || "" }); setModalAberto(true); };
 
-  const salvar = async () => {
+  // Suspeita de duplicata (só quando o motor não tem certeza, ou para avisar o bloqueio)
+  const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null);
+  const salvar = async (forcar = false) => {
     // Antes estes guards voltavam calados (o clique em Salvar "não fazia nada").
     if (!novo.descricao.trim() || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
     setSalvando(true);
@@ -144,6 +148,16 @@ export default function Receitas() {
     const empresaId = user ? await obterEmpresaAtiva() : null;
     if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página e tente de novo.", "Session or company not found. Reload the page and try again.", "Sesión o empresa no encontrada. Recargue la página e intente de nuevo."), "erro"); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || hojeISO(), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
+    // Espinha financeira (Elias 2026-10-08): receita recebida vai pra Contabilidade e Fluxo;
+    // antes, o motor confere se esse dinheiro já não entrou por outro caminho.
+    if (!forcar && payload.status === "recebido") {
+      const v = await verificarDuplicidade(empresaId, { entrada: true, valor: payload.valor, data: payload.data, descricao: payload.descricao,
+        contraparteNome: clientesOpcoes.find((c) => c.id === payload.cliente_id)?.nome, ignorar: editando ? { tabela: "receitas", id: editando.id } : undefined });
+      if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
+    }
+    const lancar = (id: string) => payload.status === "recebido"
+      ? registrarLancamentoManual(empresaId, "receitas", { id, descricao: payload.descricao, valor: payload.valor, data: payload.data, natureza: "receita", categoria: payload.categoria, centro_custo_id: payload.centro_custo_id, contraparte_id: payload.cliente_id })
+      : Promise.resolve({} as { erro?: string });
     if (editando) {
       const { data, error } = await supabase.from("receitas").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -152,6 +166,10 @@ export default function Receitas() {
         setSalvando(false);
         return;
       }
+      // Edição: desfaz o lançamento anterior em todos os módulos e lança o novo
+      const desf = await desfazerLancamentoManual(empresaId, "receitas", editando.id);
+      const novoL = desf.erro ? desf : await lancar(editando.id);
+      if (novoL.erro) showToast(L("Receita salva, mas a Contabilidade/Fluxo não foi atualizada agora — o Guardião tenta de novo.", "Revenue saved, but Accounting/Cash Flow was not updated now — the Guardian will retry.", "Ingreso guardado, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará."), "erro");
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
       if (auditoria.erro) showToast(L("Receita salva, mas o registro de auditoria falhou.", "Revenue saved, but the audit record failed.", "Ingreso guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarReceitas();
@@ -163,6 +181,8 @@ export default function Receitas() {
         setSalvando(false);
         return;
       }
+      const novoL = await lancar(data.id);
+      if (novoL.erro) showToast(L("Receita salva, mas a Contabilidade/Fluxo não foi atualizada agora — o Guardião tenta de novo.", "Revenue saved, but Accounting/Cash Flow was not updated now — the Guardian will retry.", "Ingreso guardado, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará."), "erro");
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
       if (auditoria.erro) showToast(L("Receita salva, mas o registro de auditoria falhou.", "Revenue saved, but the audit record failed.", "Ingreso guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarReceitas();
@@ -173,6 +193,10 @@ export default function Receitas() {
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const receita = receitas.find(r => r.id === id);
+    if (empresaId) {
+      const desf = await desfazerLancamentoManual(empresaId, "receitas", id);
+      if (desf.erro) { showToast(L("Não foi possível desfazer esta receita na Contabilidade/Fluxo. Tente novamente.", "Could not undo this revenue in Accounting/Cash Flow. Try again.", "No se pudo deshacer este ingreso en Contabilidad/Flujo. Intente de nuevo."), "erro"); return; }
+    }
     const { data, error } = await supabase.from("receitas").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(L("Não foi possível excluir a receita. Tente novamente.", "Could not delete the revenue. Try again.", "No se pudo eliminar el ingreso. Intente de nuevo."), "erro");
@@ -527,7 +551,7 @@ export default function Receitas() {
                       ))}
                     </div>
                   </div>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando} className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => salvar()} disabled={salvando} className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? (lang === "en" ? "Save Changes" : lang === "es" ? "Guardar Cambios" : "Salvar Alterações") : t.receitas.salvarReceita}
                   </motion.button>
                 </div>
@@ -549,6 +573,7 @@ export default function Receitas() {
       />
 
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
+      <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
     </ModuloLayout>
     </div>
   );
