@@ -856,9 +856,15 @@ function montarResultadoNFe(
     // Uma linha-resumo; se a nota diz que foi quitada na emissão (Pix, dinheiro,
     // cartão, transferência), a conta já nasce paga.
     const total = metadados.valor_total ?? 0;
-    linhas.push({ ...base, valor: metadados.valor_total, descricao: descricaoNF, valorPago: !ehVenda && valorQuitado > 0 ? Math.min(valorQuitado, total) : undefined });
-    // Venda parcelada: a receita fica na data da venda (linha acima) E cada parcela
-    // vira uma conta a receber no vencimento real — o caixa sabe quando entra.
+    // Venda parcelada: cada parcela vira conta a receber no vencimento real e, quando
+    // for recebida, o Motor de Rastreabilidade lança a receita na DRE. Lançar também a
+    // receita cheia na data da venda contava o mesmo dinheiro 2 vezes — fica só a
+    // ENTRADA paga no ato (total − parcelas), se houver.
+    const somaParcelas = parcelas.reduce((s, p) => s + p.valor, 0);
+    const valorResumo = ehVenda && parcelas.length > 0 ? Math.round((total - somaParcelas) * 100) / 100 : metadados.valor_total;
+    if (!(ehVenda && parcelas.length > 0) || (valorResumo ?? 0) > 0.005) {
+      linhas.push({ ...base, valor: valorResumo, descricao: ehVenda && parcelas.length > 0 ? `${descricaoNF} (entrada)` : descricaoNF, valorPago: !ehVenda && valorQuitado > 0 ? Math.min(valorQuitado, total) : undefined });
+    }
     if (ehVenda && parcelas.length > 0) {
       parcelas.forEach((p, i) => linhas.push({
         ...base, valor: p.valor, vencimento: p.vencimento, destinoSugerido: "contas_receber", confiancaDestino: "alta",
