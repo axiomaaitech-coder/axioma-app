@@ -1042,8 +1042,10 @@ export async function recuperarTermoConvite(id: string): Promise<{ erro?: string
 }
 // Aprovação final do dono/admin: aprovar libera o acesso (com o prazo do convite); recusar encerra.
 export async function decidirConvite(conviteId: string, aprovar: boolean, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
-  const { error } = await supabase.rpc("decidir_convite", { p_convite_id: conviteId, p_aprovar: aprovar, p_motivo: motivo || null });
-  if (error) { reportarFalhaEscrita("empresa_equipe", "rpc decidir_convite", error.message); return { erro: error.message, codigo: error.code }; }
+  // Pelo servidor (/api/convite): CEO, Sócio ou Admin aprova; aprovar dá o acesso.
+  const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "decidir", conviteId, aprovar, motivo: motivo || null }) });
+  const r = await resp.json().catch(() => ({ erro: "generico" }));
+  if (r.erro) { reportarFalhaEscrita("empresa_equipe", "api convite decidir", String(r.erro)); return { erro: String(r.erro), codigo: String(r.erro) }; }
   return {};
 }
 

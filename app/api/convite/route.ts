@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
   if (corpo?.acao === 'criar') return criar(corpo)
   if (corpo?.acao === 'conferir') return aceitar(corpo, true)
   if (corpo?.acao === 'aceitar') return aceitar(corpo)
+  if (corpo?.acao === 'decidir') return decidir(corpo)
   return erro('acao')
 }
 
@@ -212,7 +213,7 @@ async function aceitar(corpo: any, soConferir = false) {
 
   const { data: cv } = await db.from('empresa_equipe').select('*').eq('token_convite', token).maybeSingle()
   if (!cv) return erro('invalido', 404)
-  if (cv.situacao === 'aprovado' || cv.situacao === 'recusado' || cv.convite_aceito) return erro('usado', 409)
+  if (cv.situacao === 'aprovado' || cv.situacao === 'recusado' || cv.convite_aceito || (soConferir && cv.situacao === 'aguardando_aprovacao')) return erro('usado', 409)
   if (cv.expira_em && new Date(cv.expira_em) < new Date()) return erro('expirado', 410)
 
   const pedeCpf = true // Elias 2026-10-07: todo convidado informa CPF ao entrar
@@ -232,27 +233,22 @@ async function aceitar(corpo: any, soConferir = false) {
   const email = user.email.toLowerCase()
   if (cv.email_convidado && cv.email_convidado.toLowerCase() !== email) return erro('email_outro', 403)
   const userId = user.id
+  // Já mandou o aceite e espera a aprovação: não grava de novo
+  if (cv.situacao === 'aguardando_aprovacao') {
+    return cv.user_id_convidado === userId ? NextResponse.json({ aguardando: true }) : erro('usado', 409)
+  }
 
   const { data: dono } = await db.from('empresas').select('id').eq('id', cv.empresa_id).eq('user_id', userId).maybeSingle()
   if (dono) return erro('ja_dono', 409)
 
-  const expira = cv.acesso_dias == null ? null : new Date(Date.now() + cv.acesso_dias * 86400000).toISOString()
+  // Procedimento do Elias (2026-10-08): a pessoa confirma o e-mail e fica aguardando;
+  // CEO/Sócio/Admin aprova na Equipe e só então ela entra (acao 'decidir').
   const agora = new Date().toISOString()
-  // varredura:ok — service role (sem RLS); erro checado logo abaixo
-  const { error: e1 } = await db.from('empresa_usuarios').upsert(
-    { empresa_id: cv.empresa_id, user_id: userId, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id,
-      suspenso_em: null, suspenso_por: null, suspenso_motivo: null }, // convite novo aceito = volta a ter acesso
-    { onConflict: 'empresa_id,user_id' })
-  if (e1) { console.error('[convite] acesso:', e1.message); return erro('generico', 500) }
-  // O acesso já foi dado acima; marcar o convite como aceito tenta 2x (senão o painel
-  // da Equipe mostraria a pessoa como "pendente" mesmo com acesso).
-  const marcarAceito = () => db.from('empresa_equipe').update({
-    situacao: 'aprovado', convite_aceito: true, aceito_em: agora, user_id_convidado: userId,
-    convidado_nome_termo: nome, convidado_termo_em: agora, decidido_em: agora,
-  }).eq('id', cv.id).select('id')
-  let aceito = await marcarAceito()
-  if (aceito.error || !aceito.data?.length) aceito = await marcarAceito()
-  if (aceito.error || !aceito.data?.length) falhaServidor('marcar convite aceito', aceito.error?.message || '0 linhas', { conviteId: cv.id, empresaId: cv.empresa_id })
+  const { data: pend, error: e1 } = await db.from('empresa_equipe').update({
+    situacao: 'aguardando_aprovacao', user_id_convidado: userId,
+    convidado_nome_termo: nome, convidado_termo_em: agora,
+  }).eq('id', cv.id).eq('situacao', cv.situacao).select('id')
+  if (e1 || !pend?.length) { console.error('[convite] aguardando:', e1?.message || '0 linhas'); return erro('generico', 500) }
   const { error: e2 } = await db.from('empresa_convite_termo').insert({
     empresa_id: cv.empresa_id, convite_id: cv.id, user_id: userId, nome, cpf: cpf || null, email,
     remetente_nome: cv.remetente_nome, confirmou_remetente: true, aceitou_termos_lgpd: true,
@@ -261,6 +257,41 @@ async function aceitar(corpo: any, soConferir = false) {
   // Termo de aceite é registro LGPD: falha vai pro Sentry pra ser refeito, não só pro log.
   if (e2) falhaServidor('gravar termo de aceite', e2.message, { conviteId: cv.id, empresaId: cv.empresa_id })
 
-  const { data: emp } = await db.from('empresas').select('nome').eq('id', cv.empresa_id).maybeSingle()
-  return NextResponse.json({ empresaId: cv.empresa_id, empresaNome: emp?.nome || '' })
+  return NextResponse.json({ aguardando: true })
+}
+
+// CEO/Sócio/Admin aprova ou recusa quem já confirmou o e-mail. Aprovar dá o acesso.
+async function decidir(corpo: any) {
+  const user = await usuarioLogado()
+  if (!user) return erro('login', 401)
+  const db = admin()
+  const { data: cv } = await db.from('empresa_equipe').select('*').eq('id', String(corpo.conviteId || '')).maybeSingle()
+  if (!cv || cv.situacao !== 'aguardando_aprovacao' || !cv.user_id_convidado) return erro('invalido', 404)
+  if (!(await podeLiberar(db, cv.empresa_id, user.id))) return erro('sem_permissao', 403)
+  const agora = new Date().toISOString()
+
+  if (!corpo.aprovar) {
+    const { error } = await db.from('empresa_equipe').update({
+      situacao: 'recusado', decidido_por: user.id, decidido_em: agora,
+      motivo_recusa: String(corpo.motivo || '').trim() || null,
+    }).eq('id', cv.id)
+    if (error) { console.error('[convite] recusar:', error.message); return erro('generico', 500) }
+    return NextResponse.json({ ok: true })
+  }
+
+  const expira = cv.acesso_dias == null ? null : new Date(Date.now() + cv.acesso_dias * 86400000).toISOString()
+  // varredura:ok — service role (sem RLS); erro checado logo abaixo
+  const { error: e1 } = await db.from('empresa_usuarios').upsert(
+    { empresa_id: cv.empresa_id, user_id: cv.user_id_convidado, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id,
+      suspenso_em: null, suspenso_por: null, suspenso_motivo: null }, // convite novo aprovado = volta a ter acesso
+    { onConflict: 'empresa_id,user_id' })
+  if (e1) { console.error('[convite] acesso:', e1.message); return erro('generico', 500) }
+  // O acesso já foi dado acima; marcar aprovado tenta 2x (senão o painel mostraria "aguardando" com acesso).
+  const marcar = () => db.from('empresa_equipe').update({
+    situacao: 'aprovado', convite_aceito: true, aceito_em: agora, decidido_por: user.id, decidido_em: agora,
+  }).eq('id', cv.id).select('id')
+  let ok = await marcar()
+  if (ok.error || !ok.data?.length) ok = await marcar()
+  if (ok.error || !ok.data?.length) falhaServidor('marcar convite aprovado', ok.error?.message || '0 linhas', { conviteId: cv.id, empresaId: cv.empresa_id })
+  return NextResponse.json({ ok: true })
 }

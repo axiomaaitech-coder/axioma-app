@@ -39,7 +39,7 @@ function cpfValido(c: string): boolean {
 const mascaraCpf = (v: string) => v.replace(/\D/g, '').slice(0, 11)
   .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
 
-type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'recusado' | 'pronto' | 'enviando' | 'codigo' | 'bemvindo'
+type Estado = 'carregando' | 'invalido' | 'usado' | 'expirado' | 'recusado' | 'pronto' | 'enviando' | 'codigo' | 'aguardando' | 'bemvindo'
 type Convite = NonNullable<Awaited<ReturnType<typeof obterConvitePorToken>>>
 
 const COR = { fundo: '#050d1c', card: '#0a1730', linha: 'rgba(147,166,194,0.16)', menta: '#2ecc9b', tinta: '#04241a', texto: '#e8eef7', sec: '#93a6c2', campo: 'rgba(255,255,255,0.035)', erro: '#f87171' }
@@ -67,12 +67,16 @@ export default function AceitarConvite() {
       if (!c) { setEstado('invalido'); return }
       setConvite(c)
       if (c.email_convidado) setEmail(c.email_convidado)
-      if (c.convite_aceito || c.situacao === 'aprovado') { setEstado('usado'); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      // Quem já confirmou o e-mail: espera a aprovação aqui; aprovado = bem-vindo e entra
+      if (user && (c.situacao === 'aguardando_aprovacao' || c.situacao === 'aprovado') && user.user_metadata?.convite_token === token) {
+        setEstado(c.situacao === 'aprovado' ? 'bemvindo' : 'aguardando'); return
+      }
+      if (c.convite_aceito || c.situacao === 'aprovado' || c.situacao === 'aguardando_aprovacao') { setEstado('usado'); return }
       if (c.situacao === 'recusado') { setEstado('recusado'); return }
       if (c.expira_em && new Date(c.expira_em) < new Date()) { setEstado('expirado'); return }
       // Voltou pelo link do e-mail (já logada): os dados do formulário foram
-      // guardados na conta dela no cadastro → aceita sozinho e entra no Axioma.
-      const { data: { user } } = await supabase.auth.getUser()
+      // guardados na conta dela no cadastro → manda o aceite sozinho.
       const md = user?.user_metadata || {}
       if (user && md.convite_token === token && md.nome && md.convite_aceita) {
         setEstado('enviando')
@@ -85,20 +89,38 @@ export default function AceitarConvite() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  // Grava o aceite (vínculo com a empresa) e leva direto pra dentro do Axioma.
-  async function aceitarConvite(userId: string, nomeAceite: string, cpfAceite: string): Promise<boolean> {
+  // Aguardando a aprovação: confere a cada 5 s; aprovado = bem-vindo e entra direto.
+  useEffect(() => {
+    if (estado !== 'aguardando') return
+    const id = setInterval(async () => {
+      const c = await obterConvitePorToken(token)
+      if (c?.situacao === 'aprovado') setEstado('bemvindo')
+      else if (c?.situacao === 'recusado') setEstado('recusado')
+    }, 5000)
+    return () => clearInterval(id)
+  }, [estado, token])
+
+  useEffect(() => {
+    if (estado !== 'bemvindo') return
+    (async () => {
+      await supabase.auth.updateUser({ data: { convite_token: null } }).catch(() => {})
+      setTimeout(() => { window.location.href = '/dashboard' }, 2500)
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado, token])
+
+  // Manda o aceite (nome, CPF, termos) e fica aguardando a aprovação de quem convidou.
+  async function aceitarConvite(_userId: string, nomeAceite: string, cpfAceite: string): Promise<boolean> {
     const resp = await fetch('/api/convite', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ acao: 'aceitar', token, nome: nomeAceite, cpf: cpfAceite, aceita: true }),
     })
     const r = await resp.json().catch(() => ({ erro: 'generico' }))
-    if (r.erro || !r.empresaId) { setErro(MSG[r.erro] || erroPadrao); return false }
-    // CPF não fica guardado na conta depois do aceite (já está no termo)
-    await supabase.auth.updateUser({ data: { cpf: null, convite_token: null, convite_aceita: null } }).catch(() => {})
-    definirEmpresaPreferida(userId, r.empresaId)
-    setEmpresaId(r.empresaId)
-    setEstado('bemvindo')
-    window.location.href = '/dashboard'
+    if (r.erro || !r.aguardando) { setErro(MSG[r.erro] || erroPadrao); return false }
+    // CPF não fica guardado na conta depois do aceite (já está no termo); o token
+    // fica até a aprovação pra trazer a pessoa de volta pra cá se ela sair.
+    await supabase.auth.updateUser({ data: { cpf: null, convite_token: token, convite_aceita: null } }).catch(() => {})
+    setEstado('aguardando')
     return true
   }
 
@@ -353,6 +375,18 @@ export default function AceitarConvite() {
           </div>
         )}
 
+        {estado === 'aguardando' && convite && (
+          <div className="text-center py-2">
+            <div className="w-8 h-8 mx-auto mb-4 border-2 rounded-full animate-spin" style={{ borderColor: `${COR.menta} transparent transparent transparent` }} />
+            <h1 className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: COR.texto }}>{L('E-mail confirmado', 'E-mail confirmed', 'Correo confirmado')}</h1>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: COR.sec }}>
+              {L(`Agora falta ${remetente} aprovar a sua entrada em ${convite.empresa_nome}. Deixe esta página aberta: assim que aprovar, você entra direto.`,
+                 `Now ${remetente} needs to approve your access to ${convite.empresa_nome}. Keep this page open: once approved, you go straight in.`,
+                 `Ahora ${remetente} debe aprobar su entrada en ${convite.empresa_nome}. Deje esta página abierta: al aprobar, entra directo.`)}
+            </p>
+          </div>
+        )}
+
         {estado === 'bemvindo' && convite && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }} className="text-center py-2">
             <CheckCircle2 size={44} className="mx-auto mb-4" style={{ color: COR.menta }} />
@@ -360,7 +394,7 @@ export default function AceitarConvite() {
             <p className="mt-2 text-[15px] leading-relaxed" style={{ color: COR.sec }}>
               {L(`Seu acesso a ${convite.empresa_nome} está liberado.`, `Your access to ${convite.empresa_nome} is ready.`, `Su acceso a ${convite.empresa_nome} está listo.`)}
             </p>
-            <button onClick={() => { if (empresaId) window.location.href = '/dashboard' }}
+            <button onClick={() => { window.location.href = '/dashboard' }}
               className="mt-7 w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
               style={{ background: COR.menta, color: COR.tinta }}>
               {L('Acessar a plataforma', 'Access the platform', 'Acceder a la plataforma')}
