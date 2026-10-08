@@ -46,3 +46,14 @@ assert.ok(motorSrc.includes('text: `${p.sistema}\\n${AVISO_IDENTIDADE}`'), 'Jos�
 assert.ok(readFileSync('lib/axiomaChat.ts', 'utf8').includes('terminantemente proibido apagar'), 'chat também recebe a regra')
 assert.ok(!/\.(insert|update|upsert|delete)\(/.test(readFileSync('lib/ia/ferramentas.ts', 'utf8')), 'ferramentas da IA só leem')
 console.log('OK — toda IA proibida de apagar/alterar dado; ferramentas da IA só leem')
+
+// 6) Importar Documentos: lançamento de extrato passa pelo motor e desfazer estorna
+const impSrc = readFileSync('lib/importarHelpers.ts', 'utf8')
+assert.ok(!impSrc.includes('status: "confirmado"'), 'extrato entra no Fluxo como realizado (todo módulo só conta "realizado")')
+assert.equal((impSrc.match(/refazerNoMotor\(empresaId/g) || []).length >= 4, true, 'motor ligado em inserir, somar, editar e desfazer')
+const corpo = (nome: string) => impSrc.slice(impSrc.indexOf(`export async function ${nome}`), impSrc.indexOf('\n}\n', impSrc.indexOf(`export async function ${nome}`)))
+for (const f of ['deletarLinhaImportada', 'reverterImportacao']) {
+  assert.ok(corpo(f).includes('desfazerLinhaNoDestino('), `${f} usa a porta única de desfazer`)
+  assert.ok(!/\.delete\(/.test(corpo(f)), `${f} não apaga direto no destino`)
+}
+console.log('OK — Importar: extrato chega na Contabilidade; remover/desfazer estorna pelo motor e nunca apaga registro somado')

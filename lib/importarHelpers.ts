@@ -6,10 +6,10 @@ import CryptoJS from "crypto-js";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarParsers";
-import { criarContaPagar, editarContaPagar, darBaixaContaPagar, type ContaPagar } from "./contasPagarHelpers";
-import { criarContaReceber, editarContaReceber, registrarRecebimento, type ContaParaReceber } from "./recebimentoHelpers";
+import { criarContaPagar, editarContaPagar, darBaixaContaPagar, excluirContaPagar, type ContaPagar } from "./contasPagarHelpers";
+import { criarContaReceber, editarContaReceber, excluirContaReceber, registrarRecebimento, type ContaParaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
-import { NATUREZAS_FLUXO } from "./rastreio/lancamentoManual";
+import { NATUREZAS_FLUXO, naturezaDoFluxo, registrarLancamentoManual, desfazerLancamentoManual, type OrigemManual } from "./rastreio/lancamentoManual";
 import { avaliarDuplicidade, acharObrigacaoParaPagamento, type EstadoMatch, type Idioma, type Lancamento } from "./motorDuplicidade";
 
 const supabase = createBrowserClient(
@@ -62,7 +62,9 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         tipo: linha.tipo === "saida" ? "saida" : "entrada",
         categoria: linha.categoria || null,
         documento: linha.documento || null,
-        status: "confirmado",
+        // Extrato/comprovante = dinheiro que já se moveu. Todo módulo (Fluxo, DRE,
+        // Dashboard, IA) só conta "realizado"; "confirmado" ficava como previsto.
+        status: "realizado",
       },
     };
   },
@@ -283,6 +285,87 @@ function lerValorColunaDinamica(atual: unknown, colValor: string): number | null
   const bruto = (atual as Record<string, unknown>)[colValor];
   if (bruto === null) return 0;
   return typeof bruto === "number" ? bruto : null;
+}
+
+// Receita, custo e lançamento de fluxo que o Importar grava passam pelo Motor de
+// Rastreabilidade igual aos digitados na tela (Contabilidade + porta que falta).
+// Desfaz o rastro anterior da linha (nada, se é nova) e registra pelo valor atual;
+// apagado=true só desfaz. Custo ligado a conta da nota (origem_tabela) não entra:
+// a conta já leva ele. Devolve o erro, ou undefined.
+const ORIGENS_MOTOR = new Set<string>(["receitas", "custos_variaveis", "fluxo_caixa"]);
+async function refazerNoMotor(empresaId: string, tabela: string, id: string, apagado = false): Promise<string | undefined> {
+  if (!ORIGENS_MOTOR.has(tabela)) return;
+  const origem = tabela as OrigemManual;
+  const desf = await desfazerLancamentoManual(empresaId, origem, id);
+  if (desf.erro || apagado) return desf.erro;
+  const { data: r, error } = await supabase.from(tabela).select("*").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
+  if (error || !r) return error?.message || "registro não encontrado";
+  if (tabela === "receitas" && r.status !== "recebido") return;
+  if (tabela === "fluxo_caixa" && r.status !== "realizado") return;
+  if (tabela === "custos_variaveis" && r.origem_tabela) return;
+  const natureza = tabela === "receitas" ? "receita" : tabela === "custos_variaveis" ? "custo" : naturezaDoFluxo(r.categoria, r.tipo);
+  const reg = await registrarLancamentoManual(empresaId, origem, {
+    id, descricao: r.descricao, valor: Number(r.valor), data: r.data, natureza, categoria: r.categoria ?? null,
+    centro_custo_id: r.centro_custo_id ?? null, contraparte_id: r.cliente_id ?? null, modulo: "importar_documentos",
+  });
+  return reg.erro;
+}
+
+// Desfaz UMA linha da importação no destino, pela porta de cada módulo (porta única
+// do "remover linha" e do "desfazer importação"):
+//   "importada" → apaga o lançamento que a importação criou;
+//   "somada"    → tira de volta só o valor somado (o registro já existia — nunca apaga).
+// Receita/custo/fluxo desfazem o rastro no motor; conta a pagar/receber vai pela
+// porta dela (contabilidade estorna). Conta já paga/recebida não some: estorne antes.
+async function desfazerLinhaNoDestino(
+  l: { destino_tabela: string; destino_id: string; status: string; valor: number | null },
+  empresaId: string,
+): Promise<string | null> {
+  const tabela = l.destino_tabela, id = l.destino_id;
+  if (l.status === "somada") {
+    const colValor = COLUNA_VALOR_DESTINO[tabela as DestinoTabela];
+    if (!colValor) return `${tabela}: sem coluna de valor conhecida para desfazer soma`;
+    const { data: atual, error: errBusca } = await supabase.from(tabela).select(colValor).eq("id", id).eq("empresa_id", empresaId).maybeSingle();
+    if (errBusca || !atual) return `${tabela}: registro ${id} não encontrado pra desfazer soma`;
+    const valorAtual = lerValorColunaDinamica(atual, colValor);
+    if (valorAtual === null) {
+      reportarFalhaEscrita(tabela, "desfazer soma (leitura de valor atual)", `coluna ${colValor} ausente ou com tipo inesperado`);
+      return `${tabela}: coluna de valor "${colValor}" não veio como número — desfazer a soma cancelado por segurança`;
+    }
+    const novoValor = valorAtual - Number(l.valor || 0);
+    const r = tabela === "contas_pagar" ? await editarContaPagar(id, { valor_total: novoValor })
+      : tabela === "contas_receber" ? await editarContaReceber(id, { valor: novoValor }, "importar_documentos")
+      : await supabase.from(tabela).update({ [colValor]: novoValor }).eq("id", id).eq("empresa_id", empresaId).select("id")
+          .then(({ data, error }) => ({ erro: error?.message || (!data?.length ? "0 linhas afetadas (RLS?)" : undefined) }));
+    if (r.erro) {
+      reportarFalhaEscrita(tabela, "update (desfazer soma)", r.erro);
+      return `${tabela}: ${r.erro}`;
+    }
+    const erroMotor = await refazerNoMotor(empresaId, tabela, id);
+    return erroMotor ? `${tabela}: valor desfeito, mas a Contabilidade não foi atualizada agora — o Guardião tenta de novo` : null;
+  }
+  if (tabela === "contas_pagar") {
+    const { data: c } = await supabase.from("contas_pagar").select("status").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
+    if (!c) return `contas_pagar: registro ${id} não encontrado`;
+    const r = await excluirContaPagar(id, c.status);
+    return r.erro === "conta_paga" ? "contas_pagar: conta já paga — estorne o pagamento em Contas a Pagar antes de desfazer"
+      : r.erro ? `contas_pagar: ${r.erro}` : null;
+  }
+  if (tabela === "contas_receber") {
+    const r = await excluirContaReceber(id, "importar_documentos");
+    return r.erro === "ja_recebida" ? "contas_receber: conta já recebida — estorne o recebimento em Contas a Receber antes de desfazer"
+      : r.erro ? `contas_receber: ${r.erro}` : null;
+  }
+  // Desfaz o rastro ANTES de apagar: se o motor falhar, o lançamento fica (nada some sem estorno).
+  const erroMotor = await refazerNoMotor(empresaId, tabela, id, true);
+  if (erroMotor) return `${tabela}: não foi possível desfazer na Contabilidade (${erroMotor}) — nada foi apagado`;
+  const { data: apagado, error } = await supabase.from(tabela).delete().eq("id", id).eq("empresa_id", empresaId).select("id");
+  if (error || !apagado?.length) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(tabela, "delete (desfazer linha importada)", motivo);
+    return `${tabela}: ${motivo}`;
+  }
+  return null;
 }
 
 export type CandidatoDuplicata = {
@@ -1031,6 +1114,9 @@ export async function gravarLinhas(params: {
         reportarFalhaEscrita(alvoSomar.tabela, "update (somar importação)", msg);
         continue;
       }
+      if (!viaPorta && (await refazerNoMotor(empresaId, alvoSomar.tabela, alvoSomar.id))) {
+        resultado.mensagens_erro.push(`Linha ${numLinha}: somado, mas a Contabilidade não foi atualizada agora — o Guardião tenta de novo`);
+      }
       resultado.importadas++;
       resultado.somadas++;
       resultado.valor_total += linha.valor || 0;
@@ -1080,7 +1166,10 @@ export async function gravarLinhas(params: {
       continue;
     }
 
-    // 5) Sucesso
+    // 5) Sucesso — receita/custo/fluxo seguem pro motor (conta já foi pela porta dela)
+    if (empresaId && (await refazerNoMotor(empresaId, destino, inserido.id))) {
+      resultado.mensagens_erro.push(`Linha ${numLinha}: gravada, mas a Contabilidade não foi atualizada agora — o Guardião tenta de novo`);
+    }
     resultado.importadas++;
     resultado.inseridos.push({ tabela: destino, id: inserido.id });
     resultado.valor_total += linha.valor || 0;
@@ -1218,13 +1307,16 @@ export async function editarLinhaImportada(
   // empresa, o filtro já devolve "não encontrada" (nunca chega a editar).
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
-    .select("destino_tabela, destino_id, importacao_id, empresa_id")
+    .select("destino_tabela, destino_id, importacao_id, empresa_id, status")
     .eq("id", linhaAuditoriaId)
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
   if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
+  // Linha "somada" não tem registro próprio: editar aqui gravaria o valor dela por
+  // cima do lançamento que já existia (sumindo com o resto do valor).
+  if (aud.status === "somada") return { erro: "Linha somada a um lançamento que já existia — edite o valor no módulo dele" };
 
   const destino = aud.destino_tabela as DestinoTabela;
 
@@ -1286,6 +1378,9 @@ export async function editarLinhaImportada(
     return { erro: motivo };
   }
 
+  // Receita/custo/fluxo: desfaz o rastro do valor antigo e registra o novo no motor.
+  const erroMotor = await refazerNoMotor(empresaId, destino, aud.destino_id);
+
   // 4) UPDATE na auditoria
   const auditUpdate: Record<string, any> = {
     mensagem: `Editada em ${new Date().toLocaleString("pt-BR")}`,
@@ -1295,7 +1390,7 @@ export async function editarLinhaImportada(
   if (novosDados.descricao !== undefined) auditUpdate.descricao = novosDados.descricao;
   if (novosDados.categoria !== undefined) auditUpdate.categoria = novosDados.categoria;
 
-  let avisoTrilha: string | undefined;
+  let avisoTrilha: string | undefined = erroMotor ? "Contabilidade não atualizada agora — o Guardião tenta de novo" : undefined;
 
   const { data: linhaAtualizada, error: erroAuditUpdate } = await supabase
     .from("importacao_linhas")
@@ -1337,28 +1432,18 @@ export async function deletarLinhaImportada(
   // empresa, o filtro já devolve "não encontrada" (nunca chega a excluir).
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
-    .select("destino_tabela, destino_id, importacao_id, empresa_id")
+    .select("destino_tabela, destino_id, importacao_id, empresa_id, status, valor")
     .eq("id", linhaAuditoriaId)
     .eq("empresa_id", empresaId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
-  if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
+  if (!aud || !aud.destino_id || !["importada", "somada"].includes(aud.status)) return { erro: "Linha nao encontrada ou ja foi removida" };
 
-  // 2) Deleta no destino real — trava dupla de empresa (defesa em
-  // profundidade, mesmo já tendo confirmado a dona da linha de auditoria acima).
-  const { data: deletado, error: errDel } = await supabase
-    .from(aud.destino_tabela)
-    .delete()
-    .eq("id", aud.destino_id)
-    .eq("empresa_id", empresaId)
-    .select("id");
-
-  if (errDel || !deletado || deletado.length === 0) {
-    const motivo = errDel?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita(aud.destino_tabela, "delete (linha importada)", motivo);
-    return { erro: motivo };
-  }
+  // 2) Desfaz no destino pela porta do módulo: "somada" só tira o valor somado
+  // (antes apagava o registro inteiro, que já existia antes da importação).
+  const erroDestino = await desfazerLinhaNoDestino(aud, empresaId);
+  if (erroDestino) return { erro: erroDestino };
 
   let avisoTrilha: string | undefined;
 
@@ -1455,90 +1540,39 @@ export async function reverterImportacao(
   const erros: string[] = [];
   let removidas = 0;
 
-  const paraDeletar = (linhas || []).filter((l: any) => l.status === "importada" && l.destino_id);
-  const paraSubtrair = (linhas || []).filter((l: any) => l.status === "somada" && l.destino_id);
-
-  const porTabela = new Map<string, string[]>();
-  paraDeletar.forEach((l: any) => {
-    const arr = porTabela.get(l.destino_tabela) || [];
-    arr.push(l.destino_id);
-    porTabela.set(l.destino_tabela, arr);
-  });
-
-  for (const [tabela, ids] of porTabela.entries()) {
-    for (let i = 0; i < ids.length; i += 100) {
-      const chunk = ids.slice(i, i + 100);
-      const { error, count } = await supabase
-        .from(tabela)
-        .delete({ count: "exact" })
-        .in("id", chunk)
-        .eq("empresa_id", empresaId);
-
-      const qtdRemovida = count ?? 0;
-      if (error || qtdRemovida < chunk.length) {
-        const motivo = error?.message || `${chunk.length - qtdRemovida} de ${chunk.length} não foram removidos (RLS?)`;
-        erros.push(`${tabela}: ${motivo}`);
-        reportarFalhaEscrita(tabela, "delete (reverter importação)", motivo);
-        removidas += qtdRemovida;
-      } else {
-        removidas += qtdRemovida;
-      }
-    }
+  // Uma a uma pela porta de cada módulo (motor/contabilidade estornam junto).
+  // ponytail: sequencial, 1-3 chamadas por linha; lote em RPC se extrato de milhares ficar lento.
+  const desfeitas: string[] = [];
+  for (const l of (linhas || []).filter((x: any) => x.destino_id)) {
+    const erro = await desfazerLinhaNoDestino(l, empresaId);
+    if (erro) erros.push(erro);
+    else { desfeitas.push(l.id); removidas++; }
   }
 
-  // Linhas "somada": não existe registro próprio pra deletar — desfaz
-  // subtraindo de volta o valor que foi somado no registro existente
-  // (que pode viver em outra tabela, por isso não entrou no loop acima).
-  for (const l of paraSubtrair) {
-    const colValor = COLUNA_VALOR_DESTINO[l.destino_tabela as DestinoTabela];
-    if (!colValor) {
-      erros.push(`${l.destino_tabela}: sem coluna de valor conhecida para desfazer soma`);
-      continue;
+  // Só a linha desfeita de verdade vira "revertida" — a que falhou continua
+  // ativa (antes todas eram marcadas, mesmo com lançamento sobrando no destino).
+  for (let i = 0; i < desfeitas.length; i += 100) {
+    // varredura:ok — erro checado abaixo
+    const { error: erroStatusLinhas } = await supabase
+      .from("importacao_linhas")
+      .update({ status: "revertida" })
+      .in("id", desfeitas.slice(i, i + 100))
+      .eq("empresa_id", empresaId);
+    if (erroStatusLinhas) {
+      reportarFalhaEscrita("importacao_linhas", "update (status revertida)", erroStatusLinhas.message);
+      erros.push(`importacao_linhas: ${erroStatusLinhas.message}`);
     }
-    const { data: atual, error: errBusca } = await supabase
-      .from(l.destino_tabela)
-      .select(colValor)
-      .eq("id", l.destino_id)
-      .eq("empresa_id", empresaId)
-      .maybeSingle();
-    if (errBusca || !atual) {
-      erros.push(`${l.destino_tabela}: registro ${l.destino_id} não encontrado pra desfazer soma`);
-      continue;
-    }
-    const valorAtual = lerValorColunaDinamica(atual, colValor);
-    if (valorAtual === null) {
-      erros.push(`${l.destino_tabela}: coluna de valor "${colValor}" não veio como número — reversão da soma cancelada por segurança`);
-      reportarFalhaEscrita(l.destino_tabela, "desfazer soma na reversão (leitura de valor atual)", `coluna ${colValor} ausente ou com tipo inesperado`);
-      continue;
-    }
-    const novoValor = valorAtual - Number(l.valor || 0);
-    const { data: subtraido, error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id).eq("empresa_id", empresaId).select("id");
-    if (errUpdate || !subtraido || subtraido.length === 0) {
-      const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";
-      erros.push(`${l.destino_tabela}: ${motivo}`);
-      reportarFalhaEscrita(l.destino_tabela, "update (desfazer soma na reversão)", motivo);
-      continue;
-    }
-    removidas++;
   }
+  if (erros.length > 0) await recalcularTotaisImportacao(importacaoId, empresaId);
 
-  // varredura:ok — 0 linhas é possível (nada importado/somado); erro checado abaixo
-  const { error: erroStatusLinhas } = await supabase
-    .from("importacao_linhas")
-    .update({ status: "revertida" })
-    .eq("importacao_id", importacaoId)
-    .eq("empresa_id", empresaId)
-    .in("status", ["importada", "somada"]);
-  if (erroStatusLinhas) {
-    reportarFalhaEscrita("importacao_linhas", "update (status revertida)", erroStatusLinhas.message);
-    erros.push(`importacao_linhas: ${erroStatusLinhas.message}`);
-  }
-
+  // Sobrou lançamento ativo → "parcialmente" (a exclusão do registro só vale pra
+  // "revertido", então não dá pra apagar o histórico com dinheiro ainda lançado).
+  const falhou = erros.length > 0;
   const { data: impRevertida, error: erroStatusImportacao } = await supabase
     .from("importacoes")
     .update({
-      status: "revertido",
-      revertido_em: new Date().toISOString(),
+      status: falhou ? "parcialmente" : "revertido",
+      revertido_em: falhou ? null : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId)
