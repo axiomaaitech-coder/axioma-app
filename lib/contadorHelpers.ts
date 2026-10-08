@@ -488,7 +488,7 @@ async function regraDespesaCrescendo(empresaId: string, d: DadosProativos, conta
     const { pontuacao, prioridade } = pontuarDescoberta(normalizarImpactoReais(projecao90, 20000), 70, Math.min(100, ((A - B) / B) * 200));
     if (!prioridade) continue;
     const concentrado = top.length ? L(` O aumento está concentrado em ${quem} (${brl0(parteTop)} da diferença).`, ` The increase is concentrated in ${quem} (${brl0(parteTop)} of the difference).`, ` El aumento se concentra en ${quem} (${brl0(parteTop)} de la diferencia).`) : "";
-    const margem = pressao !== null ? L(` Isso tira ${pressao.toFixed(1)} pontos da sua margem no período.`, ` This takes ${pressao.toFixed(1)} points off your margin in the period.`, ` Esto le quita ${pressao.toFixed(1)} puntos a su margen en el período.`) : "";
+    const margem = pressao !== null ? L(` Isso tira ${pressao.toFixed(1).replace(".", ",")} pontos da sua margem no período.`, ` This takes ${pressao.toFixed(1)} points off your margin in the period.`, ` Esto le quita ${pressao.toFixed(1).replace(".", ",")} puntos a su margen en el período.`) : "";
     if (await gravarDescobertaSeNova({
       empresa_id: empresaId, tipo: "tendencia", prioridade,
       titulo: L(`Despesa com ${cat} subiu ${varPct} nas últimas 6 semanas`, `${cat} spending rose ${varPct} in the last 6 weeks`, `El gasto en ${cat} subió ${varPct} en las últimas 6 semanas`),
