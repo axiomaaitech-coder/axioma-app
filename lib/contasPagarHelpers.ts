@@ -332,13 +332,18 @@ export async function gerarContaDeCustoFixo(
   custoFixo: { id: string; descricao: string; valor_mensal: number; dia_vencimento: number; categoria?: string | null; centro_custo_id?: string | null },
   mesReferencia: string, // "YYYY-MM"
 ): Promise<{ id?: string; erro?: string; jaExiste?: boolean }> {
+  // Até o dia 1º do mês seguinte: "-31" quebrava em mês de 30 dias/fevereiro (data
+  // inválida → consulta falhava → gerava a conta de novo). limit(1): com 2 contas, não erra.
+  const [ano, mes] = mesReferencia.split("-").map(Number);
+  const proximoMes = `${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, "0")}-01`;
   let qExistente = supabase.from("contas_pagar").select("id")
     .eq("custo_fixo_id", custoFixo.id)
     .gte("data_vencimento", `${mesReferencia}-01`)
-    .lte("data_vencimento", `${mesReferencia}-31`);
+    .lt("data_vencimento", proximoMes);
   if (empresaId) qExistente = qExistente.eq("empresa_id", empresaId);
-  const { data: existente } = await qExistente.maybeSingle();
-  if (existente) return { id: existente.id, jaExiste: true };
+  const { data: existentes, error: erroExistente } = await qExistente.limit(1);
+  if (erroExistente) { reportarFalhaEscrita("contas_pagar", "conferir conta do custo fixo", erroExistente.message); return { erro: erroExistente.message }; }
+  if (existentes?.length) return { id: existentes[0].id, jaExiste: true };
 
   const dia = String(Math.min(28, Math.max(1, custoFixo.dia_vencimento || 1))).padStart(2, "0");
   const dataVencimento = `${mesReferencia}-${dia}`;
@@ -363,6 +368,22 @@ export async function gerarContaDeCustoFixo(
     },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
   return { id: data.id };
+}
+
+// Fase 2 da Rastreabilidade (Elias 2026-10-08): todo custo fixo vira a conta a pagar
+// do mês sozinho (o Guardião chama ao abrir o Axioma). Idempotente por mês.
+// ponytail: duas abas abertas no mesmo segundo podem gerar 2 contas — índice único
+// (custo_fixo_id, mês) no banco fecha isso de vez.
+export async function gerarContasCustoFixoDoMes(userId: string, empresaId: string, mesReferencia: string): Promise<{ geradas: number; falhas: number }> {
+  const { data, error } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empresaId);
+  if (error) { reportarFalhaLeitura("custos_fixos.contasDoMes", error); return { geradas: 0, falhas: 1 }; }
+  let geradas = 0, falhas = 0;
+  for (const cf of data || []) {
+    if (!(Number(cf.valor_mensal) > 0)) continue;
+    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, mesReferencia);
+    if (r.erro) falhas++; else if (!r.jaExiste) geradas++;
+  }
+  return { geradas, falhas };
 }
 
 // ============================================================================
