@@ -29,6 +29,8 @@ export default function AvisoDuplicidade({ aviso, temaClaro, onBloquear, onLanca
             ? L('Este dinheiro já está lançado. Não lancei de novo, para não contar duas vezes:', 'This money is already recorded. I did not record it again, to avoid counting it twice:', 'Este dinero ya está registrado. No lo registré de nuevo, para no contarlo dos veces:')
             : L('Já existe um lançamento com o mesmo valor e a mesma data. É o mesmo dinheiro?', 'There is already an entry with the same amount and date. Is it the same money?', 'Ya existe un registro con el mismo valor y fecha. ¿Es el mismo dinero?')}
         </p>
+        {aviso?.explicacao && <p className="text-xs mt-2 font-semibold" style={{ color: texto }}>{aviso.explicacao}</p>}
+        {!certa && aviso?.pergunta && <p className="text-sm mt-2 font-bold" style={{ color: texto }}>❓ {aviso.pergunta}</p>}
         <div className="mt-3 space-y-1.5">
           {aviso?.suspeitas.map((s, i) => (
             <div key={i} className="rounded-lg px-3 py-2 text-xs axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.04)', color: texto }}>

@@ -30,6 +30,8 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
+import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
+import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -167,14 +169,24 @@ export default function CustosVariaveis() {
     setModalAberto(true);
   };
 
-  const salvar = async () => {
-    if (!novo.descricao || !novo.valor) return;
+  // Suspeita de duplicata (Motor Antiduplicidade) — só quando há dúvida ou bloqueio.
+  const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null);
+  const salvar = async (forcar = false) => {
+    if (!novo.descricao || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const empresaId = await obterEmpresaAtiva();
     if (!empresaId) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || hojeISO(), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
+    // Espinha financeira: custo pago vai pra Contabilidade e Fluxo de Caixa pelo motor,
+    // depois de conferir se esse dinheiro já não saiu por outro caminho (conta paga, nota).
+    if (!forcar) {
+      const v = await verificarDuplicidade(empresaId, { entrada: false, valor: payload.valor, data: payload.data, descricao: payload.descricao, ignorar: editando ? { tabela: "custos_variaveis", id: editando.id } : undefined, lang });
+      if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
+    }
+    const lancar = (id: string) => registrarLancamentoManual(empresaId, "custos_variaveis", { id, descricao: payload.descricao, valor: payload.valor, data: payload.data, natureza: "custo", categoria: payload.categoria, centro_custo_id: payload.centro_custo_id });
+    const avisoMotor = L("Custo salvo, mas a Contabilidade/Fluxo não foi atualizada agora — o Guardião tenta de novo.", "Cost saved, but Accounting/Cash Flow was not updated now — the Guardian will retry.", "Costo guardado, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará.");
     if (editando) {
       const { data, error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -183,6 +195,10 @@ export default function CustosVariaveis() {
         setSalvando(false);
         return;
       }
+      // Edição: desfaz o lançamento anterior em todos os módulos e lança o novo.
+      const desf = await desfazerLancamentoManual(empresaId, "custos_variaveis", editando.id);
+      const novoL = desf.erro ? desf : await lancar(editando.id);
+      if (novoL.erro) showToast(avisoMotor, "erro");
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
       if (auditoria.erro) showToast(L("Custo variável salvo, mas o registro de auditoria falhou.", "Variable cost saved, but the audit record failed.", "Costo variable guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarTudo();
@@ -194,6 +210,8 @@ export default function CustosVariaveis() {
         setSalvando(false);
         return;
       }
+      const novoL = await lancar(data.id);
+      if (novoL.erro) showToast(avisoMotor, "erro");
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
       if (auditoria.erro) showToast(L("Custo variável salvo, mas o registro de auditoria falhou.", "Variable cost saved, but the audit record failed.", "Costo variable guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarTudo();
@@ -205,6 +223,10 @@ export default function CustosVariaveis() {
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
+    if (empresaId) {
+      const desf = await desfazerLancamentoManual(empresaId, "custos_variaveis", id);
+      if (desf.erro) { showToast(L("Não foi possível desfazer este custo na Contabilidade/Fluxo. Tente novamente.", "Could not undo this cost in Accounting/Cash Flow. Try again.", "No se pudo deshacer este costo en Contabilidad/Flujo. Intente de nuevo."), "erro"); return; }
+    }
     const { data, error } = await supabase.from("custos_variaveis").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(L("Não foi possível excluir o custo variável. Tente novamente.", "Could not delete the variable cost. Try again.", "No se pudo eliminar el costo variable. Intente de nuevo."), "erro");
@@ -664,7 +686,7 @@ export default function CustosVariaveis() {
                     />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} disabled={salvando}
+                    onClick={() => salvar()} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
                     style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.custosVariaveis.salvarCusto}
@@ -688,6 +710,7 @@ export default function CustosVariaveis() {
       />
 
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
+      <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
     </ModuloLayout>
     </div>
   );

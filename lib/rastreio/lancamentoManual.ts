@@ -15,6 +15,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { registrarMovimentacao, type PayloadRastreio } from "./motor";
 import { normalizarTexto } from "../cfoCore";
+import { avaliarDuplicidade, type Idioma } from "../motorDuplicidade";
 import { hojeISO } from "../datas";
 
 const supabase = createBrowserClient(
@@ -101,43 +102,27 @@ export async function desfazerLancamentoManual(empresaId: string, origem: Origem
 }
 
 // ============================================================================
-// DUPLICIDADE
+// DUPLICIDADE — porta única: Motor Antiduplicidade (lib/motorDuplicidade.ts).
+// Regra (documento, fornecedor, forma de pagamento, datas) → IA só na dúvida →
+// pergunta ao humano. Aqui só traduz o resultado para o aviso das telas manuais.
 // ============================================================================
 export type Suspeita = { modulo: string; descricao: string; valor: number; data: string };
-export type VeredictoDuplicidade = { veredicto: "segue" | "duplicata" | "perguntar"; suspeitas: Suspeita[] };
-
-const dias = (a: string, b: string) => Math.abs(new Date(`${a}T12:00:00Z`).getTime() - new Date(`${b}T12:00:00Z`).getTime()) / 86400000;
-function parecido(a: string, b: string): boolean {
-  const tokens = (t: string) => normalizarTexto(t || "").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((x) => x.length > 2);
-  const ta = tokens(a);
-  const tb = new Set(tokens(b));
-  if (!ta.length || !tb.size) return false;
-  const comuns = ta.filter((x) => tb.has(x)).length;
-  return comuns / Math.min(ta.length, tb.size) >= 0.5;
-}
+export type VeredictoDuplicidade = { veredicto: "segue" | "duplicata" | "perguntar"; suspeitas: Suspeita[]; explicacao?: string; pergunta?: string | null };
 
 export async function verificarDuplicidade(
   empresaId: string,
-  d: { entrada: boolean; valor: number; data: string; descricao: string; contraparteNome?: string | null; ignorar?: { tabela: OrigemManual; id: string } },
+  d: { entrada: boolean; valor: number; data: string; descricao: string; contraparteNome?: string | null; forma?: string | null; ignorar?: { tabela: OrigemManual; id: string }; lang?: Idioma },
 ): Promise<VeredictoDuplicidade> {
-  const v = Math.round(d.valor * 100) / 100;
-  if (!(v > 0)) return { veredicto: "segue", suspeitas: [] };
-  const ini = new Date(new Date(`${d.data}T12:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
-  const fim = new Date(new Date(`${d.data}T12:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10);
-  const tabela = d.entrada ? "receitas" : "custos_variaveis";
-  const [mod, fc] = await Promise.all([
-    supabase.from(tabela).select("id, descricao, valor, data").eq("empresa_id", empresaId).gte("valor", v - 0.01).lte("valor", v + 0.01).gte("data", ini).lte("data", fim).limit(20),
-    supabase.from("fluxo_caixa").select("id, descricao, valor, data, rastreio_id").eq("empresa_id", empresaId).eq("tipo", d.entrada ? "entrada" : "saida")
-      .eq("status", "realizado").gte("valor", v - 0.01).lte("valor", v + 0.01).gte("data", ini).lte("data", fim).limit(20),
-  ]);
-  const nomeMod = d.entrada ? "Receitas" : "Custos Variáveis";
-  const achados: Suspeita[] = [
-    ...(mod.data || []).filter((x) => !(d.ignorar?.tabela === tabela && d.ignorar.id === x.id)).map((x) => ({ modulo: nomeMod, descricao: x.descricao, valor: Number(x.valor), data: x.data })),
-    // Fluxo com rastro já é cópia de Receitas/Custos/Contas — só conta o que foi digitado lá
-    ...(fc.data || []).filter((x) => !x.rastreio_id && !(d.ignorar?.tabela === "fluxo_caixa" && d.ignorar.id === x.id)).map((x) => ({ modulo: "Fluxo de Caixa", descricao: x.descricao, valor: Number(x.valor), data: x.data })),
-  ].filter((x) => dias(x.data, d.data) <= 1);
-  if (!achados.length) return { veredicto: "segue", suspeitas: [] };
-  const texto = `${d.descricao} ${d.contraparteNome || ""}`;
-  const certas = achados.filter((x) => parecido(texto, x.descricao));
-  return certas.length ? { veredicto: "duplicata", suspeitas: certas } : { veredicto: "perguntar", suspeitas: achados };
+  if (!(d.valor > 0)) return { veredicto: "segue", suspeitas: [] };
+  const lang = d.lang ?? "pt";
+  const [a] = await avaliarDuplicidade(empresaId, [{
+    valor: d.valor, data: d.data, descricao: d.descricao, contraparteNome: d.contraparteNome ?? null, forma: d.forma ?? null,
+    entrada: d.entrada, destino: d.ignorar?.tabela, ignorarId: d.ignorar?.id,
+  }], lang);
+  if (a.decisao === "segue") return { veredicto: "segue", suspeitas: [] };
+  return {
+    veredicto: a.decisao,
+    suspeitas: a.suspeitas.slice(0, 5).map((x) => ({ modulo: x.candidato.modulo[lang], descricao: x.candidato.descricao || "—", valor: x.candidato.valor, data: x.candidato.data || x.candidato.vencimento || "" })),
+    explicacao: a.explicacao, pergunta: a.pergunta,
+  };
 }

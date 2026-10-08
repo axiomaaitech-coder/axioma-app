@@ -28,6 +28,8 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
+import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, naturezaDoFluxo, NATUREZAS_FLUXO, type Natureza, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 import { hojeISO, agora } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.92), rgba(10,22,40,0.96))";
@@ -47,7 +49,7 @@ const supabase = createBrowserClient(
 
 type LancamentoFC = {
   id: string; descricao: string; tipo: string;
-  valor: number; data: string; status: string;
+  valor: number; data: string; status: string; categoria?: string | null;
 };
 
 function isoHoje(): string { return hojeISO(); }
@@ -100,6 +102,7 @@ export default function FluxoCaixa() {
   const rupturaFundo = temaClaro ? RUPTURA_PAINEL_CLARO : RUPTURA_PAINEL_ESCURO;
   const campoFundo = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const cx = cfoT(lang);
   // Efeito do Claro (borda + faixa verde-menta no topo) também no Escuro — pedido do Elias 2026-10-03
   const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
@@ -132,7 +135,7 @@ export default function FluxoCaixa() {
   const [carregando, setCarregando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<LancamentoFC | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" });
+  const [novo, setNovo] = useState({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", natureza: "receita" as Natureza });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
@@ -186,21 +189,35 @@ export default function FluxoCaixa() {
 
   const abrirEdicao = (l: LancamentoFC) => {
     setEditando(l);
-    setNovo({ descricao: l.descricao, tipo: l.tipo, valor: String(l.valor), data: l.data, status: l.status });
+    setNovo({ descricao: l.descricao, tipo: l.tipo, valor: String(l.valor), data: l.data, status: l.status, natureza: naturezaDoFluxo(l.categoria, l.tipo) });
     setModalAberto(true);
   };
 
   const fecharModal = () => {
     setModalAberto(false); setEditando(null);
-    setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" });
+    setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", natureza: "receita" });
   };
 
-  const salvar = async () => {
-    if (!novo.descricao || !novo.valor || !novo.data) return;
+  // Suspeita de duplicata (Motor Antiduplicidade) — só quando há dúvida ou bloqueio.
+  const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null);
+  const salvar = async (forcar = false) => {
+    if (!novo.descricao || !(parseFloat(novo.valor) > 0) || !novo.data) { showToast(L("Preencha descrição, valor maior que zero e data.", "Fill in description, an amount above zero and date.", "Complete descripción, valor mayor que cero y fecha."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
-    const payload = { descricao: novo.descricao, tipo: novo.tipo, valor: parseFloat(novo.valor), data: novo.data, status: novo.status };
+    const empresaId = user ? await obterEmpresaAtiva() : null;
+    if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página e tente de novo.", "Session or company not found. Reload the page and try again.", "Sesión o empresa no encontrada. Recargue la página e intente de nuevo."), "erro"); return; }
+    const infoNat = NATUREZAS_FLUXO.find((n) => n.natureza === novo.natureza);
+    const payload = { descricao: novo.descricao, tipo: novo.tipo, valor: parseFloat(novo.valor), data: novo.data, status: novo.status, categoria: infoNat?.pt ?? null };
+    // Só dinheiro que JÁ se moveu (realizado) vai pra Contabilidade/DRE; previsto é planejamento.
+    const realizado = payload.status === "realizado";
+    if (!forcar && realizado) {
+      const v = await verificarDuplicidade(empresaId, { entrada: payload.tipo === "entrada", valor: payload.valor, data: payload.data, descricao: payload.descricao, ignorar: editando ? { tabela: "fluxo_caixa", id: editando.id } : undefined, lang });
+      if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
+    }
+    const lancar = (id: string) => realizado
+      ? registrarLancamentoManual(empresaId, "fluxo_caixa", { id, descricao: payload.descricao, valor: payload.valor, data: payload.data, natureza: novo.natureza, categoria: payload.categoria })
+      : Promise.resolve({} as { erro?: string });
+    const avisoMotor = L("Lançamento salvo, mas a Contabilidade/DRE não foi atualizada agora — o Guardião tenta de novo.", "Entry saved, but Accounting/P&L was not updated now — the Guardian will retry.", "Registro guardado, pero Contabilidad/Resultados no se actualizó ahora — el Guardián reintentará.");
     if (editando) {
       const { data, error } = await supabase.from("fluxo_caixa").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -209,9 +226,11 @@ export default function FluxoCaixa() {
         setSalvando(false);
         return;
       }
+      // Edição: desfaz o lançamento anterior em todos os módulos e lança o novo.
+      const desf = await desfazerLancamentoManual(empresaId, "fluxo_caixa", editando.id);
+      const novoL = desf.erro ? desf : await lancar(editando.id);
+      if (novoL.erro) showToast(avisoMotor, "erro");
     } else {
-      const empresaId = await obterEmpresaAtiva();
-      if (!empresaId) { setSalvando(false); return; }
       const { data, error } = await supabase.from("fluxo_caixa").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
       if (error || !data || data.length === 0) {
         showToast(txt.erroSalvarLancamento, "erro");
@@ -219,11 +238,18 @@ export default function FluxoCaixa() {
         setSalvando(false);
         return;
       }
+      const novoL = await lancar(data[0].id);
+      if (novoL.erro) showToast(avisoMotor, "erro");
     }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 
   const excluir = async (id: string) => {
+    const empresaId = await obterEmpresaAtiva();
+    if (empresaId) {
+      const desf = await desfazerLancamentoManual(empresaId, "fluxo_caixa", id);
+      if (desf.erro) { showToast(L("Não foi possível desfazer este lançamento na Contabilidade/DRE. Tente novamente.", "Could not undo this entry in Accounting/P&L. Try again.", "No se pudo deshacer este registro en Contabilidad/Resultados. Intente de nuevo."), "erro"); return; }
+    }
     const { data, error } = await supabase.from("fluxo_caixa").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(txt.erroExcluirLancamento, "erro");
@@ -432,13 +458,14 @@ export default function FluxoCaixa() {
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.fluxoCaixa.titulo} subtitulo={t.fluxoCaixa.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" }); setModalAberto(true); }}
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", natureza: "receita" }); setModalAberto(true); }}
       labelBotao={t.fluxoCaixa.novoLancamento}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar="linear-gradient(135deg, #16a97d, #2ecc9b)"
       corNovo="linear-gradient(135deg, #16a97d, #2ecc9b)"
       botaoExtra={<ThemeToggle />}>
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
+      <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -692,16 +719,27 @@ export default function FluxoCaixa() {
                       style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>Tipo</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{L("Tipo", "Type", "Tipo")}</label>
                     <div className="flex gap-2">
                       {["entrada", "saida"].map((tipo) => (
-                        <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, tipo })}
+                        <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, tipo, natureza: NATUREZAS_FLUXO.some((n) => n.natureza === novo.natureza && (n.entrada === null || n.entrada === (tipo === "entrada"))) ? novo.natureza : tipo === "entrada" ? "receita" : "custo" })}
                           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
                           style={{ background: novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)") : "rgba(163,177,194,0.05)", color: novo.tipo === tipo ? (tipo === "entrada" ? ct("#34d399") : ct("#f87171")) : TEXTO_SEC, border: `1px solid ${novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)") : "rgba(163,177,194,0.1)"}` }}>
                           {tipo === "entrada" ? t.fluxoCaixa.entrada : t.fluxoCaixa.saida}
                         </motion.button>
                       ))}
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{L("Natureza", "Nature", "Naturaleza")}</label>
+                    <select value={novo.natureza} onChange={(e) => setNovo({ ...novo, natureza: e.target.value as Natureza })}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
+                      {NATUREZAS_FLUXO.filter((n) => n.entrada === null || n.entrada === (novo.tipo === "entrada")).map((n) => (
+                        <option key={n.natureza} value={n.natureza}>{n[lang]}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] mt-1" style={{ color: TEXTO_SEC }}>{L("Só Receita e Custo entram na DRE. Aporte, empréstimo, retirada, transferência e aplicação mexem só no caixa e na contabilidade.", "Only Revenue and Cost reach the P&L. Contributions, loans, withdrawals, transfers and investments only affect cash and accounting.", "Solo Ingreso y Costo entran al Estado de Resultados. Aportes, préstamos, retiros, transferencias e inversiones solo afectan caja y contabilidad.")}</p>
                   </div>
                   {[
                     { label: t.geral.valor, key: "valor", type: "number" },
@@ -727,10 +765,10 @@ export default function FluxoCaixa() {
                     </div>
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} disabled={salvando}
+                    onClick={() => salvar()} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
                     style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
-                    {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.fluxoCaixa.salvarLancamento}
+                    {salvando ? t.geral.carregando : editando ? L("Salvar Alterações", "Save Changes", "Guardar Cambios") : t.fluxoCaixa.salvarLancamento}
                   </motion.button>
                 </div>
               </CanvasBox>

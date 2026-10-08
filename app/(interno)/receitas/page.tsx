@@ -152,7 +152,7 @@ export default function Receitas() {
     // antes, o motor confere se esse dinheiro já não entrou por outro caminho.
     if (!forcar && payload.status === "recebido") {
       const v = await verificarDuplicidade(empresaId, { entrada: true, valor: payload.valor, data: payload.data, descricao: payload.descricao,
-        contraparteNome: clientesOpcoes.find((c) => c.id === payload.cliente_id)?.nome, ignorar: editando ? { tabela: "receitas", id: editando.id } : undefined });
+        contraparteNome: clientesOpcoes.find((c) => c.id === payload.cliente_id)?.nome, ignorar: editando ? { tabela: "receitas", id: editando.id } : undefined, lang });
       if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
     }
     const lancar = (id: string) => payload.status === "recebido"
