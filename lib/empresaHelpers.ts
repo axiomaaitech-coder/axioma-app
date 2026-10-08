@@ -1051,8 +1051,16 @@ export async function decidirConvite(conviteId: string, aprovar: boolean, motivo
 
 // Apaga os dados pessoais (nome/CPF/e-mail) do termo — só dono/admin, com motivo; fica o registro de quem apagou.
 export async function apagarTermoConvite(id: string, motivo: string): Promise<{ erro?: string; codigo?: string }> {
-  const { error } = await supabase.rpc("apagar_termo_convite", { p_id: id, p_motivo: motivo });
-  if (error) { reportarFalhaEscrita("empresa_convite_termo", "rpc apagar_termo_convite", error.message); return { erro: error.message, codigo: error.code }; }
+  return acaoTermo({ acao: "termo_apagar", termoId: id, motivo });
+}
+// Manda o termo pra Lixeira (60 dias; dá pra recuperar ou apagar de vez lá)
+export async function termoParaLixeira(id: string): Promise<{ erro?: string; codigo?: string }> {
+  return acaoTermo({ acao: "termo_lixeira", termoId: id });
+}
+async function acaoTermo(corpo: Record<string, string>): Promise<{ erro?: string; codigo?: string }> {
+  const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  const r = await resp.json().catch(() => ({ erro: "generico" }));
+  if (r.erro) { reportarFalhaEscrita("empresa_convite_termo", `api convite ${corpo.acao}`, String(r.erro)); return { erro: String(r.erro), codigo: String(r.erro) }; }
   return {};
 }
 

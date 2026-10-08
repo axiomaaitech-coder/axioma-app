@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
   if (corpo?.acao === 'conferir') return aceitar(corpo, true)
   if (corpo?.acao === 'aceitar') return aceitar(corpo)
   if (corpo?.acao === 'decidir') return decidir(corpo)
+  if (corpo?.acao === 'termo_lixeira' || corpo?.acao === 'termo_apagar') return termo(corpo)
   return erro('acao')
 }
 
@@ -258,6 +259,30 @@ async function aceitar(corpo: any, soConferir = false) {
   if (e2) falhaServidor('gravar termo de aceite', e2.message, { conviteId: cv.id, empresaId: cv.empresa_id })
 
   return NextResponse.json({ aguardando: true })
+}
+
+// Termo de convite (Elias 2026-10-08): lixeirinha manda pra Lixeira (60 dias,
+// recupera); na Lixeira, "Apagar de vez" tira nome/CPF/e-mail com motivo.
+async function termo(corpo: any) {
+  const user = await usuarioLogado()
+  if (!user) return erro('login', 401)
+  const db = admin()
+  const { data: tm } = await db.from('empresa_convite_termo').select('id, empresa_id, saiu_em').eq('id', String(corpo.termoId || '')).is('apagado_em', null).maybeSingle()
+  if (!tm) return erro('invalido', 404)
+  if (!(await podeLiberar(db, tm.empresa_id, user.id))) return erro('sem_permissao', 403)
+  const agora = new Date().toISOString()
+  if (corpo.acao === 'termo_lixeira') {
+    const { error } = await db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('id', tm.id)
+    if (error) { console.error('[termo] lixeira:', error.message); return erro('generico', 500) }
+    return NextResponse.json({ ok: true })
+  }
+  const motivo = String(corpo.motivo || '').trim()
+  if (motivo.length < 5) return erro('motivo')
+  const { error } = await db.from('empresa_convite_termo').update({
+    nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: motivo,
+  }).eq('id', tm.id)
+  if (error) { console.error('[termo] apagar:', error.message); return erro('generico', 500) }
+  return NextResponse.json({ ok: true })
 }
 
 // CEO/Sócio/Admin aprova ou recusa quem já confirmou o e-mail. Aprovar dá o acesso.
