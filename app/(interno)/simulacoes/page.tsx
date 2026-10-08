@@ -108,6 +108,8 @@ export default function Simulacoes() {
   // ═══════════════════════ CHOQUES ═══════════════════════
   const [choqueReceita, setChoqueReceita] = useState("0");
   const [choqueCustoFixo, setChoqueCustoFixo] = useState("0");
+  // "E se eu contratar 3 pessoas?" — custo fixo NOVO em reais por mês (salários + encargos).
+  const [novoCustoFixo, setNovoCustoFixo] = useState("0");
   const [choqueCustoVariavel, setChoqueCustoVariavel] = useState("0");
   const [choqueJuros, setChoqueJuros] = useState("0");
   const [choqueAporte, setChoqueAporte] = useState("0");
@@ -212,28 +214,30 @@ export default function Simulacoes() {
       aporteCapital: parseFloat(choqueAporte || "0"), retornoMensalAporte: parseFloat(choqueRetornoAporte || "0"),
     };
     const horizonte = Math.max(1, parseInt(horizonteMeses || "12"));
+    // Simulação nunca grava nada: o custo novo só existe dentro deste cálculo.
+    const custoFixoBase = custoFixoMensalTotal + Math.max(0, parseFloat(novoCustoFixo || "0") || 0);
 
     const cenarios = simularCenariosExecutivos({
-      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoMensalTotal,
+      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoBase,
       custoVariavelMensalAtual: custoVariavelMensalMedia, despesasFinanceirasMensalAtual: despesasFinanceirasMensal,
       dividaTotalAtual: dividaTotal, aliquotaEfetivaPct, saldoCaixaAtual: caixaDisponivel, choque, horizonteMeses: horizonte,
     });
 
     const sensibilidade = analiseSensibilidade({
-      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoMensalTotal,
+      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoBase,
       custoVariavelMensalAtual: custoVariavelMensalMedia, despesasFinanceirasMensalAtual: despesasFinanceirasMensal,
       dividaTotalAtual: dividaTotal, aliquotaEfetivaPct, exposicaoCambialPct: parseFloat(exposicaoCambial || "0"),
     });
 
     const monteCarlo = simulacaoMonteCarlo({
-      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoMensalTotal,
+      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoBase,
       custoVariavelMensalAtual: custoVariavelMensalMedia, despesasFinanceirasMensalAtual: despesasFinanceirasMensal,
       dividaTotalAtual: dividaTotal, aliquotaEfetivaPct, saldoCaixaAtual: caixaDisponivel, choque, horizonteMeses: horizonte,
     });
 
     const receitaSimulada = receitaMensalMedia * (1 + choque.receitaPct / 100) + choque.retornoMensalAporte;
     const custoVariavelSimulado = custoVariavelMensalMedia * (1 + choque.custoVariavelPct / 100);
-    const custoFixoSimulado = custoFixoMensalTotal * (1 + choque.custoFixoPct / 100);
+    const custoFixoSimulado = custoFixoBase * (1 + choque.custoFixoPct / 100);
     const tributario: ResultadoTributario[] = (["simples nacional", "presumido", "real"] as RegimeSimulado[]).map((regime) => {
       const impostoMensal = calcularImpostoRegime(regime, receitaSimulada * 12, receitaSimulada);
       const dre = montarDRE({
@@ -482,6 +486,7 @@ export default function Simulacoes() {
                 {[
                   { l: cx.invChoqueReceita, v: choqueReceita, set: setChoqueReceita },
                   { l: cx.invChoqueCustoFixo, v: choqueCustoFixo, set: setChoqueCustoFixo },
+                  { l: lang === "en" ? "New fixed cost (R$/month) — e.g. hires" : lang === "es" ? "Nuevo costo fijo (R$/mes) — ej. contrataciones" : "Novo custo fixo (R$/mês) — ex.: contratações", v: novoCustoFixo, set: setNovoCustoFixo },
                   { l: cx.invChoqueCustoVariavel, v: choqueCustoVariavel, set: setChoqueCustoVariavel },
                   { l: cx.invChoqueJuros, v: choqueJuros, set: setChoqueJuros },
                   { l: cx.invChoqueAporte, v: choqueAporte, set: setChoqueAporte },

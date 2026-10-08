@@ -79,7 +79,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const hoje = new Date()
   const iso = (d: Date) => d.toISOString().slice(0, 10)
   const inicio12 = iso(new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()))
-  const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr] = await Promise.all([
+  const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
     supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade').eq('id', empresaId).maybeSingle(),
     lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).order('id')),
@@ -90,6 +90,8 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
     lerTodas(() => supabase.from('contas_pagar').select('valor_total, valor_pago, data_vencimento').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('vw_estoque_avisos').select('ruptura, baixo_estoque, capital_parado').eq('empresa_id', empresaId).order('produto_id')),
     lerTodas(() => supabase.from('empresa_obrigacoes').select('status, data_vencimento').eq('empresa_id', empresaId).order('id')),
+    // Descobertas abertas do Motor de Descobertas (CFO proativo, Parte 2.3): já vêm com evidência.
+    supabase.from('contador_descoberta').select('prioridade, titulo, causa, confianca, evidencia').eq('empresa_id', empresaId).eq('status', 'aberto').in('prioridade', ['P0', 'P1', 'P2']).order('prioridade').order('criado_em', { ascending: false }).limit(5),
   ])
   if (!emp.data) throw new Error('empresa não encontrada ou sem acesso')
   const e = emp.data as Linha
@@ -157,6 +159,8 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const nome = String(e.nome_fantasia || e.razao_social || 'sem nome')
   const cnae = e.cnae_principal ? `${e.cnae_principal}${e.cnae_descricao ? ` - ${e.cnae_descricao}` : ''}` : null
 
+  const descobertas = ((desc.data ?? []) as { prioridade: string; titulo: string; causa: string | null; confianca: string; evidencia: { acao?: string } | null }[])
+    .map((d) => `[${d.prioridade} · ${d.confianca}] ${d.titulo}${d.causa ? ` — ${d.causa}` : ''}${d.evidencia?.acao ? ` (ação: ${d.evidencia.acao})` : ''}`).join(' | ')
   const x = numeros
   const texto = `EMPRESA: ${nome} · regime ${regime ?? 'não informado'}${e.porte ? ` · porte ${e.porte}` : ''} · CNAE ${cnae ?? 'não cadastrado'}
 SETOR: ${setor ? setor.nome.pt : 'não identificado (sem CNAE) — trate como empresa típica e sugira cadastrar o CNAE'}
@@ -174,7 +178,8 @@ MAIORES CUSTOS FIXOS: ${maiores(L(cf), 'valor_mensal', 1) || 'nenhum cadastrado'
 MAIORES CUSTOS VARIÁVEIS (média/mês): ${maiores(L(cv), 'valor', 12) || 'nenhum'}
 MAIORES FONTES DE RECEITA (média/mês): ${maiores(receitas, 'valor', 12) || 'nenhuma'}
 DÍVIDAS: ${dividas.map((d) => `${d.descricao || 'dívida'} saldo ${fBRL(saldoDiv(d))} juros ${d.taxa_juros ?? '?'}%`).join('; ') || 'nenhuma'}
-ALERTAS DA SITUAÇÃO: ${alertas.join(' | ') || 'nenhum'}`
+ALERTAS DA SITUAÇÃO: ${alertas.join(' | ') || 'nenhum'}
+DESCOBERTAS ABERTAS DO MOTOR (com evidência; confiança indicada): ${descobertas || 'nenhuma'}`
 
   return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso }
 }
