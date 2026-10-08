@@ -292,6 +292,11 @@ async function executarDreGerencial(r: Rastreio): Promise<Resultado> {
     // Conta nascida de um Custo Fixo já está somada no módulo Custos Fixos (DRE
     // mensal): lançar de novo como custo variável contaria o mesmo gasto 2 vezes.
     if (r.payload.custo_fixo_id) return { status: "nao_aplica" };
+    // Custo da nota já lançado em Custos Variáveis na importação (o humano escolheu
+    // onde ele entra): o pagamento não lança de novo — mesmo gasto contado 2 vezes.
+    const jaLancado = await custoJaLancadoPelaNota(r);
+    if (jaLancado === null) return { status: "falhou", erro: "leitura do custo já lançado pela nota" };
+    if (jaLancado) return { status: "nao_aplica" };
     // Juros/multa por atraso não é custo do produto: fica só na contabilidade (9.01).
     const principal = r2(r.valor - r.encargos);
     if (principal <= 0) return { status: "nao_aplica" };
@@ -329,6 +334,26 @@ async function executarInadimplencia(r: Rastreio): Promise<Resultado> {
 
 // Estorno de lançamento manual: tira só o que AQUELE rastro deixou (edição nunca
 // apaga o lançamento novo da mesma linha).
+// A nota de compra pode ter várias parcelas (mesma chave de acesso, ou mesmo nº de
+// nota + fornecedor): o custo lançado pela importação fica ligado à 1ª delas.
+async function custoJaLancadoPelaNota(r: Rastreio): Promise<boolean | null> {
+  if (r.origem_tabela !== "contas_pagar") return false;
+  const { data: conta, error } = await supabase.from("contas_pagar").select("id, chave_acesso, numero_nota, fornecedor_id").eq("id", r.origem_id).maybeSingle();
+  if (error) return null;
+  if (!conta) return false;
+  let irmas: string[] = [conta.id];
+  if (conta.chave_acesso || (conta.numero_nota && conta.fornecedor_id)) {
+    const q = supabase.from("contas_pagar").select("id").eq("empresa_id", r.empresa_id);
+    const { data: lista, error: e2 } = await (conta.chave_acesso ? q.eq("chave_acesso", conta.chave_acesso) : q.eq("numero_nota", conta.numero_nota).eq("fornecedor_id", conta.fornecedor_id)).limit(200);
+    if (e2) return null;
+    irmas = [...new Set([conta.id, ...(lista || []).map((x) => x.id as string)])];
+  }
+  const { data: custo, error: e3 } = await supabase.from("custos_variaveis").select("id").eq("empresa_id", r.empresa_id)
+    .eq("origem_tabela", "contas_pagar").in("origem_id", irmas).is("rastreio_id", null).limit(1);
+  if (e3) return null;
+  return !!custo?.length;
+}
+
 async function apagarDoRastro(tabela: "fluxo_caixa" | "receitas" | "custos_variaveis", r: Rastreio): Promise<Resultado> {
   const original = r.payload.rastreio_original_id;
   if (!original) return { status: "nao_aplica" };

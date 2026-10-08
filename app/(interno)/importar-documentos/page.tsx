@@ -929,7 +929,7 @@ export default function ImportarDocumentosPage() {
     const avisos: string[] = [];
     const variavel = async (g: { valor: number; itens: string[] } | undefined, rotulo: string, cat: string) => {
       if (!g) return;
-      const r = await lancarCustoVariavelDaNota(userId, empresaId, { data: emissao, valor: Math.round(g.valor * 100) / 100, descricao: `${base} (${rotulo})`, categoria: cat, documento: m.numero_nf ? String(m.numero_nf) : undefined });
+      const r = await lancarCustoVariavelDaNota(userId, empresaId, { data: emissao, valor: Math.round(g.valor * 100) / 100, descricao: `${base} (${rotulo})`, categoria: cat, documento: m.numero_nf ? String(m.numero_nf) : undefined, contaPagarId: idsContasPagar[0] });
       avisos.push(r.erro ? `⚠️ ${L("Falha ao lançar em Custos Variáveis", "Failed to post to Variable Costs", "Error al registrar en Costos Variables")}` : `✓ ${fBRL(g.valor)} ${L("em Custos Variáveis", "in Variable Costs", "en Costos Variables")}`);
     };
     const rFixo = respostasSup.lanc_custo_fixo;

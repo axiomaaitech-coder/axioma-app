@@ -1658,11 +1658,14 @@ export async function salvarTemplate(params: {
 export async function lancarCustoVariavelDaNota(
   userId: string,
   empresaId: string,
-  dados: { data: string; valor: number; descricao: string; categoria: string; documento?: string },
+  dados: { data: string; valor: number; descricao: string; categoria: string; documento?: string; contaPagarId?: string },
 ): Promise<{ id?: string; erro?: string }> {
   const build = BUILDERS.custos_variaveis({ data: dados.data, valor: dados.valor, descricao: dados.descricao, categoria: dados.categoria, documento: dados.documento, raw: {} }, userId, empresaId);
   if ("erro" in build) return { erro: build.erro };
-  const { data, error } = await supabase.from("custos_variaveis").insert(build.payload).select("id").single();
+  // Ligado à conta da nota: quando ela for paga, o Motor de Rastreabilidade sabe que
+  // o custo já está na DRE e não lança de novo (lib/rastreio/motor.ts).
+  const ligacao = dados.contaPagarId ? { origem_tabela: "contas_pagar", origem_id: dados.contaPagarId } : {};
+  const { data, error } = await supabase.from("custos_variaveis").insert({ ...build.payload, ...ligacao }).select("id").single();
   if (error || !data) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("custos_variaveis", "insert (custo da nota importada)", motivo);
