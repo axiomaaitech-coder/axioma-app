@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
   if (corpo?.acao === 'decidir') return decidir(corpo)
   if (corpo?.acao === 'termo_lixeira' || corpo?.acao === 'termo_apagar') return termo(corpo)
   if (['lixeira_listar', 'convite_lixeira', 'convite_recuperar', 'convite_apagar'].includes(corpo?.acao)) return lixeiraConvite(corpo)
+  if (corpo?.acao === 'membro_lixeira') return membroLixeira(corpo)
   return erro('acao')
 }
 
@@ -305,7 +306,7 @@ async function lixeiraConvite(corpo: any) {
     if (error) { console.error('[lixeira] listar:', error.message); return erro('generico', 500) }
     return NextResponse.json({ itens: data || [] })
   }
-  const { data: cv } = await db.from('empresa_equipe').select('id, empresa_id, situacao, convite_aceito, user_id_convidado').eq('id', String(corpo.conviteId || '')).maybeSingle()
+  const { data: cv } = await db.from('empresa_equipe').select('id, empresa_id, situacao, convite_aceito, user_id_convidado, aceito_em, papel, acesso_dias').eq('id', String(corpo.conviteId || '')).maybeSingle()
   if (!cv) return erro('invalido', 404)
   if (!(await podeLiberar(db, cv.empresa_id, user.id))) return erro('sem_permissao', 403)
 
@@ -320,6 +321,21 @@ async function lixeiraConvite(corpo: any) {
   }
   if (corpo.acao === 'convite_recuperar') {
     if (cv.situacao !== 'recusado') return erro('invalido', 409)
+    // Quem já tinha acesso (CEO/Sócio/Admin na Lixeira): volta direto, com justificativa
+    if (cv.user_id_convidado && cv.aceito_em) {
+      const just = String(corpo.motivo || '').trim()
+      if (just.length < 5) return erro('motivo')
+      const expira = cv.acesso_dias == null ? null : new Date(Date.now() + cv.acesso_dias * 86400000).toISOString()
+      // varredura:ok — service role (sem RLS); erro checado logo abaixo
+      const { error: eA } = await db.from('empresa_usuarios').upsert(
+        { empresa_id: cv.empresa_id, user_id: cv.user_id_convidado, papel: cv.papel || 'leitor', acesso_expira_em: expira, convite_id: cv.id,
+          suspenso_em: null, suspenso_por: null, suspenso_motivo: null },
+        { onConflict: 'empresa_id,user_id' })
+      if (eA) { console.error('[lixeira] recuperar acesso:', eA.message); return erro('generico', 500) }
+      await db.from('empresa_equipe').update({ situacao: 'aprovado', convite_aceito: true, decidido_por: user.id, decidido_em: agora, motivo_recusa: `Recuperado: ${just}` }).eq('id', cv.id)
+      await db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null)
+      return NextResponse.json({ ok: true })
+    }
     const { error } = await db.from('empresa_equipe').update({
       situacao: cv.user_id_convidado ? 'aguardando_aprovacao' : 'enviado', decidido_por: null, decidido_em: null, motivo_recusa: null,
     }).eq('id', cv.id)
@@ -339,6 +355,41 @@ async function lixeiraConvite(corpo: any) {
   const { error } = await db.from('empresa_equipe').delete().eq('id', cv.id)
   if (error) { console.error('[lixeira] apagar:', error.message); return erro('generico', 500) }
   return NextResponse.json({ ok: true })
+}
+
+// Lixeira de quem já entrou (Elias 2026-10-08): tira o acesso na hora. CEO/Sócio/Admin
+// vão pra Lixeira (60 dias; Recuperar = volta pra "Aguardando aprovação"); os demais
+// saem de vez. Ninguém apaga o Proprietário nem a si mesmo.
+// ponytail: CEO/Sócio/Admin só o Proprietário manda pra lixeira; aval entre pares fica no "Cortar acesso".
+async function membroLixeira(corpo: any) {
+  const user = await usuarioLogado()
+  if (!user) return erro('login', 401)
+  const db = admin()
+  const empresaId = String(corpo.empresaId || '')
+  const alvo = String(corpo.alvoUserId || '')
+  if (!alvo || alvo === user.id) return erro('sem_permissao', 403)
+  if (!(await podeLiberar(db, empresaId, user.id))) return erro('sem_permissao', 403)
+  const { data: emp } = await db.from('empresas').select('user_id').eq('id', empresaId).maybeSingle()
+  if (!emp || emp.user_id === alvo) return erro('proprietario', 403)
+  const { data: v } = await db.from('empresa_usuarios').select('id, papel, convite_id').eq('empresa_id', empresaId).eq('user_id', alvo).maybeSingle()
+  if (!v || v.papel === 'dono') return erro('invalido', 404)
+  const { data: cv } = v.convite_id ? await db.from('empresa_equipe').select('id, relacao').eq('id', v.convite_id).maybeSingle() : { data: null }
+  const lider = v.papel === 'admin' || cv?.relacao === 'ceo' || cv?.relacao === 'socio'
+  if (lider && emp.user_id !== user.id) return erro('sem_permissao', 403)
+  const agora = new Date().toISOString()
+
+  const { error: eDel } = await db.from('empresa_usuarios').delete().eq('id', v.id)
+  if (eDel) { console.error('[lixeira] membro:', eDel.message); return erro('generico', 500) }
+  if (cv) {
+    if (lider) {
+      await db.from('empresa_equipe').update({ situacao: 'recusado', convite_aceito: false, decidido_por: user.id, decidido_em: agora, motivo_recusa: 'lixeira' }).eq('id', cv.id)
+      await db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null)
+    } else {
+      await db.from('empresa_convite_termo').update({ nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: 'Removido pelo responsável', convite_id: null }).eq('convite_id', cv.id)
+      await db.from('empresa_equipe').delete().eq('id', cv.id)
+    }
+  }
+  return NextResponse.json({ ok: true, lixeira: lider })
 }
 
 // CEO/Sócio/Admin aprova ou recusa quem já confirmou o e-mail. Aprovar dá o acesso.

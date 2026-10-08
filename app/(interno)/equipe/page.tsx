@@ -8,14 +8,14 @@ import { copiarTexto } from '../../../lib/copiar'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, listarLixeiraConvites, acaoLixeiraConvite, type ConviteLixeira, decidirConvite, type TermoConvite,
+  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, membroParaLixeira, listarLixeiraConvites, acaoLixeiraConvite, type ConviteLixeira, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown, RotateCcw, LogOut, ShieldCheck } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown, RotateCcw, LogOut, ShieldCheck, UserX } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
@@ -77,7 +77,7 @@ const textos = {
     termosTitulo: 'Termos de convite aceitos', termosSub: 'Quem aceitou, com nome, CPF e e-mail informados no aceite. Só o proprietário e administradores veem e podem apagar estes dados.',
     lixeiraTitulo: 'Lixeira', lixeiraSub: 'CEO, Sócio e Admin que saíram ou foram para a lixeira (os demais são apagados de vez). Ficam 60 dias: dá pra recuperar ou apagar de vez. Depois disso são apagados automaticamente.', lixeiraVazia: 'A lixeira está vazia.', recuperar: 'Recuperar', recuperado: 'Termo recuperado.', vagasPlano: (o: number, l: number) => `Vagas do plano: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Convites temporários (até 7 dias): ${u} de ${l}`, erroLimitePlano: (l: number) => `Seu plano permite ${l} pessoa${l > 1 ? 's' : ''} na equipe (contando você). Mude para o plano acima para convidar mais. Não contam: operador de caixa, contador/consultor externo e convidado de até 7 dias.`, erroCotaTemp: (l: number) => `Você já usou os ${l} convites temporários (até 7 dias) do seu plano. Para convidar mais, suba de plano.`, verPlanos: 'Ver planos', transferirBotao: 'Transferir propriedade', transferirTitulo: 'Transferir a propriedade da empresa', transferirAviso: (n: string) => `${n} passa a ser o Proprietário: manda na empresa, na equipe e na assinatura. Você continua na equipe como Administrador.`, transferirCiente: 'Entendo que deixo de ser o Proprietário desta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propriedade transferida.', erroSemAtivo: 'Escolha alguém com acesso ativo na equipe.', saiuEm: (d: string) => `Saiu em ${d}`, apagaEm: (d: string) => `Apagado em ${d}`,
     semTermos: 'Nenhum termo aceito ainda.', convidadoPorEm: (r: string, d: string) => `Convidado por ${r} em ${d}`, aceitoEm: (d: string) => `Aceito em ${d}`,
-    dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Mandar para a lixeira', apagarDeVez: 'Apagar de vez', movidoLixeira: 'Termo movido para a lixeira.',
+    dadosApagados: (d: string, m: string) => `Dados pessoais apagados em ${d}. Motivo: ${m}`, apagarDados: 'Mandar para a lixeira', apagarDeVez: 'Apagar de vez', movidoLixeira: 'Movido para a lixeira.', confirmarApagarMembro: 'tirar o acesso e apagar de vez?', justificarRecuperar: 'Justificativa para recuperar o acesso (fica registrada):', faltamDias: (n: number) => `Comunicado: será apagado de vez em ${n} dia${n === 1 ? '' : 's'}.`,
     apagarTitulo: 'Apagar dados pessoais do termo?', apagarAviso: 'O nome, o CPF e o e-mail desta pessoa serão apagados de forma definitiva. Fica registrado apenas quem apagou, quando e o motivo.',
     apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tenho autorização para apagar estes dados e que a ação não pode ser desfeita.', apagarBotao: 'Apagar dados', apagando: 'Apagando...',
     sucessoApagar: 'Apagado.', erroApagar: 'Não foi possível apagar. Tente novamente.',
@@ -144,7 +144,7 @@ const textos = {
     termosTitulo: 'Accepted invite terms', termosSub: 'Who accepted, with the name, CPF and e-mail given on acceptance. Only the owner and administrators can see and delete this data.',
     lixeiraTitulo: 'Trash', lixeiraSub: 'CEO, Partner and Admin who left or were moved to the trash (others are deleted for good). Kept for 60 days: you can restore or delete them for good. After that they are deleted automatically.', lixeiraVazia: 'The trash is empty.', recuperar: 'Restore', recuperado: 'Term restored.', vagasPlano: (o: number, l: number) => `Plan seats: ${o} of ${l}`, tempPlano: (u: number, l: number) => `Temporary invites (up to 7 days): ${u} of ${l}`, erroLimitePlano: (l: number) => `Your plan allows ${l} ${l > 1 ? 'people' : 'person'} on the team (including you). Move to the plan above to invite more. Not counted: cashier operator, external accountant/consultant and guests of up to 7 days.`, erroCotaTemp: (l: number) => `You have used the ${l} temporary invites (up to 7 days) of your plan. Upgrade your plan to invite more.`, verPlanos: 'See plans', transferirBotao: 'Transfer ownership', transferirTitulo: 'Transfer company ownership', transferirAviso: (n: string) => `${n} becomes the Owner: in charge of the company, the team and the subscription. You stay on the team as Administrator.`, transferirCiente: 'I understand I will no longer be the Owner of this company.', transferirConfirmar: 'Transfer', transferido: 'Ownership transferred.', erroSemAtivo: 'Choose someone with active access on the team.', saiuEm: (d: string) => `Left on ${d}`, apagaEm: (d: string) => `Deleted on ${d}`,
     semTermos: 'No term accepted yet.', convidadoPorEm: (r: string, d: string) => `Invited by ${r} on ${d}`, aceitoEm: (d: string) => `Accepted on ${d}`,
-    dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Move to the trash', apagarDeVez: 'Delete for good', movidoLixeira: 'Term moved to the trash.',
+    dadosApagados: (d: string, m: string) => `Personal data deleted on ${d}. Reason: ${m}`, apagarDados: 'Move to the trash', apagarDeVez: 'Delete for good', movidoLixeira: 'Moved to the trash.', confirmarApagarMembro: 'remove access and delete for good?', justificarRecuperar: 'Reason to restore access (it is recorded):', faltamDias: (n: number) => `Notice: it will be deleted for good in ${n} day${n === 1 ? '' : 's'}.`,
     apagarTitulo: 'Delete personal data of the term?', apagarAviso: 'This person\'s name, CPF and e-mail will be permanently deleted. Only who deleted it, when and why are kept.',
     apagarMotivo: 'Reason *', apagarCiente: 'I confirm I am authorized to delete this data and that it cannot be undone.', apagarBotao: 'Delete data', apagando: 'Deleting...',
     sucessoApagar: 'Deleted.', erroApagar: 'Could not delete. Try again.',
@@ -211,7 +211,7 @@ const textos = {
     termosTitulo: 'Términos de invitación aceptados', termosSub: 'Quién aceptó, con nombre, CPF y correo informados al aceptar. Solo el propietario y administradores ven y pueden borrar estos datos.',
     lixeiraTitulo: 'Papelera', lixeiraSub: 'CEO, Socio y Admin que salieron o fueron enviados a la papelera (los demás se borran para siempre). Se guardan 60 días: puede recuperarlos o borrarlos para siempre. Después se borran automáticamente.', lixeiraVazia: 'La papelera está vacía.', recuperar: 'Recuperar', recuperado: 'Término recuperado.', vagasPlano: (o: number, l: number) => `Plazas del plan: ${o} de ${l}`, tempPlano: (u: number, l: number) => `Invitaciones temporales (hasta 7 días): ${u} de ${l}`, erroLimitePlano: (l: number) => `Su plan permite ${l} persona${l > 1 ? 's' : ''} en el equipo (contándole a usted). Cambie al plan superior para invitar a más. No cuentan: operador de caja, contador/consultor externo e invitado de hasta 7 días.`, erroCotaTemp: (l: number) => `Ya usó las ${l} invitaciones temporales (hasta 7 días) de su plan. Suba de plan para invitar a más.`, verPlanos: 'Ver planes', transferirBotao: 'Transferir propiedad', transferirTitulo: 'Transferir la propiedad de la empresa', transferirAviso: (n: string) => `${n} pasa a ser el Propietario: manda en la empresa, el equipo y la suscripción. Usted sigue en el equipo como Administrador.`, transferirCiente: 'Entiendo que dejo de ser el Propietario de esta empresa.', transferirConfirmar: 'Transferir', transferido: 'Propiedad transferida.', erroSemAtivo: 'Elija a alguien con acceso activo en el equipo.', saiuEm: (d: string) => `Salió el ${d}`, apagaEm: (d: string) => `Se borra el ${d}`,
     semTermos: 'Ningún término aceptado todavía.', convidadoPorEm: (r: string, d: string) => `Invitado por ${r} el ${d}`, aceitoEm: (d: string) => `Aceptado el ${d}`,
-    dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Enviar a la papelera', apagarDeVez: 'Borrar para siempre', movidoLixeira: 'Término enviado a la papelera.',
+    dadosApagados: (d: string, m: string) => `Datos personales borrados el ${d}. Motivo: ${m}`, apagarDados: 'Enviar a la papelera', apagarDeVez: 'Borrar para siempre', movidoLixeira: 'Enviado a la papelera.', confirmarApagarMembro: '¿quitar el acceso y borrar para siempre?', justificarRecuperar: 'Justificación para recuperar el acceso (queda registrada):', faltamDias: (n: number) => `Aviso: se borrará para siempre en ${n} día${n === 1 ? '' : 's'}.`,
     apagarTitulo: '¿Borrar datos personales del término?', apagarAviso: 'El nombre, el CPF y el correo de esta persona se borrarán de forma definitiva. Solo queda registrado quién borró, cuándo y el motivo.',
     apagarMotivo: 'Motivo *', apagarCiente: 'Confirmo que tengo autorización para borrar estos datos y que la acción no se puede deshacer.', apagarBotao: 'Borrar datos', apagando: 'Borrando...',
     sucessoApagar: 'Borrado.', erroApagar: 'No se pudo borrar. Intente de nuevo.',
@@ -524,10 +524,22 @@ export default function EquipePage() {
     avisar('sucesso', vaiPraLixeira(m.papel, m.relacao) ? t.movidoLixeira : t.sucessoApagar)
     await recarregarEquipe(empresaId)
   }
+  // Lixeira de quem já entrou: tira o acesso na hora
+  async function membroLixeira(m: MembroEquipe) {
+    if (!empresaId || !m.user_id) return
+    if (!window.confirm(`${m.nome || m.email}: ${vaiPraLixeira(m.papel, m.relacao) ? t.movidoLixeira : t.confirmarApagarMembro}`)) return
+    const r = await membroParaLixeira(empresaId, m.user_id)
+    if (r.erro) { avisar('erro', r.erro === 'proprietario' ? t.erroProprietario : r.erro === 'sem_permissao' ? t.erroHierarquia : t.erroApagar); return }
+    avisar('sucesso', vaiPraLixeira(m.papel, m.relacao) ? t.movidoLixeira : t.sucessoApagar)
+    await recarregarEquipe(empresaId)
+  }
+  // Recuperar da Lixeira: quem já tinha acesso volta direto, com justificativa (Elias 2026-10-08)
   async function recuperarConvite(id: string) {
     if (!empresaId) return
-    const r = await acaoLixeiraConvite('convite_recuperar', id)
-    if (r.erro) { avisar('erro', t.erroApagar); return }
+    const just = window.prompt(t.justificarRecuperar) || ''
+    if (just.trim().length < 5) { avisar('erro', t.erroMotivo); return }
+    const r = await acaoLixeiraConvite('convite_recuperar', id, just.trim())
+    if (r.erro) { avisar('erro', r.erro === 'motivo' ? t.erroMotivo : t.erroApagar); return }
     avisar('sucesso', t.recuperado)
     await recarregarEquipe(empresaId)
   }
@@ -945,45 +957,55 @@ export default function EquipePage() {
                         <RotateCcw size={14} /> {t.restaurar}
                       </button>
                     )}
-                    {!ehVoce && !m.suspenso_em && (m.origem === 'convite' || podeRemover(m)) && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {m.origem === 'convite' && m.token_convite && (
-                          <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
-                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
-                            <Send size={15} />
+                    {/* Mesmo padrão em todo card (Elias 2026-10-08): lápis, cortar acesso e lixeira.
+                        Botão que não vale pra pessoa aparece apagado, com o motivo no título. */}
+                    {(() => {
+                      const dono = m.nivel === 1
+                      const motivoTrava = dono ? t.erroProprietario : ehVoce ? t.voce : ''
+                      const podeLapis = !ehVoce && !dono && !m.suspenso_em && podeTrocarPapel(m)
+                      const podeCortar = !ehVoce && !dono && m.origem === 'ativo' && !m.suspenso_em && podeRemover(m)
+                      const podeLixo = !ehVoce && !dono && (m.origem === 'convite' || podeRemover(m))
+                      const apagado = { opacity: 0.35, cursor: 'not-allowed' as const }
+                      return (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {m.origem === 'convite' && m.token_convite && (
+                            <button onClick={() => setConviteEnviar(m)} title={t.enviarPorApps}
+                              className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? '#16a97d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : '#2ecc9b' }}>
+                              <Send size={15} />
+                            </button>
+                          )}
+                          {m.origem === 'convite' && m.token_convite && (
+                            <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
+                              className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b' }}>
+                              <Copy size={15} />
+                            </button>
+                          )}
+                          {editandoId === `${m.origem}-${m.id}` ? (
+                            <select value={m.papel} onChange={(e) => trocarPapel(m, e.target.value)}
+                              className="px-2 py-2 rounded-lg text-xs" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
+                              {PAPEIS_ATRIBUIVEIS.map((p) => (
+                                <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <button onClick={() => podeLapis && setEditandoId(`${m.origem}-${m.id}`)} disabled={!podeLapis} title={podeLapis ? t.editarPapel : motivoTrava || t.erroHierarquia}
+                              className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.1)', color: AZUL, ...(podeLapis ? {} : apagado) }}>
+                              <Pencil size={15} />
+                            </button>
+                          )}
+                          <button onClick={() => { if (!podeCortar) return; if (zeraAoCortar(m)) removerAcesso(m); else { setMembroCortar(m); setMotivoApagar(''); setCienteApagar(false) } }} disabled={!podeCortar}
+                            title={podeCortar ? t.cortarAcesso : motivoTrava || (m.origem === 'convite' ? t.statusConvidado : t.erroHierarquia)}
+                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: AMBAR, color: '#ffffff', ...(podeCortar ? {} : apagado) }}>
+                            <UserX size={15} />
                           </button>
-                        )}
-                        {m.origem === 'convite' && m.token_convite && (
-                          <button onClick={() => copiarLink(m.token_convite as string)} title={t.copiarLink}
-                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b' }}>
-                            <Copy size={15} />
+                          <button onClick={() => { if (podeLixo) (m.origem === 'ativo' ? membroLixeira(m) : conviteLixeira(m)) }} disabled={!podeLixo}
+                            title={podeLixo ? t.apagarDados : motivoTrava || t.erroHierarquia}
+                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: VERMELHO, color: '#ffffff', ...(podeLixo ? {} : apagado) }}>
+                            <Trash2 size={15} />
                           </button>
-                        )}
-
-                        {editandoId === `${m.origem}-${m.id}` ? (
-                          <select
-                            value={m.papel}
-                            onChange={(e) => trocarPapel(m, e.target.value)}
-                            className="px-2 py-2 rounded-lg text-xs"
-                            style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}
-                          >
-                            {PAPEIS_ATRIBUIVEIS.map((p) => (
-                              <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
-                            ))}
-                          </select>
-                        ) : podeTrocarPapel(m) && (
-                          <button onClick={() => setEditandoId(`${m.origem}-${m.id}`)} title={t.editarPapel}
-                            className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(46,204,155,0.1)', color: AZUL }}>
-                            <Pencil size={15} />
-                          </button>
-                        )}
-
-                        <button onClick={() => m.origem === 'ativo' ? (setMembroCortar(m), setMotivoApagar(''), setCienteApagar(false)) : conviteLixeira(m)}
-                          title={m.origem === 'ativo' ? t.cortarAcesso : t.apagarDados} className="p-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: VERMELHO, color: '#ffffff' }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )
               })}
@@ -1020,7 +1042,7 @@ export default function EquipePage() {
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <p className="text-sm font-bold" style={{ color: TEXTO }}>{c.convidado_nome_termo || c.nome || c.email_convidado || t.conviteLink}</p>
                       <p>{c.email_convidado || t.conviteLink}{c.relacao ? ` • ${(t as any)[`rel_${c.relacao}`] || c.relacao}` : ''}{c.papel ? ` • ${labelPapel(c.papel)}` : ''}</p>
-                      {c.decidido_em && <p><span style={{ color: VERMELHO }}>{t.apagaEm(dataHora(new Date(new Date(c.decidido_em).getTime() + 60 * 86400000)))}</span></p>}
+                      {c.decidido_em && <p className="font-semibold" style={{ color: VERMELHO }}>{t.faltamDias(Math.max(0, Math.ceil((new Date(c.decidido_em).getTime() + 60 * 86400000 - Date.now()) / 86400000)))} ({t.apagaEm(dataHora(new Date(new Date(c.decidido_em).getTime() + 60 * 86400000)))})</p>}
                       {tm && blocoTermo(tm)}
                     </div>
                     <div className="flex gap-2 flex-shrink-0">

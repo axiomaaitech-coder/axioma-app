@@ -1068,6 +1068,10 @@ export async function listarLixeiraConvites(empresaId: string): Promise<ConviteL
 export async function acaoLixeiraConvite(acao: "convite_lixeira" | "convite_recuperar" | "convite_apagar", conviteId: string, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
   return acaoTermo({ acao, conviteId, motivo: motivo || "" });
 }
+// Lixeira de quem já entrou: tira o acesso (CEO/Sócio/Admin vão pra Lixeira; demais saem de vez)
+export async function membroParaLixeira(empresaId: string, alvoUserId: string): Promise<{ erro?: string; codigo?: string }> {
+  return acaoTermo({ acao: "membro_lixeira", empresaId, alvoUserId });
+}
 async function acaoTermo(corpo: Record<string, string>): Promise<{ erro?: string; codigo?: string }> {
   const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
   const r = await resp.json().catch(() => ({ erro: "generico" }));
