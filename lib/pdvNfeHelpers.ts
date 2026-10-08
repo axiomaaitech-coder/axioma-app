@@ -105,6 +105,36 @@ export async function buscarFornecedorPorCnpj(empresaId: string, cnpj: string): 
   return data?.[0] ?? null;
 }
 
+// ENTITY RESOLUTION pelo nome (Financial Core 1.4) — nota sem CNPJ (PDF/foto) ou
+// fornecedor cadastrado à mão sem CNPJ. "ABC LTDA", "ABC Ltda." → mesmo nome (alta,
+// liga sozinho); "ABC" × "ABC DISTRIBUIDORA LTDA" → parecido (média, o humano confirma).
+// CNPJ diferente dos dois lados = empresas diferentes, nunca junta.
+const SUFIXOS_EMPRESA = new Set(["ltda", "me", "epp", "eireli", "sa", "s", "a", "cia", "mei", "slu", "ss"]);
+export function nomeEmpresaNormalizado(nome: string | null | undefined): string[] {
+  return (nome || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/).filter((t) => t && !SUFIXOS_EMPRESA.has(t));
+}
+export type FornecedorParecido = FornecedorMinimo & { confianca: "alta" | "media" };
+export async function buscarFornecedorPorNome(empresaId: string, nomes: (string | null | undefined)[], cnpjNota?: string): Promise<FornecedorParecido | null> {
+  const alvos = nomes.map(nomeEmpresaNormalizado).filter((t) => t.length);
+  if (!alvos.length) return null;
+  const { data } = await supabase.from("fornecedores").select("id, nome, razao_social, nome_fantasia, documento").eq("empresa_id", empresaId).limit(2000);
+  const doc = (cnpjNota || "").replace(/\D/g, "");
+  let melhor: FornecedorParecido | null = null;
+  for (const f of (data || []) as { id: string; nome: string; razao_social: string | null; nome_fantasia: string | null; documento: string | null }[]) {
+    const docF = (f.documento || "").replace(/\D/g, "");
+    if (doc && docF && doc !== docF) continue;
+    for (const nf of [f.nome, f.razao_social, f.nome_fantasia].map(nomeEmpresaNormalizado).filter((t) => t.length)) {
+      for (const a of alvos) {
+        if (a.join(" ") === nf.join(" ")) return { id: f.id, nome: f.nome, confianca: "alta" };
+        const [menor, maior] = a.length <= nf.length ? [a, nf] : [nf, a];
+        if (!melhor && menor[0] === maior[0] && menor.every((t) => maior.includes(t))) melhor = { id: f.id, nome: f.nome, confianca: "media" };
+      }
+    }
+  }
+  return melhor;
+}
+
 // Mesmos campos-padrão que o cadastro manual do módulo Fornecedores já grava
 // pra um fornecedor novo (produto_servico/contato/valor_mensal vazios,
 // completáveis depois na tela de Fornecedores) — não inventa estrutura nova.

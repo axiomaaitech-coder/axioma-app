@@ -1267,7 +1267,21 @@ export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): Per
   // B3 item 5 — fornecedor que ainda não está cadastrado: pergunta antes de criar.
   // (Já cadastrado com o mesmo CNPJ = liga sozinho, sem pergunta.)
   const cnpjEmit = String(m.cnpj_emitente ?? "").replace(/\D/g, "");
-  if (m.fornecedor_cadastrado === null && cnpjEmit && res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) {
+  // Entity resolution (Financial Core 1.4): nome parecido com um fornecedor já
+  // cadastrado — o humano diz se é o mesmo (nunca junta nem duplica sozinho).
+  if (m.fornecedor_parecido && res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) {
+    const naNota = m.razao_social || m.fantasia || "?";
+    const cad = m.fornecedor_parecido.nome;
+    p.push({ id: "fornecedor_parecido", tipo: "lancamento", texto: {
+      pt: `Na nota o fornecedor é "${naNota}". Já existe "${cad}" cadastrado. É o mesmo fornecedor?`,
+      en: `The invoice supplier is "${naNota}". "${cad}" is already registered. Is it the same supplier?`,
+      es: `En la factura el proveedor es "${naNota}". Ya existe "${cad}" registrado. ¿Es el mismo proveedor?`,
+    }, opcoes: [
+      { valor: "mesmo", texto: { pt: "Sim, é o mesmo — ligar", en: "Yes, same — link", es: "Sí, es el mismo — vincular" } },
+      ...(cnpjEmit ? [{ valor: "novo", texto: { pt: "Não — cadastrar como novo", en: "No — register as new", es: "No — registrar como nuevo" } }] : []),
+      { valor: "nao", texto: { pt: "Não ligar a nenhum", en: "Do not link", es: "No vincular" } },
+    ] });
+  } else if (m.fornecedor_cadastrado === null && cnpjEmit && res.linhas.some((l) => l.destinoSugerido === "contas_pagar")) {
     const nome = m.fantasia || m.razao_social || cnpjEmit;
     p.push({ id: "fornecedor_novo", tipo: "lancamento", texto: {
       pt: `O fornecedor ${nome} (CNPJ ${cnpjEmit}) ainda não está cadastrado. Cadastrar e ligar as contas a pagar desta nota a ele?`,

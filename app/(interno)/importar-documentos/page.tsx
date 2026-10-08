@@ -16,7 +16,7 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { corTema, fBRL, fData } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { transformarPadraoEmCustoFixo } from "../../../lib/contasPagarHelpers";
-import { buscarFornecedorPorCnpj, criarFornecedorDaNfe } from "../../../lib/pdvNfeHelpers";
+import { buscarFornecedorPorCnpj, buscarFornecedorPorNome, criarFornecedorDaNfe } from "../../../lib/pdvNfeHelpers";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
@@ -794,9 +794,16 @@ export default function ImportarDocumentosPage() {
     // Nota de compra: o fornecedor já está cadastrado (mesmo CNPJ)? (B3 item 5)
     const cnpjEmit = String(classificado.metadados?.cnpj_emitente ?? "").replace(/\D/g, "");
     const ehCompra = classificado.linhas.some((l) => l.destinoSugerido === "contas_pagar");
-    const res = cnpjEmit && ehCompra
+    let res = cnpjEmit && ehCompra
       ? { ...classificado, metadados: { ...classificado.metadados, fornecedor_cadastrado: await buscarFornecedorPorCnpj(empresaId, cnpjEmit) } }
       : classificado;
+    // Não achou pelo CNPJ (ou a nota não tem CNPJ): procura pelo nome antes de cadastrar
+    // outro. Nome igual (sem LTDA/ME/pontuação) liga sozinho; parecido vira pergunta.
+    if (ehCompra && !res.metadados?.fornecedor_cadastrado) {
+      const parecido = await buscarFornecedorPorNome(empresaId, [classificado.metadados?.razao_social, classificado.metadados?.fantasia], cnpjEmit);
+      if (parecido?.confianca === "alta") res = { ...res, metadados: { ...res.metadados, fornecedor_cadastrado: { id: parecido.id, nome: parecido.nome } } };
+      else if (parecido) res = { ...res, metadados: { ...res.metadados, fornecedor_parecido: parecido } };
+    }
     await aplicarResultado(res);
   }
 
@@ -908,7 +915,9 @@ export default function ImportarDocumentosPage() {
     if (!userId || !empresaId || !resultado) return undefined;
     const m = resultado.metadados ?? {};
     if (m.fornecedor_cadastrado?.id) return m.fornecedor_cadastrado.id;
-    if (respostasSup.fornecedor_novo !== "sim" || !m.cnpj_emitente) return undefined;
+    if (m.fornecedor_parecido?.id && respostasSup.fornecedor_parecido === "mesmo") return m.fornecedor_parecido.id;
+    const querCadastrar = respostasSup.fornecedor_novo === "sim" || respostasSup.fornecedor_parecido === "novo";
+    if (!querCadastrar || !m.cnpj_emitente) return undefined;
     const r = await criarFornecedorDaNfe(empresaId, userId, { cnpj: String(m.cnpj_emitente), razaoSocial: m.razao_social, fantasia: m.fantasia });
     if (r.erro) showToast(langAtual === "en" ? "Could not register the supplier — payables imported without it." : langAtual === "es" ? "No se pudo registrar el proveedor — cuentas importadas sin él." : "Não foi possível cadastrar o fornecedor — contas importadas sem ele.", "erro");
     return r.id;
