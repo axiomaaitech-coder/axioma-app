@@ -417,9 +417,10 @@ const brl0 = (v: number) => `R$ ${fBRL2(v)}`;
 
 type DadosProativos = {
   hoje: string;
-  custos: { data: string; valor: number; categoria: string | null; origem_tabela: string | null; origem_id: string | null }[];
+  custos: { data: string; valor: number; categoria: string | null; origem_tabela: string | null; origem_id: string | null; descricao: string | null; centro_custo_id: string | null }[];
   receitas: { data: string; valor: number }[];
   fixosMensal: number;
+  fixosPorCentro: Map<string, number>;
   receber: { id: string; cliente_id: string | null; valor: number; valor_recebido: number | null; valor_desconto: number | null; data_vencimento: string | null }[];
   nomes: Map<string, string>; // fornecedor/cliente id → nome
 };
@@ -427,9 +428,9 @@ type DadosProativos = {
 async function carregarDadosProativos(empresaId: string, contasPagar: ContaPagar[]): Promise<DadosProativos> {
   const hoje = hojeISO();
   const [cv, rc, cf, cr] = await Promise.all([
-    supabase.from("custos_variaveis").select("data, valor, categoria, origem_tabela, origem_id").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
+    supabase.from("custos_variaveis").select("data, valor, categoria, origem_tabela, origem_id, descricao, centro_custo_id").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
     supabase.from("receitas").select("data, valor, status").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
-    supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId).limit(1000),
+    supabase.from("custos_fixos").select("valor_mensal, centro_custo_id").eq("empresa_id", empresaId).limit(1000),
     supabase.from("contas_receber").select("id, cliente_id, valor, valor_recebido, valor_desconto, data_vencimento, status").eq("empresa_id", empresaId).not("status", "in", "(recebido,cancelado,cancelada)").limit(5000),
   ]);
   [cv, rc, cf, cr].forEach((r, i) => { if (r.error) reportarFalhaEscrita(["custos_variaveis", "receitas", "custos_fixos", "contas_receber"][i], "select (cfo proativo)", r.error.message); });
@@ -448,6 +449,10 @@ async function carregarDadosProativos(empresaId: string, contasPagar: ContaPagar
     custos: (cv.data || []) as DadosProativos["custos"],
     receitas: ((rc.data || []) as { data: string; valor: number; status: string | null }[]).filter((r) => !r.status || r.status === "recebido"),
     fixosMensal: somar(((cf.data || []) as { valor_mensal: number }[]).map((x) => ({ valor: x.valor_mensal }))),
+    fixosPorCentro: ((cf.data || []) as { valor_mensal: number; centro_custo_id: string | null }[]).reduce((m, x) => {
+      if (x.centro_custo_id) m.set(x.centro_custo_id, (m.get(x.centro_custo_id) || 0) + (Number(x.valor_mensal) || 0));
+      return m;
+    }, new Map<string, number>()),
     receber, nomes,
   };
 }
@@ -634,6 +639,49 @@ async function regraMargemCaindo(empresaId: string, d: DadosProativos, lang: Idi
   })) ? 1 : 0;
 }
 
+// ---- Centro de custo estourando o orçamento (real × orçado × projeção do mês) ----
+// Variação não é resposta: diz QUAIS lançamentos puxaram o gasto (Parte 2.4).
+async function regraCentroEstourando(empresaId: string, d: DadosProativos, lang: Idioma3): Promise<number> {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const periodo = d.hoje.slice(0, 7);
+  const [{ data: centros }, { data: orcs }] = await Promise.all([
+    supabase.from("centros_custo").select("id, nome, orcamento_mensal").eq("empresa_id", empresaId),
+    supabase.from("centro_custo_orcamento").select("centro_custo_id, valor_orcado").eq("empresa_id", empresaId).eq("periodo", periodo),
+  ]);
+  const orcDe = new Map(((orcs || []) as { centro_custo_id: string; valor_orcado: number }[]).map((o) => [o.centro_custo_id, Number(o.valor_orcado)]));
+  const dia = Number(d.hoje.slice(8, 10));
+  const diasMes = new Date(Number(periodo.slice(0, 4)), Number(periodo.slice(5, 7)), 0).getDate();
+  let novas = 0;
+  for (const c of (centros || []) as { id: string; nome: string; orcamento_mensal: number | null }[]) {
+    const orcado = orcDe.get(c.id) ?? (Number(c.orcamento_mensal) || 0);
+    if (orcado <= 0) continue; // sem orçamento = sem base de comparação
+    const doMes = d.custos.filter((x) => x.centro_custo_id === c.id && x.data.startsWith(periodo));
+    const variavel = somar(doMes), fixo = d.fixosPorCentro.get(c.id) || 0;
+    const projecao = (variavel / Math.max(dia, 1)) * diasMes + fixo;
+    const desvio = projecao - orcado;
+    if (desvio / orcado < 0.1 || desvio < 200) continue;
+    const maiores = [...doMes].sort((a, b) => Number(b.valor) - Number(a.valor)).slice(0, 3);
+    const lista = maiores.map((x) => `${x.descricao || x.categoria || "?"} ${brl0(Number(x.valor))}`).join("; ");
+    const { pontuacao, prioridade } = pontuarDescoberta(normalizarImpactoReais(desvio, 10000), dia >= 10 ? 75 : 55, Math.min(100, (desvio / orcado) * 200));
+    if (!prioridade) continue;
+    if (await gravarDescobertaSeNova({
+      empresa_id: empresaId, tipo: "risco", prioridade,
+      titulo: L(`${c.nome} deve fechar o mês ${pct(desvio / orcado)} acima do orçamento`, `${c.nome} is on track to end the month ${pct(desvio / orcado)} over budget`, `${c.nome} debe cerrar el mes ${pct(desvio / orcado)} por encima del presupuesto`),
+      descricao: L(`Orçado ${brl0(orcado)}; gasto até hoje ${brl0(variavel + fixo)}; projeção de fechamento ${brl0(projecao)} (previsão no ritmo atual).${lista ? ` Maiores lançamentos: ${lista}.` : ""}`,
+        `Budget ${brl0(orcado)}; spent so far ${brl0(variavel + fixo)}; projected close ${brl0(projecao)} (forecast at current pace).${lista ? ` Largest entries: ${lista}.` : ""}`,
+        `Presupuesto ${brl0(orcado)}; gastado hasta hoy ${brl0(variavel + fixo)}; proyección de cierre ${brl0(projecao)} (previsión al ritmo actual).${lista ? ` Mayores registros: ${lista}.` : ""}`),
+      causa: L("O ritmo de gasto do mês está acima do que foi planejado para este centro.", "This month's spending pace is above what was planned for this center.", "El ritmo de gasto del mes está por encima de lo planeado para este centro."),
+      impacto_estimado: Math.round(desvio * 100) / 100,
+      evidencia: {
+        chave: `centro_estourando:${c.id}:${periodo}`, centroId: c.id, orcado, gasto_ate_hoje: variavel + fixo, projecao_fechamento: Math.round(projecao), dia_do_mes: dia, pontuacao,
+        acao: L(`Abra Centros de Custo em ${c.nome}: segure novos gastos até o fim do mês ou ajuste o orçamento se o aumento for planejado.`, `Open Cost Centers at ${c.nome}: hold new spending until month-end or adjust the budget if the increase is planned.`, `Abra Centros de Costo en ${c.nome}: frene nuevos gastos hasta fin de mes o ajuste el presupuesto si el aumento es planeado.`),
+      },
+      confianca: "previsao",
+    })) novas++;
+  }
+  return novas;
+}
+
 // ============================================================================
 // ORQUESTRADOR — "Rodar descoberta". Roda todas as regras acima em sequência
 // (cada uma lê o que precisa, sem N+1 — as tabelas grandes como contas_pagar
@@ -668,6 +716,7 @@ export async function rodarDiscoveryEngine(empresaId: string, lang: Idioma3): Pr
         regraQuedaRecebimentos(empresaId, d, lang),
         regraClienteAtrasando(empresaId, d, lang),
         regraMargemCaindo(empresaId, d, lang),
+        regraCentroEstourando(empresaId, d, lang),
       ])).then((xs) => xs.reduce((s, x) => s + x, 0)),
     ]);
 
