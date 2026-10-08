@@ -151,6 +151,12 @@ export async function middleware(request: NextRequest) {
     }
 
     if (!membro && (!perfil || !perfil.plano_ativo)) {
+      // Convidado que confirmou o e-mail mas o aceite ainda não gravou: volta pro
+      // convite (aceita sozinho lá), nunca pra tela de planos.
+      const conviteToken = user.user_metadata?.convite_token
+      if (typeof conviteToken === 'string' && /^[0-9a-f-]{36}$/i.test(conviteToken)) {
+        return addSecurityHeaders(NextResponse.redirect(new URL(`/convite/${conviteToken}`, request.url)))
+      }
       const response = NextResponse.redirect(new URL('/planos', request.url))
       return addSecurityHeaders(response)
     }
