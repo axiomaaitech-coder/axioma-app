@@ -40,12 +40,23 @@ assert.equal(venda.linhas[0].destinoSugerido, 'receitas')
 assert.equal(venda.linhas[0].valorPago, undefined)
 console.log('OK — venda continua como receita única')
 
-// 3b) Venda parcelada → receita na data da venda + 1 conta a receber por duplicata
+// 3b) Venda parcelada → só 1 conta a receber por duplicata (a receita nasce no recebimento,
+// pelo Motor de Rastreabilidade — lançar a receita cheia aqui contava 2 vezes)
 const vendaParcelada = await parseXMLNFe(nota(EMPRESA, '55666777000199', `
   <cobr><dup><nDup>001</nDup><dVenc>2026-10-20</dVenc><vDup>1500.00</vDup></dup><dup><nDup>002</nDup><dVenc>2026-11-20</dVenc><vDup>1500.00</vDup></dup></cobr>
   <pag><detPag><indPag>1</indPag><tPag>15</tPag><vPag>3000.00</vPag></detPag></pag>`), EMPRESA)
-assert.deepEqual(vendaParcelada.linhas.map((l) => [l.destinoSugerido, l.valor, l.vencimento ?? null]), [['receitas', 3000, null], ['contas_receber', 1500, '2026-10-20'], ['contas_receber', 1500, '2026-11-20']])
-console.log('OK — venda parcelada: receita + contas a receber no vencimento de cada parcela')
+assert.deepEqual(vendaParcelada.linhas.map((l) => [l.destinoSugerido, l.valor, l.vencimento ?? null]), [['contas_receber', 1500, '2026-10-20'], ['contas_receber', 1500, '2026-11-20']])
+console.log('OK — venda parcelada: contas a receber no vencimento de cada parcela, sem receita em dobro')
+// 3c) Venda com entrada à vista + parcelas → a entrada vira receita, o resto contas a receber
+const vendaEntrada = await parseXMLNFe(nota(EMPRESA, '55666777000199', `
+  <cobr><dup><nDup>001</nDup><dVenc>2026-10-20</dVenc><vDup>1000.00</vDup></dup><dup><nDup>002</nDup><dVenc>2026-11-20</dVenc><vDup>1000.00</vDup></dup></cobr>`), EMPRESA)
+assert.deepEqual(vendaEntrada.linhas.map((l) => [l.destinoSugerido, l.valor]), [['receitas', 1000], ['contas_receber', 1000], ['contas_receber', 1000]])
+console.log('OK — venda com entrada: entrada como receita + parcelas a receber')
+// 3d) Compra no Pix: forma de pagamento e chave seguem para a conta (antiduplicidade)
+const compraPix = await parseXMLNFe(nota('99888777000100', EMPRESA, `<pag><detPag><indPag>0</indPag><tPag>17</tPag><vPag>3000.00</vPag></detPag></pag>`), EMPRESA)
+assert.equal(compraPix.linhas[0].forma, 'Pix')
+assert.equal(compraPix.linhas[0].chaveAcesso?.length, 44)
+console.log('OK — forma de pagamento e chave de acesso chegam na conta')
 const vendaCartao = await parseXMLNFe(nota(EMPRESA, '55666777000199', `<pag><detPag><tPag>03</tPag><vPag>3000.00</vPag></detPag></pag>`), EMPRESA)
 assert.equal(vendaCartao.metadados.resumo_pagamento.perguntaParcelasCartao, false)
 assert.ok(!vendaCartao.metadados.resumo_pagamento.pt.includes('quantas vezes'))

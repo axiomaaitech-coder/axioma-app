@@ -9,6 +9,7 @@ import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarPa
 import { criarContaPagar, editarContaPagar, darBaixaContaPagar, type ContaPagar } from "./contasPagarHelpers";
 import { criarContaReceber, editarContaReceber, registrarRecebimento, type ContaParaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
+import { NATUREZAS_FLUXO } from "./rastreio/lancamentoManual";
 import { avaliarDuplicidade, acharObrigacaoParaPagamento, type EstadoMatch, type Idioma, type Lancamento } from "./motorDuplicidade";
 
 const supabase = createBrowserClient(
@@ -328,7 +329,9 @@ export async function detectarPossiveisDuplicatas(
   });
   // Dinheiro que já se moveu (extrato, comprovante, caixa) pode ser o PAGAMENTO de
   // uma conta aberta: o Motor de Baixa procura antes de virar lançamento solto.
-  const ehPagamento = (k: number) => ["fluxo_caixa", "custos_variaveis", "receitas"].includes(destinos[idx[k]]);
+  // Transferência, aplicação, aporte, empréstimo e retirada não quitam conta (Core 1.5).
+  const NAO_QUITA = new Set(NATUREZAS_FLUXO.filter((n) => !["receita", "custo", "pag_emprestimo"].includes(n.natureza)).map((n) => n.pt));
+  const ehPagamento = (k: number) => ["fluxo_caixa", "custos_variaveis", "receitas"].includes(destinos[idx[k]]) && !NAO_QUITA.has(linhas[idx[k]].categoria || "");
   const kPag = idx.map((_, k) => k).filter(ehPagamento);
   const [avaliacoes, baixas] = await Promise.all([
     avaliarDuplicidade(empresaId, lancs, lang),

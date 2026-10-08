@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { XMLParser } from "fast-xml-parser";
 import { estimarImpactoSplitPayment } from "./previsaoRecebimentoHelpers";
 import type { ItemClassificado, NaturezaItem } from "./categoriasDespesa";
+import { naturezaPorTexto, NATUREZAS_FLUXO } from "./rastreio/lancamentoManual";
 
 // ============================================================================
 // TIPOS
@@ -51,6 +52,18 @@ export type LinhaImportada = {
   motivoDestino?: string;
   raw: Record<string, any>;
 };
+
+// Extrato: marca a NATUREZA das linhas que movem dinheiro sem ser resultado
+// (transferência entre contas, aplicação/resgate, aporte, empréstimo, retirada) —
+// Financial Core 1.5. Fica na categoria do Fluxo de Caixa; nunca vira receita/custo.
+function comNaturezaExtrato(linhas: LinhaImportada[]): LinhaImportada[] {
+  return linhas.map((l) => {
+    if (l.destinoSugerido !== "fluxo_caixa" || l.categoria) return l;
+    const n = naturezaPorTexto(l.descricao || "", l.tipo !== "saida");
+    const info = n ? NATUREZAS_FLUXO.find((x) => x.natureza === n) : null;
+    return info ? { ...l, categoria: info.pt, motivoDestino: `${l.motivoDestino ? `${l.motivoDestino} · ` : ""}${info.pt}` } : l;
+  });
+}
 
 export type ResultadoParse = {
   formato: "ofx" | "xml" | "csv" | "xlsx" | "xls" | "pdf" | "imagem" | "txt";
@@ -511,7 +524,7 @@ export async function parseOFX(texto: string, lang: Lang = "pt"): Promise<Result
 
   return {
     formato: "ofx",
-    linhas,
+    linhas: comNaturezaExtrato(linhas),
     metadados,
     destinoSugerido: "fluxo_caixa",
     precisaMapeamento: false,
@@ -999,7 +1012,7 @@ export async function parseCSV(
 
   return {
     formato: "csv",
-    linhas,
+    linhas: comNaturezaExtrato(linhas),
     metadados: { delimitador: delim, total_linhas: linhas.length },
     colunas: headers,
     destinoSugerido: "fluxo_caixa",
@@ -1079,7 +1092,7 @@ export async function parseXLSX(
 
   return {
     formato,
-    linhas,
+    linhas: comNaturezaExtrato(linhas),
     metadados: { aba: sheetName, total_abas: workbook.SheetNames.length },
     colunas: headers,
     destinoSugerido: "fluxo_caixa",

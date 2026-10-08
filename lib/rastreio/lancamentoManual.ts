@@ -23,7 +23,7 @@ const supabase = createBrowserClient(
 );
 
 export type OrigemManual = "receitas" | "custos_variaveis" | "fluxo_caixa";
-export type Natureza = "receita" | "custo" | "aporte" | "emprestimo" | "pag_emprestimo" | "retirada" | "transferencia";
+export type Natureza = "receita" | "custo" | "aporte" | "emprestimo" | "pag_emprestimo" | "retirada" | "transferencia" | "aplicacao";
 export type LancamentoManual = {
   id: string; descricao: string; valor: number; data: string; natureza: Natureza;
   categoria?: string | null; centro_custo_id?: string | null; forma?: string | null; contraparte_id?: string | null;
@@ -39,7 +39,30 @@ export const NATUREZAS_FLUXO: { natureza: Natureza; entrada: boolean | null; pt:
   { natureza: "pag_emprestimo", entrada: false, pt: "Pagamento de empréstimo", en: "Loan payment", es: "Pago de préstamo" },
   { natureza: "retirada", entrada: false, pt: "Retirada de sócio", en: "Partner withdrawal", es: "Retiro de socio" },
   { natureza: "transferencia", entrada: null, pt: "Transferência entre contas", en: "Transfer between accounts", es: "Transferencia entre cuentas" },
+  { natureza: "aplicacao", entrada: null, pt: "Aplicação/resgate de investimento", en: "Investment/redemption", es: "Inversión/rescate" },
 ];
+
+// Natureza pelo texto do extrato (regra, sem IA). Só devolve o que NÃO é resultado
+// (transferência, aplicação, aporte, empréstimo, retirada) — dinheiro que se move mas
+// não é receita nem custo. null = segue como receita/custo comum.
+const SINAIS_NATUREZA: [Natureza, RegExp][] = [
+  ["aplicacao", /\b(aplic|resgate|cdb|lci|lca|poupanca|invest|fundo|tesouro direto|rdb)/],
+  ["transferencia", /(entre contas|mesma titularidade|transf(erencia)? (propria|p\/ conta propria)|conta propria)/],
+  ["pag_emprestimo", /(parc(ela)?\.? ?(emprest|financ)|pagto (emprest|financ)|amortiza)/],
+  ["emprestimo", /(emprest|financiamento|credito pessoal|capital de giro|\bcdc\b|pronampe)/],
+  ["aporte", /(aporte|integraliza|capital social|aumento de capital)/],
+  ["retirada", /(retirada (de )?socio|distribuicao de lucro|dividendo)/],
+];
+export function naturezaPorTexto(texto: string, entrada: boolean): Natureza | null {
+  const t = normalizarTexto(texto || "");
+  for (const [n, re] of SINAIS_NATUREZA) {
+    if (!re.test(t)) continue;
+    if (n === "emprestimo" && !entrada) return "pag_emprestimo"; // saída citando empréstimo = pagamento dele
+    if ((n === "aporte" && !entrada) || (n === "retirada" && entrada)) continue;
+    return n;
+  }
+  return null;
+}
 export function naturezaDoFluxo(categoria: string | null | undefined, tipo: string): Natureza {
   const achou = NATUREZAS_FLUXO.find((n) => n.natureza === categoria || n.pt === categoria);
   return achou ? achou.natureza : tipo === "entrada" ? "receita" : "custo";
