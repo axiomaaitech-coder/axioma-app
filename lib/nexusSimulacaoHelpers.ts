@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { obterEmpresaAtiva } from "./empresaHelpers";
+import { lerTodas } from "./lerTodas";
 import { montarDRE, simularCenariosExecutivos, type ResultadoCenario, type ChoqueSimulador } from "./cfoCore";
 import { calcularImpostoRegime } from "./iaTributariaHelpers";
 import { macroParaChoque, type VariaveisMacro } from "./nexusSimulacaoMotor";
@@ -39,11 +40,13 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
   const fim = hoje.toISOString().slice(0, 10);
 
   const [rec, cf, cv, dv, fc, emp] = await Promise.all([
-    supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim),
-    supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId),
-    supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim),
-    supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
-    supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId),
+    // Paginado como o retrato do José: sem isso o banco corta em 1.000 linhas e a
+    // simulação partia de receita/caixa menores que os reais.
+    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
+    lerTodas(() => supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId).order("id")),
+    lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
+    lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId).order("id")),
+    lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
     supabase.from("empresas").select("regime_tributario, cnae_principal, cnae_descricao").eq("id", empresaId).maybeSingle(),
   ]);
   const erro = [rec, cf, cv, dv, fc].some((r) => r.error);
