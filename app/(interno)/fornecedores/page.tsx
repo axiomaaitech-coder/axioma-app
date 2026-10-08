@@ -1320,7 +1320,7 @@ export default function Fornecedores() {
       const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
       if (auditoria.erro) showToast(txt.avisoAuditoriaContaSalva, "erro");
     } else {
-      const r = await criarContaPagar(user.id, empresaId, dados);
+      const r = await criarContaPagar(user.id, empresaId, dados, { origem: 'fornecedores' });
       if (r.erro || !r.id) {
         showToast(txt.erroSalvarConta, "erro");
         setSalvandoConta(false);

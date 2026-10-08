@@ -110,7 +110,7 @@ export async function listarContasPagar(empresaId: string, filtros: FiltrosConta
 //   Sem pagoNaOrigem → passa pela alçada de aprovação (auto ou "aguardando").
 export async function criarContaPagar(
   userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
-  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string } },
+  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string },
 ): Promise<{ id?: string; erro?: string; avisoAprovacao?: string; avisoBaixa?: string }> {
   const total = Number(dados.valor_total) || 0;
   const status = calcStatus(total, 0, dados.data_vencimento);
@@ -123,15 +123,22 @@ export async function criarContaPagar(
     reportarFalhaEscrita("contas_pagar", "insert", motivo);
     return { erro: motivo };
   }
-  publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
-    {
-      conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null,
-      // categoria/descricao/data_emissao: usados pelo Accounting Core pra reconhecer
-      // a despesa na conta certa, na data certa.
-      categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
-      centro_custo_id: dados.centro_custo_id ?? null,
+  // Nascimento da conta vira rastro (Fase 2): de onde veio + contabilidade com status.
+  if (empresaId) await registrarMovimentacao({
+    empresaId, tipo: "ap_criacao", origemTabela: "contas_pagar", origemId: data.id, valor: total,
+    data: dados.data_emissao || hojeISO(),
+    payload: {
+      descricao: dados.descricao || "", categoria: dados.categoria ?? null, centro_custo_id: dados.centro_custo_id ?? null,
+      origem_modulo: opcoes?.origem ?? "contas_pagar", evento_tipo: "AP_CREATED",
+      evento_payload: {
+        conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null,
+        // categoria/descricao/data_emissao: usados pelo Accounting Core pra reconhecer
+        // a despesa na conta certa, na data certa.
+        categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
+        centro_custo_id: dados.centro_custo_id ?? null,
+      },
     },
-    { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
+  });
 
   const pago = opcoes?.pagoNaOrigem;
   if (pago && pago.valor > 0) {
@@ -359,14 +366,20 @@ export async function gerarContaDeCustoFixo(
     reportarFalhaEscrita("contas_pagar", "insert (gerar de custo fixo)", motivo);
     return { erro: motivo };
   }
-  publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
-    {
-      conta_id: data.id, fornecedor_id: null, valor: custoFixo.valor_mensal, vencimento: dataVencimento,
-      // sem categoria/descrição a contabilidade lançava a despesa na conta padrão, não na do custo fixo
-      categoria: payload.categoria, descricao: custoFixo.descricao, data_emissao: `${mesReferencia}-01`,
-      centro_custo_id: custoFixo.centro_custo_id || null,
+  if (empresaId) await registrarMovimentacao({
+    empresaId, tipo: "ap_criacao", origemTabela: "contas_pagar", origemId: data.id, valor: custoFixo.valor_mensal,
+    data: `${mesReferencia}-01`,
+    payload: {
+      descricao: custoFixo.descricao, categoria: payload.categoria, centro_custo_id: custoFixo.centro_custo_id || null,
+      custo_fixo_id: custoFixo.id, origem_modulo: "custos_fixos", evento_tipo: "AP_CREATED",
+      evento_payload: {
+        conta_id: data.id, fornecedor_id: null, valor: custoFixo.valor_mensal, vencimento: dataVencimento,
+        // sem categoria/descrição a contabilidade lançava a despesa na conta padrão, não na do custo fixo
+        categoria: payload.categoria, descricao: custoFixo.descricao, data_emissao: `${mesReferencia}-01`,
+        centro_custo_id: custoFixo.centro_custo_id || null,
+      },
     },
-    { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
+  });
   return { id: data.id };
 }
 

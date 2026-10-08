@@ -158,12 +158,21 @@ export async function criarContaReceber(
     return { erro: error?.message || "falha_gravacao" };
   }
   const modulo = opcoes?.modulo ?? "contas_receber";
-  publicarEventoNaoBloqueante(empresaId, "AR_CREATED", {
-    conta_id: conta.id, cliente_id: (dados.cliente_id as string) ?? null, valor: total,
-    descricao: (dados.descricao as string) ?? null, categoria: (dados.categoria as string) ?? null,
-    data_emissao: (dados.data_emissao as string) ?? null, competencia: (dados.competencia as string) ?? null,
-    centro_custo_id: (dados.centro_custo_id as string) ?? null,
-  }, { modulo, tabela: "contas_receber", id: conta.id });
+  // Nascimento da conta vira rastro (Fase 2): de onde veio + contabilidade com status.
+  await registrarMovimentacao({
+    empresaId, tipo: "ar_criacao", origemTabela: "contas_receber", origemId: conta.id, valor: total,
+    data: (dados.data_emissao as string) || hojeISO(),
+    payload: {
+      descricao: (dados.descricao as string) || "", categoria: (dados.categoria as string) ?? null,
+      centro_custo_id: (dados.centro_custo_id as string) ?? null, origem_modulo: modulo, evento_tipo: "AR_CREATED",
+      evento_payload: {
+        conta_id: conta.id, cliente_id: (dados.cliente_id as string) ?? null, valor: total,
+        descricao: (dados.descricao as string) ?? null, categoria: (dados.categoria as string) ?? null,
+        data_emissao: (dados.data_emissao as string) ?? null, competencia: (dados.competencia as string) ?? null,
+        centro_custo_id: (dados.centro_custo_id as string) ?? null,
+      },
+    },
+  });
   const recebido = Number(opcoes?.recebidoNaOrigem) || 0;
   if (recebido > 0) {
     const r = await registrarRecebimento(conta, Math.min(recebido, total), empresaId, modulo);

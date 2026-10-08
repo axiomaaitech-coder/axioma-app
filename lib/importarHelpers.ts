@@ -1082,7 +1082,7 @@ export async function gravarLinhas(params: {
       const p = build.payload as Record<string, unknown>;
       const r = destino === "contas_pagar"
         ? await criarContaPagar(userId, empresaId, p as Partial<ContaPagar>,
-            Number(p.valor_pago) > 0 ? { pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : undefined)
+            Number(p.valor_pago) > 0 ? { origem: "importar_documentos", pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : { origem: "importar_documentos" })
         : await criarContaReceber(userId, empresaId, p, { modulo: "importar_documentos" });
       return r.id ? { data: { id: r.id }, error: null } : { data: null, error: { message: r.erro || "falha ao criar a conta" } };
     })();

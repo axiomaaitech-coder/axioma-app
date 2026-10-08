@@ -28,7 +28,7 @@ type DestinoRow = { destino: Destino; status: StatusDestino; ultimo_erro: string
 type RastroRow = {
   id: string; tipo: TipoRastreio; origem_tabela: string; origem_id: string; valor: number; encargos: number;
   data_movimento: string; descricao: string | null; status: 'pendente' | 'ok' | 'falhou'; criado_em: string;
-  payload: { contraparte?: string | null; forma?: string | null }; rastreio_destino: DestinoRow[];
+  payload: { contraparte?: string | null; forma?: string | null; origem_modulo?: string | null }; rastreio_destino: DestinoRow[];
 }
 type Explicacao = { rastreio_id: string; explicacao: string; acao: string }
 
@@ -48,6 +48,18 @@ const NOME_TIPO: Record<TipoRastreio, Record<Idioma3, string>> = {
   ap_estorno: { pt: 'Estorno de pagamento', en: 'Payment reversal', es: 'Reversión de pago' },
   ar_recebimento: { pt: 'Recebimento de cliente', en: 'Customer receipt', es: 'Cobro de cliente' },
   ar_estorno: { pt: 'Estorno de recebimento', en: 'Receipt reversal', es: 'Reversión de cobro' },
+  ap_criacao: { pt: 'Nova conta a pagar', en: 'New bill to pay', es: 'Nueva cuenta por pagar' },
+  ar_criacao: { pt: 'Nova conta a receber', en: 'New bill to receive', es: 'Nueva cuenta por cobrar' },
+}
+// Nascimento: de qual tela/módulo a conta veio
+const NOME_ORIGEM: Record<string, Record<Idioma3, string>> = {
+  contas_pagar: { pt: 'Nova Conta em Contas a Pagar', en: 'New Bill in Payables', es: 'Nueva Cuenta en Cuentas por Pagar' },
+  contas_receber: { pt: 'Nova Conta em Contas a Receber', en: 'New Bill in Receivables', es: 'Nueva Cuenta en Cuentas por Cobrar' },
+  fornecedores: { pt: 'Fornecedores', en: 'Suppliers', es: 'Proveedores' },
+  clientes: { pt: 'Clientes', en: 'Customers', es: 'Clientes' },
+  inadimplencia: { pt: 'Inadimplência', en: 'Delinquency', es: 'Morosidad' },
+  importar_documentos: { pt: 'Nota importada (Importar Documentos)', en: 'Imported invoice (Import Documents)', es: 'Nota importada (Importar Documentos)' },
+  custos_fixos: { pt: 'Custo Fixo (gerada sozinha no mês)', en: 'Fixed Cost (generated automatically)', es: 'Costo Fijo (generada sola en el mes)' },
 }
 
 export default function RastreabilidadePage() {
@@ -215,10 +227,15 @@ export default function RastreabilidadePage() {
                         {' · '}{L('registrado em', 'recorded on', 'registrado el')} {new Date(r.criado_em).toLocaleString(local, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         {r.payload?.forma ? ` · ${r.payload.forma}` : ''}
                       </p>
+                      {r.tipo.endsWith('criacao') && (
+                        <p className="text-xs mt-0.5 font-semibold" style={{ color: P.VERDE }}>
+                          {L('Nasceu em', 'Created in', 'Nació en')}: {(NOME_ORIGEM[r.payload?.origem_modulo || ''] || NOME_ORIGEM[r.origem_tabela])?.[lang] || r.payload?.origem_modulo}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black" style={{ color: r.tipo.endsWith('estorno') ? P.CINZA : entrada ? P.VERDE : P.TEXTO }}>
-                        {entrada ? '+' : r.tipo.endsWith('estorno') ? '↺ ' : '−'} R$ {fBRL2(Number(r.valor))}
+                        {r.tipo.endsWith('criacao') ? '' : entrada ? '+' : r.tipo.endsWith('estorno') ? '↺ ' : '−'} R$ {fBRL2(Number(r.valor))}
                       </p>
                       {Number(r.encargos) > 0 && <p className="text-xs" style={{ color: P.AMBAR }}>{L('inclui juros/multa', 'includes interest/penalty', 'incluye intereses/multa')} R$ {fBRL2(Number(r.encargos))}</p>}
                       <div className="flex flex-col items-end gap-0.5 mt-1">

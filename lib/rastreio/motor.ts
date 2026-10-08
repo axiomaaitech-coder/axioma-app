@@ -5,6 +5,8 @@
 //   ap_pagamento   → contabilidade · fluxo de caixa (saída realizada) · DRE gerencial (custo)
 //   ar_recebimento → contabilidade · fluxo de caixa (entrada) · DRE gerencial (receita) · inadimplência
 //   ap_estorno / ar_estorno → desfaz o que o pagamento/recebimento deixou em cada porta
+//   ap_criacao / ar_criacao → nascimento da conta (de onde veio) → contabilidade. O fluxo
+//     previsto não precisa de porta: o Fluxo de Caixa lê as contas em aberto direto.
 // Cada destino guarda status próprio (ok / falhou + motivo + tentativas). Se o
 // caminho quebrar, o Guardião (guardiao.ts) e o botão "Houve falha?" refazem só
 // o que falta — e refazer NUNCA duplica: índice único por rastro em fluxo_caixa,
@@ -22,7 +24,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-export type TipoRastreio = "ap_pagamento" | "ap_estorno" | "ar_recebimento" | "ar_estorno";
+export type TipoRastreio = "ap_pagamento" | "ap_estorno" | "ar_recebimento" | "ar_estorno" | "ap_criacao" | "ar_criacao";
 export type Destino = "contabilidade" | "fluxo_caixa" | "dre_gerencial" | "inadimplencia";
 export type StatusDestino = "pendente" | "ok" | "falhou" | "nao_aplica";
 export type ResolvidoPor = "motor" | "guardiao" | "usuario";
@@ -32,6 +34,8 @@ export const DESTINOS_POR_TIPO: Record<TipoRastreio, Destino[]> = {
   ap_estorno: ["contabilidade", "fluxo_caixa", "dre_gerencial"],
   ar_recebimento: ["contabilidade", "fluxo_caixa", "dre_gerencial", "inadimplencia"],
   ar_estorno: ["contabilidade", "fluxo_caixa", "dre_gerencial"],
+  ap_criacao: ["contabilidade"],
+  ar_criacao: ["contabilidade"],
 };
 
 // Tudo que os destinos precisam fica gravado no próprio rastro (payload): refazer
@@ -45,7 +49,8 @@ export type PayloadRastreio = {
   forma?: string | null;          // forma de pagamento/recebimento
   custo_fixo_id?: string | null;  // conta gerada de custo fixo: o custo já está no módulo Custos Fixos
   quitou?: boolean;               // recebimento quitou a conta (fecha promessas de cobrança)
-  evento_tipo: string;            // AP_PAID / AR_RECEIVED / AP_PAYMENT_REVERSED / AR_PAYMENT_REVERSED
+  origem_modulo?: string | null;  // nascimento: de qual tela/módulo a conta veio
+  evento_tipo: string;            // AP_PAID / AR_RECEIVED / AP_PAYMENT_REVERSED / AR_PAYMENT_REVERSED / AP_CREATED / AR_CREATED
   evento_payload: Record<string, unknown>;
   // Desconto concedido na quitação: reconhecimento da receita refeito pelo líquido.
   desconto?: { evento_payload: Record<string, unknown> } | null;
