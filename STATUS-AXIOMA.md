@@ -1354,6 +1354,25 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 ## 3-BW. Nexus — coleta pela visita (2026-09-28)
 Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não dá pra ver; trocar exigiria redeploy) — agendamento do GitHub criado e removido. Solução: **coleta pela visita** — POST /api/nexus/atualizar (só logado): se o último sucesso do BCB tem mais de 3h, roda a mesma coleta do cron **sem IA** (sem análises/painel) e a tela recarrega os números em silêncio. Lógica da coleta movida pra lib/nexusColeta.ts (executarColeta({ comIA })); a rota do cron ficou só com a checagem do CRON_SECRET. Limite: sem visita, sem coleta extra (o cron das 6h continua).
 
+## 4-LISTA-2026-10-09. ONDE PARAMOS + O QUE FALTA (fonte viva mais nova — vale acima das listas antigas)
+
+**Feito em 2026-10-09:** auditoria de segurança concluída (Gitleaks/TruffleHog 0 vazamento; Semgrep 0 achado real; banco: equipe_suspender fechado p/ fora, recálculos só logado; Next 16.3.8). 3 mudanças antigas salvas (convite complementar, varredura service-role, 24 sobras). "Transferir propriedade" da Equipe só p/ CEO/Sócio/Admin SEM prazo (tela + RPC). NOVO: Transferir empresa — aba em Config → Empresa + card "Transferir a empresa" na Equipe que abre janela; 5 passos (tipo/operação, partes, Junta+PDF, lista da lei, confirmar com senha); MEI/EI bloqueados; aceite em /transferencia/[token] (7 dias, CPF+declaração+LGPD); histórico + PDF; manual 38 atualizado. Tabela empresa_transferencias (TRANSFERIR-EMPRESA-SQL.sql, rodado). Botões da transferência: verde-menta escuro / azul-marinho escuro, letra branca (Enviar pedido = azul-marinho, pedido do Elias).
+
+**FALTA — eu construo (ordem sugerida, Elias aprova o plano do item 1 amanhã):**
+1. Dinheiro batendo em todo lugar: Financial Core 2.2 aprendizado, 2.6 painel de risco, 2.8 métricas, MEI e Dívidas no motor, índice 1.7; Conferência diária entre módulos (✅/❌ com diferença em R$); Rastreabilidade Fase 2 (nascimento, parcelas, custo fixo, vencida → inadimplência).
+2. Acertos: tela Planos com recursos antigos; assinatura Stripe acompanhar a Transferência de empresa; login aceita `next` externo (redirecionamento aberto — limitar a caminho interno).
+3. Manual detalhado pt/en/es: reescrever 04 a 43 botão a botão + gerar PDFs.
+4. Pagar contas por dentro (construído, desligado) — liga com Pluggy em produção.
+
+**FALTA — depende do Elias:**
+1. Confirmar créditos Anthropic + recarga automática (P8).
+2. Dados da empresa p/ Termos/Privacidade (razão social, CNPJ, endereço, e-mail, encarregado LGPD, foro, data de vigência).
+3. Testes dele: nota real em PDF/foto; transferência de empresa completa com 2º e-mail (janela anônima).
+4. Supabase Pro antes do 1º cliente + ligar "Prevent use of leaked passwords".
+5. Produção: Stripe real, Pluggy produção (+ PLUGGY_WEBHOOK_SECRET), preços, landing, trava do Nexus por plano.
+6. Decisões: UPDATE das linhas antigas de fluxo_caixa 'confirmado' → 'realizado'; contas de teste "Aluguel do galpão" R$ 38.000 e "TESTE rastreio" R$ 10.
+7. 28/10/2026: conferir placar do José.
+
 ## 4-LISTA. O QUE FALTA PARA TERMINAR O AXIOMA — lista única, atualizada 2026-09-28 (marcar ✅ ao fechar)
 Ordem de execução; Elias pediu "ir eliminando etapas sem pontas soltas".
 - [x] B1 Motor fase 4 — manuais com exemplos de boa resposta ✅ 2026-09-28
