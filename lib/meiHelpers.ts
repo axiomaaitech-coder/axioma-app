@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
 import { hojeISO, dataLocal } from "./datas";
 import { lerTodas } from "./lerTodas";
+import { NATUREZAS_FLUXO, registrarLancamentoManual, desfazerLancamentoManual } from "./rastreio/lancamentoManual";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -353,14 +354,16 @@ export type ObrigacaoMEI = {
   data_vencimento: string | null;
   status: StatusObrigacao;
   data_entrega: string | null;
+  valor?: number | null; // valor PAGO (DAS com multa/juros quando atrasou)
 };
 
-// Obrigações do ano + o DAS de dezembro do ano anterior (vence em janeiro deste ano).
+// Obrigações do ano + o DAS de dezembro do ano anterior (vence em janeiro deste ano) +
+// o ano seguinte (DAS pago adiantado, quadro de planejamento).
 // Falha de leitura vai pro Sentry e volta em `erro` — a tela avisa em vez de mostrar
 // todo DAS como "Pendente" (antes a falha passava calada).
 export async function carregarObrigacoesAno(empresaId: string, ano: number): Promise<{ data: ObrigacaoMEI[]; erro: boolean }> {
   const { data, error } = await supabase.from("mei_obrigacoes").select("*").eq("empresa_id", empresaId)
-    .gte("competencia", `${ano - 1}-12`).lte("competencia", `${ano}-99`);
+    .gte("competencia", `${ano - 1}-12`).lte("competencia", `${ano + 1}-99`);
   if (error) Sentry.captureException(new Error(`Falha ao ler mei_obrigacoes: ${error.message}`), { extra: { tabela: "mei_obrigacoes", operacao: "select" } });
   return { data: (data || []) as ObrigacaoMEI[], erro: !!error };
 }
@@ -410,7 +413,8 @@ export async function salvarObrigacao(params: {
   status: StatusObrigacao;
   dataVencimento?: string | null;
   dataEntrega?: string | null;
-}): Promise<{ erro?: string }> {
+  valor?: number | null;
+}): Promise<{ erro?: string; id?: string }> {
   const { data, error } = await supabase.from("mei_obrigacoes").upsert(
     {
       user_id: params.userId,
@@ -425,6 +429,7 @@ export async function salvarObrigacao(params: {
       ano_referencia: Number(params.competencia.slice(0, 4)),
       mes_referencia: params.competencia.length >= 7 ? Number(params.competencia.slice(5, 7)) : null,
       data_entrega: params.dataEntrega ?? null,
+      valor: params.valor ?? null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "empresa_id,tipo,competencia" }
@@ -453,6 +458,47 @@ export async function salvarObrigacao(params: {
       return { erro: motivo };
     }
   }
+  return { id: data[0].id as string };
+}
+
+// ============================================================================
+// PAGAMENTO DO DAS → DINHEIRO DE VERDADE (Elias 2026-10-09: "marcar pago só mudava a
+// palavra"). DAS pago vira saída no Fluxo de Caixa ligada à obrigação (origem), e o
+// motor leva pra Contabilidade e DRE. Pagar de novo/corrigir valor refaz; voltar pra
+// Pendente desfaz. Uma obrigação = no máximo uma saída (busca pela origem).
+// ============================================================================
+async function saidaDoDAS(empresaId: string, obrigacaoId: string) {
+  return supabase.from("fluxo_caixa").select("id").eq("empresa_id", empresaId)
+    .eq("origem_tabela", "mei_obrigacoes").eq("origem_id", obrigacaoId).limit(1).maybeSingle();
+}
+
+export async function lancarPagamentoDAS(p: { empresaId: string; userId: string; obrigacaoId: string; competencia: string; valor: number; data: string }): Promise<{ erro?: string }> {
+  const descricao = `DAS MEI — ref. ${p.competencia.slice(5, 7)}/${p.competencia.slice(0, 4)}`;
+  const linha = { descricao, tipo: "saida", valor: p.valor, data: p.data, status: "realizado", categoria: NATUREZAS_FLUXO.find((n) => n.natureza === "custo")!.pt };
+  const { data: existe, error: e1 } = await saidaDoDAS(p.empresaId, p.obrigacaoId);
+  if (e1) { reportarFalhaEscrita("fluxo_caixa", "select (DAS)", e1.message); return { erro: e1.message }; }
+  let id = existe?.id as string | undefined;
+  if (id) {
+    const desf = await desfazerLancamentoManual(p.empresaId, "fluxo_caixa", id);
+    if (desf.erro) return desf;
+    const { data, error } = await supabase.from("fluxo_caixa").update(linha).eq("id", id).select("id");
+    if (error || !data?.length) { const m = error?.message || "0 linhas afetadas (RLS?)"; reportarFalhaEscrita("fluxo_caixa", "update (DAS)", m); return { erro: m }; }
+  } else {
+    const { data, error } = await supabase.from("fluxo_caixa").insert({ ...linha, empresa_id: p.empresaId, user_id: p.userId, origem_tabela: "mei_obrigacoes", origem_id: p.obrigacaoId }).select("id");
+    if (error || !data?.length) { const m = error?.message || "0 linhas afetadas (RLS?)"; reportarFalhaEscrita("fluxo_caixa", "insert (DAS)", m); return { erro: m }; }
+    id = data[0].id as string;
+  }
+  return registrarLancamentoManual(p.empresaId, "fluxo_caixa", { id: id!, descricao, valor: p.valor, data: p.data, natureza: "custo", categoria: linha.categoria, modulo: "mei_das" });
+}
+
+export async function desfazerPagamentoDAS(empresaId: string, obrigacaoId: string): Promise<{ erro?: string }> {
+  const { data: existe, error } = await saidaDoDAS(empresaId, obrigacaoId);
+  if (error) { reportarFalhaEscrita("fluxo_caixa", "select (DAS)", error.message); return { erro: error.message }; }
+  if (!existe) return {}; // marcado como pago antes de existir o lançamento: nada a desfazer
+  const desf = await desfazerLancamentoManual(empresaId, "fluxo_caixa", existe.id as string);
+  if (desf.erro) return desf;
+  const { data, error: e2 } = await supabase.from("fluxo_caixa").delete().eq("id", existe.id).select("id");
+  if (e2 || !data?.length) { const m = e2?.message || "0 linhas afetadas (RLS?)"; reportarFalhaEscrita("fluxo_caixa", "delete (DAS)", m); return { erro: m }; }
   return {};
 }
 
@@ -651,7 +697,7 @@ export function faseRiscoDAS(diasAtraso: number): FaseRiscoDAS {
   return "divida_ativa";
 }
 
-export type CompetenciaDAS = { mesNum: number; competencia: string; dataVencimento: Date; status: StatusObrigacao };
+export type CompetenciaDAS = { mesNum: number; competencia: string; dataVencimento: Date; status: StatusObrigacao; id?: string; valorPago: number | null; dataPagamento: string | null };
 
 // Monta a lista honesta de competências de DAS que já deveriam existir este
 // ano (desde a abertura do MEI, ou desde janeiro se abriu em ano anterior),
@@ -664,7 +710,8 @@ export function competenciasDASDoAno(
   anoAtual: number,
   diaVencimento: number,
   dataAbertura: string | null | undefined,
-  hoje: Date = new Date()
+  hoje: Date = new Date(),
+  incluirFuturas = false // true = calendário do ano inteiro (A vencer / pago adiantado); a dívida usa false
 ): CompetenciaDAS[] {
   const aberturaObj = dataAbertura ? new Date(dataAbertura.slice(0, 10) + "T00:00:00") : null;
   if (aberturaObj && aberturaObj.getFullYear() > anoAtual) return [];
@@ -673,13 +720,16 @@ export function competenciasDASDoAno(
   const mesInicio = !aberturaObj || aberturaObj < new Date(anoAtual - 1, 11, 31) ? -1
     : aberturaObj.getFullYear() === anoAtual ? aberturaObj.getMonth() : 0;
   const resultado: CompetenciaDAS[] = [];
-  for (let m = mesInicio; m <= 11; m++) {
+  // Ano pelo VENCIMENTO: jan (ref. dez anterior) até dez (ref. nov). O DAS de dezembro deste
+  // ano vence em janeiro e aparece no ano seguinte (m = -1), nunca nos dois.
+  for (let m = mesInicio; m <= 10; m++) {
     // Competência m vence no dia do mês m+1 (dezembro vence em janeiro do ano seguinte).
     const dataVencimento = new Date(anoAtual, m + 1, diaVencimento);
-    if (dataVencimento > hoje) break; // ainda não venceu: não é obrigação em aberto
+    if (dataVencimento > hoje && !incluirFuturas) break; // ainda não venceu: não é obrigação em aberto
     const competencia = m < 0 ? `${anoAtual - 1}-12` : `${anoAtual}-${String(m + 1).padStart(2, "0")}`;
     const registro = obrigacoesCarregadas.find((o) => o.tipo === "DAS" && o.competencia === competencia);
-    resultado.push({ mesNum: m, competencia, dataVencimento, status: registro?.status || "Pendente" });
+    resultado.push({ mesNum: m, competencia, dataVencimento, status: registro?.status || "Pendente", id: registro?.id,
+      valorPago: registro?.valor != null ? Number(registro.valor) : null, dataPagamento: registro?.data_entrega ?? null });
   }
   return resultado;
 }

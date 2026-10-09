@@ -26,10 +26,12 @@ import {
   faturamentoAnoMEI, dasMensalPorCategoria, salvarObrigacao,
   competenciasDASDoAno, dasDoMes, prazoIrpf, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
-  type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
-  lerBaseMEI,
+  type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS, type CompetenciaDAS,
+  lerBaseMEI, lancarPagamentoDAS, desfazerPagamentoDAS, calcularPenalidadeDASAtraso,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import Modal from '../../../../components/Modal'
+import { useConfirmarExclusao, EFEITO } from '../../../../components/ConfirmarExclusao'
 import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
@@ -69,9 +71,14 @@ export default function DASObrigacoes() {
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoMEI[]>([])
   const [editandoTipo, setEditandoTipo] = useState<'DAS' | 'DASN' | 'IRPF' | null>(null)
   const [editandoComp, setEditandoComp] = useState<string | null>(null) // mês do Histórico sendo marcado
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro)
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const [salvandoStatus, setSalvandoStatus] = useState(false)
+  // Janela "Quanto você pagou?" ao marcar um DAS como pago
+  const [pagando, setPagando] = useState<{ competencia: string; dataVencimento: Date } | null>(null)
+  const [pagoValor, setPagoValor] = useState('')
+  const [pagoData, setPagoData] = useState('')
   const [indicadores, setIndicadores] = useState<IndicadoresMacro | null>(null)
   const [analiseIA, setAnaliseIA] = useState<string | null>(null)
   const [analisandoIA, setAnalisandoIA] = useState(false)
@@ -118,6 +125,35 @@ export default function DASObrigacoes() {
     abrirPortalParcelamento: { pt: 'Abrir Portal do Simples Nacional (PGMEI)', en: 'Open Simples Nacional Portal (PGMEI)', es: 'Abrir Portal del Simples Nacional (PGMEI)' },
     competenciaCurta: { pt: 'ref.', en: 'ref.', es: 'ref.' },
     mudarSituacao: { pt: 'Mudar a situação deste mês (ex.: paguei com atraso)', en: 'Change this month status (e.g. paid late)', es: 'Cambiar la situación de este mes (ej.: pagué con atraso)' },
+    cancelar: { pt: 'Cancelar', en: 'Cancel', es: 'Cancelar' },
+    contaDas: { pt: 'Conta do DAS', en: 'DAS account', es: 'Cuenta del DAS' },
+    jaPago: { pt: 'Já pago', en: 'Already paid', es: 'Ya pagado' },
+    atrasadoHoje: { pt: 'Atrasado (com multa e juros)', en: 'Overdue (with fine and interest)', es: 'Atrasado (con multa e intereses)' },
+    aVencerAno: { pt: 'Falta pagar este ano', en: 'Still to pay this year', es: 'Falta pagar este año' },
+    totalAno: { pt: 'Total do ano', en: 'Year total', es: 'Total del año' },
+    mes: { pt: 'mês', en: 'month', es: 'mes' },
+    meses: { pt: 'meses', en: 'months', es: 'meses' },
+    atrasado: { pt: 'Atrasado', en: 'Overdue', es: 'Atrasado' },
+    colRef: { pt: 'Ref.', en: 'Ref.', es: 'Ref.' },
+    colVence: { pt: 'Vence', en: 'Due', es: 'Vence' },
+    colSituacao: { pt: 'Situação', en: 'Status', es: 'Situación' },
+    colPagoEm: { pt: 'Pago em', en: 'Paid on', es: 'Pagado el' },
+    colValor: { pt: 'Valor', en: 'Amount', es: 'Valor' },
+    avisoContaDas: { pt: 'Pago = valor que você informou. Atrasado = DAS + multa (0,33% ao dia, até 20%) + juros Selic até hoje. Estimativa — o valor oficial é o do Portal do Simples.', en: 'Paid = amount you entered. Overdue = DAS + fine (0.33% a day, up to 20%) + Selic interest until today. Estimate — the official amount is the one in the Simples portal.', es: 'Pagado = valor que usted informó. Atrasado = DAS + multa (0,33% al día, hasta 20%) + intereses Selic hasta hoy. Estimación — el valor oficial es el del Portal del Simples.' },
+    quantoPagou: { pt: 'Quanto você pagou?', en: 'How much did you pay?', es: '¿Cuánto pagó?' },
+    dataPagamento: { pt: 'Data do pagamento', en: 'Payment date', es: 'Fecha del pago' },
+    valorPago: { pt: 'Valor pago (R$)', en: 'Amount paid (R$)', es: 'Valor pagado (R$)' },
+    ajudaValorPago: { pt: 'Já vem com multa e juros se a data passou do vencimento. Confira com o comprovante. O pagamento sai do Fluxo de Caixa e entra na Contabilidade e na DRE sozinho.', en: 'Comes with fine and interest if the date is past due. Check against the receipt. The payment leaves Cash Flow and goes to Accounting and P&L automatically.', es: 'Ya viene con multa e intereses si la fecha pasó del vencimiento. Confirme con el comprobante. El pago sale del Flujo de Caja y entra en Contabilidad y Resultados solo.' },
+    confirmarPagamento: { pt: 'Confirmar pagamento', en: 'Confirm payment', es: 'Confirmar pago' },
+    erroValorPago: { pt: 'Informe a data e um valor maior que zero.', en: 'Enter the date and an amount above zero.', es: 'Informe la fecha y un valor mayor que cero.' },
+    erroCaixaDas: { pt: 'DAS marcado, mas o Fluxo de Caixa/Contabilidade não foi atualizado agora — tente de novo.', en: 'DAS marked, but Cash Flow/Accounting was not updated now — try again.', es: 'DAS marcado, pero Flujo de Caja/Contabilidad no se actualizó ahora — intente de nuevo.' },
+    sucessoPagamentoDas: { pt: 'Pagamento registrado — saiu do Fluxo de Caixa e foi pra Contabilidade e DRE.', en: 'Payment recorded — left Cash Flow and went to Accounting and P&L.', es: 'Pago registrado — salió del Flujo de Caja y fue a Contabilidad y Resultados.' },
+    aVencer: { pt: 'A vencer', en: 'Upcoming', es: 'Por vencer' },
+    vence: { pt: 'vence', en: 'due', es: 'vence' },
+    planejamento: { pt: 'Planejamento do DAS', en: 'DAS planning', es: 'Planificación del DAS' },
+    totalEstimado: { pt: 'Total estimado', en: 'Estimated total', es: 'Total estimado' },
+    pagosAdiantado: { pt: 'pagos adiantado', en: 'paid in advance', es: 'pagados por adelantado' },
+    avisoPlanejamento: { pt: 'Valor estimado com o DAS de hoje — ele muda em janeiro junto com o salário mínimo. Pagou algum mês adiantado? Clique no lápis e marque "Entregue". Pelas regras atuais, o Portal do Simples só gera as guias do ano seguinte a partir de janeiro.', en: 'Estimated with the current DAS — it changes in January with the minimum wage. Paid a month in advance? Click the pencil and mark "Filed". Under current rules, the Simples portal only issues the slips for next year from January.', es: 'Estimado con el DAS de hoy — cambia en enero junto con el salario mínimo. ¿Pagó algún mes por adelantado? Haga clic en el lápiz y marque "Entregado". Según las reglas actuales, el Portal del Simples solo emite las guías del año siguiente a partir de enero.' },
     historicoAno: { pt: 'Histórico do Ano', en: 'Year History', es: 'Historial del Año' },
     analisarIA: { pt: 'Analisar', en: 'Analyze', es: 'Analizar' },
     analisando: { pt: 'Analisando...', en: 'Analyzing...', es: 'Analizando...' },
@@ -206,6 +242,23 @@ export default function DASObrigacoes() {
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
   const divida = calcularDividaDASAcumulada(competenciasAno, dasValorNum, selicAnual, hoje)
   const obrigacoesPendentes = competenciasAno.filter((c) => c.status !== 'Entregue').length
+  // Calendário do ano inteiro (com os meses que ainda vão vencer) + planejamento do ano seguinte.
+  const calendarioAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje, true)
+  const calendarioProximo = competenciasDASDoAno(obrigacoes, anoAtual + 1, diaVencimentoDas, meiDados?.data_abertura, hoje, true)
+  const pagosProximo = calendarioProximo.filter((c) => c.status === 'Entregue').length
+  // Soma do ano: pago (valor que a pessoa informou), atrasado (DAS + multa + juros de hoje)
+  // e a vencer (DAS do mês). Mesma lista do Histórico — nunca diverge.
+  const contaDas = (() => {
+    const multaDe = new Map(divida.atrasos.map((a) => [a.competencia, a.penalidade.total]))
+    const linhas = calendarioAno.map((c) => {
+      if (c.status === 'Entregue') return { ...c, tipoLinha: 'pago', valor: c.valorPago ?? dasValorNum, rotulo: rotuloStatus('Entregue'), cor: VERDE }
+      if (c.dataVencimento > hoje) return { ...c, tipoLinha: 'aVencer', valor: dasValorNum, rotulo: t('aVencer'), cor: OURO }
+      return { ...c, tipoLinha: 'atrasado', valor: multaDe.get(c.competencia) ?? dasValorNum, rotulo: t('atrasado'), cor: VERMELHO }
+    })
+    const soma = (tipo: string) => linhas.filter((l) => l.tipoLinha === tipo).reduce((s, l) => s + l.valor, 0)
+    const qtd = (tipo: string) => linhas.filter((l) => l.tipoLinha === tipo).length
+    return { linhas, pago: soma('pago'), atrasado: soma('atrasado'), aVencer: soma('aVencer'), qPago: qtd('pago'), qAtrasado: qtd('atrasado'), qAVencer: qtd('aVencer') }
+  })()
   const temAtrasoReal = divida.atrasos.length > 0
   const faseAtual: FaseRiscoDAS = faseRiscoDAS(divida.piorDiasAtraso)
   const bolaDeNeve = temAtrasoReal ? projecaoBolaDeNeveDAS(divida.atrasos, selicAnual) : []
@@ -227,20 +280,102 @@ export default function DASObrigacoes() {
 
   // `mes` = DAS de um mês do Histórico (antes só dava pra marcar o do mês atual: DAS pago
   // com atraso ficava pra sempre como dívida, com juros subindo).
+  // Grade de meses do DAS (Histórico do ano e Planejamento do ano seguinte): mês do vencimento,
+  // competência, situação e lápis pra marcar (pago com atraso ou adiantado).
+  function gradeMeses(lista: CompetenciaDAS[]) {
+    const local = idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR'
+    return (
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        {lista.map((c) => {
+          const aVencer = c.status !== 'Entregue' && c.dataVencimento > hoje
+          const rotulo = aVencer ? t('aVencer') : rotuloStatus(c.status)
+          const cor = c.status === 'Entregue' ? VERDE : aVencer ? TEXTO_SEC : temaClaro ? OURO : corStatus(c.status)
+          return (
+            <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
+              style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+              <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{c.dataVencimento.toLocaleDateString(local, { month: 'short' })}</p>
+              <p className="text-[10px]" style={{ color: TEXTO_SEC }}>{t('competenciaCurta')} {c.competencia.slice(5, 7)}/{c.competencia.slice(2, 4)} · {t('vence')} {c.dataVencimento.toLocaleDateString(local, { day: '2-digit', month: '2-digit' })}</p>
+              {editandoComp === c.competencia ? (
+                <div className="flex flex-col gap-1 mt-1">
+                  {(['Entregue', 'Pendente'] as StatusObrigacao[]).map(s => (
+                    <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s, c)}
+                      className="text-[10px] px-1.5 py-1 rounded-full" style={botaoStatus(s)}>
+                      {s === 'Pendente' && aVencer ? t('aVencer') : rotuloStatus(s)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button onClick={() => setEditandoComp(c.competencia)} title={t('mudarSituacao')} className="text-xs font-semibold mt-1 inline-flex items-center gap-1" style={{ color: cor }}>
+                  {rotulo} <Pencil size={11} />
+                </button>
+              )}
+              {c.status === 'Entregue' && c.valorPago != null && (
+                <p className="text-[10px] font-bold mt-0.5" style={{ color: VERDE }}>{fmt(c.valorPago)}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   // Botões de situação: verde-menta escuro (Entregue) ou azul-marinho escuro (demais), letra branca.
   const botaoStatus = (s: StatusObrigacao) => ({ background: s === 'Entregue' ? '#0f7a5a' : '#101b3d', color: '#ffffff', border: '1px solid transparent' })
 
-  async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao, mes?: { competencia: string; dataVencimento: Date }) {
+  // Valor sugerido: o DAS, ou o DAS com multa e juros se a data do pagamento passou do vencimento.
+  function valorSugeridoDAS(vencimento: Date, dataPagamento: string): number {
+    const dias = Math.floor((new Date(dataPagamento + 'T00:00:00').getTime() - vencimento.getTime()) / 86400000)
+    return dias > 0 ? calcularPenalidadeDASAtraso(dasValorNum, dias, selicAnual).total : dasValorNum
+  }
+  function abrirPagamento(mes: { competencia: string; dataVencimento: Date }) {
+    const hojeStr = hojeISO()
+    const registro = obrigacoes.find((o) => o.tipo === 'DAS' && o.competencia === mes.competencia)
+    setPagando(mes)
+    setPagoData(registro?.data_entrega || hojeStr)
+    setPagoValor(String(registro?.valor ?? Math.round(valorSugeridoDAS(mes.dataVencimento, hojeStr) * 100) / 100))
+  }
+
+  async function confirmarPagamento() {
+    if (!pagando) return
+    const valor = parseFloat(pagoValor)
+    if (!(valor > 0) || !pagoData) { showToast(t('erroValorPago'), 'erro'); return }
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
+    const empresaId = user ? await obterEmpresaAtiva() : null
+    if (!user || !empresaId) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setSalvandoStatus(true)
-    const empresaId = await obterEmpresaAtiva()
+    const salvo = await salvarObrigacao({
+      userId: user.id, empresaId, tipo: 'DAS', competencia: pagando.competencia, status: 'Entregue',
+      dataVencimento: pagando.dataVencimento.toISOString().slice(0, 10), dataEntrega: pagoData, valor,
+    })
+    // Pagamento vira saída no Fluxo de Caixa → Contabilidade e DRE pelo motor.
+    const lanc = salvo.erro || !salvo.id ? { erro: salvo.erro || 'sem id' } : await lancarPagamentoDAS({ empresaId, userId: user.id, obrigacaoId: salvo.id, competencia: pagando.competencia, valor, data: pagoData })
+    setSalvandoStatus(false)
+    if (salvo.erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
+    setPagando(null); setEditandoTipo(null); setEditandoComp(null)
+    showToast(lanc.erro ? t('erroCaixaDas') : t('sucessoPagamentoDas'), lanc.erro ? 'erro' : 'ok')
+    carregar()
+  }
+
+  async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao, mes?: { competencia: string; dataVencimento: Date }) {
     const competencia = mes ? mes.competencia : tipo === 'DAS' ? competenciaDas : competenciaAnual
     const vencimento = mes ? mes.dataVencimento : tipo === 'DAS' ? vencimentoDas : tipo === 'DASN' ? vencimentoDasn : vencimentoIrpf
+    if (tipo === 'DAS' && status === 'Entregue') { abrirPagamento({ competencia, dataVencimento: vencimento }); return }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
+    const empresaId = await obterEmpresaAtiva()
+    const registro = obrigacoes.find((o) => o.tipo === tipo && o.competencia === competencia)
+    // Voltar um DAS pago pra pendente apaga a saída do caixa: regra do supervisor.
+    if (tipo === 'DAS' && registro?.status === 'Entregue' && registro.id && empresaId) {
+      if (!(await confirmar({ oQue: { pt: `o pagamento do DAS ref. ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`, en: `the DAS payment ref. ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`, es: `el pago del DAS ref. ${competencia.slice(5, 7)}/${competencia.slice(0, 4)}` }, efeito: EFEITO.financeiro, tabela: 'mei_obrigacoes', registroId: registro.id }))) return
+      const desf = await desfazerPagamentoDAS(empresaId, registro.id)
+      if (desf.erro) { showToast(t('erroCaixaDas'), 'erro'); return }
+    }
+    setSalvandoStatus(true)
     const { erro } = await salvarObrigacao({
       userId: user.id, empresaId, tipo, competencia, status,
       dataVencimento: vencimento.toISOString().slice(0, 10),
       dataEntrega: status === 'Entregue' ? hojeISO() : null,
+      valor: null,
     })
     setSalvandoStatus(false)
     if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
@@ -626,39 +761,63 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         {/* Histórico do Ano — mesma lista que alimenta o cálculo da dívida, fonte única */}
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('historicoAno')} — {anoAtual}</p>
-          {competenciasAno.length === 0 ? (
+          {calendarioAno.length === 0 ? (
             <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('historicoVazio')}</p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {competenciasAno.map((c) => {
-                const nomeMesCurto = new Date(c.dataVencimento).toLocaleDateString(
-                  idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR', { month: 'short' }
-                )
-                return (
-                  <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
-                    style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
-                    <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
-                    <p className="text-[10px]" style={{ color: TEXTO_SEC }}>{t('competenciaCurta')} {c.competencia.slice(5, 7)}/{c.competencia.slice(2, 4)}</p>
-                    {editandoComp === c.competencia ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        {(['Entregue', 'Pendente'] as StatusObrigacao[]).map(s => (
-                          <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s, c)}
-                            className="text-[10px] px-1.5 py-1 rounded-full" style={botaoStatus(s)}>
-                            {rotuloStatus(s)}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <button onClick={() => setEditandoComp(c.competencia)} title={t('mudarSituacao')} className="text-xs font-semibold mt-1 inline-flex items-center gap-1"
-                        style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>
-                        {rotuloStatus(c.status)} <Pencil size={11} />
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          ) : gradeMeses(calendarioAno)}
+        </CanvasBox>
+
+        {/* Conta do DAS do ano: pago × atrasado × a vencer, mês a mês */}
+        <CanvasBox cor={AZUL} {...cartaoTema}>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('contaDas')} — {anoAtual}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+            {[
+              { rotulo: t('jaPago'), valor: contaDas.pago, qtd: contaDas.qPago, cor: VERDE },
+              { rotulo: t('atrasadoHoje'), valor: contaDas.atrasado, qtd: contaDas.qAtrasado, cor: VERMELHO },
+              { rotulo: t('aVencerAno'), valor: contaDas.aVencer, qtd: contaDas.qAVencer, cor: OURO },
+              { rotulo: t('totalAno'), valor: contaDas.pago + contaDas.atrasado + contaDas.aVencer, qtd: calendarioAno.length, cor: 'var(--axi-text-primary)' },
+            ].map((k) => (
+              <div key={k.rotulo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{k.rotulo}</p>
+                <p className="text-lg font-black" style={{ color: k.cor }}>{fmt(k.valor)}</p>
+                <p className="text-[10px]" style={{ color: TEXTO_SEC }}>{k.qtd} {k.qtd === 1 ? t('mes') : t('meses')}</p>
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr style={{ color: TEXTO_SEC }}>
+                  <th className="text-left py-1.5 pr-2">{t('colRef')}</th><th className="text-left py-1.5 pr-2">{t('colVence')}</th>
+                  <th className="text-left py-1.5 pr-2">{t('colSituacao')}</th><th className="text-left py-1.5 pr-2">{t('colPagoEm')}</th>
+                  <th className="text-right py-1.5">{t('colValor')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contaDas.linhas.map((l) => (
+                  <tr key={l.competencia} style={{ borderTop: `1px solid ${NESTED_BORDA}`, color: 'var(--axi-text-primary)' }}>
+                    <td className="py-1.5 pr-2">{l.competencia.slice(5, 7)}/{l.competencia.slice(0, 4)}</td>
+                    <td className="py-1.5 pr-2">{l.dataVencimento.toLocaleDateString('pt-BR')}</td>
+                    <td className="py-1.5 pr-2 font-semibold" style={{ color: l.cor }}>{l.rotulo}</td>
+                    <td className="py-1.5 pr-2">{l.dataPagamento ? new Date(l.dataPagamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+                    <td className="py-1.5 text-right font-bold" style={{ color: l.cor }}>{fmt(l.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] mt-3" style={{ color: TEXTO_SEC }}>{t('avisoContaDas')}</p>
+        </CanvasBox>
+
+        {/* Planejamento do ano seguinte — DAS pago adiantado sai da lista de pendências futuras */}
+        <CanvasBox cor={AZUL} {...cartaoTema}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('planejamento')} — {anoAtual + 1}</p>
+            <p className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>
+              {t('totalEstimado')}: <span style={{ color: OURO }}>{fmt(dasValorNum * calendarioProximo.length)}</span> · {pagosProximo}/{calendarioProximo.length} {t('pagosAdiantado')}
+            </p>
+          </div>
+          <p className="text-[11px] mb-4" style={{ color: TEXTO_SEC }}>{t('avisoPlanejamento')}</p>
+          {gradeMeses(calendarioProximo)}
         </CanvasBox>
 
         {/* Calculadora DASN */}
@@ -684,6 +843,28 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
       </div>
 
+      {janelaConfirmacao}
+      <Modal open={!!pagando} onClose={() => { if (!salvandoStatus) setPagando(null) }}>
+        <CanvasBox cor={VERDE} {...cartaoTema}>
+          <p className="text-sm font-bold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('quantoPagou')}</p>
+          <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>
+            DAS ref. {pagando ? `${pagando.competencia.slice(5, 7)}/${pagando.competencia.slice(0, 4)}` : ''} · {t('vence')} {pagando?.dataVencimento.toLocaleDateString('pt-BR')}
+          </p>
+          <label className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{t('dataPagamento')}</label>
+          <input type="date" value={pagoData} max={hojeISO()} onChange={(e) => {
+            setPagoData(e.target.value)
+            if (pagando && e.target.value) setPagoValor(String(Math.round(valorSugeridoDAS(pagando.dataVencimento, e.target.value) * 100) / 100))
+          }} className="w-full mt-1 mb-3 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: `1px solid ${NESTED_BORDA}`, color: 'var(--axi-text-primary)' }} />
+          <label className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{t('valorPago')}</label>
+          <input type="number" step="0.01" min="0" value={pagoValor} onChange={(e) => setPagoValor(e.target.value)}
+            className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: `1px solid ${NESTED_BORDA}`, color: 'var(--axi-text-primary)' }} />
+          <p className="text-[11px] mt-2 mb-4" style={{ color: TEXTO_SEC }}>{t('ajudaValorPago')}</p>
+          <div className="flex gap-2">
+            <button disabled={salvandoStatus} onClick={() => setPagando(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold" style={{ background: '#101b3d', color: '#ffffff' }}>{t('cancelar')}</button>
+            <button disabled={salvandoStatus} onClick={() => void confirmarPagamento()} className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: '#0f7a5a', color: '#ffffff' }}>{salvandoStatus ? '...' : t('confirmarPagamento')}</button>
+          </div>
+        </CanvasBox>
+      </Modal>
       <CentroCompartilhamento
         aberto={shareAberto}
         onFechar={() => setShareAberto(false)}
