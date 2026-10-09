@@ -55,7 +55,7 @@ export function checklistDe(tipo: TipoSocietario, operacao: TipoOperacao): ItemC
   if (tipo === 'mei' || tipo === 'ei') return []
   const itens: ItemChecklist[] = [
     { id: 'documento', obrigatorio: true, texto: DOC_PRINCIPAL[tipo],
-      ajuda: { pt: 'Anexe o PDF abaixo — ele também vai para o Cofre da empresa.', en: 'Attach the PDF below — it also goes to the company Vault.', es: 'Adjunte el PDF abajo — también va a la Bóveda de la empresa.' } },
+      ajuda: { pt: 'Anexe o PDF no passo 3 — ele também vai para o Cofre da empresa.', en: 'Attach the PDF in step 3 — it also goes to the company Vault.', es: 'Adjunte el PDF en el paso 3 — también va a la Bóveda de la empresa.' } },
     { id: 'junta', obrigatorio: true,
       texto: tipo === 'sa'
         ? { pt: 'Ata/registro na Junta Comercial, se a diretoria mudar', en: 'Minutes/registration at the Commercial Registry, if the board changes', es: 'Acta/registro en la Junta Comercial, si cambia la dirección' }
