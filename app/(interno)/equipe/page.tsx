@@ -15,7 +15,7 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown, RotateCcw, LogOut, ShieldCheck, UserX } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Send, FileText, AlertTriangle, Menu, ChevronDown, RotateCcw, LogOut, ShieldCheck, UserX, ArrowRightLeft } from 'lucide-react'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
@@ -913,6 +913,26 @@ export default function EquipePage() {
             </motion.button>
           </div>
         </CanvasBox>
+
+        {/* Entrada visível da Transferência de empresa (venda/doação/herança) — mora em Config → Empresa */}
+        {(meuNivel ?? 99) <= 4 && (
+          <CanvasBox cor="#2ecc9b" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold flex items-center gap-2" style={{ color: TEXTO }}><ArrowRightLeft size={16} /> {lang === 'en' ? 'Transfer the company' : lang === 'es' ? 'Transferir la empresa' : 'Transferir a empresa'}</p>
+                <p className="text-xs mt-1" style={{ color: MUTED }}>
+                  {lang === 'en' ? 'Sale, donation, inheritance or reorganization: the Owner fills in the Commercial Registry details, the document and what the law requires; the recipient accepts by link within 7 days.'
+                    : lang === 'es' ? 'Venta, donación, herencia o reorganización: el Propietario completa los datos de la Junta Comercial, el documento y lo que pide la ley; quien recibe acepta por enlace en 7 días.'
+                    : 'Venda, doação, herança ou reorganização: o Proprietário preenche os dados da Junta Comercial, o documento e o que a lei pede; quem recebe aceita pelo link em até 7 dias.'}
+                </p>
+              </div>
+              <a href="/empresa?aba=transferir" className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
+                <ArrowRightLeft size={16} /> {lang === 'en' ? 'Open company transfer' : lang === 'es' ? 'Abrir transferencia' : 'Abrir transferência'}
+              </a>
+            </div>
+          </CanvasBox>
+        )}
 
         <CanvasBox cor="#2ecc9b" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
           {membros.length === 0 ? (
