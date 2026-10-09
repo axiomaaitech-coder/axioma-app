@@ -170,7 +170,8 @@ begin
   if v_n < 2 then raise exception 'FALHOU T16: histórico com % registros', v_n; end if;
   raise notice 'ok T16 — histórico gravado';
 
-  raise notice 'TODOS OS TESTES PASSARAM';
+  -- termina com ERRO de propósito: o banco desfaz tudo sozinho, mesmo se o rollback abaixo não rodar
+  raise exception 'TODOS OS TESTES PASSARAM (16/16) — tudo desfeito, nada gravado';
 end $$;
 
 rollback;   -- desfaz tudo: o banco fica exatamente como estava
