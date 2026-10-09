@@ -30,6 +30,7 @@ import {
   type ScoreResultado,
 } from "../../../lib/empresaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import TransferirEmpresa from "../../../components/TransferirEmpresa";
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "../../../lib/datas";
 
@@ -62,6 +63,7 @@ const T = {
     abaCompliance: "📋 Compliance & Fiscal",
     abaCofre: "📄 Cofre",
     abaAuditoria: "🔐 Auditoria",
+    abaTransferir: "🔁 Transferir empresa",
     // CNPJ
     autoCnpjTitulo: "🪄 Auto-preenchimento por CNPJ (Receita Federal)",
     autoCnpjInfo: "ℹ️ Usa a API gratuita da BrasilAPI. Preenche razão social, endereço, CNAE, regime tributário e sócios automaticamente.",
@@ -279,6 +281,7 @@ const T = {
     abaCompliance: "📋 Compliance & Fiscal",
     abaCofre: "📄 Vault",
     abaAuditoria: "🔐 Audit",
+    abaTransferir: "🔁 Transfer company",
     autoCnpjTitulo: "🪄 Auto-fill by Tax ID (Federal Revenue)",
     autoCnpjInfo: "ℹ️ Uses free BrasilAPI. Auto-fills legal name, address, business activity, tax regime and partners.",
     consultando: "⏳ Looking up...",
@@ -480,6 +483,7 @@ const T = {
     abaCompliance: "📋 Cumplimiento & Fiscal",
     abaCofre: "📄 Bóveda",
     abaAuditoria: "🔐 Auditoría",
+    abaTransferir: "🔁 Transferir empresa",
     autoCnpjTitulo: "🪄 Auto-rellenar por CNPJ (Receita Federal)",
     autoCnpjInfo: "ℹ️ Usa la API gratuita de BrasilAPI. Rellena razón social, dirección, CNAE, régimen tributario y socios automáticamente.",
     consultando: "⏳ Consultando...",
@@ -728,7 +732,7 @@ export default function EmpresaPage() {
   const [complianceScore, setComplianceScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: CINZA, itens: [] });
 
   // Aba
-  const [aba, setAba] = useState<"dados" | "socios" | "compliance" | "cofre" | "auditoria">("dados");
+  const [aba, setAba] = useState<"dados" | "socios" | "compliance" | "cofre" | "auditoria" | "transferir">("dados");
 
   // CNPJ/CEP
   const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
@@ -1348,6 +1352,7 @@ export default function EmpresaPage() {
               { key: "compliance", label: `${tt.abaCompliance} (${obrigacoes.length})` },
               { key: "cofre", label: `${tt.abaCofre} (${documentos.length})` },
               { key: "auditoria", label: tt.abaAuditoria },
+              { key: "transferir", label: tt.abaTransferir },
             ].map((a) => (
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
@@ -1358,6 +1363,12 @@ export default function EmpresaPage() {
                 }}>{a.label}</button>
             ))}
           </div>
+
+          {/* ABA TRANSFERIR EMPRESA */}
+          {aba === "transferir" && userId && empresa && (
+            <TransferirEmpresa empresa={empresa} userId={userId} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema}
+              inputStyle={inputStyle} cores={{ TEXTO, CINZA, VERDE, VERMELHO, AMARELO }} aviso={showToast} aoMudar={carregarTudo} />
+          )}
 
           {/* ABA DADOS */}
           {aba === "dados" && (

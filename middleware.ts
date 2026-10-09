@@ -91,12 +91,12 @@ export async function middleware(request: NextRequest) {
   // Protegido POR PADRÃO (auditoria 2026-09-28): antes era uma lista à mão e PDV,
   // Estoque e Equipe tinham ficado de fora (abriam sem login e sem plano). Agora só
   // fica aberto o que é público de propósito: páginas públicas, auth, planos,
-  // convite (tem o próprio fluxo de login), rotas de API (cada uma confere a sua
+  // convite e transferência de empresa (têm o próprio fluxo de login), rotas de API (cada uma confere a sua
   // própria sessão/assinatura) e arquivos estáticos (imagem, vídeo, ícone).
   const isArquivoEstatico = /\.[a-z0-9]{2,5}$/i.test(pathname)
   const isRotaProtegida =
     !isRotaPublica && !isCallback && !isRotaPlanos && !isArquivoEstatico &&
-    !pathname.startsWith('/api/') && !pathname.startsWith('/convite/')
+    !pathname.startsWith('/api/') && !pathname.startsWith('/convite/') && !pathname.startsWith('/transferencia/')
 
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)
