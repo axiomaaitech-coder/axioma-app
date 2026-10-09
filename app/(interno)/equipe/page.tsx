@@ -8,7 +8,7 @@ import { copiarTexto } from '../../../lib/copiar'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import {
   obterMeuPapel, listarEquipe, alterarPapelMembro, removerAcessoMembro,
-  listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, membroParaLixeira, listarLixeiraConvites, acaoLixeiraConvite, type ConviteLixeira, decidirConvite, type TermoConvite,
+  carregarEmpresaPorId, listarTermosConvite, listarLixeiraTermos, recuperarTermoConvite, transferirPropriedade, obterVagasEquipe, type VagasEquipe, apagarTermoConvite, termoParaLixeira, membroParaLixeira, listarLixeiraConvites, acaoLixeiraConvite, type ConviteLixeira, decidirConvite, type TermoConvite,
   type MembroEquipe, obterMeuNivel, listarPedidosEquipe, decidirPedidoEquipe,
   concluirPedidoEquipe, restaurarMembro, type PedidoEquipe,
 } from '../../../lib/empresaHelpers'
@@ -19,6 +19,7 @@ import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy, Sen
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
+import TransferirEmpresa from '../../../components/TransferirEmpresa'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
@@ -267,6 +268,7 @@ export default function EquipePage() {
   const [carregando, setCarregando] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [transfEmpresa, setTransfEmpresa] = useState<any>(null) // janela da Transferência de empresa
   const [meuPapel, setMeuPapel] = useState<string | null>(null)
   const [meuNivel, setMeuNivel] = useState<number | null>(null)
   const [pedidos, setPedidos] = useState<PedidoEquipe[]>([])
@@ -926,10 +928,11 @@ export default function EquipePage() {
                     : 'Venda, doação, herança ou reorganização: o Proprietário preenche os dados da Junta Comercial, o documento e o que a lei pede; quem recebe aceita pelo link em até 7 dias.'}
                 </p>
               </div>
-              <a href="/empresa?aba=transferir" className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 whitespace-nowrap"
+              <button onClick={async () => { if (empresaId) setTransfEmpresa(await carregarEmpresaPorId(empresaId)) }}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
-                <ArrowRightLeft size={16} /> {lang === 'en' ? 'Open company transfer' : lang === 'es' ? 'Abrir transferencia' : 'Abrir transferência'}
-              </a>
+                <ArrowRightLeft size={16} /> {lang === 'en' ? 'Fill in the transfer' : lang === 'es' ? 'Llenar la transferencia' : 'Preencher transferência'}
+              </button>
             </div>
           </CanvasBox>
         )}
@@ -1135,6 +1138,18 @@ export default function EquipePage() {
             {apagando ? t.apagando : membroCortar ? t.cortarBotao : t.apagarBotao}
           </motion.button>
         </CanvasBox>
+      </Modal>
+      <Modal open={!!transfEmpresa} onClose={() => setTransfEmpresa(null)} maxWidthClassName="max-w-3xl">
+        <div className="relative">
+          <button onClick={() => setTransfEmpresa(null)} aria-label="Fechar" className="absolute right-3 top-3 z-10 p-1.5 rounded-lg" style={{ background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.08)', color: '#fff' }}><X size={16} /></button>
+          {transfEmpresa && userId && (
+            <TransferirEmpresa empresa={transfEmpresa} userId={userId} lang={lang as 'pt' | 'en' | 'es'} temaClaro={temaClaro}
+              cartaoTema={temaClaro ? { fundo: '#f6f7c4', premium3d: true } : { premium3d: true }}
+              inputStyle={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}
+              cores={{ TEXTO, CINZA: MUTED, VERDE: temaClaro ? '#16a97d' : '#34d399', VERMELHO: temaClaro ? '#ff5a6b' : '#f87171', AMARELO: temaClaro ? '#f5a623' : '#2ecc9b' }}
+              aviso={(m, tipo) => avisar(tipo === 'erro' ? 'erro' : 'sucesso', m)} />
+          )}
+        </div>
       </Modal>
       <Modal open={!!membroTransferir} onClose={() => { if (!transferindo) setMembroTransferir(null) }}>
         <CanvasBox cor="#2ecc9b" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
