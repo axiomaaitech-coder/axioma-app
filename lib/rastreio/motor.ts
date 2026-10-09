@@ -300,6 +300,9 @@ async function executarDreGerencial(r: Rastreio): Promise<Resultado> {
     const jaLancado = await custoJaLancadoPelaNota(r);
     if (jaLancado === null) return { status: "falhou", erro: "leitura do custo já lançado pela nota" };
     if (jaLancado) return { status: "nao_aplica" };
+    // Imposto (DAS-MEI etc.) não é custo variável: a DRE já deduz o imposto do regime na
+    // linha de deduções — lançar aqui contaria o mesmo tributo 2 vezes.
+    if (r.payload.categoria === "Impostos") return { status: "nao_aplica" };
     // Juros/multa por atraso não é custo do produto: fica só na contabilidade (9.01).
     const principal = r2(r.valor - r.encargos);
     if (principal <= 0) return { status: "nao_aplica" };

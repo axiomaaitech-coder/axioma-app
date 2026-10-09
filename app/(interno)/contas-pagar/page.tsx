@@ -1639,6 +1639,11 @@ export default function ContasPagarPage() {
     if (!(await confirmar({ oQue: `"${contaExcluir.descricao}"`, efeito: EFEITO.financeiro, tabela: "contas_pagar", registroId: contaExcluir.id }))) return;
     setProcessandoExclusao(true);
     const { erro } = await excluirContaPagar(contaExcluir.id, contaExcluir.status);
+    if (erro && /conta_do_das/.test(erro)) {
+      showToast(L("Este é um DAS do MEI: pague, estorne ou corrija em MEI → DAS e Obrigações.", "This is an MEI DAS: pay, reverse or fix it in MEI → DAS & Obligations.", "Este es un DAS del MEI: pague, reverse o corrija en MEI → DAS y Obligaciones."), "erro");
+      setProcessandoExclusao(false);
+      return;
+    }
     if (erro === "conta_paga") {
       showToast(L("Não é possível excluir uma conta já paga. Estorne a baixa primeiro.", "You can't delete a bill that's already paid. Reverse the payment first.", "No se puede eliminar una cuenta ya pagada. Primero reversa el pago."), "erro");
       setProcessandoExclusao(false);
@@ -1679,6 +1684,7 @@ export default function ContasPagarPage() {
     if (erro) {
       showToast(
         erro === "valor_invalido" ? L("Informe um valor maior que zero.", "Enter an amount greater than zero.", "Ingrese un valor mayor que cero.")
+        : erro === "conta_do_das" ? L("Este é um DAS do MEI: pague, estorne ou corrija em MEI → DAS e Obrigações.", "This is an MEI DAS: pay, reverse or fix it in MEI → DAS & Obligations.", "Este es un DAS del MEI: pague, reverse o corrija en MEI → DAS y Obligaciones.")
         : L("Não foi possível registrar a baixa. Tente novamente.", "Could not register the payment. Try again.", "No se pudo registrar el pago. Intente de nuevo."), "erro");
       setProcessandoBaixa(false);
       return;
@@ -1704,7 +1710,8 @@ export default function ContasPagarPage() {
     setProcessandoEstorno(true);
     const { erro, avisoAuditoria } = await estornarBaixaContaPagar(contaEstornar, motivoEstorno.trim(), observacaoEstorno.trim() || undefined);
     if (erro) {
-      showToast(L("Não foi possível estornar a baixa. Tente novamente.", "Could not reverse the payment. Try again.", "No se pudo reversar el pago. Intente de nuevo."), "erro");
+      showToast(erro === "conta_do_das" ? L("Este é um DAS do MEI: pague, estorne ou corrija em MEI → DAS e Obrigações.", "This is an MEI DAS: pay, reverse or fix it in MEI → DAS & Obligations.", "Este es un DAS del MEI: pague, reverse o corrija en MEI → DAS y Obligaciones.")
+        : L("Não foi possível estornar a baixa. Tente novamente.", "Could not reverse the payment. Try again.", "No se pudo reversar el pago. Intente de nuevo."), "erro");
       setProcessandoEstorno(false);
       return;
     }

@@ -140,6 +140,9 @@ const CATEGORIA_PARA_CODIGO: Record<CategoriaDespesa, string> = {
   "Logística": "8.07",
   "Tecnologia": "8.06",
   "Serviços": "8.08",
+  // DAS-MEI e outros tributos sobre o faturamento (Simples). INSS do DAS também cai aqui
+  // por padrão — classificação a validar com o contador (Rodada 1 MEI, 2026-10-09).
+  "Impostos": "10.01",
   "Outros": "8.02",
 };
 const CODIGO_DESPESA_PADRAO = "8.02"; // categoria fora do enum conhecido — não deveria acontecer, enum é fechado

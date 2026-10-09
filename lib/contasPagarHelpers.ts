@@ -44,6 +44,7 @@ export type ContaPagar = {
   observacoes?: string | null;
   centro_custo_id?: string | null;
   custo_fixo_id?: string | null;
+  mei_obrigacao_id?: string | null; // conta nascida de uma obrigação MEI (DAS) — 1 obrigação = 1 conta
   taxa_multa_mensal?: number | null;
   desconto_disponivel_pct?: number | null;
   desconto_data_limite?: string | null;
@@ -111,7 +112,7 @@ export async function listarContasPagar(empresaId: string, filtros: FiltrosConta
 //   Sem pagoNaOrigem → passa pela alçada de aprovação (auto ou "aguardando").
 export async function criarContaPagar(
   userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
-  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string; proveniencia?: Record<string, string | number | null> },
+  opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string; proveniencia?: Record<string, string | number | null>; dispensarAprovacao?: boolean },
 ): Promise<{ id?: string; erro?: string; avisoAprovacao?: string; avisoBaixa?: string }> {
   const total = Number(dados.valor_total) || 0;
   const status = calcStatus(total, 0, dados.data_vencimento);
@@ -146,6 +147,8 @@ export async function criarContaPagar(
     const baixa = await darBaixaContaPagar(data as ContaPagar, Math.min(pago.valor, total), pago.data, pago.forma);
     return { id: data.id, avisoBaixa: baixa.erro };
   }
+  // Tributo com vencimento legal (DAS) não espera aprovação interna pra existir/ser pago.
+  if (opcoes?.dispensarAprovacao) return { id: data.id };
   const aprovacao = await solicitarAprovacao(data.id);
   return { id: data.id, avisoAprovacao: aprovacao.erro };
 }
@@ -187,6 +190,8 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
 
 export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, dataPagamento: string, formaPagamento: string): Promise<{ erro?: string }> {
   if (conta.status === "aguardando_aprovacao") return { erro: "aguardando_aprovacao" };
+  // DAS-MEI: baixa só pelo motor do MEI (o banco também trava) — senão MEI e Contabilidade divergem.
+  if (conta.mei_obrigacao_id) return { erro: "conta_do_das" };
   // A baixa precisa somar algo (> 0). O que passar do que faltava pagar é
   // juros/multa por atraso — vai pra despesa financeira na contabilidade.
   const jaPago = Number(conta.valor_pago || 0);
@@ -243,6 +248,7 @@ async function nomeFornecedor(id: string | null | undefined): Promise<string | n
 // coluna de contas_pagar, então vão em "depois" do registro de auditoria, não
 // no UPDATE da conta em si.
 export async function estornarBaixaContaPagar(conta: ContaPagar, motivo: string, observacao?: string): Promise<{ erro?: string; avisoAuditoria?: string }> {
+  if (conta.mei_obrigacao_id) return { erro: "conta_do_das" };
   const valorEstornado = conta.valor_pago;
   const status = calcStatus(conta.valor_total, 0, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
