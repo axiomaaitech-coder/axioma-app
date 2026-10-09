@@ -115,24 +115,30 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
   const [chave, setChave] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  function sugerido(m: MesDAS, data: string, base = m.saldo): number {
+  // O que ainda dá pra abater no mês. "Falta informar o pagamento" mostra Falta R$ 0 (não é
+  // dívida), mas o pagamento dele abate o valor inteiro — antes a janela usava esse 0 e todo
+  // o valor virava "multa/juros": o banco recusava (DAS de jan/2026, 2026-10-09).
+  const saldoPagavel = (m: MesDAS) => m.situacao === 'aguardando_conciliacao' ? r2(Math.max(0, (m.valor_esperado ?? 0) - m.pago)) : m.saldo
+  function sugerido(m: MesDAS, data: string, base = saldoPagavel(m)): number {
     const dias = Math.floor((new Date(data + 'T00:00:00').getTime() - new Date(m.data_vencimento + 'T00:00:00').getTime()) / 86400000)
     return dias > 0 ? r2(calcularPenalidadeDASAtraso(base, dias, selicAnual).total) : base
   }
   function abrirPagamento(m: MesDAS, corrigir?: PagamentoDAS) {
-    const data = corrigir?.data_pagamento ?? hoje
+    // Já marcado como pago antes: o normal é ter pago no vencimento (sem multa) — a pessoa ajusta a data.
+    const data = corrigir?.data_pagamento ?? (m.situacao === 'aguardando_conciliacao' && m.data_vencimento <= hoje ? m.data_vencimento : hoje)
     setPagando({ mes: m, corrigir }); setFData(data); setFMetodo((corrigir?.metodo as MetodoPagamento) ?? 'pix'); setFRef(corrigir?.referencia ?? '')
     setFValor(String(corrigir ? r2(corrigir.valor + corrigir.encargos) : sugerido(m, data)))
     setChave(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
   }
   const valorNum = parseFloat(fValor) || 0
-  const saldoDaJanela = pagando ? r2(pagando.mes.saldo + (pagando.corrigir?.valor ?? 0)) : 0   // corrigir devolve o que o pagamento antigo abatia
+  const saldoDaJanela = pagando ? r2(saldoPagavel(pagando.mes) + (pagando.corrigir?.valor ?? 0)) : 0   // corrigir devolve o que o pagamento antigo abatia
   const principal = r2(Math.min(valorNum, saldoDaJanela))
   const encargos = r2(Math.max(0, valorNum - saldoDaJanela))
   const parcialFalta = r2(Math.max(0, saldoDaJanela - valorNum))
 
   async function confirmarPagamento() {
     if (!pagando || !empresaId) return
+    if (!(principal > 0)) { showToast(L('Este mês não tem valor em aberto para abater.', 'This month has no open amount to settle.', 'Este mes no tiene valor abierto para saldar.')); return }
     if (!(valorNum > 0) || !fData || fData > hoje) { showToast(L('Informe a data (até hoje) e um valor maior que zero.', 'Enter the date (up to today) and an amount above zero.', 'Informe la fecha (hasta hoy) y un valor mayor que cero.')); return }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { showToast(L('Sessão expirada. Entre de novo.', 'Session expired. Sign in again.', 'Sesión expirada. Ingrese de nuevo.')); return }
