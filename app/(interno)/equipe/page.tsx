@@ -930,7 +930,7 @@ export default function EquipePage() {
               </div>
               <button onClick={async () => { if (empresaId) setTransfEmpresa(await carregarEmpresaPorId(empresaId)) }}
                 className="w-full sm:w-auto px-5 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                style={{ background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }}>
+                style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                 <ArrowRightLeft size={16} /> {lang === 'en' ? 'Fill in the transfer' : lang === 'es' ? 'Llenar la transferencia' : 'Preencher transferência'}
               </button>
             </div>
@@ -1141,7 +1141,7 @@ export default function EquipePage() {
       </Modal>
       <Modal open={!!transfEmpresa} onClose={() => setTransfEmpresa(null)} maxWidthClassName="max-w-3xl">
         <div className="relative">
-          <button onClick={() => setTransfEmpresa(null)} aria-label="Fechar" className="absolute right-3 top-3 z-10 p-1.5 rounded-lg" style={{ background: temaClaro ? '#101b3d' : 'rgba(255,255,255,0.08)', color: '#fff' }}><X size={16} /></button>
+          <button onClick={() => setTransfEmpresa(null)} aria-label="Fechar" className="absolute right-3 top-3 z-10 p-1.5 rounded-lg" style={{ background: '#101b3d', color: '#fff' }}><X size={16} /></button>
           {transfEmpresa && userId && (
             <TransferirEmpresa empresa={transfEmpresa} userId={userId} lang={lang as 'pt' | 'en' | 'es'} temaClaro={temaClaro}
               cartaoTema={temaClaro ? { fundo: '#f6f7c4', premium3d: true } : { premium3d: true }}

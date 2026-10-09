@@ -107,7 +107,7 @@ export default function AceitarTransferencia() {
             <CheckCircle2 size={40} className="mx-auto mb-3" style={{ color: COR.menta }} />
             <p className="text-lg font-semibold" style={{ color: COR.texto }}>{L(`Você agora é o Proprietário de ${r.empresa_nome}`, `You are now the Owner of ${r.empresa_nome}`, `Ahora usted es el Propietario de ${r.empresa_nome}`)}</p>
             <p className="text-sm mt-2" style={{ color: COR.sec }}>{L('Fica registrado no histórico da empresa com data e CPF.', 'It is recorded in the company history with date and CPF.', 'Queda registrado en el historial de la empresa con fecha y CPF.')}</p>
-            <a href="/dashboard" className={`${botao} mt-6`} style={{ background: COR.menta, color: '#04241a' }}>{L('Abrir o Axioma', 'Open Axioma', 'Abrir Axioma')}</a>
+            <a href="/dashboard" className={`${botao} mt-6`} style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>{L('Abrir o Axioma', 'Open Axioma', 'Abrir Axioma')}</a>
           </div>
         )}
 
@@ -129,15 +129,15 @@ export default function AceitarTransferencia() {
             {!fim && !r.logado_email && (
               <div className="mt-6 space-y-2">
                 <p className="text-sm" style={{ color: COR.sec }}>{L(`Para aceitar, entre no Axioma com ${r.cessionario_email}.`, `To accept, sign in to Axioma with ${r.cessionario_email}.`, `Para aceptar, entre en Axioma con ${r.cessionario_email}.`)}</p>
-                <a href={`/login?next=${voltar}&email=${encodeURIComponent(r.cessionario_email)}`} className={botao} style={{ background: COR.menta, color: '#04241a' }}>{L('Entrar', 'Sign in', 'Entrar')}</a>
-                <a href={`/cadastro?next=${voltar}&email=${encodeURIComponent(r.cessionario_email)}`} className={botao} style={{ border: `1px solid ${COR.linha}`, color: COR.texto }}>{L('Ainda não tenho conta', 'I don\'t have an account yet', 'Aún no tengo cuenta')}</a>
+                <a href={`/login?next=${voltar}&email=${encodeURIComponent(r.cessionario_email)}`} className={botao} style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>{L('Entrar', 'Sign in', 'Entrar')}</a>
+                <a href={`/cadastro?next=${voltar}&email=${encodeURIComponent(r.cessionario_email)}`} className={botao} style={{ background: '#101b3d', color: '#fff', border: '1px solid rgba(46,204,155,0.35)' }}>{L('Ainda não tenho conta', 'I don\'t have an account yet', 'Aún no tengo cuenta')}</a>
               </div>
             )}
 
             {!fim && r.logado_email && !r.email_confere && (
               <div className="mt-6 space-y-2">
                 <p className="text-sm" style={{ color: COR.erro }}>{L(`Você entrou como ${r.logado_email}, mas a empresa foi indicada para ${r.cessionario_email}.`, `You are signed in as ${r.logado_email}, but the company was assigned to ${r.cessionario_email}.`, `Entró como ${r.logado_email}, pero la empresa fue indicada para ${r.cessionario_email}.`)}</p>
-                <button onClick={() => void sair()} className={botao} style={{ background: COR.menta, color: '#04241a' }}>{L('Sair e entrar com o e-mail certo', 'Sign out and use the right e-mail', 'Salir y entrar con el correo correcto')}</button>
+                <button onClick={() => void sair()} className={botao} style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>{L('Sair e entrar com o e-mail certo', 'Sign out and use the right e-mail', 'Salir y entrar con el correo correcto')}</button>
               </div>
             )}
 
@@ -160,7 +160,7 @@ export default function AceitarTransferencia() {
                   <span>{L('Aceito os ', 'I accept the ', 'Acepto los ')}<a href="/termos" target="_blank" className="underline" style={{ color: COR.menta }}>{L('Termos de Uso', 'Terms of Use', 'Términos de Uso')}</a>{L(' e a ', ' and the ', ' y la ')}<a href="/privacidade" target="_blank" className="underline" style={{ color: COR.menta }}>{L('Política de Privacidade (LGPD)', 'Privacy Policy (LGPD)', 'Política de Privacidad (LGPD)')}</a>{L(', e assumo o papel de controlador dos dados da empresa.', ', and I take the role of controller of the company data.', ', y asumo el papel de controlador de los datos de la empresa.')}</span>
                 </label>
                 {erro && <p className="text-sm font-semibold" style={{ color: COR.erro }}>{erro}</p>}
-                <button onClick={() => void aceitar()} disabled={enviando || !declaracao || !lgpd || cpf.length !== 11} className={botao} style={{ background: COR.menta, color: '#04241a' }}>
+                <button onClick={() => void aceitar()} disabled={enviando || !declaracao || !lgpd || cpf.length !== 11} className={botao} style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                   {enviando ? L('Confirmando…', 'Confirming…', 'Confirmando…') : L('Aceitar e assumir a empresa', 'Accept and take over the company', 'Aceptar y asumir la empresa')}
                 </button>
               </div>

@@ -36,7 +36,9 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
   const locale = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const dataBR = (iso?: string | null) => iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso).toLocaleDateString(locale) : '—'
   const aninhado = temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.04)'
-  const botaoVerde = { background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', color: '#fff' }
+  // Regra do Elias (2026-10-09): todo botão é verde-menta escuro ou azul-marinho escuro, texto branco
+  const botaoVerde = { background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }
+  const botaoNavy = { background: '#101b3d', color: '#fff', border: '1px solid rgba(46,204,155,0.35)' }
 
   const [itens, setItens] = useState<Transferencia[]>([])
   const [souProprietario, setSouProprietario] = useState(false)
@@ -205,7 +207,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <input readOnly value={linkDe(aberta.token)} className="flex-1 px-3 py-2 rounded-xl text-xs" style={inputStyle} />
                 <button onClick={async () => { if (await copiarTexto(linkDe(aberta.token))) aviso(L('Link copiado.', 'Link copied.', 'Enlace copiado.'), 'ok') }}
-                  className="px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5" style={botaoVerde}><Copy size={14} /> {L('Copiar link', 'Copy link', 'Copiar enlace')}</button>
+                  className="px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5" style={botaoNavy}><Copy size={14} /> {L('Copiar link', 'Copy link', 'Copiar enlace')}</button>
               </div>
             </div>
           )}
@@ -213,12 +215,12 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
             <div className="mt-3 space-y-2">
               {entrada(motivoCancelar, setMotivoCancelar, { placeholder: L('Por que está cancelando? (obrigatório)', 'Why are you cancelling? (required)', '¿Por qué cancela? (obligatorio)') })}
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => { setCancelandoId(null); setMotivoCancelar('') }} className="py-2 rounded-xl text-sm font-bold" style={botaoVerde}>{L('Voltar', 'Back', 'Volver')}</button>
-                <button onClick={() => void cancelar(aberta.id)} className="py-2 rounded-xl text-sm font-bold" style={{ background: VERMELHO, color: '#fff' }}>{L('Cancelar transferência', 'Cancel transfer', 'Cancelar transferencia')}</button>
+                <button onClick={() => { setCancelandoId(null); setMotivoCancelar('') }} className="py-2 rounded-xl text-sm font-bold" style={botaoNavy}>{L('Voltar', 'Back', 'Volver')}</button>
+                <button onClick={() => void cancelar(aberta.id)} className="py-2 rounded-xl text-sm font-bold" style={botaoNavy}>{L('Cancelar transferência', 'Cancel transfer', 'Cancelar transferencia')}</button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setCancelandoId(aberta.id)} className="mt-3 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5" style={{ background: 'rgba(248,113,113,0.12)', color: VERMELHO, border: `1px solid ${VERMELHO}55` }}>
+            <button onClick={() => setCancelandoId(aberta.id)} className="mt-3 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5" style={botaoNavy}>
               <XCircle size={14} /> {L('Cancelar transferência', 'Cancel transfer', 'Cancelar transferencia')}
             </button>
           ))}
@@ -325,7 +327,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                   )}
                   {erro && <p className="text-sm font-semibold" style={{ color: VERMELHO }}>{erro}</p>}
                   <button onClick={() => void enviar()} disabled={enviando || faltando.length > 0}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60" style={botaoVerde}>
                     <ShieldCheck size={16} /> {enviando ? L('Enviando…', 'Sending…', 'Enviando…') : L('Enviar pedido de transferência', 'Send transfer request', 'Enviar pedido de transferencia')}
                   </button>
                 </div>
@@ -340,7 +342,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <p className="text-sm font-bold" style={{ color: TEXTO }}>{L('Histórico de transferências', 'Transfer history', 'Historial de transferencias')}</p>
           {itens.length > 0 && (
-            <button onClick={baixarHistorico} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5" style={botaoVerde}><FileText size={14} /> {L('Baixar PDF', 'Download PDF', 'Descargar PDF')}</button>
+            <button onClick={baixarHistorico} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5" style={botaoNavy}><FileText size={14} /> {L('Baixar PDF', 'Download PDF', 'Descargar PDF')}</button>
           )}
         </div>
         {itens.length === 0 ? (
