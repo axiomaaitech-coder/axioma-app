@@ -27,9 +27,11 @@ import {
   competenciasDASDoAno, dasDoMes, prazoIrpf, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
-  lerBaseMEI,
+  lerBaseMEI, calcularPenalidadeDASAtraso,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
+import PainelObrigacoesDAS from '../../../../components/mei/PainelObrigacoesDAS'
+import { dividaDoCalendario, type MesDAS } from '../../../../lib/meiObrigacoesMotor'
 import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
@@ -68,7 +70,9 @@ export default function DASObrigacoes() {
   const [dasValorTemp, setDasValorTemp] = useState('')
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoMEI[]>([])
   const [editandoTipo, setEditandoTipo] = useState<'DAS' | 'DASN' | 'IRPF' | null>(null)
-  const [editandoComp, setEditandoComp] = useState<string | null>(null) // mês do Histórico sendo marcado
+  // Calendário canônico do ano atual (motor de obrigações) — fonte da dívida e do DAS do mês.
+  const [calAtual, setCalAtual] = useState<MesDAS[] | null>(null)
+  const [empresaIdAtiva, setEmpresaIdAtiva] = useState<string | null>(null)
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const [salvandoStatus, setSalvandoStatus] = useState(false)
@@ -118,6 +122,11 @@ export default function DASObrigacoes() {
     abrirPortalParcelamento: { pt: 'Abrir Portal do Simples Nacional (PGMEI)', en: 'Open Simples Nacional Portal (PGMEI)', es: 'Abrir Portal del Simples Nacional (PGMEI)' },
     competenciaCurta: { pt: 'ref.', en: 'ref.', es: 'ref.' },
     mudarSituacao: { pt: 'Mudar a situação deste mês (ex.: paguei com atraso)', en: 'Change this month status (e.g. paid late)', es: 'Cambiar la situación de este mes (ej.: pagué con atraso)' },
+    dasPago: { pt: 'Pago', en: 'Paid', es: 'Pagado' },
+    dasParcial: { pt: 'Pago em parte', en: 'Partly paid', es: 'Pagado en parte' },
+    dasConciliar: { pt: 'Falta informar o pagamento', en: 'Payment details missing', es: 'Falta informar el pago' },
+    dasAPagar: { pt: 'A pagar', en: 'To pay', es: 'A pagar' },
+    registrarPagamento: { pt: 'Registrar pagamento', en: 'Record payment', es: 'Registrar pago' },
     historicoAno: { pt: 'Histórico do Ano', en: 'Year History', es: 'Historial del Año' },
     analisarIA: { pt: 'Analisar', en: 'Analyze', es: 'Analizar' },
     analisando: { pt: 'Analisando...', en: 'Analyzing...', es: 'Analizando...' },
@@ -144,6 +153,7 @@ export default function DASObrigacoes() {
     const anoAtual = new Date().getFullYear()
     const empresaId = await obterEmpresaAtiva()
     if (!empresaId) return
+    setEmpresaIdAtiva(empresaId)
     const [base, macro] = await Promise.all([
       lerBaseMEI(empresaId, { receitas: '*', obrigacoesAno: anoAtual }),
       buscarIndicadoresMacro(),
@@ -204,8 +214,10 @@ export default function DASObrigacoes() {
 
   // ---- Mapa de Consequências: detecção de atraso sempre por DATA, nunca só por status manual ----
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
-  const divida = calcularDividaDASAcumulada(competenciasAno, dasValorNum, selicAnual, hoje)
-  const obrigacoesPendentes = competenciasAno.filter((c) => c.status !== 'Entregue').length
+  // Motor canônico quando já carregou; o cálculo antigo só cobre o instante antes de carregar.
+  const divida = calAtual ? dividaDoCalendario(calAtual, selicAnual, hoje, calcularPenalidadeDASAtraso) : calcularDividaDASAcumulada(competenciasAno, dasValorNum, selicAnual, hoje)
+  const obrigacoesPendentes = calAtual ? calAtual.filter((m) => m.vencido).length : competenciasAno.filter((c) => c.status !== 'Entregue').length
+  const dasMesAtual = calAtual?.find((m) => m.data_vencimento.slice(0, 7) === hojeISO().slice(0, 7))
   const temAtrasoReal = divida.atrasos.length > 0
   const faseAtual: FaseRiscoDAS = faseRiscoDAS(divida.piorDiasAtraso)
   const bolaDeNeve = temAtrasoReal ? projecaoBolaDeNeveDAS(divida.atrasos, selicAnual) : []
@@ -245,7 +257,6 @@ export default function DASObrigacoes() {
     setSalvandoStatus(false)
     if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setEditandoTipo(null)
-    setEditandoComp(null)
     showToast(t('sucessoSalvarObrigacao'), 'ok')
     carregar()
   }
@@ -446,6 +457,12 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           ))}
         </div>
 
+        {/* DAS do ano — motor canônico: 12 meses, pago × falta × vencido × estimativa, pagamento, planejamento e cenários */}
+        <PainelObrigacoesDAS empresaId={empresaIdAtiva} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema}
+          cores={{ VERDE, VERMELHO, OURO, AMBAR, NEUTRO, CAMPO_BG, TEXTO_SEC, NESTED_BORDA }}
+          selicAnual={selicAnual} showToast={showToast}
+          onCalendario={(m, a) => { if (a === anoAtual) setCalAtual(m) }} />
+
         {/* Mapa de Consequências — só aparece com atraso real, detectado por data */}
         {temAtrasoReal && (
           <CanvasBox cor={temaClaro ? '#101b3d' : corFase(faseAtual)} {...cartaoTema}>
@@ -591,23 +608,19 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                 {!editandoDas && (
                   <>
-                    <AnimatePresence mode="wait">
-                      {editandoTipo === 'DAS' ? (
-                        <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex gap-1 flex-wrap">
-                          {(['Pendente', 'Entregue', 'Atrasado'] as StatusObrigacao[]).map(s => (
-                            <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s)}
-                              className="text-xs px-2 py-1 rounded-full" style={botaoStatus(s)}>
-                              {rotuloStatus(s)}
-                            </button>
-                          ))}
-                        </motion.div>
-                      ) : (
-                        <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
-                          <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDas)}15`, color: corStatus(statusDas), border: `1px solid ${corStatus(statusDas)}30` }}>{rotuloStatus(statusDas)}</span>
-                          <button onClick={() => setEditandoTipo('DAS')} style={{ color: AZUL }}><Pencil size={15} /></button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {dasMesAtual ? (
+                      <>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${dasMesAtual.situacao === 'pago' ? VERDE : dasMesAtual.vencido ? VERMELHO : OURO}15`, color: dasMesAtual.situacao === 'pago' ? VERDE : dasMesAtual.vencido ? VERMELHO : OURO, border: '1px solid currentColor' }}>
+                          {dasMesAtual.situacao === 'pago' ? t('dasPago') : dasMesAtual.situacao === 'parcial' ? t('dasParcial') : dasMesAtual.situacao === 'aguardando_conciliacao' ? t('dasConciliar') : t('dasAPagar')}
+                        </span>
+                        {(dasMesAtual.saldo > 0 || dasMesAtual.situacao === 'aguardando_conciliacao') && (
+                          <button onClick={() => window.dispatchEvent(new CustomEvent('axioma:das-pagar', { detail: dasMesAtual.competencia }))}
+                            className="text-xs px-3 py-1.5 rounded-lg font-bold" style={{ background: '#0f7a5a', color: '#ffffff' }}>{t('registrarPagamento')}</button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDas)}15`, color: corStatus(statusDas), border: `1px solid ${corStatus(statusDas)}30` }}>{rotuloStatus(statusDas)}</span>
+                    )}
                     <button onClick={() => { setDasValorTemp(dasValor); setEditandoDas(true) }} style={{ color: AZUL }}><Pencil size={13} /></button>
                   </>
                 )}
@@ -621,44 +634,6 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               statusIrpf, vencimentoIrpf, ['Não obrigatório', 'Pendente', 'Entregue'], AZUL)}
 
           </div>
-        </CanvasBox>
-
-        {/* Histórico do Ano — mesma lista que alimenta o cálculo da dívida, fonte única */}
-        <CanvasBox cor={AZUL} {...cartaoTema}>
-          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('historicoAno')} — {anoAtual}</p>
-          {competenciasAno.length === 0 ? (
-            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('historicoVazio')}</p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {competenciasAno.map((c) => {
-                const nomeMesCurto = new Date(c.dataVencimento).toLocaleDateString(
-                  idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR', { month: 'short' }
-                )
-                return (
-                  <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
-                    style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
-                    <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
-                    <p className="text-[10px]" style={{ color: TEXTO_SEC }}>{t('competenciaCurta')} {c.competencia.slice(5, 7)}/{c.competencia.slice(2, 4)}</p>
-                    {editandoComp === c.competencia ? (
-                      <div className="flex flex-col gap-1 mt-1">
-                        {(['Entregue', 'Pendente'] as StatusObrigacao[]).map(s => (
-                          <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s, c)}
-                            className="text-[10px] px-1.5 py-1 rounded-full" style={botaoStatus(s)}>
-                            {rotuloStatus(s)}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <button onClick={() => setEditandoComp(c.competencia)} title={t('mudarSituacao')} className="text-xs font-semibold mt-1 inline-flex items-center gap-1"
-                        style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>
-                        {rotuloStatus(c.status)} <Pencil size={11} />
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </CanvasBox>
 
         {/* Calculadora DASN */}

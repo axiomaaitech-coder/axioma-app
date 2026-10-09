@@ -308,3 +308,74 @@ export async function completarRastrosPendentes(empresaId: string): Promise<{ co
   }
   return { consertados: n };
 }
+
+// ============================================================================
+// CALENDÁRIO DO ANO (Rodada 2) — o que a tela mostra, tudo da fonte canônica
+// ============================================================================
+export type PagamentoDAS = { id: string; data_pagamento: string; metodo: string; referencia: string | null; valor: number; encargos: number; estornado: boolean; criado_em: string };
+export type MesDAS = ObrigacaoDAS & {
+  pago: number; encargos: number; saldo: number; vencido: boolean; pagamentos: PagamentoDAS[];
+  situacaoTela: SituacaoObrigacao | "vencido"; // vencido = oficial com saldo e vencimento passado
+};
+
+export async function lerCalendarioDAS(empresaId: string, ano: number, hoje = hojeISO()): Promise<{ data: MesDAS[]; erro?: string }> {
+  const obr = await lerObrigacoesDAS(empresaId, ano);
+  if (obr.erro) return { data: [], erro: obr.erro };
+  const ids = obr.data.map((o) => o.id);
+  const alocs: { obrigacao_id: string; valor: number; encargos: number; pagamentos_obrigacao: { id: string; data_pagamento: string; metodo: string; referencia: string | null; estorno_de: string | null; estornado_em: string | null; criado_em: string } | null }[] = [];
+  if (ids.length) {
+    const { data, error } = await supabase.from("pagamento_alocacoes")
+      .select("obrigacao_id, valor, encargos, pagamentos_obrigacao(id, data_pagamento, metodo, referencia, estorno_de, estornado_em, criado_em)")
+      .eq("empresa_id", empresaId).in("obrigacao_id", ids);
+    if (error) { reportar("ler pagamentos do calendário", error.message, { ano }); return { data: [], erro: error.message }; }
+    alocs.push(...((data || []) as unknown as typeof alocs));
+  }
+  return {
+    data: obr.data.map((o) => {
+      const pagamentos: PagamentoDAS[] = alocs.filter((a) => a.obrigacao_id === o.id && a.pagamentos_obrigacao && !a.pagamentos_obrigacao.estorno_de).map((a) => ({
+        id: a.pagamentos_obrigacao!.id, data_pagamento: a.pagamentos_obrigacao!.data_pagamento, metodo: a.pagamentos_obrigacao!.metodo,
+        referencia: a.pagamentos_obrigacao!.referencia, valor: Number(a.valor), encargos: Number(a.encargos),
+        estornado: !!a.pagamentos_obrigacao!.estornado_em, criado_em: a.pagamentos_obrigacao!.criado_em,
+      })).sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento));
+      const validos = pagamentos.filter((p) => !p.estornado);
+      const pago = r2(validos.reduce((s, p) => s + p.valor, 0));
+      const encargos = r2(validos.reduce((s, p) => s + p.encargos, 0));
+      const situacao = situacaoPorValores(o, pago);
+      const saldo = o.natureza === "projecao" || situacao === "aguardando_conciliacao" || situacao === "cancelado" || situacao === "retificado"
+        ? 0 : r2(Math.max(0, (o.valor_esperado ?? 0) - pago));
+      const vencido = o.natureza === "oficial" && saldo > 0 && o.data_vencimento < hoje;
+      return { ...o, pago, encargos, saldo, vencido, pagamentos, situacao, situacaoTela: vencido ? "vencido" : situacao };
+    }),
+  };
+}
+
+// Contas a pagar dos DAS oficiais em aberto que vencem até `diasAFrente` (e os já
+// vencidos): é por elas que Contas a Pagar, Tesouraria e o aviso de 7 dias enxergam o
+// DAS. Projeção e "aguardando conciliação" nunca viram conta. Idempotente.
+export async function garantirContasDoCalendario(userId: string, empresaId: string, meses: MesDAS[], hoje = hojeISO(), diasAFrente = 30): Promise<{ criadas: number }> {
+  const limite = new Date(new Date(`${hoje}T12:00:00Z`).getTime() + diasAFrente * 86400000).toISOString().slice(0, 10);
+  let criadas = 0;
+  for (const m of meses) {
+    if (m.natureza !== "oficial" || m.saldo <= 0 || m.data_vencimento > limite) continue;
+    const r = await garantirContaPagarDAS(userId, empresaId, m);
+    if (r.contaId) criadas++;
+  }
+  return { criadas };
+}
+
+// Dívida atrasada pelo calendário canônico (Mapa de Consequências): só mês OFICIAL com
+// saldo e vencimento passado; multa/juros sobre o que FALTA (pagamento parcial abate).
+// "Falta informar o pagamento" não entra (não é pago nem dívida até ser conciliado).
+export function dividaDoCalendario(meses: MesDAS[], selicAnualPct: number, hoje: Date, penalidade: (valor: number, dias: number, selic: number) => { multa: number; juros: number; total: number }) {
+  const atrasos = meses.filter((m) => m.vencido).map((m) => {
+    const venc = new Date(m.data_vencimento + "T00:00:00");
+    const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / 86400000));
+    return { competencia: m.competencia, dataVencimento: m.data_vencimento, diasAtraso, valorOriginal: m.saldo, penalidade: penalidade(m.saldo, diasAtraso, selicAnualPct) };
+  });
+  return {
+    atrasos,
+    totalOriginal: r2(atrasos.reduce((s, a) => s + a.valorOriginal, 0)),
+    totalAtualizado: r2(atrasos.reduce((s, a) => s + a.penalidade.total, 0)),
+    piorDiasAtraso: atrasos.reduce((s, a) => Math.max(s, a.diasAtraso), 0),
+  };
+}
