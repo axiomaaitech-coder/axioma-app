@@ -43,7 +43,10 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
   const dataBR = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(local)
   const { VERDE, VERMELHO, OURO, AMBAR, NEUTRO, CAMPO_BG, TEXTO_SEC, NESTED_BORDA } = cores
   const NESTED_BG = temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)' // caixa aninhada: bege no Claro
-  const TEXTO = 'var(--axi-text-primary)'
+  // Cor explícita: as janelas abrem fora do <div data-theme> da página (portal) e a variável
+  // de tema voltava pro texto claro do Escuro — no Claro o texto sumia no fundo creme.
+  const TEXTO = temaClaro ? '#101b3d' : '#e5edf7'
+  const mesAno = (iso: string) => { const t = new Date(iso + 'T00:00:00').toLocaleDateString(local, { month: 'long', year: 'numeric' }); return t.charAt(0).toUpperCase() + t.slice(1) }
   const hoje = hojeISO()
   const anoHoje = Number(hoje.slice(0, 4))
   const anos = [anoHoje - 1, anoHoje, anoHoje + 1, anoHoje + 2]
@@ -299,7 +302,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
                   <div key={m.id} className={caixa} style={{ ...caixaStyle, border: atual ? `2px solid ${VERDE}` : caixaStyle.border }} aria-current={atual ? 'date' : undefined}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-bold capitalize" style={{ color: TEXTO }}>{new Date(m.data_vencimento + 'T00:00:00').toLocaleDateString(local, { month: 'long', year: 'numeric' })}{atual && <span className="ml-1 text-[10px] font-semibold" style={{ color: VERDE }}>{L('· este mês', '· this month', '· este mes')}</span>}</p>
+                        <p className="text-sm font-bold" style={{ color: TEXTO }}>{mesAno(m.data_vencimento)}{atual && <span className="ml-1 text-[10px] font-semibold" style={{ color: VERDE }}>{L('· este mês', '· this month', '· este mes')}</span>}</p>
                         <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{L('Competência', 'Period', 'Competencia')} {m.competencia.slice(5, 7)}/{m.competencia.slice(0, 4)} · {L('vence', 'due', 'vence')} {dataBR(m.data_vencimento)}</p>
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${st.c}22`, color: st.c, border: `1px solid ${st.c}55` }}>{st.r}</span>
