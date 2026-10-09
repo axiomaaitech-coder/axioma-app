@@ -327,7 +327,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                   )}
                   {erro && <p className="text-sm font-semibold" style={{ color: VERMELHO }}>{erro}</p>}
                   <button onClick={() => void enviar()} disabled={enviando || faltando.length > 0}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60" style={botaoVerde}>
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:cursor-not-allowed" style={botaoVerde}>
                     <ShieldCheck size={16} /> {enviando ? L('Enviando…', 'Sending…', 'Enviando…') : L('Enviar pedido de transferência', 'Send transfer request', 'Enviar pedido de transferencia')}
                   </button>
                 </div>
