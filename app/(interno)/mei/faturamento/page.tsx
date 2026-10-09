@@ -31,6 +31,9 @@ import {
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO } from '../../../../lib/datas'
+import AvisoDuplicidade from '../../../../components/AvisoDuplicidade'
+import { useConfirmarExclusao, nomeItem, EFEITO } from '../../../../components/ConfirmarExclusao'
+import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from '../../../../lib/rastreio/lancamentoManual'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,7 +81,8 @@ export default function FaturamentoMEI() {
   const [shareAberto, setShareAberto] = useState(false)
   const [editando, setEditando] = useState<Receita | null>(null)
   const [criando, setCriando] = useState(false) // "Nova venda": mesmo formulário da edição, grava em receitas
-  const [excluindo, setExcluindo] = useState<Receita | null>(null)
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro)
+  const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', categoria: CATEGORIAS[0], status: 'recebido' })
   const [salvando, setSalvando] = useState(false)
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
@@ -108,7 +112,6 @@ export default function FaturamentoMEI() {
     pendente: { pt: 'Pendente', en: 'Pending', es: 'Pendiente' },
     salvar: { pt: 'Salvar', en: 'Save', es: 'Guardar' },
     cancelar: { pt: 'Cancelar', en: 'Cancel', es: 'Cancelar' },
-    confirmarExcluir: { pt: 'Excluir este lançamento?', en: 'Delete this entry?', es: '¿Eliminar este movimiento?' },
     excluir: { pt: 'Excluir', en: 'Delete', es: 'Eliminar' },
     semLancamentos: { pt: 'Nenhum lançamento neste ano.', en: 'No entries this year.', es: 'Sin movimientos este año.' },
     compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
@@ -135,6 +138,8 @@ export default function FaturamentoMEI() {
     erroSalvarLancamento: { pt: 'Não foi possível salvar o lançamento. Tente novamente.', en: 'Could not save the entry. Try again.', es: 'No se pudo guardar el movimiento. Intente de nuevo.' },
     erroExcluirLancamento: { pt: 'Não foi possível excluir o lançamento. Tente novamente.', en: 'Could not delete the entry. Try again.', es: 'No se pudo eliminar el movimiento. Intente de nuevo.' },
     erroCamposLancamento: { pt: 'Preencha descrição, valor maior que zero e data antes de salvar.', en: 'Fill in description, an amount above zero and the date before saving.', es: 'Complete descripción, un valor mayor que cero y la fecha antes de guardar.' },
+    erroMotor: { pt: 'Venda salva, mas a Contabilidade/Fluxo não foi atualizada agora — o Guardião tenta de novo.', en: 'Sale saved, but Accounting/Cash Flow was not updated now — the Guardian will retry.', es: 'Venta guardada, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará.' },
+    erroDesfazerMotor: { pt: 'Não foi possível desfazer esta venda na Contabilidade/Fluxo. Nada foi apagado — tente de novo.', en: 'Could not undo this sale in Accounting/Cash Flow. Nothing was deleted — try again.', es: 'No se pudo deshacer esta venta en Contabilidad/Flujo. No se eliminó nada — intente de nuevo.' },
     erroAuditoria: { pt: 'Salvo, mas o registro de auditoria falhou.', en: 'Saved, but the audit record failed.', es: 'Guardado, pero el registro de auditoría falló.' },
     sucessoSalvarLancamento: { pt: 'Lançamento salvo.', en: 'Entry saved.', es: 'Movimiento guardado.' },
     sucessoExcluirLancamento: { pt: 'Lançamento excluído.', en: 'Entry deleted.', es: 'Movimiento eliminado.' },
@@ -189,7 +194,7 @@ export default function FaturamentoMEI() {
     setForm({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria || CATEGORIAS[0], status: r.status || 'recebido' })
   }
 
-  async function salvarEdicao() {
+  async function salvarEdicao(forcar = false) {
     // Mesmo bug silencioso já corrigido em Precificação/Metas/Contas a
     // Receber/Inadimplência: este guard voltava em `return` mudo.
     const valor = parseFloat(form.valor)
@@ -201,6 +206,12 @@ export default function FaturamentoMEI() {
     let falha: string | null = null
     let registroId: string | undefined
     if (!user || !empresaId) falha = 'sem usuário ou empresa ativa'
+    if (!falha && !forcar && campos.status === 'recebido') {
+      // Mesma espinha financeira da tela Receitas: o motor confere se esse dinheiro já não entrou por outro caminho.
+      const v = await verificarDuplicidade(empresaId!, { entrada: true, valor, data: campos.data, descricao: campos.descricao, ignorar: editando ? { tabela: 'receitas', id: editando.id } : undefined, lang })
+      if (v.veredicto !== 'segue') { setAvisoDup(v); setSalvando(false); return }
+    }
+    if (falha || !user || !empresaId) { /* cai no aviso de erro abaixo */ }
     else if (criando) {
       // Venda nova entra direto em Receitas (mesma tabela do Financeiro), já contando pro teto MEI.
       const { data, error } = await supabase.from('receitas').insert({ ...campos, considera_teto_mei: true, user_id: user.id, empresa_id: empresaId }).select('id')
@@ -217,19 +228,29 @@ export default function FaturamentoMEI() {
       showToast(t('erroSalvarLancamento'))
       return
     }
+    // Venda recebida chega na Contabilidade e no Fluxo pelo motor; edição desfaz o lançamento anterior antes.
+    const desf = editando ? await desfazerLancamentoManual(empresaId!, 'receitas', registroId!) : {}
+    const lanc = desf.erro ? desf : campos.status === 'recebido'
+      ? await registrarLancamentoManual(empresaId!, 'receitas', { id: registroId!, descricao: campos.descricao, valor, data: campos.data, natureza: 'receita', categoria: campos.categoria, modulo: 'faturamento_mei' })
+      : {}
+    if (lanc.erro) showToast(t('erroMotor'))
     // Mesma trilha de auditoria da tela Receitas (quem criou/editou e quando).
     const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, tabela: 'receitas', registroId, acao: criando ? 'criar' : 'editar', descricao: `${criando ? 'Receita criada' : 'Receita editada'} (MEI Faturamento): ${campos.descricao}` })
     setSalvando(false)
     fecharFormulario()
-    showToast(auditoria.erro ? t('erroAuditoria') : t('sucessoSalvarLancamento'), auditoria.erro ? 'erro' : 'ok')
+    if (!lanc.erro) showToast(auditoria.erro ? t('erroAuditoria') : t('sucessoSalvarLancamento'), auditoria.erro ? 'erro' : 'ok')
     carregar()
   }
 
-  async function confirmarExclusao() {
-    if (!excluindo) return
-    const alvo = excluindo
+  async function confirmarExclusao(alvo: Receita) {
+    // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
+    if (!(await confirmar({ oQue: nomeItem(alvo, { pt: 'esta venda', en: 'this sale', es: 'esta venta' }), efeito: EFEITO.financeiro, tabela: 'receitas', registroId: alvo.id }))) return
+    const empresaAtiva = await obterEmpresaAtiva()
+    if (empresaAtiva) {
+      const desf = await desfazerLancamentoManual(empresaAtiva, 'receitas', alvo.id)
+      if (desf.erro) { showToast(t('erroDesfazerMotor')); return }
+    }
     const { data, error } = await supabase.from('receitas').delete().eq('id', alvo.id).select('id')
-    setExcluindo(null)
     if (error || !data || data.length === 0) {
       reportarFalhaEscrita('receitas', 'delete', error?.message || '0 linhas afetadas (RLS?)')
       showToast(t('erroExcluirLancamento'))
@@ -638,7 +659,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
                       {conta ? '✓ ' : '✕ '}{txt.contaTeto[lang]}
                     </button>
                     <button onClick={() => abrirEdicao(r)} style={{ color: AZUL }}><Pencil size={14} /></button>
-                    <button onClick={() => setExcluindo(r)} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
+                    <button onClick={() => void confirmarExclusao(r)} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
                   </div>
                 )
               })}
@@ -697,7 +718,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={fecharFormulario} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: neutro(0.1), color: TEXTO_SEC }}>{t('cancelar')}</button>
-                    <button onClick={salvarEdicao} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: OURO, color: ON_ACCENT }}>{salvando ? '...' : t('salvar')}</button>
+                    <button onClick={() => void salvarEdicao()} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: OURO, color: ON_ACCENT }}>{salvando ? '...' : t('salvar')}</button>
                   </div>
                 </div>
               </CanvasBox>
@@ -706,24 +727,8 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         )}
       </AnimatePresence>
 
-      {/* Modal excluir */}
-      <AnimatePresence>
-        {excluindo && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-sm">
-              <CanvasBox cor={VERMELHO} {...cartaoTema}>
-                <p className="text-sm mb-5" style={{ color: 'var(--axi-text-primary)' }}>{t('confirmarExcluir')}</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setExcluindo(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: neutro(0.1), color: TEXTO_SEC }}>{t('cancelar')}</button>
-                  <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: VERMELHO, color: ON_ACCENT }}>{t('excluir')}</button>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {janelaConfirmacao}
+      <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvarEdicao(true) }} />
 
       <CentroCompartilhamento
         aberto={shareAberto}
