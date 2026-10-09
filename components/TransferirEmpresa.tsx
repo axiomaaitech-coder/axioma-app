@@ -63,7 +63,8 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
   const aberta = itens.find((t) => t.situacao === 'aguardando')
   const tipoInfo = TIPOS_SOCIETARIOS.find((x) => x.key === form.tipo)
   const bloqueado = form.tipo === 'mei' || form.tipo === 'ei'
-  const lista = form.tipo && !bloqueado ? checklistDe(form.tipo, form.operacao) : []
+  // Lista aparece sempre (sem tipo escolhido ainda, mostra a de LTDA, a mais comum)
+  const lista = bloqueado ? [] : checklistDe(form.tipo || 'ltda', form.operacao)
   const linkDe = (token?: string) => token ? `${window.location.origin}/transferencia/${token}` : ''
   const nomeOperacao = (k: string) => TIPOS_OPERACAO.find((x) => x.key === k)?.nome[lang] ?? k
   const nomeTipo = (k: string) => TIPOS_SOCIETARIOS.find((x) => x.key === k)?.nome[lang] ?? k
@@ -256,7 +257,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
               </div>
             )}
 
-            {form.tipo && !bloqueado && (<>
+            {!bloqueado && (<>
               {passo(2, L('Quem passa e quem recebe', 'Who transfers and who receives', 'Quién transfiere y quién recibe'), (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {campo(L('Seu nome completo', 'Your full name', 'Su nombre completo'), entrada(form.cedenteNome, (v) => setForm({ ...form, cedenteNome: v })))}
