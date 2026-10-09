@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterConvitePorToken, definirEmpresaPreferida } from '../../../lib/empresaHelpers'
+import { obterConvitePorToken } from '../../../lib/empresaHelpers'
 
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
 // pela tela de login. Abre o link → preenche o formulário (nome, senha nova,
@@ -59,7 +59,6 @@ export default function AceitarConvite() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [aceitaTermos, setAceitaTermos] = useState(false)
-  const [empresaId, setEmpresaId] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -124,8 +123,6 @@ export default function AceitarConvite() {
   }
 
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
-  const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
-  const dataHora = (iso?: string | null) => iso ? new Date(iso).toLocaleString(localeData, { dateStyle: 'short', timeStyle: 'short' }) : '—'
   const prazoTexto = (d?: number | null) => d == null ? L('indeterminado', 'indefinite', 'indefinido')
     : d === 1 ? L('24 horas', '24 hours', '24 horas')
     : d === 180 ? L('6 meses', '6 months', '6 meses')

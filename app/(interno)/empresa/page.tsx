@@ -704,7 +704,7 @@ export default function EmpresaPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
-  const { VERDE, VERMELHO, AMARELO, AZULC, ROXO, CINZA, TEXTO, CAMPO_BG, TOOLTIP_BG } = PALETA[tema];
+  const { VERDE, VERMELHO, AMARELO, AZULC, ROXO, CINZA, TEXTO } = PALETA[tema];
   const ct = (hex: string) => corTema(hex, temaClaro);
   // Card creme + efeito premium3d (borda verde-menta no hover), igual aos
   // demais módulos já repintados — spread em todo <CanvasBox> de nível de seção.

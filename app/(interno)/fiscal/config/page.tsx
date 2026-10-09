@@ -52,7 +52,7 @@ export default function FiscalConfigPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const classePremium3d = ' axi-card-premium3d axi-card-faixa'
-  const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, FORM_BORDA } = PALETA[tema]
+  const { AZULC, VERDE, AMARELO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)

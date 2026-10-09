@@ -74,7 +74,6 @@ export default function Simulacoes() {
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
-  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(46,204,155,0.15)";
   const classePremium3d = " axi-card-premium3d axi-card-faixa";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";

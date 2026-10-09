@@ -51,7 +51,7 @@ import {
 } from '../../../lib/previsaoRecebimentoHelpers'
 import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, editarContaReceber, excluirContaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
-import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
+import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(

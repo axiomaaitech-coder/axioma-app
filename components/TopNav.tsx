@@ -288,8 +288,6 @@ export default function TopNav() {
   // arco-íris de 1 cor por grupo que existia antes. (linha+coluna) par =
   // verde-menta, ímpar = azul — alternância real tipo tabuleiro (cada
   // vizinho, inclusive vertical, sempre cai na cor oposta).
-  const CHESS_VERDE = "#34d399";
-  const CHESS_AZUL = "#6ab0ff";
   // Tabuleiro de xadrez (Elias 2026-10-04): creme com letra azul-marinho e
   // azul-marinho com letra creme, alternando; seção em uso = verde-menta neon.
   const CASA_CREME = { background: "#f6f7c4", color: "#101b3d", border: "1px solid rgba(16,27,61,0.28)", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" };
@@ -501,7 +499,6 @@ export default function TopNav() {
           (() => {
             const grupoAberto = gruposVisiveis.find((g) => g.label.pt === dropdown);
             if (!grupoAberto) return null;
-            const giAberto = gruposVisiveis.indexOf(grupoAberto);
             const corAberto = "#2ecc9b";
             return (
               <div ref={dropdownPortalRef} style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 60 }}>

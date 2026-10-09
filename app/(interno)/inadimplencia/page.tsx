@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import * as Sentry from '@sentry/nextjs'
 import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -110,9 +109,6 @@ export default function Inadimplencia() {
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
     setToast({ msg, tipo })
     setTimeout(() => setToast(null), 4000)
-  }
-  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
-    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
   }
 
   // ========== FASE 3 — Ponto de Partida automático pro Simulador (leitura só,

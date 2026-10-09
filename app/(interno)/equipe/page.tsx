@@ -30,7 +30,6 @@ const supabase = createBrowserClient(
 type Idioma = 'pt' | 'en' | 'es'
 
 const JADE = '#047857'
-const BRONZE = '#065f46'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
 const AMBAR = '#2ecc9b'
@@ -297,9 +296,6 @@ export default function EquipePage() {
   const [limiteAtingido, setLimiteAtingido] = useState(false)
   const [transferindo, setTransferindo] = useState(false)
   const [decidindoId, setDecidindoId] = useState<string | null>(null)
-  // Admin, CEO, Sócio e Contador: cortar acesso / apagar dados exige formulário simples (data + motivo).
-  // Funcionário, consultor e outros: direto, sem formulário (pedido do Elias).
-  const ehAltoNivel = (papel?: string | null, relacao?: string | null) => papel === 'admin' || relacao === 'ceo' || relacao === 'socio' || relacao === 'contador'
   const [membroCortar, setMembroCortar] = useState<MembroEquipe | null>(null)
   // Sem prazo: só Admin (papel) ou Sócio/CEO (relação) — mesma regra checada no banco (decidir_convite)
   const podeSemPrazo = (f: { papel: string; relacao: string }) => f.papel === 'admin' || f.relacao === 'socio' || f.relacao === 'ceo'

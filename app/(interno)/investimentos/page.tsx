@@ -92,7 +92,7 @@ function optBarrasPct(dados: number[], labels: string[], cores: string[], temaCl
 
 export default function Investimentos() {
   const router = useRouter();
-  const { t, idioma } = useLanguage();
+  const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);

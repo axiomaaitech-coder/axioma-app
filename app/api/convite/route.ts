@@ -3,9 +3,16 @@ import { bloqueado, registrarFalha, admin, conferirSenha, vinculo, papelLiberado
 import * as Sentry from '@sentry/nextjs'
 
 // Falha de gravação no servidor: log + Sentry com contexto (nunca calada).
+// varredura:service-role — toda gravação daqui usa admin() (sem RLS)
 function falhaServidor(etapa: string, motivo: string, extra: Record<string, unknown> = {}) {
   console.error(`[convite] ${etapa}:`, motivo)
   Sentry.captureException(new Error(`[convite] ${etapa}: ${motivo}`), { extra: { rota: 'api/convite', etapa, ...extra } })
+}
+// Gravação complementar (depois da principal já feita): não desfaz a principal,
+// mas falha nunca passa calada — vai pro Sentry pra ser refeita.
+async function complementar(etapa: string, q: PromiseLike<{ error: { message: string } | null }>, extra: Record<string, unknown> = {}) {
+  const { error } = await q
+  if (error) falhaServidor(etapa, error.message, extra)
 }
 
 // Convite de equipe (pedido do Elias, 2026-10-02) — tudo no servidor, sem SQL novo.
@@ -276,7 +283,7 @@ async function lixeiraConvite(corpo: any) {
       situacao: 'recusado', decidido_por: user.id, decidido_em: agora, motivo_recusa: 'lixeira',
     }).eq('id', cv.id)
     if (error) { console.error('[lixeira] convite:', error.message); return erro('generico', 500) }
-    await db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null)
+    await complementar('empresa_convite_termo update', db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null), { conviteId: cv.id })
     return NextResponse.json({ ok: true })
   }
   if (corpo.acao === 'convite_recuperar') {
@@ -292,15 +299,15 @@ async function lixeiraConvite(corpo: any) {
           suspenso_em: null, suspenso_por: null, suspenso_motivo: null },
         { onConflict: 'empresa_id,user_id' })
       if (eA) { console.error('[lixeira] recuperar acesso:', eA.message); return erro('generico', 500) }
-      await db.from('empresa_equipe').update({ situacao: 'aprovado', convite_aceito: true, decidido_por: user.id, decidido_em: agora, motivo_recusa: `Recuperado: ${just}` }).eq('id', cv.id)
-      await db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null)
+      await complementar('empresa_equipe update', db.from('empresa_equipe').update({ situacao: 'aprovado', convite_aceito: true, decidido_por: user.id, decidido_em: agora, motivo_recusa: `Recuperado: ${just}` }).eq('id', cv.id), { conviteId: cv.id })
+      await complementar('empresa_convite_termo update', db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null), { conviteId: cv.id })
       return NextResponse.json({ ok: true })
     }
     const { error } = await db.from('empresa_equipe').update({
       situacao: cv.user_id_convidado ? 'aguardando_aprovacao' : 'enviado', decidido_por: null, decidido_em: null, motivo_recusa: null,
     }).eq('id', cv.id)
     if (error) { console.error('[lixeira] recuperar:', error.message); return erro('generico', 500) }
-    await db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null)
+    await complementar('empresa_convite_termo update', db.from('empresa_convite_termo').update({ saiu_em: null }).eq('convite_id', cv.id).is('apagado_em', null), { conviteId: cv.id })
     return NextResponse.json({ ok: true })
   }
   // Apagar de vez: o termo perde nome/CPF/e-mail (fica só quem apagou, quando e por quê) e o convite some.
@@ -342,11 +349,11 @@ async function membroLixeira(corpo: any) {
   if (eDel) { console.error('[lixeira] membro:', eDel.message); return erro('generico', 500) }
   if (cv) {
     if (lider) {
-      await db.from('empresa_equipe').update({ situacao: 'recusado', convite_aceito: false, decidido_por: user.id, decidido_em: agora, motivo_recusa: 'lixeira' }).eq('id', cv.id)
-      await db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null)
+      await complementar('empresa_equipe update', db.from('empresa_equipe').update({ situacao: 'recusado', convite_aceito: false, decidido_por: user.id, decidido_em: agora, motivo_recusa: 'lixeira' }).eq('id', cv.id), { conviteId: cv.id })
+      await complementar('empresa_convite_termo update', db.from('empresa_convite_termo').update({ saiu_em: agora }).eq('convite_id', cv.id).is('saiu_em', null), { conviteId: cv.id })
     } else {
-      await db.from('empresa_convite_termo').update({ nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: 'Removido pelo responsável', convite_id: null }).eq('convite_id', cv.id)
-      await db.from('empresa_equipe').delete().eq('id', cv.id)
+      await complementar('empresa_convite_termo update', db.from('empresa_convite_termo').update({ nome: null, cpf: null, email: null, apagado_em: agora, apagado_por: user.id, motivo_apagado: 'Removido pelo responsável', convite_id: null }).eq('convite_id', cv.id), { conviteId: cv.id })
+      await complementar('empresa_equipe delete', db.from('empresa_equipe').delete().eq('id', cv.id), { conviteId: cv.id })
     }
   }
   return NextResponse.json({ ok: true, lixeira: lider })

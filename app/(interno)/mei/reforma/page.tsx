@@ -52,7 +52,6 @@ export default function ReformaTributaria() {
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   // Banners/toast tinham o hex do Escuro fixo em decimal — mesmo bug já
   // corrigido em 18 arquivos antes, corrigido aqui também.
-  const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
   const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const rgbAmbar = temaClaro ? '245,166,35' : '245,158,11'
   const [receitas, setReceitas] = useState<any[]>([])

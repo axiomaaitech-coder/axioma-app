@@ -345,7 +345,7 @@ export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: s
   // futura que use essa tabela como fonte). obter_ou_criar_empresa_padrao()
   // já grava isso pro caminho automático de cadastro; este é o caminho
   // manual, que ficou de fora até agora.
-  const { data: vinculoDono, error: erroVinculo } = await supabase
+  const { error: erroVinculo } = await supabase
     .from("empresa_usuarios")
     // ignoreDuplicates = só cria (ON CONFLICT DO NOTHING): alteração direta em
     // empresa_usuarios está fechada desde a hierarquia da Equipe (HIERARQUIA-EQUIPE-SQL.sql).

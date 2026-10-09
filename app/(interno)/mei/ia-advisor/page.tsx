@@ -118,7 +118,6 @@ export default function IAMEIAdvisor() {
   const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : { premium3d: true } as const
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
-  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])

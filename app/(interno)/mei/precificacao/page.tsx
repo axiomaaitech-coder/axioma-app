@@ -59,8 +59,6 @@ export default function PrecificacaoMEI() {
   const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
-  const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
-  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const mx = meiT(lang)
 

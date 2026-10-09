@@ -44,7 +44,6 @@ const PALETA = {
   xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', CAMPO_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
-function pad(n: number) { return String(n).padStart(2, '0') }
 
 export default function DASObrigacoes() {
   const { idioma } = useLanguage()
