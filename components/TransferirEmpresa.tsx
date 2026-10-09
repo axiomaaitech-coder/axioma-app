@@ -319,7 +319,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                       'I declare the information is true and the transfer was formalized as the law requires. I know that after acceptance the recipient becomes the Owner and only they can undo it.',
                       'Declaro que la información es verdadera y que la transferencia se formalizó como pide la ley. Sé que, tras la aceptación, quien recibe pasa a ser el Propietario y solo él puede deshacerlo.')}</span>
                   </label>
-                  {campo(L('Sua senha do Axioma', 'Your Axioma password', 'Su contraseña de Axioma'), entrada(form.senha, (v) => setForm({ ...form, senha: v }), { type: 'password', autoComplete: 'current-password' }))}
+                  {campo(L('Sua senha do Axioma', 'Your Axioma password', 'Su contraseña de Axioma'), entrada(form.senha, (v) => setForm({ ...form, senha: v }), { type: 'password', autoComplete: 'new-password' }))}
                   {faltando.length > 0 && (
                     <p className="text-xs" style={{ color: CINZA }}>{L('Falta: ', 'Missing: ', 'Falta: ')}{faltando.join(', ')}.</p>
                   )}
