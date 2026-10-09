@@ -949,7 +949,8 @@ export default function EquipePage() {
                         <LogOut size={15} />
                       </button>
                     )}
-                    {!ehVoce && meuNivel === 1 && m.origem === 'ativo' && !m.suspenso_em && m.user_id && (
+                    {/* Transferir só pra CEO/Sócio/Admin permanente — nunca pra convite com prazo (24h..90 dias) */}
+                    {!ehVoce && meuNivel === 1 && m.origem === 'ativo' && !m.suspenso_em && m.user_id && m.nivel != null && m.nivel >= 2 && m.nivel <= 4 && !m.expira_em && (
                       <button onClick={() => { setMembroTransferir(m); setMotivoApagar(''); setCienteApagar(false) }} title={t.transferirBotao}
                         className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.35)' }}>
                         <ShieldCheck size={14} /> {t.transferirBotao}
