@@ -227,6 +227,9 @@ export default function DASObrigacoes() {
 
   // `mes` = DAS de um mês do Histórico (antes só dava pra marcar o do mês atual: DAS pago
   // com atraso ficava pra sempre como dívida, com juros subindo).
+  // Botões de situação: verde-menta escuro (Entregue) ou azul-marinho escuro (demais), letra branca.
+  const botaoStatus = (s: StatusObrigacao) => ({ background: s === 'Entregue' ? '#0f7a5a' : '#101b3d', color: '#ffffff', border: '1px solid transparent' })
+
   async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao, mes?: { competencia: string; dataVencimento: Date }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
@@ -391,7 +394,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 {opcoes.map(s => (
                   <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus(tipo, s)}
                     className="text-xs px-2 py-1 rounded-full"
-                    style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                    style={botaoStatus(s)}>
                     {rotuloStatus(s)}
                   </button>
                 ))}
@@ -593,7 +596,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                         <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex gap-1 flex-wrap">
                           {(['Pendente', 'Entregue', 'Atrasado'] as StatusObrigacao[]).map(s => (
                             <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s)}
-                              className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                              className="text-xs px-2 py-1 rounded-full" style={botaoStatus(s)}>
                               {rotuloStatus(s)}
                             </button>
                           ))}
@@ -640,7 +643,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                       <div className="flex flex-col gap-1 mt-1">
                         {(['Entregue', 'Pendente'] as StatusObrigacao[]).map(s => (
                           <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s, c)}
-                            className="text-[10px] px-1.5 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                            className="text-[10px] px-1.5 py-1 rounded-full" style={botaoStatus(s)}>
                             {rotuloStatus(s)}
                           </button>
                         ))}

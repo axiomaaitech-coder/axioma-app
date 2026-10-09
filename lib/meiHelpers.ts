@@ -419,6 +419,11 @@ export async function salvarObrigacao(params: {
       competencia: params.competencia,
       status: params.status,
       data_vencimento: params.dataVencimento ?? null,
+      // prazo/ano/mês são obrigatórios na tabela: sem eles o banco recusava TODA gravação
+      // (nenhuma obrigação MEI tinha sido salva até 2026-10-09 — todo DAS ficava "Pendente").
+      prazo: params.dataVencimento ?? hojeISO(),
+      ano_referencia: Number(params.competencia.slice(0, 4)),
+      mes_referencia: params.competencia.length >= 7 ? Number(params.competencia.slice(5, 7)) : null,
       data_entrega: params.dataEntrega ?? null,
       updated_at: new Date().toISOString(),
     },
@@ -437,6 +442,9 @@ export async function salvarObrigacao(params: {
       user_id: params.userId,
       empresa_id: params.empresaId,
       competencia: params.competencia,
+      ano: Number(params.competencia.slice(0, 4)), // obrigatórios na tabela (mesma recusa do prazo acima)
+      tipo: "DASN",
+      status: "entregue",
       data_entrega: params.dataEntrega || hojeISO(),
     }).select("id");
     if (erroDeclaracao || !declaracao || declaracao.length === 0) {
