@@ -192,7 +192,7 @@ export default function PrecificacaoMEI() {
     const inicioIso = `${Number(hoje.slice(0, 4)) - (Number(hoje.slice(5, 7)) === 12 ? 0 : 1)}-${String(Number(hoje.slice(5, 7)) % 12 + 1).padStart(2, '0')}-01` // 1º dia de 11 meses atrás
     const empresaId = await obterEmpresaAtiva()
     if (!empresaId) return
-    const base = await lerBaseMEI(empresaId, { receitas: 'valor, data', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal', desde: inicioIso, ate: hoje })
+    const base = await lerBaseMEI(empresaId, { receitas: 'valor, data, considera_teto_mei', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal', desde: inicioIso, ate: hoje })
     if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
     const { mei, custosFixos: cf, custosVariaveis: cv, receitas: rec } = base
     // Média pelos meses que o MEI EXISTE na janela (antes: sempre ÷12 — MEI aberto há
@@ -201,7 +201,7 @@ export default function PrecificacaoMEI() {
     const meses = Math.min(12, Math.max(1, (Number(hoje.slice(0, 4)) - Number(desde.slice(0, 4))) * 12 + Number(hoje.slice(5, 7)) - Number(desde.slice(5, 7)) + 1))
     setMesesMedia(meses)
     setMeiDados(mei)
-    setReceitasRows(rec)
+    setReceitasRows(rec.filter((r) => r.considera_teto_mei !== false)) // só venda do MEI, igual às outras telas (antes somava tudo)
     const somaCF = cf.reduce((s, c) => s + Number(c.valor_mensal || 0), 0)
     const mediaCV = cv.reduce((s, c) => s + Number(c.valor || 0), 0) / meses
     if (somaCF > 0) setCustoFixoMensal(String(Math.round(somaCF * 100) / 100))
