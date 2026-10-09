@@ -79,7 +79,9 @@ update public.mei_obrigacoes
  where situacao is null;
 
 -- Uma obrigação = no máximo uma conta a pagar (idempotente: gerar de novo não duplica).
-alter table public.contas_pagar add column if not exists mei_obrigacao_id uuid references public.mei_obrigacoes(id) on delete restrict;
+-- (sem "on delete restrict": a checagem padrão roda no fim do comando, então apagar a EMPRESA
+-- inteira em cascata funciona; apagar só a obrigação que tem conta continua proibido)
+alter table public.contas_pagar add column if not exists mei_obrigacao_id uuid references public.mei_obrigacoes(id);
 create unique index if not exists ux_contas_pagar_mei_obrigacao on public.contas_pagar (mei_obrigacao_id) where mei_obrigacao_id is not null;
 
 -- Histórico de toda mudança na obrigação (retificação/cancelamento nunca apagam o passado).
@@ -174,8 +176,8 @@ create policy pag_obrig_leitura on public.pagamentos_obrigacao for select using 
 create table if not exists public.pagamento_alocacoes (
   id uuid primary key default gen_random_uuid(),
   empresa_id uuid not null references public.empresas(id) on delete cascade,
-  pagamento_id uuid not null references public.pagamentos_obrigacao(id) on delete restrict,
-  obrigacao_id uuid not null references public.mei_obrigacoes(id) on delete restrict,
+  pagamento_id uuid not null references public.pagamentos_obrigacao(id),   -- sem restrict: ver nota no Bloco B
+  obrigacao_id uuid not null references public.mei_obrigacoes(id),
   valor numeric(14,2) not null check (valor > 0),       -- abate do valor esperado
   encargos numeric(14,2) not null default 0 check (encargos >= 0), -- multa/juros pagos à parte
   criado_em timestamptz not null default now(),
