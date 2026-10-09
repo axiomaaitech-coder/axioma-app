@@ -24,4 +24,7 @@ const pago = competenciasDASDoAno([{ id: '1', tipo: 'DAS', competencia: '2025-12
 assert.equal(calcularDividaDASAcumulada(pago, 80, 15, hoje).atrasos.length, 0)
 // MEI aberto este ano não herda dezembro
 assert.deepEqual(competenciasDASDoAno([], 2026, 20, '2026-01-05', hoje).map((c) => c.competencia), []) // jan/26 só vence 20/02
+const { dasMensalPorCategoria, percentualIsentoPorCategoria } = await import('../lib/meiHelpers')
+assert.equal(dasMensalPorCategoria('Transporte'), 195.52) // caminhoneiro: 12% do SM + ICMS
+assert.equal(percentualIsentoPorCategoria('Transporte'), 0.08) // cargas
 console.log('check-mei OK')

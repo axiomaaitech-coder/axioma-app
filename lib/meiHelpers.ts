@@ -29,10 +29,12 @@ export const LIMITE_ANUAL_MEI = 81000;
 // estáveis desde 2006). Valores conferidos: Comércio/Indústria R$82,05,
 // Serviços R$86,05, Comércio+Serviços R$87,05.
 export const INSS_MEI_2026 = 81.05;
+// MEI caminhoneiro (transportador autônomo de cargas): INSS 12% do salário mínimo = R$194,52.
+export const INSS_MEI_TAC_2026 = 194.52;
 export const DAS_MEI_2026 = {
   "Comércio": INSS_MEI_2026 + 1, // ICMS
   "Indústria": INSS_MEI_2026 + 1, // ICMS
-  "Transporte": INSS_MEI_2026 + 1, // ICMS (transporte de cargas)
+  "Transporte": INSS_MEI_TAC_2026 + 1, // caminhoneiro: INSS 12% + ICMS (antes usava 5%: DAS de R$82,05 em vez de R$195,52)
   "Serviços": INSS_MEI_2026 + 5, // ISS
   "Comércio e Serviços": INSS_MEI_2026 + 6, // ICMS + ISS
 } as const;
@@ -51,7 +53,7 @@ export function dasMensalPorCategoria(categoria: string | null | undefined): num
 
 export function percentualIsentoPorCategoria(categoria: string | null | undefined): number {
   if (categoria === "Comércio" || categoria === "Indústria") return 0.08;
-  if (categoria === "Transporte") return 0.16;
+  if (categoria === "Transporte") return 0.08; // caminhoneiro = transporte de CARGAS (8%); 16% é de passageiros
   return 0.32; // Serviços / Comércio e Serviços
 }
 

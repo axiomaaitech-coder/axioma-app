@@ -27,7 +27,7 @@ const pt: DocumentoAxioma = {
     { h1: 'A janela Configurar MEI' },
     { p: 'Abre pelo botão **Configurar MEI** no cabeçalho. Campos:' },
     { tabela: { colunas: ['Campo', 'Para que serve'], larguras: [3200, 5826], linhas: [
-      ['Categoria MEI', 'Serviços, Comércio, Indústria ou Transporte. Ao clicar numa categoria, o Axioma preenche sozinho o valor do DAS de 2026: Serviços R$ 86,05; Comércio, Indústria e Transporte R$ 82,05.'],
+      ['Categoria MEI', 'Serviços, Comércio, Indústria ou Transporte. Ao clicar numa categoria, o Axioma preenche sozinho o valor do DAS de 2026: Serviços R$ 86,05; Comércio e Indústria R$ 82,05; Transporte (MEI caminhoneiro, INSS de 12%) R$ 195,52.'],
       ['Valor DAS Mensal (R$)', 'O valor do boleto mensal. Ajuste se o seu for diferente (por exemplo, Comércio e Serviços juntos: R$ 87,05).'],
       ['Dia de Vencimento do DAS', 'Normalmente dia 20. Usado nos avisos e no Guardião da Reserva.'],
       ['Data de Abertura do MEI', 'Calcula o teto proporcional no ano em que o MEI foi aberto (R$ 6.750 por mês ativo).'],
@@ -173,7 +173,7 @@ const en: DocumentoAxioma = {
     { h1: 'The Configure MEI window' },
     { p: 'Opens with the **Configure MEI** button in the header. Fields:' },
     { tabela: { colunas: ['Field', 'What it is for'], larguras: [3200, 5826], linhas: [
-      ['MEI Category', 'Services, Commerce, Industry or Transport. When you click a category, Axioma fills in the 2026 DAS amount: Services R$ 86.05; Commerce, Industry and Transport R$ 82.05.'],
+      ['MEI Category', 'Services, Commerce, Industry or Transport. When you click a category, Axioma fills in the 2026 DAS amount: Services R$ 86.05; Commerce and Industry R$ 82.05; Transport (MEI truck driver, 12% INSS) R$ 195.52.'],
       ['Monthly DAS Amount (R$)', 'The monthly slip amount. Adjust it if yours is different (for example, Commerce and Services together: R$ 87.05).'],
       ['DAS Due Day', 'Usually the 20th. Used in notices and in the Reserve Guardian.'],
       ['MEI Opening Date', 'Calculates the proportional cap in the year the MEI was opened (R$ 6,750 per active month).'],
@@ -319,7 +319,7 @@ const es: DocumentoAxioma = {
     { h1: 'La ventana Configurar MEI' },
     { p: 'Se abre con el botón **Configurar MEI** del encabezado. Campos:' },
     { tabela: { colunas: ['Campo', 'Para qué sirve'], larguras: [3200, 5826], linhas: [
-      ['Categoría MEI', 'Servicios, Comercio, Industria o Transporte. Al hacer clic en una categoría, Axioma completa solo el valor del DAS de 2026: Servicios R$ 86,05; Comercio, Industria y Transporte R$ 82,05.'],
+      ['Categoría MEI', 'Servicios, Comercio, Industria o Transporte. Al hacer clic en una categoría, Axioma completa solo el valor del DAS de 2026: Servicios R$ 86,05; Comercio e Industria R$ 82,05; Transporte (MEI camionero, INSS del 12%) R$ 195,52.'],
       ['Valor DAS Mensual (R$)', 'El valor de la boleta mensual. Ajústelo si el suyo es diferente (por ejemplo, Comercio y Servicios juntos: R$ 87,05).'],
       ['Día de Vencimiento del DAS', 'Normalmente el día 20. Se usa en los avisos y en el Guardián de la Reserva.'],
       ['Fecha de Apertura del MEI', 'Calcula el tope proporcional en el año en que se abrió el MEI (R$ 6.750 por mes activo).'],

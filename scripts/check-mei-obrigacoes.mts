@@ -28,6 +28,9 @@ assert.equal(m.valorDAS(r25, 'Serviços'), 80.9)
 assert.equal(m.valorDAS(r26, 'Serviços'), 86.05)
 assert.equal(m.valorDAS(r26, 'Comércio'), 82.05)
 assert.equal(m.valorDAS(r26, 'Comércio e Serviços'), 87.05)
+// caminhoneiro ("Transporte"): INSS 12% + ICMS
+assert.equal(m.valorDAS(r26, 'Transporte'), 195.52)
+assert.equal(m.valorDAS(r25, 'Transporte'), 183.16)
 
 // situação: integral, parcial, projeção nunca é "pendente", legado sem pagamento
 const oficial = { natureza: 'oficial' as const, valor_esperado: 86.05 }

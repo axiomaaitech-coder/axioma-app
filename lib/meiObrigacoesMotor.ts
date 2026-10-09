@@ -73,7 +73,8 @@ export function valorDAS(p: ParametrosRegra, categoria: string | null | undefine
   const cat = categoria || "Serviços";
   const icms = ["Comércio", "Indústria", "Transporte", "Comércio e Serviços"].includes(cat);
   const iss = ["Serviços", "Comércio e Serviços"].includes(cat);
-  return r2(r2(p.salario_minimo * p.inss_pct / 100) + (icms ? p.icms : 0) + (iss ? p.iss : 0));
+  const pct = cat === "Transporte" ? p.inss_pct_tac : p.inss_pct; // "Transporte" no Axioma = MEI caminhoneiro (12%)
+  return r2(r2(p.salario_minimo * pct / 100) + (icms ? p.icms : 0) + (iss ? p.iss : 0));
 }
 
 // Situação pelo que foi pago (espelho de mei_situacao_obrigacao).

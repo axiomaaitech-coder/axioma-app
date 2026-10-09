@@ -225,7 +225,7 @@ create or replace function public.mei_gerar_periodos_das(p_empresa uuid, p_ano i
 language plpgsql security definer set search_path = public as $$
 declare
   v_mei record; v_comp date; v_venc date; v_regra record; v_ultima record;
-  v_inss numeric; v_valor numeric; v_icms boolean; v_iss boolean; v_dia integer; v_n integer := 0; v_m integer;
+  v_inss numeric; v_valor numeric; v_icms boolean; v_iss boolean; v_pct text; v_dia integer; v_n integer := 0; v_m integer;
 begin
   if p_empresa is null or p_empresa not in (select empresas_do_usuario_operacional()) then raise exception 'sem_permissao'; end if;
   if p_ano < 2000 or p_ano > 2100 then raise exception 'ano_invalido'; end if;
@@ -234,6 +234,8 @@ begin
   v_dia := least(28, greatest(1, coalesce(v_mei.dia_vencimento_das, 20)));
   v_icms := coalesce(v_mei.categoria_mei, 'Serviços') in ('Comércio', 'Indústria', 'Transporte', 'Comércio e Serviços');
   v_iss  := coalesce(v_mei.categoria_mei, 'Serviços') in ('Serviços', 'Comércio e Serviços');
+  -- "Transporte" no Axioma = MEI caminhoneiro (transportador autônomo de cargas): INSS 12%
+  v_pct  := case when v_mei.categoria_mei = 'Transporte' then 'inss_pct_tac' else 'inss_pct' end;
   select * into v_ultima from public.regras_fiscais where tipo = 'DAS_MEI' and status = 'oficial' order by vigencia_inicio desc limit 1;
 
   for v_m in 0..11 loop
@@ -244,10 +246,10 @@ begin
      where tipo = 'DAS_MEI' and status = 'oficial' and vigencia_inicio <= v_comp and (vigencia_fim is null or vigencia_fim >= v_comp)
      order by vigencia_inicio desc limit 1;
     if found then
-      v_inss := round((v_regra.parametros->>'salario_minimo')::numeric * (v_regra.parametros->>'inss_pct')::numeric / 100, 2);
+      v_inss := round((v_regra.parametros->>'salario_minimo')::numeric * (v_regra.parametros->>v_pct)::numeric / 100, 2);
       v_valor := v_inss + case when v_icms then (v_regra.parametros->>'icms')::numeric else 0 end + case when v_iss then (v_regra.parametros->>'iss')::numeric else 0 end;
     elsif v_ultima.id is not null then
-      v_inss := round((v_ultima.parametros->>'salario_minimo')::numeric * (v_ultima.parametros->>'inss_pct')::numeric / 100, 2);
+      v_inss := round((v_ultima.parametros->>'salario_minimo')::numeric * (v_ultima.parametros->>v_pct)::numeric / 100, 2);
       v_valor := v_inss + case when v_icms then (v_ultima.parametros->>'icms')::numeric else 0 end + case when v_iss then (v_ultima.parametros->>'iss')::numeric else 0 end;
     else
       v_valor := null;
@@ -278,7 +280,7 @@ begin
   end loop;
   -- Projeção promovida: valor de projeção é trocado pelo oficial (só quando não há pagamento).
   update public.mei_obrigacoes o set valor_esperado = (
-      select round((r.parametros->>'salario_minimo')::numeric * (r.parametros->>'inss_pct')::numeric / 100, 2)
+      select round((r.parametros->>'salario_minimo')::numeric * (r.parametros->>v_pct)::numeric / 100, 2)
            + case when v_icms then (r.parametros->>'icms')::numeric else 0 end + case when v_iss then (r.parametros->>'iss')::numeric else 0 end
       from public.regras_fiscais r where r.id = o.regra_id)
    where o.empresa_id = p_empresa and o.tipo = 'DAS' and o.natureza = 'oficial' and o.regra_id is not null
@@ -286,7 +288,7 @@ begin
      and not exists (select 1 from public.pagamento_alocacoes pa where pa.obrigacao_id = o.id)
      and not exists (select 1 from public.contas_pagar c where c.mei_obrigacao_id = o.id)   -- conta já nasceu: não muda por baixo
      and o.valor_esperado is distinct from (
-      select round((r.parametros->>'salario_minimo')::numeric * (r.parametros->>'inss_pct')::numeric / 100, 2)
+      select round((r.parametros->>'salario_minimo')::numeric * (r.parametros->>v_pct)::numeric / 100, 2)
            + case when v_icms then (r.parametros->>'icms')::numeric else 0 end + case when v_iss then (r.parametros->>'iss')::numeric else 0 end
       from public.regras_fiscais r where r.id = o.regra_id);
   return v_n;
