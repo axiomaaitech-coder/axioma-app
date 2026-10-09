@@ -108,7 +108,9 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists trg_mei_obrigacoes_historico on public.mei_obrigacoes;
-create trigger trg_mei_obrigacoes_historico after insert or update or delete on public.mei_obrigacoes
+-- Só criação/mudança: exclusão só acontece quando a EMPRESA é apagada (cascata) — registrar
+-- ali travaria a exclusão da empresa (transferência, LGPD).
+create trigger trg_mei_obrigacoes_historico after insert or update on public.mei_obrigacoes
   for each row execute function public.fn_mei_obrigacoes_historico();
 
 
