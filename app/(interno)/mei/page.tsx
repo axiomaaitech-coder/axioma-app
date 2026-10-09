@@ -18,7 +18,7 @@ import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro, FALLBACK_MACRO } from '../../../lib/bcbApi'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { meiT } from '../../../lib/meiTextos'
@@ -28,12 +28,13 @@ import { CountUp } from '../../../components/CountUp'
 import { AuroraBackground } from '../../../components/AuroraBackground'
 import {
   LIMITE_ANUAL_MEI, dasMensalPorCategoria, dasDoMes, faturamentoAnoMEI, limiteRestante, percentualLimite, tetoProporcionalMEI,
-  semaforoTeto, projecaoTeto, fluxoMesMEI, pareceGastoPessoal, scoreMEI, carregarObrigacoesAno,
+  semaforoTeto, projecaoTeto, fluxoMesMEI, pareceGastoPessoal, scoreMEI,
   serieMensalMEI, montarCofre,
   detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
   type StatusObrigacao, type ContaPagarMEI,
+  lerBaseMEI,
 } from '../../../lib/meiHelpers'
-import { hojeISO } from '../../../lib/datas'
+import { hojeISO, dataLocal } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,19 +163,15 @@ export default function PainelMEI() {
     if (!user) { setLoading(false); return }
     const hoje = new Date()
     const anoAtual = hoje.getFullYear()
-    const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
-    const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
     const competenciaDas = dasDoMes(hoje).competencia // DAS que vence neste mês = competência do mês anterior
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }, obrigacoes, macro] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('custos_variaveis').select('valor, data, descricao').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('custos_fixos').select('valor_mensal, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes) : Promise.resolve({ data: [] }),
-      empresaId ? carregarObrigacoesAno(empresaId, anoAtual) : Promise.resolve([]),
+    if (!empresaId) { setLoading(false); return }
+    const [base, macro] = await Promise.all([
+      lerBaseMEI(empresaId, { receitas: '*', custosVariaveis: 'valor, data, descricao', custosFixos: 'valor_mensal, descricao', contasPagarMes: true, obrigacoesAno: anoAtual }),
       buscarIndicadoresMacro(),
     ])
+    const { mei, receitas: rec, custosVariaveis: cv, custosFixos: cf, contasPagar: cp, obrigacoes } = base
+    if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
     setMeiDados(mei || null)
     setReceitas(rec || [])
     setCustosVariaveis(cv || [])
@@ -205,20 +202,24 @@ export default function PainelMEI() {
   async function salvarConfig() {
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSalvando(false); return }
-    const empresaId = await obterEmpresaAtiva()
+    const empresaId = user ? await obterEmpresaAtiva() : null
+    // Antes voltava calado (o botão Salvar "não fazia nada") e, sem empresa, gravava linha órfã.
+    if (!user || !empresaId) { setSalvando(false); showToast(t('erroSalvarConfig'), 'erro'); return }
+    const dasNum = parseFloat(dasValor)
+    // Dia 29–31 estourava pro mês seguinte em fevereiro (new Date(ano, 2, 31) = 3 de março).
+    const diaDas = Math.min(28, Math.max(1, parseInt(diaVencimentoDasForm, 10) || 20))
     const { data, error } = await supabase.from('mei_dados').upsert({
       user_id: user.id,
       empresa_id: empresaId,
       categoria_mei: categoriaMei,
-      das_valor: parseFloat(dasValor),
+      das_valor: Number.isFinite(dasNum) && dasNum > 0 ? dasNum : null,
       data_abertura: dataAbertura || null,
       reserva_emergencia_pct: reservaEmergenciaPctForm ? parseFloat(reservaEmergenciaPctForm) : null,
       cnpj: cnpjForm || null,
       razao_social: razaoSocialForm || null,
       cnae: cnaeForm || null,
       pro_labore_desejado: proLaboreDesejadoForm ? parseFloat(proLaboreDesejadoForm) : null,
-      dia_vencimento_das: diaVencimentoDasForm ? parseInt(diaVencimentoDasForm, 10) : 20,
+      dia_vencimento_das: diaDas,
       perfil_cliente: perfilClienteForm || null,
       limite_anual: LIMITE_ANUAL_MEI,
       regime_tributario: 'mei',
@@ -248,8 +249,8 @@ export default function PainelMEI() {
   const emRisco = percentualLimiteAtual >= 90 || (mesesParaEstourar !== null && mesesParaEstourar <= 6)
 
   // ---- Fluxo traduzido (custos entram pela 1ª vez no MEI) ----
-  const receitasMes = receitas.filter(r => { const d = new Date(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
-  const custosVarMes = custosVariaveis.filter(c => { if (!c.data) return false; const d = new Date(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const receitasMes = receitas.filter(r => { const d = dataLocal(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const custosVarMes = custosVariaveis.filter(c => { if (!c.data) return false; const d = dataLocal(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
   const fluxo = fluxoMesMEI(receitasMes, custosVarMes, custosFixos)
 
   // ---- Detector pessoal x empresa ----
@@ -258,7 +259,7 @@ export default function PainelMEI() {
 
   // ---- Score de saúde ----
   const mesAnteriorData = new Date(anoAtual, mesAtual - 1, 1)
-  const receitaMesAnterior = receitas.filter(r => { const d = new Date(r.data); return d.getFullYear() === mesAnteriorData.getFullYear() && d.getMonth() === mesAnteriorData.getMonth() }).reduce((s, r) => s + (r.valor || 0), 0)
+  const receitaMesAnterior = receitas.filter(r => { const d = dataLocal(r.data); return d.getFullYear() === mesAnteriorData.getFullYear() && d.getMonth() === mesAnteriorData.getMonth() }).reduce((s, r) => s + (r.valor || 0), 0)
   const receitaMesAtual = receitasMes.reduce((s, r) => s + (r.valor || 0), 0)
   const crescimentoMoM = receitaMesAnterior > 0 ? ((receitaMesAtual - receitaMesAnterior) / receitaMesAnterior) * 100 : 0
   const score = scoreMEI({
@@ -292,7 +293,7 @@ export default function PainelMEI() {
   const retirada = detectarRetiradaPerigosa({ proLaboreSeguro: cofre.proLaboreSeguro, gastosPessoaisMes: gastosPessoaisMesValor })
 
   // ---- Guardião da Reserva (Fase 2) ----
-  const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
+  const diaVencimentoDas = Math.min(28, meiDados?.dia_vencimento_das || 20) // dia 29–31 estoura pro mês seguinte em fevereiro
   const guardiao = detectarConsumoReserva({ reservaNecessaria: cofre.das + cofre.irpfReserva, sobraMes: fluxo.sobra })
   const diasAteVencimentoDas = diasParaDAS(new Date(), diaVencimentoDas)
   const vencimentoDasEsteMes = new Date(anoAtual, mesAtual, diaVencimentoDas)
@@ -836,7 +837,7 @@ export default function PainelMEI() {
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>
                         {t('diaVencimentoDas')}
                       </label>
-                      <input type="number" min={1} max={31} value={diaVencimentoDasForm} onChange={e => setDiaVencimentoDasForm(e.target.value)}
+                      <input type="number" min={1} max={28} value={diaVencimentoDasForm} onChange={e => setDiaVencimentoDasForm(e.target.value)}
                         placeholder="20" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>

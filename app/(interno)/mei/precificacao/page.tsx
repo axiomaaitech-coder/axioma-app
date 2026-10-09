@@ -15,9 +15,10 @@ import { precoPorDivisor, optRosca, ticketMedio } from '../../../../lib/cfoCore'
 import {
   dasMensalPorCategoria, tetoProporcionalMEI, horasMensaisCalculadas,
   custoProprioRateado, fracaoDASSobrePreco, fracaoIRPFExposicao, detectarTrabalhoDeGraca,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
@@ -64,6 +65,7 @@ export default function PrecificacaoMEI() {
 
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([])
+  const [mesesMedia, setMesesMedia] = useState(12)
   const [modoTocado, setModoTocado] = useState(false)
 
   const [modo, setModo] = useState<Modo>('hora')
@@ -168,6 +170,7 @@ export default function PrecificacaoMEI() {
     meusPrecosVazio: { pt: 'Nenhum preço salvo ainda — calcule acima e clique em "Salvar Preço".', en: 'No saved prices yet — calculate above and click "Save Price".', es: 'Ningún precio guardado todavía — calcule arriba y haga clic en "Guardar Precio".' },
     confirmarExcluir: { pt: 'Excluir "{v}"? Essa ação não pode ser desfeita.', en: 'Delete "{v}"? This action cannot be undone.', es: '¿Eliminar "{v}"? Esta acción no se puede deshacer.' },
     paginaLbl: { pt: 'Página {a} de {b}', en: 'Page {a} of {b}', es: 'Página {a} de {b}' },
+    erroNomePreco: { pt: 'Dê um nome ao preço antes de salvar.', en: 'Give the price a name before saving.', es: 'Dé un nombre al precio antes de guardar.' },
     erroSalvarPreco: { pt: 'Não foi possível salvar o preço. Tente novamente.', en: 'Could not save the price. Try again.', es: 'No se pudo guardar el precio. Intente de nuevo.' },
     erroExcluirPreco: { pt: 'Não foi possível excluir o preço. Tente novamente.', en: 'Could not delete the price. Try again.', es: 'No se pudo eliminar el precio. Intente de nuevo.' },
   }
@@ -185,34 +188,40 @@ export default function PrecificacaoMEI() {
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11)
-    const inicioIso = inicio12m.toISOString().slice(0, 10)
     const hoje = hojeISO()
+    const inicioIso = `${Number(hoje.slice(0, 4)) - (Number(hoje.slice(5, 7)) === 12 ? 0 : 1)}-${String(Number(hoje.slice(5, 7)) % 12 + 1).padStart(2, '0')}-01` // 1º dia de 11 meses atrás
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: cf }, { data: cv }, { data: rec }] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('custos_variaveis').select('valor, data').eq('empresa_id', empresaId).gte('data', inicioIso).lte('data', hoje) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empresaId).gte('data', inicioIso).lte('data', hoje) : Promise.resolve({ data: [] }),
-    ])
+    if (!empresaId) return
+    const base = await lerBaseMEI(empresaId, { receitas: 'valor, data', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal', desde: inicioIso, ate: hoje })
+    if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
+    const { mei, custosFixos: cf, custosVariaveis: cv, receitas: rec } = base
+    // Média pelos meses que o MEI EXISTE na janela (antes: sempre ÷12 — MEI aberto há
+    // 3 meses tinha custo médio 4x menor e o preço sugerido saía barato demais).
+    const desde = mei?.data_abertura && String(mei.data_abertura).slice(0, 10) > inicioIso ? String(mei.data_abertura).slice(0, 10) : inicioIso
+    const meses = Math.min(12, Math.max(1, (Number(hoje.slice(0, 4)) - Number(desde.slice(0, 4))) * 12 + Number(hoje.slice(5, 7)) - Number(desde.slice(5, 7)) + 1))
+    setMesesMedia(meses)
     setMeiDados(mei)
-    setReceitasRows(rec || [])
-    const somaCF = (cf || []).reduce((s, c) => s + Number(c.valor_mensal || 0), 0)
-    const mediaCV = (cv || []).reduce((s, c) => s + Number(c.valor || 0), 0) / 12
+    setReceitasRows(rec)
+    const somaCF = cf.reduce((s, c) => s + Number(c.valor_mensal || 0), 0)
+    const mediaCV = cv.reduce((s, c) => s + Number(c.valor || 0), 0) / meses
     if (somaCF > 0) setCustoFixoMensal(String(Math.round(somaCF * 100) / 100))
     if (mediaCV > 0) setCustoVariavelMensal(String(Math.round(mediaCV * 100) / 100))
     if (!modoTocado) setModo(mei?.categoria_mei === 'Comércio' || mei?.categoria_mei === 'Indústria' ? 'produto' : 'hora')
   }
 
   async function carregarPrecosSalvos() {
-    const { data } = await supabase.from('mei_precos_salvos').select('*').order('updated_at', { ascending: false }).limit(200)
+    // Só os preços da empresa ativa (antes vinham os de todas as empresas da pessoa, misturados).
+    const empresaId = await obterEmpresaAtiva()
+    if (!empresaId) return
+    const { data, error } = await supabase.from('mei_precos_salvos').select('*').eq('empresa_id', empresaId).order('updated_at', { ascending: false }).limit(200)
+    if (error) { Sentry.captureException(new Error(`Falha ao ler mei_precos_salvos: ${error.message}`)); showToast(mensagemFalhaCarregamento(lang), 'erro') }
     setPrecosSalvos(data || [])
   }
 
   function trocarModo(m: Modo) { setModo(m); setModoTocado(true) }
 
   const anoAtual = new Date().getFullYear()
-  const receitaMensalMedia = receitasRows.reduce((s, r) => s + (r.valor || 0), 0) / 12
+  const receitaMensalMedia = receitasRows.reduce((s, r) => s + (r.valor || 0), 0) / mesesMedia
   const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
   const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)
   const receitaReferenciaDAS = receitaMensalMedia > 0 ? receitaMensalMedia : tetoInfo.teto / 12
@@ -331,7 +340,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
   }
 
   async function salvarPrecoAtual() {
-    if (!nomePrecoSalvo.trim()) return
+    if (!nomePrecoSalvo.trim()) { showToast(t('erroNomePreco'), 'erro'); return }
     setSalvandoPreco(true)
     const dados = montarSnapshotDados()
     let erro: string | undefined
@@ -341,9 +350,10 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
     } else {
       const { data: { user } } = await supabase.auth.getUser()
       const empresaId = await obterEmpresaAtiva()
-      if (user && empresaId) {
+      if (!user || !empresaId) erro = 'sem usuário ou empresa ativa' // antes: não salvava e não avisava
+      else {
         const { data, error } = await supabase.from('mei_precos_salvos').insert({ user_id: user.id, empresa_id: empresaId, nome: nomePrecoSalvo.trim(), modo, dados }).select('id')
-        if (error || !data) erro = error?.message || '0 linhas afetadas (RLS?)'
+        if (error || !data || data.length === 0) erro = error?.message || '0 linhas afetadas (RLS?)'
       }
     }
     if (erro) {

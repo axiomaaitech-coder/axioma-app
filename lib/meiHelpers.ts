@@ -8,7 +8,8 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
-import { hojeISO } from "./datas";
+import { hojeISO, dataLocal } from "./datas";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,7 +80,7 @@ export type ReceitaMEI = { valor: number; data: string; considera_teto_mei?: boo
 // marcada, continuam contando — ver MEI-TETO-FLAG-SQL.sql).
 export function faturamentoAnoMEI(receitas: ReceitaMEI[], ano: number): number {
   return receitas
-    .filter((r) => new Date(r.data).getFullYear() === ano && r.considera_teto_mei !== false)
+    .filter((r) => dataLocal(r.data).getFullYear() === ano && r.considera_teto_mei !== false)
     .reduce((acc, r) => acc + (r.valor || 0), 0);
 }
 
@@ -177,7 +178,7 @@ export function receitasBrutasPorMes(
 ): { mesNum: number; total: number; quantidade: number }[] {
   const meses = Array.from({ length: 12 }, (_, i) => ({ mesNum: i, total: 0, quantidade: 0 }));
   receitas.forEach((r) => {
-    const d = new Date(r.data);
+    const d = dataLocal(r.data);
     if (d.getFullYear() === ano && r.considera_teto_mei !== false) {
       meses[d.getMonth()].total += r.valor || 0;
       meses[d.getMonth()].quantidade += 1;
@@ -199,7 +200,7 @@ export function projecaoTeto(
   for (let m = Math.max(0, mesReferencia - janelaMeses + 1); m <= mesReferencia; m++) {
     const total = receitas
       .filter((r) => {
-        const d = new Date(r.data);
+        const d = dataLocal(r.data);
         return d.getFullYear() === ano && d.getMonth() === m && r.considera_teto_mei !== false;
       })
       .reduce((acc, r) => acc + (r.valor || 0), 0);
@@ -354,9 +355,51 @@ export type ObrigacaoMEI = {
   data_entrega: string | null;
 };
 
-export async function carregarObrigacoesAno(empresaId: string, ano: number): Promise<ObrigacaoMEI[]> {
-  const { data } = await supabase.from("mei_obrigacoes").select("*").eq("empresa_id", empresaId).like("competencia", `${ano}%`);
-  return (data || []) as ObrigacaoMEI[];
+// Obrigações do ano + o DAS de dezembro do ano anterior (vence em janeiro deste ano).
+// Falha de leitura vai pro Sentry e volta em `erro` — a tela avisa em vez de mostrar
+// todo DAS como "Pendente" (antes a falha passava calada).
+export async function carregarObrigacoesAno(empresaId: string, ano: number): Promise<{ data: ObrigacaoMEI[]; erro: boolean }> {
+  const { data, error } = await supabase.from("mei_obrigacoes").select("*").eq("empresa_id", empresaId)
+    .gte("competencia", `${ano - 1}-12`).lte("competencia", `${ano}-99`);
+  if (error) Sentry.captureException(new Error(`Falha ao ler mei_obrigacoes: ${error.message}`), { extra: { tabela: "mei_obrigacoes", operacao: "select" } });
+  return { data: (data || []) as ObrigacaoMEI[], erro: !!error };
+}
+
+// Leitura única das telas MEI (Painel, Cockpit, DAS, Faturamento, IA, IR, Reforma, Precificação).
+// Lê TUDO em lotes (o Supabase corta em 1.000 linhas — um MEI com mais vendas via teto e
+// faturamento menores que os reais) e diz se alguma parte falhou, pra tela avisar.
+export type BaseMEI = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- linha de mei_dados sem tipo, igual às telas
+  mei: any; receitas: any[]; custosVariaveis: any[]; custosFixos: any[]; contasPagar: ContaPagarMEI[]; obrigacoes: ObrigacaoMEI[]; falhou: boolean;
+};
+export async function lerBaseMEI(empresaId: string, o: {
+  receitas?: string; custosVariaveis?: string; custosFixos?: string; contasPagarMes?: boolean; obrigacoesAno?: number;
+  desde?: string; ate?: string; // filtra receitas/custos variáveis por data (Precificação usa 12 meses)
+}): Promise<BaseMEI> {
+  const periodo = <Q extends { gte: (c: string, v: string) => Q; lte: (c: string, v: string) => Q }>(q: Q) => {
+    let r = q; if (o.desde) r = r.gte("data", o.desde); if (o.ate) r = r.lte("data", o.ate); return r;
+  };
+  const hoje = hojeISO();
+  const [ano, mes] = [Number(hoje.slice(0, 4)), Number(hoje.slice(5, 7))];
+  const fimMes = `${hoje.slice(0, 8)}${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
+  const vazio = Promise.resolve({ data: [], error: null });
+  const [mei, rec, cv, cf, cp, obr] = await Promise.all([
+    supabase.from("mei_dados").select("*").eq("empresa_id", empresaId).maybeSingle(),
+    o.receitas ? lerTodas(() => periodo(supabase.from("receitas").select(o.receitas!).eq("empresa_id", empresaId)).order("data", { ascending: false }).order("id")) : vazio,
+    o.custosVariaveis ? lerTodas(() => periodo(supabase.from("custos_variaveis").select(o.custosVariaveis!).eq("empresa_id", empresaId)).order("data", { ascending: false }).order("id")) : vazio,
+    o.custosFixos ? lerTodas(() => supabase.from("custos_fixos").select(o.custosFixos!).eq("empresa_id", empresaId).order("id")) : vazio,
+    // Conta cancelada não é dinheiro comprometido (antes entrava no Cofre como conta em aberto).
+    o.contasPagarMes ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId)
+      .not("status", "in", "(pago,cancelado,cancelada)").gte("data_vencimento", `${hoje.slice(0, 8)}01`).lte("data_vencimento", fimMes).order("id")) : vazio,
+    o.obrigacoesAno ? carregarObrigacoesAno(empresaId, o.obrigacoesAno) : Promise.resolve({ data: [], erro: false }),
+  ]);
+  const erros = [["mei_dados", mei.error], ["receitas", rec.error], ["custos_variaveis", cv.error], ["custos_fixos", cf.error], ["contas_pagar", cp.error]]
+    .filter(([, e]) => e) as [string, { message: string }][];
+  for (const [tabela, e] of erros) Sentry.captureException(new Error(`Falha ao ler ${tabela} (MEI): ${e.message}`), { extra: { tabela, operacao: "select" } });
+  return {
+    mei: mei.data ?? null, receitas: rec.data, custosVariaveis: cv.data, custosFixos: cf.data, contasPagar: cp.data as ContaPagarMEI[],
+    obrigacoes: obr.data, falhou: erros.length > 0 || obr.erro,
+  };
 }
 
 export async function salvarObrigacao(params: {
@@ -430,12 +473,12 @@ export function serieMensalMEI(
   const pontos = [];
   for (let m = Math.max(0, mesReferencia - janelaMeses + 1); m <= mesReferencia; m++) {
     const receitasMes = receitas.filter((r) => {
-      const d = new Date(r.data);
+      const d = dataLocal(r.data);
       return d.getFullYear() === ano && d.getMonth() === m;
     });
     const custosVarMes = custosVariaveis.filter((c) => {
       if (!c.data) return false;
-      const d = new Date(c.data);
+      const d = dataLocal(c.data);
       return d.getFullYear() === ano && d.getMonth() === m;
     });
     const { entrou, saiu, sobra } = fluxoMesMEI(receitasMes, custosVarMes, custosFixos);
@@ -616,14 +659,17 @@ export function competenciasDASDoAno(
   hoje: Date = new Date()
 ): CompetenciaDAS[] {
   const aberturaObj = dataAbertura ? new Date(dataAbertura.slice(0, 10) + "T00:00:00") : null;
-  const mesInicio = aberturaObj && aberturaObj.getFullYear() === anoAtual ? aberturaObj.getMonth() : 0;
   if (aberturaObj && aberturaObj.getFullYear() > anoAtual) return [];
+  // m = -1 é o DAS de dezembro do ano anterior, que vence em janeiro DESTE ano (antes sumia
+  // na virada do ano: nunca entrava na dívida). Só conta se o MEI já existia em dezembro.
+  const mesInicio = !aberturaObj || aberturaObj < new Date(anoAtual - 1, 11, 31) ? -1
+    : aberturaObj.getFullYear() === anoAtual ? aberturaObj.getMonth() : 0;
   const resultado: CompetenciaDAS[] = [];
   for (let m = mesInicio; m <= 11; m++) {
     // Competência m vence no dia do mês m+1 (dezembro vence em janeiro do ano seguinte).
     const dataVencimento = new Date(anoAtual, m + 1, diaVencimento);
     if (dataVencimento > hoje) break; // ainda não venceu: não é obrigação em aberto
-    const competencia = `${anoAtual}-${String(m + 1).padStart(2, "0")}`;
+    const competencia = m < 0 ? `${anoAtual - 1}-12` : `${anoAtual}-${String(m + 1).padStart(2, "0")}`;
     const registro = obrigacoesCarregadas.find((o) => o.tipo === "DAS" && o.competencia === competencia);
     resultado.push({ mesNum: m, competencia, dataVencimento, status: registro?.status || "Pendente" });
   }

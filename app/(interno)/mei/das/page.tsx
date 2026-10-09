@@ -11,7 +11,7 @@ import { Pencil, Check, X, FileText, Bell, Share2, AlertTriangle } from 'lucide-
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -23,10 +23,11 @@ import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import { buscarIndicadoresMacro, FALLBACK_MACRO, type IndicadoresMacro } from '../../../../lib/bcbApi'
 import {
-  faturamentoAnoMEI, dasMensalPorCategoria, carregarObrigacoesAno, salvarObrigacao,
+  faturamentoAnoMEI, dasMensalPorCategoria, salvarObrigacao,
   competenciasDASDoAno, dasDoMes, prazoIrpf, calcularDividaDASAcumulada, projecaoBolaDeNeveDAS, faseRiscoDAS,
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO } from '../../../../lib/datas'
@@ -67,6 +68,7 @@ export default function DASObrigacoes() {
   const [dasValorTemp, setDasValorTemp] = useState('')
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoMEI[]>([])
   const [editandoTipo, setEditandoTipo] = useState<'DAS' | 'DASN' | 'IRPF' | null>(null)
+  const [editandoComp, setEditandoComp] = useState<string | null>(null) // mês do Histórico sendo marcado
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const [salvandoStatus, setSalvandoStatus] = useState(false)
@@ -114,6 +116,8 @@ export default function DASObrigacoes() {
     avisoParcela1: { pt: '⚠️ A 1ª parcela precisa ser paga pra ativar o acordo de parcelamento.', en: '⚠️ The 1st installment must be paid to activate the installment agreement.', es: '⚠️ La 1ª cuota debe pagarse para activar el acuerdo de cuotas.' },
     avisoParcela2: { pt: '⚠️ 3 parcelas atrasadas cancelam o acordo — a dívida volta inteira, com juros.', en: '⚠️ 3 missed installments cancel the agreement — the full debt returns, with interest.', es: '⚠️ 3 cuotas atrasadas cancelan el acuerdo — la deuda completa vuelve, con intereses.' },
     abrirPortalParcelamento: { pt: 'Abrir Portal do Simples Nacional (PGMEI)', en: 'Open Simples Nacional Portal (PGMEI)', es: 'Abrir Portal del Simples Nacional (PGMEI)' },
+    competenciaCurta: { pt: 'ref.', en: 'ref.', es: 'ref.' },
+    mudarSituacao: { pt: 'Mudar a situação deste mês (ex.: paguei com atraso)', en: 'Change this month status (e.g. paid late)', es: 'Cambiar la situación de este mes (ej.: pagué con atraso)' },
     historicoAno: { pt: 'Histórico do Ano', en: 'Year History', es: 'Historial del Año' },
     analisarIA: { pt: 'Analisar', en: 'Analyze', es: 'Analizar' },
     analisando: { pt: 'Analisando...', en: 'Analyzing...', es: 'Analizando...' },
@@ -139,15 +143,16 @@ export default function DASObrigacoes() {
     if (!user) return
     const anoAtual = new Date().getFullYear()
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: rec }, obr, macro] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? carregarObrigacoesAno(empresaId, anoAtual) : Promise.resolve([]),
+    if (!empresaId) return
+    const [base, macro] = await Promise.all([
+      lerBaseMEI(empresaId, { receitas: '*', obrigacoesAno: anoAtual }),
       buscarIndicadoresMacro(),
     ])
+    if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
+    const mei = base.mei
     setMeiDados(mei)
-    setReceitas(rec || [])
-    setObrigacoes(obr)
+    setReceitas(base.receitas)
+    setObrigacoes(base.obrigacoes)
     setIndicadores(macro)
     if (mei) setDasValor(String(mei.das_valor || dasMensalPorCategoria(mei.categoria_mei)))
   }
@@ -156,8 +161,9 @@ export default function DASObrigacoes() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { showToast(t('erroSalvarDas'), 'erro'); return }
     const novoValor = parseFloat(dasValorTemp)
-    if (isNaN(novoValor)) { showToast(t('erroValorDasInvalido'), 'erro'); return }
+    if (isNaN(novoValor) || novoValor <= 0) { showToast(t('erroValorDasInvalido'), 'erro'); return }
     const empresaId = await obterEmpresaAtiva()
+    if (!empresaId) { showToast(t('erroSalvarDas'), 'erro'); return } // sem empresa gravava linha órfã
     const { data, error } = await supabase.from('mei_dados').upsert({
       user_id: user.id, empresa_id: empresaId, das_valor: novoValor,
       categoria_mei: meiDados?.categoria_mei || 'Serviços',
@@ -178,7 +184,7 @@ export default function DASObrigacoes() {
 
   const hoje = new Date()
   const anoAtual = hoje.getFullYear()
-  const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
+  const diaVencimentoDas = Math.min(28, meiDados?.dia_vencimento_das || 20) // dia 29–31 estoura pro mês seguinte em fevereiro
   const { competencia: competenciaDas, vencimento: vencimentoDasDoMes } = dasDoMes(hoje, diaVencimentoDas) // DAS do mês anterior, vence neste mês
   const competenciaAnual = String(anoAtual)
   const vencimentoDas = vencimentoDasDoMes
@@ -219,13 +225,15 @@ export default function DASObrigacoes() {
     return { texto: `${mx.vencePrazo} ${dias}d`, atrasado: false }
   }
 
-  async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao) {
+  // `mes` = DAS de um mês do Histórico (antes só dava pra marcar o do mês atual: DAS pago
+  // com atraso ficava pra sempre como dívida, com juros subindo).
+  async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao, mes?: { competencia: string; dataVencimento: Date }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setSalvandoStatus(true)
     const empresaId = await obterEmpresaAtiva()
-    const competencia = tipo === 'DAS' ? competenciaDas : competenciaAnual
-    const vencimento = tipo === 'DAS' ? vencimentoDas : tipo === 'DASN' ? vencimentoDasn : vencimentoIrpf
+    const competencia = mes ? mes.competencia : tipo === 'DAS' ? competenciaDas : competenciaAnual
+    const vencimento = mes ? mes.dataVencimento : tipo === 'DAS' ? vencimentoDas : tipo === 'DASN' ? vencimentoDasn : vencimentoIrpf
     const { erro } = await salvarObrigacao({
       userId: user.id, empresaId, tipo, competencia, status,
       dataVencimento: vencimento.toISOString().slice(0, 10),
@@ -234,6 +242,7 @@ export default function DASObrigacoes() {
     setSalvandoStatus(false)
     if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setEditandoTipo(null)
+    setEditandoComp(null)
     showToast(t('sucessoSalvarObrigacao'), 'ok')
     carregar()
   }
@@ -626,7 +635,22 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                   <div key={c.competencia} className="rounded-xl p-2.5 text-center axi-card-premium3d axi-card-faixa"
                     style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
                     <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
-                    <p className="text-xs font-semibold mt-1" style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>{rotuloStatus(c.status)}</p>
+                    <p className="text-[10px]" style={{ color: TEXTO_SEC }}>{t('competenciaCurta')} {c.competencia.slice(5, 7)}/{c.competencia.slice(2, 4)}</p>
+                    {editandoComp === c.competencia ? (
+                      <div className="flex flex-col gap-1 mt-1">
+                        {(['Entregue', 'Pendente'] as StatusObrigacao[]).map(s => (
+                          <button key={s} disabled={salvandoStatus} onClick={() => marcarStatus('DAS', s, c)}
+                            className="text-[10px] px-1.5 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                            {rotuloStatus(s)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditandoComp(c.competencia)} title={t('mudarSituacao')} className="text-xs font-semibold mt-1 inline-flex items-center gap-1"
+                        style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>
+                        {rotuloStatus(c.status)} <Pencil size={11} />
+                      </button>
+                    )}
                   </div>
                 )
               })}

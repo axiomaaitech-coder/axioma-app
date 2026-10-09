@@ -45,14 +45,18 @@ export type DocumentoFiscal = {
   created_at: string;
 };
 
-export async function listarDocumentosFiscais(): Promise<DocumentoFiscal[]> {
-  const { data } = await supabase
+// Só da empresa ativa (antes vinham os documentos de todas as empresas da pessoa).
+// erro = true quando a leitura falhou — a tela avisa em vez de mostrar "nenhum documento".
+export async function listarDocumentosFiscais(empresaId: string): Promise<{ data: DocumentoFiscal[]; erro: boolean }> {
+  const { data, error } = await supabase
     .from("documentos_fiscais")
     .select("*")
+    .eq("empresa_id", empresaId)
     .order("ano", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(500);
-  return (data as DocumentoFiscal[]) || [];
+  if (error) reportarFalhaEscrita("documentos_fiscais", "select", error.message);
+  return { data: (data as DocumentoFiscal[]) || [], erro: !!error };
 }
 
 export async function uploadDocumentoFiscal(params: {
@@ -91,6 +95,7 @@ export async function uploadDocumentoFiscal(params: {
   });
   if (error) {
     await removerArquivoStorage(path); // não deixa arquivo órfão sem metadado
+    reportarFalhaEscrita("documentos_fiscais", "insert", error.message);
     return { erro: error.message };
   }
   return {};
@@ -107,13 +112,15 @@ export async function atualizarDocumentoFiscal(id: string, dados: { tipo?: TipoD
 }
 
 export async function excluirDocumentoFiscal(doc: DocumentoFiscal): Promise<{ erro?: string }> {
-  await removerArquivoStorage(doc.path_storage);
+  // Apaga o registro ANTES do arquivo: antes, se o registro falhasse, o arquivo já tinha
+  // sumido e a lista ficava apontando pra um documento que não abre mais.
   const { data, error } = await supabase.from("documentos_fiscais").delete().eq("id", doc.id).select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("documentos_fiscais", "delete", motivo);
     return { erro: motivo };
   }
+  await removerArquivoStorage(doc.path_storage);
   return {};
 }
 

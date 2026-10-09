@@ -12,10 +12,11 @@ import html2canvas from 'html2canvas'
 import {
   dasMensalPorCategoria, tetoProporcionalMEI, faturamentoAnoMEI,
   MARCOS_REFORMA_MEI, faseAtualReformaMEI, LIMITE_NANOEMPREENDEDOR,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -133,12 +134,11 @@ export default function ReformaTributaria() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: rec }] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-    ])
-    setMeiDados(mei)
-    setReceitas(rec || [])
+    if (!empresaId) return
+    const base = await lerBaseMEI(empresaId, { receitas: '*' })
+    if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
+    setMeiDados(base.mei)
+    setReceitas(base.receitas)
   }
 
   const anoAtual = new Date().getFullYear()

@@ -8,10 +8,10 @@ import { FileText, AlertTriangle, CheckCircle, Share2, Upload, Pencil, Trash2, E
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
-import { calcularIRPF, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
+import { calcularIRPF, faturamentoAnoMEI, lerBaseMEI, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
@@ -130,6 +130,8 @@ export default function ImpostoRendaMEI() {
     toastDocumentoEnviado: { pt: 'Documento enviado com sucesso.', en: 'Document uploaded successfully.', es: 'Documento enviado con éxito.' },
     toastDocumentoAtualizado: { pt: 'Documento atualizado.', en: 'Document updated.', es: 'Documento actualizado.' },
     toastDocumentoExcluido: { pt: 'Documento excluído.', en: 'Document deleted.', es: 'Documento eliminado.' },
+    toastFalhaSalvarDoc: { pt: 'Não foi possível salvar o documento agora. Nada foi perdido — tente de novo.', en: 'Could not save the document now. Nothing was lost — try again.', es: 'No se pudo guardar el documento ahora. No se perdió nada — intente de nuevo.' },
+    toastFalhaExcluirDoc: { pt: 'Não foi possível excluir o documento agora. Ele continua salvo — tente de novo.', en: 'Could not delete the document now. It is still saved — try again.', es: 'No se pudo eliminar el documento ahora. Sigue guardado — intente de nuevo.' },
     toastFalhaAbrir: { pt: 'Não foi possível abrir o documento agora — tente de novo.', en: 'Could not open the document right now — try again.', es: 'No fue posible abrir el documento ahora — intente de nuevo.' },
     docArquivoSelecionado: { pt: 'Arquivo selecionado', en: 'File selected', es: 'Archivo seleccionado' },
 
@@ -164,21 +166,25 @@ export default function ImpostoRendaMEI() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: rec }] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-    ])
-    setMeiDados(mei)
-    setReceitas(rec || [])
-
-    const salvo = localStorage.getItem(`axioma-irpf-checklist-${user.id}`)
-    if (salvo) {
-      try { setChecklistMarcado(JSON.parse(salvo)) } catch { /* marcação antiga corrompida: começa o checklist em branco */ }
+    if (empresaId) {
+      const base = await lerBaseMEI(empresaId, { receitas: '*' })
+      if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
+      setMeiDados(base.mei)
+      setReceitas(base.receitas)
     }
+
+    try {
+      const salvo = localStorage.getItem(`axioma-irpf-checklist-${user.id}`)
+      if (salvo) setChecklistMarcado(JSON.parse(salvo))
+    } catch { /* navegador sem armazenamento ou marcação corrompida: começa o checklist em branco */ }
   }
 
   async function carregarDocumentos() {
-    setDocumentos(await listarDocumentosFiscais())
+    const empresaId = await obterEmpresaAtiva()
+    if (!empresaId) return
+    const r = await listarDocumentosFiscais(empresaId)
+    if (r.erro) mostrarToastDoc(mensagemFalhaCarregamento(lang), 'erro')
+    setDocumentos(r.data)
   }
 
   function mostrarToastDoc(msg: string, tipo: 'ok' | 'erro' | 'info' = 'ok') {
@@ -206,7 +212,7 @@ export default function ImpostoRendaMEI() {
 
     if (erro === 'tipo_invalido') { mostrarToastDoc(t('toastTipoInvalido'), 'erro'); setEtapaUpload('idle'); return }
     if (erro === 'tamanho_excedido') { mostrarToastDoc(t('toastTamanhoExcedido'), 'erro'); setEtapaUpload('idle'); return }
-    if (erro) { mostrarToastDoc(erro, 'erro'); setEtapaUpload('idle'); return }
+    if (erro) { mostrarToastDoc(t('toastFalhaSalvarDoc'), 'erro'); setEtapaUpload('idle'); return }
 
     setEtapaUpload('concluido')
     mostrarToastDoc(t('toastDocumentoEnviado'), 'ok')
@@ -223,7 +229,7 @@ export default function ImpostoRendaMEI() {
 
   async function salvarEdicaoDoc(id: string) {
     const { erro } = await atualizarDocumentoFiscal(id, { tipo: editTipoDoc, descricao: editDescricaoDoc || undefined })
-    if (erro) { mostrarToastDoc(erro, 'erro'); return }
+    if (erro) { mostrarToastDoc(t('toastFalhaSalvarDoc'), 'erro'); return }
     setEditandoDocId(null)
     mostrarToastDoc(t('toastDocumentoAtualizado'), 'ok')
     await carregarDocumentos()
@@ -233,7 +239,7 @@ export default function ImpostoRendaMEI() {
     // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
     if (!(await confirmar({ oQue: `"${doc.nome_arquivo}"`, efeito: EFEITO.planejamento, tabela: "documentos_fiscais", registroId: doc.id }))) return;
     const { erro } = await excluirDocumentoFiscal(doc)
-    if (erro) { mostrarToastDoc(erro, 'erro'); return }
+    if (erro) { mostrarToastDoc(t('toastFalhaExcluirDoc'), 'erro'); return }
     mostrarToastDoc(t('toastDocumentoExcluido'), 'info')
     await carregarDocumentos()
   }
@@ -281,9 +287,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
   }
 
   const anoAtual = new Date().getFullYear()
-  const faturamentoAnual = receitas
-    .filter(r => new Date(r.data).getFullYear() === anoAtual)
-    .reduce((acc, r) => acc + (r.valor || 0), 0)
+  const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual) // mesma conta das outras telas (respeita 'conta pro teto')
 
   const percentualIsento = percentualIsentoPorCategoria(meiDados?.categoria_mei)
 
@@ -330,7 +334,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
     novo[index] = !novo[index]
     setChecklistMarcado(novo)
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) localStorage.setItem(`axioma-irpf-checklist-${user.id}`, JSON.stringify(novo))
+      try { if (user) localStorage.setItem(`axioma-irpf-checklist-${user.id}`, JSON.stringify(novo)) } catch { /* sem armazenamento: vale só nesta visita */ }
     })
   }
 

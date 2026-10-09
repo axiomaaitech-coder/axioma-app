@@ -12,7 +12,7 @@ import { AlertTriangle, Pencil, Trash2, X, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -28,9 +28,10 @@ import {
   faturamentoAnoMEI, limiteRestante, percentualLimite,
   dasMensalPorCategoria, percentualIsentoPorCategoria, calcularIRPF, percentualReservaImposto, valorASepararPorReceita,
   tetoProporcionalMEI, percentualDeTeto, semaforoTetoDetalhado, projecaoTetoDetalhada, receitasBrutasPorMes,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
-import { hojeISO } from '../../../../lib/datas'
+import { hojeISO, dataLocal } from '../../../../lib/datas'
 import AvisoDuplicidade from '../../../../components/AvisoDuplicidade'
 import { useConfirmarExclusao, nomeItem, EFEITO } from '../../../../components/ConfirmarExclusao'
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from '../../../../lib/rastreio/lancamentoManual'
@@ -156,12 +157,11 @@ export default function FaturamentoMEI() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     const empresaId = await obterEmpresaAtiva()
-    const [{ data }, { data: mei }] = await Promise.all([
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-    ])
-    setReceitas((data || []) as Receita[])
-    setMeiDados(mei || null)
+    if (!empresaId) { setLoading(false); return }
+    const base = await lerBaseMEI(empresaId, { receitas: '*' })
+    if (base.falhou) showToast(mensagemFalhaCarregamento(lang))
+    setReceitas(base.receitas as Receita[])
+    setMeiDados(base.mei)
     setLoading(false)
   }
 
@@ -275,7 +275,7 @@ export default function FaturamentoMEI() {
   const semaforo4 = semaforoTetoDetalhado(percentualReal)
   const proj = projecaoTetoDetalhada(receitas, anoAtual, mesAtual, teto, 6)
   const { mediaMensal, mesIndexEstouro, margemRecomendadaMes, projecaoAnual } = proj
-  const receitasAno = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual)
+  const receitasAno = receitas.filter(r => dataLocal(r.data).getFullYear() === anoAtual)
 
   const formatarNomeMes = (idx: number) => new Date(anoAtual, idx, 1).toLocaleDateString(
     idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR', { month: 'long' }
@@ -292,8 +292,8 @@ export default function FaturamentoMEI() {
     faturamentoAnual > 0 ? (lang === 'pt' ? `Projeção anual: ${fmt(projecaoAnual)}` : lang === 'en' ? `Annual projection: ${fmt(projecaoAnual)}` : `Proyección anual: ${fmt(projecaoAnual)}`) : '',
   ].filter(Boolean)
 
-  const valorMesAtual = faturamentoAnoMEI(receitasAno.filter(r => new Date(r.data).getMonth() === mesAtual), anoAtual)
-  const valorMesAnterior = mesAtual > 0 ? faturamentoAnoMEI(receitasAno.filter(r => new Date(r.data).getMonth() === mesAtual - 1), anoAtual) : 0
+  const valorMesAtual = faturamentoAnoMEI(receitasAno.filter(r => dataLocal(r.data).getMonth() === mesAtual), anoAtual)
+  const valorMesAnterior = mesAtual > 0 ? faturamentoAnoMEI(receitasAno.filter(r => dataLocal(r.data).getMonth() === mesAtual - 1), anoAtual) : 0
   const deltaVsMedia = mediaMensal > 0 ? ((valorMesAtual - mediaMensal) / mediaMensal) * 100 : 0
   const deltaVsAnterior = valorMesAnterior > 0 ? ((valorMesAtual - valorMesAnterior) / valorMesAnterior) * 100 : 0
 
@@ -598,7 +598,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
                 const nomeMes = new Date(anoAtual, i, 1).toLocaleDateString(
                   idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR', { month: 'long' }
                 )
-                const valor = faturamentoAnoMEI(receitasAno.filter(r => new Date(r.data).getMonth() === i), anoAtual)
+                const valor = faturamentoAnoMEI(receitasAno.filter(r => dataLocal(r.data).getMonth() === i), anoAtual)
                 const perc = tetoMensalRecomendado > 0 ? (valor / tetoMensalRecomendado) * 100 : 0
                 const ehMesAtual = i === mesAtual
                 return (

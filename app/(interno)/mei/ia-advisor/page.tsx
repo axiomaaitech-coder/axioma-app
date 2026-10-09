@@ -9,11 +9,12 @@ import { Bot, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
-  dasMensalPorCategoria, fluxoMesMEI, montarCofre, projecaoTeto, tetoProporcionalMEI,
+  dasMensalPorCategoria, faturamentoAnoMEI, fluxoMesMEI, montarCofre, projecaoTeto, tetoProporcionalMEI,
   type ContaPagarMEI,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -23,7 +24,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
-import { hojeISO } from '../../../../lib/datas'
+import { hojeISO, dataLocal } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -165,26 +166,19 @@ export default function IAMEIAdvisor() {
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const hoje = new Date()
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10)
-    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
     const empresaId = await obterEmpresaAtiva()
-    const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }] = await Promise.all([
-      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
-      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('custos_variaveis').select('valor, data, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('custos_fixos').select('valor_mensal, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes) : Promise.resolve({ data: [] }),
-    ])
-    setMeiDados(mei)
-    setReceitas(rec || [])
-    setCustosVariaveis(cv || [])
-    setCustosFixos(cf || [])
-    setContasPagar((cp || []) as ContaPagarMEI[])
+    if (!empresaId) return
+    const base = await lerBaseMEI(empresaId, { receitas: '*', custosVariaveis: 'valor, data, descricao', custosFixos: 'valor_mensal, descricao', contasPagarMes: true })
+    if (base.falhou) { setToast(mensagemFalhaCarregamento(lang)); setTimeout(() => setToast(null), 4000) }
+    setMeiDados(base.mei)
+    setReceitas(base.receitas)
+    setCustosVariaveis(base.custosVariaveis)
+    setCustosFixos(base.custosFixos)
+    setContasPagar(base.contasPagar)
   }
 
   const anoAtual = new Date().getFullYear()
-  const faturamentoAnual = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual).reduce((acc, r) => acc + (r.valor || 0), 0)
+  const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual) // mesma conta das outras telas (respeita 'conta pro teto')
   const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
   const teto = tetoInfo.teto
   const percentualLimite = Math.min(100, (faturamentoAnual / teto) * 100)
@@ -194,8 +188,8 @@ export default function IAMEIAdvisor() {
 
   // ---- Cofre Inteligente (mesmo motor do Painel MEI) — dá à IA real o "o que já tem dono" ----
   const mesAtual = new Date().getMonth()
-  const receitasMes = receitas.filter(r => { const d = new Date(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
-  const custosVarMes = custosVariaveis.filter(c => { if (!c.data) return false; const d = new Date(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const receitasMes = receitas.filter(r => { const d = dataLocal(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const custosVarMes = custosVariaveis.filter(c => { if (!c.data) return false; const d = dataLocal(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
   const fluxo = fluxoMesMEI(receitasMes, custosVarMes, custosFixos)
   const { mediaMensal } = projecaoTeto(receitas, anoAtual, mesAtual, 6)
   const cofre = montarCofre({

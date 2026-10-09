@@ -1,5 +1,7 @@
 ﻿'use client'
 import { buscarIndicadoresMacro, FALLBACK_MACRO } from '../../../../lib/bcbApi'
+import { mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
+import { dataLocal } from '../../../../lib/datas'
 import { useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../../lib/LanguageContext'
@@ -17,9 +19,10 @@ import { AuroraBackground } from '../../../../components/AuroraBackground'
 import {
   tetoProporcionalMEI, faturamentoAnoMEI, percentualLimite, limiteRestante, semaforoTeto,
   projecaoTetoDetalhada, fluxoMesMEI, montarCofre, scoreMEI, dasMensalPorCategoria,
-  carregarObrigacoesAno, competenciasDASDoAno, calcularDividaDASAcumulada, faseRiscoDAS, diasParaDAS,
+  competenciasDASDoAno, calcularDividaDASAcumulada, faseRiscoDAS, diasParaDAS,
   fracaoDASSobrePreco, fracaoIRPFExposicao, custoProprioRateado, detectarTrabalhoDeGraca,
   type StatusObrigacao, type ContaPagarMEI, type FaseRiscoDAS, type DetectorTrabalhoGratisResultado,
+  lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import { montarAvisosCockpitMEI, type AvisoCockpit, type ChaveAvisoCockpit } from '../../../../lib/avisosCockpitHelpers'
 
@@ -118,6 +121,7 @@ export default function CockpitMEI() {
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
   const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null)
+  const [falhaCarga, setFalhaCarga] = useState(false)
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
@@ -181,29 +185,23 @@ export default function CockpitMEI() {
 
     const hoje = new Date()
     const anoAtual = hoje.getFullYear()
-    const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
-    const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
 
-    const [empresa, meiRes, recRes, cvRes, cfRes, cpRes, obrigacoesRows, precoRes, macro] = await Promise.all([
+    const [empresa, base, precoRes, macro] = await Promise.all([
       carregarEmpresaPorId(empresaId),
-      supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle(),
-      supabase.from('receitas').select('valor, data, considera_teto_mei').eq('empresa_id', empresaId),
-      supabase.from('custos_variaveis').select('valor, data').eq('empresa_id', empresaId),
-      supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empresaId),
-      supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
-      carregarObrigacoesAno(empresaId, anoAtual),
+      lerBaseMEI(empresaId, { receitas: 'valor, data, considera_teto_mei', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal', contasPagarMes: true, obrigacoesAno: anoAtual }),
       supabase.from('mei_precos_salvos').select('*').eq('empresa_id', empresaId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       buscarIndicadoresMacro(), // Selic do dia (mesma das telas DAS e Painel MEI)
     ])
+    setFalhaCarga(base.falhou || !!precoRes.error)
 
     setNomeEmpresa(empresa?.nome_fantasia || empresa?.razao_social || null)
     setSelicAnual(macro.selic)
-    setMeiDados(meiRes.data || null)
-    setReceitas(recRes.data || [])
-    setCustosVariaveis(cvRes.data || [])
-    setCustosFixos(cfRes.data || [])
-    setContasPagar((cpRes.data || []) as ContaPagarMEI[])
-    setObrigacoes(obrigacoesRows)
+    setMeiDados(base.mei)
+    setReceitas(base.receitas)
+    setCustosVariaveis(base.custosVariaveis)
+    setCustosFixos(base.custosFixos)
+    setContasPagar(base.contasPagar)
+    setObrigacoes(base.obrigacoes)
     setPrecoSalvo(precoRes.data || null)
     setLoading(false)
   }
@@ -224,8 +222,8 @@ export default function CockpitMEI() {
   const mesEstouroLabel = projecao.mesIndexEstouro !== null ? MESES[lang][projecao.mesIndexEstouro] : null
 
   // ---- Card 2: Cofre (o que é seu de verdade) ----
-  const receitasMes = receitas.filter((r) => { const d = new Date(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
-  const custosVarMes = custosVariaveis.filter((c) => { if (!c.data) return false; const d = new Date(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const receitasMes = receitas.filter((r) => { const d = dataLocal(r.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
+  const custosVarMes = custosVariaveis.filter((c) => { if (!c.data) return false; const d = dataLocal(c.data); return d.getFullYear() === anoAtual && d.getMonth() === mesAtual })
   const fluxo = fluxoMesMEI(receitasMes, custosVarMes, custosFixos)
   const dasMensalAtual = meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)
   const mediaMensal6m = projecao.mediaMensal
@@ -242,7 +240,7 @@ export default function CockpitMEI() {
   // ---- Health Score (mesmo cálculo do Painel MEI) ----
   const receitaMesAtual = receitasMes.reduce((s, r) => s + (r.valor || 0), 0)
   const mesAnteriorData = new Date(anoAtual, mesAtual - 1, 1)
-  const receitaMesAnterior = receitas.filter((r) => { const d = new Date(r.data); return d.getFullYear() === mesAnteriorData.getFullYear() && d.getMonth() === mesAnteriorData.getMonth() }).reduce((s, r) => s + (r.valor || 0), 0)
+  const receitaMesAnterior = receitas.filter((r) => { const d = dataLocal(r.data); return d.getFullYear() === mesAnteriorData.getFullYear() && d.getMonth() === mesAnteriorData.getMonth() }).reduce((s, r) => s + (r.valor || 0), 0)
   const crescimentoMoM = receitaMesAnterior > 0 ? ((receitaMesAtual - receitaMesAnterior) / receitaMesAnterior) * 100 : 0
   const competenciaAnual = String(anoAtual)
   const statusDasn: StatusObrigacao = obrigacoes.find((o) => o.tipo === 'DASN' && o.competencia === competenciaAnual)?.status || 'Pendente'
@@ -256,7 +254,7 @@ export default function CockpitMEI() {
   })
 
   // ---- Card 3: DAS & Obrigações (mesma detecção por data da tela DAS) ----
-  const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
+  const diaVencimentoDas = Math.min(28, meiDados?.dia_vencimento_das || 20) // dia 29–31 estoura pro mês seguinte em fevereiro
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
   const divida = calcularDividaDASAcumulada(competenciasAno, dasMensalAtual, selicAnual, hoje)
   const faseAtual: FaseRiscoDAS = faseRiscoDAS(divida.piorDiasAtraso)
@@ -293,7 +291,7 @@ export default function CockpitMEI() {
     }
     const inicio12m = new Date(hoje); inicio12m.setMonth(inicio12m.getMonth() - 11)
     const receitaMensalMedia12m = receitas
-      .filter((r) => { const d = new Date(r.data); return d >= inicio12m && d <= hoje })
+      .filter((r) => { const d = dataLocal(r.data); return d >= inicio12m && d <= hoje })
       .reduce((s, r) => s + (r.valor || 0), 0) / 12
     const receitaReferenciaDAS = receitaMensalMedia12m > 0 ? receitaMensalMedia12m : teto / 12
     const fracaoDASAtual = fracaoDASSobrePreco(dasMensalAtual, receitaReferenciaDAS)
@@ -418,6 +416,12 @@ export default function CockpitMEI() {
       <div className="space-y-4">
 
         <LetreiroExecutivo itens={itensLetreiro} cor={temaClaro ? BRONZE : corLetreiro} solido={temaClaro} textoBase={temaClaro ? '#ffffff' : undefined} />
+
+        {falhaCarga && (
+          <div role="alert" className="rounded-xl px-4 py-3 text-sm font-semibold" style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', color: temaClaro ? '#b91c1c' : '#fca5a5' }}>
+            {mensagemFalhaCarregamento(lang)}
+          </div>
+        )}
 
         {/* Saudação + Health Score */}
         <CanvasBox cor={JADE} motionIndex={0} glow destaque {...cartaoTema}>

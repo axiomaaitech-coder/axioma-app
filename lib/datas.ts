@@ -110,3 +110,9 @@ export function hojeISO(base: Date = new Date(agora()), fuso: string = fusoAtivo
   if (!f) { f = new Intl.DateTimeFormat('en-CA', { timeZone: fuso, year: 'numeric', month: '2-digit', day: '2-digit' }); formatos.set(fuso, f) }
   return f.format(base)
 }
+
+// Data só-dia ("2026-01-01") vira meia-noite LOCAL. new Date("2026-01-01") seria meia-noite
+// UTC = 31/12 21h no Brasil: venda do dia 1º caía no mês (e no ano) anterior.
+export function dataLocal(iso: string): Date {
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + 'T00:00:00' : iso)
+}
