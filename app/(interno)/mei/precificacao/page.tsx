@@ -281,10 +281,11 @@ export default function PrecificacaoMEI() {
   ].filter(Boolean)
 
   const dadosComposicao = [
-    { name: t('custoBaseLbl'), value: Math.max(0, custoBase), color: AZUL },
-    { name: t('dasLbl'), value: Math.max(0, dasReais), color: VERDE },
-    { name: t('irpfLbl'), value: Math.max(0, irpfReais), color: ROXO },
-    { name: t('margemReaisLbl'), value: Math.max(0, margemReais), color: OURO },
+    // Claro: sequência oficial chart-1..4 (tema-tokens.md) — antes Custo Base e DAS saíam no mesmo verde.
+    { name: t('custoBaseLbl'), value: Math.max(0, custoBase), color: temaClaro ? '#2ecc9b' : AZUL },
+    { name: t('dasLbl'), value: Math.max(0, dasReais), color: temaClaro ? '#34d399' : VERDE },
+    { name: t('irpfLbl'), value: Math.max(0, irpfReais), color: temaClaro ? '#6b7280' : ROXO },
+    { name: t('margemReaisLbl'), value: Math.max(0, margemReais), color: temaClaro ? '#101b3d' : OURO },
   ]
 
   const idiomaNome = lang === 'en' ? 'English' : lang === 'es' ? 'Spanish' : 'Portuguese (Brazilian)'
