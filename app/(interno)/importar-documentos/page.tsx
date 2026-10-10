@@ -56,6 +56,7 @@ import {
   listarTimeline,
   abrirExcecaoFormatoReforma,
   sugerirClassificacoes,
+  categoriaAprendidaDoFornecedor,
   normalizarPadraoChave,
   detectarPossiveisDuplicatas,
   type StatsMes,
@@ -805,6 +806,12 @@ export default function ImportarDocumentosPage() {
       const parecido = await buscarFornecedorPorNome(empresaId, [classificado.metadados?.razao_social, classificado.metadados?.fantasia], cnpjEmit);
       if (parecido?.confianca === "alta") res = { ...res, metadados: { ...res.metadados, fornecedor_cadastrado: { id: parecido.id, nome: parecido.nome } } };
       else if (parecido) res = { ...res, metadados: { ...res.metadados, fornecedor_parecido: parecido } };
+    }
+    // Aprendizado (A5): a categoria que você escolheu nas notas anteriores deste fornecedor
+    // vale mais que a sugestão da IA. Continua editável na pré-visualização.
+    if (ehCompra && cnpjEmit) {
+      const aprendida = await categoriaAprendidaDoFornecedor(empresaId, cnpjEmit, "contas_pagar");
+      if (aprendida) res = { ...res, linhas: res.linhas.map((l) => (l.destinoSugerido === "contas_pagar" ? { ...l, categoria: aprendida } : l)), metadados: { ...res.metadados, categoria_aprendida: aprendida } };
     }
     await aplicarResultado(res);
   }
@@ -2301,9 +2308,15 @@ function PreviewBlock(props: any) {
                 </div>
               ))}
             </div>
-            {classif.categoriaPrincipal && (
+            {classif.categoriaPrincipal && !resultado?.metadados?.categoria_aprendida && (
               <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>
                 {tt.categoriaSugeridaLinhas}: <strong style={{ color: ct("#c8d8f0") }}>{labelCategoriaDespesa(classif.categoriaPrincipal, idiomaNat)}</strong>
+              </p>
+            )}
+            {resultado?.metadados?.categoria_aprendida && (
+              <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>
+                {idiomaNat === "en" ? "Category learned from your previous invoices from this supplier" : idiomaNat === "es" ? "Categoría aprendida de sus facturas anteriores de este proveedor" : "Categoria aprendida com as suas notas anteriores deste fornecedor"}: <strong style={{ color: ct("#c8d8f0") }}>{labelCategoriaDespesa(String(resultado.metadados.categoria_aprendida), idiomaNat)}</strong>
+                {idiomaNat === "en" ? " (you can change it on each line)" : idiomaNat === "es" ? " (puede cambiarla en cada línea)" : " (dá para trocar em cada linha)"}
               </p>
             )}
           </div>

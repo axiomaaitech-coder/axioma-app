@@ -1384,7 +1384,8 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - Elias 2026-10-10 noite: "o resto todo pode fazer" — CNPJ/dados da empresa, créditos Anthropic e Pluggy produção ficam com ele no fim.
 - UPDATE das 2 linhas de teste da dívida: barrado pelo bloqueio de segurança do Claude Code (escrita no banco) → Elias roda no SQL Editor (bloco no chat).
 - A4 ✅ Métricas do CFO no Painel de Risco: margem, ponto de equilíbrio, prazo médio p/ receber e p/ pagar (ponderado pelo valor, 12 meses), ciclo de caixa, quanto o caixa aguenta. Teste em check-risco.
-- PRÓXIMO: A5 Aprendizado.
+- A5 ✅ Aprendizado por fornecedor: importacao_padroes_classificacao ganha chave cnpj:<CNPJ> (sem SQL); na próxima nota do mesmo CNPJ a categoria escolhida antes substitui a da IA, com aviso "Categoria aprendida..." e editável. Natureza do Fluxo já era aprendida pela descrição. Manual 33.
+- PRÓXIMO: A6 contas antigas (prévia antes de gravar).
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 

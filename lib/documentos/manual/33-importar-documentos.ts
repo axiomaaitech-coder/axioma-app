@@ -30,6 +30,8 @@ const doc: DocumentoAxioma = {
       'Clique em **Confirmar Importação**.',
     ] },
 
+    { h2: 'O Axioma aprende com você' },
+    { p: 'Se você trocar a categoria de uma conta antes de importar, o Axioma guarda a sua escolha. Na próxima nota do **mesmo fornecedor** (mesmo CNPJ) a categoria já vem preenchida como você escolheu, com o aviso **"Categoria aprendida com as suas notas anteriores deste fornecedor"** — e continua dando para trocar em cada linha. Lançamentos de extrato com a mesma descrição também passam a sugerir a categoria e a natureza (receita, custo, empréstimo, transferência...) que você usou antes.' },
     { h1: 'Depois de importar' },
     { p: 'O resumo mostra quantas linhas foram **importadas**, **duplicadas**, **ignoradas** e com **erro**. No **Histórico** cada importação tem: **Ver detalhes**, **Baixar original** (o arquivo fica guardado em cofre seguro), **Compartilhar** e **Desfazer**, que remove todos os lançamentos criados por aquela importação.' },
     { p: 'Nos detalhes há a **Fila de Exceções** (o que o sistema não decidiu sozinho, para você marcar como resolvida) e a **Linha do Tempo** de tudo o que aconteceu.' },

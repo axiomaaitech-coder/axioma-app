@@ -580,21 +580,28 @@ export function normalizarPadraoChave(descricao: string): string {
     .slice(0, 80);
 }
 
+// Aprendizado por FORNECEDOR (Financial Core 2.2 — bloco A5): a descrição da nota muda
+// a cada compra ("NF 4498…", "NF 4512…"), o CNPJ não. Mesma memória da descrição, chave própria.
+export const chaveFornecedor = (cnpj: string) => `cnpj:${cnpj.replace(/\D/g, "")}`;
+
 // Lote único (1 select + 1 upsert) por gravação — nunca 1 consulta por linha.
 async function atualizarPadroesClassificacao(
   empresaId: string,
   destino: DestinoTabela,
-  linhas: { descricao?: string; categoria?: string }[]
+  linhas: { descricao?: string; categoria?: string; cnpj?: string }[]
 ): Promise<void> {
   if (!empresaId || linhas.length === 0) return;
 
   const contagem = new Map<string, { categoria: string | null; qtd: number }>();
+  const contar = (chave: string, categoria: string | null) => {
+    const atual = contagem.get(chave);
+    if (atual) { atual.qtd++; if (categoria) atual.categoria = categoria; } // vale a escolha mais recente
+    else contagem.set(chave, { categoria, qtd: 1 });
+  };
   linhas.forEach((l) => {
     const chave = normalizarPadraoChave(l.descricao || "");
-    if (!chave) return;
-    const atual = contagem.get(chave);
-    if (atual) atual.qtd++;
-    else contagem.set(chave, { categoria: l.categoria || null, qtd: 1 });
+    if (chave) contar(chave, l.categoria || null);
+    if (l.categoria && (l.cnpj || "").replace(/\D/g, "").length >= 11) contar(chaveFornecedor(l.cnpj!), l.categoria);
   });
   if (contagem.size === 0) return;
 
@@ -630,6 +637,14 @@ async function atualizarPadroesClassificacao(
 }
 
 export type SugestaoClassificacao = { destino: DestinoTabela; categoria: string | null; confianca: number };
+
+// Categoria que você escolheu nas importações anteriores DESTE fornecedor (null = nunca importou).
+export async function categoriaAprendidaDoFornecedor(empresaId: string, cnpj: string, destino: DestinoTabela): Promise<string | null> {
+  if ((cnpj || "").replace(/\D/g, "").length < 11) return null;
+  const { data } = await supabase.from("importacao_padroes_classificacao").select("categoria")
+    .eq("empresa_id", empresaId).eq("destino_tabela", destino).eq("padrao_chave", chaveFornecedor(cnpj)).maybeSingle();
+  return (data?.categoria as string | null) ?? null;
+}
 
 // 1 consulta só, pra todas as descrições novas de um arquivo de uma vez —
 // a UI usa pra pré-sugerir categoria/destino, sem decidir por conta própria.
