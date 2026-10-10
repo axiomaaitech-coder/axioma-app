@@ -38,6 +38,11 @@ export const EFEITO: Record<string, Texto> = {
     en: 'Everything that belongs to this record (contacts, documents, contracts, products and history) is deleted with it.',
     es: 'Todo lo que pertenece a este catastro (contactos, documentos, contratos, productos e historial) se elimina junto.',
   },
+  custoFixo: {
+    pt: 'Some também dos meses PASSADOS da DRE, dos relatórios e das análises. Se o custo existiu e só acabou, não exclua: edite e preencha "Até" — o histórico fica certo.',
+    en: 'It also disappears from PAST months of the P&L, reports and analyses. If the cost existed and just ended, do not delete it: edit it and fill in "Until" — history stays correct.',
+    es: 'También desaparece de los meses PASADOS del Estado de Resultados, informes y análisis. Si el costo existió y solo terminó, no lo elimine: edítelo y complete "Hasta" — el historial queda correcto.',
+  },
   planejamento: {
     pt: 'Some dos painéis, relatórios e das análises da Inteligência do Axioma (inclusive do Nexus/José).',
     en: 'It disappears from dashboards, reports and Axioma Intelligence analyses (including Nexus/José).',

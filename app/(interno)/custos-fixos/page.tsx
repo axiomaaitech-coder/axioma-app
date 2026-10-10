@@ -116,7 +116,9 @@ export default function CustosFixos() {
     if (!empresaId) { setCarregando(false); return; }
     setEmpresaIdAtivo(empresaId);
     setUserIdAtivo(user.id);
-    const { data } = await supabase.from("custos_fixos").select("*").eq("empresa_id", empresaId).order("dia_vencimento", { ascending: true });
+    const { data, error } = await supabase.from("custos_fixos").select("*").eq("empresa_id", empresaId).order("dia_vencimento", { ascending: true });
+    // Leitura falhou ≠ "não há custos": avisa em vez de mostrar a lista vazia calada.
+    if (error) { showToast(L("Não foi possível carregar os custos fixos agora. Recarregue a página.", "Could not load fixed costs now. Reload the page.", "No se pudieron cargar los costos fijos ahora. Recargue la página."), "erro"); reportarFalhaEscrita("custos_fixos", "leitura", error.message); }
     setCustos(data || []);
     supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
@@ -128,12 +130,14 @@ export default function CustosFixos() {
   const salvar = async () => {
     // Antes voltava calado (o botão Salvar "não fazia nada").
     if (!novo.descricao || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
+    const dia = parseInt(novo.vencimento || "1", 10);
+    if (!Number.isInteger(dia) || dia < 1 || dia > 31) { showToast(L("O dia do vencimento vai de 1 a 31.", "The due day goes from 1 to 31.", "El día de vencimiento va de 1 a 31."), "erro"); return; }
     if (novo.fim && novo.inicio && novo.fim < novo.inicio) { showToast(L("O término não pode ser antes do início.", "The end cannot be before the start.", "El término no puede ser antes del inicio."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = user ? await obterEmpresaAtiva() : null;
     if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página.", "Session or company not found. Reload the page.", "Sesión o empresa no encontrada. Recargue la página."), "erro"); return; }
-    const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
+    const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: dia, categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
     // Vigência (DRE por competência): só manda a coluna se foi preenchida ou se ela já existe no banco.
     const temVigencia = custos.some((c) => "data_inicio" in c);
     if (novo.inicio || temVigencia) payload.data_inicio = novo.inicio || null;
@@ -166,7 +170,7 @@ export default function CustosFixos() {
 
   const excluir = async (id: string) => {
     // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
-    if (!(await confirmar({ oQue: nomeItem(custos.find((c) => c.id === id), { pt: "este custo fixo", en: "this fixed cost", es: "este costo fijo" }), efeito: EFEITO.planejamento, tabela: "custos_fixos", registroId: id }))) return;
+    if (!(await confirmar({ oQue: nomeItem(custos.find((c) => c.id === id), { pt: "este custo fixo", en: "this fixed cost", es: "este costo fijo" }), efeito: EFEITO.custoFixo, tabela: "custos_fixos", registroId: id }))) return;
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
@@ -184,7 +188,10 @@ export default function CustosFixos() {
   };
 
   const custosFiltrados = custos.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
-  const totalMensal = custos.reduce((acc, c) => acc + c.valor_mensal, 0);
+  // Total só dos custos VIGENTES hoje (mesma regra de vigência da DRE): encerrado ou que ainda vai começar não soma.
+  const hoje = hojeISO();
+  const vigenteHoje = (c: CustoFixo) => (!c.data_inicio || c.data_inicio <= hoje) && (!c.data_fim || c.data_fim >= hoje);
+  const totalMensal = custos.filter(vigenteHoje).reduce((acc, c) => acc + c.valor_mensal, 0);
   const totalAnual = totalMensal * 12;
 
   // ═══════════ INTELIGÊNCIA CFO (alicerce) ═══════════
@@ -448,7 +455,7 @@ export default function CustosFixos() {
                     <motion.tr key={c.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(248,113,113,0.02)" }}
                       style={{ borderBottom: i < custosFiltrados.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
-                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}{!vigenteHoje(c) && <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full" style={{ background: "rgba(107,114,128,0.15)", color: TEXTO_SEC }}>{c.data_fim && c.data_fim < hoje ? L(`encerrado em ${c.data_fim.split("-").reverse().join("/")}`, `ended ${c.data_fim}`, `terminó ${c.data_fim.split("-").reverse().join("/")}`) : L(`começa em ${String(c.data_inicio).split("-").reverse().join("/")}`, `starts ${c.data_inicio}`, `empieza ${String(c.data_inicio).split("-").reverse().join("/")}`)}</span>}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[c.categoria] || ct("#2ecc9b") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>Dia {c.dia_vencimento}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f87171") }}>{fBRL(c.valor_mensal)}</td>
