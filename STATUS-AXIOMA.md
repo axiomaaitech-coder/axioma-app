@@ -1374,7 +1374,9 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - PDFs 23–43 + Termos/Privacidade gerados (69 PDFs). Login/cadastro: `next` só caminho interno. MEI Advisor (bolhas navy/branco) e Evolução de Ganhos (todas as barras verde-menta escuro) no Claro.
 - A1 ✅ Dívidas no motor: "entrou no caixa agora" (empréstimo novo → Fluxo realizado + Contabilidade 3.05), aumento do "Já pago" = pagamento de hoje (com Motor Antiduplicidade), diminuir desfaz, apagar desfaz tudo. Origem "dividas" no motor/selo/Rastreabilidade; Fluxo agora trata aporte/empréstimo vindos de outro módulo como ENTRADA. Manual 15 atualizado.
 - A2 ✅ Conferência diária: components/AvisoConferencia.tsx (layout interno) roda 1x/dia (cache por empresa no navegador) e a cada "dados atualizados" no mês atual + anterior; ❌ = faixa vermelha no topo com mês, par e diferença em R$ + "Ver conferência"; leitura incompleta não acusa. Sem SQL.
-- PRÓXIMO: A3 Painel de risco.
+- TESTE A1 no Chrome (dívida "Empréstimo TESTE - capital de giro" R$ 1.000, pago R$ 100): Fluxo ✅ (+1.000 / −100, selo Origem: Dívidas), Rastreabilidade ✅, faixa da Conferência ✅. ACHADO: Contabilidade ignorava a origem "dividas" calada e o motor marcava "Chegou" → corrigido (lista de origens + motor só marca "Chegou" com lançamento gravado). Falta: Elias autorizar o UPDATE que volta os 2 rastros de teste para pendente.
+- Visual MEI: botão "Buscar na Receita e preencher" sólido verde-menta escuro (sem transparência quando desativado); Acesso Rápido com efeito padrão + caixa bege no Claro + "DAS & Obrigações" trilíngue.
+- PRÓXIMO: A3 Painel de risco; análise de lixeira/lápis no que foi criado.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 

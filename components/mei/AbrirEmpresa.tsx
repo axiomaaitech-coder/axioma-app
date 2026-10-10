@@ -85,7 +85,7 @@ export default function AbrirEmpresa({ lang, temaClaro, cartaoTema, onPreencher 
         <label className="text-[11px] flex-1 min-w-[180px]" style={{ color: SEC }}>{L('Já tenho CNPJ', 'I already have a CNPJ', 'Ya tengo CNPJ')}
           <input value={cnpj} onChange={(e) => setCnpj(e.target.value)} inputMode="numeric" placeholder="00.000.000/0000-00" className="block w-full mt-1 px-3 py-2 rounded-lg text-sm" style={CAMPO} />
         </label>
-        <button onClick={() => void buscar()} disabled={buscando || cnpj.replace(/\D/g, '').length !== 14} className="px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50" style={{ background: MENTA, color: '#ffffff' }}>
+        <button onClick={() => void buscar()} disabled={buscando || cnpj.replace(/\D/g, '').length !== 14} className="px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:cursor-not-allowed" style={{ background: MENTA, color: '#ffffff' }}>
           <Search size={12} />{buscando ? L('Buscando…', 'Searching…', 'Buscando…') : L('Buscar na Receita e preencher', 'Fetch and fill in', 'Buscar y llenar')}
         </button>
       </div>

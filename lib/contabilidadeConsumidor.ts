@@ -706,7 +706,7 @@ export async function processarEventoContabil(
   // quebrou, não só o Sentry) e carimba o evento em cada lançamento — com o índice
   // único em lancamento_contabil.evento_id, refazer o mesmo evento nunca duplica.
   const ctx: CtxContabil = { eventoId: opcoes?.eventoId ?? null, falhas: [] };
-  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao", "receitas", "custos_variaveis", "fluxo_caixa"];
+  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao", "receitas", "custos_variaveis", "fluxo_caixa", "dividas"];
   if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return {};
   const origemId = origem.id;
 

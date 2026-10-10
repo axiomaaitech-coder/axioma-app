@@ -731,16 +731,16 @@ export default function PainelMEI() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { label: lang === 'pt' ? 'Faturamento' : lang === 'en' ? 'Revenue' : 'Facturación', path: '/mei/faturamento' },
-              { label: 'DAS & Obrigações', path: '/mei/das' },
+              { label: lang === 'pt' ? 'DAS & Obrigações' : lang === 'en' ? 'DAS & Obligations' : 'DAS y Obligaciones', path: '/mei/das' },
               { label: lang === 'pt' ? 'Reforma Tributária' : lang === 'en' ? 'Tax Reform' : 'Reforma Tributaria', path: '/mei/reforma' },
               { label: lang === 'pt' ? 'Precificação' : lang === 'en' ? 'Pricing' : 'Precios', path: '/mei/precificacao' },
               { label: 'IA MEI Advisor', path: '/mei/ia-advisor' },
               { label: lang === 'pt' ? 'Imposto de Renda' : lang === 'en' ? 'Income Tax' : 'Impuesto Renta', path: '/mei/imposto-renda' },
             ].map((item, i) => (
               <a key={i} href={item.path}
-                className="flex items-center gap-2 p-3 rounded-xl"
-                style={{ background: `${ROYAL}10`, border: `1px solid ${ROYAL}30`, textDecoration: 'none' }}>
-                <TrendingUp size={14} style={{ color: ROYAL }} />
+                className="flex items-center gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa"
+                style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : `${ROYAL}10`, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : ROYAL + '30'}`, textDecoration: 'none' }}>
+                <TrendingUp size={14} style={{ color: temaClaro ? '#0f7a5a' : ROYAL }} />
                 <span className="text-xs font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
               </a>
             ))}

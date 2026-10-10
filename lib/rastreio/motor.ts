@@ -247,7 +247,13 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
   // natureza: na 2ª vez não acha mais nada sem estorno.
   if (!ehEstorno && (await jaLancado(evId))) return { status: "ok" };
   const res = await processarEventoContabil(r.payload.evento_tipo, r.empresa_id, origem, r.payload.evento_payload, { eventoId: evId });
-  return res.erro ? { status: "falhou", erro: res.erro } : { status: "ok" };
+  if (res.erro) return { status: "falhou", erro: res.erro };
+  // "Chegou" só com o lançamento gravado de verdade: origem que a Contabilidade não
+  // conhece era ignorada calada e virava "ok" (aconteceu com Dívidas em 2026-10-10).
+  if (r.tipo === "manual" && r.payload.natureza !== "transferencia" && !(await jaLancado(evId))) {
+    return { status: "falhou", erro: "a Contabilidade não gerou o lançamento (origem não reconhecida?)" };
+  }
+  return { status: "ok" };
 }
 
 async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
