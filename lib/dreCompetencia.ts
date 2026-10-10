@@ -147,3 +147,35 @@ export async function carregarBaseDRE(empresaId: string, inicio: string, fim: st
     .map((p) => ({ data: p.lancamento_contabil.data, valor: (p.tipo === "debito" ? 1 : -1) * Number(p.valor) }));
   return { receitas, devolucoes, custos, custosFixos, jurosPagos, falhou: erros.length > 0, premissas };
 }
+
+// ---------------------------------------------------------------- PDV no Fluxo de Caixa
+// Vendas do PDV viram linhas SÓ DE LEITURA no Fluxo (nada é gravado em fluxo_caixa —
+// a venda é a fonte). Dinheiro/débito/Pix/outro = realizado no dia; crédito = previsto
+// D+30 (a maquininha repassa depois — premissa mostrada na tela). Cancelada não entra.
+export type LinhaVendaFluxo = LinhaVenda & { forma_pagamento?: string | null };
+export type LancamentoPdvFluxo = { id: string; descricao: string; tipo: "entrada"; valor: number; data: string; status: "realizado" | "previsto"; origem_tabela: "venda"; categoria: string };
+export function lancamentosPdvFluxo(vendas: LinhaVendaFluxo[], diasCredito = 30): LancamentoPdvFluxo[] {
+  const grupos = new Map<string, LancamentoPdvFluxo>();
+  for (const v of vendas) {
+    if (v.cancelada_em || v.status !== "finalizada") continue;
+    const dia = diaDoTimestamp(v.finalizada_em || v.criado_em);
+    if (!dia) continue;
+    const credito = v.forma_pagamento === "credito";
+    const data = credito ? new Date(new Date(`${dia}T12:00:00Z`).getTime() + diasCredito * 86400000).toISOString().slice(0, 10) : dia;
+    const chave = `${credito ? "c" : "r"}:${data}`;
+    const atual = grupos.get(chave) ?? {
+      id: `pdv-${chave}`, tipo: "entrada", valor: 0, data, status: credito ? "previsto" : "realizado", origem_tabela: "venda", categoria: "receita",
+      descricao: credito ? `Vendas PDV no crédito de ${dia.slice(8, 10)}/${dia.slice(5, 7)} (previsão de repasse)` : `Vendas PDV ${dia.slice(8, 10)}/${dia.slice(5, 7)}`,
+    };
+    atual.valor = r2(atual.valor + (Number(v.valor_total) || 0));
+    grupos.set(chave, atual);
+  }
+  return [...grupos.values()].sort((a, b) => b.data.localeCompare(a.data));
+}
+
+export async function lerVendasPdv(empresaId: string, inicio: string, fim: string): Promise<{ data: LinhaVendaFluxo[]; erro?: string }> {
+  const { data, error } = await lerTodas(() => supabase.from("venda").select("id, valor_total, status, forma_pagamento, finalizada_em, criado_em, cancelada_em")
+    .eq("empresa_id", empresaId).gte("criado_em", `${inicio}T00:00:00-03:00`).lte("criado_em", `${fim}T23:59:59-03:00`).order("id"));
+  if (error) { Sentry.captureException(new Error(`[PDV no Fluxo] leitura: ${error.message}`)); return { data: [], erro: error.message }; }
+  return { data: data as LinhaVendaFluxo[] };
+}

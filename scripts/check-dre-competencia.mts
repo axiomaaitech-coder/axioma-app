@@ -58,4 +58,12 @@ assert.deepEqual(anexoSimplesDaAtividade('industria'), { anexo: 'II', exigeValid
 assert.equal(anexoSimplesDaAtividade('servico').exigeValidacao, true)
 assert.equal(anexoSimplesDaAtividade(null).exigeValidacao, true)
 assert.equal(calcularAliquotaSimples(100000, 'II'), 4.5) // 1ª faixa do Anexo II
+// PDV no Fluxo: realizado no dia, crédito previsto D+30, cancelada fora, agrupado por dia
+const fx = d.lancamentosPdvFluxo([
+  { id: 'a', valor_total: 100, status: 'finalizada', forma_pagamento: 'pix', finalizada_em: '2026-10-05T15:00:00Z' },
+  { id: 'b', valor_total: 50, status: 'finalizada', forma_pagamento: 'dinheiro', finalizada_em: '2026-10-05T18:00:00Z' },
+  { id: 'c', valor_total: 300, status: 'finalizada', forma_pagamento: 'credito', finalizada_em: '2026-10-05T19:00:00Z' },
+  { id: 'e', valor_total: 999, status: 'cancelada', forma_pagamento: 'pix', finalizada_em: '2026-10-05T19:00:00Z', cancelada_em: '2026-10-05T20:00:00Z' },
+])
+assert.deepEqual(fx.map((l) => [l.status, l.data, l.valor]), [['previsto', '2026-11-04', 300], ['realizado', '2026-10-05', 150]])
 console.log('check-dre-competencia OK')

@@ -17,6 +17,8 @@ export default function SeloOrigem({ origemTabela, temaClaro }: { origemTabela: 
     receitas: { rota: '/receitas', nome: L('Receitas', 'Revenue', 'Ingresos') },
     custos_variaveis: { rota: '/custos-variaveis', nome: L('Custos Variáveis', 'Variable Costs', 'Costos Variables') },
     fluxo_caixa: { rota: '/fluxo-caixa', nome: L('Fluxo de Caixa', 'Cash Flow', 'Flujo de Caja') },
+    venda: { rota: '/pdv', nome: L('PDV', 'POS', 'PDV') },
+    mei_obrigacoes: { rota: '/mei/das', nome: L('MEI — DAS', 'MEI — DAS', 'MEI — DAS') },
   }
   const o = ORIGENS[origemTabela] ?? ORIGENS.contas_receber
   const nome = o.nome

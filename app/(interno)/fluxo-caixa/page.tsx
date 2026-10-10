@@ -12,6 +12,7 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { lerTodas } from "../../../lib/lerTodas";
+import { lerVendasPdv, lancamentosPdvFluxo } from "../../../lib/dreCompetencia";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -165,7 +166,7 @@ export default function FluxoCaixa() {
     const empresaId = await obterEmpresaAtiva();
     if (!empresaId) { setCarregando(false); return; }
 
-    const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }] = await Promise.all([
+    const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }, pdv] = await Promise.all([
       // lerTodas: o Supabase corta em 1000 linhas por pedido — empresa grande perdia lançamento
       lerTodas(() => supabase.from("fluxo_caixa").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
@@ -179,9 +180,12 @@ export default function FluxoCaixa() {
       lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
       supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
       supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("empresa_id", empresaId),
+      // Vendas do PDV: linhas só de leitura (a venda é a fonte; nada é gravado em fluxo_caixa).
+      lerVendasPdv(empresaId, inicioJanelaHistorica(periodo.fim), fimJanelaFutura(periodo.fim)),
     ]);
 
-    setLancamentos(fc || []);
+    setLancamentos([...(fc || []), ...lancamentosPdvFluxo(pdv.data)]);
+    if (pdv.erro) showToast(L("Vendas do PDV não carregaram — o caixa pode estar incompleto.", "PDV sales did not load — cash may be incomplete.", "Las ventas del PDV no cargaron — la caja puede estar incompleta."), "erro");
     setContasReceberRows(cr || []);
     setContasPagarRows(cp || []);
     setCustosFixosRows(cf || []);

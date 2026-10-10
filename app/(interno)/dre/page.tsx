@@ -31,7 +31,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
 import { calcularImpostoRegime, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
-import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
+import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, lerVendasPdv, lancamentosPdvFluxo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
@@ -178,7 +178,7 @@ export default function DREPage() {
 
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
-    const [base, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
+    const [base, { data: dv }, { data: fc }, { data: cr }, { data: emp }, pdvCaixa] = await Promise.all([
       // Base por COMPETÊNCIA: receitas + contas a receber + PDV, custos + contas a pagar, custo fixo por vigência, juros pagos.
       empId ? carregarBaseDRE(empId, inicioHist, periodo.fim) : Promise.resolve(null),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
@@ -188,6 +188,8 @@ export default function DREPage() {
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
       empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      // Caixa do PDV na Ponte Lucro × Caixa (mesma leitura do Fluxo de Caixa).
+      empId ? lerVendasPdv(empId, periodo.inicio, periodo.fim) : Promise.resolve({ data: [] }),
     ]);
 
     setReceitasRows((base?.receitas || []).map((r) => ({ valor: r.valor, data: r.data, categoria: r.categoria || "" })));
@@ -198,7 +200,7 @@ export default function DREPage() {
     setPremissasDRE(base?.premissas || []);
     if (base?.falhou) showToast(lang === "en" ? "Some data did not load — the P&L may be incomplete." : lang === "es" ? "Algunos datos no cargaron — el estado de resultados puede estar incompleto." : "Alguns dados não carregaram — a DRE pode estar incompleta.", "erro");
     setDividasRows(dv || []);
-    setFluxoCaixaRows(fc || []);
+    setFluxoCaixaRows([...(fc || []), ...lancamentosPdvFluxo(pdvCaixa.data).filter((l) => l.data >= periodo.inicio && l.data <= periodo.fim)]);
     setContasReceberRows(cr || []);
     setRegimeTributario(emp?.regime_tributario || "");
     setAtividadeFiscal((emp as { atividade_fiscal?: string | null } | null)?.atividade_fiscal ?? null);
