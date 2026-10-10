@@ -142,19 +142,23 @@ export default function CustosVariaveis() {
 
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
-    const [{ data: cv }, { data: cf }, { data: rec }] = await Promise.all([
+    const [{ data: cv, error: eCv }, { data: cf }, { data: rec }] = await Promise.all([
       lerTodas(() => supabase.from("custos_variaveis").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }).order("id")),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
-      supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId),
+      supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empresaId),
       // Leitura só (SELECT) de Receitas — necessária pra Margem de Contribuição. Nunca escreve nessa tabela.
       // Limitada à mesma janela histórica — não traz o histórico inteiro da empresa de uma vez.
       lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("id")),
     ]);
 
+    // Leitura falhou ≠ "não há custos": avisa em vez de mostrar a lista vazia calada.
+    if (eCv) { showToast(L("Não foi possível carregar os custos variáveis agora. Recarregue a página.", "Could not load variable costs now. Reload the page.", "No se pudieron cargar los costos variables ahora. Recargue la página."), "erro"); reportarFalhaEscrita("custos_variaveis", "leitura", eCv.message); }
     setCustos(cv || []);
-    setCustoFixoTotal((cf || []).reduce((s, c: any) => s + Number(c.valor_mensal || 0), 0));
+    // Ponto de equilíbrio: só custos fixos vigentes hoje (encerrado não pesa mais).
+    const hojeStr = hojeISO();
+    setCustoFixoTotal((cf || []).filter((c: any) => (!c.data_inicio || c.data_inicio <= hojeStr) && (!c.data_fim || c.data_fim >= hojeStr)).reduce((s, c: any) => s + Number(c.valor_mensal || 0), 0));
     setReceitas((rec || []).map((r: any) => ({ valor: Number(r.valor || 0), data: r.data })));
     supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
@@ -244,9 +248,12 @@ export default function CustosVariaveis() {
     setCustos(custos.filter(c => c.id !== id));
   };
 
-  const custosFiltrados = custos.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
-  const totalMes = custos.reduce((acc, c) => acc + c.valor, 0);
-  const maiorCusto = custos.length > 0 ? Math.max(...custos.map(c => c.valor)) : 0;
+  // Cartões e lista: só o período escolhido. A carga traz 24 meses só para gráficos e comparativos —
+  // antes o "Total do Mês" somava esses 24 meses inteiros.
+  const custosPeriodo = custos.filter(c => c.data >= periodo.inicio && c.data <= periodo.fim);
+  const custosFiltrados = custosPeriodo.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
+  const totalMes = custosPeriodo.reduce((acc, c) => acc + c.valor, 0);
+  const maiorCusto = custosPeriodo.length > 0 ? Math.max(...custosPeriodo.map(c => c.valor)) : 0;
   const temDados = custos.length > 0;
 
   // ═══════════════════════ INTELIGÊNCIA CFO (alicerce) ═══════════════════════
@@ -309,12 +316,12 @@ export default function CustosVariaveis() {
         linhas: custosFiltrados.map((c) => ({
           descricao: c.descricao,
           categoria: c.categoria,
-          data: c.data ? new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR") : "-",
+          data: c.data ? new Date(c.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "-",
           valor: fBRL2(c.valor),
         })),
         resumo: [
           { label: "Total no Período", valor: `R$ ${fBRL2(comparativoCV.atual)}` },
-          { label: "Lançamentos", valor: `${custos.length}` },
+          { label: "Lançamentos", valor: `${custosPeriodo.length}` },
           { label: "Maior Custo", valor: `R$ ${fBRL2(maiorCusto)}` },
           { label: "Margem de Contribuição", valor: fPct(mc.pct) },
           { label: "Ponto de Equilíbrio", valor: pe !== null ? `R$ ${fBRL2(pe)}` : cx.semBreakeven },
@@ -339,7 +346,7 @@ export default function CustosVariaveis() {
   const textoDetalhado = [
     `🚀 AXIOMA AI.TECH — ${t.custosVariaveis.titulo} (detalhado)`,
     ...custosFiltrados.map((c) =>
-      `${c.data ? new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${c.descricao} | ${c.categoria || "-"} | R$ ${fBRL2(c.valor)}`
+      `${c.data ? new Date(c.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "-"} | ${c.descricao} | ${c.categoria || "-"} | R$ ${fBRL2(c.valor)}`
     ),
     `_axiomaai.com.br_`,
   ].join("\n");
@@ -446,7 +453,7 @@ export default function CustosVariaveis() {
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
             { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#2ecc9b"), ir: "/dre" },
-            { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#2ecc9b"), ir: "#lista-custos-variaveis" },
+            { label: t.custosVariaveis.lancamentos, value: `${custosPeriodo.length}`, cor: ct("#2ecc9b"), ir: "#lista-custos-variaveis" },
             { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#2ecc9b"), ir: "#lista-custos-variaveis" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
@@ -620,7 +627,7 @@ export default function CustosVariaveis() {
                       style={{ borderBottom: i < custosFiltrados.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[c.categoria] || ct("#2ecc9b") }}>{c.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(c.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.verde : "#2ecc9b") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
