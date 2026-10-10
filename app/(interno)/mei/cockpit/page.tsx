@@ -22,8 +22,7 @@ import {
   competenciasDASDoAno, calcularDividaDASAcumulada, faseRiscoDAS, diasParaDAS,
   fracaoDASSobrePreco, fracaoIRPFExposicao, custoProprioRateado, detectarTrabalhoDeGraca,
   type StatusObrigacao, type ContaPagarMEI, type FaseRiscoDAS, type DetectorTrabalhoGratisResultado,
-  lerBaseMEI,
-} from '../../../../lib/meiHelpers'
+  lerBaseMEI, despesasAnoMEI } from '../../../../lib/meiHelpers'
 import { montarAvisosCockpitMEI, type AvisoCockpit, type ChaveAvisoCockpit } from '../../../../lib/avisosCockpitHelpers'
 
 const supabase = createBrowserClient(
@@ -230,6 +229,7 @@ export default function CockpitMEI() {
   const cofre = montarCofre({
     sobraMes: fluxo.sobra,
     receitaMensalMedia: mediaMensal6m,
+    despesaMensalMedia: despesasAnoMEI(custosVariaveis, custosFixos, anoAtual, new Date().getMonth() + 1) / (new Date().getMonth() + 1),
     faturamentoAnual,
     categoriaMei: meiDados?.categoria_mei || 'Serviços',
     dasValor: dasMensalAtual,
@@ -295,7 +295,7 @@ export default function CockpitMEI() {
       .reduce((s, r) => s + (r.valor || 0), 0) / 12
     const receitaReferenciaDAS = receitaMensalMedia12m > 0 ? receitaMensalMedia12m : teto / 12
     const fracaoDASAtual = fracaoDASSobrePreco(dasMensalAtual, receitaReferenciaDAS)
-    const fracaoIRPFAtual = fracaoIRPFExposicao(meiDados?.categoria_mei)
+    const fracaoIRPFAtual = fracaoIRPFExposicao(meiDados?.categoria_mei, receitaMensalMedia12m, despesasAnoMEI(custosVariaveis, custosFixos, anoAtual, new Date().getMonth() + 1) / (new Date().getMonth() + 1))
     detectorGraca = detectarTrabalhoDeGraca({
       precoCobradoHoje: parseFloat(dadosPreco.precoCobradoHoje) || 0,
       custoBase: custoBaseAtual,

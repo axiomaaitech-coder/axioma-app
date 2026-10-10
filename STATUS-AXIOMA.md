@@ -1389,7 +1389,9 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - BLOCO A CONCLUÍDO (A1–A6).
 - Planos ✅: recursos reescritos só com o que existe (sem ClowdBot, API dedicada, "23 módulos", VIP 24/7; Open Finance "em breve" na página inicial) em /planos, página inicial (3 idiomas) e descrição do checkout Stripe. Preços e divisão por plano intocados (decisão do Elias no fim).
 - Stripe na Transferência ✅: ao aceitar, a renovação do antigo dono é cancelada no Stripe (cancel_at_period_end) — período pago segue valendo; tela de aceite mostra "paga até DD/MM"; webhook do checkout agora liga a assinatura a TODAS as empresas de que o assinante é dono (antes a empresa recebida ficava presa à assinatura do antigo dono). Antigo dono com outras empresas na mesma assinatura: não cancela, vai pro Sentry (revisar à mão). Manual 38.
-- PRÓXIMO: manuais 04–43 pt/en/es botão a botão + PDFs.
+- Manuais 06, 07, 08, 09 reescritos pt/en/es (00–05 já estavam).
+- 🔴→✅ IRPF do MEI corrigido (achado ao escrever o manual 09; fontes OFICIAIS conferidas em 10/10/2026 — gov.br/receitafederal tabelas/2026, "Quem deve declarar", P&R IRPF 2026 pergunta 184): (1) tabela era de 2024 (isenção 2.259,20) → tabela desde mai/2025 + desconto simplificado R$ 607,20 + redutor Lei 15.270 (até R$ 5 mil/mês não paga); (2) tributável ignorava despesas → lucro − parte isenta (rendaTributavelMEI) em IR, Faturamento, Painel, Cockpit e IA Advisor (despesaMensalMedia obrigatório no cofre); (3) "Declaração OBRIGATÓRIA" para todo MEI com faturamento e limite 33.888 → só renda tributável > 35.584 ou isenta > 200 mil; (4) IR no preço (Precificação/Cockpit) usava 27,5% fixo → alíquota real (conservador só sem receita). IRPF 2026 entrou nas Regras Oficiais da IA. Testes em scripts/check-mei.mts.
+- PRÓXIMO: manuais 10–43 + telas novas (Painel de Risco, Conferência, Rastreabilidade) + PDFs.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 

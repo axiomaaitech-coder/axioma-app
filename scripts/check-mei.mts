@@ -50,3 +50,27 @@ console.log('check-mei OK')
   if (f(rs, 2026, 'Comércio').comercio !== 130) throw new Error('dasn comercio')
   console.log('ok dasn por tipo')
 }
+
+// IRPF 2026 (tabela de maio/2025 + desconto simplificado + redutor da Lei 15.270/2025)
+const { calcularIRPF } = await import('../lib/meiHelpers')
+assert.equal(calcularIRPF(5000, 2026).imposto, 0) // até R$ 5 mil não paga
+assert.equal(calcularIRPF(3000, 2026).imposto, 0)
+// exemplo da Receita: R$ 6.000 → tabela 574,29 − redutor 179,75 = 394,54
+assert.equal(calcularIRPF(6000, 2026).imposto, 394.54)
+assert.equal(calcularIRPF(8000, 2026).imposto, Math.round(((8000 - 607.2) * 0.275 - 908.73) * 100) / 100) // sem redutor
+assert.equal(calcularIRPF(5000, 2025).imposto, 312.89) // antes da Lei 15.270
+console.log('check-mei IRPF 2026: ok')
+
+// Pergunta 184 do P&R IRPF 2026 (Receita): comércio, receita 80 mil, despesas 20 mil → lucro 60 mil, isento 6.400, tributável 53.600
+const { rendaTributavelMEI, despesasAnoMEI } = await import('../lib/meiHelpers')
+assert.deepEqual(rendaTributavelMEI(80000, 20000, 'Comércio'), { lucro: 60000, isento: 6400, tributavel: 53600 })
+// despesa maior que o lucro presumido: isento limitado ao lucro, nada tributável
+assert.deepEqual(rendaTributavelMEI(50000, 40000, 'Serviços'), { lucro: 10000, isento: 10000, tributavel: 0 })
+assert.equal(despesasAnoMEI([{ valor: 100, data: '2026-03-10' }, { valor: 50, data: '2025-12-31' }], [{ valor_mensal: 10 }], 2026, 10), 200)
+console.log('check-mei renda tributável MEI: ok')
+
+// Fração de IR no preço: renda baixa em 2026 não paga → 0; sem receita → aproximação conservadora
+const { fracaoIRPFExposicao } = await import('../lib/meiHelpers')
+assert.equal(fracaoIRPFExposicao('Serviços', 6000, 1000), 0) // tributável 3.080/mês < R$ 5 mil
+assert.equal(fracaoIRPFExposicao('Serviços'), (1 - 0.32) * 0.275)
+console.log('check-mei fração IR no preço: ok')

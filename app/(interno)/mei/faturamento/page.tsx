@@ -26,7 +26,7 @@ import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import {
   faturamentoAnoMEI, limiteRestante, percentualLimite,
-  dasMensalPorCategoria, percentualIsentoPorCategoria, calcularIRPF, percentualReservaImposto, valorASepararPorReceita,
+  dasMensalPorCategoria, percentualIsentoPorCategoria, calcularIRPF, rendaTributavelMEI, despesasAnoMEI, percentualReservaImposto, valorASepararPorReceita,
   tetoProporcionalMEI, percentualDeTeto, semaforoTetoDetalhado, projecaoTetoDetalhada, receitasBrutasPorMes,
   lerBaseMEI,
 } from '../../../../lib/meiHelpers'
@@ -77,6 +77,7 @@ export default function FaturamentoMEI() {
   // corrigido pra usar o hex real de cada tema.
   const rgbAlerta = temaClaro ? { vermelho: '255,90,107', laranja: '234,88,12' } : { vermelho: '248,113,113', laranja: '251,146,60' }
   const [receitas, setReceitas] = useState<Receita[]>([])
+  const [despesasBase, setDespesasBase] = useState<{ cv: { valor: number; data: string }[]; cf: { valor_mensal: number }[] }>({ cv: [], cf: [] })
   const [meiDados, setMeiDados] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
@@ -161,9 +162,10 @@ export default function FaturamentoMEI() {
     const empresaId = await obterEmpresaAtiva()
     if (!empresaId) { setLoading(false); return }
     setEmpresaIdLimite(empresaId)
-    const base = await lerBaseMEI(empresaId, { receitas: '*' })
+    const base = await lerBaseMEI(empresaId, { receitas: '*', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal' })
     if (base.falhou) showToast(mensagemFalhaCarregamento(lang))
     setReceitas(base.receitas as Receita[])
+    setDespesasBase({ cv: base.custosVariaveis as { valor: number; data: string }[], cf: base.custosFixos as { valor_mensal: number }[] })
     setMeiDados(base.mei)
     setLoading(false)
   }
@@ -313,7 +315,9 @@ export default function FaturamentoMEI() {
   // ---- Reserva automática de imposto (Fase 2): quanto separar por lançamento ----
   const categoriaMei = meiDados?.categoria_mei || 'Serviços'
   const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(categoriaMei)
-  const irpfMensal = calcularIRPF(mediaMensal * (1 - percentualIsentoPorCategoria(categoriaMei))).imposto
+  // Tributável = lucro − parte isenta (P&R IRPF 2026, pergunta 184) — antes ignorava as despesas.
+  const despesaMensalMedia = despesasAnoMEI(despesasBase.cv, despesasBase.cf, anoAtual, new Date().getMonth() + 1) / (new Date().getMonth() + 1)
+  const irpfMensal = calcularIRPF(rendaTributavelMEI(mediaMensal, despesaMensalMedia, categoriaMei).tributavel).imposto
   const percentualReserva = percentualReservaImposto(dasMensal, mediaMensal, irpfMensal)
   const reservaAcumulada = valorASepararPorReceita(faturamentoAnual, percentualReserva)
 

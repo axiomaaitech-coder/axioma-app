@@ -11,7 +11,7 @@ import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela }
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
-import { calcularIRPF, faturamentoAnoMEI, lerBaseMEI, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
+import { calcularIRPF, faturamentoAnoMEI, lerBaseMEI, percentualIsentoPorCategoria, FAIXAS_IRPF, DESCONTO_SIMPLIFICADO_MENSAL, rendaTributavelMEI as calcRendaTributavelMEI, despesasAnoMEI } from '../../../../lib/meiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
@@ -57,6 +57,8 @@ export default function ImpostoRendaMEI() {
   const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
+  const [custosVar, setCustosVar] = useState<{ valor: number; data: string }[]>([])
+  const [custosFix, setCustosFix] = useState<{ valor_mensal: number }[]>([])
   const [outraRenda, setOutraRenda] = useState('')
   const [exportando, setExportando] = useState(false)
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
@@ -94,7 +96,7 @@ export default function ImpostoRendaMEI() {
     isencao: { pt: 'Parcela Isenta MEI', en: 'MEI Exempt Portion', es: 'Porción Exenta MEI' },
     rendaTributavel: { pt: 'Renda Tributável', en: 'Taxable Income', es: 'Renta Tributable' },
     outraRenda: { pt: 'Outra renda mensal (salário, aluguel, etc.)', en: 'Other monthly income (salary, rent, etc.)', es: 'Otros ingresos mensuales (salario, alquiler, etc.)' },
-    tabela: { pt: 'Tabela Progressiva IRPF 2025', en: 'Progressive IRPF Table 2025', es: 'Tabla Progresiva IRPF 2025' },
+    tabela: { pt: 'Tabela Progressiva IRPF 2026 (mensal)', en: 'Progressive IRPF Table 2026 (monthly)', es: 'Tabla Progresiva IRPF 2026 (mensual)' },
     checklist: { pt: 'Checklist Declaração IRPF MEI', en: 'MEI IRPF Declaration Checklist', es: 'Checklist Declaración IRPF MEI' },
     abrirReceita: { pt: 'Acessar Receita Federal', en: 'Access Federal Revenue', es: 'Acceder a Receita Federal' },
     obrigatorio: { pt: 'Declaração OBRIGATÓRIA', en: 'MANDATORY Declaration', es: 'Declaración OBLIGATORIA' },
@@ -167,10 +169,11 @@ export default function ImpostoRendaMEI() {
     if (!user) return
     const empresaId = await obterEmpresaAtiva()
     if (empresaId) {
-      const base = await lerBaseMEI(empresaId, { receitas: '*' })
+      const base = await lerBaseMEI(empresaId, { receitas: '*', custosVariaveis: 'valor, data', custosFixos: 'valor_mensal' })
       if (base.falhou) showToast(mensagemFalhaCarregamento(lang), 'erro')
       setMeiDados(base.mei)
       setReceitas(base.receitas)
+      setCustosVar(base.custosVariaveis as { valor: number; data: string }[]); setCustosFix(base.custosFixos as { valor_mensal: number }[])
     }
 
     try {
@@ -270,9 +273,9 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
   }
 
   function gerarAnaliseFallbackIRPF(): string {
-    if (lang === 'en') return `${obrigado ? 'You are required to file' : 'You are not required to file'} — your taxable income is ${fmt(rendaTotalAnual)}/year (exemption limit: R$ 33,888/year). Exempt MEI portion: ${fmt(isencaoMEI)}, taxable: ${fmt(rendaTributavelMEI)}. Estimated IRPF: ${fmt(impostoAnual)}/year at an effective rate of ${aliquotaEfetiva.toFixed(1)}%. Keep your income report and expense receipts organized to declare correctly.`
-    if (lang === 'es') return `${obrigado ? 'Usted está obligado a declarar' : 'Usted no está obligado a declarar'} — su renta tributable es ${fmt(rendaTotalAnual)}/año (límite de exención: R$ 33.888/año). Porción exenta MEI: ${fmt(isencaoMEI)}, tributable: ${fmt(rendaTributavelMEI)}. IRPF estimado: ${fmt(impostoAnual)}/año a una alícuota efectiva de ${aliquotaEfetiva.toFixed(1)}%. Mantenga organizados su informe de rendimientos y comprobantes de gastos para declarar correctamente.`
-    return `${obrigado ? 'Você é obrigado a declarar' : 'Você não é obrigado a declarar'} — sua renda tributável é ${fmt(rendaTotalAnual)}/ano (limite de isenção: R$ 33.888/ano). Parcela isenta MEI: ${fmt(isencaoMEI)}, tributável: ${fmt(rendaTributavelMEI)}. IRPF estimado: ${fmt(impostoAnual)}/ano numa alíquota efetiva de ${aliquotaEfetiva.toFixed(1)}%. Mantenha seu informe de rendimentos e comprovantes de despesa organizados pra declarar certo.`
+    if (lang === 'en') return `${obrigado ? 'You are required to file' : 'You are not required to file'} — your taxable income is ${fmt(rendaTotalAnual)}/year (filing threshold: R$ 35,584/year of taxable income). Exempt MEI portion: ${fmt(isencaoMEI)}, taxable: ${fmt(rendaTributavelMEI)}. Estimated IRPF: ${fmt(impostoAnual)}/year at an effective rate of ${aliquotaEfetiva.toFixed(1)}%. Keep your income report and expense receipts organized to declare correctly.`
+    if (lang === 'es') return `${obrigado ? 'Usted está obligado a declarar' : 'Usted no está obligado a declarar'} — su renta tributable es ${fmt(rendaTotalAnual)}/año (límite para declarar: R$ 35.584/año de renta tributable). Porción exenta MEI: ${fmt(isencaoMEI)}, tributable: ${fmt(rendaTributavelMEI)}. IRPF estimado: ${fmt(impostoAnual)}/año a una alícuota efectiva de ${aliquotaEfetiva.toFixed(1)}%. Mantenga organizados su informe de rendimientos y comprobantes de gastos para declarar correctamente.`
+    return `${obrigado ? 'Você é obrigado a declarar' : 'Você não é obrigado a declarar'} — sua renda tributável é ${fmt(rendaTotalAnual)}/ano (limite para declarar: R$ 35.584/ano de renda tributável). Parcela isenta MEI: ${fmt(isencaoMEI)}, tributável: ${fmt(rendaTributavelMEI)}. IRPF estimado: ${fmt(impostoAnual)}/ano numa alíquota efetiva de ${aliquotaEfetiva.toFixed(1)}%. Mantenha seu informe de rendimentos e comprovantes de despesa organizados pra declarar certo.`
   }
 
   async function analisarComIA() {
@@ -291,15 +294,19 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
 
   const percentualIsento = percentualIsentoPorCategoria(meiDados?.categoria_mei)
 
-  const isencaoMEI = faturamentoAnual * percentualIsento
-  const rendaTributavelMEI = faturamentoAnual - isencaoMEI
+  // Pergunta 184 do P&R IRPF 2026 (Receita): tributável = (receita − despesas) − parte isenta. Antes ignorava as despesas.
+  const despesasAno = despesasAnoMEI(custosVar, custosFix, anoAtual, new Date().getMonth() + 1)
+  const { isento: isencaoMEI, tributavel: rendaTributavelMEI } = calcRendaTributavelMEI(faturamentoAnual, despesasAno, meiDados?.categoria_mei)
   const outraRendaAnual = parseFloat(outraRenda || '0') * 12
   const rendaTotalAnual = rendaTributavelMEI + outraRendaAnual
   const rendaMensalMedia = rendaTotalAnual / 12
 
   const { imposto, aliquotaEfetiva } = calcularIRPF(rendaMensalMedia)
   const impostoAnual = imposto * 12
-  const obrigado = rendaTotalAnual > 33888 || faturamentoAnual > 0
+  // Receita (Quem deve declarar, exercício 2026): ser MEI não obriga; obriga renda tributável > R$ 35.584 ou isenta > R$ 200 mil.
+  // ponytail: bens > R$ 800 mil, bolsa e ganho de capital também obrigam — o Axioma não tem esses dados; o aviso da tela lembra.
+  const LIMITE_TRIBUTAVEL_DIRPF = 35584, LIMITE_ISENTO_DIRPF = 200000
+  const obrigado = rendaTotalAnual > LIMITE_TRIBUTAVEL_DIRPF || isencaoMEI > LIMITE_ISENTO_DIRPF
 
   const marquee = [
     'AXIOMA',
@@ -429,12 +436,12 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </p>
             <p className="text-xs mt-0.5" style={{ color: TEXTO_SEC }}>
               {obrigado
-                ? (lang === 'pt' ? `Sua renda tributável (${fmt(rendaTotalAnual)}/ano) supera o limite de isenção de R$ 33.888/ano.`
-                  : lang === 'en' ? `Your taxable income (${fmt(rendaTotalAnual)}/year) exceeds the exemption limit of R$ 33,888/year.`
-                  : `Su renta tributable (${fmt(rendaTotalAnual)}/año) supera el límite de exención de R$ 33.888/año.`)
-                : (lang === 'pt' ? '✅ Você está dentro do limite de isenção.'
-                  : lang === 'en' ? '✅ You are within the exemption limit.'
-                  : '✅ Está dentro del límite de exención.')}
+                ? (lang === 'pt' ? `${rendaTotalAnual > LIMITE_TRIBUTAVEL_DIRPF ? `Sua renda tributável (${fmt(rendaTotalAnual)}/ano) passa de R$ 35.584/ano` : `Seus rendimentos isentos passam de R$ 200 mil/ano`} — regra da Receita para a declaração de 2026.`
+                  : lang === 'en' ? `${rendaTotalAnual > LIMITE_TRIBUTAVEL_DIRPF ? `Your taxable income (${fmt(rendaTotalAnual)}/year) exceeds R$ 35,584/year` : `Your exempt income exceeds R$ 200k/year`} — Receita rule for the 2026 return.`
+                  : `${rendaTotalAnual > LIMITE_TRIBUTAVEL_DIRPF ? `Su renta tributable (${fmt(rendaTotalAnual)}/año) supera R$ 35.584/año` : `Sus rendimientos exentos superan R$ 200 mil/año`} — regla de la Receita para la declaración de 2026.`)
+                : (lang === 'pt' ? '✅ Pela renda, você não é obrigado. Ser MEI sozinho não obriga — mas bens acima de R$ 800 mil, venda de bens com lucro ou bolsa acima de R$ 40 mil também obrigam.'
+                  : lang === 'en' ? '✅ Based on income, you are not required. Being an MEI alone does not require filing — but assets above R$ 800k, selling assets at a gain or stock trades above R$ 40k also require it.'
+                  : '✅ Por la renta, no está obligado. Ser MEI por sí solo no obliga — pero bienes por encima de R$ 800 mil, venta de bienes con ganancia o bolsa por encima de R$ 40 mil también obligan.')}
             </p>
           </div>
         </div>
@@ -468,6 +475,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           <div className="space-y-2">
             {[
               { label: lang === 'pt' ? `Receita Bruta MEI ${anoAtual}` : lang === 'en' ? `MEI Gross Revenue ${anoAtual}` : `Ingresos Brutos MEI ${anoAtual}`, value: fmt(faturamentoAnual), cor: OURO },
+              { label: lang === 'pt' ? 'Despesas do negócio no ano' : lang === 'en' ? 'Business expenses this year' : 'Gastos del negocio en el año', value: `- ${fmt(despesasAno)}`, cor: TEXTO_SEC },
               { label: lang === 'pt' ? `Isenção MEI (${(percentualIsento * 100).toFixed(0)}% — ${meiDados?.categoria_mei || 'Serviços'})` : lang === 'en' ? `MEI Exemption (${(percentualIsento * 100).toFixed(0)}%)` : `Exención MEI (${(percentualIsento * 100).toFixed(0)}%)`, value: `- ${fmt(isencaoMEI)}`, cor: VERDE },
               { label: lang === 'pt' ? 'Renda tributável MEI' : lang === 'en' ? 'MEI taxable income' : 'Renta tributable MEI', value: fmt(rendaTributavelMEI), cor: AMBAR },
               { label: lang === 'pt' ? 'Outra renda (anual)' : lang === 'en' ? 'Other income (annual)' : 'Otros ingresos (anual)', value: fmt(outraRendaAnual), cor: AZUL },
@@ -515,32 +523,33 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                   <p key={i} className="text-xs font-bold uppercase tracking-wider px-2" style={{ color: TEXTO_SEC }}>{h}</p>
                 ))}
               </div>
-              {[
-                { faixa: lang === 'pt' ? 'Até R$ 2.259,20' : lang === 'en' ? 'Up to R$ 2,259.20' : 'Hasta R$ 2.259,20', aliquota: 'Isento', deducao: '—', cor: VERDE },
-                { faixa: 'R$ 2.259,21 – R$ 2.826,65', aliquota: '7,5%', deducao: 'R$ 169,44', cor: AZUL },
-                { faixa: 'R$ 2.826,66 – R$ 3.751,05', aliquota: '15%', deducao: 'R$ 381,44', cor: AMBAR },
-                { faixa: 'R$ 3.751,06 – R$ 4.664,68', aliquota: '22,5%', deducao: 'R$ 662,77', cor: OURO },
-                { faixa: lang === 'pt' ? 'Acima de R$ 4.664,68' : lang === 'en' ? 'Above R$ 4,664.68' : 'Por encima de R$ 4.664,68', aliquota: '27,5%', deducao: 'R$ 896,00', cor: VERMELHO },
-              ].map((row, i) => {
-                const ehFaixaAtual = rendaMensalMedia > 0 && (
-                  (i === 0 && rendaMensalMedia <= 2259.20) ||
-                  (i === 1 && rendaMensalMedia > 2259.20 && rendaMensalMedia <= 2826.65) ||
-                  (i === 2 && rendaMensalMedia > 2826.65 && rendaMensalMedia <= 3751.05) ||
-                  (i === 3 && rendaMensalMedia > 3751.05 && rendaMensalMedia <= 4664.68) ||
-                  (i === 4 && rendaMensalMedia > 4664.68)
-                )
-                return (
-                  <div key={i} className="grid grid-cols-3 gap-2 p-2 rounded-xl axi-card-premium3d axi-card-faixa"
-                    style={{
-                      background: ehFaixaAtual ? `${row.cor}15` : `${row.cor}05`,
-                      border: `1px solid ${ehFaixaAtual ? row.cor + '40' : row.cor + '15'}`,
-                    }}>
-                    <p className="text-xs" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{ehFaixaAtual ? '👉 ' : ''}{row.faixa}</p>
-                    <p className="text-xs font-bold text-center" style={{ color: row.cor }}>{row.aliquota}</p>
-                    <p className="text-xs text-right" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{row.deducao}</p>
-                  </div>
-                )
-              })}
+              {(() => {
+                // Mesma tabela do cálculo (lib/meiHelpers FAIXAS_IRPF): tela e conta nunca divergem.
+                const loc = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
+                const r$ = (v: number) => `R$ ${v.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                const base = Math.max(0, rendaMensalMedia - DESCONTO_SIMPLIFICADO_MENSAL)
+                const cores = temaClaro ? ['#0f7a5a', '#101b3d', '#101b3d', '#101b3d', '#d93848'] : [VERDE, AZUL, AMBAR, OURO, VERMELHO]
+                return FAIXAS_IRPF.map((f, i) => {
+                  const de = i === 0 ? 0 : FAIXAS_IRPF[i - 1].limite + 0.01
+                  const faixa = i === 0 ? `${lang === 'pt' ? 'Até' : lang === 'en' ? 'Up to' : 'Hasta'} ${r$(f.limite)}`
+                    : f.limite === Infinity ? `${lang === 'pt' ? 'Acima de' : lang === 'en' ? 'Above' : 'Por encima de'} ${r$(FAIXAS_IRPF[i - 1].limite)}` : `${r$(de)} – ${r$(f.limite)}`
+                  const ehFaixaAtual = rendaMensalMedia > 0 && base <= f.limite && (i === 0 || base > FAIXAS_IRPF[i - 1].limite)
+                  const cor = cores[i]
+                  return (
+                    <div key={i} className="grid grid-cols-3 gap-2 p-2 rounded-xl axi-card-premium3d axi-card-faixa"
+                      style={{ background: ehFaixaAtual ? `${cor}15` : `${cor}05`, border: `1px solid ${ehFaixaAtual ? cor + '40' : cor + '15'}` }}>
+                      <p className="text-xs" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{ehFaixaAtual ? '👉 ' : ''}{faixa}</p>
+                      <p className="text-xs font-bold text-center" style={{ color: cor }}>{f.aliquota === 0 ? (lang === 'pt' ? 'Isento' : lang === 'en' ? 'Exempt' : 'Exento') : `${(f.aliquota * 100).toLocaleString(loc)}%`}</p>
+                      <p className="text-xs text-right" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{f.deducao ? r$(f.deducao) : '—'}</p>
+                    </div>
+                  )
+                })
+              })()}
+              <p className="text-[11px] mt-2" style={{ color: TEXTO_SEC }}>
+                {lang === 'pt' ? `Base de cálculo = renda tributável − desconto simplificado de R$ 607,20. Desde janeiro de 2026 (Lei 15.270/2025), quem tem renda de até R$ 5.000 por mês não paga; de R$ 5.000,01 a R$ 7.350 o imposto tem um desconto que diminui conforme a renda. Isso aparece na declaração de 2027. Tabela conferida em 10/10/2026 — se a lei mudar, o Axioma atualiza.`
+                  : lang === 'en' ? `Calculation base = taxable income − simplified discount of R$ 607.20. Since January 2026 (Law 15,270/2025), income up to R$ 5,000 per month pays nothing; from R$ 5,000.01 to R$ 7,350 the tax gets a discount that shrinks as income rises. This shows in the 2027 return. Table checked on 10/10/2026 — if the law changes, Axioma updates it.`
+                  : `Base de cálculo = renta gravable − descuento simplificado de R$ 607,20. Desde enero de 2026 (Ley 15.270/2025), quien tiene renta de hasta R$ 5.000 por mes no paga; de R$ 5.000,01 a R$ 7.350 el impuesto tiene un descuento que disminuye según la renta. Esto aparece en la declaración de 2027. Tabla verificada el 10/10/2026 — si la ley cambia, Axioma la actualiza.`}
+              </p>
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>

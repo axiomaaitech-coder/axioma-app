@@ -226,10 +226,10 @@ export default function PrecificacaoMEI() {
   const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)
   const receitaReferenciaDAS = receitaMensalMedia > 0 ? receitaMensalMedia : tetoInfo.teto / 12
   const fracaoDAS = fracaoDASSobrePreco(dasMensal, receitaReferenciaDAS)
-  const fracaoIRPF = fracaoIRPFExposicao(meiDados?.categoria_mei)
   const margemFracao = (parseFloat(margemDesejada) || 0) / 100
   const custoFixoNum = parseFloat(custoFixoMensal) || 0
   const custoVarNum = parseFloat(custoVariavelMensal) || 0
+  const fracaoIRPF = fracaoIRPFExposicao(meiDados?.categoria_mei, receitaMensalMedia, custoFixoNum + custoVarNum)
   const horasNum = parseFloat(horasTrabalhadasMes) || 0
   const unidadesNum = parseFloat(unidadesVendidasMes) || 0
   const proLaboreDesejado = meiDados?.pro_labore_desejado ?? null

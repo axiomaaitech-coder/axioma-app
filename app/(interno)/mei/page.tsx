@@ -32,8 +32,7 @@ import {
   serieMensalMEI, montarCofre,
   detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
   type StatusObrigacao, type ContaPagarMEI,
-  lerBaseMEI,
-} from '../../../lib/meiHelpers'
+  lerBaseMEI, despesasAnoMEI } from '../../../lib/meiHelpers'
 import { hojeISO, dataLocal } from '../../../lib/datas'
 import AbrirEmpresa, { type DadosAbertura } from '../../../components/mei/AbrirEmpresa'
 
@@ -292,6 +291,7 @@ export default function PainelMEI() {
   const cofre = montarCofre({
     sobraMes: fluxo.sobra,
     receitaMensalMedia: mediaMensal,
+    despesaMensalMedia: despesasAnoMEI(custosVariaveis, custosFixos, anoAtual, new Date().getMonth() + 1) / (new Date().getMonth() + 1),
     faturamentoAnual,
     categoriaMei,
     dasValor: parseFloat(dasValor || String(impostoAtualMensal)),

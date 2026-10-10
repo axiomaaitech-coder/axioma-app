@@ -57,17 +57,46 @@ export function percentualIsentoPorCategoria(categoria: string | null | undefine
   return 0.32; // Serviços / Comércio e Serviços
 }
 
-export const FAIXAS_IRPF = [
-  { limite: 2259.2, aliquota: 0, deducao: 0 },
-  { limite: 2826.65, aliquota: 0.075, deducao: 169.44 },
-  { limite: 3751.05, aliquota: 0.15, deducao: 381.44 },
-  { limite: 4664.68, aliquota: 0.225, deducao: 662.77 },
-  { limite: Infinity, aliquota: 0.275, deducao: 896.0 },
-];
+// Renda tributável do titular do MEI — Receita Federal, Perguntas e Respostas IRPF 2026, pergunta 184
+// (conferida em 10/10/2026): lucro = receita − despesas; parte isenta = receita × percentual de presunção
+// (Lei 9.249/95 art. 15: 8% comércio/indústria/carga, 32% serviços); o lucro acima da parte isenta é tributável.
+export function rendaTributavelMEI(receita: number, despesas: number, categoria: string | null | undefined): { lucro: number; isento: number; tributavel: number } {
+  const lucro = Math.max(0, receita - despesas);
+  const isento = Math.min(lucro, receita * percentualIsentoPorCategoria(categoria));
+  return { lucro, isento, tributavel: Math.max(0, lucro - isento) };
+}
 
-export function calcularIRPF(rendaMensal: number): { imposto: number; aliquota: number; aliquotaEfetiva: number } {
-  const faixa = FAIXAS_IRPF.find((f) => rendaMensal <= f.limite)!;
-  const imposto = Math.max(0, rendaMensal * faixa.aliquota - faixa.deducao);
+// Despesas do MEI no ano até o mês de referência: custos variáveis do ano + custos fixos × meses.
+export function despesasAnoMEI(custosVariaveis: { valor: number; data?: string | null }[], custosFixos: { valor_mensal: number }[], ano: number, meses: number): number {
+  const variaveis = custosVariaveis.reduce((s, c) => (c.data && dataLocal(c.data).getFullYear() === ano ? s + (Number(c.valor) || 0) : s), 0);
+  return variaveis + custosFixos.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0) * meses;
+}
+
+// Tabela progressiva MENSAL do IRPF vigente desde maio de 2025 (Lei 15.191/2025) — não mudou em 2026.
+// Conferida em 10/10/2026. Base = renda − desconto simplificado mensal (R$ 607,20 = 25% da faixa isenta).
+export const FAIXAS_IRPF = [
+  { limite: 2428.8, aliquota: 0, deducao: 0 },
+  { limite: 2826.65, aliquota: 0.075, deducao: 182.16 },
+  { limite: 3751.05, aliquota: 0.15, deducao: 394.16 },
+  { limite: 4664.68, aliquota: 0.225, deducao: 675.49 },
+  { limite: Infinity, aliquota: 0.275, deducao: 908.73 },
+];
+export const DESCONTO_SIMPLIFICADO_MENSAL = 607.2;
+
+// Redutor da Lei 15.270/2025 (a partir de jan/2026): renda até R$ 5.000/mês não paga
+// (redução até R$ 312,89, limitada ao imposto); de R$ 5.000,01 a R$ 7.350 a redução é
+// R$ 978,62 − 0,133145 × renda; acima disso, sem redução. Reflete na declaração de 2027.
+export function redutorIRPF2026(rendaMensal: number, impostoTabela: number): number {
+  if (rendaMensal <= 5000) return Math.min(312.89, impostoTabela);
+  if (rendaMensal <= 7350) return Math.min(impostoTabela, Math.max(0, 978.62 - 0.133145 * rendaMensal));
+  return 0;
+}
+
+export function calcularIRPF(rendaMensal: number, ano = new Date().getFullYear()): { imposto: number; aliquota: number; aliquotaEfetiva: number } {
+  const base = Math.max(0, rendaMensal - DESCONTO_SIMPLIFICADO_MENSAL);
+  const faixa = FAIXAS_IRPF.find((f) => base <= f.limite)!;
+  const tabela = Math.max(0, base * faixa.aliquota - faixa.deducao);
+  const imposto = Math.round((tabela - (ano >= 2026 ? redutorIRPF2026(rendaMensal, tabela) : 0)) * 100) / 100;
   const aliquotaEfetiva = rendaMensal > 0 ? (imposto / rendaMensal) * 100 : 0;
   return { imposto, aliquota: faixa.aliquota * 100, aliquotaEfetiva };
 }
@@ -553,6 +582,7 @@ export type ContaPagarMEI = { valor_total: number; valor_pago: number };
 export type CofreInput = {
   sobraMes: number; // fluxoMesMEI().sobra
   receitaMensalMedia: number; // pra estimar IRPF proporcional
+  despesaMensalMedia: number; // despesas do negócio/mês — tributável = lucro − parte isenta (P&R IRPF 2026, perg. 184)
   faturamentoAnual: number;
   categoriaMei: string;
   dasValor: number; // valor configurado (pode divergir do padrão da categoria)
@@ -576,8 +606,7 @@ export function montarCofre(input: CofreInput): CofreResultado {
 
   const das = input.dasValor;
 
-  const percentualIsento = percentualIsentoPorCategoria(input.categoriaMei);
-  const rendaTributavelMensalMedia = input.receitaMensalMedia * (1 - percentualIsento);
+  const rendaTributavelMensalMedia = rendaTributavelMEI(input.receitaMensalMedia, input.despesaMensalMedia, input.categoriaMei).tributavel;
   const irpfReserva = calcularIRPF(rendaTributavelMensalMedia).imposto;
 
   const compromissos = input.contasPagarAbertas.reduce(
@@ -841,11 +870,12 @@ export function fracaoDASSobrePreco(dasMensal: number, receitaMensalReferencia: 
   return Math.min(0.95, dasMensal / receitaMensalReferencia);
 }
 
-// Aproximação conservadora: parcela exposta do IRPF (1 − isenção da categoria)
-// tributada na alíquota marginal máxima (27,5%) — mesmo teto usado no Cofre
-// Inteligente (calcularIRPF), sem inventar uma alíquota efetiva menor.
-export function fracaoIRPFExposicao(categoria: string | null | undefined): number {
-  return (1 - percentualIsentoPorCategoria(categoria)) * 0.275;
+// Fração do preço que vai para o IRPF: alíquota REAL sobre a receita, com a mesma conta oficial
+// do resto do MEI (lucro − parte isenta, tabela 2026 + redutor). Sem receita ainda (MEI novo),
+// usa a aproximação conservadora (parte não isenta × 27,5%) — melhor sobrar que faltar.
+export function fracaoIRPFExposicao(categoria: string | null | undefined, receitaMensal = 0, despesaMensal = 0): number {
+  if (!(receitaMensal > 0)) return (1 - percentualIsentoPorCategoria(categoria)) * 0.275;
+  return calcularIRPF(rendaTributavelMEI(receitaMensal, despesaMensal, categoria).tributavel).imposto / receitaMensal;
 }
 
 export type DetectorTrabalhoGratisResultado = {

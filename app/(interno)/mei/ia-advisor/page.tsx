@@ -11,8 +11,7 @@ import html2canvas from 'html2canvas'
 import {
   dasMensalPorCategoria, faturamentoAnoMEI, fluxoMesMEI, montarCofre, projecaoTeto, tetoProporcionalMEI,
   type ContaPagarMEI,
-  lerBaseMEI,
-} from '../../../../lib/meiHelpers'
+  lerBaseMEI, despesasAnoMEI } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
@@ -195,6 +194,7 @@ export default function IAMEIAdvisor() {
   const cofre = montarCofre({
     sobraMes: fluxo.sobra,
     receitaMensalMedia: mediaMensal,
+    despesaMensalMedia: despesasAnoMEI(custosVariaveis, custosFixos, anoAtual, new Date().getMonth() + 1) / (new Date().getMonth() + 1),
     faturamentoAnual,
     categoriaMei: categoria,
     dasValor: parseFloat(String(dasValor)),

@@ -2,7 +2,7 @@
 // Cada regra tem fonte e data da última conferência. Passou de REVISAR_APOS_DIAS sem conferir,
 // a IA é avisada para dizer que o valor pode estar desatualizado (nunca afirma lei velha como atual).
 // Valores numéricos vêm das constantes que as telas usam — a IA e a tela nunca divergem.
-import { LIMITES_MEI, INSS_MEI_2026, INSS_MEI_TAC_2026 } from "./meiHelpers";
+import { LIMITES_MEI, INSS_MEI_2026, INSS_MEI_TAC_2026, FAIXAS_IRPF, DESCONTO_SIMPLIFICADO_MENSAL } from "./meiHelpers";
 
 export type RegraOficial = { tema: string; regra: string; fonte: string; verificado_em: string };
 export const REVISAR_APOS_DIAS = 180;
@@ -19,6 +19,7 @@ export const REGRAS_OFICIAIS: RegraOficial[] = [
   { tema: "DASN-SIMEI", regra: "Declaração anual do MEI até 31 de maio do ano seguinte; pede receita de comércio/indústria/transporte (ICMS), de serviços (ISS) e se houve empregado.", fonte: "Resolução CGSN 140/2018", verificado_em: "2026-10-10" },
   { tema: "Pagamento do DAS", regra: "Pix, código de barras, débito automático; cartão de crédito no PGMEI (\"Pagar Online\") desde setembro de 2025. Cartão de débito não consta nas regras oficiais.", fonte: "Receita Federal — PGMEI", verificado_em: "2026-10-10" },
   { tema: "Simples Nacional", regra: "ME até R$ 360 mil/ano; EPP até R$ 4,8 milhões/ano. Alíquota efetiva = (RBT12 × alíquota − parcela a deduzir) / RBT12, pelos Anexos I a V. Empresa nova opta em até 30 dias da última inscrição, sem passar de 60 dias da abertura do CNPJ.", fonte: "LC 123/2006 arts. 3º e 18; Resolução CGSN 140/2018 art. 6º", verificado_em: "2026-10-10" },
+  { tema: "IRPF 2026 (mensal)", regra: `Tabela: ${FAIXAS_IRPF.map((f, i) => `${f.limite === Infinity ? `acima de ${brl(FAIXAS_IRPF[i - 1].limite)}` : `até ${brl(f.limite)}`} ${f.aliquota * 100}%${f.deducao ? ` (deduz ${brl(f.deducao)})` : ""}`).join("; ")}. Desconto simplificado mensal ${brl(DESCONTO_SIMPLIFICADO_MENSAL)}. Redutor (Lei 15.270/2025, desde jan/2026): renda até R$ 5.000/mês não paga; de R$ 5.000,01 a R$ 7.350 a redução é R$ 978,62 − 0,133145 × renda. Reflete na declaração de 2027 (ano-calendário 2026). MEI: 32% (serviços) ou 8% (comércio/indústria/carga) da receita é isento como lucro presumido.`, fonte: "Receita Federal — gov.br/receitafederal/.../tabelas/2026", verificado_em: "2026-10-10" },
   { tema: "Reforma Tributária (IBS/CBS)", regra: "Transição de 2026 a 2033 (2026 é ano de teste, com alíquotas simbólicas de CBS 0,9% e IBS 0,1% compensáveis). MEI e Simples continuam com regime próprio; regras de detalhe ainda podem mudar por regulamentação.", fonte: "EC 132/2023; LC 214/2025", verificado_em: "2026-10-10" },
 ];
 
