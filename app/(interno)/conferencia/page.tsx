@@ -69,7 +69,7 @@ export default function ConferenciaPage() {
         headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
-          <div className="rounded-2xl p-4" style={painel}>
+          <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <p className="text-xs" style={{ color: P.CINZA }}>{L('Só compara números do mesmo critério: competência com competência, caixa com caixa. ✅ = bate · ❌ = diferença em R$.', 'Only compares numbers on the same basis: accrual with accrual, cash with cash. ✅ = matches · ❌ = difference in R$.', 'Solo compara números del mismo criterio: devengo con devengo, caja con caja. ✅ = cuadra · ❌ = diferencia en R$.')}</p>
               <div className="flex gap-1">
@@ -104,17 +104,17 @@ export default function ConferenciaPage() {
             )}
           </div>
 
-          <div className="rounded-2xl p-4" style={painel}>
+          <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
             <p className="text-sm font-bold mb-1" style={{ color: P.TEXTO }}>{L('Casos antigos para reprocessar — prévia', 'Old cases to reprocess — preview', 'Casos antiguos para reprocesar — vista previa')}</p>
             <p className="text-xs mb-3" style={{ color: P.CINZA }}>{L('Isto é só uma prévia: mostra o registro, o que muda em cada módulo e o risco de duplicar. Nada é alterado sem a sua aprovação, caso a caso.', 'This is only a preview: it shows the record, what changes in each module and the duplication risk. Nothing changes without your approval, case by case.', 'Esto es solo una vista previa: muestra el registro, qué cambia en cada módulo y el riesgo de duplicar. Nada cambia sin su aprobación, caso por caso.')}</p>
             {!carregando && grupos.length === 0 && <p className="text-xs" style={{ color: P.VERDE }}>{L('Nenhum caso pendente.', 'No pending cases.', 'Ningún caso pendiente.')}</p>}
             <div className="space-y-3">
               {grupos.map((g) => (
-                <details key={g.codigo} className="rounded-xl p-3" style={aninhada} open={g.itens.length <= 5}>
+                <details key={g.codigo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada} open={g.itens.length <= 5}>
                   <summary className="text-xs font-bold cursor-pointer" style={{ color: P.TEXTO }}>{g.codigo} · {NOME_CASO[g.codigo]} ({g.itens.length})</summary>
                   <div className="space-y-2 mt-2">
                     {g.itens.slice(0, 50).map((c) => (
-                      <div key={`${c.codigo}-${c.id}`} className="rounded-lg p-2.5 text-[11px]" style={{ border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+                      <div key={`${c.codigo}-${c.id}`} className="rounded-lg p-2.5 text-[11px] axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
                         <p className="font-bold">{c.descricao} {c.data ? `· ${new Date(`${c.data}T00:00:00`).toLocaleDateString(local)}` : ''}</p>
                         <p style={{ color: P.CINZA }}>{L('Registro', 'Record', 'Registro')}: {c.tabela} · <span className="font-mono">{c.id}</span></p>
                         <p className="mt-1"><b>{L('Antes', 'Before', 'Antes')}:</b> {c.antes}</p>

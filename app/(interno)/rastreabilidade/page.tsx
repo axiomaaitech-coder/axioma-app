@@ -274,7 +274,7 @@ export default function RastreabilidadePage() {
                     {destinos.map((d) => {
                       const s = selo(d.status)
                       return (
-                        <li key={d.destino} className="rounded-xl px-3 py-2.5" style={{ background: P.ANINHADA, border: `1px solid ${d.status === 'falhou' ? s.cor + '80' : P.BORDA}` }}>
+                        <li key={d.destino} className="rounded-xl px-3 py-2.5 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${d.status === 'falhou' ? s.cor + '80' : P.BORDA}` }}>
                           <p className="text-sm font-semibold" style={{ color: P.TEXTO }}>{NOME_DESTINO[d.destino][lang]}</p>
                           <p className="flex items-center gap-1 text-xs font-bold mt-1" style={{ color: s.cor }}>
                             <s.Icone size={13} aria-hidden />{s.txt}
@@ -287,7 +287,7 @@ export default function RastreabilidadePage() {
                   </ol>
 
                   {exp && (
-                    <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: temaClaro ? 'rgba(217,56,72,0.08)' : 'rgba(248,113,113,0.08)', border: `1px solid ${P.VERMELHO}40` }}>
+                    <div className="mt-3 rounded-xl px-3 py-2.5 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(217,56,72,0.08)' : 'rgba(248,113,113,0.08)', border: `1px solid ${P.VERMELHO}40` }}>
                       <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: P.TEXTO }}><Sparkles size={14} aria-hidden style={{ color: P.VERDE }} />{L('Inteligência do Axioma', 'Axioma Intelligence', 'Inteligencia de Axioma')}</p>
                       <p className="text-sm mt-1 leading-relaxed" style={{ color: P.TEXTO }}>{exp.explicacao}</p>
                       <p className="text-sm mt-1 font-semibold" style={{ color: P.TEXTO }}>{L('O que fazer', 'What to do', 'Qué hacer')}: {exp.acao}</p>

@@ -1376,7 +1376,9 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - A2 ✅ Conferência diária: components/AvisoConferencia.tsx (layout interno) roda 1x/dia (cache por empresa no navegador) e a cada "dados atualizados" no mês atual + anterior; ❌ = faixa vermelha no topo com mês, par e diferença em R$ + "Ver conferência"; leitura incompleta não acusa. Sem SQL.
 - TESTE A1 no Chrome (dívida "Empréstimo TESTE - capital de giro" R$ 1.000, pago R$ 100): Fluxo ✅ (+1.000 / −100, selo Origem: Dívidas), Rastreabilidade ✅, faixa da Conferência ✅. ACHADO: Contabilidade ignorava a origem "dividas" calada e o motor marcava "Chegou" → corrigido (lista de origens + motor só marca "Chegou" com lançamento gravado). Falta: Elias autorizar o UPDATE que volta os 2 rastros de teste para pendente.
 - Visual MEI: botão "Buscar na Receita e preencher" sólido verde-menta escuro (sem transparência quando desativado); Acesso Rápido com efeito padrão + caixa bege no Claro + "DAS & Obrigações" trilíngue.
-- PRÓXIMO: A3 Painel de risco; análise de lixeira/lápis no que foi criado.
+- Efeito padrão nos cards internos da Rastreabilidade (destinos e caixa de falha) e da Conferência (painéis, grupos, casos).
+- Análise lixeira/lápis: nada faltando — Dívidas (lápis+lixeira já existem), pagamentos do DAS (lápis = corrigir, lixeira = estornar), simulações do DAS (lápis+lixeira), guias enviadas não aparecem em lista (registro interno, reenviar reaproveita), Conferência/Aviso só leitura.
+- PRÓXIMO: A3 Painel de risco.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 
