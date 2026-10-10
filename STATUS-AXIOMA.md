@@ -1378,6 +1378,7 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - Visual MEI: botão "Buscar na Receita e preencher" sólido verde-menta escuro (sem transparência quando desativado); Acesso Rápido com efeito padrão + caixa bege no Claro + "DAS & Obrigações" trilíngue.
 - Efeito padrão nos cards internos da Rastreabilidade (destinos e caixa de falha) e da Conferência (painéis, grupos, casos).
 - Análise lixeira/lápis: nada faltando — Dívidas (lápis+lixeira já existem), pagamentos do DAS (lápis = corrigir, lixeira = estornar), simulações do DAS (lápis+lixeira), guias enviadas não aparecem em lista (registro interno, reenviar reaproveita), Conferência/Aviso só leitura.
+- Painel MEI (Claro), conferido no Chrome: valores do cofre em azul-marinho, rosca com chart-1..5, textos que usavam menta claro/âmbar (topo, métricas, dinheiro em 3 linhas, avisos) agora menta escuro/azul-marinho (TX_MENTA/TX_VERDE/TX_AMBAR). Efeito padrão em Abrir empresa, Documentos p/ contador, Pagar o DAS; botões desativados sem transparência.
 - PRÓXIMO: A3 Painel de risco.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
