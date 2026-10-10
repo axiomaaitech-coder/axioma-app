@@ -16,8 +16,10 @@ import { calcularPenalidadeDASAtraso } from '../../lib/meiHelpers'
 import { obterConfigTesouraria, obterPosicaoCaixa } from '../../lib/tesourariaHelpers'
 import {
   gerarPeriodosDAS, lerCalendarioDAS, resumoObrigacoes, registrarPagamentoDAS, estornarPagamentoDAS,
-  garantirContasDoCalendario, completarRastrosPendentes, type MesDAS, type ResumoAno, type MetodoPagamento, type PagamentoDAS,
+  garantirContasDoCalendario, completarRastrosPendentes, planejarAlocacao, type MesDAS, type ResumoAno, type MetodoPagamento, type PagamentoDAS,
 } from '../../lib/meiObrigacoesMotor'
+import PagarGuiaDAS from './PagarGuiaDAS'
+import { conferirPixAxioma } from '../../lib/guiaDas'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
@@ -80,6 +82,43 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
   }, [empresaId, hoje])
 
   useEffect(() => { void carregar(ano) }, [ano, carregar])
+
+  // ---------------------------------------------------------- pagar a guia por dentro
+  const [pagarComp, setPagarComp] = useState<string | null>(null)
+  const [cnpjMei, setCnpjMei] = useState<string | null>(null)
+  useEffect(() => {
+    if (!empresaId) return
+    void supabase.from('mei_dados').select('cnpj').eq('empresa_id', empresaId).maybeSingle().then(({ data }) => setCnpjMei((data?.cnpj as string) ?? null))
+  }, [empresaId])
+  // Pix pelo Axioma concluído na Pluggy → baixa sozinha (chave "pluggy:<id>": repetir não duplica).
+  useEffect(() => {
+    if (!empresaId || carregando || !meses.length) return
+    const params = new URLSearchParams(window.location.search)
+    const voltouDe = params.get('guia')
+    void (async () => {
+      if (voltouDe) await conferirPixAxioma(voltouDe)
+      const { data: guias } = await supabase.from('guias_arrecadacao').select('id, valor_total, competencias, numero_documento, pagamento_externo_id, pagamento_externo_em')
+        .eq('empresa_id', empresaId).eq('status', 'emitida').eq('pagamento_externo_status', 'COMPLETED')
+      if (!guias?.length) return
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      let baixou = false
+      for (const g of guias) {
+        const abertas = meses.filter((m) => (g.competencias as string[]).includes(m.competencia) && m.natureza === 'oficial')
+          .map((m) => ({ id: m.id, data_vencimento: m.data_vencimento, saldo: m.situacao === 'aguardando_conciliacao' ? Math.max(0, (m.valor_esperado ?? 0) - m.pago) : m.saldo }))
+          .filter((m) => m.saldo > 0)
+        const plano = planejarAlocacao(Number(g.valor_total), abertas)
+        if (!plano.alocacoes.length) continue
+        plano.alocacoes[plano.alocacoes.length - 1].encargos = plano.excedente
+        const r = await registrarPagamentoDAS({ userId: user.id, empresaId, chave: `pluggy:${g.pagamento_externo_id}`, valor: Number(g.valor_total),
+          data: String(g.pagamento_externo_em || hoje).slice(0, 10), metodo: 'pix', origem: 'pix_axioma', alocacoes: plano.alocacoes, referencia: g.numero_documento as string | null, guiaId: g.id as string })
+        if (!r.erro && !r.jaExistia) baixou = true
+      }
+      if (voltouDe) window.history.replaceState(null, '', window.location.pathname)
+      if (baixou) { showToast(L('Pix confirmado — o DAS foi baixado sozinho.', 'Pix confirmed — the DAS was recorded automatically.', 'Pix confirmado — el DAS se registró solo.'), 'ok'); void carregar(ano) }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, carregando])
   useEffect(() => {
     if (!empresaId) return
     void obterConfigTesouraria(empresaId).then((c) => obterPosicaoCaixa(empresaId, hoje, Number(c?.reserva_minima) || 0))
@@ -322,7 +361,8 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
                     {ultimo && <p className="text-[10px] mt-1" style={{ color: TEXTO_SEC }}>{L('Pago em', 'Paid on', 'Pagado el')} {dataBR(ultimo.data_pagamento)}{ultimo.referencia ? ` · ${L('ref.', 'ref.', 'ref.')} ${ultimo.referencia}` : ''}</p>}
                     {m.situacao === 'aguardando_conciliacao' && <p className="text-[10px] mt-1" style={{ color: AMBAR }}>{L('Marcado como pago antes, sem valor. Informe quanto e quando pagou.', 'Marked paid before, without amount. Enter how much and when.', 'Marcado pagado antes, sin valor. Informe cuánto y cuándo pagó.')}</p>}
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {pagavel && <button {...botao(MENTA)} onClick={() => abrirPagamento(m)}>{L('Registrar pagamento', 'Record payment', 'Registrar pago')}</button>}
+                      {pagavel && <button {...botao(MENTA)} onClick={() => setPagarComp(m.competencia)}>{L('Pagar este DAS', 'Pay this DAS', 'Pagar este DAS')}</button>}
+                      {pagavel && <button {...botao(NAVY)} onClick={() => abrirPagamento(m)}>{L('Registrar pagamento', 'Record payment', 'Registrar pago')}</button>}
                       {m.pagamentos.length > 0 && <button {...botao(NAVY, 'inline-flex items-center gap-1')} onClick={() => setDetalhe(m)}><Eye size={12} />{L('Detalhes', 'Details', 'Detalles')}</button>}
                     </div>
                   </div>
@@ -475,6 +515,9 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
         </CanvasBox>
       </Modal>
       {janelaConfirmacao}
+      {empresaId && <PagarGuiaDAS aberto={!!pagarComp} onFechar={() => setPagarComp(null)} empresaId={empresaId} cnpjEmpresa={cnpjMei} meses={meses}
+        competenciaInicial={pagarComp} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema} showToast={showToast}
+        onPago={() => { window.dispatchEvent(new Event('axioma:dados-atualizados')); void carregar(ano) }} />}
     </>
   )
 }
