@@ -46,6 +46,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null)
     const event: string = typeof body?.event === 'string' ? body.event : ''
     const itemId: string = typeof body?.item?.id === 'string' ? body.item.id : typeof body?.itemId === 'string' ? body.itemId : ''
+    // Pagamento Pix de guia do DAS (pagamentos/pix): nunca confia no corpo — consulta a
+    // situação na Pluggy com a nossa chave e só grava na guia que JÁ tem esse pedido.
+    if (event.startsWith('payment_')) {
+      const pedidoId = String(body?.paymentRequestId ?? body?.data?.paymentRequestId ?? body?.paymentRequest?.id ?? '')
+      if (!/^[0-9a-f-]{36}$/i.test(pedidoId)) return NextResponse.json({ ok: true })
+      const { data: guia } = await supabase.from('guias_arrecadacao').select('id').eq('pagamento_externo_id', pedidoId).maybeSingle()
+      if (!guia) return NextResponse.json({ ok: true })
+      const auth = await fetch('https://api.pluggy.ai/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: process.env.PLUGGY_CLIENT_ID, clientSecret: process.env.PLUGGY_CLIENT_SECRET }) })
+      if (!auth.ok) throw new Error(`auth Pluggy HTTP ${auth.status}`)
+      const { apiKey: chave } = await auth.json()
+      const pr = await fetch(`https://api.pluggy.ai/payments/requests/${pedidoId}`, { headers: { 'X-API-KEY': chave } })
+      if (!pr.ok) throw new Error(`consulta payment request HTTP ${pr.status}`)
+      const status = String((await pr.json()).status ?? '')
+      const { error: eG } = await supabase.from('guias_arrecadacao').update({ pagamento_externo_status: status }).eq('id', guia.id)
+      if (eG) logFalhaWebhook('guias_arrecadacao', 'update status pagamento', eG.message, { pedidoId })
+      return NextResponse.json({ ok: true })
+    }
     if (!UUID.test(itemId) || !event.startsWith('item/')) return NextResponse.json({ ok: true })
 
     // Só conexões que o próprio Axioma criou (tela Open Finance, com dono).
