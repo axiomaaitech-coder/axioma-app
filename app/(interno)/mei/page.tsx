@@ -35,6 +35,7 @@ import {
   lerBaseMEI,
 } from '../../../lib/meiHelpers'
 import { hojeISO, dataLocal } from '../../../lib/datas'
+import AbrirEmpresa, { type DadosAbertura } from '../../../components/mei/AbrirEmpresa'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -197,6 +198,14 @@ export default function PainelMEI() {
       setPerfilClienteForm(mei.perfil_cliente || '')
     }
     setLoading(false)
+  }
+
+  // CNPJ buscado na Receita (Abrir minha empresa): preenche o cadastro e abre pra pessoa conferir e salvar.
+  function preencherDoCNPJ(d: DadosAbertura) {
+    setCnpjForm(d.cnpj); setRazaoSocialForm(d.razao_social); setCnaeForm(d.cnae)
+    if (d.data_abertura) setDataAbertura(d.data_abertura)
+    setModalConfig(true)
+    showToast(idioma === 'en' ? 'Data filled in from the Federal Revenue — check and click Save.' : idioma === 'es' ? 'Datos llenados desde la Receita — revise y haga clic en Guardar.' : 'Dados preenchidos pela Receita — confira e clique em Salvar.', 'ok')
   }
 
   async function salvarConfig() {
@@ -737,6 +746,8 @@ export default function PainelMEI() {
             ))}
           </div>
         </CanvasBox>
+
+        <AbrirEmpresa lang={(idioma as 'pt' | 'en' | 'es') || 'pt'} temaClaro={temaClaro} cartaoTema={cartaoTema} onPreencher={preencherDoCNPJ} />
 
       </div>
 
