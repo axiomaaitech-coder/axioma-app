@@ -30,6 +30,7 @@ const MENTA = '#0f7a5a'   // botão: verde-menta escuro
 const NAVY = '#101b3d'    // botão: azul-marinho escuro
 const PCT_CENARIO: Record<Exclude<Cenario, 'personalizado'>, number> = { base: 0, conservador: 5, estresse: 10 }
 const r2 = (v: number) => Math.round(v * 100) / 100
+// simulacoes.created_at é "timestamp sem fuso" gravado em UTC: sem o Z, a noite de hoje virava amanhã.
 
 export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores, cartaoTema, selicAnual, onCalendario, showToast }: {
   empresaId: string | null; lang: Lang; temaClaro: boolean; cores: Cores
@@ -399,7 +400,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
                 <div key={s.id} className={`${caixa} flex flex-wrap items-center justify-between gap-2`} style={caixaStyle}>
                   <div className="text-[11px]" style={{ color: TEXTO }}>
                     <p className="font-bold">{s.nome}</p>
-                    <p style={{ color: TEXTO_SEC }}>{s.parametros.ano} · {s.parametros.pct >= 0 ? '+' : ''}{s.parametros.pct}% · {fmt(s.resultado_projetado.cenario)} ({s.resultado_projetado.diferenca >= 0 ? '+' : ''}{fmt(s.resultado_projetado.diferenca)}) · {new Date(s.created_at).toLocaleDateString(local)}</p>
+                    <p style={{ color: TEXTO_SEC }}>{s.parametros.ano} · {s.parametros.pct >= 0 ? '+' : ''}{s.parametros.pct}% · {fmt(s.resultado_projetado.cenario)} ({s.resultado_projetado.diferenca >= 0 ? '+' : ''}{fmt(s.resultado_projetado.diferenca)}) · {new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s.created_at) ? s.created_at : s.created_at + 'Z').toLocaleDateString(local)}</p>
                   </div>
                   <div className="flex gap-1">
                     <button aria-label={L('Editar', 'Edit', 'Editar')} title={L('Editar', 'Edit', 'Editar')} onClick={() => editarSim(s)} className="p-1.5 rounded-lg" style={{ background: NAVY, color: '#fff' }}><Pencil size={12} /></button>
