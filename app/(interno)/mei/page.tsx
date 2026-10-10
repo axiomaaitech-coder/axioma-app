@@ -75,6 +75,8 @@ export default function PainelMEI() {
   // Indicador de "selecionado" (chips de categoria/perfil): verde no Claro
   // (regra da referência — ativo é sempre verde), dourado no Escuro (inalterado).
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
+  // Texto no Claro: menta claro/âmbar somem no creme → menta escuro e azul-marinho (Escuro intocado).
+  const TX_MENTA = temaClaro ? '#0f7a5a' : AZUL, TX_VERDE = temaClaro ? '#0f7a5a' : VERDE, TX_AMBAR = temaClaro ? '#101b3d' : AMBAR
   // Texto secundário sobre o card creme: #6b7280 (padrão) só dá 4.38:1 de
   // contraste sobre #f6f7c4 (abaixo do AA) — a referência resolve isso trocando
   // pra #374151 nesse fundo específico (tema-tokens.md §1.1).
@@ -392,8 +394,8 @@ export default function PainelMEI() {
 
   const cardsPrincipais = [
     { label: `${t('faturamento')} ${anoAtual}`, value: faturamentoAnual, cor: OURO },
-    { label: t('limiteRestante'), value: restanteLimite, cor: VERDE },
-    { label: t('dasMensal'), value: parseFloat(dasValor || String(impostoAtualMensal)), cor: AZUL },
+    { label: t('limiteRestante'), value: restanteLimite, cor: TX_VERDE },
+    { label: t('dasMensal'), value: parseFloat(dasValor || String(impostoAtualMensal)), cor: TX_MENTA },
   ]
 
   return (
@@ -450,7 +452,7 @@ export default function PainelMEI() {
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${item.cor}08`, border: `1px solid ${NESTED_BORDA ?? item.cor + '20'}` }}>
                   <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
-                  <span className="text-xs font-bold" style={{ color: item.cor }}>{fmt(item.valor)}</span>
+                  <span className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : item.cor }}>{fmt(item.valor)}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center px-3 py-3 rounded-lg mt-3 axi-card-premium3d axi-card-faixa" style={{ background: `${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}15`, border: `1px solid ${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}40` }}>
@@ -472,11 +474,12 @@ export default function PainelMEI() {
               <p className="text-xs uppercase tracking-wider mb-1 text-center" style={{ color: TEXTO_SEC }}>{mx.composicaoCofre}</p>
               <ReactECharts style={{ height: 200 }} option={optRosca(
                 [
-                  { name: mx.cofreDas, value: Math.max(0, cofre.das), color: temaClaro ? ROYAL : VERMELHO },
-                  { name: mx.cofreIrpf, value: Math.max(0, cofre.irpfReserva), color: AMBAR },
-                  { name: mx.cofreCompromissos, value: Math.max(0, cofre.compromissos), color: AZUL },
-                  { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: '#a78bfa' },
-                  { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: VERDE },
+                  // Claro: sequência oficial chart-1..5 (tema-tokens.md) + menta escuro; Escuro intocado.
+                  { name: mx.cofreDas, value: Math.max(0, cofre.das), color: temaClaro ? '#101b3d' : VERMELHO },
+                  { name: mx.cofreIrpf, value: Math.max(0, cofre.irpfReserva), color: temaClaro ? '#6b7280' : AMBAR },
+                  { name: mx.cofreCompromissos, value: Math.max(0, cofre.compromissos), color: temaClaro ? '#2ecc9b' : AZUL },
+                  { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: temaClaro ? '#122b54' : '#a78bfa' },
+                  { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: temaClaro ? '#0f7a5a' : VERDE },
                 ],
                 OURO, mx.cofreTitulo, temaClaro
               )} notMerge />
@@ -503,9 +506,9 @@ export default function PainelMEI() {
         {guardiao.consumida && (
           <CanvasBox cor={AMBAR} motionIndex={5} glow {...cartaoTema}>
             <div className="flex items-start gap-2 mb-3">
-              <Clock size={16} style={{ color: AMBAR, flexShrink: 0, marginTop: 2 }} />
+              <Clock size={16} style={{ color: TX_AMBAR, flexShrink: 0, marginTop: 2 }} />
               <div>
-                <p className="text-sm font-bold mb-1" style={{ color: AMBAR }}>{mx.guardiaoTitulo}</p>
+                <p className="text-sm font-bold mb-1" style={{ color: TX_AMBAR }}>{mx.guardiaoTitulo}</p>
                 <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>
                   {mx.guardiaoConsumiu.replace('X', guardiao.valorConsumido.toFixed(0))} — {diasAteVencimentoDas} {mx.guardiaoDiasRestantes}.
                 </p>
@@ -609,7 +612,7 @@ export default function PainelMEI() {
             ].map((m, i) => (
               <div key={i} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'var(--axi-surface)', border: `1px solid ${NESTED_BORDA ?? 'var(--axi-border)'}` }}>
                 <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{m.label}</p>
-                <p className="text-sm font-bold mt-1" style={{ color: AZUL }}>{m.valor}</p>
+                <p className="text-sm font-bold mt-1" style={{ color: TX_MENTA }}>{m.valor}</p>
               </div>
             ))}
           </div>
@@ -621,7 +624,7 @@ export default function PainelMEI() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div onClick={() => irParaDestino('/mei/faturamento', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${VERDE}10`, border: `1px solid ${NESTED_BORDA ?? VERDE + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.entrou}</p>
-              <p className="text-lg font-black" style={{ color: VERDE }}><CountUp valor={fluxo.entrou} formatar={fmt} /></p>
+              <p className="text-lg font-black" style={{ color: TX_VERDE }}><CountUp valor={fluxo.entrou} formatar={fmt} /></p>
             </div>
             <div onClick={() => irParaDestino('/custos-variaveis', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? VERMELHO + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.saiu}</p>
@@ -629,10 +632,10 @@ export default function PainelMEI() {
             </div>
             <div onClick={() => irParaDestino('/fluxo-caixa', router)} className="rounded-xl p-3 cursor-pointer transition-transform hover:-translate-y-0.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${fluxo.sobra >= 0 ? AZUL : VERMELHO}10`, border: `1px solid ${NESTED_BORDA ?? (fluxo.sobra >= 0 ? AZUL : VERMELHO) + '25'}` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{mx.sobra}</p>
-              <p className="text-lg font-black" style={{ color: fluxo.sobra >= 0 ? AZUL : VERMELHO }}><CountUp valor={fluxo.sobra} formatar={fmt} /></p>
+              <p className="text-lg font-black" style={{ color: fluxo.sobra >= 0 ? TX_MENTA : VERMELHO }}><CountUp valor={fluxo.sobra} formatar={fmt} /></p>
             </div>
           </div>
-          <p className="text-xs mt-3" style={{ color: AMBAR }}>⏰ {mx.atencaoDas}</p>
+          <p className="text-xs mt-3" style={{ color: TX_AMBAR }}>⏰ {mx.atencaoDas}</p>
         </CanvasBox>
 
         {/* Fluxo de Caixa Visual */}
@@ -670,7 +673,7 @@ export default function PainelMEI() {
               ].map((s, i) => (
                 <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? 'var(--axi-surface)', border: `1px solid ${NESTED_BORDA ?? 'var(--axi-border)'}` }}>
                   <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{s.label}</p>
-                  <p className="text-base font-bold" style={{ color: AZUL }}>{s.valor}</p>
+                  <p className="text-base font-bold" style={{ color: TX_MENTA }}>{s.valor}</p>
                   <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{s.desc}</p>
                 </div>
               ))}
@@ -681,7 +684,7 @@ export default function PainelMEI() {
         {/* 2b — Detector Pessoal x Empresa */}
         <CanvasBox cor={AMBAR} motionIndex={13} glow {...cartaoTema}>
           <div className="flex items-center gap-2 mb-3">
-            <ShieldAlert size={16} style={{ color: AMBAR }} />
+            <ShieldAlert size={16} style={{ color: TX_AMBAR }} />
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{mx.detectorTitulo}</p>
           </div>
           {gastosPessoais.length === 0 ? (
@@ -691,7 +694,7 @@ export default function PainelMEI() {
               {gastosPessoais.slice(0, 6).map((g, i) => (
                 <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AMBAR}08`, border: `1px solid ${NESTED_BORDA ?? AMBAR + '20'}` }}>
                   <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{g.descricao}</span>
-                  <span className="text-xs font-bold" style={{ color: AMBAR }}>{fmt(g.valor ?? g.valor_mensal ?? 0)}</span>
+                  <span className="text-xs font-bold" style={{ color: TX_AMBAR }}>{fmt(g.valor ?? g.valor_mensal ?? 0)}</span>
                 </div>
               ))}
             </div>
