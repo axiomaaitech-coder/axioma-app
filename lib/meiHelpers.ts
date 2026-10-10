@@ -86,6 +86,22 @@ export function faturamentoAnoMEI(receitas: ReceitaMEI[], ano: number): number {
     .reduce((acc, r) => acc + (r.valor || 0), 0);
 }
 
+// DASN-SIMEI pede a receita em 2 campos: comércio/indústria/transporte (ICMS) e serviços (ISS).
+// O tipo vem da categoria da receita ("Vendas de produtos" / "Prestação de serviços"); sem tipo,
+// segue a categoria do MEI. "Comércio e Serviços" sem tipo fica em semTipo: a pessoa separa.
+// foraDoLimite = receitas do ano marcadas "não conta no limite do MEI" (não entram na declaração).
+export function receitaDASNPorTipo(receitas: (ReceitaMEI & { categoria?: string | null })[], ano: number, categoriaMei: string | null | undefined) {
+  const r = { comercio: 0, servicos: 0, semTipo: 0, foraDoLimite: 0, qtdForaDoLimite: 0 };
+  const padrao = categoriaMei === "Serviços" || !categoriaMei ? "servicos" : categoriaMei === "Comércio e Serviços" ? "semTipo" : "comercio";
+  for (const x of receitas) {
+    if (dataLocal(x.data).getFullYear() !== ano) continue;
+    if (x.considera_teto_mei === false) { r.foraDoLimite += x.valor || 0; r.qtdForaDoLimite++; continue; }
+    const k = x.categoria === "Vendas de produtos" ? "comercio" : x.categoria === "Prestação de serviços" ? "servicos" : padrao;
+    r[k] += x.valor || 0;
+  }
+  return r;
+}
+
 export function limiteRestante(faturamentoAno: number, teto: number = LIMITE_ANUAL_MEI): number {
   return Math.max(0, teto - faturamentoAno);
 }

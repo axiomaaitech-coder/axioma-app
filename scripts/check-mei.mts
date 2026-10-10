@@ -40,3 +40,13 @@ assert.equal(tetoProporcionalMEI('2026-03-15', 2026, 'Transporte').teto, 209666.
 assert.deepEqual(efeitoExcessoMEI(90000, 81000), { situacao: 'ate20', excesso: 9000, limite20: 97200 })
 assert.equal(efeitoExcessoMEI(100000, 81000).situacao, 'acima20')
 console.log('check-mei OK')
+
+// receita da DASN-SIMEI separada por tipo
+{
+  const { receitaDASNPorTipo: f } = await import('../lib/meiHelpers')
+  const rs = [{ valor: 100, data: '2026-03-01', categoria: 'Vendas de produtos' }, { valor: 50, data: '2026-04-01', categoria: 'Prestação de serviços' }, { valor: 30, data: '2026-05-01', categoria: 'Outras' }, { valor: 999, data: '2025-05-01', categoria: 'Outras' }, { valor: 7, data: '2026-05-01', categoria: 'Outras', considera_teto_mei: false }]
+  const a = f(rs, 2026, 'Serviços'); if (a.comercio !== 100 || a.servicos !== 80 || a.semTipo !== 0 || a.foraDoLimite !== 7 || a.qtdForaDoLimite !== 1) throw new Error('dasn servicos ' + JSON.stringify(a))
+  if (f(rs, 2026, 'Comércio e Serviços').semTipo !== 30) throw new Error('dasn misto')
+  if (f(rs, 2026, 'Comércio').comercio !== 130) throw new Error('dasn comercio')
+  console.log('ok dasn por tipo')
+}

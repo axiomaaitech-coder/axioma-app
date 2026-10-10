@@ -28,6 +28,7 @@ import {
   maxParcelasDAS, DIAS_MULTA_TETO, DIAS_CNPJ_INAPTO, DIAS_DIVIDA_ATIVA,
   type StatusObrigacao, type ObrigacaoMEI, type FaseRiscoDAS,
   lerBaseMEI, calcularPenalidadeDASAtraso,
+  receitaDASNPorTipo, regraLimiteMEI, percentualIsentoPorCategoria,
 } from '../../../../lib/meiHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import PainelObrigacoesDAS from '../../../../components/mei/PainelObrigacoesDAS'
@@ -97,6 +98,21 @@ export default function DASObrigacoes() {
     calculadora: { pt: 'Calculadora DASN-SIMEI', en: 'DASN-SIMEI Calculator', es: 'Calculadora DASN-SIMEI' },
     receitaBruta: { pt: 'Receita Bruta', en: 'Gross Revenue', es: 'Ingresos Brutos' },
     categoria: { pt: 'Categoria', en: 'Category', es: 'Categoría' },
+    receitaDe: { pt: 'Soma das receitas do ano em Faturamento que contam no limite do MEI.', en: 'Sum of this year revenues in Revenue that count toward the MEI limit.', es: 'Suma de los ingresos del año en Facturación que cuentan en el límite del MEI.' },
+    foraLimite: { pt: '{n} receitas ({v}) estão marcadas como fora do limite do MEI e não entram na declaração. Confira em Faturamento.', en: '{n} revenues ({v}) are marked outside the MEI limit and are not declared. Check in Revenue.', es: '{n} ingresos ({v}) están marcados fuera del límite del MEI y no entran en la declaración. Revise en Facturación.' },
+    verFaturamento: { pt: 'Ver em Faturamento', en: 'See in Revenue', es: 'Ver en Facturación' },
+    copiar: { pt: 'Copiar', en: 'Copy', es: 'Copiar' },
+    copiado: { pt: 'Valor copiado — cole no campo da declaração', en: 'Amount copied — paste it in the declaration field', es: 'Valor copiado — pegue en el campo de la declaración' },
+    categoriaDefine: { pt: 'Sua categoria define o valor do DAS, o limite do ano e quanto do lucro é isento de IR.', en: 'Your category sets the DAS amount, the yearly limit and how much profit is income-tax free.', es: 'Su categoría define el valor del DAS, el límite del año y cuánto del lucro está exento de IR.' },
+    alterarCategoria: { pt: 'Alterar em Meu MEI', en: 'Change in My MEI', es: 'Cambiar en Mi MEI' },
+    catDas: { pt: 'DAS por mês', en: 'DAS per month', es: 'DAS por mes' },
+    catLimite: { pt: 'Limite do ano', en: 'Yearly limit', es: 'Límite del año' },
+    catIsento: { pt: 'Lucro isento de IR', en: 'Income-tax free profit', es: 'Lucro exento de IR' },
+    dasnCampos: { pt: 'Campos da declaração', en: 'Declaration fields', es: 'Campos de la declaración' },
+    dasnComercio: { pt: 'Comércio, indústria e transporte (ICMS)', en: 'Trade, industry and transport (ICMS)', es: 'Comercio, industria y transporte (ICMS)' },
+    dasnServicos: { pt: 'Prestação de serviços (ISS)', en: 'Services (ISS)', es: 'Prestación de servicios (ISS)' },
+    dasnSemTipo: { pt: 'Sem tipo — divida entre os 2 campos acima', en: 'No type — split between the 2 fields above', es: 'Sin tipo — divida entre los 2 campos de arriba' },
+    dasnDica: { pt: 'O tipo vem da categoria de cada receita em Faturamento (Vendas de produtos ou Prestação de serviços). A declaração também pergunta se você teve empregado no ano.', en: 'The type comes from each revenue category in Revenue (Vendas de produtos or Prestação de serviços). The declaration also asks whether you had an employee this year.', es: 'El tipo viene de la categoría de cada ingreso en Facturación (Vendas de produtos o Prestação de serviços). La declaración también pregunta si tuvo empleado en el año.' },
     abrirPortal: { pt: 'Abrir Portal DASN-SIMEI', en: 'Open DASN-SIMEI Portal', es: 'Abrir Portal DASN-SIMEI' },
     dasTodoDia: { pt: 'Todo dia {d} de cada mês', en: 'Every day {d} of each month', es: 'Cada día {d} de cada mes' },
     mapaConsequencias: { pt: 'Mapa de Consequências — DAS em Atraso', en: 'Consequences Map — Overdue DAS', es: 'Mapa de Consecuencias — DAS Atrasado' },
@@ -262,6 +278,11 @@ export default function DASObrigacoes() {
   }
 
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
+  const categoriaAtual = meiDados?.categoria_mei || 'Serviços'
+  const dasn = receitaDASNPorTipo(receitas, anoAtual, categoriaAtual)
+  const copiarValor = (v: number) => {
+    navigator.clipboard.writeText(v.toFixed(2).replace('.', ',')).then(() => showToast(t('copiado'), 'ok'), () => showToast(fmt(v), 'erro'))
+  }
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   // O status é gravado em português (valor do banco); na tela, no idioma escolhido.
@@ -640,13 +661,48 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('calculadora')}</p>
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
-              <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
-              <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
+                  <button onClick={() => copiarValor(faturamentoAnual)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button>
+                </span>
+              </div>
+              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('receitaDe')}</p>
+              {dasn.qtdForaDoLimite > 0 && (
+                <p className="text-xs mt-2" style={{ color: 'var(--axi-text-primary)' }}>
+                  <AlertTriangle size={12} className="inline mr-1" />{t('foraLimite').replace('{n}', String(dasn.qtdForaDoLimite)).replace('{v}', fmt(dasn.foraDoLimite))}{' '}
+                  <a href="/mei/faturamento" className="underline font-bold">{t('verFaturamento')}</a>
+                </p>
+              )}
             </div>
-            <div className="flex justify-between items-center p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
-              <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}</span>
-              <span className="text-sm font-bold" style={{ color: AZUL }}>{meiDados?.categoria_mei || 'Serviços'}</span>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('dasnCampos')} ({anoAtual})</p>
+              {([[t('dasnComercio'), dasn.comercio], [t('dasnServicos'), dasn.servicos], ...(dasn.semTipo ? [[t('dasnSemTipo'), dasn.semTipo]] : [])] as [string, number][]).map(([k, v]) => (
+                <div key={k} className="flex justify-between items-center gap-2 text-sm py-1">
+                  <span style={{ color: 'var(--axi-text-primary)' }}>{k}</span>
+                  <span className="flex items-center gap-2"><b style={{ color: 'var(--axi-text-primary)' }}>{fmt(v)}</b>
+                    <button onClick={() => copiarValor(v)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button></span>
+                </div>
+              ))}
+              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dasnDica')}</p>
+            </div>
+            <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
+              <div className="flex justify-between items-center gap-2 flex-wrap">
+                <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}: <b style={{ color: AZUL }}>{categoriaAtual}</b></span>
+                <a href="/mei" className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#1e3a5f', color: '#ffffff' }}>{t('alterarCategoria')}</a>
+              </div>
+              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('categoriaDefine')}</p>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {[
+                  [t('catDas'), fmt(dasMensalPorCategoria(categoriaAtual))],
+                  [t('catLimite'), fmt(regraLimiteMEI(categoriaAtual, anoAtual).anual)],
+                  [t('catIsento'), `${Math.round(percentualIsentoPorCategoria(categoriaAtual) * 100)}%`],
+                ].map(([k, v]) => (
+                  <div key={k}><p className="text-[11px]" style={{ color: 'var(--axi-text-secondary)' }}>{k}</p><p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{v}</p></div>
+                ))}
+              </div>
             </div>
             <a href="https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/declaracao-anual-de-faturamento-dasn-simei"
               target="_blank" rel="noopener noreferrer"
