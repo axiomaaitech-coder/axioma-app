@@ -123,6 +123,15 @@ const pt: DocumentoAxioma = {
       'Confira o valor e clique em **Salvar**.',
     ] },
 
+    { h2: 'Abrir minha empresa (MEI ou ME)' },
+    { numerada: [
+      'No fim do Painel MEI, no cartão **Abrir minha empresa**, escolha **Abrir MEI** ou **Abrir ME (Simples)**.',
+      'Siga os passos: cada um tem o botão **Abrir portal oficial** (gov.br, REDESIM, Portal do Simples). Abrir MEI é gratuito.',
+      'Quando o CNPJ sair, digite em **Já tenho CNPJ** e clique em **Buscar na Receita e preencher**.',
+      'A janela Configurar MEI abre com CNPJ, razão social, atividade e data de abertura preenchidos: confira e clique em **Salvar**.',
+    ] },
+    { nota: 'ME nova tem prazo para optar pelo Simples Nacional: até 30 dias da última inscrição (municipal ou estadual), sem passar de 60 dias da abertura do CNPJ (Resolução CGSN 140/2018, art. 6º). Regra conferida em 10/10/2026.' },
+
     { h1: 'Ligações com outros módulos' },
     { tabela: { colunas: ['Vem de', 'Para quê'], larguras: [3000, 6026], linhas: [
       ['Receitas / MEI → Faturamento', 'Faturamento, teto, evolução de ganhos.'],
@@ -269,6 +278,15 @@ const en: DocumentoAxioma = {
       'Check the amount and click **Save**.',
     ] },
 
+    { h2: 'Open my company (MEI or ME)' },
+    { numerada: [
+      'At the end of the MEI Panel, on the **Open my company** card, choose **Open MEI** or **Open ME (Simples)**.',
+      'Follow the steps: each has an **Open official portal** button (gov.br, REDESIM, Simples Portal). Opening an MEI is free.',
+      'When the CNPJ is out, type it in **I already have a CNPJ** and click **Fetch and fill in**.',
+      'The Configure MEI window opens with CNPJ, company name, activity and opening date filled in: check and click **Save**.',
+    ] },
+    { nota: 'A new ME has a deadline to opt into Simples Nacional: up to 30 days from the last registration (city or state), no more than 60 days from the CNPJ opening (CGSN Resolution 140/2018, art. 6). Rule checked on 10/10/2026.' },
+
     { h1: 'Links with other modules' },
     { tabela: { colunas: ['Comes from', 'Used for'], larguras: [3000, 6026], linhas: [
       ['Revenue / MEI → Revenue', 'Revenue, cap, earnings evolution.'],
@@ -414,6 +432,15 @@ const es: DocumentoAxioma = {
       'Haga clic en la nueva categoría: el valor del DAS cambia solo.',
       'Revise el valor y haga clic en **Guardar**.',
     ] },
+
+    { h2: 'Abrir mi empresa (MEI o ME)' },
+    { numerada: [
+      'Al final del Panel MEI, en la tarjeta **Abrir mi empresa**, elija **Abrir MEI** o **Abrir ME (Simples)**.',
+      'Siga los pasos: cada uno tiene el botón **Abrir portal oficial** (gov.br, REDESIM, Portal del Simples). Abrir un MEI es gratuito.',
+      'Cuando salga el CNPJ, escríbalo en **Ya tengo CNPJ** y haga clic en **Buscar y llenar**.',
+      'La ventana Configurar MEI se abre con CNPJ, razón social, actividad y fecha de apertura llenados: revise y haga clic en **Guardar**.',
+    ] },
+    { nota: 'Una ME nueva tiene plazo para optar por el Simples Nacional: hasta 30 días de la última inscripción (municipal o estatal), sin pasar de 60 días de la apertura del CNPJ (Resolución CGSN 140/2018, art. 6º). Regla verificada el 10/10/2026.' },
 
     { h1: 'Conexiones con otros módulos' },
     { tabela: { colunas: ['Viene de', 'Para qué'], larguras: [3000, 6026], linhas: [

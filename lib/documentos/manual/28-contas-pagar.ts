@@ -51,6 +51,16 @@ const doc: DocumentoAxioma = {
       'Ao pagar, clique em **Dar Baixa**, informe valor e data e **Confirmar Baixa**. Errou? **Estornar pagamento** com motivo.',
     ] },
     { nota: 'Uma conta paga não pode ser excluída: estorne a baixa primeiro. Perfis somente leitura veem tudo, mas não alteram.' },
+
+    { h1: 'Pagar o DAS do Simples Nacional (ME/EPP)' },
+    { p: 'Contas da categoria **Impostos** com "DAS" ou "Simples Nacional" na descrição ganham o botão verde **Pagar DAS** na linha da conta.' },
+    { numerada: [
+      'Clique em **Pagar DAS** → **Abrir o PGDAS-D**, faça a apuração do mês e clique em "Gerar DAS". Baixe o PDF.',
+      'Clique em **Escolher arquivo** e envie a guia. A inteligência do Axioma lê valor, vencimento, meses e códigos, e confere os códigos por regra.',
+      'Use **Copiar Pix** ou **Copiar código de barras** no app do banco (ou **Pagar com Pix pelo Axioma**, em ativação).',
+      'Informe a data e clique em **Já paguei**: a baixa sai nesta conta, com multa/juros da guia como encargos, e vai para o Fluxo de Caixa e a Contabilidade.',
+    ] },
+    { nota: 'O DAS do MEI não é pago por aqui: ele fica em MEI → DAS & Obrigações (Manual 05).' },
   ],
 }
 

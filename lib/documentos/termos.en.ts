@@ -141,6 +141,16 @@ const doc: DocumentoAxioma = {
       'Axioma is not a financial institution and is not liable for refusals, delays or failures caused by the bank, the initiating institution or the payee.',
     ] },
 
+    { h2: '11.1 Tax slips (MEI and Simples Nacional DAS)' },
+    { lista: [
+      'The slip is **issued by the Customer on the official portal** (PGMEI or PGDAS-D). Axioma reads the uploaded slip with artificial intelligence and checks the codes by rule, but **the Customer checks amount, due date, periods and CNPJ before paying**.',
+      'The payment is made by the Customer: in the bank app (Pix or barcode), on the official portal (credit card, when available) or by Pix through Axioma, authorized at the Customer bank.',
+      'The "Already paid" record is a statement by the Customer. The official receipt is the one from the bank or the Federal Revenue portal; Axioma does not replace checking the official systems.',
+      'Amounts, limits and deadlines shown follow the official rules in force on the date shown on screen and may change with a new law or regulation.',
+    ] },
+    { h2: '11.2 Opening a company (MEI and ME)' },
+    { p: 'Axioma shows the steps and the links to the official portals (gov.br, REDESIM, Board of Trade and Simples Nacional Portal). Opening, registrations and opting into Simples Nacional are done by the Customer on those portals. Axioma does not open companies, does not represent the Customer before public bodies and does not charge for MEI registration, which is free. Data fetched by CNPJ comes from the Federal Revenue public database and must be checked before saving.' },
+
     { h1: '12. Customer Data and data protection' },
     { p: 'Customer Data belongs to the Customer. Axioma processes it only to provide the service, in accordance with these Terms, the Privacy Policy and the LGPD.' },
     { lista: [

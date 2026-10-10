@@ -140,6 +140,16 @@ const doc: DocumentoAxioma = {
       'O Axioma não é instituição financeira e não responde por recusas, atrasos ou falhas causadas pelo banco, pela instituição iniciadora ou pelo recebedor.',
     ] },
 
+    { h2: '11.1 Guias de tributos (DAS do MEI e do Simples Nacional)' },
+    { lista: [
+      'A guia é **gerada pelo Cliente no portal oficial** (PGMEI ou PGDAS-D). O Axioma lê a guia enviada com inteligência artificial e confere os códigos por regra, mas **o Cliente confere valor, vencimento, períodos e CNPJ antes de pagar**.',
+      'O pagamento é feito pelo Cliente: no aplicativo do banco (Pix ou código de barras), no portal oficial (cartão de crédito, quando disponível) ou pelo Pix pelo Axioma, autorizado no banco do Cliente.',
+      'O registro "Já paguei" é uma declaração do Cliente. O comprovante oficial é o do banco ou do portal da Receita Federal; o Axioma não substitui a consulta aos sistemas oficiais.',
+      'Valores, limites e prazos exibidos seguem as regras oficiais vigentes na data indicada na tela e podem mudar por nova lei ou norma.',
+    ] },
+    { h2: '11.2 Abertura de empresa (MEI e ME)' },
+    { p: 'O Axioma mostra o passo a passo e os links dos portais oficiais (gov.br, REDESIM, Junta Comercial e Portal do Simples Nacional). A abertura, as inscrições e a opção pelo Simples Nacional são feitas pelo Cliente nesses portais. O Axioma não abre empresa, não representa o Cliente perante órgãos públicos e não cobra pela formalização do MEI, que é gratuita. Os dados buscados pelo CNPJ vêm da base pública da Receita Federal e devem ser conferidos antes de salvar.' },
+
     { h1: '12. Dados do Cliente e proteção de dados' },
     { p: 'Os Dados do Cliente pertencem ao Cliente. O Axioma os trata apenas para prestar o serviço, conforme estes Termos, a Política de Privacidade e a LGPD.' },
     { lista: [
