@@ -77,7 +77,11 @@ export default function RiscoPage() {
               <p className="text-sm font-semibold">{L('Nota geral de risco', 'Overall risk score', 'Nota general de riesgo')}</p>
               <p className="text-xs" style={{ color: P.CINZA }}>{L('Média das notas com dado. 100 = nenhum risco à vista. Médias mensais dos últimos 12 meses — os mesmos números que a IA usa.', 'Average of scores with data. 100 = no risk in sight. Monthly averages of the last 12 months — the same numbers the AI uses.', 'Promedio de las notas con dato. 100 = ningún riesgo a la vista. Promedios mensuales de los últimos 12 meses — los mismos números que usa la IA.')}</p>
             </div>
-            <p className="text-3xl font-black" style={{ color: cor(nivelDaNota(geral)) }}>{carregando ? '…' : geral == null ? '—' : `${geral}/100`}</p>
+            {ordenados[0] && ordenados[0].nota != null ? (
+              <Link href={ordenados[0].rota} title={L(`Abrir o pior risco: ${ordenados[0].titulo}`, `Open the worst risk: ${ordenados[0].titulo}`, `Abrir el peor riesgo: ${ordenados[0].titulo}`)} className="text-3xl font-black hover:brightness-110" style={{ color: cor(nivelDaNota(geral)) }}>{carregando ? '…' : geral == null ? '—' : `${geral}/100`} →</Link>
+            ) : (
+              <p className="text-3xl font-black" style={{ color: cor(nivelDaNota(geral)) }}>{carregando ? '…' : geral == null ? '—' : `${geral}/100`}</p>
+            )}
           </div>
 
           {falhou && (
@@ -91,9 +95,9 @@ export default function RiscoPage() {
               <div key={i.chave} className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa flex flex-col gap-2" style={painel}>
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-semibold">{i.titulo}</p>
-                  <span className="text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap" style={{ background: cor(i.nivel), color: '#ffffff' }}>
-                    {i.nota == null ? rotulo(i.nivel) : `${i.nota} · ${rotulo(i.nivel)}`}
-                  </span>
+                  <Link href={i.rota} title={L('Abrir o módulo deste risco', 'Open the module of this risk', 'Abrir el módulo de este riesgo')} className="text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap hover:brightness-110" style={{ background: cor(i.nivel), color: '#ffffff' }}>
+                    {i.nota == null ? rotulo(i.nivel) : `${i.nota} · ${rotulo(i.nivel)}`} →
+                  </Link>
                 </div>
                 <p className="text-xs rounded-lg px-3 py-2 axi-card-premium3d axi-card-faixa" style={aninhada}>{i.explicacao}</p>
                 <Link href={i.rota} className="self-start inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? '#0f7a5a' : '#101b3d', color: '#ffffff' }}>
