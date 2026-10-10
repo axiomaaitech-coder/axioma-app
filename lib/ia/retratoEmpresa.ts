@@ -10,6 +10,7 @@
 // ponytail: agrega no servidor com teto de 5000 linhas por tabela; mover as
 // somas pra RPC no banco quando algum cliente passar desse volume.
 // ═══════════════════════════════════════════════════════════════
+import { saldoCaixaRealizado } from '../caixaSaldo'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
 import { calcularImpostoRegime, simularRegimes, categoriaMeiDaEmpresa } from '../iaTributariaHelpers'
@@ -85,7 +86,8 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
     lerTodas(() => supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).order('id')),
-    lerTodas(() => supabase.from('fluxo_caixa').select('tipo, valor, status').eq('empresa_id', empresaId).eq('status', 'realizado').order('id')),
+    // Caixa: conta única com o Fluxo de Caixa (realizado até hoje + PDV recebido) — lib/caixaSaldo.
+    saldoCaixaRealizado(supabase, empresaId, iso(hoje)),
     lerTodas(() => supabase.from('contas_receber').select('cliente_id, valor, valor_recebido, data_vencimento').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('contas_pagar').select('valor_total, valor_pago, data_vencimento').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('vw_estoque_avisos').select('ruptura, baixo_estoque, capital_parado').eq('empresa_id', empresaId).order('produto_id')),
@@ -122,7 +124,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const jurosMensal = dividas.reduce((t, d) => t + saldoDiv(d) * (n(d.taxa_juros) / 100), 0)
   const dre = montarDRE({ receitaBruta: receitaMensal, deducoes: impostoMensal, custoVariavel: custoVariavelMensal, custoFixo: custoFixoMensal, despesasFinanceiras: jurosMensal })
   const lucroMensal = dre.lucroLiquido.valor
-  const caixa = L(fc).reduce((t, l) => t + (l.tipo === 'entrada' ? n(l.valor) : -n(l.valor)), 0)
+  const caixa = fc.saldo
 
   // Contas a receber/pagar: saldo em aberto = valor − já pago (não depende do texto do status)
   type Aberto = Linha & { saldo: number }

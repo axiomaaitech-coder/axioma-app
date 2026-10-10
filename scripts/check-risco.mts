@@ -44,3 +44,13 @@ assert.equal(mesesDeCaixa(30000, 10000), 3)
 assert.equal(mesesDeCaixa(-5, 10000), 0)
 assert.equal(mesesDeCaixa(1000, 0), null)
 console.log('check-risco métricas: ok')
+
+// Saldo de caixa: PDV só entra o que já virou dinheiro (finalizada, não cancelada, não crédito, até hoje)
+const { pdvRealizadoAte } = await import('../lib/caixaSaldo')
+assert.equal(pdvRealizadoAte([
+  { valor_total: 100, status: 'finalizada', forma_pagamento: 'pix', finalizada_em: '2026-10-01T10:00:00Z', criado_em: null, cancelada_em: null },
+  { valor_total: 50, status: 'finalizada', forma_pagamento: 'credito', finalizada_em: '2026-10-01T10:00:00Z', criado_em: null, cancelada_em: null },
+  { valor_total: 30, status: 'finalizada', forma_pagamento: 'dinheiro', finalizada_em: '2026-10-02T10:00:00Z', criado_em: null, cancelada_em: '2026-10-03T10:00:00Z' },
+  { valor_total: 20, status: 'finalizada', forma_pagamento: 'debito', finalizada_em: '2026-10-20T10:00:00Z', criado_em: null, cancelada_em: null },
+], '2026-10-10'), 100)
+console.log('check-risco saldo de caixa: ok')

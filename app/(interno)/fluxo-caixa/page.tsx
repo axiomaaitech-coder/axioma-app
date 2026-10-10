@@ -1,4 +1,5 @@
 ﻿"use client";
+import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Sparkles, Zap, ShieldAlert, MessageSquareText } from "lucide-react";
@@ -149,6 +150,7 @@ export default function FluxoCaixa() {
   const [contasReceberRows, setContasReceberRows] = useState<any[]>([]);
   const [contasPagarRows, setContasPagarRows] = useState<any[]>([]);
   const [custosFixosRows, setCustosFixosRows] = useState<any[]>([]);
+  const [saldoReal, setSaldoReal] = useState<number | null>(null);
   const [dividasRows, setDividasRows] = useState<any[]>([]);
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
@@ -185,6 +187,9 @@ export default function FluxoCaixa() {
     ]);
 
     setLancamentos([...(fc || []), ...lancamentosPdvFluxo(pdv.data)]);
+    const sr = await saldoCaixaRealizado(supabase, empresaId, hojeISO());
+    if (sr.erro) showToast(L("O saldo de caixa não carregou inteiro — confira mais tarde.", "The cash balance did not fully load — check again later.", "El saldo de caja no cargó entero — revise más tarde."), "erro");
+    setSaldoReal(sr.erro ? null : sr.saldo);
     if (pdv.erro) showToast(L("Vendas do PDV não carregaram — o caixa pode estar incompleto.", "PDV sales did not load — cash may be incomplete.", "Las ventas del PDV no cargaron — la caja puede estar incompleta."), "erro");
     setContasReceberRows(cr || []);
     setContasPagarRows(cp || []);
@@ -296,8 +301,10 @@ export default function FluxoCaixa() {
   })();
 
   // Saldo real de caixa hoje (só o que já foi realizado, não o previsto)
-  const saldoAtualReal = entradasItens.filter(e => e.status === "realizado").reduce((a, r) => a + r.valor, 0)
-    - saidasItens.filter(s => s.status === "realizado").reduce((a, r) => a + r.valor, 0);
+  // Conta única com o retrato/IA/Painel de Risco (lib/caixaSaldo): realizado DESDE SEMPRE até hoje + PDV recebido.
+  // Antes somava só a janela de 24 meses carregada para os gráficos.
+  const saldoAtualReal = saldoReal ?? (entradasItens.filter(e => e.status === "realizado").reduce((a, r) => a + r.valor, 0)
+    - saidasItens.filter(s => s.status === "realizado").reduce((a, r) => a + r.valor, 0));
 
   const hoje = isoHoje();
   const entradasManualPrevistas: EventoCaixa[] = entradasItens.filter(e => e.status === "previsto" && e.data >= hoje).map(e => ({ data: e.data, valor: e.valor }));
@@ -428,7 +435,7 @@ export default function FluxoCaixa() {
         ],
         linhas: lancamentosPeriodo.map((l) => ({
           descricao: l.descricao, tipo: l.tipo === "entrada" ? "Entrada" : "Saída",
-          data: l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "-",
+          data: l.data ? new Date(l.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "-",
           status: l.status === "realizado" ? "Realizado" : "Previsto",
           valor: `${l.tipo === "entrada" ? "+" : "-"} ${fBRL2(l.valor)}`,
         })),
@@ -457,7 +464,7 @@ export default function FluxoCaixa() {
   const textoDetalhado = [
     `🚀 AXIOMA AI.TECH — ${t.fluxoCaixa.titulo} (detalhado)`,
     ...lancamentosPeriodo.map((l) =>
-      `${l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${l.descricao} | ${l.tipo === "entrada" ? "Entrada" : "Saída"} | ${l.status === "realizado" ? "Realizado" : "Previsto"} | R$ ${fBRL2(l.valor)}`
+      `${l.data ? new Date(l.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") : "-"} | ${l.descricao} | ${l.tipo === "entrada" ? "Entrada" : "Saída"} | ${l.status === "realizado" ? "Realizado" : "Previsto"} | R$ ${fBRL2(l.valor)}`
     ),
     `_axiomaai.com.br_`,
   ].join("\n");
@@ -489,9 +496,9 @@ export default function FluxoCaixa() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString("pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
-            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString("pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
-            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtualReal.toLocaleString("pt-BR")}`, cor: saldoAtualReal >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtualReal >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
+            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
+            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
+            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtualReal.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: saldoAtualReal >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtualReal >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -676,7 +683,7 @@ export default function FluxoCaixa() {
                           {l.tipo === "entrada" ? t.fluxoCaixa.entrada : t.fluxoCaixa.saida}
                         </span>
                       </td>
-                      <td className="px-4 md:px-6 py-4 text-sm" style={{ color: TEXTO_SEC }}>{new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-4 text-sm" style={{ color: TEXTO_SEC }}>{new Date(l.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}</td>
                       <td className="px-4 md:px-6 py-4">
                         <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#2ecc9b") }}>
                           {l.status === "realizado" ? t.fluxoCaixa.realizado : t.fluxoCaixa.previsto}
