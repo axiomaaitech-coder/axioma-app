@@ -49,7 +49,8 @@ export default function ConferenciaPage() {
   const Celula = ({ p }: { p: Par }) => (
     <td className="px-2 py-1.5 text-right whitespace-nowrap" title={`${fmt(p.a)} × ${fmt(p.b)}`}>
       <span className="inline-flex items-center gap-1 font-semibold" style={{ color: p.ok ? P.VERDE : P.VERMELHO }}>
-        {p.ok ? <Check size={12} /> : <X size={12} />}{p.ok ? fmt(p.a) : fmt(p.diferenca)}
+        {p.ok ? <Check size={12} aria-hidden /> : <X size={12} aria-hidden />}
+        {p.ok ? `${L('bate', 'matches', 'cuadra')} · ${fmt(p.a)}` : `${L('diferença', 'difference', 'diferencia')} ${fmt(Math.abs(p.diferenca))}`}
       </span>
     </td>
   )
