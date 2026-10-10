@@ -1369,6 +1369,12 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 
 **Publicado:** tudo na main (d365c44); falta conferir no site.
 
+**Sessão 2026-10-10 (tarde) — bloco A "dinheiro batendo" aprovado pelo Elias (A1→A6, commit+push e STATUS a cada etapa):**
+- Conferido no Chrome: Abrir minha empresa, Calculadora DASN, Documentos p/ contador, janela Pagar este DAS, IA com regras oficiais ✅. "Pagar DAS" de Contas a Pagar sem conta de teste (pedir ok).
+- PDFs 23–43 + Termos/Privacidade gerados (69 PDFs). Login/cadastro: `next` só caminho interno. MEI Advisor (bolhas navy/branco) e Evolução de Ganhos (todas as barras verde-menta escuro) no Claro.
+- A1 ✅ Dívidas no motor: "entrou no caixa agora" (empréstimo novo → Fluxo realizado + Contabilidade 3.05), aumento do "Já pago" = pagamento de hoje (com Motor Antiduplicidade), diminuir desfaz, apagar desfaz tudo. Origem "dividas" no motor/selo/Rastreabilidade; Fluxo agora trata aporte/empréstimo vindos de outro módulo como ENTRADA. Manual 15 atualizado.
+- PRÓXIMO: A2 Conferência diária ✅/❌ automática.
+
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 
 **FALTA — depende do Elias:** ok por caso para D3 (Campanha R$ 9.800), D4 (NF 4498 R$ 50.000), D5 (46 receitas só na Contabilidade), D7 (Farma Vida R$ 110.000); manter ou não o campo editável "DAS Mensal"; INSS do DAS em 10.01 (validar com contador); dados da empresa e data de vigência dos Termos; demais itens da lista de 2026-10-09.

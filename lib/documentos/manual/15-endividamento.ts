@@ -41,6 +41,8 @@ const doc: DocumentoAxioma = {
     { h1: 'Passo a passo: cadastrar uma dívida' },
     { numerada: ['Clique em **+ Nova Dívida**.', 'Informe descrição, credor/categoria, valor total, valor já pago, taxa de juros mensal, número de parcelas e o próximo vencimento.', 'Clique em **Salvar Dívida**.'] },
     { p: 'As parcelas passam a aparecer na previsão do Fluxo de Caixa e os juros entram na DRE automaticamente.' },
+    { p: '**Empréstimo novo:** marque **"O dinheiro deste empréstimo entrou no caixa da empresa agora"** e a entrada vai sozinha para o Fluxo de Caixa (realizado) e para a Contabilidade (conta 3.05 Empréstimos). Dívida antiga ou financiamento pago direto ao vendedor: deixe desmarcado.' },
+    { p: '**Registrar um pagamento:** clique no lápis da dívida e aumente o **Já pago**. A diferença vira o pagamento de hoje no Fluxo de Caixa e na Contabilidade, e a previsão de parcelas diminui na mesma hora. Se o mesmo valor já saiu por outro caminho (por exemplo lançado à mão no Fluxo), o Axioma avisa antes. Diminuir o Já pago desfaz o pagamento lançado; apagar a dívida desfaz tudo o que ela lançou. Pagamento de dívida não é despesa: a DRE não muda (só os juros).' },
   ],
 }
 

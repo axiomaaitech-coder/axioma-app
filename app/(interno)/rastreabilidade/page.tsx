@@ -64,6 +64,7 @@ const NOME_ORIGEM: Record<string, Record<Idioma3, string>> = {
   custos_fixos: { pt: 'Custo Fixo (gerada sozinha no mês)', en: 'Fixed Cost (generated automatically)', es: 'Costo Fijo (generada sola en el mes)' },
   receitas: { pt: 'Receitas', en: 'Revenue', es: 'Ingresos' },
   custos_variaveis: { pt: 'Custos Variáveis', en: 'Variable Costs', es: 'Costos Variables' },
+  dividas: { pt: 'Dívidas (Endividamento)', en: 'Debts', es: 'Deudas' },
   fluxo_caixa: { pt: 'Fluxo de Caixa', en: 'Cash Flow', es: 'Flujo de Caja' },
   faturamento_mei: { pt: 'Faturamento MEI', en: 'MEI Revenue', es: 'Facturación MEI' },
   importar_documentos_custo: { pt: 'Nota importada (Importar Documentos)', en: 'Imported invoice (Import Documents)', es: 'Nota importada (Importar Documentos)' },
@@ -221,7 +222,7 @@ export default function RastreabilidadePage() {
               const exp = explicacoes.find((e) => e.rastreio_id === r.id)
               const destinos = DESTINOS_POR_TIPO[r.tipo].map((d) => r.rastreio_destino.find((x) => x.destino === d) ?? { destino: d, status: 'pendente' as StatusDestino, ultimo_erro: null, tentativas: 0, resolvido_por: null, executado_em: null })
               const entrada = r.tipo === 'ar_recebimento' || (r.tipo === 'manual' && ['receita', 'aporte', 'emprestimo'].includes(r.payload?.natureza || ''))
-              const ROTAS: Record<string, string> = { contas_pagar: '/contas-pagar', contas_receber: '/contas-receber', receitas: '/receitas', custos_variaveis: '/custos-variaveis', fluxo_caixa: '/fluxo-caixa' }
+              const ROTAS: Record<string, string> = { contas_pagar: '/contas-pagar', contas_receber: '/contas-receber', receitas: '/receitas', custos_variaveis: '/custos-variaveis', fluxo_caixa: '/fluxo-caixa', dividas: '/endividamento' }
               const rotaOrigem = ROTAS[r.origem_tabela] || '/contas-receber'
               const ehConta = r.origem_tabela === 'contas_pagar' || r.origem_tabela === 'contas_receber'
               return (

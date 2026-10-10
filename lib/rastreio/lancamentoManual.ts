@@ -23,7 +23,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-export type OrigemManual = "receitas" | "custos_variaveis" | "fluxo_caixa";
+export type OrigemManual = "receitas" | "custos_variaveis" | "fluxo_caixa" | "dividas";
 export type Natureza = "receita" | "custo" | "aporte" | "emprestimo" | "pag_emprestimo" | "retirada" | "transferencia" | "aplicacao";
 export type LancamentoManual = {
   id: string; descricao: string; valor: number; data: string; natureza: Natureza;
@@ -90,6 +90,22 @@ export async function desfazerLancamentoManual(empresaId: string, origem: Origem
   if (error) return { erro: error.message };
   const ult = data?.[0];
   if (!ult || ult.tipo !== "manual") return {}; // linha de antes do motor, ou já desfeita
+  return estornarRastro(empresaId, origem, id, ult);
+}
+
+// Linha com VÁRIOS lançamentos (Dívidas: cada pagamento é um rastro): lançamentos
+// ainda ativos (sem estorno), do mais novo ao mais antigo.
+export async function lancamentosAtivos(empresaId: string, origem: OrigemManual, id: string) {
+  const { data, error } = await supabase.from("rastreio_movimentacao").select("id, tipo, evento_id, valor, payload")
+    .eq("empresa_id", empresaId).eq("origem_tabela", origem).eq("origem_id", id).in("tipo", ["manual", "manual_estorno"])
+    .order("criado_em", { ascending: false });
+  if (error) return { erro: error.message, ativos: [] as RastroManual[] };
+  const desfeitos = new Set((data || []).filter((r) => r.tipo === "manual_estorno").map((r) => (r.payload as PayloadRastreio).rastreio_original_id));
+  return { ativos: (data || []).filter((r) => r.tipo === "manual" && !desfeitos.has(r.id as string)) as RastroManual[] };
+}
+
+type RastroManual = { id: string; tipo: string; evento_id: string | null; valor: number; payload: unknown };
+export async function estornarRastro(empresaId: string, origem: OrigemManual, id: string, ult: RastroManual): Promise<{ erro?: string }> {
   const orig = ult.payload as PayloadRastreio;
   const r = await registrarMovimentacao({
     empresaId, tipo: "manual_estorno", origemTabela: origem, origemId: id, valor: Number(ult.valor), data: hojeISO(), aguardar: true,

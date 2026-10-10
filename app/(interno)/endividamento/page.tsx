@@ -32,6 +32,8 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
+import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
+import { registrarLancamentoManual, lancamentosAtivos, estornarRastro, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -81,6 +83,7 @@ export default function Endividamento() {
   const campoFundo = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const campoFundo3 = temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const cx = cfoT(lang);
   const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : { premium3d: true };
   const classePremium3d = " axi-card-premium3d axi-card-faixa";
@@ -163,7 +166,7 @@ export default function Endividamento() {
   };
 
   const fecharModal = () => {
-    setModalAberto(false); setEditando(null);
+    setModalAberto(false); setEditando(null); setEntrouNoCaixa(false);
     setNovo({ descricao: "", tipo: tipos[0], valor_total: "", valor_pago: "", parcelas: "", vencimento: "", taxa_juros: "" });
   };
 
@@ -173,11 +176,49 @@ export default function Endividamento() {
     setModalAberto(true);
   };
 
-  const salvar = async () => {
+  // Espinha financeira: cada pagamento da dívida (aumento do "Já pago") e o dinheiro do
+  // empréstimo novo passam pelo motor → Contabilidade (3.05 Empréstimos) e Fluxo de Caixa.
+  // Não é resultado: DRE não muda. "Já pago" informado no cadastro é passado, não mexe no caixa.
+  const [entrouNoCaixa, setEntrouNoCaixa] = useState(false);
+  const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null);
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const ajustarMotor = async (empresaId: string, id: string, descricao: string, pagoAntes: number, pagoAgora: number, emprestimoRecebido: number) => {
+    const erros: (string | undefined)[] = [];
+    const lancar = (natureza: "emprestimo" | "pag_emprestimo", valor: number, texto: string) =>
+      registrarLancamentoManual(empresaId, "dividas", { id, descricao: `${texto}: ${descricao}`, valor, data: hojeISO(), natureza, categoria: natureza, modulo: "dividas" });
+    if (emprestimoRecebido > 0) erros.push((await lancar("emprestimo", emprestimoRecebido, "Empréstimo recebido")).erro);
+    const delta = r2(pagoAgora - pagoAntes);
+    if (delta > 0) erros.push((await lancar("pag_emprestimo", delta, "Pagamento de dívida")).erro);
+    if (delta < 0) {
+      // "Já pago" diminuiu (correção): desfaz os pagamentos mais novos até cobrir a diferença
+      // e relança o que sobrou. Pagamento de antes do motor não tem rastro: nada a desfazer.
+      const { ativos, erro } = await lancamentosAtivos(empresaId, "dividas", id);
+      erros.push(erro);
+      let falta = -delta;
+      for (const r of ativos.filter((a) => (a.payload as { natureza?: string }).natureza === "pag_emprestimo")) {
+        if (falta <= 0) break;
+        erros.push((await estornarRastro(empresaId, "dividas", id, r)).erro);
+        falta = r2(falta - Number(r.valor));
+      }
+      if (falta < 0) erros.push((await lancar("pag_emprestimo", -falta, "Pagamento de dívida")).erro);
+    }
+    if (erros.some(Boolean)) showToast(L("Dívida salva, mas a Contabilidade/Fluxo não foi atualizada agora — o Guardião tenta de novo.", "Debt saved, but Accounting/Cash Flow was not updated now — the Guardian will retry.", "Deuda guardada, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará."), "erro");
+  };
+
+  const salvar = async (forcar = false) => {
     if (!novo.descricao || !novo.valor_total) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
+    const empresaAtiva = await obterEmpresaAtiva();
+    if (!empresaAtiva) { setSalvando(false); return; }
+    const pagoAntes = editando ? Number(editando.valor_pago) || 0 : 0;
+    const pagoAgora = editando ? parseFloat(novo.valor_pago || "0") : 0;
+    // Pagamento novo: confere se esse dinheiro já não saiu por outro caminho (Fluxo, conta paga).
+    if (!forcar && pagoAgora - pagoAntes > 0) {
+      const v = await verificarDuplicidade(empresaAtiva, { entrada: false, valor: r2(pagoAgora - pagoAntes), data: hojeISO(), descricao: `Pagamento de dívida: ${novo.descricao}`, lang });
+      if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
+    }
     const payload = {
       descricao: novo.descricao, tipo: novo.tipo,
       valor_total: parseFloat(novo.valor_total),
@@ -194,9 +235,9 @@ export default function Endividamento() {
         setSalvando(false);
         return;
       }
+      await ajustarMotor(empresaAtiva, editando.id, payload.descricao, pagoAntes, pagoAgora, 0);
     } else {
-      const empresaId = await obterEmpresaAtiva();
-      if (!empresaId) { setSalvando(false); return; }
+      const empresaId = empresaAtiva;
       const { data, error } = await supabase.from("dividas").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
       if (error || !data || data.length === 0) {
         showToast(txt.erroSalvarDivida, "erro");
@@ -204,13 +245,22 @@ export default function Endividamento() {
         setSalvando(false);
         return;
       }
+      if (entrouNoCaixa) await ajustarMotor(empresaId, data[0].id as string, payload.descricao, 0, 0, payload.valor_total);
     }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 
   const excluir = async (id: string) => {
     // Regra do Elias: nada é apagado sem aviso e autorização de um supervisor.
-    if (!(await confirmar({ oQue: nomeItem(dividas.find((d) => d.id === id), { pt: "esta dívida", en: "this debt", es: "esta deuda" }), efeito: EFEITO.planejamento, tabela: "dividas", registroId: id }))) return;
+    if (!(await confirmar({ oQue: nomeItem(dividas.find((d) => d.id === id), { pt: "esta dívida", en: "this debt", es: "esta deuda" }), efeito: EFEITO.financeiro, tabela: "dividas", registroId: id }))) return;
+    // Apagar = a dívida não existiu: desfaz o empréstimo e os pagamentos lançados por ela.
+    const empresaId = await obterEmpresaAtiva();
+    if (empresaId) {
+      const { ativos, erro } = await lancamentosAtivos(empresaId, "dividas", id);
+      let falhou = !!erro;
+      for (const r of ativos) if ((await estornarRastro(empresaId, "dividas", id, r)).erro) falhou = true;
+      if (falhou) { showToast(L("Não foi possível desfazer esta dívida na Contabilidade/Fluxo. Tente novamente.", "Could not undo this debt in Accounting/Cash Flow. Try again.", "No se pudo deshacer esta deuda en Contabilidad/Flujo. Intente de nuevo."), "erro"); return; }
+    }
     const { data, error } = await supabase.from("dividas").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
       showToast(txt.erroExcluirDivida, "erro");
@@ -417,6 +467,7 @@ export default function Endividamento() {
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
       {janelaConfirmacao}
+      <AvisoDuplicidade aviso={avisoDup} temaClaro={temaClaro} onBloquear={() => setAvisoDup(null)} onLancar={() => { setAvisoDup(null); void salvar(true); }} />
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
       <div className="space-y-4">
 
@@ -746,11 +797,20 @@ export default function Endividamento() {
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: campoFundo, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
+                  {!editando && (
+                    <label className="flex items-start gap-2 text-xs cursor-pointer" style={{ color: "var(--axi-text-primary)" }}>
+                      <input type="checkbox" checked={entrouNoCaixa} onChange={(e) => setEntrouNoCaixa(e.target.checked)} className="mt-0.5" />
+                      <span>{L("O dinheiro deste empréstimo entrou no caixa da empresa agora (lança a entrada no Fluxo de Caixa e na Contabilidade). Deixe desmarcado para dívida antiga ou financiamento pago direto ao vendedor.", "The money from this loan came into the company's cash now (records the inflow in Cash Flow and Accounting). Leave unchecked for an old debt or a financing paid directly to the seller.", "El dinero de este préstamo entró en la caja de la empresa ahora (registra la entrada en Flujo de Caja y Contabilidad). Déjelo sin marcar para deuda antigua o financiamiento pagado directo al vendedor.")}</span>
+                    </label>
+                  )}
+                  {editando && (
+                    <p className="text-xs" style={{ color: "var(--axi-text-secondary)" }}>{L("Aumentar o “Já pago” registra o pagamento de hoje no Fluxo de Caixa e na Contabilidade.", "Raising “Already paid” records today's payment in Cash Flow and Accounting.", "Aumentar el “Ya pagado” registra el pago de hoy en Flujo de Caja y Contabilidad.")}</p>
+                  )}
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} disabled={salvando}
+                    onClick={() => void salvar()} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
                     style={{ background: "linear-gradient(135deg, #7f1d1d, #ff5a6b)", color: "#fff" }}>
-                    {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.endividamento.salvarDivida}
+                    {salvando ? t.geral.carregando : editando ? L("Salvar Alterações", "Save Changes", "Guardar Cambios") : t.endividamento.salvarDivida}
                   </motion.button>
                 </div>
               </CanvasBox>

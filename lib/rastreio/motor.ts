@@ -95,7 +95,7 @@ const CATEGORIA_AR_PARA_RECEITA: Record<string, string> = {
 // REGISTRAR — cria o evento + o rastro + os destinos e já tenta percorrer.
 // ============================================================================
 export async function registrarMovimentacao(p: {
-  empresaId: string; tipo: TipoRastreio; origemTabela: "contas_pagar" | "contas_receber" | "receitas" | "custos_variaveis" | "fluxo_caixa"; origemId: string;
+  empresaId: string; tipo: TipoRastreio; origemTabela: "contas_pagar" | "contas_receber" | "receitas" | "custos_variaveis" | "fluxo_caixa" | "dividas"; origemId: string;
   valor: number; encargos?: number; data: string; payload: PayloadRastreio;
   aguardar?: boolean; // estorno de lançamento manual: termina antes do lançamento novo nascer
 }): Promise<{ rastreioId?: string; erro?: string }> {
@@ -255,7 +255,7 @@ async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
   if (r.tipo === "manual_estorno") return r.origem_tabela === "fluxo_caixa" ? { status: "nao_aplica" } : apagarDoRastro("fluxo_caixa", r);
   // Lançado no próprio Fluxo de Caixa: já está lá.
   if (r.tipo === "manual" && r.origem_tabela === "fluxo_caixa") return { status: "nao_aplica" };
-  const entrada = r.tipo === "ar_recebimento" || (r.tipo === "manual" && r.payload.natureza === "receita");
+  const entrada = r.tipo === "ar_recebimento" || (r.tipo === "manual" && ["receita", "aporte", "emprestimo"].includes(r.payload.natureza ?? ""));
   const quem = r.payload.contraparte ? ` — ${r.payload.contraparte}` : "";
   const { error } = await supabase.from("fluxo_caixa").insert({
     empresa_id: r.empresa_id, user_id: r.usuario_id, rastreio_id: r.id,
