@@ -17,7 +17,8 @@ import ReactECharts from "echarts-for-react";
 import {
   fBRL, fBRL2, CORES, corTema, mesesPorLang, serieMensal, crescimentoMoM, ticketMedio,
   concentracao, percentualRecorrente, mrrArr, porCategoria, preverProximosMeses,
-  gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento, irParaDestino } from "../../../lib/cfoCore";
+  gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento, irParaDestino, resolverPeriodo, type Periodo, type PeriodoPreset } from "../../../lib/cfoCore";
+import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { cfoT, textoInsight } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -98,6 +99,9 @@ export default function Receitas() {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  // Período dos cartões e da lista (antes somavam tudo desde sempre). Análises anuais usam todo o histórico.
+  const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("ano_atual");
+  const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("ano_atual"));
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Receita | null>(null);
   const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" });
@@ -125,11 +129,13 @@ export default function Receitas() {
     if (!empresaId) { setCarregando(false); return; }
     setEmpresaIdAtivo(empresaId);
     setUserIdAtivo(user.id);
-    const [{ data }, { data: clientesData }, { data: centrosData }] = await Promise.all([
+    const [{ data, error }, { data: clientesData }, { data: centrosData }] = await Promise.all([
       lerTodas(() => supabase.from("receitas").select("*").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id")),
       supabase.from("clientes").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
       supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId),
     ]);
+    // Leitura falhou ≠ "não há receitas": avisa em vez de mostrar a lista vazia calada.
+    if (error) { showToast(L("Não foi possível carregar as receitas agora. Recarregue a página.", "Could not load revenue now. Reload the page.", "No se pudieron cargar los ingresos ahora. Recargue la página."), "erro"); reportarFalhaEscrita("receitas", "leitura", error.message); }
     setReceitas(data || []);
     setClientesOpcoes(clientesData || []);
     setCentrosCusto(centrosData || []);
@@ -214,14 +220,16 @@ export default function Receitas() {
     setReceitas(receitas.filter(r => r.id !== id));
   };
 
-  const receitasFiltradas = receitas.filter(r =>
+  const periodo = resolverPeriodo(presetPeriodo, personalizado);
+  const receitasPeriodo = receitas.filter(r => r.data >= periodo.inicio && r.data <= periodo.fim);
+  const receitasFiltradas = receitasPeriodo.filter(r =>
     r.descricao.toLowerCase().includes(busca.toLowerCase()) &&
     (filtroCategoria === "todas" || r.categoria === filtroCategoria)
   );
 
-  const totalReceitas = receitas.reduce((acc, r) => acc + r.valor, 0);
-  const totalRecebido = receitas.filter(r => r.status === "recebido").reduce((acc, r) => acc + r.valor, 0);
-  const totalPendente = receitas.filter(r => r.status === "pendente").reduce((acc, r) => acc + r.valor, 0);
+  const totalReceitas = receitasPeriodo.reduce((acc, r) => acc + r.valor, 0);
+  const totalRecebido = receitasPeriodo.filter(r => r.status === "recebido").reduce((acc, r) => acc + r.valor, 0);
+  const totalPendente = receitasPeriodo.filter(r => r.status === "pendente").reduce((acc, r) => acc + r.valor, 0);
 
   // ═══════════ INTELIGÊNCIA CFO — tudo vindo do alicerce ═══════════
   const lancamentos: Lancamento[] = receitas.map(r => ({ valor: r.valor, data: r.data, categoria: r.categoria, status: r.status }));
@@ -340,7 +348,8 @@ export default function Receitas() {
       botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center flex-wrap gap-3">
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.verde)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
@@ -474,7 +483,7 @@ export default function Receitas() {
                         )}
                       </td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: `${catCorAtual[r.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[r.categoria] || ct("#2ecc9b") }}>{r.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(r.data + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? ct("#34d399") : ct("#2ecc9b") }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#34d399") }}>{fBRL(r.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
