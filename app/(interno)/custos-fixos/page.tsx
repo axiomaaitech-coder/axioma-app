@@ -56,6 +56,7 @@ const CAT_COR_CLARO: Record<string, string> = {
 type CustoFixo = {
   id: string; descricao: string; valor_mensal: number;
   dia_vencimento: number; categoria: string; data_renovacao?: string | null;
+  data_inicio?: string | null; data_fim?: string | null; // vigência real (DRE por competência)
   centro_custo_id?: string | null;
 };
 
@@ -88,7 +89,7 @@ export default function CustosFixos() {
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<CustoFixo | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" });
+  const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "", inicio: "", fim: "" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
@@ -121,17 +122,22 @@ export default function CustosFixos() {
     setCarregando(false);
   };
 
-  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); };
-  const abrirEdicao = (c: CustoFixo) => { setEditando(c); setNovo({ descricao: c.descricao, valor: String(c.valor_mensal), vencimento: String(c.dia_vencimento), categoria: c.categoria, renovacao: c.data_renovacao || "", centro_custo_id: c.centro_custo_id || "" }); setModalAberto(true); };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "", inicio: "", fim: "" }); };
+  const abrirEdicao = (c: CustoFixo) => { setEditando(c); setNovo({ descricao: c.descricao, valor: String(c.valor_mensal), vencimento: String(c.dia_vencimento), categoria: c.categoria, renovacao: c.data_renovacao || "", centro_custo_id: c.centro_custo_id || "", inicio: c.data_inicio || "", fim: c.data_fim || "" }); setModalAberto(true); };
 
   const salvar = async () => {
-    if (!novo.descricao || !novo.valor) return;
+    // Antes voltava calado (o botão Salvar "não fazia nada").
+    if (!novo.descricao || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
+    if (novo.fim && novo.inicio && novo.fim < novo.inicio) { showToast(L("O término não pode ser antes do início.", "The end cannot be before the start.", "El término no puede ser antes del inicio."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
-    const empresaId = await obterEmpresaAtiva();
-    if (!empresaId) { setSalvando(false); return; }
+    const empresaId = user ? await obterEmpresaAtiva() : null;
+    if (!user || !empresaId) { setSalvando(false); showToast(L("Sessão ou empresa não encontrada. Recarregue a página.", "Session or company not found. Reload the page.", "Sesión o empresa no encontrada. Recargue la página."), "erro"); return; }
     const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
+    // Vigência (DRE por competência): só manda a coluna se foi preenchida ou se ela já existe no banco.
+    const temVigencia = custos.some((c) => "data_inicio" in c);
+    if (novo.inicio || temVigencia) payload.data_inicio = novo.inicio || null;
+    if (novo.fim || temVigencia) payload.data_fim = novo.fim || null;
     if (editando) {
       const { data, error } = await supabase.from("custos_fixos").update(payload).eq("id", editando.id).select("id");
       if (error || !data || data.length === 0) {
@@ -289,7 +295,7 @@ export default function CustosFixos() {
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.custosFixos.titulo} subtitulo={t.custosFixos.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.custosFixos.novoCusto}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); setModalAberto(true); }}
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "", inicio: "", fim: "" }); setModalAberto(true); }}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
@@ -506,6 +512,19 @@ export default function CustosFixos() {
                       onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}
                     />
+                  </div>
+                  {/* Vigência: a DRE conta este custo só nos meses entre início e término */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{L("Vale desde", "Valid from", "Vigente desde")} <span style={{ color: TEXTO_SEC }}>({L("vazio = data do cadastro", "empty = registration date", "vacío = fecha de registro")})</span></label>
+                      <input type="date" value={novo.inicio} onChange={(e) => setNovo({ ...novo, inicio: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(46,204,155,0.25)", color: "var(--axi-text-primary)" }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{L("Até", "Until", "Hasta")} <span style={{ color: TEXTO_SEC }}>({L("opcional", "optional", "opcional")})</span></label>
+                      <input type="date" value={novo.fim} onChange={(e) => setNovo({ ...novo, fim: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(46,204,155,0.25)", color: "var(--axi-text-primary)" }} />
+                    </div>
                   </div>
                   {/* NOVO: data de renovação (radar) */}
                   <div>
