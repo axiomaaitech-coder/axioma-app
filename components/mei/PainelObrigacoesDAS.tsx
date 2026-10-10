@@ -226,7 +226,17 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
   const [cenario, setCenario] = useState<Cenario>('base')
   const [pctPers, setPctPers] = useState('3')
   const pct = cenario === 'personalizado' ? Math.max(-50, Math.min(100, parseFloat(pctPers) || 0)) : PCT_CENARIO[cenario]
-  const projetados = meses.filter((m) => m.natureza === 'projecao')
+  // Ano sem estimativa (ex.: 2026, todo oficial) → o cenário simula o ANO SEGUINTE sozinho.
+  // Antes o botão só mudava de cor: parecia não fazer nada (Elias, 2026-10-10).
+  const projecoesDoAno = meses.filter((m) => m.natureza === 'projecao')
+  const anoCenario = projecoesDoAno.length ? ano : ano + 1
+  const [mesesProx, setMesesProx] = useState<MesDAS[]>([])
+  useEffect(() => {
+    if (!empresaId || carregando || projecoesDoAno.length) { setMesesProx([]); return }
+    void (async () => { await gerarPeriodosDAS(empresaId, ano + 1); const c = await lerCalendarioDAS(empresaId, ano + 1, hoje); setMesesProx(c.data) })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, ano, carregando])
+  const projetados = projecoesDoAno.length ? projecoesDoAno : mesesProx.filter((m) => m.natureza === 'projecao')
   const baseProj = r2(projetados.reduce((s, m) => s + (m.valor_esperado ?? 0), 0))
   const cenarioProj = r2(projetados.reduce((s, m) => s + r2((m.valor_esperado ?? 0) * (1 + pct / 100)), 0))
   const difCenario = r2(cenarioProj - baseProj)
@@ -246,7 +256,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
     if (!empresaId) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const p = duplicarDe?.parametros ?? { modulo: 'mei_das', ano, cenario, pct, regras: [...new Set(meses.map((m) => m.premissa ?? ''))].filter(Boolean) }
+    const p = duplicarDe?.parametros ?? { modulo: 'mei_das', ano: anoCenario, cenario, pct, regras: [...new Set(meses.map((m) => m.premissa ?? ''))].filter(Boolean) }
     const res = duplicarDe?.resultado_projetado ?? { base: baseProj, cenario: cenarioProj, diferenca: difCenario }
     const nome = duplicarDe ? `${duplicarDe.nome} (${L('cópia', 'copy', 'copia')})` : (nomeSim.trim() || `${L('Cenário', 'Scenario', 'Escenario')} ${ano} ${pct >= 0 ? '+' : ''}${pct}%`)
     const q = editSim && !duplicarDe
@@ -415,13 +425,17 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
               </label>
             )}
           </div>
+          <p className="text-xs font-semibold mb-2" style={{ color: TEXTO }}>
+            {L(`Simulando ${anoCenario}`, `Simulating ${anoCenario}`, `Simulando ${anoCenario}`)} · {pct === 0 ? L('sem variação (regra oficial)', 'no change (official rule)', 'sin variación (regla oficial)') : `${pct > 0 ? '+' : ''}${pct}%`}
+            {anoCenario !== ano && <span className="font-normal" style={{ color: TEXTO_SEC }}>{L(` — ${ano} já tem todos os valores oficiais, então o cenário mostra o ano seguinte.`, ` — ${ano} already has every official amount, so the scenario shows the next year.`, ` — ${ano} ya tiene todos los valores oficiales, así que el escenario muestra el año siguiente.`)}</span>}
+          </p>
           {projetados.length === 0 ? (
-            <p className="text-xs" style={{ color: TEXTO_SEC }}>{L(`Todos os meses de ${ano} já têm valor oficial — não há estimativa para variar. Escolha um ano seguinte.`, `Every month of ${ano} already has an official amount — nothing to vary. Pick a later year.`, `Todos los meses de ${ano} ya tienen valor oficial — nada que variar. Elija un año siguiente.`)}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{L('Carregando os meses estimados…', 'Loading estimated months…', 'Cargando los meses estimados…')}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
               <Indicador titulo={L('Estimativa base', 'Base estimate', 'Estimación base')} valor={fmt(baseProj)} cor={TEXTO} sub={L(`${projetados.length} meses estimados`, `${projetados.length} estimated months`, `${projetados.length} meses estimados`)} />
               <Indicador titulo={L('Neste cenário', 'In this scenario', 'En este escenario')} valor={fmt(cenarioProj)} cor={difCenario > 0 ? VERMELHO : difCenario < 0 ? VERDE : TEXTO} sub={L(`${fmt(r2(cenarioProj / projetados.length))} por mês`, `${fmt(r2(cenarioProj / projetados.length))} per month`, `${fmt(r2(cenarioProj / projetados.length))} por mes`)} />
-              <Indicador titulo={L('Impacto no caixa', 'Cash impact', 'Impacto en caja')} valor={`${difCenario > 0 ? '+' : ''}${fmt(difCenario)}`} cor={difCenario > 0 ? VERMELHO : difCenario < 0 ? VERDE : TEXTO} sub={L('a mais (ou a menos) para reservar no ano', 'more (or less) to set aside this year', 'más (o menos) para reservar en el año')} />
+              <Indicador titulo={L('Impacto no caixa', 'Cash impact', 'Impacto en caja')} valor={`${difCenario > 0 ? '+' : ''}${fmt(difCenario)}`} cor={difCenario > 0 ? VERMELHO : difCenario < 0 ? VERDE : TEXTO} sub={L(`a mais (ou a menos) para reservar em ${anoCenario}`, `more (or less) to set aside in ${anoCenario}`, `más (o menos) para reservar en ${anoCenario}`)} />
             </div>
           )}
           <div className={`${caixa} mb-3`} style={caixaStyle}>
