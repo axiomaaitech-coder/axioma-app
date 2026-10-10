@@ -1354,7 +1354,26 @@ Coleta nova no cron diário (lib/nexusFontesMundo.ts, grátis e sem cadastro, se
 ## 3-BW. Nexus — coleta pela visita (2026-09-28)
 Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não dá pra ver; trocar exigiria redeploy) — agendamento do GitHub criado e removido. Solução: **coleta pela visita** — POST /api/nexus/atualizar (só logado): se o último sucesso do BCB tem mais de 3h, roda a mesma coleta do cron **sem IA** (sem análises/painel) e a tela recarrega os números em silêncio. Lógica da coleta movida pra lib/nexusColeta.ts (executarColeta({ comIA })); a rota do cron ficou só com a checagem do CRON_SECRET. Limite: sem visita, sem coleta extra (o cron das 6h continua).
 
-## 4-LISTA-2026-10-09. ONDE PARAMOS + O QUE FALTA (fonte viva mais nova — vale acima das listas antigas)
+## 4-LISTA-2026-10-10. ONDE PARAMOS + O QUE FALTA (fonte viva mais nova — vale acima das listas antigas)
+
+**Feito em 2026-10-09/10 (item 1 "dinheiro batendo", parte MEI):**
+- Motor de obrigações MEI (Rodada 1): obrigação ≠ pagamento ≠ alocação, regras fiscais versionadas, estimativa ≠ oficial, baixa única e estorno sem apagar (MEI-MOTOR-OBRIGACOES-SQL.sql rodado, teste 16/16).
+- Tela DAS do ano (Rodada 2): 12 meses + anos seguintes, resumo pago/falta/vencido, planejamento, cenários (ano todo oficial simula o seguinte), simulações salvas, Reforma sem % automático.
+- Pagar o DAS por dentro: MEI (botão "Pagar este DAS", IA lê a guia, confere Pix/código de barras, cartão de crédito pelo PGMEI, Pix pelo Axioma via Pluggy desligado até PLUGGY_PAGAMENTOS_ATIVO=on) e ME/Simples ("Pagar DAS" em Contas a Pagar, guia do PGDAS-D). MEI-PAGAMENTO-PIX-SQL.sql rodado.
+- DRE por competência (lib/dreCompetencia.ts), custo fixo por vigência, PDV na DRE e no Fluxo, devoluções, juros pagos × estimados, anexo do Simples por atividade, monitor do limite MEI (81 mil / caminhoneiro 251.600), tela Conferência. DRE-COMPETENCIA-SQL.sql rodado.
+- Calculadora DASN-SIMEI com função (Receita Bruta + aviso "fora do limite", campos ICMS/ISS com Copiar, o que a categoria define).
+- "Abrir minha empresa" (MEI e ME) no Painel MEI, com busca do CNPJ na Receita.
+- "Documentos para o contador" em PDF/Excel/CSV (Receitas Brutas mensais, DAS do ano, Receitas).
+- Regras Oficiais Vigentes (lib/regrasOficiais.ts) enviadas à IA em pergunta tributária/MEI; conferência >180 dias = aviso.
+- Manual 05 v3.0 (3 idiomas), manuais 02 e 28, Termos 11.1/11.2. PDFs: 00–22 refeitos; 23–43 faltam (PC sem memória).
+
+**Atenção:** 5 commits locais (dfdf75b..61f4e37) aguardando `git push origin main` (credencial).
+
+**FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
+
+**FALTA — depende do Elias:** ok por caso para D3 (Campanha R$ 9.800), D4 (NF 4498 R$ 50.000), D5 (46 receitas só na Contabilidade), D7 (Farma Vida R$ 110.000); manter ou não o campo editável "DAS Mensal"; INSS do DAS em 10.01 (validar com contador); dados da empresa e data de vigência dos Termos; demais itens da lista de 2026-10-09.
+
+## 4-LISTA-2026-10-09. ONDE PARAMOS + O QUE FALTA (lista anterior)
 
 **Feito em 2026-10-09:** auditoria de segurança concluída (Gitleaks/TruffleHog 0 vazamento; Semgrep 0 achado real; banco: equipe_suspender fechado p/ fora, recálculos só logado; Next 16.3.8). 3 mudanças antigas salvas (convite complementar, varredura service-role, 24 sobras). "Transferir propriedade" da Equipe só p/ CEO/Sócio/Admin SEM prazo (tela + RPC). NOVO: Transferir empresa — aba em Config → Empresa + card "Transferir a empresa" na Equipe que abre janela; 5 passos (tipo/operação, partes, Junta+PDF, lista da lei, confirmar com senha); MEI/EI bloqueados; aceite em /transferencia/[token] (7 dias, CPF+declaração+LGPD); histórico + PDF; manual 38 atualizado. Tabela empresa_transferencias (TRANSFERIR-EMPRESA-SQL.sql, rodado). Botões da transferência: verde-menta escuro / azul-marinho escuro, letra branca (Enviar pedido = azul-marinho, pedido do Elias).
 
