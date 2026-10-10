@@ -15,22 +15,22 @@ const PLANOS = {
   starter: {
     name: 'Starter',
     price: 4700, // R$ 47,00
-    description: 'Para MEI e autônomos — 23 módulos completos',
+    description: 'Para MEI e autônomos — mais de 40 módulos',
   },
   pro: {
     name: 'Pro',
     price: 9700, // R$ 97,00
-    description: 'Para profissionais — IA Financeira Premium',
+    description: 'Para profissionais — IA Financeira',
   },
   business: {
     name: 'Business',
     price: 19700, // R$ 197,00
-    description: 'Para empresas em crescimento — IA Tributária Premium',
+    description: 'Para empresas em crescimento — IA Tributária',
   },
   enterprise: {
     name: 'Enterprise',
     price: 29700, // R$ 297,00
-    description: 'Solução sem limites — ClowdBot autônomo',
+    description: 'Solução completa — Nexus e o José',
   },
 }
 

@@ -54,24 +54,25 @@ export default function Planos() {
     },
   }[idioma]
 
+  // Só o que existe hoje no Axioma (2026-10-10). Preços e divisão por plano: decisão do Elias na etapa final.
   const feats = {
     pt: {
-      starter: ['23 módulos completos', 'Módulo MEI exclusivo', 'Dashboard com KPIs', 'Exportar PDF', 'Suporte por email'],
-      pro: ['Tudo do Starter', 'IA Financeira Premium', 'Multi-idioma PT/EN/ES', 'Relatórios avançados', 'Open Finance'],
-      business: ['Tudo do Pro', 'IA Tributária Premium', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'],
-      enterprise: ['Tudo do Business', 'ClowdBot autônomo', 'Multi-empresas', 'API dedicada', 'Suporte VIP 24/7'],
+      starter: ['Mais de 40 módulos financeiros e contábeis', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Dashboard, DRE e Fluxo de Caixa', 'Português, inglês e espanhol', 'Exportar PDF, Excel e CSV'],
+      pro: ['Tudo do Starter', 'IA Financeira', 'Relatórios avançados', 'Painel de Risco e Métricas do CFO', 'Conferência diária entre módulos'],
+      business: ['Tudo do Pro', 'IA Tributária', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'],
+      enterprise: ['Tudo do Business', 'Nexus e o José (inteligência de mercado)', 'Várias empresas na mesma conta', 'Até 10 pessoas na equipe', 'Suporte prioritário'],
     },
     en: {
-      starter: ['23 complete modules', 'Exclusive MEI module', 'Dashboard with KPIs', 'PDF export', 'Email support'],
-      pro: ['Everything in Starter', 'Financial AI Premium', 'Multi-language PT/EN/ES', 'Advanced reports', 'Open Finance'],
-      business: ['Everything in Pro', 'Tax AI Premium', 'MEI AI Advisor', 'Cost Centers', 'Priority support'],
-      enterprise: ['Everything in Business', 'Autonomous ClowdBot', 'Multi-company', 'Dedicated API', '24/7 VIP support'],
+      starter: ['40+ financial and accounting modules', 'Full MEI module (DAS, DASN, open a company)', 'Dashboard, P&L and Cash Flow', 'Portuguese, English and Spanish', 'Export PDF, Excel and CSV'],
+      pro: ['Everything in Starter', 'Financial AI', 'Advanced reports', 'Risk Panel and CFO Metrics', 'Daily cross-module check'],
+      business: ['Everything in Pro', 'Tax AI', 'MEI AI Advisor', 'Cost Centers', 'Priority support'],
+      enterprise: ['Everything in Business', 'Nexus and José (market intelligence)', 'Several companies in one account', 'Up to 10 people on the team', 'Priority support'],
     },
     es: {
-      starter: ['23 módulos completos', 'Módulo MEI exclusivo', 'Panel con KPIs', 'Exportar PDF', 'Soporte por email'],
-      pro: ['Todo de Starter', 'IA Financiera Premium', 'Multi-idioma PT/EN/ES', 'Informes avanzados', 'Open Finance'],
-      business: ['Todo de Pro', 'IA Tributaria Premium', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'],
-      enterprise: ['Todo de Business', 'ClowdBot autónomo', 'Multi-empresas', 'API dedicada', 'Soporte VIP 24/7'],
+      starter: ['Más de 40 módulos financieros y contables', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Panel, Estado de Resultados y Flujo de Caja', 'Portugués, inglés y español', 'Exportar PDF, Excel y CSV'],
+      pro: ['Todo de Starter', 'IA Financiera', 'Informes avanzados', 'Panel de Riesgo y Métricas del CFO', 'Conciliación diaria entre módulos'],
+      business: ['Todo de Pro', 'IA Tributaria', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'],
+      enterprise: ['Todo de Business', 'Nexus y José (inteligencia de mercado)', 'Varias empresas en la misma cuenta', 'Hasta 10 personas en el equipo', 'Soporte prioritario'],
     },
   }[idioma]
 

@@ -79,7 +79,7 @@ const idiomas = {
     },
     modulos: {
       titulo: 'Tudo que sua empresa precisa em um só lugar',
-      sub: '23 módulos integrados. Uma plataforma. Resultado extraordinário.',
+      sub: 'Mais de 40 módulos integrados. Uma plataforma. Resultado extraordinário.',
       lista: [
         { icon: '💵', nome: 'Receitas', desc: 'Controle total das entradas' },
         { icon: '📌', nome: 'Custos Fixos', desc: 'Gerencie custos mensais' },
@@ -103,13 +103,13 @@ const idiomas = {
         { icon: '📋', nome: 'Relatórios', desc: 'PDF com identidade Axioma' },
         { icon: '🏢', nome: 'Empresa', desc: 'Configurações completas' },
         { icon: '💳', nome: 'Planos', desc: 'Gestão de assinatura' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Conexão bancária automática' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Conexão bancária automática (em breve)' },
       ],
     },
     clowdbot: {
-      badge: '🤖 CLOWDBOT — IA AUTÔNOMA',
+      badge: '🤖 INTELIGÊNCIA DO AXIOMA',
       titulo: 'Seu gerente financeiro nunca dorme.',
-      sub: 'O ClowdBot é um agente de IA que opera de forma autônoma — analisando, alertando e decidindo com você. Como ter um CFO de nível mundial disponível 24/7.',
+      sub: 'A inteligência do Axioma lê os seus números, cruza com o mercado (Nexus e o José) e avisa o que fazer — quem decide é sempre você. Como ter um CFO de nível mundial disponível 24/7.',
       status: 'Sistema Neural Ativo',
       pensando: ['Analisando fluxo de caixa...', 'Detectando oportunidade de economia...', 'Gerando relatório DRE...', 'Calculando ponto de equilíbrio...', 'Otimizando tributação...'],
     },
@@ -120,10 +120,10 @@ const idiomas = {
       trial: '14 dias grátis',
       mes: '/mês',
       lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para MEI e autônomos', usuarios: '1 usuário', features: ['23 módulos completos', 'MEI módulo exclusivo', 'Dashboard com KPIs', 'Exportar PDF', 'Suporte por email'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profissionais', usuarios: 'até 2 usuários', features: ['Tudo do Starter', 'IA Financeira Premium', 'Multi-idioma PT/EN/ES', 'Relatórios avançados', 'Open Finance'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas em crescimento', usuarios: 'até 5 usuários', features: ['Tudo do Pro', 'IA Tributária Premium', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solução sem limites', usuarios: 'até 10 usuários', features: ['Tudo do Business', 'ClowdBot autônomo', 'Multi-empresas', 'API dedicada', 'Suporte VIP 24/7'], ia: true },
+        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para MEI e autônomos', usuarios: '1 usuário', features: ['Mais de 40 módulos financeiros e contábeis', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Dashboard, DRE e Fluxo de Caixa', 'Português, inglês e espanhol', 'Exportar PDF, Excel e CSV'], ia: false },
+        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profissionais', usuarios: 'até 2 usuários', features: ['Tudo do Starter', 'IA Financeira', 'Relatórios avançados', 'Painel de Risco e Métricas do CFO', 'Conferência diária entre módulos'], ia: true },
+        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas em crescimento', usuarios: 'até 5 usuários', features: ['Tudo do Pro', 'IA Tributária', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'], ia: true, destaque: true },
+        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solução sem limites', usuarios: 'até 10 usuários', features: ['Tudo do Business', 'Nexus e o José (inteligência de mercado)', 'Várias empresas na mesma conta', 'Até 10 pessoas na equipe', 'Suporte prioritário'], ia: true },
       ],
     },
     cta: {
@@ -207,7 +207,7 @@ const idiomas = {
     },
     modulos: {
       titulo: 'Everything your company needs in one place',
-      sub: '23 integrated modules. One platform. Extraordinary results.',
+      sub: '40+ integrated modules. One platform. Extraordinary results.',
       lista: [
         { icon: '💵', nome: 'Revenue', desc: 'Total income control' },
         { icon: '📌', nome: 'Fixed Costs', desc: 'Manage monthly costs' },
@@ -231,13 +231,13 @@ const idiomas = {
         { icon: '📋', nome: 'Reports', desc: 'PDF with Axioma identity' },
         { icon: '🏢', nome: 'Company', desc: 'Complete settings' },
         { icon: '💳', nome: 'Plans', desc: 'Subscription management' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Automatic bank connection' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Automatic bank connection (coming soon)' },
       ],
     },
     clowdbot: {
-      badge: '🤖 CLOWDBOT — AUTONOMOUS AI',
+      badge: '🤖 AXIOMA INTELLIGENCE',
       titulo: 'Your financial manager never sleeps.',
-      sub: 'ClowdBot is an AI agent that operates autonomously — analyzing, alerting and deciding with you. Like having a world-class CFO available 24/7.',
+      sub: 'Axioma’s intelligence reads your numbers, cross-checks them with the market (Nexus and José) and tells you what to do — you always decide. Like having a world-class CFO available 24/7.',
       status: 'Neural System Active',
       pensando: ['Analyzing cash flow...', 'Detecting saving opportunity...', 'Generating P&L report...', 'Calculating break-even...', 'Optimizing taxation...'],
     },
@@ -248,10 +248,10 @@ const idiomas = {
       trial: '14 days free',
       mes: '/mo',
       lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'For freelancers', usuarios: '1 user', features: ['23 complete modules', 'MEI exclusive module', 'Dashboard with KPIs', 'Export PDF', 'Email support'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'For professionals', usuarios: 'up to 2 users', features: ['Everything in Starter', 'Premium Financial AI', 'Multi-language PT/EN/ES', 'Advanced reports', 'Open Finance'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'For growing companies', usuarios: 'up to 5 users', features: ['Everything in Pro', 'Premium Tax AI', 'AI MEI Advisor', 'Cost Centers', 'Priority support'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Unlimited solution', usuarios: 'up to 10 users', features: ['Everything in Business', 'Autonomous ClowdBot', 'Multi-company', 'Dedicated API', 'VIP 24/7 support'], ia: true },
+        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'For freelancers', usuarios: '1 user', features: ['40+ financial and accounting modules', 'Full MEI module (DAS, DASN, open a company)', 'Dashboard, P&L and Cash Flow', 'Portuguese, English and Spanish', 'Export PDF, Excel and CSV'], ia: false },
+        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'For professionals', usuarios: 'up to 2 users', features: ['Everything in Starter', 'Financial AI', 'Advanced reports', 'Risk Panel and CFO Metrics', 'Daily cross-module check'], ia: true },
+        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'For growing companies', usuarios: 'up to 5 users', features: ['Everything in Pro', 'Tax AI', 'MEI AI Advisor', 'Cost Centers', 'Priority support'], ia: true, destaque: true },
+        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Unlimited solution', usuarios: 'up to 10 users', features: ['Everything in Business', 'Nexus and José (market intelligence)', 'Several companies in one account', 'Up to 10 people on the team', 'Priority support'], ia: true },
       ],
     },
     cta: {
@@ -335,7 +335,7 @@ const idiomas = {
     },
     modulos: {
       titulo: 'Todo lo que tu empresa necesita en un solo lugar',
-      sub: '23 módulos integrados. Una plataforma. Resultado extraordinario.',
+      sub: 'Más de 40 módulos integrados. Una plataforma. Resultado extraordinario.',
       lista: [
         { icon: '💵', nome: 'Ingresos', desc: 'Control total de entradas' },
         { icon: '📌', nome: 'Costos Fijos', desc: 'Gestiona costos mensuales' },
@@ -359,13 +359,13 @@ const idiomas = {
         { icon: '📋', nome: 'Reportes', desc: 'PDF con identidad Axioma' },
         { icon: '🏢', nome: 'Empresa', desc: 'Configuraciones completas' },
         { icon: '💳', nome: 'Planes', desc: 'Gestión de suscripción' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Conexión bancaria automática' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Conexión bancaria automática (próximamente)' },
       ],
     },
     clowdbot: {
-      badge: '🤖 CLOWDBOT — IA AUTÓNOMA',
+      badge: '🤖 INTELIGENCIA DE AXIOMA',
       titulo: 'Tu gerente financiero nunca duerme.',
-      sub: 'ClowdBot es un agente de IA que opera de forma autónoma — analizando, alertando y decidiendo contigo. Como tener un CFO de nivel mundial disponible 24/7.',
+      sub: 'La inteligencia de Axioma lee sus números, los cruza con el mercado (Nexus y José) y le avisa qué hacer — usted siempre decide. Como tener un CFO de nivel mundial disponible 24/7.',
       status: 'Sistema Neural Activo',
       pensando: ['Analizando flujo de caja...', 'Detectando oportunidad de ahorro...', 'Generando reporte P&G...', 'Calculando punto de equilibrio...', 'Optimizando tributación...'],
     },
@@ -376,10 +376,10 @@ const idiomas = {
       trial: '14 días gratis',
       mes: '/mes',
       lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para autónomos', usuarios: '1 usuario', features: ['23 módulos completos', 'Módulo MEI exclusivo', 'Dashboard con KPIs', 'Exportar PDF', 'Soporte por email'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profesionales', usuarios: 'hasta 2 usuarios', features: ['Todo de Starter', 'IA Financiera Premium', 'Multi-idioma PT/EN/ES', 'Reportes avanzados', 'Open Finance'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas en crecimiento', usuarios: 'hasta 5 usuarios', features: ['Todo de Pro', 'IA Tributaria Premium', 'AI MEI Advisor', 'Centros de Costo', 'Soporte prioritario'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solución sin límites', usuarios: 'hasta 10 usuarios', features: ['Todo de Business', 'ClowdBot autónomo', 'Multi-empresa', 'API dedicada', 'Soporte VIP 24/7'], ia: true },
+        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para autónomos', usuarios: '1 usuario', features: ['Más de 40 módulos financieros y contables', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Panel, Estado de Resultados y Flujo de Caja', 'Portugués, inglés y español', 'Exportar PDF, Excel y CSV'], ia: false },
+        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profesionales', usuarios: 'hasta 2 usuarios', features: ['Todo de Starter', 'IA Financiera', 'Informes avanzados', 'Panel de Riesgo y Métricas del CFO', 'Conciliación diaria entre módulos'], ia: true },
+        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas en crecimiento', usuarios: 'hasta 5 usuarios', features: ['Todo de Pro', 'IA Tributaria', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'], ia: true, destaque: true },
+        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solución sin límites', usuarios: 'hasta 10 usuarios', features: ['Todo de Business', 'Nexus y José (inteligencia de mercado)', 'Varias empresas en la misma cuenta', 'Hasta 10 personas en el equipo', 'Soporte prioritario'], ia: true },
       ],
     },
     cta: {
@@ -1000,7 +1000,7 @@ export default function LandingPage() {
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#f87171' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fbbf24' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#34d399' }} />
-                  <span className="text-[10px] ml-2" style={{ color: '#6a8bbd' }}>ClowdBot Terminal</span>
+                  <span className="text-[10px] ml-2" style={{ color: '#6a8bbd' }}>Axioma Terminal</span>
                 </div>
                 <p className="text-[11px]" style={{ color: '#6a8bbd' }}>{'>'} AXIOMA AI.TECH v2.0</p>
                 <p className="text-[11px] mt-1" style={{ color: '#34d399' }}>
