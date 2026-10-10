@@ -1367,7 +1367,7 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - Regras Oficiais Vigentes (lib/regrasOficiais.ts) enviadas à IA em pergunta tributária/MEI; conferência >180 dias = aviso.
 - Manual 05 v3.0 (3 idiomas), manuais 02 e 28, Termos 11.1/11.2. PDFs: 00–22 refeitos; 23–43 faltam (PC sem memória).
 
-**Atenção:** 5 commits locais (dfdf75b..61f4e37) aguardando `git push origin main` (credencial).
+**Publicado:** tudo na main (d365c44); falta conferir no site.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 
