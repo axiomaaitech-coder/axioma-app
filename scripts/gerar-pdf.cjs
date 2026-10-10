@@ -113,7 +113,9 @@ ${sumario}
     console.log('ok:', pastaNome)
   }
   // Manuais: uma pasta por módulo ("NN - Nome"), com um PDF por idioma.
-  const arquivos = fs.readdirSync(path.join(raiz, 'manual')).filter((f) => /^\d\d-.*\.ts$/.test(f)).sort()
+  // 3º argumento opcional: só manuais a partir desse número (ex.: 23); Termos/Privacidade saem sempre.
+  const desde = process.argv[3] || '00'
+  const arquivos = fs.readdirSync(path.join(raiz, 'manual')).filter((f) => /^\d\d-.*\.ts$/.test(f) && f.slice(0, 2) >= desde).sort()
   for (const f of arquivos) {
     const d = await carregar(path.join(raiz, 'manual', f))
     const tri = d.pt && d.en && d.es ? d : { pt: d, en: d, es: d }

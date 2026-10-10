@@ -30,7 +30,8 @@ export default function Cadastro() {
     const params = new URLSearchParams(window.location.search)
     const nextParam = params.get('next')
     const emailParam = params.get('email')
-    if (nextParam) setNext(nextParam)
+    // Só caminho interno — mesmo filtro do auth/callback (evita mandar pra site falso).
+    if (nextParam && /^\/(?![/\\])/.test(nextParam)) setNext(nextParam)
     if (emailParam) setEmail(emailParam)
   }, [])
 
