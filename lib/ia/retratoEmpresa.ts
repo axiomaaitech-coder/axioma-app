@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
-import { calcularImpostoRegime, simularRegimes } from '../iaTributariaHelpers'
+import { calcularImpostoRegime, simularRegimes, categoriaMeiDaEmpresa } from '../iaTributariaHelpers'
 import { setorDaEmpresa, type Setor } from './setores'
 import { nomeSerie } from '../nexusEventDetector'
 import { hojeISO, fusoDaEmpresa } from '../datas'
@@ -80,7 +80,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const iso = (d: Date) => d.toISOString().slice(0, 10)
   const inicio12 = iso(new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()))
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
-    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade').eq('id', empresaId).maybeSingle(),
+    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
     lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
@@ -113,7 +113,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const custoFixoMensal = soma(L(cf), 'valor_mensal')
   const custoVariavelMensal = soma(L(cv), 'valor') / 12
   const regime = (e.regime_tributario as string | null) || null
-  const impostoMensal = receitaMensal > 0 ? calcularImpostoRegime(regime || '', receita12, receitaMensal) : 0
+  const impostoMensal = receitaMensal > 0 ? calcularImpostoRegime(regime || '', receita12, receitaMensal, undefined, undefined, categoriaMeiDaEmpresa(e)) : 0
   const aliquotaEfetivaPct = receitaMensal > 0 ? (impostoMensal / receitaMensal) * 100 : 0
 
   const dividas = L(dv)

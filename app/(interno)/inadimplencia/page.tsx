@@ -25,7 +25,7 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
 import { lerTodas } from '../../../lib/lerTodas'
-import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
   rankingScoreAxiomaCliente, type ScoreAxiomaCliente, calcularKpisRecebimento,
@@ -118,6 +118,7 @@ export default function Inadimplencia() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number }[]>([])
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([])
   const [regimeTributario, setRegimeTributario] = useState('')
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
   const [dreHistoricoAtual, setDreHistoricoAtual] = useState<DreHistoricoAtual | null>(null)
 
   const [descontoAVistaPct, setDescontoAVistaPct] = useState('10')
@@ -170,7 +171,7 @@ export default function Inadimplencia() {
       { data: empresa }, { data: cli }, { data: ct }, comps, interacoesData, etapasData, { data: fc },
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: dreRows },
     ] = await Promise.all([
-      empId ? supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
       empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [] }),
       empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [] }),
       empId ? listarCompromissos(empId) : Promise.resolve([]),
@@ -184,7 +185,7 @@ export default function Inadimplencia() {
       empId ? supabase.from('dre_historico').select('*').eq('empresa_id', empId).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle() : Promise.resolve({ data: null }),
     ])
     setEmpresaId(empId)
-    setRegimeTributario(empresa?.regime_tributario || '')
+    setRegimeTributario(empresa?.regime_tributario || ''); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
     setClientes((cli as ClienteRow[]) || [])
     setContas((ct as ContaRow[]) || [])
     setCompromissos(comps)
@@ -226,7 +227,7 @@ export default function Inadimplencia() {
   const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
   const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12
   const despesasFinanceirasMensalAtual = dividasRows.reduce((s, d) => s + Math.max(0, (Number(d.valor_total) || 0) - (Number(d.valor_pago) || 0)) * ((Number(d.taxa_juros) || 0) / 100), 0)
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual)
+  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual, undefined, undefined, categoriaMei)
   const aliquotaEfetivaPct = receitaMensalAtual > 0 ? (impostoMensalEstimado / receitaMensalAtual) * 100 : 0
   const temDadosSimulador = receitaMensalAtual > 0
 

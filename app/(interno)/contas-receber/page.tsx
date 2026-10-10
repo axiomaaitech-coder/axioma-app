@@ -27,7 +27,7 @@ import { CentroCompartilhamento } from '../../../components/CentroCompartilhamen
 import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
 import { lerTodas } from '../../../lib/lerTodas'
-import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
   rankingScoreAxiomaCliente, scoreMedioCarteiraAxiomaCliente,
@@ -214,6 +214,7 @@ export default function ContasReceber() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([])
   const [caixaDisponivel, setCaixaDisponivel] = useState(0)
   const [regimeTributario, setRegimeTributario] = useState('')
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [deltaInadimplenciaPct, setDeltaInadimplenciaPct] = useState('2')
   const [reducaoDsoDias, setReducaoDsoDias] = useState('5')
@@ -235,8 +236,8 @@ export default function ContasReceber() {
     const empId = await obterEmpresaAtiva()
     setEmpresaId(empId)
     if (empId) {
-      const { data: empresa } = await supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle()
-      setRegimeTributario(empresa?.regime_tributario || '')
+      const { data: empresa } = await supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle()
+      setRegimeTributario(empresa?.regime_tributario || ''); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
     }
     const [
       { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
@@ -751,7 +752,7 @@ export default function ContasReceber() {
   const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
   const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12
   const despesasFinanceirasMensalAtual = dividasRows.reduce((s, d) => s + Math.max(0, (Number(d.valor_total) || 0) - (Number(d.valor_pago) || 0)) * ((Number(d.taxa_juros) || 0) / 100), 0)
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual)
+  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual, undefined, undefined, categoriaMei)
   const aliquotaEfetivaPct = receitaMensalAtual > 0 ? (impostoMensalEstimado / receitaMensalAtual) * 100 : 0
   const temDadosSimulador = receitaMensalAtual > 0
 

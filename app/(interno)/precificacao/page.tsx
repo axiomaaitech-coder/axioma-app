@@ -33,7 +33,7 @@ import {
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
@@ -107,6 +107,7 @@ export default function Precificacao() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
   const [, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
@@ -208,12 +209,12 @@ export default function Precificacao() {
       empresaIdAtiva ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
+      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setProdutos(prod || []); setConcorrentes(conc || []); setDecisoes(dec || []);
     setReceitasRows(rec || []); setCustosFixosRows(cf || []); setCustosVarRows(cv || []); setDividasRows(dv || []);
-    setRegimeTributario(emp?.regime_tributario || "");
+    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   }
 
@@ -297,7 +298,7 @@ export default function Precificacao() {
   const dividaTotal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
   const receitaBrutaAnual = receitasItens.reduce((s, r) => s + r.valor, 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAnual, receitaMensalMedia);
+  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAnual, receitaMensalMedia, undefined, undefined, categoriaMei);
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
   const dreAtual = montarDRE({
     receitaBruta: receitaMensalMedia, deducoes: receitaMensalMedia * (aliquotaEfetivaPct / 100),

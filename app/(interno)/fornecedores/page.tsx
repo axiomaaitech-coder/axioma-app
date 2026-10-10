@@ -30,7 +30,7 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import { cfoT } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
-import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
 import {
   TIPOS_DOCUMENTO_FORNECEDOR,
   listarContatos, criarContato, atualizarContato, excluirContato,
@@ -789,6 +789,7 @@ export default function Fornecedores() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [tipoCenario, setTipoCenario] = useState<"troca" | "preco" | "prazo" | "cambio" | "perda" | "novo">("preco");
   const [fornecedorSimuladoId, setFornecedorSimuladoId] = useState<string | null>(null);
@@ -893,7 +894,7 @@ export default function Fornecedores() {
       empId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela) : Promise.resolve({ data: [] }),
       empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       empId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("empresas").select("regime_tributario").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setFornecedores(forn || []);
@@ -906,7 +907,7 @@ export default function Fornecedores() {
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
-    setRegimeTributario(emp2?.regime_tributario || "");
+    setRegimeTributario(emp2?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp2));
     setCarregando(false);
   };
 
@@ -1689,7 +1690,7 @@ export default function Fornecedores() {
   const custoFixoMensalTotal = custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
   const dividaTotalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
-  const impostoMensalEstimadoSim = calcularImpostoRegime(regimeTributario, receitaBruta12m, receitaMensalMedia);
+  const impostoMensalEstimadoSim = calcularImpostoRegime(regimeTributario, receitaBruta12m, receitaMensalMedia, undefined, undefined, categoriaMei);
   const aliquotaEfetivaPctSim = receitaMensalMedia > 0 ? (impostoMensalEstimadoSim / receitaMensalMedia) * 100 : 0;
   const caixaDisponivelSim = fluxoCaixaRows.filter(l => l.status === "realizado")
     .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);

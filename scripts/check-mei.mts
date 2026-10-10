@@ -27,4 +27,9 @@ assert.deepEqual(competenciasDASDoAno([], 2026, 20, '2026-01-05', hoje).map((c) 
 const { dasMensalPorCategoria, percentualIsentoPorCategoria } = await import('../lib/meiHelpers')
 assert.equal(dasMensalPorCategoria('Transporte'), 195.52) // caminhoneiro: 12% do SM + ICMS
 assert.equal(percentualIsentoPorCategoria('Transporte'), 0.08) // cargas
+const { calcularImpostoRegime, categoriaMeiDaEmpresa } = await import('../lib/iaTributariaHelpers')
+assert.equal(calcularImpostoRegime('mei', 50000, 4000, undefined, undefined, 'Transporte'), 195.52) // antes: sempre Serviços
+assert.equal(calcularImpostoRegime('mei', 50000, 4000), 86.05)
+assert.equal(categoriaMeiDaEmpresa({ regime_tributario: 'mei', mei_dados: [{ categoria_mei: 'Comércio' }] }), 'Comércio')
+assert.equal(categoriaMeiDaEmpresa({ regime_tributario: 'mei', mei_dados: { categoria_mei: 'Indústria' } }), 'Indústria')
 console.log('check-mei OK')

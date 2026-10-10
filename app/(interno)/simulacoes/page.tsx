@@ -31,7 +31,7 @@ import {
   montarNarrativaSensibilidade, montarNarrativaMonteCarlo, montarNarrativaRiscoRuptura,
   montarNarrativaOportunidadeCenario, montarNarrativaRegimeTributario, nomeDriverSensibilidade,
 } from "../../../lib/cfoTextos";
-import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
@@ -99,6 +99,7 @@ export default function Simulacoes() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("ultimos_12_meses");
   const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("ultimos_12_meses"));
@@ -142,7 +143,8 @@ export default function Simulacoes() {
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       // Mesma definição de "caixa disponível" do Fluxo de Caixa/Investimentos.
       empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      // Regime da empresa ABERTA (antes: a 1ª empresa do usuário — quem tem 2 empresas via o imposto da outra).
+      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setReceitasRows(rec || []);
@@ -150,7 +152,7 @@ export default function Simulacoes() {
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
-    setRegimeTributario(emp?.regime_tributario || "");
+    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -165,7 +167,7 @@ export default function Simulacoes() {
 
   const dividaTotal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaPeriodo, receitaMensalMedia);
+  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaPeriodo, receitaMensalMedia, undefined, undefined, categoriaMei);
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
   const caixaDisponivel = fluxoCaixaRows.filter((l) => l.status === "realizado")
@@ -238,7 +240,7 @@ export default function Simulacoes() {
     const custoVariavelSimulado = custoVariavelMensalMedia * (1 + choque.custoVariavelPct / 100);
     const custoFixoSimulado = custoFixoBase * (1 + choque.custoFixoPct / 100);
     const tributario: ResultadoTributario[] = (["simples nacional", "presumido", "real"] as RegimeSimulado[]).map((regime) => {
-      const impostoMensal = calcularImpostoRegime(regime, receitaSimulada * 12, receitaSimulada);
+      const impostoMensal = calcularImpostoRegime(regime, receitaSimulada * 12, receitaSimulada, undefined, undefined, categoriaMei);
       const dre = montarDRE({
         receitaBruta: receitaSimulada, deducoes: impostoMensal,
         custoVariavel: custoVariavelSimulado, custoFixo: custoFixoSimulado, despesasFinanceiras: despesasFinanceirasMensal,

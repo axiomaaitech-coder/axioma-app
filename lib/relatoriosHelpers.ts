@@ -3,7 +3,7 @@
 // Implementa 12+ indicadores brasileiros, Score CFO 0-100, insights automáticos.
 
 import { createBrowserClient } from "@supabase/ssr";
-import { calcularImpostoRegime } from "./iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { nomeMesPt } from "./cfoCore";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
 import { hojeISO } from "./datas";
@@ -137,11 +137,11 @@ export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<
   // módulo IA Tributária), em vez de um percentual fixo chutado.
   const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
   const [{ data: empresa }, { data: rec12m }] = await Promise.all([
-    supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle(),
+    supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
     supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim),
   ]);
   const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-  const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta));
+  const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta, undefined, undefined, categoriaMeiDaEmpresa(empresa)));
 
   const receita_liquida = receita_bruta - deducoes;
   const margem_contribuicao = receita_liquida - custos_variaveis;

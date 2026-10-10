@@ -359,7 +359,7 @@ async function regraDivergenciaImposto(
   const atividade = atividadeFiscalParaPresuncao(config?.atividade_fiscal || null);
   const impostoCalculado = calcularImpostoRegime(
     dadosFiscais.regime_atual, dadosFiscais.receita_bruta_12m, dadosFiscais.receita_bruta_mensal,
-    atividade, config?.aliquota_iss_pct ?? undefined
+    atividade, config?.aliquota_iss_pct ?? undefined, dadosFiscais.categoria_mei
   );
   const valorCadastrado = Number(maisRecente.valor_estimado || 0);
   if (impostoCalculado <= 0 || valorCadastrado <= 0) return 0;

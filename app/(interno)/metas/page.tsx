@@ -28,7 +28,7 @@ import {
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
@@ -97,6 +97,7 @@ type CtxMeta = {
   fluxo: { tipo: string; valor: number; data: string; status: string }[];
   clientes: { status: string; created_at: string }[];
   regimeTributario: string;
+  categoriaMei: string | null; // MEI: DAS da categoria certa
 };
 
 function raciocinioFluxo(lang: string, n: number, origemLabel: string, desde: string, ate: string): string {
@@ -132,7 +133,7 @@ function valorMetrica(tipo: TipoMeta, ate: string, dataInicioFluxo: string, ctx:
       const despFin = ctx.despesasFinanceirasMensal * meses;
       const rb12 = ctx.receitas.filter(r => r.data >= inicioRolling12(ate) && r.data <= ate).reduce((s, r) => s + r.valor, 0);
       const receitaMensalMedia = receitaBruta / meses;
-      const imposto = calcularImpostoRegime(ctx.regimeTributario, rb12, receitaMensalMedia) * meses;
+      const imposto = calcularImpostoRegime(ctx.regimeTributario, rb12, receitaMensalMedia, undefined, undefined, ctx.categoriaMei) * meses;
       const dre = montarDRE({ receitaBruta, deducoes: imposto, custoVariavel: custoVar, custoFixo, despesasFinanceiras: despFin });
       if (tipo === "lucro") return { valor: dre.lucroLiquido.valor, raciocinio: raciocinioFluxo(lang, itensReceita.length, origemLabels.lucro, dataInicioFluxo, ate) };
       return { valor: dre.margemLiquidaPct, raciocinio: raciocinioNivel(lang, origemLabels.margem, ate) };
@@ -180,7 +181,7 @@ function serieHistoricaMetrica(tipo: TipoMeta, ctx: CtxMeta, ate: string, mesesJ
       const custoVarSerie = serieRolling(ctx.custosVar, mesesJanela, ate).map(b => b.value);
       const rb12 = ctx.receitas.filter(r => r.data >= inicioRolling12(ate) && r.data <= ate).reduce((s, r) => s + r.valor, 0);
       const mediaMensalAtual = receitaSerie.reduce((a, b) => a + b, 0) / (receitaSerie.length || 1);
-      const aliquota = mediaMensalAtual > 0 ? calcularImpostoRegime(ctx.regimeTributario, rb12, mediaMensalAtual) / mediaMensalAtual : 0;
+      const aliquota = mediaMensalAtual > 0 ? calcularImpostoRegime(ctx.regimeTributario, rb12, mediaMensalAtual, undefined, undefined, ctx.categoriaMei) / mediaMensalAtual : 0;
       const lucroSerie = receitaSerie.map((r, i) => r - (custoVarSerie[i] || 0) - ctx.custoFixoMensalTotal - ctx.despesasFinanceirasMensal - r * aliquota);
       return tipo === "lucro" ? lucroSerie : lucroSerie.map((l, i) => receitaSerie[i] > 0 ? (l / receitaSerie[i]) * 100 : 0);
     }
@@ -284,6 +285,7 @@ export default function Metas() {
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; data: string; status: string }[]>([]);
   const [clientesRows, setClientesRows] = useState<{ status: string; created_at: string }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [categoriaMei, setCategoriaMei] = useState<string | null>(null)
 
   const txt = {
     titulo: idioma === "pt" ? "Metas" : idioma === "en" ? "Goals" : "Metas",
@@ -323,7 +325,7 @@ export default function Metas() {
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
       empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     const custoFixoMensalTotal = (cf || []).reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
@@ -335,6 +337,7 @@ export default function Metas() {
       custoFixoMensalTotal, despesasFinanceirasMensal,
       dividas: dv || [], fluxo: fc || [], clientes: cli || [],
       regimeTributario: emp?.regime_tributario || "",
+      categoriaMei: categoriaMeiDaEmpresa(emp),
     };
 
     const origemLabels: Record<TipoMeta, string> = {
@@ -378,7 +381,7 @@ export default function Metas() {
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
     setClientesRows(cli || []);
-    setRegimeTributario(emp?.regime_tributario || "");
+    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -387,7 +390,7 @@ export default function Metas() {
     custosVar: custosVarRows.map(c => ({ valor: Number(c.valor || 0), data: c.data })),
     custoFixoMensalTotal: custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0),
     despesasFinanceirasMensal: dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0),
-    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, regimeTributario,
+    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, regimeTributario, categoriaMei,
   };
   const origemLabels: Record<TipoMeta, string> = {
     faturamento: t.receitas?.titulo || "Receitas", lucro: cx.dreLucroLiquido, margem: cx.dreMargemLiquida,

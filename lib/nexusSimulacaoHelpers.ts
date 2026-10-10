@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { obterEmpresaAtiva } from "./empresaHelpers";
 import { lerTodas } from "./lerTodas";
 import { montarDRE, simularCenariosExecutivos, type ResultadoCenario, type ChoqueSimulador } from "./cfoCore";
-import { calcularImpostoRegime } from "./iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { macroParaChoque, type VariaveisMacro } from "./nexusSimulacaoMotor";
 import { reportarFalhaLeitura as reportarFalhaEscrita } from "./erroUiHelpers"; // mesmo envio ao Sentry; nome local deixa claro que é escrita
 
@@ -47,7 +47,7 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
     lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
     lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId).order("id")),
     lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
-    supabase.from("empresas").select("regime_tributario, cnae_principal, cnae_descricao").eq("id", empresaId).maybeSingle(),
+    supabase.from("empresas").select("regime_tributario, cnae_principal, cnae_descricao, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
   ]);
   const erro = [rec, cf, cv, dv, fc].some((r) => r.error);
 
@@ -60,7 +60,7 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
   const saldo = (d: { valor_total: number; valor_pago: number }) => Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
   const dividaTotal = dividas.reduce((s, d) => s + saldo(d), 0);
   const despesasFinanceirasMensal = dividas.reduce((s, d) => s + saldo(d) * (Number(d.taxa_juros || 0) / 100), 0);
-  const imposto = calcularImpostoRegime(emp.data?.regime_tributario || "", receita12m, receitaMensal);
+  const imposto = calcularImpostoRegime(emp.data?.regime_tributario || "", receita12m, receitaMensal, undefined, undefined, categoriaMeiDaEmpresa(emp.data));
   const aliquotaEfetivaPct = receitaMensal > 0 ? (imposto / receitaMensal) * 100 : 0;
   const caixaDisponivel = ((fc.data ?? []) as { tipo: string; valor: number; status: string }[])
     .filter((l) => l.status === "realizado")

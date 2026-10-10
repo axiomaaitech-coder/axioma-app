@@ -3,7 +3,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
-import { dasMensalPorCategoria } from "./meiHelpers";
+import { dasMensalPorCategoria, LIMITE_ANUAL_MEI } from "./meiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +26,7 @@ export type DadosFiscais = {
   folha_pagamento_mensal: number; // estimativa: custos_fixos * 0.4
   lucro_bruto_mensal: number;
   regime_atual: string;
+  categoria_mei?: string | null; // MEI: categoria (o DAS muda: Serviços, Comércio, Transporte...)
   setor: string;
   cnae: string;
   obrigacoes_pendentes: number;
@@ -93,7 +94,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
     empresaId ? supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
   ]);
 
@@ -117,6 +118,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
     folha_pagamento_mensal,
     lucro_bruto_mensal: Math.round(lucro_bruto_mensal),
     regime_atual: empresa?.regime_tributario || "",
+    categoria_mei: categoriaMeiDaEmpresa(empresa),
     setor: empresa?.setor || "",
     cnae: empresa?.cnae_principal || "",
     obrigacoes_pendentes: pendentes.length,
@@ -211,22 +213,24 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
   const resultados: SimulacaoRegime[] = [];
 
   // Cálculo imposto atual (estimativa)
-  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes);
+  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, undefined, undefined, dados.categoria_mei);
 
   // 1. MEI
-  const meiElegivel = rb12 <= 144000;
-  const meiMensal = dasMensalPorCategoria("Serviços"); // fonte única: lib/meiHelpers.ts
+  // Limite legal hoje é R$ 81 mil/ano (LIMITE_ANUAL_MEI). Antes dizia R$ 144K — recomendava
+  // MEI pra quem não pode ser. R$ 130K é só proposta (PLP 108/2021), não vale ainda.
+  const meiElegivel = rb12 <= LIMITE_ANUAL_MEI;
+  const meiMensal = dasMensalPorCategoria(dados.categoria_mei || "Serviços"); // fonte única: lib/meiHelpers.ts
   resultados.push({
     regime: "mei", regime_label: "MEI",
     imposto_mensal: Math.round(meiMensal),
     imposto_anual: Math.round(meiMensal * 12),
     aliquota_efetiva: rbMes > 0 ? parseFloat(((meiMensal / rbMes) * 100).toFixed(2)) : 0,
     economia_vs_atual: Math.round((impostoAtual - meiMensal) * 12),
-    detalhamento: `DAS fixo R$ ${meiMensal.toFixed(2)}/mês. Limite: R$ 144K/ano. Sem funcionários.`,
-    detalhamento_en: `Fixed DAS R$ ${meiMensal.toFixed(2)}/month. Limit: R$ 144K/year. No employees.`,
-    detalhamento_es: `DAS fijo R$ ${meiMensal.toFixed(2)}/mes. Límite: R$ 144K/año. Sin empleados.`,
+    detalhamento: `DAS fixo R$ ${meiMensal.toFixed(2)}/mês. Limite: R$ 81 mil/ano. Até 1 funcionário.`,
+    detalhamento_en: `Fixed DAS R$ ${meiMensal.toFixed(2)}/month. Limit: R$ 81K/year. Up to 1 employee.`,
+    detalhamento_es: `DAS fijo R$ ${meiMensal.toFixed(2)}/mes. Límite: R$ 81 mil/año. Hasta 1 empleado.`,
     elegivel: meiElegivel,
-    motivo_inelegivel: meiElegivel ? undefined : "Faturamento acima de R$ 144K/ano",
+    motivo_inelegivel: meiElegivel ? undefined : "Faturamento acima de R$ 81 mil/ano",
   });
 
   // 2. Simples Nacional
@@ -295,9 +299,10 @@ export function calcularImpostoRegime(
   rbMes: number,
   atividade?: AtividadeFiscal,
   aliquotaIssMunicipalPct?: number,
+  categoriaMei?: string | null, // MEI: DAS da categoria (Serviços/Comércio/Indústria/Transporte...) — antes era sempre Serviços
 ): number {
   const r = (regime || "").toLowerCase();
-  if (r === "mei") return dasMensalPorCategoria("Serviços");
+  if (r === "mei") return dasMensalPorCategoria(categoriaMei || "Serviços");
   if (r.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, "III");
     return rbMes * (aliq / 100);
@@ -364,7 +369,7 @@ export function calcularCargaTributaria(
   let composicao: { nome: string; valor: number; pct: number }[] = [];
 
   if (regime === "mei") {
-    const dasMei = dasMensalPorCategoria("Serviços");
+    const dasMei = dasMensalPorCategoria(dados.categoria_mei || "Serviços");
     composicao = [{ nome: "DAS MEI", valor: dasMei, pct: rbMes > 0 ? (dasMei / rbMes) * 100 : 0 }];
   } else if (regime.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, "III");
@@ -670,4 +675,11 @@ export async function limparHistoricoTrib(userId: string): Promise<{ erro?: stri
     return { erro: "historico_nao_apagado" };
   }
   return {};
+}
+// Lê a categoria do MEI que vem embutida na leitura da empresa:
+// supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").
+export function categoriaMeiDaEmpresa(emp: unknown): string | null {
+  const m = (emp as { mei_dados?: { categoria_mei?: string | null } | { categoria_mei?: string | null }[] | null } | null)?.mei_dados;
+  const linha = Array.isArray(m) ? m[0] : m;
+  return linha?.categoria_mei ?? null;
 }
