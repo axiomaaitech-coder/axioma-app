@@ -3,7 +3,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
-import { dasMensalPorCategoria, LIMITE_ANUAL_MEI } from "./meiHelpers";
+import { dasMensalPorCategoria, regraLimiteMEI } from "./meiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -218,7 +218,8 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
   // 1. MEI
   // Limite legal hoje é R$ 81 mil/ano (LIMITE_ANUAL_MEI). Antes dizia R$ 144K — recomendava
   // MEI pra quem não pode ser. R$ 130K é só proposta (PLP 108/2021), não vale ainda.
-  const meiElegivel = rb12 <= LIMITE_ANUAL_MEI;
+  const limiteMei = regraLimiteMEI(dados.categoria_mei, new Date().getFullYear()).anual; // caminhoneiro: R$ 251.600
+  const meiElegivel = rb12 <= limiteMei;
   const meiMensal = dasMensalPorCategoria(dados.categoria_mei || "Serviços"); // fonte única: lib/meiHelpers.ts
   resultados.push({
     regime: "mei", regime_label: "MEI",
@@ -226,11 +227,11 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
     imposto_anual: Math.round(meiMensal * 12),
     aliquota_efetiva: rbMes > 0 ? parseFloat(((meiMensal / rbMes) * 100).toFixed(2)) : 0,
     economia_vs_atual: Math.round((impostoAtual - meiMensal) * 12),
-    detalhamento: `DAS fixo R$ ${meiMensal.toFixed(2)}/mês. Limite: R$ 81 mil/ano. Até 1 funcionário.`,
-    detalhamento_en: `Fixed DAS R$ ${meiMensal.toFixed(2)}/month. Limit: R$ 81K/year. Up to 1 employee.`,
-    detalhamento_es: `DAS fijo R$ ${meiMensal.toFixed(2)}/mes. Límite: R$ 81 mil/año. Hasta 1 empleado.`,
+    detalhamento: `DAS fixo R$ ${meiMensal.toFixed(2)}/mês. Limite: R$ ${limiteMei.toLocaleString("pt-BR")}/ano. Até 1 funcionário.`,
+    detalhamento_en: `Fixed DAS R$ ${meiMensal.toFixed(2)}/month. Limit: R$ ${limiteMei.toLocaleString("en-US")}/year. Up to 1 employee.`,
+    detalhamento_es: `DAS fijo R$ ${meiMensal.toFixed(2)}/mes. Límite: R$ ${limiteMei.toLocaleString("es-ES")}/año. Hasta 1 empleado.`,
     elegivel: meiElegivel,
-    motivo_inelegivel: meiElegivel ? undefined : "Faturamento acima de R$ 81 mil/ano",
+    motivo_inelegivel: meiElegivel ? undefined : `Faturamento acima de R$ ${limiteMei.toLocaleString("pt-BR")}/ano`,
   });
 
   // 2. Simples Nacional

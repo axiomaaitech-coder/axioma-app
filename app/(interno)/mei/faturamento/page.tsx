@@ -33,6 +33,7 @@ import {
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import AvisoDuplicidade from '../../../../components/AvisoDuplicidade'
+import MonitorLimiteMEI from '../../../../components/mei/MonitorLimiteMEI'
 import { useConfirmarExclusao, nomeItem, EFEITO } from '../../../../components/ConfirmarExclusao'
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from '../../../../lib/rastreio/lancamentoManual'
 
@@ -84,6 +85,7 @@ export default function FaturamentoMEI() {
   const [criando, setCriando] = useState(false) // "Nova venda": mesmo formulário da edição, grava em receitas
   const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro)
   const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null)
+  const [empresaIdLimite, setEmpresaIdLimite] = useState<string | null>(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', categoria: CATEGORIAS[0], status: 'recebido' })
   const [salvando, setSalvando] = useState(false)
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
@@ -158,6 +160,7 @@ export default function FaturamentoMEI() {
     if (!user) { setLoading(false); return }
     const empresaId = await obterEmpresaAtiva()
     if (!empresaId) { setLoading(false); return }
+    setEmpresaIdLimite(empresaId)
     const base = await lerBaseMEI(empresaId, { receitas: '*' })
     if (base.falhou) showToast(mensagemFalhaCarregamento(lang))
     setReceitas(base.receitas as Receita[])
@@ -266,7 +269,7 @@ export default function FaturamentoMEI() {
   const mesAtual = new Date().getMonth()
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const teto = tetoInfo.teto
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
   const percentualLimiteAtual = percentualLimite(faturamentoAnual, teto) // capped em 100, só pra largura da barra
@@ -534,6 +537,11 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
             </div>
           </div>
         </CanvasBox>
+
+        {/* Limite legal (MEI comum × caminhoneiro), faturado × projeção, transição MEI → ME */}
+        <MonitorLimiteMEI empresaId={empresaIdLimite} ano={anoAtual} faturado={faturamentoAnual} projecaoAnual={proj.projecaoAnual} teto={teto}
+          proporcional={tetoInfo.proporcional} mesesAtivos={tetoInfo.mesesAtivos} regra={tetoInfo.regra} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema}
+          cores={{ VERDE, VERMELHO, AMBAR, NEUTRO, TEXTO_SEC, NESTED_BORDA, CAMPO_BG }} />
 
         {/* Gráfico + comparação */}
         <CanvasBox cor={AZUL} {...cartaoTema}>

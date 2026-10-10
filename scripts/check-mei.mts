@@ -32,4 +32,11 @@ assert.equal(calcularImpostoRegime('mei', 50000, 4000, undefined, undefined, 'Tr
 assert.equal(calcularImpostoRegime('mei', 50000, 4000), 86.05)
 assert.equal(categoriaMeiDaEmpresa({ regime_tributario: 'mei', mei_dados: [{ categoria_mei: 'Comércio' }] }), 'Comércio')
 assert.equal(categoriaMeiDaEmpresa({ regime_tributario: 'mei', mei_dados: { categoria_mei: 'Indústria' } }), 'Indústria')
+const { tetoProporcionalMEI, efeitoExcessoMEI } = await import('../lib/meiHelpers')
+assert.equal(tetoProporcionalMEI(null, 2026).teto, 81000)
+assert.equal(tetoProporcionalMEI(null, 2026, 'Transporte').teto, 251600)          // caminhoneiro (LC 188/2021)
+assert.equal(tetoProporcionalMEI('2026-03-15', 2026).teto, 67500)                 // mar–dez = 10 meses × 6.750
+assert.equal(tetoProporcionalMEI('2026-03-15', 2026, 'Transporte').teto, 209666.7) // 10 × 20.966,67
+assert.deepEqual(efeitoExcessoMEI(90000, 81000), { situacao: 'ate20', excesso: 9000, limite20: 97200 })
+assert.equal(efeitoExcessoMEI(100000, 81000).situacao, 'acima20')
 console.log('check-mei OK')

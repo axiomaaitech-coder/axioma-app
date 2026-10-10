@@ -238,7 +238,7 @@ export default function PainelMEI() {
 
   const anoAtual = new Date().getFullYear()
   const mesAtual = new Date().getMonth()
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const teto = tetoInfo.teto
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
   const percentualLimiteAtual = percentualLimite(faturamentoAnual, teto)

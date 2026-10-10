@@ -211,7 +211,7 @@ export default function CockpitMEI() {
   const mesAtual = hoje.getMonth()
 
   // ---- Card 1: Teto do MEI ----
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const teto = tetoInfo.teto
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
   const percentualLimiteAtual = percentualLimite(faturamentoAnual, teto)

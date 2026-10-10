@@ -179,7 +179,7 @@ export default function IAMEIAdvisor() {
 
   const anoAtual = new Date().getFullYear()
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual) // mesma conta das outras telas (respeita 'conta pro teto')
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const teto = tetoInfo.teto
   const percentualLimite = Math.min(100, (faturamentoAnual / teto) * 100)
   const restanteLimite = Math.max(0, teto - faturamentoAnual)

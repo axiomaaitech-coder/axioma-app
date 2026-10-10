@@ -109,18 +109,44 @@ export function semaforoTeto(percentual: number): "verde" | "amarelo" | "vermelh
 // data_abertura disponível.
 // ============================================================================
 
+// LIMITE LEGAL VERSIONADO (mesmas regras de regras_fiscais LIMITE_MEI / LIMITE_MEI_TAC,
+// DRE-COMPETENCIA-SQL.sql). Só lei em vigor — proposta (PLP 186/2026) não entra aqui.
+export type RegraLimiteMEI = { tipo: "comum" | "tac"; desde: string; anual: number; mensal: number; tolerancia_pct: number; fonte: string };
+export const LIMITES_MEI: RegraLimiteMEI[] = [
+  { tipo: "comum", desde: "2018-01-01", anual: 81000, mensal: 6750, tolerancia_pct: 20, fonte: "LC 123/2006 art. 18-A §1º (LC 155/2016) — gov.br/memp/teto-do-mei" },
+  { tipo: "tac", desde: "2022-01-01", anual: 251600, mensal: 20966.67, tolerancia_pct: 20, fonte: "LC 188/2021 — MEI transportador autônomo de cargas" },
+];
+// "Transporte" no Axioma = MEI caminhoneiro (transportador autônomo de cargas).
+export function regraLimiteMEI(categoria: string | null | undefined, ano: number): RegraLimiteMEI {
+  const tipo = categoria === "Transporte" ? "tac" : "comum";
+  const vigentes = LIMITES_MEI.filter((r) => r.tipo === tipo && r.desde <= `${ano}-12-31`).sort((a, b) => b.desde.localeCompare(a.desde));
+  return vigentes[0] ?? LIMITES_MEI[0];
+}
+
+// Proporcional no ano de abertura (§2º): limite mensal × meses entre a abertura e dezembro,
+// fração de mês conta como mês inteiro. Antes: 81 mil pra todo MEI — caminhoneiro (R$ 251.600)
+// recebia alerta de estouro sem ter estourado.
 export function tetoProporcionalMEI(
   dataAbertura: string | null | undefined,
-  ano: number
-): { teto: number; mesesAtivos: number; proporcional: boolean } {
-  if (!dataAbertura) return { teto: LIMITE_ANUAL_MEI, mesesAtivos: 12, proporcional: false };
+  ano: number,
+  categoria?: string | null,
+): { teto: number; mesesAtivos: number; proporcional: boolean; regra: RegraLimiteMEI } {
+  const regra = regraLimiteMEI(categoria, ano);
+  if (!dataAbertura) return { teto: regra.anual, mesesAtivos: 12, proporcional: false, regra };
   const abertura = new Date(dataAbertura.slice(0, 10) + "T00:00:00");
   const anoAbertura = abertura.getFullYear();
-  if (anoAbertura < ano) return { teto: LIMITE_ANUAL_MEI, mesesAtivos: 12, proporcional: false };
-  if (anoAbertura > ano) return { teto: 0, mesesAtivos: 0, proporcional: true };
+  if (anoAbertura < ano) return { teto: regra.anual, mesesAtivos: 12, proporcional: false, regra };
+  if (anoAbertura > ano) return { teto: 0, mesesAtivos: 0, proporcional: true, regra };
   const mesesAtivos = 12 - abertura.getMonth();
-  const teto = Math.round((LIMITE_ANUAL_MEI / 12) * mesesAtivos * 100) / 100;
-  return { teto, mesesAtivos, proporcional: true };
+  const teto = mesesAtivos === 12 ? regra.anual : Math.round(regra.mensal * mesesAtivos * 100) / 100;
+  return { teto, mesesAtivos, proporcional: true, regra };
+}
+
+// Efeito do excesso (LC 123 art. 18-A §7º III e §10) — preliminar, sempre "valide com o contador".
+export function efeitoExcessoMEI(faturamento: number, teto: number): { situacao: "dentro" | "ate20" | "acima20"; excesso: number; limite20: number } {
+  const limite20 = Math.round(teto * 1.2 * 100) / 100;
+  if (faturamento <= teto) return { situacao: "dentro", excesso: 0, limite20 };
+  return { situacao: faturamento <= limite20 ? "ate20" : "acima20", excesso: Math.round((faturamento - teto) * 100) / 100, limite20 };
 }
 
 // Percentual SEM teto em 100% (diferente de percentualLimite, que trava em

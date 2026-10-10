@@ -146,7 +146,7 @@ export default function ReformaTributaria() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const categoriaMei = meiDados?.categoria_mei || 'Serviços'
   const dasValor = meiDados?.das_valor || dasMensalPorCategoria(categoriaMei)
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const perfilCliente: 'b2b' | 'b2c' | 'ambos' | null = meiDados?.perfil_cliente || null
   const indiceFaseAtual = faseAtualReformaMEI(anoAtual)
 

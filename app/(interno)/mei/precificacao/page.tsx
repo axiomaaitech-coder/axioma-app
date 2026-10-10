@@ -222,7 +222,7 @@ export default function PrecificacaoMEI() {
 
   const anoAtual = new Date().getFullYear()
   const receitaMensalMedia = receitasRows.reduce((s, r) => s + (r.valor || 0), 0) / mesesMedia
-  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual, meiDados?.categoria_mei)
   const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)
   const receitaReferenciaDAS = receitaMensalMedia > 0 ? receitaMensalMedia : tetoInfo.teto / 12
   const fracaoDAS = fracaoDASSobrePreco(dasMensal, receitaReferenciaDAS)

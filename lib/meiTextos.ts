@@ -16,7 +16,7 @@ const TEXTOS = {
     semaforoVermelho: "Risco de estouro",
     projecaoEstoura: "No seu ritmo atual, você atinge o teto em",
     projecaoMeses: "meses",
-    consequenciaEstouro: "Se ultrapassar R$ 81.000/ano, você deixa de ser MEI e vira ME — o imposto sobe de um valor fixo mensal para uma % da sua receita.",
+    consequenciaEstouro: "Se ultrapassar o limite anual (R$ 81 mil; caminhoneiro R$ 251,6 mil), você deixa de ser MEI e vira ME — o imposto sobe de um valor fixo mensal para uma % da sua receita.",
     sugestaoSegurar: "Segurar o faturamento até o fim do ano (recusar/adiar novos contratos)",
     sugestaoMigrar: "Preparar a migração para ME com antecedência (menos surpresa, mais planejamento)",
     considerandoTodasReceitas: "Considera as receitas marcadas como faturamento MEI.",
@@ -42,7 +42,7 @@ const TEXTOS = {
     subFluxo: "Fluxo",
     subFinanceiroDesc: "Sua receita está crescendo mês a mês.",
     subFiscalDesc: "Suas obrigações (DAS, DASN, IR) estão em dia.",
-    subTetoDesc: "Distância até o limite anual de R$ 81.000.",
+    subTetoDesc: "Distância até o seu limite anual (R$ 81 mil; caminhoneiro R$ 251,6 mil).",
     subFluxoDesc: "Sobra dinheiro depois de pagar os custos do mês.",
 
     // Central de obrigações
@@ -113,7 +113,7 @@ const TEXTOS = {
     semaforoVermelho: "Risk of exceeding",
     projecaoEstoura: "At your current pace, you reach the cap in",
     projecaoMeses: "months",
-    consequenciaEstouro: "If you exceed R$ 81,000/year, you stop being MEI and become ME — tax goes from a fixed monthly amount to a % of your revenue.",
+    consequenciaEstouro: "If you exceed the annual cap (R$ 81K; truck driver R$ 251.6K), you stop being MEI and become ME — tax goes from a fixed monthly amount to a % of your revenue.",
     sugestaoSegurar: "Hold off revenue until year-end (decline/postpone new contracts)",
     sugestaoMigrar: "Prepare the migration to ME in advance (less surprise, more planning)",
     considerandoTodasReceitas: "Considers revenues marked as MEI revenue.",
@@ -136,7 +136,7 @@ const TEXTOS = {
     subFluxo: "Cash Flow",
     subFinanceiroDesc: "Your revenue is growing month over month.",
     subFiscalDesc: "Your obligations (DAS, DASN, IR) are up to date.",
-    subTetoDesc: "Distance to the annual cap of R$ 81,000.",
+    subTetoDesc: "Distance to your annual cap (R$ 81K; truck driver R$ 251.6K).",
     subFluxoDesc: "Money left over after paying this month's costs.",
 
     obrigacoes: "Obligations Center",
@@ -197,7 +197,7 @@ const TEXTOS = {
     semaforoVermelho: "Riesgo de superar",
     projecaoEstoura: "A su ritmo actual, alcanza el límite en",
     projecaoMeses: "meses",
-    consequenciaEstouro: "Si supera R$ 81.000/año, deja de ser MEI y pasa a ME — el impuesto pasa de un valor fijo mensual a un % de sus ingresos.",
+    consequenciaEstouro: "Si supera el límite anual (R$ 81 mil; camionero R$ 251,6 mil), deja de ser MEI y pasa a ME — el impuesto pasa de un valor fijo mensual a un % de sus ingresos.",
     sugestaoSegurar: "Frenar la facturación hasta fin de año (rechazar/posponer nuevos contratos)",
     sugestaoMigrar: "Preparar la migración a ME con antelación (menos sorpresa, más planificación)",
     considerandoTodasReceitas: "Considera los ingresos marcados como facturación MEI.",
@@ -220,7 +220,7 @@ const TEXTOS = {
     subFluxo: "Flujo de Caja",
     subFinanceiroDesc: "Sus ingresos están creciendo mes a mes.",
     subFiscalDesc: "Sus obligaciones (DAS, DASN, IR) están al día.",
-    subTetoDesc: "Distancia hasta el límite anual de R$ 81.000.",
+    subTetoDesc: "Distancia hasta su límite anual (R$ 81 mil; camionero R$ 251,6 mil).",
     subFluxoDesc: "Dinero que sobra tras pagar los costos del mes.",
 
     obrigacoes: "Central de Obligaciones",
