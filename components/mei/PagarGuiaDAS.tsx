@@ -4,6 +4,8 @@
 // PESSOA confere (códigos conferidos por regra)  3) pagar: copiar Pix / código de barras
 // no app do banco, ou "Pagar com Pix pelo Axioma" (Pluggy, quando ligado) → "Já paguei"
 // dá a baixa pelo motor de obrigações (guia com vários meses é dividida do mais antigo).
+// ME/EPP (Simples): mesma tela com `simples` — guia do PGDAS-D ligada à conta a pagar do DAS,
+// e "Já paguei" dá a baixa pela própria Contas a Pagar (multa/juros da guia viram encargos).
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import * as Sentry from '@sentry/nextjs'
@@ -11,15 +13,16 @@ import { Copy, ExternalLink, Upload, Check, AlertTriangle } from 'lucide-react'
 import Modal from '../Modal'
 import { CanvasBox } from '../CanvasBox'
 import { hojeISO } from '../../lib/datas'
-import { lerGuiaComIA, conferirGuia, iniciarPixAxioma, PIX_AXIOMA_ATIVO, URL_PGMEI, soDigitos, type GuiaLida } from '../../lib/guiaDas'
+import { lerGuiaComIA, conferirGuia, iniciarPixAxioma, PIX_AXIOMA_ATIVO, URL_PGMEI, URL_PGDASD, soDigitos, type GuiaLida } from '../../lib/guiaDas'
 import { registrarPagamentoDAS, planejarAlocacao, type MesDAS, type MetodoPagamento } from '../../lib/meiObrigacoesMotor'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 type Lang = 'pt' | 'en' | 'es'
 const MENTA = '#0f7a5a', NAVY = '#101b3d'
 
-export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa, meses, competenciaInicial, lang, temaClaro, cartaoTema, onPago, showToast }: {
+export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa, meses, competenciaInicial, lang, temaClaro, cartaoTema, onPago, showToast, simples }: {
   aberto: boolean; onFechar: () => void; empresaId: string; cnpjEmpresa: string | null; meses: MesDAS[]; competenciaInicial: string | null
+  simples?: { contaPagarId: string; registrar: (valor: number, data: string, metodo: MetodoPagamento) => Promise<boolean> }
   lang: Lang; temaClaro: boolean; cartaoTema: { fundo?: string; premium3d: boolean }; onPago: () => void; showToast: (m: string, t?: 'erro' | 'ok') => void
 }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -28,6 +31,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
   const TEXTO = temaClaro ? '#101b3d' : '#e5edf7', SEC = temaClaro ? '#374151' : '#a3b1c2'
   const CAIXA = { background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'}` }
   const CAMPO = { background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.06)', border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.2)' : 'rgba(46,204,155,0.3)'}`, color: TEXTO }
+  const portal = simples ? URL_PGDASD : URL_PGMEI
   const btn = (cor: string) => ({ className: 'px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50', style: { background: cor, color: '#fff' } })
 
   const [lendo, setLendo] = useState(false)
@@ -70,7 +74,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
       if (ja) { setGuiaId(ja.id); return ja.id }
     }
     const { data, error } = await supabase.from('guias_arrecadacao').insert({
-      empresa_id: empresaId, tipo: 'DAS_MEI', numero_documento: guia.numero_documento, codigo_barras: barrasOk ? soDigitos(guia.codigo_barras) : null,
+      empresa_id: empresaId, tipo: simples ? 'DAS_SIMPLES' : 'DAS_MEI', conta_pagar_id: simples?.contaPagarId ?? null, numero_documento: guia.numero_documento, codigo_barras: barrasOk ? soDigitos(guia.codigo_barras) : null,
       pix_copia_cola: pixOk ? guia.pix_copia_cola : null, valor_total: guia.valor_total, data_vencimento: guia.data_vencimento,
       competencias: guia.competencias, origem: 'pdf_ia', cnpj: guia.cnpj ? soDigitos(guia.cnpj) : null, usuario_id: user?.id ?? null,
     }).select('id').single()
@@ -88,6 +92,19 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
   async function jaPaguei() {
     if (!guia || !conferencia) return
     if (dataPg > hojeISO()) { showToast(L('A data do pagamento não pode ser no futuro.', 'The payment date cannot be in the future.', 'La fecha del pago no puede ser futura.')); return }
+    if (simples) {
+      setSalvando(true)
+      const id = await garantirGuia()
+      const ok = id ? await simples.registrar(Number(guia.valor_total), dataPg, metodo) : false
+      if (ok && id) {
+        const { error } = await supabase.from('guias_arrecadacao').update({ status: 'paga' }).eq('id', id).eq('empresa_id', empresaId)
+        if (error) Sentry.captureException(new Error(`[pagar DAS Simples] marcar guia paga: ${error.message}`))
+      }
+      setSalvando(false)
+      if (!ok) return // a Contas a Pagar já mostrou o motivo
+      showToast(L('Pago! A baixa já está em Contas a Pagar, no Fluxo de Caixa e na Contabilidade.', 'Paid! Recorded in Payables, Cash Flow and Accounting.', '¡Pagado! Registrado en Cuentas a Pagar, Flujo de Caja y Contabilidad.'), 'ok')
+      fechar(); onPago(); return
+    }
     const abertas = meses.filter((m) => guia.competencias.includes(m.competencia) && m.natureza === 'oficial' && (m.saldo > 0 || m.situacao === 'aguardando_conciliacao'))
       .map((m) => ({ id: m.id, data_vencimento: m.data_vencimento, saldo: m.situacao === 'aguardando_conciliacao' ? Math.max(0, (m.valor_esperado ?? 0) - m.pago) : m.saldo }))
     if (!abertas.length) { showToast(L('Os meses desta guia não estão em aberto no Axioma. Confira os períodos.', 'The months on this slip are not open in Axioma. Check the periods.', 'Los meses de esta guía no están abiertos en Axioma. Verifique los períodos.')); return }
@@ -117,9 +134,11 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
 
         <div className="rounded-xl p-3 mt-3" style={CAIXA}>
           <p className="text-xs font-bold" style={{ color: TEXTO }}>1. {L('Gere a guia no portal oficial', 'Issue the slip on the official portal', 'Genere la guía en el portal oficial')}</p>
-          <p className="text-[11px] mt-1" style={{ color: SEC }}>{L('No PGMEI, informe o CNPJ, escolha o ano, marque o(s) mês(es) e clique em "Emitir DAS". Baixe o PDF.', 'In PGMEI, enter the CNPJ, pick the year, tick the month(s) and click "Emitir DAS". Download the PDF.', 'En el PGMEI, informe el CNPJ, elija el año, marque el/los mes(es) y haga clic en "Emitir DAS". Descargue el PDF.')}</p>
+          <p className="text-[11px] mt-1" style={{ color: SEC }}>{simples
+            ? L('No Portal do Simples, entre no PGDAS-D (certificado digital ou código de acesso), faça a apuração do mês e clique em "Gerar DAS". Baixe o PDF.', 'On the Simples Portal, open PGDAS-D (digital certificate or access code), file the month and click "Gerar DAS". Download the PDF.', 'En el Portal del Simples, entre al PGDAS-D (certificado digital o código de acceso), haga la apuración del mes y haga clic en "Gerar DAS". Descargue el PDF.')
+            : L('No PGMEI, informe o CNPJ, escolha o ano, marque o(s) mês(es) e clique em "Emitir DAS". Baixe o PDF.', 'In PGMEI, enter the CNPJ, pick the year, tick the month(s) and click "Emitir DAS". Download the PDF.', 'En el PGMEI, informe el CNPJ, elija el año, marque el/los mes(es) y haga clic en "Emitir DAS". Descargue el PDF.')}</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            <a href={URL_PGMEI} target="_blank" rel="noopener noreferrer" {...btn(NAVY)}><ExternalLink size={12} />{L('Abrir o PGMEI', 'Open PGMEI', 'Abrir el PGMEI')}</a>
+            <a href={portal} target="_blank" rel="noopener noreferrer" {...btn(NAVY)}><ExternalLink size={12} />{simples ? L('Abrir o PGDAS-D', 'Open PGDAS-D', 'Abrir el PGDAS-D') : L('Abrir o PGMEI', 'Open PGMEI', 'Abrir el PGMEI')}</a>
             {cnpjEmpresa && <button {...btn(NAVY)} onClick={() => void copiar(soDigitos(cnpjEmpresa), 'CNPJ')}><Copy size={12} />{L('Copiar CNPJ', 'Copy CNPJ', 'Copiar CNPJ')}</button>}
           </div>
         </div>
@@ -148,12 +167,12 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
             <div className="flex flex-wrap gap-2 mt-2">
               {pixOk && <button {...btn(MENTA)} onClick={() => void copiar(guia.pix_copia_cola!, 'Pix')}><Copy size={12} />{L('Copiar Pix', 'Copy Pix', 'Copiar Pix')}</button>}
               {barrasOk && <button {...btn(NAVY)} onClick={() => void copiar(soDigitos(guia.codigo_barras), L('Código de barras', 'Barcode', 'Código de barras'))}><Copy size={12} />{L('Copiar código de barras', 'Copy barcode', 'Copiar código de barras')}</button>}
-              <a href={URL_PGMEI} target="_blank" rel="noopener noreferrer" {...btn(NAVY)}><ExternalLink size={12} />{L('Cartão de crédito (PGMEI → Pagar Online)', 'Credit card (PGMEI → Pagar Online)', 'Tarjeta de crédito (PGMEI → Pagar Online)')}</a>
+              {!simples && <a href={URL_PGMEI} target="_blank" rel="noopener noreferrer" {...btn(NAVY)}><ExternalLink size={12} />{L('Cartão de crédito (PGMEI → Pagar Online)', 'Credit card (PGMEI → Pagar Online)', 'Tarjeta de crédito (PGMEI → Pagar Online)')}</a>}
               {pixOk && <button {...btn(MENTA)} disabled={!PIX_AXIOMA_ATIVO} onClick={() => void pagarPixAxioma()} title={PIX_AXIOMA_ATIVO ? '' : L('Em ativação com a Pluggy', 'Being activated with Pluggy', 'En activación con Pluggy')}>
                 {L('Pagar com Pix pelo Axioma', 'Pay with Pix through Axioma', 'Pagar con Pix por Axioma')}{PIX_AXIOMA_ATIVO ? '' : L(' (em ativação)', ' (being activated)', ' (en activación)')}
               </button>}
             </div>
-            <p className="text-[11px] mt-2" style={{ color: SEC }}>{L('Cartão de crédito: aceito pela Receita desde set/2025 no próprio PGMEI ("Pagar Online"). Os juros do cartão costumam ser bem maiores que o parcelamento oficial do PGMEI — compare antes. Cartão de débito não é aceito pelas regras oficiais que encontramos.', 'Credit card: accepted by the Federal Revenue since Sep/2025 in PGMEI itself ("Pagar Online"). Card interest is usually much higher than the official PGMEI installment plan — compare first. Debit card is not accepted under the official rules we found.', 'Tarjeta de crédito: aceptada por la Receita desde sep/2025 en el propio PGMEI ("Pagar Online"). Los intereses de la tarjeta suelen ser mucho mayores que el parcelamiento oficial del PGMEI — compare antes. Tarjeta de débito no es aceptada según las reglas oficiales encontradas.')}</p>
+            {!simples && <p className="text-[11px] mt-2" style={{ color: SEC }}>{L('Cartão de crédito: aceito pela Receita desde set/2025 no próprio PGMEI ("Pagar Online"). Os juros do cartão costumam ser bem maiores que o parcelamento oficial do PGMEI — compare antes. Cartão de débito não é aceito pelas regras oficiais que encontramos.', 'Credit card: accepted by the Federal Revenue since Sep/2025 in PGMEI itself ("Pagar Online"). Card interest is usually much higher than the official PGMEI installment plan — compare first. Debit card is not accepted under the official rules we found.', 'Tarjeta de crédito: aceptada por la Receita desde sep/2025 en el propio PGMEI ("Pagar Online"). Los intereses de la tarjeta suelen ser mucho mayores que el parcelamiento oficial del PGMEI — compare antes. Tarjeta de débito no es aceptada según las reglas oficiales encontradas.')}</p>}
             <p className="text-[11px] mt-2" style={{ color: SEC }}>{L('Pagou no app do banco? Informe a data e clique em "Já paguei" — a baixa sai com o nº desta guia, e o extrato reconhece sozinho.', 'Paid in your bank app? Enter the date and click "Already paid" — it is recorded with this slip number and the statement matches it automatically.', '¿Pagó en la app del banco? Informe la fecha y haga clic en "Ya pagué" — se registra con el nº de esta guía y el extracto lo reconoce solo.')}</p>
             <div className="flex flex-wrap items-end gap-2 mt-2">
               <label className="text-[11px]" style={{ color: SEC }}>{L('Data do pagamento', 'Payment date', 'Fecha del pago')}

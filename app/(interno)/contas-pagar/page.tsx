@@ -60,6 +60,8 @@ import { avaliarDuplicidade, type Avaliacao, type Suspeita } from "@/lib/motorDu
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, agora } from "../../../lib/datas";
+import PagarGuiaDAS from "../../../components/mei/PagarGuiaDAS";
+import type { MetodoPagamento } from "../../../lib/meiObrigacoesMotor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1676,6 +1678,28 @@ export default function ContasPagarPage() {
   }
   function fecharBaixa() { setModalBaixa(false); setContaBaixa(null); }
 
+  // DAS do Simples (ME/EPP): paga pela guia do PGDAS-D — IA lê, a pessoa confere, baixa aqui mesmo.
+  const ehDasSimples = (c: ContaPagar) => !c.mei_obrigacao_id && c.categoria === "Impostos" && /\bDAS\b|simples nacional/i.test(c.descricao || "");
+  const [contaDasGuia, setContaDasGuia] = useState<ContaPagar | null>(null);
+  const [cnpjEmpresa, setCnpjEmpresa] = useState<string | null>(null);
+  async function abrirGuiaDas(c: ContaPagar) {
+    if (empresaId && cnpjEmpresa === null) {
+      const { data } = await supabase.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle();
+      setCnpjEmpresa(data?.cnpj ?? "");
+    }
+    setContaDasGuia(c);
+  }
+  const FORMA_DO_METODO: Record<MetodoPagamento, string> = { pix: "PIX", boleto: "Boleto", debito_automatico: "Transferência", cartao: "Cartão de Crédito", transferencia: "Transferência", outro: "PIX" };
+  async function registrarGuiaDas(valor: number, data: string, metodo: MetodoPagamento): Promise<boolean> {
+    if (!contaDasGuia) return false;
+    const { erro } = await darBaixaContaPagar(contaDasGuia, (contaDasGuia.valor_pago || 0) + valor, data, FORMA_DO_METODO[metodo] ?? "PIX");
+    if (erro) {
+      showToast(erro === "aguardando_aprovacao" ? L("Esta conta ainda aguarda aprovação.", "This bill is still awaiting approval.", "Esta cuenta aún espera aprobación.") : L("Não foi possível registrar a baixa. Tente novamente.", "Could not register the payment. Try again.", "No se pudo registrar el pago. Intente de nuevo."), "erro");
+      return false;
+    }
+    return true;
+  }
+
   async function confirmarBaixa() {
     if (!contaBaixa || !valorBaixa || !dataBaixa) return;
     setProcessandoBaixa(true);
@@ -2074,6 +2098,9 @@ export default function ContasPagarPage() {
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirRastreabilidade(c)} title={L("Ver rastreabilidade", "View traceability", "Ver trazabilidad")} style={{ color: ROXO }}><Link2 size={15} /></motion.button>
                       {podeEditar && (
                         <>
+                          {c.status !== "pago" && c.status !== "aguardando_aprovacao" && ehDasSimples(c) && (
+                            <button onClick={() => void abrirGuiaDas(c)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: "#0f7a5a", color: "#ffffff" }} title={L("Pagar pela guia do PGDAS-D: envie o PDF, a IA lê e você confere", "Pay with the PGDAS-D slip: upload the PDF, AI reads it and you check", "Pagar con la guía del PGDAS-D: suba el PDF, la IA lee y usted confirma")}>{L("Pagar DAS", "Pay DAS", "Pagar DAS")}</button>
+                          )}
                           {c.status !== "pago" && c.status !== "aguardando_aprovacao" && (
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa (marcar como pago)", "Register payment (mark as paid)", "Registrar pago (marcar como pagado)")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
                           )}
@@ -3149,6 +3176,12 @@ export default function ContasPagarPage() {
 
       {/* TOAST */}
       {janelaConfirmacao}
+      {contaDasGuia && empresaId && (
+        <PagarGuiaDAS aberto onFechar={() => setContaDasGuia(null)} empresaId={empresaId} cnpjEmpresa={cnpjEmpresa || null} meses={[]}
+          competenciaInicial={null} lang={(idioma as 'pt' | 'en' | 'es') || 'pt'} temaClaro={temaClaro} cartaoTema={cartaoTema}
+          onPago={() => void carregar()} showToast={showToast}
+          simples={{ contaPagarId: contaDasGuia.id, registrar: registrarGuiaDas }} />
+      )}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
 
       {/* ====== MODAL NOVA/EDITAR CONTA ====== */}
