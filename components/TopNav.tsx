@@ -57,6 +57,7 @@ const grupos = [
       { label: { pt: "Balancete", en: "Trial Balance", es: "Balance de Comprobación" }, path: "/contabilidade/balancete", emoji: "⚖️" },
       { label: { pt: "DRE Contábil", en: "Income Statement", es: "Estado de Resultados" }, path: "/contabilidade/dre", emoji: "📑" },
       { label: { pt: "Rastreabilidade", en: "Traceability", es: "Trazabilidad" }, path: "/rastreabilidade", emoji: "🧭" },
+      { label: { pt: "Conferência", en: "Reconciliation", es: "Conciliación" }, path: "/conferencia", emoji: "✅" },
     ]
   },
   {

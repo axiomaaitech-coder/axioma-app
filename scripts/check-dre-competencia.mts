@@ -66,4 +66,17 @@ const fx = d.lancamentosPdvFluxo([
   { id: 'e', valor_total: 999, status: 'cancelada', forma_pagamento: 'pix', finalizada_em: '2026-10-05T19:00:00Z', cancelada_em: '2026-10-05T20:00:00Z' },
 ])
 assert.deepEqual(fx.map((l) => [l.status, l.data, l.valor]), [['previsto', '2026-11-04', 300], ['realizado', '2026-10-05', 150]])
+// Conferência: soma contábil por natureza e quanto de cada pagamento chegou ao motor
+const cf = await import('../lib/conferenciaHelpers')
+const part = [
+  { valor: 1000, tipo: 'credito', plano_de_contas: { codigo: '6.01' }, lancamento_contabil: { data: '2026-10-02' } },
+  { valor: 100, tipo: 'debito', plano_de_contas: { codigo: '6.01' }, lancamento_contabil: { data: '2026-10-03' } },   // estorno
+  { valor: 300, tipo: 'debito', plano_de_contas: { codigo: '8.02' }, lancamento_contabil: { data: '2026-10-03' } },
+  { valor: 999, tipo: 'credito', plano_de_contas: { codigo: '6.01' }, lancamento_contabil: { data: '2026-11-01' } },  // outro mês
+]
+assert.equal(cf.somaContabil(part, ['6'], 'credito', '2026-10-01', '2026-10-31'), 900)
+assert.equal(cf.somaContabil(part, ['7', '8'], 'debito', '2026-10-01', '2026-10-31'), 300)
+const rast = cf.rastreadoPorConta([{ origem_id: 'p1', tipo: 'ap_pagamento', valor: 50000 }, { origem_id: 'p1', tipo: 'ap_pagamento', valor: 42840 }, { origem_id: 'p2', tipo: 'ap_pagamento', valor: 100 }, { origem_id: 'p2', tipo: 'ap_estorno', valor: 100 }])
+assert.equal(rast.get('p1'), 92840)
+assert.equal(rast.get('p2'), 0)
 console.log('check-dre-competencia OK')
