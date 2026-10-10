@@ -40,6 +40,7 @@ const doc: DocumentoAxioma = {
       '**5. Confirmar**: escolha se você continua como Admin ou sai, escreva o motivo, marque a declaração e digite sua senha. Clique em **Enviar pedido de transferência**.',
     ] },
     { p: 'Copie o link e mande para quem recebe. Ela entra no Axioma com o e-mail indicado (ou cria a conta), confere o resumo, digita o CPF, aceita a declaração e a LGPD e clica em **Aceitar e assumir a empresa**. O link vale **7 dias**; até o aceite você pode **Cancelar transferência** (com motivo). Cada pedido fica no **Histórico de transferências** para sempre, com **Baixar PDF**.' },
+    { p: '**Assinatura:** o que o antigo Proprietário já pagou continua valendo até o fim do período (a empresa não trava). A renovação no cartão dele é cancelada sozinha, e a tela de aceite mostra até quando está pago. Antes dessa data, o novo Proprietário cadastra o próprio pagamento em **Planos** — a assinatura dele passa a cobrir a empresa recebida.' },
     { nota: 'As regras da lei foram conferidas em 09/10/2026 (Código Civil, Lei 6.404/76 e normas do DREI) e podem mudar. Confirme com a Junta Comercial do seu estado antes de assinar.' },
     { nota: 'Só quem tem permissão de edição altera a empresa. Os demais veem em modo leitura.' },
   ],

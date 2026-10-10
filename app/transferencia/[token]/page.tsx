@@ -38,6 +38,7 @@ export default function AceitarTransferencia() {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [feito, setFeito] = useState(false)
+  const [pagoAte, setPagoAte] = useState<string | null>(null)
 
   useEffect(() => { void verTransferencia(token).then((x) => { setR(x); setCarregando(false) }) }, [token])
 
@@ -62,6 +63,7 @@ export default function AceitarTransferencia() {
     const { data: { user } } = await createClient().auth.getUser()
     if (user && x.empresaId) definirEmpresaPreferida(user.id, x.empresaId)
     limparCacheEmpresaAtiva()
+    setPagoAte(x.pagoAte ?? null)
     setFeito(true)
   }
 
@@ -107,6 +109,11 @@ export default function AceitarTransferencia() {
             <CheckCircle2 size={40} className="mx-auto mb-3" style={{ color: COR.menta }} />
             <p className="text-lg font-semibold" style={{ color: COR.texto }}>{L(`Você agora é o Proprietário de ${r.empresa_nome}`, `You are now the Owner of ${r.empresa_nome}`, `Ahora usted es el Propietario de ${r.empresa_nome}`)}</p>
             <p className="text-sm mt-2" style={{ color: COR.sec }}>{L('Fica registrado no histórico da empresa com data e CPF.', 'It is recorded in the company history with date and CPF.', 'Queda registrado en el historial de la empresa con fecha y CPF.')}</p>
+            {pagoAte && (
+              <p className="text-sm mt-3 rounded-xl px-3 py-2" style={{ color: COR.texto, border: `1px solid ${COR.menta}` }}>
+                {(() => { const d = new Date(pagoAte).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'); return L(`A assinatura da empresa está paga até ${d} pelo antigo Proprietário e não será renovada no cartão dele. Antes dessa data, cadastre o seu pagamento em Planos para a empresa continuar liberada.`, `The company subscription is paid until ${d} by the former Owner and will not renew on their card. Before that date, set up your payment in Plans to keep the company active.`, `La suscripción de la empresa está pagada hasta ${d} por el antiguo Propietario y no se renovará en su tarjeta. Antes de esa fecha, registre su pago en Planes para que la empresa siga activa.`) })()}
+              </p>
+            )}
             <a href="/dashboard" className={`${botao} mt-6`} style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>{L('Abrir o Axioma', 'Open Axioma', 'Abrir Axioma')}</a>
           </div>
         )}

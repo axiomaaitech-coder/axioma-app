@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
           // Assinatura é da EMPRESA (Elias 2026-10-03): a(s) empresa(s) de quem assinou recebem o plano
           const { data: empAtivadas, error: eEmp } = await supabase.from('empresas')
             .update({ plano, plano_ativo: true, assinante_user_id: userId, plano_desde: new Date().toISOString() })
-            .or(`assinante_user_id.eq.${userId},and(assinante_user_id.is.null,user_id.eq.${userId})`)
+            .or(`assinante_user_id.eq.${userId},user_id.eq.${userId}`) // + empresas de que ele é DONO (inclui a recebida por transferência)
             .select('id')
           if (eEmp || !empAtivadas?.length) logFalhaWebhook('empresas', 'update plano (checkout.session.completed)', eEmp?.message || '0 empresas encontradas', { userId, plano })
         }

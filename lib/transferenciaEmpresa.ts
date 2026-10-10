@@ -124,4 +124,4 @@ export const listarTransferencias = (empresaId: string) => chamar({ acao: 'lista
 export const pedirTransferencia = (dados: Record<string, unknown>) => chamar({ acao: 'criar', ...dados }) as Promise<{ token?: string; erro?: string }>
 export const cancelarTransferencia = (empresaId: string, id: string, motivo: string) => chamar({ acao: 'cancelar', empresaId, id, motivo }) as Promise<{ ok?: boolean; empresaId?: string; erro?: string }>
 export const verTransferencia = (token: string) => chamar({ acao: 'ver', token })
-export const aceitarTransferencia = (token: string, cpf: string, declaracao: boolean, lgpd: boolean) => chamar({ acao: 'aceitar', token, cpf, declaracao, lgpd }) as Promise<{ ok?: boolean; empresaId?: string; erro?: string }>
+export const aceitarTransferencia = (token: string, cpf: string, declaracao: boolean, lgpd: boolean) => chamar({ acao: 'aceitar', token, cpf, declaracao, lgpd }) as Promise<{ ok?: boolean; empresaId?: string; pagoAte?: string | null; erro?: string }>

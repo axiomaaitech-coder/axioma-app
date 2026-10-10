@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { randomUUID } from 'crypto'
 import * as Sentry from '@sentry/nextjs'
+import Stripe from 'stripe'
 import { bloqueado, registrarFalha, admin, conferirSenha, papelLiberador, usuarioLogado } from '@/lib/supervisorServidor'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { checklistDe, docValido, type TipoOperacao, type TipoSocietario } from '@/lib/transferenciaEmpresa'
@@ -30,6 +31,34 @@ async function complementar(etapa: string, q: PromiseLike<{ error: { message: st
 }
 
 type Db = ReturnType<typeof admin>
+
+// Assinatura acompanha a empresa (acerto 2026-10-10): quem pagava era o antigo dono, no cartão dele.
+// O período já pago continua valendo (a empresa não trava no meio do mês); a renovação dele é
+// cancelada no Stripe e, quando acabar, o novo dono assina (o webhook liga a empresa a quem é dono).
+// Devolve até quando está pago (ISO) pra avisar o novo dono.
+async function encerrarAssinaturaDoCedente(db: Db, empresaId: string, cedenteId: string, transfId: string): Promise<string | null> {
+  const { data: emp } = await db.from('empresas').select('assinante_user_id, plano_ativo').eq('id', empresaId).maybeSingle()
+  if (!emp?.plano_ativo || emp.assinante_user_id !== cedenteId) return null
+  const [{ data: perfil }, { count }] = await Promise.all([
+    db.from('perfis').select('stripe_subscription_id').eq('user_id', cedenteId).maybeSingle(),
+    db.from('empresas').select('id', { count: 'exact', head: true }).eq('assinante_user_id', cedenteId).neq('id', empresaId),
+  ])
+  const subId = perfil?.stripe_subscription_id as string | undefined
+  if (!subId || !process.env.STRIPE_SECRET_KEY) return null
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' })
+    const sub = await stripe.subscriptions.retrieve(subId)
+    const fim = (sub.items?.data?.[0] as unknown as { current_period_end?: number } | undefined)?.current_period_end
+      ?? (sub as unknown as { current_period_end?: number }).current_period_end
+    // ponytail: antigo dono com OUTRAS empresas na mesma assinatura → não cancela (pagaria as outras); fica pro Sentry revisar à mão.
+    if (count && count > 0) { falhaServidor('assinatura cedente com outras empresas', 'revisar à mão', { id: transfId, empresaId }); return fim ? new Date(fim * 1000).toISOString() : null }
+    if (!sub.cancel_at_period_end) await stripe.subscriptions.update(subId, { cancel_at_period_end: true })
+    return fim ? new Date(fim * 1000).toISOString() : null
+  } catch (e) {
+    falhaServidor('cancelar renovação do cedente', e instanceof Error ? e.message : String(e), { id: transfId, empresaId })
+    return null
+  }
+}
 // Pedido vencido sem aceite vira "expirada" (libera a empresa pra um pedido novo)
 async function expirarVencidas(db: Db, filtro: { empresaId?: string; token?: string }) {
   let q = db.from('empresa_transferencias').update({ situacao: 'expirada' }).eq('situacao', 'aguardando').lt('expira_em', new Date().toISOString())
@@ -231,5 +260,6 @@ async function aceitar(corpo: any) {
 
   after(() => registrarAuditoria({ empresaId: t.empresa_id, ator: user.id, acao: 'empresa.transferencia.concluida', entidade: 'empresa_transferencias', entidadeId: t.id,
     versaoMotor: 'transferencia-1', parametros: { de: t.cedente_user_id, para: user.id, operacao: t.tipo_operacao, junta_protocolo: t.junta_protocolo, cedente_fica_admin: t.cedente_fica_admin } }))
-  return NextResponse.json({ ok: true, empresaId: t.empresa_id })
+  const pagoAte = await encerrarAssinaturaDoCedente(db, t.empresa_id, t.cedente_user_id, t.id)
+  return NextResponse.json({ ok: true, empresaId: t.empresa_id, pagoAte })
 }

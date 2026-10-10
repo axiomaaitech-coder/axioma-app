@@ -1388,7 +1388,8 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - A6 ✅ Contas antigas: botão por caso na Conferência (reprocessarCaso em lib/conferenciaHelpers) — D3/D4 pagamento sem rastro e D5 receita fora da Contabilidade passam pelo MESMO motor (com risco de duplicar: "Corrigir sem mexer no Fluxo" usa payload.pular); D7 cria a conta a receber (vencimento escolhido) e liga a receita a ela (DRE não conta 2x, nada apagado). Relê do banco antes; caso já resolvido não faz nada. Limite: quando pula o Fluxo, a linha manual do Fluxo continua sem origem → par "pago × Fluxo" pode seguir ❌ (é o mesmo dinheiro, só não ligado).
 - BLOCO A CONCLUÍDO (A1–A6).
 - Planos ✅: recursos reescritos só com o que existe (sem ClowdBot, API dedicada, "23 módulos", VIP 24/7; Open Finance "em breve" na página inicial) em /planos, página inicial (3 idiomas) e descrição do checkout Stripe. Preços e divisão por plano intocados (decisão do Elias no fim).
-- PRÓXIMO: Stripe acompanhar a Transferência de empresa; depois manuais 04–43.
+- Stripe na Transferência ✅: ao aceitar, a renovação do antigo dono é cancelada no Stripe (cancel_at_period_end) — período pago segue valendo; tela de aceite mostra "paga até DD/MM"; webhook do checkout agora liga a assinatura a TODAS as empresas de que o assinante é dono (antes a empresa recebida ficava presa à assinatura do antigo dono). Antigo dono com outras empresas na mesma assinatura: não cancela, vai pro Sentry (revisar à mão). Manual 38.
+- PRÓXIMO: manuais 04–43 pt/en/es botão a botão + PDFs.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 
