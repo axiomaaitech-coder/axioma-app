@@ -35,6 +35,8 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { hojeISO } from "../../../lib/datas";
+import { dasMensalPorCategoria } from "../../../lib/meiHelpers";
+import { lerDASParaDRE, deducoesMEI, dasDaCompetencia, competenciasNoPeriodo, type ObrigacaoDRE } from "../../../lib/meiObrigacoesMotor";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -148,6 +150,8 @@ export default function DREPage() {
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<FluxoCaixaRow[]>([]);
   const [contasReceberRows, setContasReceberRows] = useState<ContaReceberRow[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  // MEI: dedução = DAS real de cada competência (motor de obrigações), não estimativa fixa.
+  const [dasMei, setDasMei] = useState<{ obrigacoes: ObrigacaoDRE[]; encargos: { data: string; valor: number }[]; padrao: number } | null>(null);
   const [benchmark, setBenchmark] = useState<BenchmarkSetor | null>(null);
   const [historico, setHistorico] = useState<HistoricoRow[]>([]);
 
@@ -189,6 +193,14 @@ export default function DREPage() {
     setFluxoCaixaRows(fc || []);
     setContasReceberRows(cr || []);
     setRegimeTributario(emp?.regime_tributario || "");
+    if (empId && (emp?.regime_tributario || "").toLowerCase() === "mei") {
+      const [das, { data: mei }] = await Promise.all([
+        lerDASParaDRE(empId, inicioHist, periodo.fim),
+        supabase.from("mei_dados").select("categoria_mei").eq("empresa_id", empId).maybeSingle(),
+      ]);
+      if (das.erro) showToast(lang === "en" ? "Could not read the actual DAS — the P&L uses the estimate for now." : lang === "es" ? "No se pudo leer el DAS real — el estado de resultados usa la estimación por ahora." : "Não foi possível ler o DAS real — a DRE usa a estimativa por enquanto.", "erro");
+      setDasMei(das.erro ? null : { obrigacoes: das.obrigacoes, encargos: das.encargos, padrao: dasMensalPorCategoria(mei?.categoria_mei) });
+    } else setDasMei(null);
     const setor = emp?.setor || emp?.cnae_principal || "";
     const bm = await carregarBenchmark(setor);
     setBenchmark(bm);
@@ -232,17 +244,21 @@ export default function DREPage() {
     const saldoDevedor = Math.max(0, Number(dvv.valor_total || 0) - Number(dvv.valor_pago || 0));
     return s + saldoDevedor * (Number(dvv.taxa_juros || 0) / 100);
   }, 0);
-  const despesasFinanceirasAtual = despesasFinanceirasMensal * meses;
-  const despesasFinanceirasAnt = despesasFinanceirasMensal * mesesAnt;
+  // MEI: multa/juros de DAS pagos no período também são despesa financeira (saíram do caixa).
+  const encargosDasNo = (p: { inicio: string; fim: string }) => (dasMei?.encargos || []).filter((e) => e.data >= p.inicio && e.data <= p.fim).reduce((s, e) => s + e.valor, 0);
+  const despesasFinanceirasAtual = despesasFinanceirasMensal * meses + encargosDasNo(periodo);
+  const despesasFinanceirasAnt = despesasFinanceirasMensal * mesesAnt + encargosDasNo(periodoAnt);
 
   // Imposto real pelo regime tributário da empresa (IA Tributária) — nunca mais um % fixo chutado.
   const inicioRb12 = inicioRolling12(periodo.fim);
   const rb12 = somaValor(receitasItens.filter(r => r.data >= inicioRb12 && r.data <= periodo.fim));
   const receitaMensalMedia = receitaBrutaAtual / meses;
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia);
+  // MEI: DAS real da competência (já com a categoria e o salário mínimo de cada ano). Antes era
+  // "DAS de Serviços × meses" pra todo MEI — caminhoneiro aparecia pagando R$86 em vez de R$195.
+  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia) * meses;
+  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia) * mesesAnt; // aproximação: mesma alíquota efetiva do período atual
+  const impostoMensalEstimado = deducoesAtual / meses;
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
-  const deducoesAtual = impostoMensalEstimado * meses;
-  const deducoesAnt = impostoMensalEstimado * mesesAnt; // aproximação: mesma alíquota efetiva do período atual
 
   const dreAtual: DRE = montarDRE({ receitaBruta: receitaBrutaAtual, deducoes: deducoesAtual, custoVariavel: custoVarAtual, custoFixo: custoFixoAtual, despesasFinanceiras: despesasFinanceirasAtual });
   const dreAnterior: DRE = montarDRE({ receitaBruta: receitaBrutaAnt, deducoes: deducoesAnt, custoVariavel: custoVarAnt, custoFixo: custoFixoAnt, despesasFinanceiras: despesasFinanceirasAnt });
@@ -250,9 +266,10 @@ export default function DREPage() {
   // ═══════════════════════ SÉRIE HISTÓRICA (semáforo, runway, projeção) ═══════════════════════
   const serieReceitaHist = serieRolling(receitasItens, 12, periodo.fim);
   const serieCustoVarHist = serieRolling(custoVarItens, 12, periodo.fim);
+  const competenciasSerie = competenciasNoPeriodo(inicioRolling12(periodo.fim), periodo.fim); // mesma ordem dos buckets (mais antigo primeiro)
   const serieDREHist: DRE[] = serieReceitaHist.map((b, i) => montarDRE({
     receitaBruta: b.value,
-    deducoes: calcularImpostoRegime(regimeTributario, rb12, b.value),
+    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, b.value),
     custoVariavel: serieCustoVarHist[i]?.value || 0,
     custoFixo: custoFixoMensalTotal,
     despesasFinanceiras: despesasFinanceirasMensal,

@@ -379,3 +379,42 @@ export function dividaDoCalendario(meses: MesDAS[], selicAnualPct: number, hoje:
     piorDiasAtraso: atrasos.reduce((s, a) => Math.max(s, a.diasAtraso), 0),
   };
 }
+
+// ============================================================================
+// DRE DO MEI (2026-10-09): dedução = DAS REAL de cada competência do período
+// (regime de competência), não "DAS de Serviços × meses". Mês sem obrigação no
+// calendário usa o DAS da categoria (mesma regra oficial). Multa/juros pagos são
+// despesa financeira do período em que saíram do caixa.
+// ============================================================================
+export type ObrigacaoDRE = { competencia: string; valor_esperado: number | null };
+
+export function competenciasNoPeriodo(inicio: string, fim: string): string[] {
+  const out: string[] = [];
+  let [a, m] = [Number(inicio.slice(0, 4)), Number(inicio.slice(5, 7))];
+  const [af, mf] = [Number(fim.slice(0, 4)), Number(fim.slice(5, 7))];
+  while (a < af || (a === af && m <= mf)) { out.push(`${a}-${String(m).padStart(2, "0")}`); m++; if (m > 12) { m = 1; a++; } }
+  return out;
+}
+
+export function dasDaCompetencia(obrigacoes: ObrigacaoDRE[], competencia: string, valorPadrao: number): number {
+  const o = obrigacoes.find((x) => x.competencia === competencia);
+  return o?.valor_esperado != null ? Number(o.valor_esperado) : valorPadrao;
+}
+
+export function deducoesMEI(obrigacoes: ObrigacaoDRE[], inicio: string, fim: string, valorPadrao: number): number {
+  return r2(competenciasNoPeriodo(inicio, fim).reduce((s, c) => s + dasDaCompetencia(obrigacoes, c, valorPadrao), 0));
+}
+
+export async function lerDASParaDRE(empresaId: string, inicio: string, fim: string): Promise<{ obrigacoes: ObrigacaoDRE[]; encargos: { data: string; valor: number }[]; erro?: string }> {
+  const [o, a] = await Promise.all([
+    supabase.from("mei_obrigacoes").select("competencia, valor_esperado").eq("empresa_id", empresaId).eq("tipo", "DAS")
+      .gte("competencia", inicio.slice(0, 7)).lte("competencia", fim.slice(0, 7)),
+    supabase.from("pagamento_alocacoes").select("encargos, pagamentos_obrigacao!inner(data_pagamento, estorno_de, estornado_em)")
+      .eq("empresa_id", empresaId).gt("encargos", 0),
+  ]);
+  if (o.error || a.error) { reportar("ler DAS p/ DRE", (o.error || a.error)!.message); return { obrigacoes: [], encargos: [], erro: (o.error || a.error)!.message }; }
+  const encargos = ((a.data || []) as unknown as { encargos: number; pagamentos_obrigacao: { data_pagamento: string; estorno_de: string | null; estornado_em: string | null } }[])
+    .filter((x) => !x.pagamentos_obrigacao.estorno_de && !x.pagamentos_obrigacao.estornado_em)
+    .map((x) => ({ data: x.pagamentos_obrigacao.data_pagamento, valor: Number(x.encargos) }));
+  return { obrigacoes: (o.data || []) as ObrigacaoDRE[], encargos };
+}

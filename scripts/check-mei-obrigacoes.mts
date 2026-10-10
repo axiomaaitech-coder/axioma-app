@@ -72,4 +72,11 @@ assert.deepEqual(c.find((x) => x.transacaoId === 't1')?.obrigacaoIds, ['o8'])
 assert.equal(c.find((x) => x.transacaoId === 't2')?.confianca, 'sugestao')
 assert.equal(c.find((x) => x.transacaoId === 't3'), undefined)
 
+// DRE do MEI: DAS real por competência (dez/25 = SM 2025), mês sem obrigação usa o DAS da categoria
+assert.deepEqual(m.competenciasNoPeriodo('2025-11-01', '2026-02-28'), ['2025-11', '2025-12', '2026-01', '2026-02'])
+const obrDRE = [{ competencia: '2025-12', valor_esperado: 80.9 }, { competencia: '2026-01', valor_esperado: 86.05 }]
+assert.equal(m.deducoesMEI(obrDRE, '2025-12-01', '2026-01-31', 86.05), 166.95)
+assert.equal(m.deducoesMEI(obrDRE, '2025-11-01', '2026-01-31', 80.9), 247.85) // nov/25 sem obrigação → DAS da categoria
+assert.equal(m.deducoesMEI([{ competencia: '2026-03', valor_esperado: 195.52 }], '2026-03-01', '2026-03-31', 86.05), 195.52) // caminhoneiro
+
 console.log('check-mei-obrigacoes OK')
