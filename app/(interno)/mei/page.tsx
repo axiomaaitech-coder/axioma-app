@@ -594,8 +594,8 @@ export default function PainelMEI() {
             <ReactECharts style={{ height: 220 }} notMerge option={optBarrasV(
               evolucaoMensal.map(p => p.entrou),
               evolucaoMensal.map(p => p.mes),
-              OURO, temaClaro ? '#17406e' : '#0f7a5a',
-              evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? (temaClaro ? '#0f7a5a' : ROYAL) : null)),
+              temaClaro ? '#0f7a5a' : OURO, temaClaro ? '#0f7a5a' : '#f0d878',
+              temaClaro ? undefined : evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null)),
               temaClaro
             )} />
           ) : (
