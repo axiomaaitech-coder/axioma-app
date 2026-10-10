@@ -663,7 +663,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
                 style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
             </div>
             <button onClick={salvarPrecoAtual} disabled={salvandoPreco || !nomePrecoSalvo.trim()}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs disabled:cursor-not-allowed"
               style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               <Save size={14} /> {salvandoPreco ? t('salvando') : editandoId ? t('atualizarPreco') : t('salvarPreco')}
             </button>
@@ -680,7 +680,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('composicaoTitulo')}</p>
           {precoSugerido > 0 ? (
-            <ReactECharts option={optRosca(dadosComposicao, OURO, t('precoSugeridoLbl'))} style={{ height: 260, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />
+            <ReactECharts option={optRosca(dadosComposicao, OURO, t('precoSugeridoLbl'), temaClaro)} style={{ height: 260, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />
           ) : (
             <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('custosReaisVazio')}</p>
           )}
@@ -721,7 +721,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
-              className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
+              className="px-4 py-2 rounded-xl text-xs font-bold disabled:cursor-not-allowed"
               style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>

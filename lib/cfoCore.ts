@@ -556,7 +556,7 @@ export function optRosca(dados: { name: string; value: number; color: string }[]
     tooltip: { ...tipBase, trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${cor}">${p.percent}%</span>` },
     legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 600 },
+      textStyle: { color: temaClaro ? "#101b3d" : "#cbd5e1", fontSize: 11, fontWeight: 600 },
       formatter: (name: string) => { const d = dados.find((x) => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name.length > 14 ? name.slice(0, 13) + "…" : name}  ${pct}%`; } },
     series: [{ type: "pie", radius: ["54%", "80%"], center: ["32%", "52%"], avoidLabelOverlap: false,
       itemStyle: { borderColor: temaClaro ? "#ffffff" : "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
