@@ -51,6 +51,7 @@ export default function MonitorLimiteMEI({ empresaId, ano, faturado, projecaoAnu
     L('Fale com um contador antes de qualquer passo — ele confirma o enquadramento e o melhor regime (Simples Nacional, anexo, fator R).', 'Talk to an accountant before any step — they confirm the classification and the best regime (Simples Nacional, annex, R factor).', 'Hable con un contador antes de cualquier paso — confirma el encuadre y el mejor régimen (Simples Nacional, anexo, factor R).'),
     L('Comunicação de desenquadramento no Portal do Simples Nacional: até o último dia útil do mês seguinte ao do excesso.', 'Exclusion notice on the Simples Nacional portal: by the last business day of the month after the excess.', 'Comunicación de desencuadre en el Portal del Simples Nacional: hasta el último día hábil del mes siguiente al exceso.'),
     L('Planeje o caixa: como ME o imposto passa a ser uma % do faturamento, não mais o DAS fixo.', 'Plan cash: as ME the tax becomes a % of revenue, no longer the fixed DAS.', 'Planifique la caja: como ME el impuesto pasa a ser un % de la facturación, ya no el DAS fijo.'),
+    L('Depois de virar ME no Simples Nacional, o DAS deixa de ser gerado no PGMEI (valor fixo) e passa a ser apurado todo mês no PGDAS-D, sobre o faturamento do mês.', 'After becoming ME in Simples Nacional, the DAS is no longer issued in PGMEI (fixed amount) and is calculated every month in PGDAS-D, on the month's revenue.', 'Después de pasar a ME en el Simples Nacional, el DAS deja de emitirse en el PGMEI (valor fijo) y se calcula cada mes en el PGDAS-D, sobre la facturación del mes.'),
     L('Notas fiscais, contrato social e cadastro mudam — o Axioma não altera porte, natureza jurídica nem regime sozinho.', 'Invoices, articles and registration change — Axioma never changes size, legal nature or regime by itself.', 'Facturas, contrato social y registro cambian — Axioma nunca cambia porte, naturaleza jurídica ni régimen solo.'),
   ]
 
@@ -83,12 +84,13 @@ export default function MonitorLimiteMEI({ empresaId, ano, faturado, projecaoAnu
       {real.situacao === 'dentro' && proj.situacao !== 'dentro' && (
         <p className="text-xs font-semibold mb-2" style={{ color: AMBAR }}>{L(`Se o ritmo continuar, você passa do limite até dezembro (projeção, não fato). ${efeitoTexto(proj.situacao)}`, `If the pace continues, you exceed the cap by December (projection, not fact). ${efeitoTexto(proj.situacao)}`, `Si el ritmo sigue, supera el límite hasta diciembre (proyección, no hecho). ${efeitoTexto(proj.situacao)}`)}</p>
       )}
-      {nivel !== 'ok' && (
-        <div className={`${caixa} mb-2`} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
-          <p className="text-[11px] font-bold mb-1" style={{ color: TEXTO }}>{L('Transição para ME — checklist preliminar', 'Move to ME — preliminary checklist', 'Transición a ME — checklist preliminar')}</p>
-          <ul className="text-[11px] space-y-1 list-disc pl-4" style={{ color: TEXTO_SEC }}>{checklist.map((c) => <li key={c}>{c}</li>)}</ul>
-        </div>
-      )}
+      {/* Sempre à vista (regra: toda função tem entrada visível); abre sozinho perto do limite */}
+      <details className={`${caixa} mb-2`} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }} open={nivel !== 'ok'}>
+        <summary className="text-[11px] font-bold cursor-pointer" style={{ color: TEXTO }}>{L('Passar de MEI para ME — o que acontece e o que fazer', 'Moving from MEI to ME — what happens and what to do', 'Pasar de MEI a ME — qué pasa y qué hacer')}</summary>
+        <p className="text-[11px] mt-2" style={{ color: TEXTO_SEC }}>{L(`Se o faturamento passar de ${fmt(teto)}: até 20% acima (${fmt(real.limite20)}), você sai do MEI em 1º de janeiro do ano seguinte e paga a diferença em janeiro; mais de 20% acima, a saída volta a 1º de janeiro do ano do excesso.`, `If revenue goes over ${fmt(teto)}: up to 20% above (${fmt(real.limite20)}), you leave MEI on January 1 of the following year and pay the difference in January; over 20% above, it goes back to January 1 of the year of the excess.`, `Si la facturación supera ${fmt(teto)}: hasta 20% por encima (${fmt(real.limite20)}), sale del MEI el 1º de enero del año siguiente y paga la diferencia en enero; más de 20% por encima, la salida vuelve al 1º de enero del año del exceso.`)}</p>
+        <ul className="text-[11px] space-y-1 list-disc pl-4 mt-2" style={{ color: TEXTO_SEC }}>{checklist.map((c) => <li key={c}>{c}</li>)}</ul>
+        <a href="https://www8.receita.fazenda.gov.br/SimplesNacional/" target="_blank" rel="noopener noreferrer" className="inline-block mt-2 px-3 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: '#101b3d', color: '#ffffff' }}>{L('Abrir o Portal do Simples Nacional', 'Open the Simples Nacional portal', 'Abrir el Portal del Simples Nacional')}</a>
+      </details>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="text-[11px] flex items-center gap-1.5" style={{ color: TEXTO_SEC }}>
           {L('Me avise a partir de', 'Warn me from', 'Avíseme desde')}
