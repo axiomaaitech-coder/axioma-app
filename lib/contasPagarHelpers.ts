@@ -397,7 +397,7 @@ export async function gerarContaDeCustoFixo(
 // Gera a PRÓXIMA conta de cada custo fixo: a deste mês se o dia de vencimento ainda
 // não passou; senão a do mês que vem (antes nascia já vencida a do dia que passou).
 export async function gerarContasCustoFixoDoMes(userId: string, empresaId: string, hoje: string): Promise<{ geradas: number; falhas: number }> {
-  const { data, error } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id, data_inicio, data_fim").eq("empresa_id", empresaId);
   if (error) { reportarFalhaLeitura("custos_fixos.contasDoMes", error); return { geradas: 0, falhas: 1 }; }
   const [ano, mes, dia] = hoje.split("-").map(Number);
   const mesQueVem = `${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, "0")}`;
@@ -405,7 +405,12 @@ export async function gerarContasCustoFixoDoMes(userId: string, empresaId: strin
   for (const cf of data || []) {
     if (!(Number(cf.valor_mensal) > 0)) continue;
     const diaVenc = Math.min(28, Math.max(1, Number(cf.dia_vencimento) || 1));
-    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, diaVenc >= dia ? hoje.slice(0, 7) : mesQueVem);
+    const mesRef = diaVenc >= dia ? hoje.slice(0, 7) : mesQueVem;
+    // Vigência (mesma regra da DRE): custo encerrado antes do mês ou que só começa depois dele não gera conta.
+    // Antes gerava conta para custo já encerrado, todo mês, para sempre.
+    if (cf.data_fim && String(cf.data_fim) < `${mesRef}-01`) continue;
+    if (cf.data_inicio && String(cf.data_inicio).slice(0, 7) > mesRef) continue;
+    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, mesRef);
     if (r.erro) falhas++; else if (!r.jaExiste) geradas++;
   }
   return { geradas, falhas };
