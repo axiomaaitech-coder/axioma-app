@@ -83,3 +83,25 @@ export function notaGeral(itens: ItemRisco[]): number | null {
   const com = itens.filter((i) => i.nota != null).map((i) => i.nota as number);
   return com.length ? Math.round(com.reduce((s, n) => s + n, 0) / com.length) : null;
 }
+
+// ============================================================================
+// MÉTRICAS DO CFO (bloco A4): prazos médios e quanto tempo o caixa aguenta.
+// ============================================================================
+const DIA = 86400000;
+// Prazo médio em dias, ponderado pelo valor (conta grande pesa mais). Ignora linha sem datas
+// ou com data final antes da inicial (lançamento inconsistente não puxa a média).
+export function prazoMedioDias(itens: { inicio: string | null; fim: string | null; valor: number }[]): number | null {
+  let soma = 0, peso = 0;
+  for (const i of itens) {
+    if (!i.inicio || !i.fim || !(i.valor > 0)) continue;
+    const d = (Date.parse(`${i.fim.slice(0, 10)}T12:00:00Z`) - Date.parse(`${i.inicio.slice(0, 10)}T12:00:00Z`)) / DIA;
+    if (!Number.isFinite(d) || d < 0) continue;
+    soma += d * i.valor; peso += i.valor;
+  }
+  return peso > 0 ? Math.round(soma / peso) : null;
+}
+// Meses que o caixa paga as saídas do mês sem entrar nenhuma venda.
+export function mesesDeCaixa(caixa: number, saidaMensal: number): number | null {
+  if (!(saidaMensal > 0)) return null;
+  return caixa <= 0 ? 0 : Math.round((caixa / saidaMensal) * 10) / 10;
+}

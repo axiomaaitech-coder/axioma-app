@@ -1381,7 +1381,10 @@ Elias preferiu não mexer na Vercel (CRON_SECRET está como "sensível", não d�
 - Painel MEI (Claro), conferido no Chrome: valores do cofre em azul-marinho, rosca com chart-1..5, textos que usavam menta claro/âmbar (topo, métricas, dinheiro em 3 linhas, avisos) agora menta escuro/azul-marinho (TX_MENTA/TX_VERDE/TX_AMBAR). Efeito padrão em Abrir empresa, Documentos p/ contador, Pagar o DAS; botões desativados sem transparência.
 - MEI Precificação: rosca "Composição do Preço Sugerido" recebia sem o tema (centro e legenda brancos no Claro) → corrigido; legenda de todas as roscas no Claro em azul-marinho; botões sem transparência. (Print no Chrome travou — conferir.)
 - A3 ✅ Painel de Risco (/risco, menu Financeiro após Tesouraria): lib/riscoHelpers.ts (6 riscos 0–100 com explicação em números: liquidez, inadimplência, maior cliente, margem, dívida, atrasos; sem dado = "Sem dado") sobre o retrato da IA; teste scripts/check-risco.mts. Fora: concentração de fornecedor (ponytail).
-- PRÓXIMO: A4 Métricas do CFO (margem, PMR, PMP, quanto o caixa aguenta) no mesmo painel.
+- Elias 2026-10-10 noite: "o resto todo pode fazer" — CNPJ/dados da empresa, créditos Anthropic e Pluggy produção ficam com ele no fim.
+- UPDATE das 2 linhas de teste da dívida: barrado pelo bloqueio de segurança do Claude Code (escrita no banco) → Elias roda no SQL Editor (bloco no chat).
+- A4 ✅ Métricas do CFO no Painel de Risco: margem, ponto de equilíbrio, prazo médio p/ receber e p/ pagar (ponderado pelo valor, 12 meses), ciclo de caixa, quanto o caixa aguenta. Teste em check-risco.
+- PRÓXIMO: A5 Aprendizado.
 
 **FALTA — eu construo:** conferir no site as 5 entregas não enviadas; refazer PDFs 23–43; resto do item 1 (Dívidas no motor, Financial Core 2.2/2.6/2.8, índice 1.7, Rastreabilidade Fase 2); itens 2–4 da lista de 2026-10-09 abaixo.
 

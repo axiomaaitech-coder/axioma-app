@@ -34,3 +34,13 @@ assert.equal(nota({ ...base, obrigacoesAtrasadas: 1 }, 'atrasos'), 40)
 // 70 é "atenção", 100 é "ok"
 assert.equal(nivelDaNota(70), 'atencao'); assert.equal(nivelDaNota(100), 'ok')
 console.log('check-risco: ok')
+
+const { prazoMedioDias, mesesDeCaixa } = await import('../lib/riscoHelpers')
+// 10 dias (R$ 100) e 30 dias (R$ 300) → ponderado = 25
+assert.equal(prazoMedioDias([{ inicio: '2026-01-01', fim: '2026-01-11', valor: 100 }, { inicio: '2026-01-01', fim: '2026-01-31', valor: 300 }]), 25)
+// linha sem data ou com data invertida não entra
+assert.equal(prazoMedioDias([{ inicio: null, fim: '2026-01-11', valor: 100 }, { inicio: '2026-02-10', fim: '2026-02-01', valor: 50 }]), null)
+assert.equal(mesesDeCaixa(30000, 10000), 3)
+assert.equal(mesesDeCaixa(-5, 10000), 0)
+assert.equal(mesesDeCaixa(1000, 0), null)
+console.log('check-risco métricas: ok')
