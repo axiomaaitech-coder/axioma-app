@@ -35,8 +35,8 @@ const supabase = createBrowserClient(
 // Claro) usa o mesmo azul-royal extraído por pixel da referência
 // (public/referencias/) dos demais módulos do MEI, nunca verde.
 const PALETA = {
-  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', ROXO: '#2ecc9b', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: 'rgba(255,255,255,0.5)', BOLHA_BORDA: 'rgba(16,27,61,0.12)', CAMPO_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
+  dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', ROXO: '#2ecc9b', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)', BOLHA_TX: 'var(--axi-text-primary)', BOLHA_USER_BG: '', BOLHA_USER_TX: 'var(--axi-text-primary)' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: '#ffffff', BOLHA_BORDA: 'rgba(16,27,61,0.35)', CAMPO_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)', BOLHA_TX: '#101b3d', BOLHA_USER_BG: '#101b3d', BOLHA_USER_TX: '#ffffff' },
 } as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
@@ -112,7 +112,7 @@ function gerarResposta(pergunta: string, dados: {
 export default function IAMEIAdvisor() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  const { OURO, VERDE, VERMELHO, AZUL, ROXO, BOLHA_BG, BOLHA_BORDA, CAMPO_BG, POCO_BG } = PALETA[tema]
+  const { OURO, VERDE, VERMELHO, AZUL, ROXO, BOLHA_BG, BOLHA_BORDA, CAMPO_BG, POCO_BG, BOLHA_TX, BOLHA_USER_BG, BOLHA_USER_TX } = PALETA[tema]
   const temaClaro = tema === 'xms'
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
@@ -355,8 +355,8 @@ DADOS REAIS DESTE MEI:
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line axi-card-premium3d axi-card-faixa"
                   style={{
-                    background: msg.role === 'user' ? `${OURO}25` : BOLHA_BG,
-                    color: 'var(--axi-text-primary)',
+                    background: msg.role === 'user' ? (BOLHA_USER_BG || `${OURO}25`) : BOLHA_BG,
+                    color: msg.role === 'user' ? BOLHA_USER_TX : BOLHA_TX,
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
