@@ -34,6 +34,7 @@ import AvisoAxioma from '../../../../components/AvisoAxioma'
 import PainelObrigacoesDAS from '../../../../components/mei/PainelObrigacoesDAS'
 import { dividaDoCalendario, type MesDAS } from '../../../../lib/meiObrigacoesMotor'
 import { hojeISO } from '../../../../lib/datas'
+import DocumentosContador from '../../../../components/mei/DocumentosContador'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -712,6 +713,10 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             </a>
           </div>
         </CanvasBox>
+
+        <DocumentosContador ano={anoAtual} receitas={receitas} calendario={calAtual} categoriaMei={categoriaAtual}
+          empresa={{ nome: meiDados?.razao_social, cnpj: meiDados?.cnpj }} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema}
+          onErro={(m) => showToast(m, 'erro')} />
 
       </div>
 

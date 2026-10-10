@@ -5,6 +5,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as XLSX from "xlsx";
+import { exportarPlanilha } from "./exportarPlanilha";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 
@@ -693,20 +694,11 @@ const COLUNAS_EXCEL = (p: Produto) => ({
 });
 
 export function exportarProdutosExcel(produtos: Produto[]) {
-  const ws = XLSX.utils.json_to_sheet(produtos.map(COLUNAS_EXCEL));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Produtos");
-  XLSX.writeFile(wb, "axioma-estoque-produtos.xlsx");
+  exportarPlanilha(produtos.map(COLUNAS_EXCEL), "axioma-estoque-produtos", "Produtos", "xlsx");
 }
 
 export function exportarProdutosCsv(produtos: Produto[]) {
-  const ws = XLSX.utils.json_to_sheet(produtos.map(COLUNAS_EXCEL));
-  const csv = XLSX.utils.sheet_to_csv(ws);
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "axioma-estoque-produtos.csv"; a.click();
-  URL.revokeObjectURL(url);
+  exportarPlanilha(produtos.map(COLUNAS_EXCEL), "axioma-estoque-produtos", "Produtos", "csv");
 }
 
 export async function importarProdutosArquivo(file: File, empresaId: string, userId: string): Promise<{ ok: number; erro?: string }> {
