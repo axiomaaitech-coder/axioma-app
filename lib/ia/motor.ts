@@ -24,6 +24,7 @@ import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusBriefing'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 import { hojeISO } from '../datas'
+import { textoRegrasOficiais } from '../regrasOficiais'
 
 export type Nivel = 'rotina' | 'analise' | 'estrategica'
 export type Idioma = 'pt' | 'en' | 'es'
@@ -115,6 +116,7 @@ Regras invioláveis:
 - Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
+- Lei, limite, alíquota ou prazo: use SOMENTE as REGRAS OFICIAIS VIGENTES enviadas e diga a data da conferência. Manchete não muda lei; projeto de lei não aprovado não vale. Regra marcada REVISAR: avise que pode estar desatualizada. Notícia: só as do período enviado, nunca de memória.
 - Escreva em texto simples (a tela não lê markdown): nada de **, #, tabelas ou crases; listas com "1." ou "-" em linhas separadas; parágrafos curtos.
 - ${AVISO_IDENTIDADE}`
 
@@ -124,10 +126,13 @@ type Contexto = { retrato: Retrato; manuais: string; mundo: string | null; tela:
 function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: string; empresa: string } {
   // Dados/instruções da tela vêm DEPOIS de tudo que é estável (não quebram o cache
   // da parte da empresa) e nunca derrubam as regras invioláveis.
+  // Pergunta tributária/MEI recebe a base de regras oficiais (fonte + data), nunca a memória do modelo.
+  const hoje = hojeISO(new Date(), ctx.retrato.fuso)
+  const regras = /TRIBUT|MEI|SIMPLES|IMPOST/i.test(ctx.manuais) || /tribut|\bmei\b|\bdas\b|fiscal|simples/i.test(ctx.tela ?? '') ? `\n\n${textoRegrasOficiais(hoje)}` : ''
   const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
   return {
     fixo: `${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
-    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${hojeISO(new Date(), ctx.retrato.fuso)}. Responda em ${NOME_IDIOMA[lang]}.`,
+    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
   }
 }
 
