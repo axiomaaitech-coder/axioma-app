@@ -4,6 +4,7 @@ import AjudaAxioma from "../../components/AjudaAxioma";
 import GuardiaoRastreio from "../../components/GuardiaoRastreio";
 import AvisoAprovacaoEquipe from "../../components/AvisoAprovacaoEquipe";
 import AvisoVencimentos from "../../components/AvisoVencimentos";
+import AvisoConferencia from "../../components/AvisoConferencia";
 
 export default function InternoLayout({
   children,
@@ -15,6 +16,7 @@ export default function InternoLayout({
       <TopNav />
       <main className="flex-1 overflow-auto min-w-0">
         <AvisoVencimentos />
+        <AvisoConferencia />
         {children}
       </main>
       <NexusEventStream />
