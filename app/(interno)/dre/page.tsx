@@ -30,7 +30,8 @@ import {
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
-import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
+import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
@@ -84,7 +85,6 @@ function mesesNoPeriodo(periodo: Periodo): number {
 
 type ReceitaRow = { valor: number; data: string; categoria: string };
 type CustoVarRow = { descricao: string; valor: number; data: string; categoria: string };
-type CustoFixoRow = { descricao: string; valor_mensal: number; categoria: string };
 type DividaRow = { valor_total: number; valor_pago: number; parcelas: number; taxa_juros: number };
 type FluxoCaixaRow = { tipo: string; valor: number; data: string; status: string };
 type ContaReceberRow = { valor: number; valor_recebido: number; status: string; data_vencimento: string };
@@ -145,7 +145,12 @@ export default function DREPage() {
 
   const [receitasRows, setReceitasRows] = useState<ReceitaRow[]>([]);
   const [custosVarRows, setCustosVarRows] = useState<CustoVarRow[]>([]);
-  const [custosFixosRows, setCustosFixosRows] = useState<CustoFixoRow[]>([]);
+  // Regime de competência (lib/dreCompetencia.ts): custo fixo com vigência, devoluções e juros pagos reais.
+  const [custosFixosVig, setCustosFixosVig] = useState<CustoFixoVigencia[]>([]);
+  const [devolucoesRows, setDevolucoesRows] = useState<{ valor: number; data: string }[]>([]);
+  const [jurosPagosRows, setJurosPagosRows] = useState<{ valor: number; data: string }[]>([]);
+  const [premissasDRE, setPremissasDRE] = useState<string[]>([]);
+  const [atividadeFiscal, setAtividadeFiscal] = useState<string | null>(null);
   const [dividasRows, setDividasRows] = useState<DividaRow[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<FluxoCaixaRow[]>([]);
   const [contasReceberRows, setContasReceberRows] = useState<ContaReceberRow[]>([]);
@@ -173,26 +178,30 @@ export default function DREPage() {
 
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
-    const [{ data: rec }, { data: cv }, { data: cf }, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
-      empId ? lerTodas(() => supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from("custos_variaveis").select("descricao, valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("custos_fixos").select("descricao, valor_mensal, categoria").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+    const [base, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
+      // Base por COMPETÊNCIA: receitas + contas a receber + PDV, custos + contas a pagar, custo fixo por vigência, juros pagos.
+      empId ? carregarBaseDRE(empId, inicioHist, periodo.fim) : Promise.resolve(null),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
       empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
       empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
-    setReceitasRows(rec || []);
-    setCustosVarRows(cv || []);
-    setCustosFixosRows(cf || []);
+    setReceitasRows((base?.receitas || []).map((r) => ({ valor: r.valor, data: r.data, categoria: r.categoria || "" })));
+    setCustosVarRows((base?.custos || []).map((c) => ({ valor: c.valor, data: c.data, categoria: c.categoria || "", descricao: c.descricao || "" })));
+    setCustosFixosVig(base?.custosFixos || []);
+    setDevolucoesRows(base?.devolucoes || []);
+    setJurosPagosRows(base?.jurosPagos || []);
+    setPremissasDRE(base?.premissas || []);
+    if (base?.falhou) showToast(lang === "en" ? "Some data did not load — the P&L may be incomplete." : lang === "es" ? "Algunos datos no cargaron — el estado de resultados puede estar incompleto." : "Alguns dados não carregaram — a DRE pode estar incompleta.", "erro");
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
     setContasReceberRows(cr || []);
     setRegimeTributario(emp?.regime_tributario || "");
+    setAtividadeFiscal((emp as { atividade_fiscal?: string | null } | null)?.atividade_fiscal ?? null);
     if (empId && (emp?.regime_tributario || "").toLowerCase() === "mei") {
       const [das, { data: mei }] = await Promise.all([
         lerDASParaDRE(empId, inicioHist, periodo.fim),
@@ -233,9 +242,11 @@ export default function DREPage() {
   const meses = mesesNoPeriodo(periodo);
   const mesesAnt = mesesNoPeriodo(periodoAnt);
 
-  const custoFixoMensalTotal = custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
-  const custoFixoAtual = custoFixoMensalTotal * meses;
-  const custoFixoAnt = custoFixoMensalTotal * mesesAnt;
+  // Custo fixo só nos meses de vigência e nunca no futuro (antes: valor mensal × todos os meses do período).
+  const custoFixoAtual = custoFixoNoPeriodo(custosFixosVig, periodo.inicio, periodo.fim);
+  const custoFixoAnt = custoFixoNoPeriodo(custosFixosVig, periodoAnt.inicio, periodoAnt.fim);
+  const devolucoesAtual = somaNoPeriodo(devolucoesRows, periodo.inicio, periodo.fim);
+  const devolucoesAnt = somaNoPeriodo(devolucoesRows, periodoAnt.inicio, periodoAnt.fim);
 
   // Despesas financeiras = juros sobre o saldo devedor das dívidas (mesma fórmula do Relatórios,
   // única fonte de verdade). Aproximação: usa o saldo devedor atual pra ambos os períodos —
@@ -244,10 +255,15 @@ export default function DREPage() {
     const saldoDevedor = Math.max(0, Number(dvv.valor_total || 0) - Number(dvv.valor_pago || 0));
     return s + saldoDevedor * (Number(dvv.taxa_juros || 0) / 100);
   }, 0);
-  // MEI: multa/juros de DAS pagos no período também são despesa financeira (saíram do caixa).
-  const encargosDasNo = (p: { inicio: string; fim: string }) => (dasMei?.encargos || []).filter((e) => e.data >= p.inicio && e.data <= p.fim).reduce((s, e) => s + e.valor, 0);
-  const despesasFinanceirasAtual = despesasFinanceirasMensal * meses + encargosDasNo(periodo);
-  const despesasFinanceirasAnt = despesasFinanceirasMensal * mesesAnt + encargosDasNo(periodoAnt);
+  // Juros PAGOS de verdade (conta 9.01: multa/juros de contas e DAS pagos com atraso) + juros
+  // ESTIMADOS das dívidas (saldo × taxa) — mostrados separados na tela.
+  const jurosPagosAtual = somaNoPeriodo(jurosPagosRows, periodo.inicio, periodo.fim);
+  const jurosPagosAnt = somaNoPeriodo(jurosPagosRows, periodoAnt.inicio, periodoAnt.fim);
+  const jurosEstimadosAtual = despesasFinanceirasMensal * meses;
+  const despesasFinanceirasAtual = jurosPagosAtual + jurosEstimadosAtual;
+  const despesasFinanceirasAnt = jurosPagosAnt + despesasFinanceirasMensal * mesesAnt;
+  const anexoInfo = anexoSimplesDaAtividade(atividadeFiscal);
+  const ehSimples = regimeTributario.toLowerCase().includes("simples");
 
   // Imposto real pelo regime tributário da empresa (IA Tributária) — nunca mais um % fixo chutado.
   const inicioRb12 = inicioRolling12(periodo.fim);
@@ -255,13 +271,13 @@ export default function DREPage() {
   const receitaMensalMedia = receitaBrutaAtual / meses;
   // MEI: DAS real da competência (já com a categoria e o salário mínimo de cada ano). Antes era
   // "DAS de Serviços × meses" pra todo MEI — caminhoneiro aparecia pagando R$86 em vez de R$195.
-  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia) * meses;
-  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia) * mesesAnt; // aproximação: mesma alíquota efetiva do período atual
+  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, undefined, anexoInfo.anexo) * meses;
+  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, undefined, anexoInfo.anexo) * mesesAnt; // aproximação: mesma alíquota efetiva do período atual
   const impostoMensalEstimado = deducoesAtual / meses;
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
-  const dreAtual: DRE = montarDRE({ receitaBruta: receitaBrutaAtual, deducoes: deducoesAtual, custoVariavel: custoVarAtual, custoFixo: custoFixoAtual, despesasFinanceiras: despesasFinanceirasAtual });
-  const dreAnterior: DRE = montarDRE({ receitaBruta: receitaBrutaAnt, deducoes: deducoesAnt, custoVariavel: custoVarAnt, custoFixo: custoFixoAnt, despesasFinanceiras: despesasFinanceirasAnt });
+  const dreAtual: DRE = montarDRE({ receitaBruta: receitaBrutaAtual, devolucoes: devolucoesAtual, deducoes: deducoesAtual, custoVariavel: custoVarAtual, custoFixo: custoFixoAtual, despesasFinanceiras: despesasFinanceirasAtual });
+  const dreAnterior: DRE = montarDRE({ receitaBruta: receitaBrutaAnt, devolucoes: devolucoesAnt, deducoes: deducoesAnt, custoVariavel: custoVarAnt, custoFixo: custoFixoAnt, despesasFinanceiras: despesasFinanceirasAnt });
 
   // ═══════════════════════ SÉRIE HISTÓRICA (semáforo, runway, projeção) ═══════════════════════
   const serieReceitaHist = serieRolling(receitasItens, 12, periodo.fim);
@@ -269,10 +285,11 @@ export default function DREPage() {
   const competenciasSerie = competenciasNoPeriodo(inicioRolling12(periodo.fim), periodo.fim); // mesma ordem dos buckets (mais antigo primeiro)
   const serieDREHist: DRE[] = serieReceitaHist.map((b, i) => montarDRE({
     receitaBruta: b.value,
-    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, b.value),
+    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, b.value, undefined, undefined, undefined, anexoInfo.anexo),
+    devolucoes: somaNoPeriodo(devolucoesRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
     custoVariavel: serieCustoVarHist[i]?.value || 0,
-    custoFixo: custoFixoMensalTotal,
-    despesasFinanceiras: despesasFinanceirasMensal,
+    custoFixo: custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? ""),
+    despesasFinanceiras: despesasFinanceirasMensal + somaNoPeriodo(jurosPagosRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
   }));
   const serieEbitdaHist = serieDREHist.map(dd => dd.ebitda.valor);
   const serieLucroLiquidoHist = serieDREHist.map(dd => dd.lucroLiquido.valor);
@@ -282,7 +299,7 @@ export default function DREPage() {
   const projecaoDRE = projetarDRE({
     serieReceitaBruta: serieReceitaHist.map(b => b.value),
     serieCustoVariavel: serieCustoVarHist.map(b => b.value),
-    serieCustoFixo: Array(12).fill(custoFixoMensalTotal),
+    serieCustoFixo: competenciasSerie.map((m) => custoFixoDoMes(custosFixosVig, m)),
     aliquotaEfetivaPct, despesasFinanceirasMensal, horizonte: 3,
   });
 
@@ -338,7 +355,7 @@ export default function DREPage() {
 
   const custoFixoPorCategoria = categoriasCustoFixo.map(cat => ({
     categoria: cat,
-    valor: custosFixosRows.filter(c => c.categoria === cat).reduce((s, c) => s + Number(c.valor_mensal || 0), 0) * meses,
+    valor: custoFixoNoPeriodo(custosFixosVig.filter(c => c.categoria === cat), periodo.inicio, periodo.fim),
   })).filter(c => c.valor > 0);
 
   const pe = pontoEquilibrio(dreAtual.custoFixo.valor, dreAtual.margemContribuicaoPct);
@@ -405,6 +422,7 @@ export default function DREPage() {
   // ═══════════════════════ PDF ═══════════════════════
   const linhasCascataTabela = [
     { label: cx.dreReceitaBruta, linha: dreAtual.receitaBruta, ant: dreAnterior.receitaBruta.valor },
+    ...(dreAtual.devolucoes.valor > 0 || dreAnterior.devolucoes.valor > 0 ? [{ label: lang === "en" ? "(-) Returns & cancellations" : lang === "es" ? "(-) Devoluciones y cancelaciones" : "(-) Devoluções e cancelamentos", linha: dreAtual.devolucoes, ant: dreAnterior.devolucoes.valor }] : []),
     { label: cx.dreDeducoes, linha: dreAtual.deducoes, ant: dreAnterior.deducoes.valor },
     { label: cx.dreReceitaLiquida, linha: dreAtual.receitaLiquida, ant: dreAnterior.receitaLiquida.valor },
     { label: cx.dreCustoVariavel, linha: dreAtual.custoVariavel, ant: dreAnterior.custoVariavel.valor },
@@ -471,6 +489,7 @@ export default function DREPage() {
   // ═══════════════════════ GRÁFICO CASCATA (waterfall) ═══════════════════════
   const itensCascata: ItemCascata[] = [
     { label: cx.dreReceitaBruta, valor: dreAtual.receitaBruta.valor, tipo: "subtotal" },
+    ...(dreAtual.devolucoes.valor > 0 ? [{ label: lang === "en" ? "(-) Returns" : lang === "es" ? "(-) Devoluciones" : "(-) Devoluções", valor: -dreAtual.devolucoes.valor, tipo: "variacao" as const }] : []),
     { label: cx.dreDeducoes, valor: -dreAtual.deducoes.valor, tipo: "variacao" },
     { label: cx.dreReceitaLiquida, valor: dreAtual.receitaLiquida.valor, tipo: "subtotal" },
     { label: cx.dreCustoVariavel, valor: -dreAtual.custoVariavel.valor, tipo: "variacao" },
@@ -637,6 +656,14 @@ export default function DREPage() {
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.cascataDRE}</p>
                     <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
                   </div>
+                </div>
+                {/* Critério e premissas — o que é real, o que é estimativa */}
+                <div className="rounded-xl px-3 py-2 mb-4 text-xs axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(46,204,155,0.2)"}`, color: TEXTO_SEC }}>
+                  <p className="font-bold" style={{ color: ct("#f1f5f9") }}>{lang === "en" ? "Accrual basis" : lang === "es" ? "Régimen de devengo (competencia)" : "Regime de competência"}</p>
+                  <p>{lang === "en" ? "Each sale, bill and invoice counts in the month it happened — not when the money moved (that is Cash Flow)." : lang === "es" ? "Cada venta, cuenta y factura cuenta en el mes en que ocurrió — no cuando se movió el dinero (eso es el Flujo de Caja)." : "Cada venda, conta e nota conta no mês em que aconteceu — não no dia em que o dinheiro entrou ou saiu (isso é o Fluxo de Caixa)."}</p>
+                  {jurosEstimadosAtual > 0 && <p className="mt-1">{lang === "en" ? `Financial expenses: ${fBRL(jurosPagosAtual)} actually paid + ${fBRL(jurosEstimadosAtual)} ESTIMATED on open debts (balance × rate).` : lang === "es" ? `Gastos financieros: ${fBRL(jurosPagosAtual)} pagados de verdad + ${fBRL(jurosEstimadosAtual)} ESTIMADOS de las deudas (saldo × tasa).` : `Despesas financeiras: ${fBRL(jurosPagosAtual)} pagos de verdade + ${fBRL(jurosEstimadosAtual)} ESTIMADOS das dívidas (saldo × taxa).`}</p>}
+                  {ehSimples && anexoInfo.exigeValidacao && <p className="mt-1">{lang === "en" ? `Simples tax estimated with Annex ${anexoInfo.anexo}. For services the annex depends on the CNAE and the R factor (III, IV or V) — validate with your accountant or set the activity in Fiscal settings.` : lang === "es" ? `Impuesto Simples estimado con el Anexo ${anexoInfo.anexo}. En servicios el anexo depende del CNAE y del factor R (III, IV o V) — valide con su contador o configure la actividad en Fiscal.` : `Imposto do Simples estimado pelo Anexo ${anexoInfo.anexo}. Em serviços o anexo depende do CNAE e do fator R (III, IV ou V) — valide com o contador ou cadastre a atividade em Fiscal → Configuração.`}</p>}
+                  {premissasDRE.includes("custo_fixo_inicio_cadastro") && <p className="mt-1">{lang === "en" ? "Fixed costs count from the month they were registered." : lang === "es" ? "Los costos fijos cuentan desde el mes en que se registraron." : "Custos fixos contam a partir do mês em que foram cadastrados."}</p>}
                 </div>
 
                 <div className="mb-4">

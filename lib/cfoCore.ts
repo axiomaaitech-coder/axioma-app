@@ -1004,6 +1004,7 @@ export type LinhaDRE = { valor: number; avPct: number | null };
 
 export type DRE = {
   receitaBruta: LinhaDRE;
+  devolucoes: LinhaDRE;   // devoluções e cancelamentos (0 quando a fonte não tem)
   deducoes: LinhaDRE;
   receitaLiquida: LinhaDRE;
   custoVariavel: LinhaDRE;
@@ -1020,8 +1021,10 @@ export type DRE = {
 // Bruta fica acima da base (deduções ainda não saíram), por isso avPct null nela.
 export function montarDRE(p: {
   receitaBruta: number; deducoes: number; custoVariavel: number; custoFixo: number; despesasFinanceiras: number;
+  devolucoes?: number;
 }): DRE {
-  const receitaLiquida = p.receitaBruta - p.deducoes;
+  const devolucoes = p.devolucoes || 0;
+  const receitaLiquida = p.receitaBruta - devolucoes - p.deducoes;
   const mc = margemContribuicao(receitaLiquida, p.custoVariavel);
   const ebitda = mc.valor - p.custoFixo;
   const lucroLiquido = ebitda - p.despesasFinanceiras;
@@ -1030,6 +1033,7 @@ export function montarDRE(p: {
 
   return {
     receitaBruta: { valor: p.receitaBruta, avPct: null },
+    devolucoes: { valor: devolucoes, avPct: av(devolucoes) },
     deducoes: { valor: p.deducoes, avPct: av(p.deducoes) },
     receitaLiquida: { valor: receitaLiquida, avPct: base > 0 ? 100 : null },
     custoVariavel: { valor: p.custoVariavel, avPct: av(p.custoVariavel) },

@@ -47,4 +47,15 @@ assert.equal(d.somaNoPeriodo(custos, '2026-09-01', '2026-09-30'), 92000) // comp
 
 assert.equal(d.diaDoTimestamp('2026-10-10T02:30:00Z'), '2026-10-09')
 assert.deepEqual(d.mesesEntre('2025-11-15', '2026-02-01'), ['2025-11', '2025-12', '2026-01', '2026-02'])
+// Devoluções reduzem a receita líquida; anexo do Simples pela atividade (não sempre o III)
+const { montarDRE } = await import('../lib/cfoCore')
+const dre = montarDRE({ receitaBruta: 1000, devolucoes: 50, deducoes: 60, custoVariavel: 300, custoFixo: 200, despesasFinanceiras: 10 })
+assert.equal(dre.receitaLiquida.valor, 890)
+assert.equal(dre.lucroLiquido.valor, 380)
+const { anexoSimplesDaAtividade, calcularAliquotaSimples } = await import('../lib/iaTributariaHelpers')
+assert.deepEqual(anexoSimplesDaAtividade('comercio'), { anexo: 'I', exigeValidacao: false })
+assert.deepEqual(anexoSimplesDaAtividade('industria'), { anexo: 'II', exigeValidacao: false })
+assert.equal(anexoSimplesDaAtividade('servico').exigeValidacao, true)
+assert.equal(anexoSimplesDaAtividade(null).exigeValidacao, true)
+assert.equal(calcularAliquotaSimples(100000, 'II'), 4.5) // 1ª faixa do Anexo II
 console.log('check-dre-competencia OK')

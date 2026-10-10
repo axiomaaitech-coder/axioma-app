@@ -300,11 +300,12 @@ export function calcularImpostoRegime(
   atividade?: AtividadeFiscal,
   aliquotaIssMunicipalPct?: number,
   categoriaMei?: string | null, // MEI: DAS da categoria (Serviços/Comércio/Indústria/Transporte...) — antes era sempre Serviços
+  anexoSimples = "III",          // Simples: anexo pela atividade (anexoSimplesDaAtividade) — antes era sempre III
 ): number {
   const r = (regime || "").toLowerCase();
   if (r === "mei") return dasMensalPorCategoria(categoriaMei || "Serviços");
   if (r.includes("simples")) {
-    const aliq = calcularAliquotaSimples(rb12, "III");
+    const aliq = calcularAliquotaSimples(rb12, anexoSimples);
     return rbMes * (aliq / 100);
   }
   // Fonte canônica calcularLucroPresumido — sem atividade/ISS informados
@@ -326,6 +327,12 @@ export function calcularAliquotaSimples(rb12: number, anexo: string): number {
       { max: 180000, aliq: 4, ded: 0 }, { max: 360000, aliq: 7.3, ded: 5940 },
       { max: 720000, aliq: 9.5, ded: 13860 }, { max: 1800000, aliq: 10.7, ded: 22500 },
       { max: 3600000, aliq: 14.3, ded: 87300 }, { max: 4800000, aliq: 19, ded: 378000 },
+    ],
+    // Anexo II (indústria) — LC 123/2006, redação da LC 155/2016.
+    "II": [
+      { max: 180000, aliq: 4.5, ded: 0 }, { max: 360000, aliq: 7.8, ded: 5940 },
+      { max: 720000, aliq: 10, ded: 13860 }, { max: 1800000, aliq: 11.2, ded: 22500 },
+      { max: 3600000, aliq: 14.7, ded: 85500 }, { max: 4800000, aliq: 30, ded: 720000 },
     ],
     "III": [
       { max: 180000, aliq: 6, ded: 0 }, { max: 360000, aliq: 11.2, ded: 9360 },
@@ -682,4 +689,13 @@ export function categoriaMeiDaEmpresa(emp: unknown): string | null {
   const m = (emp as { mei_dados?: { categoria_mei?: string | null } | { categoria_mei?: string | null }[] | null } | null)?.mei_dados;
   const linha = Array.isArray(m) ? m[0] : m;
   return linha?.categoria_mei ?? null;
+}
+
+// Anexo do Simples pela atividade fiscal cadastrada (Config → Fiscal). Serviços pode ser
+// III, IV ou V conforme o CNAE e o fator R; misto/sem cadastro também exigem validação.
+export function anexoSimplesDaAtividade(atividade: string | null | undefined): { anexo: string; exigeValidacao: boolean } {
+  if (atividade === "comercio") return { anexo: "I", exigeValidacao: false };
+  if (atividade === "industria") return { anexo: "II", exigeValidacao: false };
+  if (atividade === "servico") return { anexo: "III", exigeValidacao: true };
+  return { anexo: "III", exigeValidacao: true };
 }
