@@ -74,7 +74,7 @@ export default function AbrirEmpresa({ lang, temaClaro, cartaoTema, onPreencher 
       </div>
       <ol className="mt-3 space-y-2">
         {passos.map(([titulo, texto, link], i) => (
-          <li key={titulo} className="rounded-xl p-3" style={CAIXA}>
+          <li key={titulo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
             <p className="text-xs font-bold" style={{ color: TEXTO }}>{i + 1}. {titulo}</p>
             <p className="text-[11px] mt-1" style={{ color: SEC }}>{texto}</p>
             {link && <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><ExternalLink size={11} />{L('Abrir portal oficial', 'Open official portal', 'Abrir portal oficial')}</a>}

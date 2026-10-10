@@ -32,7 +32,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
   const CAIXA = { background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : 'rgba(46,204,155,0.22)'}` }
   const CAMPO = { background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.06)', border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.2)' : 'rgba(46,204,155,0.3)'}`, color: TEXTO }
   const portal = simples ? URL_PGDASD : URL_PGMEI
-  const btn = (cor: string) => ({ className: 'px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50', style: { background: cor, color: '#fff' } })
+  const btn = (cor: string) => ({ className: 'px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:cursor-not-allowed', style: { background: cor, color: '#fff' } })
 
   const [lendo, setLendo] = useState(false)
   const [guia, setGuia] = useState<GuiaLida | null>(null)
@@ -132,7 +132,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
       <CanvasBox cor={MENTA} {...cartaoTema}>
         <p className="text-sm font-bold" style={{ color: TEXTO }}>{L('Pagar o DAS', 'Pay the DAS', 'Pagar el DAS')}{competenciaInicial ? ` — ${L('competência', 'period', 'competencia')} ${competenciaInicial.slice(5, 7)}/${competenciaInicial.slice(0, 4)}` : ''}</p>
 
-        <div className="rounded-xl p-3 mt-3" style={CAIXA}>
+        <div className="rounded-xl p-3 mt-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
           <p className="text-xs font-bold" style={{ color: TEXTO }}>1. {L('Gere a guia no portal oficial', 'Issue the slip on the official portal', 'Genere la guía en el portal oficial')}</p>
           <p className="text-[11px] mt-1" style={{ color: SEC }}>{simples
             ? L('No Portal do Simples, entre no PGDAS-D (certificado digital ou código de acesso), faça a apuração do mês e clique em "Gerar DAS". Baixe o PDF.', 'On the Simples Portal, open PGDAS-D (digital certificate or access code), file the month and click "Gerar DAS". Download the PDF.', 'En el Portal del Simples, entre al PGDAS-D (certificado digital o código de acceso), haga la apuración del mes y haga clic en "Gerar DAS". Descargue el PDF.')
@@ -143,7 +143,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
           </div>
         </div>
 
-        <div className="rounded-xl p-3 mt-2" style={CAIXA}>
+        <div className="rounded-xl p-3 mt-2 axi-card-premium3d axi-card-faixa" style={CAIXA}>
           <p className="text-xs font-bold" style={{ color: TEXTO }}>2. {L('Envie a guia (PDF ou foto)', 'Upload the slip (PDF or photo)', 'Suba la guía (PDF o foto)')}</p>
           <label {...btn(MENTA)} className="mt-2 px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer" style={{ background: MENTA, color: '#fff' }}>
             <Upload size={12} />{lendo ? L('Lendo a guia…', 'Reading the slip…', 'Leyendo la guía…') : L('Escolher arquivo', 'Choose file', 'Elegir archivo')}
@@ -162,7 +162,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
         </div>
 
         {guia && (
-          <div className="rounded-xl p-3 mt-2" style={CAIXA}>
+          <div className="rounded-xl p-3 mt-2 axi-card-premium3d axi-card-faixa" style={CAIXA}>
             <p className="text-xs font-bold" style={{ color: TEXTO }}>3. {L('Pague', 'Pay', 'Pague')}</p>
             <div className="flex flex-wrap gap-2 mt-2">
               {pixOk && <button {...btn(MENTA)} onClick={() => void copiar(guia.pix_copia_cola!, 'Pix')}><Copy size={12} />{L('Copiar Pix', 'Copy Pix', 'Copiar Pix')}</button>}

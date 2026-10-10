@@ -99,7 +99,7 @@ export default function DocumentosContador({ ano, receitas, calendario, categori
       <p className="text-xs mt-1" style={{ color: SEC }}>{L('Baixe em PDF para guardar ou enviar, ou em Excel/CSV para o contador importar.', 'Download as PDF to keep or send, or Excel/CSV for the accountant to import.', 'Descargue en PDF para guardar o enviar, o en Excel/CSV para que el contador lo importe.')}</p>
       <div className="mt-3 space-y-2">
         {RELS.map(([fn, titulo, texto]) => (
-          <div key={titulo} className="rounded-xl p-3" style={CAIXA}>
+          <div key={titulo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
             <p className="text-xs font-bold" style={{ color: TEXTO }}>{titulo}</p>
             <p className="text-[11px] mt-1" style={{ color: SEC }}>{texto}</p>
             <div className="flex flex-wrap gap-2 mt-2">

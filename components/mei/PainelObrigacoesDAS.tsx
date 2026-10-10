@@ -289,7 +289,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
     retificado: { r: L('Retificado', 'Amended', 'Rectificado'), c: NEUTRO },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [lang, temaClaro])
-  const botao = (cor: string, extra = '') => ({ className: `px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-60 ${extra}`, style: { background: cor, color: '#ffffff' } })
+  const botao = (cor: string, extra = '') => ({ className: `px-3 py-1.5 rounded-lg text-xs font-bold disabled:cursor-not-allowed ${extra}`, style: { background: cor, color: '#ffffff' } })
   const caixa = 'rounded-xl p-3 axi-card-premium3d axi-card-faixa'
   const caixaStyle = { background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }
   const metodos: [MetodoPagamento, string][] = [['pix', 'Pix'], ['boleto', L('Boleto / código de barras', 'Bank slip / barcode', 'Boleto / código de barras')], ['debito_automatico', L('Débito automático', 'Direct debit', 'Débito automático')], ['transferencia', L('Transferência', 'Transfer', 'Transferencia')], ['cartao', L('Cartão', 'Card', 'Tarjeta')], ['outro', L('Outro', 'Other', 'Otro')]]
