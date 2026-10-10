@@ -12,6 +12,10 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";
 import { carregarBaseDRE, custoFixoDoMes, mesesEntre, somaNoPeriodo } from "./dreCompetencia";
+import { registrarMovimentacao } from "./rastreio/motor";
+import { registrarLancamentoManual } from "./rastreio/lancamentoManual";
+import { criarContaReceber } from "./recebimentoHelpers";
+import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -143,4 +147,65 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
     });
   }
   return { meses, casos, falhou: base.falhou || erros.length > 0 };
+}
+
+// ---------------------------------------------------------------- reprocessar (bloco A6)
+// UM caso por clique (o clique é a aprovação do dono, caso a caso). Passa pelo MESMO motor
+// de um lançamento normal — resultado igual a ter sido lançado certo desde o começo.
+// Relê tudo do banco antes (a prévia pode estar velha) e não faz nada se já foi resolvido.
+// pularFluxo: o Fluxo já tem esse dinheiro (risco apontado na prévia) → só as outras portas.
+export async function reprocessarCaso(
+  empresaId: string, userId: string, caso: CasoReprocessar, opcoes: { pularFluxo?: boolean; vencimento?: string } = {},
+): Promise<{ erro?: string; jaResolvido?: boolean }> {
+  const pular = opcoes.pularFluxo ? (["fluxo_caixa"] as const).slice() : undefined;
+  const proveniencia = { reprocessado_por: "conferencia", caso: caso.codigo };
+  if (caso.codigo === "D3" || caso.codigo === "D4") {
+    const [{ data: c, error }, { data: rs, error: e2 }] = await Promise.all([
+      supabase.from("contas_pagar").select("id, descricao, categoria, centro_custo_id, fornecedor_id, forma_pagamento, custo_fixo_id, valor_pago, data_pagamento, fornecedores(nome)").eq("id", caso.id).eq("empresa_id", empresaId).maybeSingle(),
+      supabase.from("rastreio_movimentacao").select("origem_id, tipo, valor").eq("empresa_id", empresaId).eq("origem_tabela", "contas_pagar").eq("origem_id", caso.id).in("tipo", ["ap_pagamento", "ap_estorno"]),
+    ]);
+    if (error || e2 || !c) return { erro: error?.message || e2?.message || "conta não encontrada" };
+    const falta = r2(Number(c.valor_pago) - (rastreadoPorConta(rs || []).get(caso.id) ?? 0));
+    if (falta <= TOLERANCIA) return { jaResolvido: true };
+    const data = (c.data_pagamento as string) || hojeISO();
+    const r = await registrarMovimentacao({
+      empresaId, tipo: "ap_pagamento", origemTabela: "contas_pagar", origemId: caso.id, valor: falta, data, aguardar: true,
+      payload: {
+        descricao: c.descricao as string, contraparte: ((c.fornecedores as unknown as { nome?: string } | null)?.nome) ?? null, contraparte_id: (c.fornecedor_id as string) ?? null,
+        categoria: (c.categoria as string) ?? null, centro_custo_id: (c.centro_custo_id as string) ?? null, forma: (c.forma_pagamento as string) ?? null,
+        custo_fixo_id: (c.custo_fixo_id as string) ?? null, proveniencia, pular: pular ?? null, evento_tipo: "AP_PAID",
+        evento_payload: { conta_id: caso.id, valor_pago: Number(c.valor_pago), data_pagamento: data, forma_pagamento: c.forma_pagamento ?? null, valor_incremento: falta, valor_encargos: 0 },
+      },
+    });
+    return { erro: r.erro };
+  }
+  if (caso.codigo === "D5") {
+    const [{ data: rec, error }, { data: ja }] = await Promise.all([
+      supabase.from("receitas").select("id, descricao, valor, data, categoria, cliente_id, status").eq("id", caso.id).eq("empresa_id", empresaId).maybeSingle(),
+      supabase.from("rastreio_movimentacao").select("id").eq("empresa_id", empresaId).eq("origem_tabela", "receitas").eq("origem_id", caso.id).limit(1),
+    ]);
+    if (error || !rec) return { erro: error?.message || "receita não encontrada" };
+    if (ja?.length || rec.status !== "recebido") return { jaResolvido: true };
+    return registrarLancamentoManual(empresaId, "receitas", {
+      id: caso.id, descricao: rec.descricao as string, valor: Number(rec.valor), data: rec.data as string, natureza: "receita",
+      categoria: (rec.categoria as string) ?? null, contraparte_id: (rec.cliente_id as string) ?? null, modulo: "conferencia", pular,
+    });
+  }
+  // D7: receita "pendente" sem conta a receber → cria a conta (vencimento escolhido pelo dono) e liga
+  // a receita a ela; a DRE passa a contar pela conta (itensReceita pula receita ligada), sem apagar nada.
+  if (!opcoes.vencimento) return { erro: "informe o vencimento" };
+  const { data: rec, error } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, cliente_id, origem_tabela, status").eq("id", caso.id).eq("empresa_id", empresaId).maybeSingle();
+  if (error || !rec) return { erro: error?.message || "receita não encontrada" };
+  if (rec.origem_tabela || rec.status !== "pendente") return { jaResolvido: true };
+  const conta = await criarContaReceber(userId, empresaId, {
+    descricao: rec.descricao, valor: Number(rec.valor), cliente_id: rec.cliente_id ?? null, categoria: rec.categoria ?? null,
+    data_emissao: rec.data, competencia: rec.data, data_vencimento: opcoes.vencimento,
+  }, { modulo: "conferencia", proveniencia });
+  if (conta.erro || !conta.id) return { erro: conta.erro || "falha ao criar a conta" };
+  const { data: lig, error: e3 } = await supabase.from("receitas").update({ origem_tabela: "contas_receber", origem_id: conta.id }).eq("id", caso.id).eq("empresa_id", empresaId).select("id");
+  if (e3 || !lig?.length) {
+    Sentry.captureException(new Error(`[conferência] ligar receita D7: ${e3?.message || "0 linhas (RLS?)"}`));
+    return { erro: "a conta foi criada, mas a receita não foi ligada a ela — a DRE pode contar duas vezes até corrigir" };
+  }
+  return {};
 }

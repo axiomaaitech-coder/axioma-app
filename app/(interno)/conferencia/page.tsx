@@ -9,7 +9,8 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { carregarConferencia, type LinhaConferencia, type CasoReprocessar, type Par } from '../../../lib/conferenciaHelpers'
+import { carregarConferencia, reprocessarCaso, type LinhaConferencia, type CasoReprocessar, type Par } from '../../../lib/conferenciaHelpers'
+import { createClient } from '../../../lib/supabase/client'
 import { hojeISO } from '../../../lib/datas'
 
 type Idioma3 = 'pt' | 'en' | 'es'
@@ -33,6 +34,9 @@ export default function ConferenciaPage() {
   const [casos, setCasos] = useState<CasoReprocessar[]>([])
   const [carregando, setCarregando] = useState(true)
   const [falhou, setFalhou] = useState(false)
+  const [processando, setProcessando] = useState<string | null>(null)
+  const [vencimentos, setVencimentos] = useState<Record<string, string>>({})
+  const [aviso, setAviso] = useState<{ id: string; ok: boolean; texto: string } | null>(null)
 
   const carregar = useCallback(async (a: number) => {
     setCarregando(true)
@@ -43,6 +47,20 @@ export default function ConferenciaPage() {
     setMeses(r.meses); setCasos(r.casos); setFalhou(r.falhou); setCarregando(false)
   }, [anoHoje, lang])
   useEffect(() => { void carregar(ano) }, [ano, carregar])
+
+  // A6: corrige UM caso (o clique é a aprovação). Depois relê a conferência inteira.
+  async function corrigir(c: CasoReprocessar, pularFluxo: boolean) {
+    const empresaId = await obterEmpresaAtiva()
+    const { data: { user } } = await createClient().auth.getUser()
+    if (!empresaId || !user) return
+    setProcessando(c.id); setAviso(null)
+    const r = await reprocessarCaso(empresaId, user.id, c, { pularFluxo, vencimento: vencimentos[c.id] })
+    setProcessando(null)
+    setAviso({ id: c.id, ok: !r.erro, texto: r.erro ? L(`Não foi corrigido: ${r.erro}`, `Not fixed: ${r.erro}`, `No se corrigió: ${r.erro}`) : r.jaResolvido ? L('Este caso já estava resolvido.', 'This case was already resolved.', 'Este caso ya estaba resuelto.') : L('Corrigido. A conferência foi recalculada.', 'Fixed. The check was recalculated.', 'Corregido. La conciliación se recalculó.') })
+    window.dispatchEvent(new CustomEvent('axioma:dados-atualizados', { detail: { origem: 'conferencia' } }))
+    await carregar(ano)
+  }
+  const btn = (cor: string) => ({ className: 'px-3 py-1.5 rounded-lg text-[11px] font-bold disabled:cursor-not-allowed', style: { background: cor, color: '#ffffff' } })
 
   const painel = { background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
@@ -106,7 +124,7 @@ export default function ConferenciaPage() {
 
           <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
             <p className="text-sm font-bold mb-1" style={{ color: P.TEXTO }}>{L('Casos antigos para reprocessar — prévia', 'Old cases to reprocess — preview', 'Casos antiguos para reprocesar — vista previa')}</p>
-            <p className="text-xs mb-3" style={{ color: P.CINZA }}>{L('Isto é só uma prévia: mostra o registro, o que muda em cada módulo e o risco de duplicar. Nada é alterado sem a sua aprovação, caso a caso.', 'This is only a preview: it shows the record, what changes in each module and the duplication risk. Nothing changes without your approval, case by case.', 'Esto es solo una vista previa: muestra el registro, qué cambia en cada módulo y el riesgo de duplicar. Nada cambia sin su aprobación, caso por caso.')}</p>
+            <p className="text-xs mb-3" style={{ color: P.CINZA }}>{L('Cada caso mostra o registro, o que muda em cada módulo e o risco de duplicar. Nada é alterado até você clicar em corrigir — um caso por vez.', 'Each case shows the record, what changes in each module and the duplication risk. Nothing changes until you click fix — one case at a time.', 'Cada caso muestra el registro, qué cambia en cada módulo y el riesgo de duplicar. Nada cambia hasta que haga clic en corregir — un caso a la vez.')}</p>
             {!carregando && grupos.length === 0 && <p className="text-xs" style={{ color: P.VERDE }}>{L('Nenhum caso pendente.', 'No pending cases.', 'Ningún caso pendiente.')}</p>}
             <div className="space-y-3">
               {grupos.map((g) => (
@@ -121,6 +139,32 @@ export default function ConferenciaPage() {
                         <p><b>{L('Depois', 'After', 'Después')}:</b> {c.depois}</p>
                         <ul className="mt-1 list-disc pl-4" style={{ color: P.CINZA }}>{c.impacto.map((i) => <li key={i.modulo}><b style={{ color: P.TEXTO }}>{i.modulo}:</b> {i.efeito}</li>)}</ul>
                         {c.risco && <p className="mt-1 flex items-start gap-1 font-semibold" style={{ color: P.AMBAR }}><AlertTriangle size={12} className="mt-0.5 shrink-0" />{c.risco}</p>}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {c.codigo === 'D7' ? (
+                            <>
+                              <label className="text-[11px]" style={{ color: P.CINZA }}>{L('Vencimento', 'Due date', 'Vencimiento')}{' '}
+                                <input type="date" value={vencimentos[c.id] ?? ''} onChange={(e) => setVencimentos((v) => ({ ...v, [c.id]: e.target.value }))} className="px-2 py-1 rounded-lg text-[11px]" style={{ background: '#ffffff', color: '#101b3d', border: `1px solid ${P.BORDA}` }} />
+                              </label>
+                              <button {...btn('#0f7a5a')} disabled={processando === c.id || !vencimentos[c.id]} onClick={() => void corrigir(c, false)}>
+                                {processando === c.id ? L('Corrigindo…', 'Fixing…', 'Corrigiendo…') : L('Criar a conta a receber', 'Create the receivable', 'Crear la cuenta por cobrar')}
+                              </button>
+                            </>
+                          ) : c.risco ? (
+                            <>
+                              <button {...btn('#0f7a5a')} disabled={processando === c.id} onClick={() => void corrigir(c, true)}>
+                                {processando === c.id ? L('Corrigindo…', 'Fixing…', 'Corrigiendo…') : L('Corrigir sem mexer no Fluxo (já está lá)', 'Fix without touching Cash Flow (already there)', 'Corregir sin tocar el Flujo (ya está)')}
+                              </button>
+                              <button {...btn('#101b3d')} disabled={processando === c.id} onClick={() => void corrigir(c, false)}>
+                                {L('Corrigir tudo (é outro dinheiro)', 'Fix everything (different money)', 'Corregir todo (es otro dinero)')}
+                              </button>
+                            </>
+                          ) : (
+                            <button {...btn('#0f7a5a')} disabled={processando === c.id} onClick={() => void corrigir(c, false)}>
+                              {processando === c.id ? L('Corrigindo…', 'Fixing…', 'Corrigiendo…') : L('Corrigir este caso', 'Fix this case', 'Corregir este caso')}
+                            </button>
+                          )}
+                          {aviso?.id === c.id && <span className="text-[11px] font-semibold" style={{ color: aviso.ok ? P.VERDE : P.VERMELHO }}>{aviso.texto}</span>}
+                        </div>
                       </div>
                     ))}
                     {g.itens.length > 50 && <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`+${g.itens.length - 50} casos iguais`, `+${g.itens.length - 50} similar cases`, `+${g.itens.length - 50} casos iguales`)}</p>}

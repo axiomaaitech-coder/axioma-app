@@ -13,7 +13,7 @@
 //   mesmo valor + data a 1 dia, texto diferente            → PERGUNTA (caso extremo)
 //   mesmo valor em outro mês, ou data longe                → segue (recorrente/outro dinheiro)
 import { createBrowserClient } from "@supabase/ssr";
-import { registrarMovimentacao, type PayloadRastreio } from "./motor";
+import { registrarMovimentacao, type PayloadRastreio, type Destino } from "./motor";
 import { normalizarTexto } from "../cfoCore";
 import { avaliarDuplicidade, type Idioma } from "../motorDuplicidade";
 import { hojeISO } from "../datas";
@@ -29,6 +29,7 @@ export type LancamentoManual = {
   id: string; descricao: string; valor: number; data: string; natureza: Natureza;
   categoria?: string | null; centro_custo_id?: string | null; forma?: string | null; contraparte_id?: string | null;
   modulo?: string; // de qual tela veio (ex.: faturamento_mei)
+  pular?: Destino[]; // porta que já tem esse dinheiro (reprocessamento da Conferência)
 };
 
 // Natureza do lançamento do Fluxo de Caixa, guardada na própria coluna categoria.
@@ -73,7 +74,7 @@ export async function registrarLancamentoManual(empresaId: string, origem: Orige
   if (!(d.valor > 0)) return {};
   const payload: PayloadRastreio = {
     descricao: d.descricao, categoria: d.categoria ?? null, centro_custo_id: d.centro_custo_id ?? null, forma: d.forma ?? null,
-    contraparte_id: d.contraparte_id ?? null, natureza: d.natureza, origem_modulo: d.modulo ?? origem,
+    contraparte_id: d.contraparte_id ?? null, natureza: d.natureza, origem_modulo: d.modulo ?? origem, pular: d.pular ?? null,
     evento_tipo: "MANUAL_ENTRY_RECORDED",
     evento_payload: { natureza: d.natureza, valor: d.valor, categoria: d.categoria ?? null, forma: d.forma ?? null, data: d.data, descricao: d.descricao, centro_custo_id: d.centro_custo_id ?? null },
   };

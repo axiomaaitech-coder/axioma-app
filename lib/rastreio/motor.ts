@@ -60,6 +60,9 @@ export type PayloadRastreio = {
   // Lançamento manual: natureza (receita/custo/aporte/emprestimo/pag_emprestimo/retirada/transferencia)
   natureza?: string | null;
   rastreio_original_id?: string | null; // manual_estorno: qual rastro ele desfaz
+  // Reprocessamento de caso antigo (Conferência): porta que JÁ tem esse dinheiro e não pode
+  // receber de novo (ex.: o Fluxo já tem a saída lançada à mão) — vira "não se aplica".
+  pular?: Destino[] | null;
   evento_tipo: string;            // AP_PAID / AR_RECEIVED / AP_PAYMENT_REVERSED / AR_PAYMENT_REVERSED / AP_CREATED / AR_CREATED
   evento_payload: Record<string, unknown>;
   // Desconto concedido na quitação: reconhecimento da receita refeito pelo líquido.
@@ -257,6 +260,7 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
 }
 
 async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
+  if (r.payload.pular?.includes("fluxo_caixa")) return { status: "nao_aplica" };
   if (r.tipo === "ap_estorno" || r.tipo === "ar_estorno") return apagarDaOrigem("fluxo_caixa", r);
   if (r.tipo === "manual_estorno") return r.origem_tabela === "fluxo_caixa" ? { status: "nao_aplica" } : apagarDoRastro("fluxo_caixa", r);
   // Lançado no próprio Fluxo de Caixa: já está lá.
