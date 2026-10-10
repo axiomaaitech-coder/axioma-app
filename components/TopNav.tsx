@@ -44,6 +44,7 @@ const grupos = [
       { label: { pt: "DRE", en: "Income Statement", es: "Estado de Resultados" }, path: "/dre", emoji: "📈" },
       { label: { pt: "Endividamento", en: "Debt", es: "Endeudamiento" }, path: "/endividamento", emoji: "⚖️" },
       { label: { pt: "Tesouraria", en: "Treasury", es: "Tesorería" }, path: "/tesouraria", emoji: "🛡️" },
+      { label: { pt: "Painel de Risco", en: "Risk Panel", es: "Panel de Riesgo" }, path: "/risco", emoji: "🚨" },
     ]
   },
   {
