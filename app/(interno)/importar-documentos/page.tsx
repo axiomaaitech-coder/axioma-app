@@ -730,12 +730,14 @@ export default function ImportarDocumentosPage() {
 
   async function carregarHistoricoLista(empId: string) {
     setLoadingHistorico(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("importacoes")
       .select("*")
       .eq("empresa_id", empId)
       .order("created_at", { ascending: false })
       .limit(50);
+    // Leitura falhou ≠ "nenhuma importação": avisa.
+    if (error) showToast(langAtual === "en" ? "Could not load the import history. Reload the page." : langAtual === "es" ? "No se pudo cargar el historial de importaciones. Recargue la página." : "Não foi possível carregar o histórico de importações. Recarregue a página.", "erro");
     setHistorico(data || []);
     setLoadingHistorico(false);
   }

@@ -2,10 +2,12 @@
 // Cálculos profissionais com dados reais do Supabase.
 // Implementa 12+ indicadores brasileiros, Score CFO 0-100, insights automáticos.
 
+import { saldoCaixaRealizado } from "./caixaSaldo";
+import { soVigentes } from "./custoFixoVigente";
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
-import { nomeMesPt } from "./cfoCore";
+import { nomeMesPt, mesesPorLang } from "./cfoCore";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
 import { hojeISO } from "./datas";
 export { nomeMesPt };
@@ -56,7 +58,11 @@ export type CategoriaCusto = {
   pct: number;
 };
 
+export type Lang3 = "pt" | "en" | "es";
+const tr = (lang: Lang3, pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+
 export type KPI = {
+  chave: string; // identificador fixo (o nome muda com o idioma)
   nome: string;
   valor: string;
   valor_num: number;
@@ -89,58 +95,44 @@ export function montarPeriodo(ano: number, mes: number): Periodo {
 // DRE GERENCIAL (Demonstração do Resultado do Exercício)
 // ============================================================================
 
+// Leitura que falha lança erro: a tela mostra o aviso (tratarFalhaCarregamento) em vez de
+// montar relatório com zero no lugar do dado que não veio.
+function exigir<T>(r: { data: T | null; error: { message: string } | null }, contexto: string): T | null {
+  if (r.error) throw new Error(`[relatorios] ${contexto}: ${r.error.message}`);
+  return r.data;
+}
+
 export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
   // 1) Receitas do período
-  const { data: receitas } = await supabase
-    .from("receitas")
-    .select("valor")
-    .eq("empresa_id", empresaId)
-    .gte("data", periodo.inicio)
-    .lte("data", periodo.fim);
+  const receitas = exigir(await lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "receitas");
   const receita_bruta = (receitas || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
 
   // 2) Custos variáveis
-  const { data: custosVar } = await supabase
-    .from("custos_variaveis")
-    .select("valor")
-    .eq("empresa_id", empresaId)
-    .gte("data", periodo.inicio)
-    .lte("data", periodo.fim);
+  const custosVar = exigir(await lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "custos_variaveis");
   const custos_variaveis = (custosVar || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
 
-  // 3) Custos fixos (mensais — todos cadastrados)
-  const { data: custosFix } = await supabase
-    .from("custos_fixos")
-    .select("valor_mensal")
-    .eq("empresa_id", empresaId);
+  // 3) Custos fixos (mensais — só os vigentes; encerrado não pesa mais)
+  const custosFix = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)), "custos_fixos");
   const custos_fixos = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   // 4) Despesas financeiras (juros de endividamento — estimativa simples)
   // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
   // uma tabela órfã com schema diferente, nunca alimentada pela UI.
-  let despesas_financeiras = 0;
-  try {
-    const { data: dividas } = await supabase
-      .from("dividas")
-      .select("valor_total, valor_pago, taxa_juros")
-      .eq("empresa_id", empresaId);
-    if (dividas) {
-      despesas_financeiras = dividas.reduce((s: number, d: any) => {
-        const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
-        return s + (saldoDevedor * Number(d.taxa_juros || 0) / 100);
-      }, 0);
-    }
-  } catch {
-    // mantém 0 se a consulta falhar por qualquer motivo
-  }
+  const dividas = exigir(await supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId), "dividas");
+  const despesas_financeiras = (dividas || []).reduce((s: number, d: any) => {
+    const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
+    return s + (saldoDevedor * Number(d.taxa_juros || 0) / 100);
+  }, 0);
 
   // 5) Deduções: imposto real da empresa pelo regime tributário (mesmo cálculo do
   // módulo IA Tributária), em vez de um percentual fixo chutado.
   const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
-  const [{ data: empresa }, { data: rec12m }] = await Promise.all([
+  const [rEmp, rRec12] = await Promise.all([
     supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
     lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim).order("id")),
   ]);
+  const empresa = exigir(rEmp, "empresa");
+  const rec12m = exigir(rRec12, "receitas_12m");
   const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
   const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta, undefined, undefined, categoriaMeiDaEmpresa(empresa)));
 
@@ -176,15 +168,13 @@ export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<
 export async function carregarEvolucao12Meses(
   empresaId: string,
   referenciaAno: number,
-  referenciaMes: number
+  referenciaMes: number,
+  lang: Lang3 = "pt"
 ): Promise<PontoEvolucao[]> {
   const pontos: PontoEvolucao[] = [];
 
-  // Custos fixos são recorrentes — totaliza uma vez
-  const { data: custosFix } = await supabase
-    .from("custos_fixos")
-    .select("valor_mensal")
-    .eq("empresa_id", empresaId);
+  // Custos fixos são recorrentes — totaliza uma vez (só os vigentes)
+  const custosFix = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)), "custos_fixos");
   const custos_fixos_mes = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   for (let i = 11; i >= 0; i--) {
@@ -193,10 +183,11 @@ export async function carregarEvolucao12Meses(
     const mes = d.getMonth() + 1;
     const periodo = montarPeriodo(ano, mes);
 
-    const [{ data: rec }, { data: cv }] = await Promise.all([
+    const [rRec, rCv] = await Promise.all([
       lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
       lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
     ]);
+    const rec = exigir(rRec, "receitas_mes"); const cv = exigir(rCv, "custos_variaveis_mes");
 
     const receita = (rec || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
     const custos_var = (cv || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -205,7 +196,7 @@ export async function carregarEvolucao12Meses(
     const margem = receita > 0 ? (lucro / receita) * 100 : 0;
 
     pontos.push({
-      mes: nomeMesPt(mes),
+      mes: mesesPorLang(lang)[mes - 1] || nomeMesPt(mes),
       ano,
       mes_num: mes,
       receita: Math.round(receita),
@@ -229,38 +220,21 @@ export async function carregarDistribuicaoCustos(
 ): Promise<CategoriaCusto[]> {
   const agregado = new Map<string, number>();
 
+  // Mesma base da DRE: custos variáveis do período + custos fixos vigentes.
+  // (Contas a pagar NÃO entram: conta paga já vira custo variável pelo motor e conta
+  // de custo fixo já está no fixo — somar as duas contava o mesmo gasto 2 vezes.)
   // 1) Custos variáveis por categoria
-  const { data: cv } = await supabase
-    .from("custos_variaveis")
-    .select("valor, categoria")
-    .eq("empresa_id", empresaId)
-    .gte("data", periodo.inicio)
-    .lte("data", periodo.fim);
+  const cv = exigir(await lerTodas(() => supabase.from("custos_variaveis").select("valor, categoria").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "custos_variaveis");
   (cv || []).forEach((r: any) => {
     const cat = r.categoria || "Outros";
     agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor || 0));
   });
 
-  // 2) Custos fixos (mensal)
-  const { data: cf } = await supabase
-    .from("custos_fixos")
-    .select("valor_mensal, categoria")
-    .eq("empresa_id", empresaId);
+  // 2) Custos fixos (mensal, só vigentes)
+  const cf = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)), "custos_fixos");
   (cf || []).forEach((r: any) => {
     const cat = r.categoria || "Custos Fixos";
     agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor_mensal || 0));
-  });
-
-  // 3) Contas a pagar do período (despesas operacionais)
-  const { data: cp } = await supabase
-    .from("contas_pagar")
-    .select("valor_total, categoria")
-    .eq("empresa_id", empresaId)
-    .gte("data_vencimento", periodo.inicio)
-    .lte("data_vencimento", periodo.fim);
-  (cp || []).forEach((r: any) => {
-    const cat = r.categoria || "Fornecedores";
-    agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor_total || 0));
   });
 
   const total = Array.from(agregado.values()).reduce((s, v) => s + v, 0);
@@ -290,13 +264,13 @@ function formatPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE): Promise<KPI[]> {
+export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE, lang: Lang3 = "pt"): Promise<KPI[]> {
   const kpis: KPI[] = [];
 
   // ---- 1. MARGEM BRUTA (sobre receita líquida) ----
   const margemBruta = dre.receita_liquida > 0 ? (dre.margem_contribuicao / dre.receita_liquida) * 100 : 0;
   kpis.push({
-    nome: "Margem Bruta",
+    chave: "margem_bruta", nome: tr(lang, "Margem Bruta", "Gross Margin", "Margen Bruto"),
     valor: formatPct(margemBruta),
     valor_num: margemBruta,
     meta: "40%",
@@ -304,13 +278,13 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: margemBruta >= 40,
     unidade: "PCT",
     categoria: "rentabilidade",
-    descricao: "Receita líquida menos custos variáveis, dividido pela receita líquida",
+    descricao: tr(lang, "Receita líquida menos custos variáveis, dividido pela receita líquida", "Net revenue minus variable costs, divided by net revenue", "Ingreso neto menos costos variables, dividido por el ingreso neto"),
   });
 
   // ---- 2. MARGEM LÍQUIDA ----
   const margemLiquida = dre.pct_lucro_liquido;
   kpis.push({
-    nome: "Margem Líquida",
+    chave: "margem_liquida", nome: tr(lang, "Margem Líquida", "Net Margin", "Margen Neto"),
     valor: formatPct(margemLiquida),
     valor_num: margemLiquida,
     meta: "15%",
@@ -318,14 +292,14 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: margemLiquida >= 15,
     unidade: "PCT",
     categoria: "rentabilidade",
-    descricao: "Lucro líquido dividido pela receita bruta",
+    descricao: tr(lang, "Lucro líquido dividido pela receita bruta", "Net profit divided by gross revenue", "Utilidad neta dividida por el ingreso bruto"),
   });
 
   // ---- 3. MARGEM EBITDA (operacional) ----
   const ebitda = dre.lucro_operacional;
   const margemEbitda = dre.receita_bruta > 0 ? (ebitda / dre.receita_bruta) * 100 : 0;
   kpis.push({
-    nome: "Margem EBITDA",
+    chave: "margem_ebitda", nome: tr(lang, "Margem EBITDA", "EBITDA Margin", "Margen EBITDA"),
     valor: formatPct(margemEbitda),
     valor_num: margemEbitda,
     meta: "20%",
@@ -333,7 +307,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: margemEbitda >= 20,
     unidade: "PCT",
     categoria: "rentabilidade",
-    descricao: "Lucro antes de juros, impostos, depreciação e amortização sobre receita",
+    descricao: tr(lang, "Lucro antes de juros, impostos, depreciação e amortização sobre receita", "Earnings before interest, taxes, depreciation and amortization over revenue", "Utilidad antes de intereses, impuestos, depreciación y amortización sobre ingresos"),
   });
 
   // ---- 4. PONTO DE EQUILÍBRIO ----
@@ -341,7 +315,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
   const pontoEquilibrio = pctMargemContrib > 0 ? dre.custos_fixos / pctMargemContrib : 0;
   const atingiuBreakEven = dre.receita_bruta > 0 && pontoEquilibrio < dre.receita_bruta;
   kpis.push({
-    nome: "Ponto de Equilíbrio",
+    chave: "ponto_equilibrio", nome: tr(lang, "Ponto de Equilíbrio", "Break-even Point", "Punto de Equilibrio"),
     valor: formatBRL(pontoEquilibrio),
     valor_num: pontoEquilibrio,
     meta: formatBRL(dre.receita_bruta),
@@ -349,19 +323,23 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: atingiuBreakEven,
     unidade: "BRL",
     categoria: "operacional",
-    descricao: "Receita mínima para cobrir todos os custos",
+    descricao: tr(lang, "Receita mínima para cobrir todos os custos", "Minimum revenue to cover all costs", "Ingreso mínimo para cubrir todos los costos"),
   });
 
   // ---- 5. LIQUIDEZ CORRENTE ----
-  const [{ data: cRecAtiv }, { data: cPagAtiv }] = await Promise.all([
+  const [rRecAtiv, rPagAtiv, sc] = await Promise.all([
     lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago").order("id")),
+    saldoCaixaRealizado(supabase, empresaId, hojeISO()),
   ]);
+  const cRecAtiv = exigir(rRecAtiv, "contas_receber_abertas");
+  const cPagAtiv = exigir(rPagAtiv, "contas_pagar_abertas");
+  if (sc.erro) throw new Error(`[relatorios] caixa: ${sc.erro}`);
   const ativoCirc = (cRecAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0);
   const passivoCirc = (cPagAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
   const liquidez = passivoCirc > 0 ? ativoCirc / passivoCirc : (ativoCirc > 0 ? 99 : 0);
   kpis.push({
-    nome: "Liquidez Corrente",
+    chave: "liquidez", nome: tr(lang, "Liquidez Corrente", "Current Ratio", "Liquidez Corriente"),
     valor: liquidez >= 99 ? "∞" : liquidez.toFixed(2),
     valor_num: liquidez,
     meta: "1.50",
@@ -369,7 +347,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: liquidez >= 1.5,
     unidade: "RATIO",
     categoria: "liquidez",
-    descricao: "Contas a receber dividido por contas a pagar (acima de 1.5 é saudável)",
+    descricao: tr(lang, "Contas a receber dividido por contas a pagar (acima de 1.5 é saudável)", "Receivables divided by payables (above 1.5 is healthy)", "Cuentas por cobrar divididas por cuentas por pagar (encima de 1.5 es saludable)"),
   });
 
   // ---- 6. ENDIVIDAMENTO ----
@@ -381,7 +359,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
   const patrimonio = Math.max(dre.receita_bruta * 3, 1); // estimativa: 3x receita do mês
   const endividamento = (totalDividas / patrimonio) * 100;
   kpis.push({
-    nome: "Endividamento",
+    chave: "endividamento", nome: tr(lang, "Endividamento", "Indebtedness", "Endeudamiento"),
     valor: erroDividas ? "—" : formatPct(endividamento),
     valor_num: endividamento,
     meta: "< 50%",
@@ -389,14 +367,11 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: !erroDividas && endividamento < 50,
     unidade: "PCT",
     categoria: "endividamento",
-    descricao: "Dívida total sobre patrimônio estimado (abaixo de 50% é saudável)",
+    descricao: tr(lang, "Dívida total sobre patrimônio estimado (abaixo de 50% é saudável)", "Total debt over estimated equity (below 50% is healthy)", "Deuda total sobre patrimonio estimado (debajo de 50% es saludable)"),
   });
 
   // ---- 7. INADIMPLÊNCIA ----
-  const { data: cRecTodos } = await supabase
-    .from("contas_receber")
-    .select("valor, status, data_vencimento")
-    .eq("empresa_id", empresaId);
+  const cRecTodos = exigir(await lerTodas(() => supabase.from("contas_receber").select("valor, status, data_vencimento").eq("empresa_id", empresaId).order("id")), "contas_receber");
   const hoje = hojeISO();
   const vencidos = (cRecTodos || []).filter(
     (r: any) => r.status !== "recebido" && r.data_vencimento && r.data_vencimento < hoje
@@ -405,7 +380,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
   const totalVencido = vencidos.reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
   const inadimplencia = totalRec > 0 ? (totalVencido / totalRec) * 100 : 0;
   kpis.push({
-    nome: "Inadimplência",
+    chave: "inadimplencia", nome: tr(lang, "Inadimplência", "Default", "Morosidad"),
     valor: formatPct(inadimplencia),
     valor_num: inadimplencia,
     meta: "< 5%",
@@ -413,13 +388,13 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: inadimplencia < 5,
     unidade: "PCT",
     categoria: "liquidez",
-    descricao: "Recebíveis vencidos sobre total a receber",
+    descricao: tr(lang, "Recebíveis vencidos sobre total a receber", "Overdue receivables over total receivable", "Cobros vencidos sobre el total por cobrar"),
   });
 
   // ---- 8. BURN RATE (despesa mensal) ----
   const burnRate = dre.custos_fixos + dre.custos_variaveis + dre.despesas_financeiras;
   kpis.push({
-    nome: "Burn Rate",
+    chave: "burn_rate", nome: tr(lang, "Burn Rate", "Burn Rate", "Burn Rate"),
     valor: formatBRL(burnRate),
     valor_num: burnRate,
     meta: formatBRL(dre.receita_bruta),
@@ -427,22 +402,22 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: burnRate < dre.receita_bruta,
     unidade: "BRL",
     categoria: "operacional",
-    descricao: "Despesa total mensal — deve ser menor que a receita",
+    descricao: tr(lang, "Despesa total mensal — deve ser menor que a receita", "Total monthly expense — should be lower than revenue", "Gasto total mensual — debe ser menor que el ingreso"),
   });
 
   // ---- 9. RUNWAY (meses de caixa) ----
-  const caixa = ativoCirc; // proxy: contas a receber em aberto
+  const caixa = Math.max(0, sc.saldo); // saldo único de caixa (Fluxo + PDV) — antes usava contas a receber como "caixa"
   const runway = burnRate > 0 ? caixa / burnRate : 99;
   kpis.push({
-    nome: "Runway",
-    valor: runway >= 99 ? "∞" : `${runway.toFixed(1)} meses`,
+    chave: "runway", nome: tr(lang, "Runway", "Runway", "Runway"),
+    valor: runway >= 99 ? "∞" : `${runway.toFixed(1)} ${tr(lang, "meses", "months", "meses")}`,
     valor_num: runway,
-    meta: "≥ 6 meses",
+    meta: tr(lang, "≥ 6 meses", "≥ 6 months", "≥ 6 meses"),
     meta_num: 6,
     atingido: runway >= 6,
     unidade: "MESES",
     categoria: "liquidez",
-    descricao: "Quantos meses a empresa aguenta com o caixa atual",
+    descricao: tr(lang, "Quantos meses a empresa aguenta com o caixa atual", "How many months the company can last on current cash", "Cuántos meses aguanta la empresa con la caja actual"),
   });
 
   // ---- 10. CRESCIMENTO MoM (Mês contra Mês) ----
@@ -450,16 +425,11 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     periodo.mes === 1 ? periodo.ano - 1 : periodo.ano,
     periodo.mes === 1 ? 12 : periodo.mes - 1
   );
-  const { data: recAnt } = await supabase
-    .from("receitas")
-    .select("valor")
-    .eq("empresa_id", empresaId)
-    .gte("data", mesAnterior.inicio)
-    .lte("data", mesAnterior.fim);
+  const recAnt = exigir(await lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mesAnterior.inicio).lte("data", mesAnterior.fim).order("id")), "receitas_mes_anterior");
   const receitaAnt = (recAnt || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
   const crescimentoMoM = receitaAnt > 0 ? ((dre.receita_bruta - receitaAnt) / receitaAnt) * 100 : 0;
   kpis.push({
-    nome: "Crescimento MoM",
+    chave: "crescimento_mom", nome: tr(lang, "Crescimento MoM", "MoM Growth", "Crecimiento MoM"),
     valor: `${crescimentoMoM >= 0 ? "+" : ""}${crescimentoMoM.toFixed(1)}%`,
     valor_num: crescimentoMoM,
     meta: "≥ 5%",
@@ -467,13 +437,13 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: crescimentoMoM >= 5,
     unidade: "PCT",
     categoria: "crescimento",
-    descricao: "Variação da receita vs mês anterior",
+    descricao: tr(lang, "Variação da receita vs mês anterior", "Revenue change vs previous month", "Variación de ingresos vs mes anterior"),
   });
 
   // ---- 11. EFICIÊNCIA OPERACIONAL ----
   const eficiencia = burnRate > 0 ? dre.receita_bruta / burnRate : 0;
   kpis.push({
-    nome: "Eficiência",
+    chave: "eficiencia", nome: tr(lang, "Eficiência", "Efficiency", "Eficiencia"),
     valor: eficiencia.toFixed(2) + "x",
     valor_num: eficiencia,
     meta: "≥ 1.50x",
@@ -481,20 +451,17 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: eficiencia >= 1.5,
     unidade: "RATIO",
     categoria: "operacional",
-    descricao: "Receita gerada por real gasto (acima de 1.5x é saudável)",
+    descricao: tr(lang, "Receita gerada por real gasto (acima de 1.5x é saudável)", "Revenue generated per real spent (above 1.5x is healthy)", "Ingreso generado por real gastado (encima de 1.5x es saludable)"),
   });
 
   // ---- 12. TICKET MÉDIO ----
-  const { data: recCount } = await supabase
-    .from("receitas")
-    .select("valor", { count: "exact" })
-    .eq("empresa_id", empresaId)
-    .gte("data", periodo.inicio)
-    .lte("data", periodo.fim);
-  const qtdLanc = (recCount || []).length;
+  // Só a contagem (head): a lista vinha cortada em 1000 e o ticket médio saía errado.
+  const { count: qtdRec, error: erroCount } = await supabase.from("receitas").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim);
+  if (erroCount) throw new Error(`[relatorios] contagem de receitas: ${erroCount.message}`);
+  const qtdLanc = qtdRec || 0;
   const ticketMedio = qtdLanc > 0 ? dre.receita_bruta / qtdLanc : 0;
   kpis.push({
-    nome: "Ticket Médio",
+    chave: "ticket_medio", nome: tr(lang, "Ticket Médio", "Average Ticket", "Ticket Promedio"),
     valor: formatBRL(ticketMedio),
     valor_num: ticketMedio,
     meta: formatBRL(1000),
@@ -502,7 +469,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     atingido: ticketMedio >= 1000,
     unidade: "BRL",
     categoria: "operacional",
-    descricao: "Valor médio por venda/lançamento de receita",
+    descricao: tr(lang, "Valor médio por venda/lançamento de receita", "Average amount per sale/revenue entry", "Valor promedio por venta/registro de ingreso"),
   });
 
   return kpis;
@@ -513,7 +480,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
 // Soma normalizada dos KPIs ponderados por importância
 // ============================================================================
 
-export function calcularScoreCFO(kpis: KPI[]): { score: number; nivel: string; cor: string } {
+export function calcularScoreCFO(kpis: KPI[], lang: Lang3 = "pt"): { score: number; nivel: string; cor: string } {
   // Cada KPI atingido vale pontos. Pesos: rentabilidade 40%, liquidez 30%, operacional 20%, crescimento 10%
   const pesos: Record<string, number> = {
     rentabilidade: 40,
@@ -541,12 +508,12 @@ export function calcularScoreCFO(kpis: KPI[]): { score: number; nivel: string; c
   }
   const final = pesoTotal > 0 ? Math.round((score / pesoTotal) * 100) : 0;
 
-  let nivel = "Crítico";
+  let nivel = tr(lang, "Crítico", "Critical", "Crítico");
   let cor = "#f87171";
-  if (final >= 80) { nivel = "Excelente"; cor = "#34d399"; }
-  else if (final >= 60) { nivel = "Bom"; cor = "#6ab0ff"; }
-  else if (final >= 40) { nivel = "Regular"; cor = "#fbbf24"; }
-  else if (final >= 20) { nivel = "Atenção"; cor = "#fb923c"; }
+  if (final >= 80) { nivel = tr(lang, "Excelente", "Excellent", "Excelente"); cor = "#34d399"; }
+  else if (final >= 60) { nivel = tr(lang, "Bom", "Good", "Bueno"); cor = "#6ab0ff"; }
+  else if (final >= 40) { nivel = tr(lang, "Regular", "Fair", "Regular"); cor = "#fbbf24"; }
+  else if (final >= 20) { nivel = tr(lang, "Atenção", "Attention", "Atención"); cor = "#fb923c"; }
 
   return { score: final, nivel, cor };
 }
@@ -560,7 +527,8 @@ export function gerarInsights(
   evolucao: PontoEvolucao[],
   kpis: KPI[],
   distribuicao: CategoriaCusto[],
-  scoreCFO: { score: number; nivel: string }
+  scoreCFO: { score: number; nivel: string },
+  lang: Lang3 = "pt"
 ): Insight[] {
   const insights: Insight[] = [];
 
@@ -568,14 +536,14 @@ export function gerarInsights(
   if (scoreCFO.score >= 80) {
     insights.push({
       tipo: "positivo",
-      titulo: "Saúde financeira excelente",
-      texto: `Seu Score CFO é ${scoreCFO.score}/100 (${scoreCFO.nivel}). Mantenha os indicadores que estão acima da meta.`,
+      titulo: tr(lang, "Saúde financeira excelente", "Excellent financial health", "Salud financiera excelente"),
+      texto: tr(lang, `Seu Score CFO é ${scoreCFO.score}/100 (${scoreCFO.nivel}). Mantenha os indicadores que estão acima da meta.`, `Your CFO Score is ${scoreCFO.score}/100 (${scoreCFO.nivel}). Keep the indicators that are above target.`, `Su Score CFO es ${scoreCFO.score}/100 (${scoreCFO.nivel}). Mantenga los indicadores que están por encima de la meta.`),
     });
   } else if (scoreCFO.score < 40) {
     insights.push({
       tipo: "alerta",
-      titulo: "Saúde financeira em alerta",
-      texto: `Seu Score CFO é ${scoreCFO.score}/100 (${scoreCFO.nivel}). Veja os KPIs abaixo da meta e priorize ações corretivas.`,
+      titulo: tr(lang, "Saúde financeira em alerta", "Financial health on alert", "Salud financiera en alerta"),
+      texto: tr(lang, `Seu Score CFO é ${scoreCFO.score}/100 (${scoreCFO.nivel}). Veja os KPIs abaixo da meta e priorize ações corretivas.`, `Your CFO Score is ${scoreCFO.score}/100 (${scoreCFO.nivel}). Check the KPIs below target and prioritize corrective actions.`, `Su Score CFO es ${scoreCFO.score}/100 (${scoreCFO.nivel}). Vea los KPIs debajo de la meta y priorice acciones correctivas.`),
     });
   }
 
@@ -588,15 +556,15 @@ export function gerarInsights(
       if (variacao >= 10) {
         insights.push({
           tipo: "positivo",
-          titulo: "Receita em crescimento forte",
-          texto: `Sua receita cresceu ${variacao.toFixed(1)}% em ${atual.mes} vs ${anterior.mes}. Tendência positiva.`,
+          titulo: tr(lang, "Receita em crescimento forte", "Strong revenue growth", "Ingresos en fuerte crecimiento"),
+          texto: tr(lang, `Sua receita cresceu ${variacao.toFixed(1)}% em ${atual.mes} vs ${anterior.mes}. Tendência positiva.`, `Your revenue grew ${variacao.toFixed(1)}% in ${atual.mes} vs ${anterior.mes}. Positive trend.`, `Sus ingresos crecieron ${variacao.toFixed(1)}% en ${atual.mes} vs ${anterior.mes}. Tendencia positiva.`),
           metrica: `+${variacao.toFixed(1)}%`,
         });
       } else if (variacao <= -10) {
         insights.push({
           tipo: "alerta",
-          titulo: "Queda significativa de receita",
-          texto: `Receita caiu ${Math.abs(variacao).toFixed(1)}% em ${atual.mes}. Investigue causas: sazonalidade, perda de clientes ou problemas operacionais.`,
+          titulo: tr(lang, "Queda significativa de receita", "Significant revenue drop", "Caída significativa de ingresos"),
+          texto: tr(lang, `Receita caiu ${Math.abs(variacao).toFixed(1)}% em ${atual.mes}. Investigue causas: sazonalidade, perda de clientes ou problemas operacionais.`, `Revenue fell ${Math.abs(variacao).toFixed(1)}% in ${atual.mes}. Look into causes: seasonality, lost clients or operational problems.`, `Los ingresos cayeron ${Math.abs(variacao).toFixed(1)}% en ${atual.mes}. Investigue causas: estacionalidad, pérdida de clientes o problemas operativos.`),
           metrica: `${variacao.toFixed(1)}%`,
         });
       }
@@ -607,14 +575,14 @@ export function gerarInsights(
   if (dre.pct_lucro_liquido < 0) {
     insights.push({
       tipo: "alerta",
-      titulo: "Operando no prejuízo",
-      texto: `Você está com margem líquida negativa (${dre.pct_lucro_liquido.toFixed(1)}%). Revise custos e precificação urgentemente.`,
+      titulo: tr(lang, "Operando no prejuízo", "Operating at a loss", "Operando con pérdida"),
+      texto: tr(lang, `Você está com margem líquida negativa (${dre.pct_lucro_liquido.toFixed(1)}%). Revise custos e precificação urgentemente.`, `Your net margin is negative (${dre.pct_lucro_liquido.toFixed(1)}%). Review costs and pricing urgently.`, `Su margen neto es negativo (${dre.pct_lucro_liquido.toFixed(1)}%). Revise costos y precios con urgencia.`),
     });
   } else if (dre.pct_lucro_liquido >= 20) {
     insights.push({
       tipo: "positivo",
-      titulo: "Margem líquida saudável",
-      texto: `Lucro líquido de ${dre.pct_lucro_liquido.toFixed(1)}% sobre receita está acima do benchmark de 15% para PMEs brasileiras.`,
+      titulo: tr(lang, "Margem líquida saudável", "Healthy net margin", "Margen neto saludable"),
+      texto: tr(lang, `Lucro líquido de ${dre.pct_lucro_liquido.toFixed(1)}% sobre receita está acima do benchmark de 15% para PMEs brasileiras.`, `Net profit of ${dre.pct_lucro_liquido.toFixed(1)}% of revenue is above the 15% benchmark for Brazilian SMEs.`, `Una utilidad neta de ${dre.pct_lucro_liquido.toFixed(1)}% sobre ingresos está por encima del benchmark de 15% para pymes brasileñas.`),
     });
   }
 
@@ -624,42 +592,42 @@ export function gerarInsights(
     if (topCat.pct >= 35) {
       insights.push({
         tipo: "atencao",
-        titulo: `Concentração em "${topCat.name}"`,
-        texto: `${topCat.pct.toFixed(1)}% dos seus custos estão em "${topCat.name}" (${formatBRL(topCat.value)}). Avalie se há espaço para renegociação ou diversificação.`,
+        titulo: tr(lang, `Concentração em "${topCat.name}"`, `Concentration in "${topCat.name}"`, `Concentración en "${topCat.name}"`),
+        texto: tr(lang, `${topCat.pct.toFixed(1)}% dos seus custos estão em "${topCat.name}" (${formatBRL(topCat.value)}). Avalie se há espaço para renegociação ou diversificação.`, `${topCat.pct.toFixed(1)}% of your costs are in "${topCat.name}" (${formatBRL(topCat.value)}). See if there is room to renegotiate or diversify.`, `${topCat.pct.toFixed(1)}% de sus costos están en "${topCat.name}" (${formatBRL(topCat.value)}). Evalúe si hay espacio para renegociar o diversificar.`),
         metrica: `${topCat.pct.toFixed(1)}%`,
       });
     }
   }
 
   // ---- Inadimplência alta ----
-  const inad = kpis.find((k) => k.nome === "Inadimplência");
+  const inad = kpis.find((k) => k.chave === "inadimplencia");
   if (inad && inad.valor_num > 10) {
     insights.push({
       tipo: "alerta",
-      titulo: "Inadimplência elevada",
-      texto: `${inad.valor} dos recebíveis estão vencidos. Reforce a régua de cobrança no módulo Inadimplência.`,
+      titulo: tr(lang, "Inadimplência elevada", "High default", "Morosidad elevada"),
+      texto: tr(lang, `${inad.valor} dos recebíveis estão vencidos. Reforce a régua de cobrança no módulo Inadimplência.`, `${inad.valor} of receivables are overdue. Strengthen the collection ladder in the Default module.`, `${inad.valor} de los cobros están vencidos. Refuerce la regla de cobro en el módulo Morosidad.`),
       metrica: inad.valor,
     });
   }
 
   // ---- Runway baixo ----
-  const runway = kpis.find((k) => k.nome === "Runway");
+  const runway = kpis.find((k) => k.chave === "runway");
   if (runway && runway.valor_num < 3 && runway.valor_num > 0) {
     insights.push({
       tipo: "alerta",
-      titulo: "Caixa apertado",
-      texto: `Você tem cerca de ${runway.valor} de caixa no ritmo atual. Acelere recebimentos e revise despesas.`,
+      titulo: tr(lang, "Caixa apertado", "Tight cash", "Caja ajustada"),
+      texto: tr(lang, `Você tem cerca de ${runway.valor} de caixa no ritmo atual. Acelere recebimentos e revise despesas.`, `You have about ${runway.valor} of cash at the current pace. Speed up collections and review expenses.`, `Tiene cerca de ${runway.valor} de caja al ritmo actual. Acelere cobros y revise gastos.`),
       metrica: runway.valor,
     });
   }
 
   // ---- Endividamento alto ----
-  const div = kpis.find((k) => k.nome === "Endividamento");
+  const div = kpis.find((k) => k.chave === "endividamento");
   if (div && div.valor_num >= 70) {
     insights.push({
       tipo: "alerta",
-      titulo: "Endividamento elevado",
-      texto: `Seu nível de endividamento está em ${div.valor}. Considere renegociar dívidas ou aumentar receitas antes de novos empréstimos.`,
+      titulo: tr(lang, "Endividamento elevado", "High indebtedness", "Endeudamiento elevado"),
+      texto: tr(lang, `Seu nível de endividamento está em ${div.valor}. Considere renegociar dívidas ou aumentar receitas antes de novos empréstimos.`, `Your indebtedness is at ${div.valor}. Consider renegotiating debt or increasing revenue before new loans.`, `Su nivel de endeudamiento está en ${div.valor}. Considere renegociar deudas o aumentar ingresos antes de nuevos préstamos.`),
     });
   }
 
@@ -670,8 +638,8 @@ export function gerarInsights(
     if (pctDoBE >= 90 && pctDoBE < 110) {
       insights.push({
         tipo: "atencao",
-        titulo: "Operando próximo ao ponto de equilíbrio",
-        texto: `Sua receita está cobrindo apenas ${pctDoBE.toFixed(0)}% do ponto de equilíbrio. Pequenas variações podem gerar prejuízo.`,
+        titulo: tr(lang, "Operando próximo ao ponto de equilíbrio", "Operating near break-even", "Operando cerca del punto de equilibrio"),
+        texto: tr(lang, `Sua receita está cobrindo apenas ${pctDoBE.toFixed(0)}% do ponto de equilíbrio. Pequenas variações podem gerar prejuízo.`, `Your revenue covers only ${pctDoBE.toFixed(0)}% of break-even. Small changes can cause a loss.`, `Sus ingresos cubren solo ${pctDoBE.toFixed(0)}% del punto de equilibrio. Pequeñas variaciones pueden generar pérdida.`),
       });
     }
   }

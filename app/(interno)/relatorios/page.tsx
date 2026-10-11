@@ -179,7 +179,11 @@ const T = {
   },
 };
 
-const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const MESES_LANG = {
+  pt: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+};
 
 const tooltipStyle = {
   background: "rgba(2,8,16,0.97)",
@@ -200,6 +204,8 @@ function formatBRL2(n: number): string {
 export default function Relatorios() {
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const MESES = MESES_LANG[lang] || MESES_LANG.pt;
+  const L3 = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const tt = T[lang];
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
@@ -253,12 +259,12 @@ export default function Relatorios() {
       const periodo = montarPeriodo(ano, mes);
       const dreNovo = await carregarDRE(empId, periodo);
       const [evNovo, distNovo, kpisNovos] = await Promise.all([
-        carregarEvolucao12Meses(empId, ano, mes),
+        carregarEvolucao12Meses(empId, ano, mes, lang),
         carregarDistribuicaoCustos(empId, periodo),
-        carregarKPIs(empId, periodo, dreNovo),
+        carregarKPIs(empId, periodo, dreNovo, lang),
       ]);
-      const score = calcularScoreCFO(kpisNovos);
-      const insightsNovos = gerarInsights(dreNovo, evNovo, kpisNovos, distNovo, score);
+      const score = calcularScoreCFO(kpisNovos, lang);
+      const insightsNovos = gerarInsights(dreNovo, evNovo, kpisNovos, distNovo, score, lang);
 
       setDre(dreNovo);
       setEvolucao(evNovo);
@@ -279,16 +285,16 @@ export default function Relatorios() {
     if (!dre) return;
     setExportando(true);
     try {
-      let titulo = "Relatório Gerencial";
+      let titulo = L3("Relatório Gerencial", "Management Report", "Informe Gerencial");
       let colunas: any[] = [];
       let linhas: any[] = [];
 
       if (aba === "dre" || aba === "executivo") {
-        titulo = `DRE Gerencial - ${MESES[mes - 1]}/${ano}`;
+        titulo = `${L3("DRE Gerencial", "Management Income Statement", "Estado de Resultados Gerencial")} - ${MESES[mes - 1]}/${ano}`;
         colunas = [
-          { header: "LINHA", key: "linha", width: 70, align: "left" },
+          { header: L3("LINHA", "LINE", "LÍNEA"), key: "linha", width: 70, align: "left" },
           { header: "VALOR", key: "valor", width: 35, align: "right" },
-          { header: "% RECEITA", key: "pct", width: 25, align: "right" },
+          { header: L3("% RECEITA", "% REVENUE", "% INGRESO"), key: "pct", width: 25, align: "right" },
         ];
         linhas = [
           { linha: tt.receitaBruta, valor: formatBRL2(dre.receita_bruta), pct: "100,0%" },
@@ -302,13 +308,13 @@ export default function Relatorios() {
           { linha: `= ${tt.lucroLiquido}`, valor: formatBRL2(dre.lucro_liquido), pct: `${dre.pct_lucro_liquido.toFixed(1)}%` },
         ];
       } else if (aba === "evolucao") {
-        titulo = "Evolução Financeira 12 Meses";
+        titulo = L3("Evolução Financeira 12 Meses", "12-Month Financial Evolution", "Evolución Financiera 12 Meses");
         colunas = [
-          { header: "MÊS", key: "mes", width: 30, align: "left" },
-          { header: "RECEITA", key: "rec", width: 35, align: "right" },
-          { header: "CUSTOS", key: "cus", width: 35, align: "right" },
-          { header: "LUCRO", key: "luc", width: 30, align: "right" },
-          { header: "MARGEM", key: "mar", width: 22, align: "right" },
+          { header: L3("MÊS", "MONTH", "MES"), key: "mes", width: 30, align: "left" },
+          { header: L3("RECEITA", "REVENUE", "INGRESO"), key: "rec", width: 35, align: "right" },
+          { header: L3("CUSTOS", "COSTS", "COSTOS"), key: "cus", width: 35, align: "right" },
+          { header: L3("LUCRO", "PROFIT", "UTILIDAD"), key: "luc", width: 30, align: "right" },
+          { header: L3("MARGEM", "MARGIN", "MARGEN"), key: "mar", width: 22, align: "right" },
         ];
         linhas = evolucao.map((e) => ({
           mes: `${e.mes}/${e.ano}`,
@@ -318,9 +324,9 @@ export default function Relatorios() {
           mar: `${e.margem}%`,
         }));
       } else if (aba === "distribuicao") {
-        titulo = `Distribuição de Custos - ${MESES[mes - 1]}/${ano}`;
+        titulo = `${L3("Distribuição de Custos", "Cost Distribution", "Distribución de Costos")} - ${MESES[mes - 1]}/${ano}`;
         colunas = [
-          { header: "CATEGORIA", key: "cat", width: 70, align: "left" },
+          { header: L3("CATEGORIA", "CATEGORY", "CATEGORÍA"), key: "cat", width: 70, align: "left" },
           { header: "VALOR", key: "val", width: 35, align: "right" },
           { header: "% TOTAL", key: "pct", width: 25, align: "right" },
         ];
@@ -332,16 +338,16 @@ export default function Relatorios() {
       } else if (aba === "kpis") {
         titulo = `KPIs CFO - ${MESES[mes - 1]}/${ano} - Score: ${scoreCFO.score}/100 (${scoreCFO.nivel})`;
         colunas = [
-          { header: "INDICADOR", key: "nome", width: 55, align: "left" },
+          { header: L3("INDICADOR", "INDICATOR", "INDICADOR"), key: "nome", width: 55, align: "left" },
           { header: "VALOR", key: "val", width: 30, align: "right" },
-          { header: "META", key: "meta", width: 25, align: "right" },
+          { header: L3("META", "TARGET", "META"), key: "meta", width: 25, align: "right" },
           { header: "STATUS", key: "st", width: 25, align: "left" },
         ];
         linhas = kpis.map((k) => ({
           nome: k.nome,
           val: k.valor,
           meta: k.meta,
-          st: k.atingido ? "OK" : "Abaixo",
+          st: k.atingido ? "OK" : L3("Abaixo", "Below", "Debajo"),
         }));
       }
 
@@ -354,7 +360,7 @@ export default function Relatorios() {
 
       await gerarPdfTabela({
         titulo,
-        subtitulo: new Date().toLocaleDateString("pt-BR"),
+        subtitulo: new Date().toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR"),
         colunas,
         linhas,
         resumo,
@@ -372,18 +378,18 @@ export default function Relatorios() {
   function montarTextoCompartilhamento(): string {
     if (!dre) return "Axioma AI.Tech";
     return [
-      `🦅 *AXIOMA AI.TECH — Relatório CFO*`,
+      `🦅 *AXIOMA AI.TECH — ${L3("Relatório CFO", "CFO Report", "Informe CFO")}*`,
       ``,
-      `📅 Período: *${MESES[mes - 1]}/${ano}*`,
+      `📅 ${L3("Período", "Period", "Período")}: *${MESES[mes - 1]}/${ano}*`,
       ``,
       `💰 ${tt.receitaBruta}: ${formatBRL2(dre.receita_bruta)}`,
-      `📉 Custos Totais: ${formatBRL2(dre.custos_variaveis + dre.custos_fixos)}`,
+      `📉 ${L3("Custos Totais", "Total Costs", "Costos Totales")}: ${formatBRL2(dre.custos_variaveis + dre.custos_fixos)}`,
       `✅ ${tt.lucroLiquido}: ${formatBRL2(dre.lucro_liquido)}`,
-      `📊 Margem Líquida: ${dre.pct_lucro_liquido.toFixed(1)}%`,
+      `📊 ${L3("Margem Líquida", "Net Margin", "Margen Neto")}: ${dre.pct_lucro_liquido.toFixed(1)}%`,
       ``,
       `🎯 *Score CFO:* ${scoreCFO.score}/100 (${scoreCFO.nivel})`,
       ``,
-      `_Gerado por axiomaai.com.br_`,
+      `_${L3("Gerado por", "Generated by", "Generado por")} axiomaai.com.br_`,
     ].join("\n");
   }
 
@@ -396,12 +402,12 @@ export default function Relatorios() {
     window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
   }
   function shareGmail() {
-    const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
+    const assunto = encodeURIComponent(`Axioma - ${L3("Relatório CFO", "CFO Report", "Informe CFO")} ${MESES[mes - 1]}/${ano}`);
     const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
     window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
   }
   function shareOutlook() {
-    const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
+    const assunto = encodeURIComponent(`Axioma - ${L3("Relatório CFO", "CFO Report", "Informe CFO")} ${MESES[mes - 1]}/${ano}`);
     const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
     window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
   }
@@ -412,7 +418,7 @@ export default function Relatorios() {
   function montarTextoDetalhado(): string {
     if (!dre) return "Axioma AI.Tech";
     return [
-      `AXIOMA AI.TECH — Relatório CFO (detalhado) — ${MESES[mes - 1]}/${ano}`,
+      `AXIOMA AI.TECH — ${L3("Relatório CFO (detalhado)", "CFO Report (detailed)", "Informe CFO (detallado)")} — ${MESES[mes - 1]}/${ano}`,
       `${tt.receitaBruta} | ${formatBRL2(dre.receita_bruta)} | 100,0%`,
       `(-) ${tt.deducoes} | ${formatBRL2(-dre.deducoes)} | ${dre.pct_deducoes.toFixed(1)}%`,
       `= ${tt.receitaLiquida} | ${formatBRL2(dre.receita_liquida)}`,
