@@ -120,25 +120,28 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
 
   // Buscar dados em paralelo
   const [
-    { data: receitas },
-    { data: custosVar },
-    { data: custosFix },
-    { data: contasRec },
-    { data: contasPag },
-    { data: dividas },
+    { data: receitas, error: e1 },
+    { data: custosVar, error: e2 },
+    { data: custosFix, error: e3 },
+    { data: contasRec, error: e4 },
+    { data: contasPag, error: e5 },
+    { data: dividas, error: e6 },
     { data: empresa },
   ] = await Promise.all([
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-    empresaId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
+    empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
+    empresaId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [], error: null }),
     // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
     // uma tabela órfã com schema diferente, nunca alimentada pela UI.
-    Promise.resolve(empresaId ? supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+    empresaId ? supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
     empresaId ? supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
+  // Leitura que falha lança erro: a tela avisa em vez de dar nota/plano com zero no lugar do dado.
+  const eLeitura = e1 || e2 || e3 || e4 || e5 || e6;
+  if (eLeitura) throw new Error(`[ia-financeira] leitura falhou: ${eLeitura.message}`);
   const receita_bruta = (receitas || []).reduce((s, r) => s + Number(r.valor || 0), 0);
   const custos_variaveis = (custosVar || []).reduce((s, r) => s + Number(r.valor || 0), 0);
   const custos_fixos = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);
@@ -167,8 +170,12 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
     const d = new Date(anoAtual, mesAtual - 1 - i, 1);
     const mInicio = d.toISOString().slice(0, 10);
     const mFim = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const { data: mRec } = empresaId ? await supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim) : { data: [] };
-    const { data: mCv } = empresaId ? await supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim) : { data: [] };
+    const [rRec, rCv] = empresaId ? await Promise.all([
+      lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
+      lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
+    ]) : [{ data: [], error: null }, { data: [], error: null }];
+    if (rRec.error || rCv.error) throw new Error(`[ia-financeira] evolução 6m: ${(rRec.error || rCv.error)!.message}`);
+    const mRec = rRec.data as { valor: number }[]; const mCv = rCv.data as { valor: number }[];
     receitas6m.push((mRec || []).reduce((s, r) => s + Number(r.valor || 0), 0));
     custos6m.push((mCv || []).reduce((s, r) => s + Number(r.valor || 0), 0) + custos_fixos);
   }
