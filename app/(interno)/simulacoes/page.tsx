@@ -1,6 +1,7 @@
 "use client";
 import { lerTodas } from "../../../lib/lerTodas";
 import { soVigentes } from "../../../lib/custoFixoVigente";
+import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 import { useState, useEffect } from "react";
 import {
   Sliders, Target, Dices, TrendingUp, AlertTriangle, Sparkles, Share2, 
@@ -99,7 +100,7 @@ export default function Simulacoes() {
   const [custosFixosRows, setCustosFixosRows] = useState<{ valor_mensal: number }[]>([]);
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
-  const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
+  const [caixaDisponivel, setCaixaDisponivel] = useState(0);
   const [regimeTributario, setRegimeTributario] = useState("");
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
@@ -137,23 +138,26 @@ export default function Simulacoes() {
 
     const inicioHist = inicioJanela12m(periodo.fim);
     const empresaId = await obterEmpresaAtiva();
-    const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
-      empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-      empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp }] = await Promise.all([
+      empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
+      empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — nunca escreve em dividas.
-      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
-      // Mesma definição de "caixa disponível" do Fluxo de Caixa/Investimentos.
-      empresaId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
+      // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Investimentos, Painel de Risco e IA.
+      empresaId ? saldoCaixaRealizado(supabase, empresaId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
       // Regime da empresa ABERTA (antes: a 1ª empresa do usuário — quem tem 2 empresas via o imposto da outra).
       empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
+    // Leitura falhou ≠ "empresa sem dados": avisa que a simulação pode partir de números incompletos.
+    const eBase = eRec?.message || eCf?.message || eCv?.message || eDv?.message || sc.erro;
+    if (eBase) showToast(lang === "en" ? "Some data (revenue, costs, debts or cash) did not load — the starting point may be incomplete. Reload the page." : lang === "es" ? "Parte de los datos (ingresos, costos, deudas o caja) no cargó — el punto de partida puede estar incompleto. Recargue la página." : "Parte dos dados (receitas, custos, dívidas ou caixa) não carregou — o ponto de partida pode estar incompleto. Recarregue a página.", "erro");
     setReceitasRows(rec || []);
     setCustosFixosRows(cf || []);
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
-    setFluxoCaixaRows(fc || []);
+    setCaixaDisponivel(sc.saldo);
     setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
@@ -172,8 +176,7 @@ export default function Simulacoes() {
   const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaPeriodo, receitaMensalMedia, undefined, undefined, categoriaMei);
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
-  const caixaDisponivel = fluxoCaixaRows.filter((l) => l.status === "realizado")
-    .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+  // caixaDisponivel: saldo único carregado em carregarTudo.
 
   const dreAtual = montarDRE({
     receitaBruta: receitaMensalMedia, deducoes: receitaMensalMedia * (aliquotaEfetivaPct / 100),

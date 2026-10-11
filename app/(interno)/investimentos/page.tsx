@@ -215,23 +215,25 @@ export default function Investimentos() {
     const inicioHist = inicioJanela24m(periodo.fim);
     const empresaIdAtiva = await obterEmpresaAtiva();
 
-    const [{ data: inv, error: eInv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
+    const [{ data: inv, error: eInv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc }, { data: emp }] = await Promise.all([
       empresaIdAtiva ? supabase.from("investimentos")
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
         .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
-      empresaIdAtiva ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — nunca escreve em dividas. Base do custo de oportunidade real.
-      empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
       // Todo o histórico realizado — mesma definição de "caixa disponível" do Fluxo de Caixa.
-      empresaIdAtiva ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaIdAtiva).order("id")) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaIdAtiva).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     // Leitura falhou ≠ "sem investimentos": avisa. Caixa = saldo único (Fluxo, Painel de Risco, IA).
     if (eInv) { showToast(L("Não foi possível carregar os investimentos agora. Recarregue a página.", "Could not load investments now. Reload the page.", "No se pudieron cargar las inversiones ahora. Recargue la página."), "erro"); }
-    if (empresaIdAtiva) { const sc = await saldoCaixaRealizado(supabase, empresaIdAtiva, hojeCaixa()); setSaldoCaixa(sc.erro ? null : sc.saldo); }
+    let eCaixa: string | undefined;
+    if (empresaIdAtiva) { const sc = await saldoCaixaRealizado(supabase, empresaIdAtiva, hojeCaixa()); eCaixa = sc.erro; setSaldoCaixa(sc.erro ? null : sc.saldo); }
+    if (eRec || eCf || eCv || eDv || eCaixa) { showToast(L("Parte dos dados (receitas, custos, dívidas ou caixa) não carregou — os indicadores podem estar incompletos. Recarregue a página.", "Some data (revenue, costs, debts or cash) did not load — indicators may be incomplete. Reload the page.", "Parte de los datos (ingresos, costos, deudas o caja) no cargó — los indicadores pueden estar incompletos. Recargue la página."), "erro"); }
     setInvestimentos(inv || []);
     setReceitasRows(rec || []);
     setCustosFixosRows(cf || []);

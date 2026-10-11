@@ -147,18 +147,21 @@ export default function Endividamento() {
     const inicioHist = inicioJanelaHistorica(periodo.fim);
     const empId = await obterEmpresaAtiva();
 
-    const [{ data: dv, error: eDv }, { data: rec }, { data: cf }, { data: cv }, { data: fc }, { data: emp }] = await Promise.all([
+    const [{ data: dv, error: eDv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: fc, error: eFc }, { data: emp }] = await Promise.all([
       empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [], error: null }),
-      empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
-      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     // Leitura falhou ≠ "sem dívidas": avisa em vez de mostrar "endividamento sob controle".
     if (eDv) { showToast(L("Não foi possível carregar as dívidas agora. Recarregue a página.", "Could not load debts now. Reload the page.", "No se pudieron cargar las deudas ahora. Recargue la página."), "erro"); reportarFalhaEscrita("dividas", "leitura", eDv.message); }
+    // Receitas/custos/caixa sem carregar = indicadores (EBITDA, solvência, caixa/dívida) errados: avisa.
+    const eBase = eRec || eCf || eCv || eFc;
+    if (eBase) { showToast(L("Parte dos dados de receitas, custos ou caixa não carregou — os indicadores podem estar incompletos. Recarregue a página.", "Some revenue, cost or cash data did not load — indicators may be incomplete. Reload the page.", "Parte de los datos de ingresos, costos o caja no cargó — los indicadores pueden estar incompletos. Recargue la página."), "erro"); reportarFalhaEscrita("dividas", "leitura", eBase.message); }
     setDividas(dv || []);
     setReceitasRows(rec || []);
     // Só custos fixos vigentes hoje (encerrado não pesa no EBITDA nem na solvência).

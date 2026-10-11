@@ -203,17 +203,20 @@ export default function Precificacao() {
 
     const empresaIdAtiva = await obterEmpresaAtiva();
 
-    const [{ data: prod }, { data: conc }, { data: dec }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: emp }] = await Promise.all([
-      empresaIdAtiva ? supabase.from("precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("concorrentes").select("*").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("decisoes_precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+    const [{ data: prod, error: eProd }, { data: conc, error: eConc }, { data: dec, error: eDec }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: emp }] = await Promise.all([
+      empresaIdAtiva ? supabase.from("precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? supabase.from("concorrentes").select("*").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? supabase.from("decisoes_precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: true }) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
+    // Leitura falhou ≠ "sem produtos/sem dados": avisa em vez de mostrar números incompletos calados.
+    const eLeitura = eProd || eConc || eDec || eRec || eCf || eCv || eDv;
+    if (eLeitura) { showToast(idioma === "en" ? "Some data did not load — products, competitors or indicators may be incomplete. Reload the page." : idioma === "es" ? "Parte de los datos no cargó — productos, competidores o indicadores pueden estar incompletos. Recargue la página." : "Parte dos dados não carregou — produtos, concorrentes ou indicadores podem estar incompletos. Recarregue a página.", "erro"); reportarFalhaEscrita("precificacao", "leitura", eLeitura.message); }
     setProdutos(prod || []); setConcorrentes(conc || []); setDecisoes(dec || []);
     setReceitasRows(rec || []); setCustosFixosRows(cf || []); setCustosVarRows(cv || []); setDividasRows(dv || []);
     setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
