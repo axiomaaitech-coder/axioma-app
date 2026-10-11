@@ -157,22 +157,25 @@ export default function ContasPagarPage() {
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     if (empId) setPapel(await obterMeuPapel(empId));
-    const [cp, { data: forn }, { data: cc }, { data: cf }, cfgAp] = await Promise.all([
-      empId ? listarContasPagar(empId) : Promise.resolve([]),
+    const [cp, { data: forn, error: eForn }, { data: cc, error: eCc }, { data: cf, error: eCf }, cfgAp] = await Promise.all([
+      empId ? listarContasPagar(empId) : Promise.resolve({ data: [] as ContaPagar[], erro: undefined as string | undefined }),
       empId
         ? supabase.from("fornecedores")
             .select("id, nome, nivel_dependencia, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id")
             .eq("empresa_id", empId).order("nome")
-        : Promise.resolve({ data: [] as Fornecedor[] }),
+        : Promise.resolve({ data: [] as Fornecedor[], error: null }),
       empId
         ? supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).order("nome")
-        : Promise.resolve({ data: [] as CentroCusto[] }),
+        : Promise.resolve({ data: [] as CentroCusto[], error: null }),
       empId
         ? soVigentes(supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empId)).order("dia_vencimento")
-        : Promise.resolve({ data: [] as CustoFixo[] }),
+        : Promise.resolve({ data: [] as CustoFixo[], error: null }),
       empId ? obterConfigAp(empId) : Promise.resolve(null),
     ]);
-    setContas(cp);
+    // Leitura falhou ≠ "nenhuma conta": avisa em vez de mostrar KPIs e lista incompletos calados.
+    const eLeitura = cp.erro || eForn?.message || eCc?.message || eCf?.message;
+    if (eLeitura) showToast(L("Parte dos dados não carregou — contas, fornecedores ou custos fixos podem estar incompletos. Recarregue a página.", "Some data did not load — bills, suppliers or fixed costs may be incomplete. Reload the page.", "Parte de los datos no cargó — cuentas, proveedores o costos fijos pueden estar incompletos. Recargue la página."), "erro");
+    setContas(cp.data);
     setFornecedores(forn || []);
     setCentrosCusto(cc || []);
     setCustosFixos(cf || []);

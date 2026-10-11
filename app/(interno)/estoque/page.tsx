@@ -30,7 +30,7 @@ import {
   carregarAvisosEstoque, carregarAvisosValidade, carregarKpisEstoque,
   carregarComposicaoPorCategoria, carregarComposicaoPorFornecedor, carregarEvolucaoEstoque,
   listarFornecedoresParaDropdown, listarCentrosCustoParaDropdown,
-  uploadImagemProduto, urlImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa,
+  uploadImagemProduto, urlImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa, listarTodosProdutos, consumirFalhaLeituraEstoque,
   adicionarCampoPersonalizado, removerCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS, carregarContagemPorSegmento,
   carregarGiroEstoque, carregarCurvaABC, carregarCapitalImobilizado,
   carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
@@ -372,6 +372,11 @@ export default function EstoquePage() {
 
   useEffect(() => { inicializar(); }, []);
 
+  // Leitura falhou ≠ "estoque vazio": avisa uma vez por carregamento.
+  function avisarSeLeituraFalhou() {
+    if (consumirFalhaLeituraEstoque()) mostrarToast(lang === "en" ? "Some inventory data did not load — lists and indicators may be incomplete. Reload the page." : lang === "es" ? "Parte de los datos del inventario no cargó — listas e indicadores pueden estar incompletos. Recargue la página." : "Parte dos dados do estoque não carregou — listas e indicadores podem estar incompletos. Recarregue a página.", "erro");
+  }
+
   async function inicializar() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
@@ -387,6 +392,7 @@ export default function EstoquePage() {
       setCamposPersonalizados(config.camposPersonalizados);
       const segmentoSalvo = typeof window !== "undefined" ? window.localStorage.getItem(`axioma_estoque_segmento_${empId}`) : null;
       if (segmentoSalvo) setFiltroSegmento(segmentoSalvo);
+      avisarSeLeituraFalhou();
     }
     setCarregando(false);
   }
@@ -407,12 +413,14 @@ export default function EstoquePage() {
     setProdutos(dados); setTotalProdutos(total);
     const contagem = await carregarContagemPorSegmento(empresaId);
     setContagemSegmentos(contagem);
+    avisarSeLeituraFalhou();
   }, [empresaId, paginaProdutos, buscaProdutos, filtroStatusProdutos, filtroSegmento, empresaSegmentoPadrao]);
 
   const carregarMovimentacoes = useCallback(async () => {
     if (!empresaId) return;
     const { dados, total } = await listarMovimentacoes(empresaId, { pagina: paginaMovimentacoes, tipo: filtroTipoMov === "todos" ? undefined : filtroTipoMov });
     setMovimentacoes(dados); setTotalMovimentacoes(total);
+    avisarSeLeituraFalhou();
   }, [empresaId, paginaMovimentacoes, filtroTipoMov]);
 
   const carregarPainel = useCallback(async () => {
@@ -424,12 +432,14 @@ export default function EstoquePage() {
     ]);
     setKpis(k); setComposicaoCategoria(cat); setComposicaoFornecedor(forn); setEvolucao(evo);
     setAvisosValidadeResumo(val);
+    avisarSeLeituraFalhou();
   }, [empresaId]);
 
   const carregarAvisos = useCallback(async () => {
     if (!empresaId) return;
     const [ae, av] = await Promise.all([carregarAvisosEstoque(empresaId), carregarAvisosValidade(empresaId)]);
     setAvisosEstoque(ae); setAvisosValidade(av);
+    avisarSeLeituraFalhou();
   }, [empresaId]);
 
   const carregarInteligencia = useCallback(async () => {
@@ -443,6 +453,7 @@ export default function EstoquePage() {
     setRentabilidadeCategoria(rentCat); setRentabilidadeFornecedor(rentForn); setRentabilidadeMarca(rentMarca);
     setComparativoFornecedores(comparativo);
     setAlertasReposicao(calcularAlertasReposicao(giro));
+    avisarSeLeituraFalhou();
   }, [empresaId]);
 
   useEffect(() => { if (aba === "produtos") carregarProdutos(); }, [aba, carregarProdutos]);
@@ -735,7 +746,7 @@ export default function EstoquePage() {
     try {
       const alvo = produtosSelecionados.size > 0
         ? produtos.filter((p) => produtosSelecionados.has(p.id))
-        : (await listarProdutos(empresaId, { busca: buscaProdutos, status: filtroStatusProdutos, limite: 5000 })).dados;
+        : await listarTodosProdutos(empresaId, { busca: buscaProdutos, status: filtroStatusProdutos });
       if (formato === "excel") exportarProdutosExcel(alvo); else exportarProdutosCsv(alvo);
     } finally {
       setExportando(false);
@@ -1162,7 +1173,7 @@ export default function EstoquePage() {
                     if (!empresaId) return;
                     setEmpresaSegmentoPadrao(v || null);
                     const { erro } = await definirSegmentoPadraoEmpresa(empresaId, v);
-                    if (erro) mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? et.toastSemPermissaoEscrita : erro, "erro");
+                    if (erro) mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? (lang === "en" ? "Not saved — only the company owner can change the default segment and custom fields." : lang === "es" ? "No se guardó — solo el propietario de la empresa puede cambiar el segmento estándar y los campos personalizados." : "Não salvou — só o proprietário da empresa pode mudar o segmento padrão e os campos personalizados.") : erro, "erro");
                   }}
                   opcoes={SEGMENTOS.map((s) => ({ value: s.value, label: s.label[idioma] }))} />
               </div>
@@ -1760,7 +1771,7 @@ export default function EstoquePage() {
                 const chave = novoCampoNome.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
                 const novo = { chave, nome: novoCampoNome.trim(), tipo: novoCampoTipo };
                 const { erro } = await adicionarCampoPersonalizado(empresaId, camposPersonalizados, novo);
-                if (erro) { mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? et.toastSemPermissaoEscrita : erro, "erro"); return; }
+                if (erro) { mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? (lang === "en" ? "Not saved — only the company owner can change the default segment and custom fields." : lang === "es" ? "No se guardó — solo el propietario de la empresa puede cambiar el segmento estándar y los campos personalizados." : "Não salvou — só o proprietário da empresa pode mudar o segmento padrão e os campos personalizados.") : erro, "erro"); return; }
                 setCamposPersonalizados((c) => [...c, novo]);
                 setNovoCampoNome(""); setNovoCampoTipo("text"); setMostrarNovoCampo(false);
               }} className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: ct(JADE), color: "#fff" }}>{et.salvarCampo}</button>

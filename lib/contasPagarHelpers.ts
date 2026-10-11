@@ -93,15 +93,18 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // CRUD — CONTAS A PAGAR
 // ============================================================================
 
-export async function listarContasPagar(empresaId: string, filtros: FiltrosContasPagar = {}): Promise<ContaPagar[]> {
-  let q = supabase.from("contas_pagar").select("*").eq("empresa_id", empresaId).order("data_vencimento", { ascending: true, nullsFirst: false });
-  if (filtros.status) q = q.eq("status", filtros.status);
-  if (filtros.fornecedor_id) q = q.eq("fornecedor_id", filtros.fornecedor_id);
-  if (filtros.categoria) q = q.eq("categoria", filtros.categoria);
-  if (filtros.vencimento_de) q = q.gte("data_vencimento", filtros.vencimento_de);
-  if (filtros.vencimento_ate) q = q.lte("data_vencimento", filtros.vencimento_ate);
-  const { data } = await q;
-  return (data as ContaPagar[]) || [];
+// Lê em lotes (sem o corte de 1000 linhas) e devolve o erro: leitura falha ≠ "nenhuma conta".
+export async function listarContasPagar(empresaId: string, filtros: FiltrosContasPagar = {}): Promise<{ data: ContaPagar[]; erro?: string }> {
+  const { data, error } = await lerTodas<ContaPagar>(() => {
+    let q = supabase.from("contas_pagar").select("*").eq("empresa_id", empresaId).order("data_vencimento", { ascending: true, nullsFirst: false }).order("id");
+    if (filtros.status) q = q.eq("status", filtros.status);
+    if (filtros.fornecedor_id) q = q.eq("fornecedor_id", filtros.fornecedor_id);
+    if (filtros.categoria) q = q.eq("categoria", filtros.categoria);
+    if (filtros.vencimento_de) q = q.gte("data_vencimento", filtros.vencimento_de);
+    if (filtros.vencimento_ate) q = q.lte("data_vencimento", filtros.vencimento_ate);
+    return q;
+  });
+  return { data, erro: error?.message };
 }
 
 // PORTA ÚNICA de criação de conta a pagar (tela Contas a Pagar, Fornecedores,

@@ -8,11 +8,24 @@ import * as XLSX from "xlsx";
 import { exportarPlanilha } from "./exportarPlanilha";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// Leitura que falha NUNCA vira "lista vazia" calada: marca a falha (Sentry) e a tela
+// pergunta consumirFalhaLeituraEstoque() depois de carregar para avisar a pessoa.
+let falhaLeituraEstoque = false;
+function marcarFalhaLeitura(contexto: string, error: { message: string } | null) {
+  if (!error) return;
+  falhaLeituraEstoque = true;
+  Sentry.captureException(new Error(`[estoque] leitura falhou (${contexto}): ${error.message}`));
+}
+export function consumirFalhaLeituraEstoque(): boolean {
+  const f = falhaLeituraEstoque; falhaLeituraEstoque = false; return f;
+}
 
 // RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres — a
 // mesma causa raiz do bug real do atualizarEmpresa ("salvava sem salvar").
@@ -188,6 +201,17 @@ export type EvolucaoMes = { periodo: string; entradas_qtd: number; saidas_qtd: n
 
 export const PAGE_SIZE = 30;
 
+// Exportação: todas as páginas (o banco entrega no máximo 1000 por vez; o antigo limite 5000 cortava calado).
+export async function listarTodosProdutos(empresaId: string, opts: { busca?: string; status?: "ativo" | "inativo" | "todos" } = {}): Promise<Produto[]> {
+  const todos: Produto[] = [];
+  for (let pagina = 0; pagina < 100; pagina++) {
+    const { dados } = await listarProdutos(empresaId, { ...opts, pagina, limite: 1000 });
+    todos.push(...dados);
+    if (dados.length < 1000) break;
+  }
+  return todos;
+}
+
 export async function listarProdutos(empresaId: string, opts: { pagina?: number; busca?: string; status?: "ativo" | "inativo" | "todos"; limite?: number; segmento?: string; segmentoPadraoEmpresa?: string | null } = {}): Promise<{ dados: Produto[]; total: number }> {
   const tamanhoPagina = opts.limite ?? PAGE_SIZE;
   const pagina = opts.pagina ?? 0;
@@ -215,7 +239,7 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
     query = query.or(camposDiretos + clausulaFornecedor);
   }
   const { data, count, error } = await query.order("nome", { ascending: true }).range(de, ate);
-  if (error) return { dados: [], total: 0 };
+  if (error) { marcarFalhaLeitura("produtos", error); return { dados: [], total: 0 }; }
   return { dados: data || [], total: count || 0 };
 }
 
@@ -310,7 +334,7 @@ export async function listarMovimentacoes(empresaId: string, opts: { pagina?: nu
   if (opts.produtoId) query = query.eq("produto_id", opts.produtoId);
   if (opts.tipo) query = query.eq("tipo", opts.tipo);
   const { data, count, error } = await query.order("data_hora", { ascending: false }).range(de, ate);
-  if (error) return { dados: [], total: 0 };
+  if (error) { marcarFalhaLeitura("movimentacoes", error); return { dados: [], total: 0 }; }
   const dados = (data || []).map((d: any) => ({ ...d, produto_nome: d.produtos?.nome || "—", produto_codigo: d.produtos?.codigo_interno || null }));
   return { dados, total: count || 0 };
 }
@@ -464,19 +488,22 @@ async function obterOuCriarLote(empresaId: string, produtoId: string, lote: { nu
 // ============================================================================
 
 export async function carregarAvisosEstoque(empresaId: string): Promise<AvisoEstoque[]> {
-  const { data } = await supabase.from("vw_estoque_avisos").select("*").eq("empresa_id", empresaId)
-    .or("ruptura.eq.true,baixo_estoque.eq.true,capital_parado.eq.true,custo_subindo.eq.true");
+  const { data, error } = await lerTodas<AvisoEstoque>(() => supabase.from("vw_estoque_avisos").select("*").eq("empresa_id", empresaId)
+    .or("ruptura.eq.true,baixo_estoque.eq.true,capital_parado.eq.true,custo_subindo.eq.true").order("produto_id"));
+  marcarFalhaLeitura("avisos", error);
   return data || [];
 }
 
 export async function carregarAvisosValidade(empresaId: string): Promise<AvisoValidade[]> {
-  const { data } = await supabase.from("vw_estoque_avisos_validade").select("*").eq("empresa_id", empresaId)
-    .neq("severidade", "ok").order("dias_para_vencer", { ascending: true });
+  const { data, error } = await lerTodas<AvisoValidade>(() => supabase.from("vw_estoque_avisos_validade").select("*").eq("empresa_id", empresaId)
+    .neq("severidade", "ok").order("dias_para_vencer", { ascending: true }).order("lote_id"));
+  marcarFalhaLeitura("avisos_validade", error);
   return data || [];
 }
 
 export async function carregarKpisEstoque(empresaId: string): Promise<KpisEstoque> {
-  const { data } = await supabase.from("vw_estoque_kpis").select("*").eq("empresa_id", empresaId).maybeSingle();
+  const { data, error } = await supabase.from("vw_estoque_kpis").select("*").eq("empresa_id", empresaId).maybeSingle();
+  marcarFalhaLeitura("kpis", error);
   return data || {
     valor_total_estoque: 0, produtos_ativos: 0, produtos_inativos: 0,
     qtd_ruptura: 0, qtd_baixo_estoque: 0, qtd_capital_parado: 0, qtd_custo_subindo: 0,
@@ -484,12 +511,14 @@ export async function carregarKpisEstoque(empresaId: string): Promise<KpisEstoqu
 }
 
 export async function carregarComposicaoPorCategoria(empresaId: string): Promise<ComposicaoItem[]> {
-  const { data } = await supabase.from("vw_estoque_por_categoria").select("categoria, valor_total, quantidade_total").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_por_categoria").select("categoria, valor_total, quantidade_total").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("por_categoria", error);
   return (data || []).map((d: any) => ({ chave: d.categoria, valor_total: Number(d.valor_total || 0), quantidade_total: Number(d.quantidade_total || 0) }));
 }
 
 export async function carregarComposicaoPorFornecedor(empresaId: string): Promise<ComposicaoItem[]> {
-  const { data } = await supabase.from("vw_estoque_por_fornecedor").select("fornecedor_nome, valor_total, quantidade_total").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_por_fornecedor").select("fornecedor_nome, valor_total, quantidade_total").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("por_fornecedor", error);
   return (data || []).map((d: any) => ({ chave: d.fornecedor_nome || "—", valor_total: Number(d.valor_total || 0), quantidade_total: Number(d.quantidade_total || 0) }));
 }
 
@@ -497,7 +526,8 @@ export async function carregarEvolucaoEstoque(empresaId: string, meses: number =
   const desde = new Date();
   desde.setMonth(desde.getMonth() - (meses - 1));
   const desdeIso = new Date(desde.getFullYear(), desde.getMonth(), 1).toISOString();
-  const { data } = await supabase.from("vw_estoque_evolucao").select("*").eq("empresa_id", empresaId).gte("periodo", desdeIso).order("periodo", { ascending: true });
+  const { data, error } = await supabase.from("vw_estoque_evolucao").select("*").eq("empresa_id", empresaId).gte("periodo", desdeIso).order("periodo", { ascending: true });
+  marcarFalhaLeitura("evolucao", error);
   return (data || []).map((d: any) => ({
     periodo: d.periodo, entradas_qtd: Number(d.entradas_qtd || 0), saidas_qtd: Number(d.saidas_qtd || 0),
     entradas_valor: Number(d.entradas_valor || 0), saidas_valor: Number(d.saidas_valor || 0),
@@ -509,12 +539,14 @@ export async function carregarEvolucaoEstoque(empresaId: string, meses: number =
 // ============================================================================
 
 export async function listarFornecedoresParaDropdown(empresaId: string): Promise<{ id: string; nome: string }[]> {
-  const { data } = await supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true });
+  const { data, error } = await lerTodas<{ id: string; nome: string }>(() => supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }).order("id"));
+  marcarFalhaLeitura("fornecedores", error);
   return data || [];
 }
 
 export async function listarCentrosCustoParaDropdown(empresaId: string): Promise<{ id: string; nome: string }[]> {
-  const { data } = await supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true });
+  const { data, error } = await lerTodas<{ id: string; nome: string }>(() => supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }).order("id"));
+  marcarFalhaLeitura("centros_custo", error);
   return data || [];
 }
 
@@ -526,7 +558,8 @@ export type CampoPersonalizadoEmpresa = { chave: string; nome: string; tipo: "te
 export const MAX_CAMPOS_PERSONALIZADOS = 3;
 
 export async function carregarConfigEstoqueEmpresa(empresaId: string): Promise<{ segmentoPadrao: string | null; camposPersonalizados: CampoPersonalizadoEmpresa[] }> {
-  const { data } = await supabase.from("empresas").select("segmento_padrao, campos_personalizados_estoque").eq("id", empresaId).maybeSingle();
+  const { data, error } = await supabase.from("empresas").select("segmento_padrao, campos_personalizados_estoque").eq("id", empresaId).maybeSingle();
+  marcarFalhaLeitura("config", error);
   return { segmentoPadrao: data?.segmento_padrao || null, camposPersonalizados: data?.campos_personalizados_estoque || [] };
 }
 
@@ -569,7 +602,8 @@ export async function removerCampoPersonalizado(empresaId: string, chave: string
 export type ContagemSegmento = { segmento: string; qtd_ativo: number; qtd_inativo: number; qtd_total: number };
 
 export async function carregarContagemPorSegmento(empresaId: string): Promise<ContagemSegmento[]> {
-  const { data } = await supabase.from("vw_estoque_por_segmento").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_por_segmento").select("*").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("por_segmento", error);
   return (data || []).map((d: any) => ({ segmento: d.segmento, qtd_ativo: Number(d.qtd_ativo || 0), qtd_inativo: Number(d.qtd_inativo || 0), qtd_total: Number(d.qtd_total || 0) }));
 }
 
@@ -594,14 +628,16 @@ export type ItemGiro = {
 };
 
 export async function carregarGiroEstoque(empresaId: string): Promise<ItemGiro[]> {
-  const { data } = await supabase.from("vw_estoque_giro").select("*").eq("empresa_id", empresaId).order("giro_90d", { ascending: false, nullsFirst: false });
+  const { data, error } = await lerTodas<ItemGiro>(() => supabase.from("vw_estoque_giro").select("*").eq("empresa_id", empresaId).order("giro_90d", { ascending: false, nullsFirst: false }).order("produto_id"));
+  marcarFalhaLeitura("giro", error);
   return data || [];
 }
 
 export type ItemCurvaABC = { produto_id: string; nome: string; categoria: string | null; valor_saida_90d: number; pct_acumulado: number; classe_abc: "A" | "B" | "C" | "sem_giro" };
 
 export async function carregarCurvaABC(empresaId: string): Promise<ItemCurvaABC[]> {
-  const { data } = await supabase.from("vw_estoque_curva_abc").select("*").eq("empresa_id", empresaId).order("valor_saida_90d", { ascending: false });
+  const { data, error } = await lerTodas<ItemCurvaABC>(() => supabase.from("vw_estoque_curva_abc").select("*").eq("empresa_id", empresaId).order("valor_saida_90d", { ascending: false }).order("produto_id"));
+  marcarFalhaLeitura("curva_abc", error);
   return data || [];
 }
 
@@ -611,31 +647,36 @@ export type ItemCapitalImobilizado = {
 };
 
 export async function carregarCapitalImobilizado(empresaId: string): Promise<ItemCapitalImobilizado[]> {
-  const { data } = await supabase.from("vw_estoque_capital_imobilizado").select("*").eq("empresa_id", empresaId).order("capital_imobilizado", { ascending: false });
+  const { data, error } = await lerTodas<ItemCapitalImobilizado>(() => supabase.from("vw_estoque_capital_imobilizado").select("*").eq("empresa_id", empresaId).order("capital_imobilizado", { ascending: false }).order("produto_id"));
+  marcarFalhaLeitura("capital_imobilizado", error);
   return data || [];
 }
 
 export type ItemRentabilidade = { chave: string; margem_media: number | null; markup_medio: number | null; capital_no_grupo: number };
 
 export async function carregarRentabilidadePorCategoria(empresaId: string): Promise<ItemRentabilidade[]> {
-  const { data } = await supabase.from("vw_estoque_rentabilidade_categoria").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_rentabilidade_categoria").select("*").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("rent_categoria", error);
   return (data || []).map((d: any) => ({ chave: d.categoria, margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
 }
 
 export async function carregarRentabilidadePorFornecedor(empresaId: string): Promise<ItemRentabilidade[]> {
-  const { data } = await supabase.from("vw_estoque_rentabilidade_fornecedor").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_rentabilidade_fornecedor").select("*").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("rent_fornecedor", error);
   return (data || []).map((d: any) => ({ chave: d.fornecedor_nome || "—", margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
 }
 
 export async function carregarRentabilidadePorMarca(empresaId: string): Promise<ItemRentabilidade[]> {
-  const { data } = await supabase.from("vw_estoque_rentabilidade_marca").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await supabase.from("vw_estoque_rentabilidade_marca").select("*").eq("empresa_id", empresaId);
+  marcarFalhaLeitura("rent_marca", error);
   return (data || []).map((d: any) => ({ chave: d.marca, margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
 }
 
 export type FornecedorComparativo = { fornecedor_id: string; fornecedor_nome: string; preco_medio_compra: number | null; frequencia_entregas: number; ultima_entrada: string | null };
 
 export async function carregarComparativoFornecedores(empresaId: string): Promise<FornecedorComparativo[]> {
-  const { data } = await supabase.from("vw_estoque_fornecedores_comparativo").select("*").eq("empresa_id", empresaId).order("frequencia_entregas", { ascending: false });
+  const { data, error } = await lerTodas<FornecedorComparativo>(() => supabase.from("vw_estoque_fornecedores_comparativo").select("*").eq("empresa_id", empresaId).order("frequencia_entregas", { ascending: false }).order("fornecedor_id"));
+  marcarFalhaLeitura("fornecedores_comparativo", error);
   return data || [];
 }
 
