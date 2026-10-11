@@ -3,6 +3,7 @@ import { Download, Plus } from "lucide-react";
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface ModuloLayoutProps {
   titulo: string;
@@ -34,6 +35,8 @@ export default function ModuloLayout({
   // temas (padronização 2026-09-27): no Claro vem o degradê do módulo
   // (headerFundo); no Escuro, o mesmo azul-marinho profundo. Sempre com o
   // efeito do card creme — borda/glow verde-menta + faixa verde no topo no hover.
+  const { idioma } = useLanguage();
+  const L = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
   const fundoCabecalho = headerFundo ?? "linear-gradient(180deg, #0a1628 0%, #0f2346 100%)";
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ background: "var(--axi-bg)" }}>
@@ -60,7 +63,7 @@ export default function ModuloLayout({
               style={{ background: corExportar || "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}
             >
               <Download size={16} />
-              {exportando ? "Gerando..." : "Exportar PDF"}
+              {exportando ? L("Gerando...", "Generating...", "Generando...") : L("Exportar PDF", "Export PDF", "Exportar PDF")}
             </motion.button>
           )}
           {onNovo && (

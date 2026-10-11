@@ -5,8 +5,15 @@
 import { execSync } from 'node:child_process'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 
+// Commits que mexeram em telas sem mudar nada que o manual descreve (ex.: troca de import em massa).
+// Commit novo assim: pôr [sem-manual] na mensagem em vez de crescer esta lista.
+const SEM_EFEITO_NO_MANUAL = ['a03d8a6', 'f24fc61']
 const ultimoCommit = (caminho) => {
-  try { return Number(execSync(`git log -1 --format=%ct -- "${caminho}"`, { encoding: 'utf8' }).trim()) || 0 } catch { return 0 }
+  try {
+    const linhas = execSync(`git log -20 --format="%h %ct %s" -- "${caminho}"`, { encoding: 'utf8' }).trim().split(/\r?\n/)
+    const util = linhas.find((l) => l && !SEM_EFEITO_NO_MANUAL.some((h) => l.startsWith(h)) && !l.includes('[sem-manual]'))
+    return Number(util?.split(' ')[1]) || 0
+  } catch { return 0 }
 }
 
 // Rota → arquivo da tela, a partir do mapa ROTAS do índice dos manuais (fonte única).

@@ -570,8 +570,8 @@ export default function Relatorios() {
                 {[
                   { label: tt.receitaBruta, valor: formatBRL(dre.receita_bruta), cor: ct("#34d399") },
                   { label: tt.lucroLiquido, valor: formatBRL(dre.lucro_liquido), cor: dre.lucro_liquido >= 0 ? ct("#2ecc9b") : ct("#f87171") },
-                  { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#2ecc9b") },
-                  { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#2ecc9b") },
+                  { label: L3("Margem Líquida", "Net Margin", "Margen Neto"), valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#2ecc9b") },
+                  { label: L3("Custos Totais", "Total Costs", "Costos Totales"), valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#2ecc9b") },
                 ].map((c, i) => (
                   <div key={i} className={`rounded-xl p-3${" axi-card-premium3d axi-card-faixa"}`}
                     style={{
@@ -616,7 +616,7 @@ export default function Relatorios() {
           {/* GRÁFICO MINI EVOLUÇÃO 6M */}
           {evolucao.length > 0 && (
             <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>📈 Tendência Últimos 6 Meses</p>
+              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>📈 {L3("Tendência Últimos 6 Meses", "Last 6 Months Trend", "Tendencia Últimos 6 Meses")}</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={evolucao.slice(-6)}>
                   <defs>
@@ -687,11 +687,15 @@ export default function Relatorios() {
             <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>💡 Análise</p>
             <p className="text-xs" style={{ color: ct("#c8d8f0") }}>
               {dre.lucro_liquido >= 0
-                ? `Você fechou o mês com lucro líquido de ${formatBRL(dre.lucro_liquido)} (${dre.pct_lucro_liquido.toFixed(1)}% sobre receita).`
-                : `Atenção: prejuízo líquido de ${formatBRL(Math.abs(dre.lucro_liquido))} no período. Revise custos e precificação.`}
+                ? L3(`Você fechou o mês com lucro líquido de ${formatBRL(dre.lucro_liquido)} (${dre.pct_lucro_liquido.toFixed(1)}% sobre receita).`,
+                     `You closed the month with a net profit of ${formatBRL(dre.lucro_liquido)} (${dre.pct_lucro_liquido.toFixed(1)}% of revenue).`,
+                     `Cerraste el mes con una utilidad neta de ${formatBRL(dre.lucro_liquido)} (${dre.pct_lucro_liquido.toFixed(1)}% sobre ingresos).`)
+                : L3(`Atenção: prejuízo líquido de ${formatBRL(Math.abs(dre.lucro_liquido))} no período. Revise custos e precificação.`,
+                     `Warning: net loss of ${formatBRL(Math.abs(dre.lucro_liquido))} in the period. Review costs and pricing.`,
+                     `Atención: pérdida neta de ${formatBRL(Math.abs(dre.lucro_liquido))} en el período. Revisa costos y precios.`)}
               {" "}
-              Sua margem de contribuição foi de {dre.pct_margem_contribuicao.toFixed(1)}%
-              {dre.pct_margem_contribuicao >= 40 ? " (saudável, acima de 40%)." : " (atenção: o ideal é acima de 40%)."}
+              {L3("Sua margem de contribuição foi de", "Your contribution margin was", "Tu margen de contribución fue de")} {dre.pct_margem_contribuicao.toFixed(1)}%
+              {dre.pct_margem_contribuicao >= 40 ? L3(" (saudável, acima de 40%).", " (healthy, above 40%).", " (saludable, por encima del 40%).") : L3(" (atenção: o ideal é acima de 40%).", " (warning: ideally above 40%).", " (atención: lo ideal es por encima del 40%).")}
             </p>
           </div>
         </CanvasBox>
@@ -702,7 +706,7 @@ export default function Relatorios() {
         <div className="space-y-4">
           <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
             <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.abaEvolucao}</p>
-            <h3 className="font-bold mb-4" style={{ color: ct("#c8d8f0") }}>Receita × Custos × Lucro</h3>
+            <h3 className="font-bold mb-4" style={{ color: ct("#c8d8f0") }}>{L3("Receita × Custos × Lucro", "Revenue × Costs × Profit", "Ingresos × Costos × Utilidad")}</h3>
             <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={evolucao}>
                 <defs>
@@ -815,7 +819,7 @@ export default function Relatorios() {
                 </div>
               </div>
               <div className="text-xs text-right" style={{ color: ct("#5a7a9a") }}>
-                <p>Atingidos: <strong style={{ color: ct("#34d399") }}>{kpis.filter((k) => k.atingido).length}</strong> de {kpis.length}</p>
+                <p>{L3("Atingidos", "Achieved", "Alcanzados")}: <strong style={{ color: ct("#34d399") }}>{kpis.filter((k) => k.atingido).length}</strong> {L3("de", "of", "de")} {kpis.length}</p>
               </div>
             </div>
           </CanvasBox>
