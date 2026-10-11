@@ -1,5 +1,7 @@
 "use client";
 import { lerTodas } from "../../../lib/lerTodas";
+import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
+import { hojeISO as hojeCaixa } from "../../../lib/datas";
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -156,6 +158,7 @@ export default function Investimentos() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [dividasRows, setDividasRows] = useState<{ descricao: string; valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
+  const [saldoCaixa, setSaldoCaixa] = useState<number | null>(null);
   const [regimeTributario, setRegimeTributario] = useState("");
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
   const [macro, setMacro] = useState<IndicadoresMacro | null>(null);
@@ -212,10 +215,10 @@ export default function Investimentos() {
     const inicioHist = inicioJanela24m(periodo.fim);
     const empresaIdAtiva = await obterEmpresaAtiva();
 
-    const [{ data: inv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
+    const [{ data: inv, error: eInv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
       empresaIdAtiva ? supabase.from("investimentos")
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
-        .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+        .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
@@ -226,6 +229,9 @@ export default function Investimentos() {
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
+    // Leitura falhou ≠ "sem investimentos": avisa. Caixa = saldo único (Fluxo, Painel de Risco, IA).
+    if (eInv) { showToast(L("Não foi possível carregar os investimentos agora. Recarregue a página.", "Could not load investments now. Reload the page.", "No se pudieron cargar las inversiones ahora. Recargue la página."), "erro"); }
+    if (empresaIdAtiva) { const sc = await saldoCaixaRealizado(supabase, empresaIdAtiva, hojeCaixa()); setSaldoCaixa(sc.erro ? null : sc.saldo); }
     setInvestimentos(inv || []);
     setReceitasRows(rec || []);
     setCustosFixosRows(cf || []);
@@ -311,7 +317,7 @@ export default function Investimentos() {
   const temDados = ativos.length > 0;
   const capitalInvestido = ativos.reduce((s, i) => s + i.valor, 0);
 
-  const caixaDisponivel = fluxoCaixaRows.filter((l) => l.status === "realizado")
+  const caixaDisponivel = saldoCaixa ?? fluxoCaixaRows.filter((l) => l.status === "realizado")
     .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
   const patrimonioTotal = caixaDisponivel + capitalInvestido;
 
