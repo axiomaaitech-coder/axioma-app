@@ -2,7 +2,7 @@
 // Metadados na tabela documentos_fiscais; arquivo real via
 // lib/documentoStorageAdapter.ts (bucket privado + signed URL).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { comprimirImagem } from "./imagemHelpers";
 import { uploadArquivoStorage, gerarUrlAssinada, removerArquivoStorage } from "./documentoStorageAdapter";
