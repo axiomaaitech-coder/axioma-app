@@ -956,7 +956,7 @@ export async function listarPedidosEquipe(empresaId: string): Promise<PedidoEqui
   const { data, error } = await supabase.from("equipe_pedidos")
     .select("id, alvo_user_id, pedido_por, motivo, nivel_aval, situacao, criado_em, expira_em")
     .eq("empresa_id", empresaId).eq("situacao", "aberto").order("criado_em", { ascending: false }).limit(50);
-  if (error) { console.error("[equipe] pedidos", error.code, error.message); return []; }
+  if (error) { reportarFalhaLeitura("equipe.pedidos", error); return []; }
   return (data as PedidoEquipe[]) || [];
 }
 
