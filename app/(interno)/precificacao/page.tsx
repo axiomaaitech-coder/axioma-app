@@ -1,4 +1,5 @@
 "use client";
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
@@ -206,7 +207,7 @@ export default function Precificacao() {
       empresaIdAtiva ? supabase.from("concorrentes").select("*").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("decisoes_precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),

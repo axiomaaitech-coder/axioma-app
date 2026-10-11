@@ -1,4 +1,5 @@
 "use client";
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useTurnstile, TURNSTILE_ATIVO } from "../../../components/Turnstile";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -167,7 +168,7 @@ export default function ContasPagarPage() {
         ? supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).order("nome")
         : Promise.resolve({ data: [] as CentroCusto[] }),
       empId
-        ? supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empId).order("dia_vencimento")
+        ? soVigentes(supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empId)).order("dia_vencimento")
         : Promise.resolve({ data: [] as CustoFixo[] }),
       empId ? obterConfigAp(empId) : Promise.resolve(null),
     ]);

@@ -1,4 +1,5 @@
 "use client";
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
@@ -215,7 +216,7 @@ export default function Investimentos() {
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
         .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
-      empresaIdAtiva ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — nunca escreve em dividas. Base do custo de oportunidade real.
       empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),

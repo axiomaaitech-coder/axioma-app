@@ -1,4 +1,5 @@
 ﻿'use client'
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useRouter } from "next/navigation";
 import { irParaDestino } from '../../../lib/cfoCore'
 import { useState, useEffect, useMemo } from 'react'
@@ -179,7 +180,7 @@ export default function Inadimplencia() {
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
       empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [] }),
       empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dre_historico').select('*').eq('empresa_id', empId).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle() : Promise.resolve({ data: null }),

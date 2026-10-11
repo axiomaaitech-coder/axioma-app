@@ -5,6 +5,7 @@
 // lib/relatoriosHelpers.ts (funções async de carga + funções puras de cálculo
 // no mesmo arquivo).
 
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
@@ -460,7 +461,7 @@ export async function lerBaseMEI(empresaId: string, o: {
     supabase.from("mei_dados").select("*").eq("empresa_id", empresaId).maybeSingle(),
     o.receitas ? lerTodas(() => periodo(supabase.from("receitas").select(o.receitas!).eq("empresa_id", empresaId)).order("data", { ascending: false }).order("id")) : vazio,
     o.custosVariaveis ? lerTodas(() => periodo(supabase.from("custos_variaveis").select(o.custosVariaveis!).eq("empresa_id", empresaId)).order("data", { ascending: false }).order("id")) : vazio,
-    o.custosFixos ? lerTodas(() => supabase.from("custos_fixos").select(o.custosFixos!).eq("empresa_id", empresaId).order("id")) : vazio,
+    o.custosFixos ? lerTodas(() => soVigentes(supabase.from("custos_fixos").select(o.custosFixos!).eq("empresa_id", empresaId)).order("id")) : vazio,
     // Conta cancelada não é dinheiro comprometido (antes entrava no Cofre como conta em aberto).
     o.contasPagarMes ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId)
       .not("status", "in", "(pago,cancelado,cancelada)").gte("data_vencimento", `${hoje.slice(0, 8)}01`).lte("data_vencimento", fimMes).order("id")) : vazio,

@@ -1,6 +1,7 @@
 // 🦅 AXIOMA AI.TECH - Helpers IA Tributária
 // Simulador de regime, Score Fiscal, carga tributária, economia estimada, reforma 2026.
 
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { dasMensalPorCategoria, regraLimiteMEI } from "./meiHelpers";
@@ -92,7 +93,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   ] = await Promise.all([
     empresaId ? supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", fim) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),

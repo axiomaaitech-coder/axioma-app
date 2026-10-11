@@ -1,4 +1,5 @@
 'use client'
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -249,7 +250,7 @@ export default function ContasReceber() {
       empId ? listarCompromissos(empId) : Promise.resolve([]),
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
       empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [] }),
       empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
       empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
       empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),

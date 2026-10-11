@@ -1,4 +1,5 @@
 ﻿"use client";
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -180,7 +181,7 @@ export default function FluxoCaixa() {
       // delas TAMBÉM quando pagas, pra saber que o custo fixo do mês já virou conta
       // a pagar e não duplicar a saída na projeção de custos fixos logo adiante.
       lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
-      supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
+      soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
       supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("empresa_id", empresaId),
       // Vendas do PDV: linhas só de leitura (a venda é a fonte; nada é gravado em fluxo_caixa).
       lerVendasPdv(empresaId, inicioJanelaHistorica(periodo.fim), fimJanelaFutura(periodo.fim)),

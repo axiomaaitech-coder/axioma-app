@@ -1,4 +1,5 @@
 "use client";
+import { soVigentes } from "../lib/custoFixoVigente";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
@@ -159,7 +160,7 @@ export default function DashFinanceiro() {
       // de uma empresa com muito movimento sairiam menores, sem aviso.
       const res = await Promise.all([
         lerTodas(() => supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", doze).order("id")),
-        lerTodas(() => supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId).order("id")),
+        lerTodas(() => soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)).order("id")),
         lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", doze).order("id")),
         lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId).order("id")),
         // Saldo em caixa = mesma regra do Fluxo de Caixa e da IA: só o que já entrou/saiu de verdade.

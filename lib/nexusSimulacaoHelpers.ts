@@ -1,3 +1,4 @@
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import { obterEmpresaAtiva } from "./empresaHelpers";
 import { lerTodas } from "./lerTodas";
@@ -43,7 +44,7 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
     // Paginado como o retrato do José: sem isso o banco corta em 1.000 linhas e a
     // simulação partia de receita/caixa menores que os reais.
     lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
-    lerTodas(() => supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId).order("id")),
+    lerTodas(() => soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)).order("id")),
     lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
     lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId).order("id")),
     lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),

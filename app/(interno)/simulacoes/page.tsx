@@ -1,4 +1,5 @@
 "use client";
+import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect } from "react";
 import {
   Sliders, Target, Dices, TrendingUp, AlertTriangle, Sparkles, Share2, 
@@ -137,7 +138,7 @@ export default function Simulacoes() {
     const empresaId = await obterEmpresaAtiva();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
       empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
       empresaId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — nunca escreve em dividas.
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),

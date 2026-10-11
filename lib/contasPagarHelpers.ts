@@ -3,6 +3,7 @@
 // (funções puras + supabase direto, sem RPC nova, retorno { erro? }).
 // calcStatus é REAPROVEITADO de fornecedorHelpers.ts — não duplicado aqui.
 
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
@@ -691,7 +692,7 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
     supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
     supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
     supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId),
-    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
+    soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
     supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
   ]);
 
@@ -1476,7 +1477,7 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
     supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
     supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
     supabase.from("contas_pagar").select("id, valor_total, valor_pago, status, data_vencimento, custo_fixo_id, desconto_disponivel_pct, desconto_data_limite").eq("empresa_id", empresaId),
-    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
+    soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
     supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
   ]);
 

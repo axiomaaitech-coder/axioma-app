@@ -2,6 +2,7 @@
 // Rateio divide UM lançamento existente (de custos_fixos/custos_variaveis/contas_pagar)
 // entre vários centros por % — nunca duplica o valor, só a fração de cada centro.
 
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
@@ -43,7 +44,7 @@ export type LancamentoOrigem = {
 
 export async function carregarLancamentosOrigem(empresaId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await lerTodas(() => supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId).order("descricao").order("id"));
+    const { data } = await lerTodas(() => soVigentes(supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId)).order("descricao").order("id"));
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {

@@ -146,19 +146,23 @@ export default function Endividamento() {
     const inicioHist = inicioJanelaHistorica(periodo.fim);
     const empId = await obterEmpresaAtiva();
 
-    const [{ data: dv }, { data: rec }, { data: cf }, { data: cv }, { data: fc }, { data: emp }] = await Promise.all([
-      empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [] }),
+    const [{ data: dv, error: eDv }, { data: rec }, { data: cf }, { data: cv }, { data: fc }, { data: emp }] = await Promise.all([
+      empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [], error: null }),
       empId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       empId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
       empId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
+    // Leitura falhou ≠ "sem dívidas": avisa em vez de mostrar "endividamento sob controle".
+    if (eDv) { showToast(L("Não foi possível carregar as dívidas agora. Recarregue a página.", "Could not load debts now. Reload the page.", "No se pudieron cargar las deudas ahora. Recargue la página."), "erro"); reportarFalhaEscrita("dividas", "leitura", eDv.message); }
     setDividas(dv || []);
     setReceitasRows(rec || []);
-    setCustosFixosRows(cf || []);
+    // Só custos fixos vigentes hoje (encerrado não pesa no EBITDA nem na solvência).
+    const hojeCf = hojeISO();
+    setCustosFixosRows(((cf || []) as { valor_mensal: number; data_inicio?: string | null; data_fim?: string | null }[]).filter((c) => (!c.data_inicio || c.data_inicio <= hojeCf) && (!c.data_fim || c.data_fim >= hojeCf)));
     setCustosVarRows(cv || []);
     setFluxoCaixaRows(fc || []);
     setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));

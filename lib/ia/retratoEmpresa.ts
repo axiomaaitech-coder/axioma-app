@@ -10,6 +10,7 @@
 // ponytail: agrega no servidor com teto de 5000 linhas por tabela; mover as
 // somas pra RPC no banco quando algum cliente passar desse volume.
 // ═══════════════════════════════════════════════════════════════
+import { soVigentes } from '../custoFixoVigente'
 import { saldoCaixaRealizado } from '../caixaSaldo'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
@@ -83,7 +84,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
     supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
     lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
-    lerTodas(() => supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId)).order('id')),
     lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).order('id')),
     // Caixa: conta única com o Fluxo de Caixa (realizado até hoje + PDV recebido) — lib/caixaSaldo.

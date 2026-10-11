@@ -12,6 +12,7 @@
 // contador_close_readiness. Sem SQL novo nesta rodada — todo INSERT/UPDATE
 // daqui em diante é direto do client, coberto pela RLS FOR ALL já criada.
 
+import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { resolverPeriodo, periodoAnterior, topConcentracao, fBRL2, type Periodo } from "./cfoCore";
@@ -430,7 +431,7 @@ async function carregarDadosProativos(empresaId: string, contasPagar: ContaPagar
   const [cv, rc, cf, cr] = await Promise.all([
     supabase.from("custos_variaveis").select("data, valor, categoria, origem_tabela, origem_id, descricao, centro_custo_id").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
     supabase.from("receitas").select("data, valor, status").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
-    supabase.from("custos_fixos").select("valor_mensal, centro_custo_id").eq("empresa_id", empresaId).limit(1000),
+    soVigentes(supabase.from("custos_fixos").select("valor_mensal, centro_custo_id").eq("empresa_id", empresaId)).limit(1000),
     supabase.from("contas_receber").select("id, cliente_id, valor, valor_recebido, valor_desconto, data_vencimento, status").eq("empresa_id", empresaId).not("status", "in", "(recebido,cancelado,cancelada)").limit(5000),
   ]);
   [cv, rc, cf, cr].forEach((r, i) => { if (r.error) reportarFalhaEscrita(["custos_variaveis", "receitas", "custos_fixos", "contas_receber"][i], "select (cfo proativo)", r.error.message); });
