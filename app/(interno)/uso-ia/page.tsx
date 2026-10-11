@@ -17,6 +17,7 @@ import { CanvasBox } from '../../../components/CanvasBox'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { reportarFalhaLeitura } from '../../../lib/erroUiHelpers'
+import { lerTodas } from '../../../lib/lerTodas'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 type Idioma = 'pt' | 'en' | 'es'
@@ -97,8 +98,9 @@ export default function UsoIaPage() {
       const empresaId = await obterEmpresaAtiva()
       if (!empresaId) { if (!cancelado) setRegistros([]); return }
       const desde = new Date(Date.now() - dias * 86400000).toISOString()
-      const { data, error } = await supabase.from('nexus_audit_log').select('created_at, parametros')
-        .eq('empresa_id', empresaId).eq('acao', 'ia.motor').gte('created_at', desde).order('created_at', { ascending: false }).limit(5000)
+      // Em lotes: o banco entrega no máximo 1000 por pedido (o .limit(5000) cortava em 1000 calado).
+      const { data, error } = await lerTodas(() => supabase.from('nexus_audit_log').select('created_at, parametros')
+        .eq('empresa_id', empresaId).eq('acao', 'ia.motor').gte('created_at', desde).order('created_at', { ascending: false }).order('id'))
       if (cancelado) return
       if (error) { reportarFalhaLeitura('uso-ia.carregar', new Error(error.message)); setErro(true); return }
       setRegistros((data ?? []) as Registro[])

@@ -97,7 +97,7 @@ const es: DocumentoAxioma = {
     { h1: 'Cómo suscribirse' },
     { numerada: [
       'Abra **Planes** y compare las tarjetas.',
-      'Haga clic en **Comenzar ahora** en el plan deseado.',
+      'Haga clic en **Empezar ahora** en el plan deseado.',
       'Irá a la página de pago segura de **Stripe**, socio de pagos usado por empresas de todo el mundo. Axioma no ve ni guarda los datos de su tarjeta.',
       'Al concluir, el acceso se libera automáticamente.',
     ] },
