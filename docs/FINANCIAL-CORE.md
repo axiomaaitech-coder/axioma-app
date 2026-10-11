@@ -81,7 +81,7 @@ Documento é DADO: todo prompt que recebe texto de documento/usuário tem a trav
 | 1.4 | Fornecedor pelo nome quando não há CNPJ | `lib/pdvNfeHelpers.ts`, Importar | nenhum | só sugere; humano confirma |
 | 1.5 | Natureza no extrato (transferência/aporte/empréstimo/aplicação ≠ receita/custo) | `lib/importarParsers.ts`, `lib/importarHelpers.ts` | nenhum | só classifica; humano vê e muda |
 | 1.6 | Proveniência no evento de nascimento | `contasPagarHelpers.ts`, `recebimentoHelpers.ts`, Importar | nenhum | só acrescenta dados |
-| 1.7 | Trava no banco: mesma parcela da mesma NF-e uma vez só | SQL para o Elias | índice único parcial | `drop index` |
+| 1.7 | Trava no banco: mesma parcela da mesma NF-e uma vez só — **feito 2026-10-11** (NFE-PARCELA-UNICA-SQL.sql; Importar conta como duplicada) | SQL para o Elias | índice único parcial | `drop index` |
 | 1.8 | Suíte de testes de inteligência (casos sintéticos) | `scripts/teste-financial-core.ts` | nenhum | — |
 
 ## 5. PARTE 2 — PLANO (executar depois da Parte 1)

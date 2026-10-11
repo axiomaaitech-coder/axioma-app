@@ -118,13 +118,17 @@ export async function listarContasPagar(empresaId: string, filtros: FiltrosConta
 export async function criarContaPagar(
   userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
   opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string; proveniencia?: Record<string, string | number | null>; dispensarAprovacao?: boolean },
-): Promise<{ id?: string; erro?: string; avisoAprovacao?: string; avisoBaixa?: string }> {
+): Promise<{ id?: string; erro?: string; duplicada?: boolean; avisoAprovacao?: string; avisoBaixa?: string }> {
   const total = Number(dados.valor_total) || 0;
   const status = calcStatus(total, 0, dados.data_vencimento);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { valor_pago: _ignorado, data_pagamento: _ignorada, ...resto } = dados;
   const payload = { ...resto, valor_total: total, valor_pago: 0, status, data_pagamento: null, user_id: userId, empresa_id: empresaId };
   const { data, error } = await supabase.from("contas_pagar").insert(payload).select("*").single();
+  // Trava do banco (contas_pagar_nfe_parcela_uq): mesma parcela da mesma NF-e (chave, vencimento, valor) uma vez só.
+  if (error?.code === "23505" && dados.chave_acesso) {
+    return { erro: "esta parcela desta nota fiscal já está em Contas a Pagar (mesma nota, vencimento e valor) — não foi lançada de novo", duplicada: true };
+  }
   if (error || !data) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "insert", motivo);

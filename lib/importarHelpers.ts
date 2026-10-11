@@ -1165,9 +1165,15 @@ export async function gravarLinhas(params: {
         ? await criarContaPagar(userId, empresaId, p as Partial<ContaPagar>,
             Number(p.valor_pago) > 0 ? { origem: "importar_documentos", proveniencia, pagoNaOrigem: { valor: Number(p.valor_pago), data: (p.data_emissao as string) || hojeISO(), forma: (p.forma_pagamento as string) || "Outros" } } : { origem: "importar_documentos", proveniencia })
         : await criarContaReceber(userId, empresaId, p, { modulo: "importar_documentos", proveniencia });
-      return r.id ? { data: { id: r.id }, error: null } : { data: null, error: { message: r.erro || "falha ao criar a conta" } };
+      return r.id ? { data: { id: r.id }, error: null } : { data: null, error: { message: r.erro || "falha ao criar a conta", duplicada: "duplicada" in r && r.duplicada } };
     })();
 
+    // Trava do banco barrou a mesma parcela da mesma NF-e → conta como duplicada, não como erro.
+    if (error && "duplicada" in error && error.duplicada) {
+      resultado.duplicadas++;
+      auditoriaRows.push({ ...auditoriaBase, status: "duplicada", mensagem: error.message });
+      continue;
+    }
     if (error || !inserido) {
       resultado.erro++;
       const msg = error?.message || "Erro desconhecido ao inserir";
