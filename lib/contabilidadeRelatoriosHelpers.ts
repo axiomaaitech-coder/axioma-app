@@ -4,6 +4,8 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { NaturezaContabil } from "./contabilidadeHelpers";
+import * as Sentry from "@sentry/nextjs";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,28 +31,46 @@ export type PartidaRow = {
   centro_custo_id: string | null;
 };
 
+// Falha de leitura NUNCA vira "nenhum lançamento" calado: a tela pergunta leituraLedgerFalhou()
+// depois de carregar e avisa. (Antes: sem lotes — cortava em 1000 linhas — e sem erro.)
+let falhouLeitura = false;
+function marcarFalha(onde: string, msg: string) {
+  falhouLeitura = true;
+  Sentry.captureException(new Error(`[ledger] ${onde}: ${msg}`));
+}
+export function leituraLedgerFalhou(): boolean { const f = falhouLeitura; falhouLeitura = false; return f; }
+
 export async function listarLancamentos(empresaId: string, inicio?: string, fim?: string): Promise<LancamentoContabilRow[]> {
-  let q = supabase.from("lancamento_contabil")
-    .select("id, data, descricao, origem_tabela, origem_id, evento_id, estornado_por_id")
-    .eq("empresa_id", empresaId);
-  if (inicio) q = q.gte("data", inicio);
-  if (fim) q = q.lte("data", fim);
-  const { data } = await q.order("data");
+  const { data, error } = await lerTodas(() => {
+    let q = supabase.from("lancamento_contabil")
+      .select("id, data, descricao, origem_tabela, origem_id, evento_id, estornado_por_id")
+      .eq("empresa_id", empresaId);
+    if (inicio) q = q.gte("data", inicio);
+    if (fim) q = q.lte("data", fim);
+    return q.order("data").order("id");
+  });
+  if (error) marcarFalha("lancamentos", error.message);
   return (data as LancamentoContabilRow[]) || [];
 }
 
-// ponytail: .in() com muitos ids tem limite prático de URL — ok pro volume
-// de lançamentos de uma pequena empresa; se crescer muito, paginar por
-// janela de datas menor ou criar uma view agregada no banco.
+// Em blocos de 150 ids (limite de tamanho do endereço) e cada bloco lido em lotes (sem corte em 1000).
+// ponytail: muitos milhares de lançamentos → trocar por view/RPC agregada no banco.
 export async function listarPartidas(empresaId: string, lancamentoIds: string[], contaId?: string): Promise<PartidaRow[]> {
-  if (lancamentoIds.length === 0) return [];
-  let q = supabase.from("lancamento_contabil_partida")
-    .select("id, lancamento_id, conta_id, tipo, valor, centro_custo_id")
-    .eq("empresa_id", empresaId)
-    .in("lancamento_id", lancamentoIds);
-  if (contaId) q = q.eq("conta_id", contaId);
-  const { data } = await q;
-  return (data as PartidaRow[]) || [];
+  const tudo: PartidaRow[] = [];
+  for (let i = 0; i < lancamentoIds.length; i += 150) {
+    const bloco = lancamentoIds.slice(i, i + 150);
+    const { data, error } = await lerTodas(() => {
+      let q = supabase.from("lancamento_contabil_partida")
+        .select("id, lancamento_id, conta_id, tipo, valor, centro_custo_id")
+        .eq("empresa_id", empresaId)
+        .in("lancamento_id", bloco);
+      if (contaId) q = q.eq("conta_id", contaId);
+      return q.order("id");
+    });
+    if (error) marcarFalha("partidas", error.message);
+    tudo.push(...((data as PartidaRow[]) || []));
+  }
+  return tudo;
 }
 
 // Saldo "natural" de uma conta: cresce com débito se devedora, cresce com
@@ -71,6 +91,12 @@ const ORIGEM_LABEL: Record<string, { pt: string; en: string; es: string }> = {
   estoque_movimentacoes: { pt: "Estoque", en: "Inventory", es: "Inventario" },
   caixa_movimentacao: { pt: "Caixa", en: "Cash Register", es: "Caja" },
   venda: { pt: "Venda PDV", en: "POS Sale", es: "Venta POS" },
+  receitas: { pt: "Receitas", en: "Revenue", es: "Ingresos" },
+  custos_variaveis: { pt: "Custos Variáveis", en: "Variable Costs", es: "Costos Variables" },
+  fluxo_caixa: { pt: "Fluxo de Caixa", en: "Cash Flow", es: "Flujo de Caja" },
+  dividas: { pt: "Dívidas", en: "Debts", es: "Deudas" },
+  mei_obrigacoes: { pt: "MEI — DAS", en: "MEI — DAS", es: "MEI — DAS" },
+  manual: { pt: "Lançamento manual", en: "Manual entry", es: "Asiento manual" },
 };
 
 export function origemLabel(origemTabela: string | null, lang: "pt" | "en" | "es"): string {

@@ -3,6 +3,8 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { leituraLedgerFalhou } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
 import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
@@ -37,6 +39,7 @@ export default function BalancetePage() {
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const [avisoLeitura, setAvisoLeitura] = useState<string | null>(null)
   const router = useRouter()
 
   const TIPO_LABEL: Record<TipoContaContabil, string> = {
@@ -73,6 +76,7 @@ export default function BalancetePage() {
     (async () => {
       const lancs = await listarLancamentos(empresaId, periodo.inicio, periodo.fim)
       const partidas = await listarPartidas(empresaId, lancs.map((l) => l.id))
+      if (leituraLedgerFalhou()) setAvisoLeitura(L('Os dados da contabilidade não carregaram inteiros — os números desta tela podem estar incompletos. Recarregue a página.', 'Accounting data did not fully load — the numbers on this screen may be incomplete. Reload the page.', 'Los datos contables no cargaron completos — los números de esta pantalla pueden estar incompletos. Recargue la página.'))
       const acc: Record<string, { debito: number; credito: number }> = {}
       for (const p of partidas) {
         if (!acc[p.conta_id]) acc[p.conta_id] = { debito: 0, credito: 0 }
@@ -115,6 +119,7 @@ export default function BalancetePage() {
     >
       <div className="mb-5">
         <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d>
+          <AvisoAxioma aviso={avisoLeitura ? { msg: avisoLeitura, tipo: 'erro' } : null} onFechar={() => setAvisoLeitura(null)} duracao={9000} />
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
         </CanvasBox>
       </div>

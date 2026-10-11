@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import AvisoAxioma from '../../../../components/AvisoAxioma'
+import { leituraLedgerFalhou } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
 import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
@@ -52,6 +54,7 @@ function RazaoInner() {
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO, CAMPO_BG, MODAL_BG } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const [avisoLeitura, setAvisoLeitura] = useState<string | null>(null)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const searchParams = useSearchParams()
 
@@ -106,6 +109,7 @@ function RazaoInner() {
       setSaldoAnterior(abertura)
 
       const partidasPeriodo = await listarPartidas(empresaId, doPeriodo.map((l) => l.id), contaId)
+      if (leituraLedgerFalhou()) setAvisoLeitura(L('Os dados da contabilidade não carregaram inteiros — os números desta tela podem estar incompletos. Recarregue a página.', 'Accounting data did not fully load — the numbers on this screen may be incomplete. Reload the page.', 'Los datos contables no cargaron completos — los números de esta pantalla pueden estar incompletos. Recargue la página.'))
       const porLancamento = new Map(doPeriodo.map((l) => [l.id, l]))
       const ordenadas = partidasPeriodo
         .map((p) => ({ partida: p, lancamento: porLancamento.get(p.lancamento_id) }))
@@ -157,6 +161,7 @@ function RazaoInner() {
               {contas.length === 0 && <option value="">{L('Nenhuma conta cadastrada', 'No accounts registered', 'Ninguna cuenta registrada')}</option>}
               {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
             </select>
+            <AvisoAxioma aviso={avisoLeitura ? { msg: avisoLeitura, tipo: 'erro' } : null} onFechar={() => setAvisoLeitura(null)} duracao={9000} />
             <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
           </div>
         </CanvasBox>
