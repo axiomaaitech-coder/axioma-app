@@ -104,21 +104,31 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, con
 
 export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
   // 1) Receitas do período
-  const receitas = exigir(await lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "receitas");
+  // Todas as leituras em paralelo (antes uma depois da outra).
+  const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
+  const [rRecs, rCvs, rCfs, rDivs, rEmp, rRec12] = await Promise.all([
+    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
+    lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
+    soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)),
+    supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
+    supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
+    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim).order("id")),
+  ]);
+  const receitas = exigir(rRecs, "receitas");
   const receita_bruta = (receitas || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
 
   // 2) Custos variáveis
-  const custosVar = exigir(await lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "custos_variaveis");
+  const custosVar = exigir(rCvs, "custos_variaveis");
   const custos_variaveis = (custosVar || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
 
   // 3) Custos fixos (mensais — só os vigentes; encerrado não pesa mais)
-  const custosFix = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)), "custos_fixos");
+  const custosFix = exigir(rCfs, "custos_fixos");
   const custos_fixos = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   // 4) Despesas financeiras (juros de endividamento — estimativa simples)
   // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
   // uma tabela órfã com schema diferente, nunca alimentada pela UI.
-  const dividas = exigir(await supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId), "dividas");
+  const dividas = exigir(rDivs, "dividas");
   const despesas_financeiras = (dividas || []).reduce((s: number, d: any) => {
     const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
     return s + (saldoDevedor * Number(d.taxa_juros || 0) / 100);
@@ -126,11 +136,6 @@ export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<
 
   // 5) Deduções: imposto real da empresa pelo regime tributário (mesmo cálculo do
   // módulo IA Tributária), em vez de um percentual fixo chutado.
-  const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
-  const [rEmp, rRec12] = await Promise.all([
-    supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
-    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim).order("id")),
-  ]);
   const empresa = exigir(rEmp, "empresa");
   const rec12m = exigir(rRec12, "receitas_12m");
   const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -173,25 +178,32 @@ export async function carregarEvolucao12Meses(
 ): Promise<PontoEvolucao[]> {
   const pontos: PontoEvolucao[] = [];
 
-  // Custos fixos são recorrentes — totaliza uma vez (só os vigentes)
-  const custosFix = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)), "custos_fixos");
+  // 3 leituras em paralelo (o ano inteiro de uma vez) em vez de 24 em fila — a tela levava 25s+.
+  const primeiro = montarPeriodo(new Date(referenciaAno, referenciaMes - 12, 1).getFullYear(), new Date(referenciaAno, referenciaMes - 12, 1).getMonth() + 1);
+  const ultimo = montarPeriodo(referenciaAno, referenciaMes);
+  const [rCf, rRec, rCv] = await Promise.all([
+    soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)),
+    lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", primeiro.inicio).lte("data", ultimo.fim).order("id")),
+    lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", primeiro.inicio).lte("data", ultimo.fim).order("id")),
+  ]);
+  const custosFix = exigir(rCf, "custos_fixos");
+  const rec = exigir(rRec, "receitas_12m") || [];
+  const cv = exigir(rCv, "custos_variaveis_12m") || [];
   const custos_fixos_mes = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
+  const somaPorMes = (linhas: any[]) => linhas.reduce((m: Map<string, number>, r: any) => {
+    const k = String(r.data || "").slice(0, 7);
+    return m.set(k, (m.get(k) || 0) + Number(r.valor || 0));
+  }, new Map<string, number>());
+  const recMes = somaPorMes(rec);
+  const cvMes = somaPorMes(cv);
 
   for (let i = 11; i >= 0; i--) {
     const d = new Date(referenciaAno, referenciaMes - 1 - i, 1);
     const ano = d.getFullYear();
     const mes = d.getMonth() + 1;
-    const periodo = montarPeriodo(ano, mes);
-
-    const [rRec, rCv] = await Promise.all([
-      lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
-      lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
-    ]);
-    const rec = exigir(rRec, "receitas_mes"); const cv = exigir(rCv, "custos_variaveis_mes");
-
-    const receita = (rec || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-    const custos_var = (cv || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-    const custos = custos_var + custos_fixos_mes;
+    const chave = `${ano}-${String(mes).padStart(2, "0")}`;
+    const receita = recMes.get(chave) || 0;
+    const custos = (cvMes.get(chave) || 0) + custos_fixos_mes;
     const lucro = receita - custos;
     const margem = receita > 0 ? (lucro / receita) * 100 : 0;
 

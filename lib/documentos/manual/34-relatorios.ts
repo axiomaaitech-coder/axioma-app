@@ -27,6 +27,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Centro de Compartilhamento' },
     { p: 'Mostra uma prévia do **Resumo Executivo** e os canais de envio (WhatsApp, Gmail, Outlook, Telegram ou copiar o resumo / o detalhado). O texto, o PDF, os indicadores e as dicas saem no idioma escolhido no Axioma.' },
     { nota: 'Os números são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa em vez de montar o relatório com zero no lugar do dado que não veio. Sem lançamentos no período, a tela pede para cadastrar receitas e custos primeiro. Os relatórios são calculados por regras sobre os seus dados; para análises em conversa, use a IA Financeira.' },
+    { nota: 'O ano inteiro é lido de uma vez, então o relatório abre em poucos segundos. Ao trocar o idioma do Axioma, o relatório é refeito no novo idioma.' },
   ],
 }
 
@@ -56,6 +57,7 @@ const en: DocumentoAxioma = {
     { h1: 'Sharing Center' },
     { p: 'Shows a preview of the **Executive Summary** and the sending channels (WhatsApp, Gmail, Outlook, Telegram or copy the summary / the detailed version). The text, PDF, indicators and tips come out in the language chosen in Axioma.' },
     { nota: 'Numbers are read with no row limit. If any loading fails, the screen warns you instead of building the report with zero in place of the missing data. With no entries in the period, the screen asks you to register revenue and costs first. Reports are calculated by rules on your data; for conversational analysis, use Financial AI.' },
+    { nota: 'The whole year is read at once, so the report opens in a few seconds. When you change Axioma’s language, the report is rebuilt in the new language.' },
   ],
 }
 
@@ -85,6 +87,7 @@ const es: DocumentoAxioma = {
     { h1: 'Centro de Compartir' },
     { p: 'Muestra una vista previa del **Resumen Ejecutivo** y los canales de envío (WhatsApp, Gmail, Outlook, Telegram o copiar el resumen / el detallado). El texto, el PDF, los indicadores y los consejos salen en el idioma elegido en Axioma.' },
     { nota: 'Los números se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa en lugar de armar el informe con cero en lugar del dato que no llegó. Sin registros en el período, la pantalla pide registrar ingresos y costos primero. Los informes se calculan por reglas sobre sus datos; para análisis en conversación, use la IA Financiera.' },
+    { nota: 'Todo el año se lee de una vez, así que el informe abre en pocos segundos. Al cambiar el idioma de Axioma, el informe se rehace en el nuevo idioma.' },
   ],
 }
 

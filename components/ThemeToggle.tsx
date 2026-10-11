@@ -1,6 +1,7 @@
 "use client";
 import { Moon, Sparkles } from "lucide-react";
 import { useThemeAxioma, type TemaAxioma } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 
 // Seletor de tema — só aparece nas telas que o importam explicitamente
 // (rodada atual: MEI Painel e Cockpit, telas de referência). Persiste
@@ -8,10 +9,11 @@ import { useThemeAxioma, type TemaAxioma } from "../lib/ThemeContext";
 // atributo data-theme só existe onde a própria tela o aplica.
 export function ThemeToggle() {
   const { tema, setTema } = useThemeAxioma();
+  const { idioma } = useLanguage();
 
   const opcoes: { valor: TemaAxioma; label: string; Icone: typeof Moon }[] = [
-    { valor: "dark", label: "Escuro", Icone: Moon },
-    { valor: "xms", label: "Tema Claro", Icone: Sparkles },
+    { valor: "dark", label: idioma === "en" ? "Dark" : idioma === "es" ? "Oscuro" : "Escuro", Icone: Moon },
+    { valor: "xms", label: idioma === "en" ? "Light Theme" : idioma === "es" ? "Tema Claro" : "Tema Claro", Icone: Sparkles },
   ];
 
   return (

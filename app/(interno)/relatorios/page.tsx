@@ -245,7 +245,7 @@ export default function Relatorios() {
   useEffect(() => {
     if (empresaId) carregarTudo(empresaId);
     // eslint-disable-next-line
-  }, [ano, mes, empresaId]);
+  }, [ano, mes, empresaId, lang]);
 
   async function inicializar() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -534,7 +534,7 @@ export default function Relatorios() {
         <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
           <div className="py-12 text-center">
             <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: ct("#2ecc9b") }}>Carregando dados...</p>
+            <p className="text-sm" style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }}>{L3("Carregando dados...", "Loading data...", "Cargando datos...")}</p>
           </div>
         </CanvasBox>
       )}

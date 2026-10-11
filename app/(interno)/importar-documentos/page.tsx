@@ -2998,7 +2998,7 @@ function HistoricoBlock(props: any) {
                     {carregandoLinhas === item.id ? (
                       <div className="text-center py-4">
                         <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                        <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>Carregando linhas...</p>
+                        <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>{langAtual === "en" ? "Loading lines..." : langAtual === "es" ? "Cargando líneas..." : "Carregando linhas..."}</p>
                       </div>
                     ) : linhasPorImportacao[item.id] ? (
                       <div>
