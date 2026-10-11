@@ -1,14 +1,17 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
-import type { DocumentoAxioma } from "../tipos"
+// Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
+import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
-const doc: DocumentoAxioma = {
+const pt: DocumentoAxioma = {
   arquivo: '30 - Comercial - Contas a Receber.docx',
   titulo: 'Manual 30 — Contas a Receber',
   subtitulo: 'Central de Inteligência Financeira de Recebimentos',
-  info: ['Menu: Comercial → Contas a Receber  •  Manual de uso do Axioma AI.Tech'],
+  info: ['Menu: Comercial → Contas a Receber  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Controla tudo o que os clientes devem à empresa e ajuda a **receber mais e mais rápido**: mostra quem paga em dia, quem atrasa, a fila de cobrança, a previsão de entrada de dinheiro e o efeito de antecipar recebíveis.' },
+
+    { h1: 'Como chegar' },
+    { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Receber**.'] },
 
     { h1: 'Botões do cabeçalho' },
     { p: '**+ Nova Conta**, **Compartilhar**, seletor de período, busca (cliente, documento, responsável) e filtro de status.' },
@@ -27,27 +30,165 @@ const doc: DocumentoAxioma = {
     { h2: 'Fila de Cobrança Priorizada' },
     { p: 'Clientes com saldo vencido, ordenados pelo Score (pior nota e maior valor primeiro), com os dias em atraso.' },
     { h2: 'Régua de Cobrança' },
-    { p: 'Organize os passos da cobrança: em quantos dias antes ou depois do vencimento, por qual **canal** e com qual **mensagem-modelo**. **Usar régua padrão** cria uma régua pronta; **Nova Etapa** adiciona passos. Nesta fase a régua organiza os passos; nenhuma mensagem é enviada automaticamente.' },
+    { p: 'Organize os passos da cobrança: em quantos dias antes ou depois do vencimento, por qual **canal** e com qual **mensagem-modelo**. **Usar régua padrão** cria uma régua pronta; **Nova Etapa** adiciona passos. A régua organiza os passos; nenhuma mensagem é enviada automaticamente.' },
     { h2: 'Previsão de Caixa' },
-    { p: 'O que deve entrar em cada horizonte, classificado por confiança: **Previsto**, **Provável**, **Em Risco** e **Perdido**. Não é só o valor bruto: considera o Score e a probabilidade de recebimento.' },
+    { p: 'O que deve entrar em cada horizonte, classificado por confiança: **Previsto**, **Provável**, **Em Risco** e **Perdido**. Considera o Score e a probabilidade de recebimento, não só o valor bruto. O caixa de partida é o mesmo saldo do Fluxo de Caixa (com as vendas do PDV).' },
     { h2: 'Simulador Executivo' },
-    { p: 'Ajuste **Δ Inadimplência**, **Redução do DSO**, **% Antecipado**, **Deságio da Antecipação** e **Desconto Oferecido** e veja lucro líquido, EBITDA e caixa em quatro cenários. Inclui a calculadora de **Antecipação de Recebíveis** (quanto custa antecipar e quanto sobra) e o **Impacto do Split Payment** da Reforma Tributária (quanto do recebido iria direto ao governo).' },
+    { p: 'Ajuste **Δ Inadimplência**, **Redução do DSO**, **% Antecipado**, **Deságio da Antecipação** e **Desconto Oferecido** e veja lucro líquido, EBITDA e caixa em quatro cenários. Inclui a calculadora de **Antecipação de Recebíveis** e o **Impacto do Split Payment** da Reforma Tributária (quanto do recebido iria direto ao governo, com a alíquota que você informar).' },
+    { alerta: 'Split Payment — premissa: previsto na Emenda Constitucional 132/2023 e na Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026), com implantação gradual. A alíquota é uma estimativa ajustável. Regras em transição: podem mudar.' },
     { h2: 'Painéis Analíticos' },
     { p: '**Heatmap de Inadimplência**, **Evolução da Carteira (12 meses)**, **Curva ABC de Clientes**, **Recorrente vs Não Recorrente**, **Concentração Top 5** e distribuição por segmento, estado e cidade.' },
     { h2: 'Central de Recebimentos' },
-    { p: 'A tabela completa com cliente, documento, vencimento, dias de atraso, valores (original, desconto, juros, multa, atualizado), responsável, prioridade, score e risco. Ações: **Receber**, **Estornar recebimento**, **Cobrança**, **Editar** e **Excluir**.' },
+    { p: 'A tabela completa com cliente, documento, vencimento, dias de atraso, valores (original, desconto, juros, multa, atualizado), responsável, prioridade, score e risco.' },
+    { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
+      ['Receber', 'Recebimento oficial (pode ser parcial): entra no Fluxo de Caixa, em Receitas e na contabilidade de uma vez.'],
+      ['Estornar recebimento', 'Desfaz um recebimento, com motivo.'],
+      ['🕘 Histórico da Conta', 'Cada recebimento com data, valor, forma, juros, quem fez e o caminho que percorreu.'],
+      ['Ver rastreabilidade', 'Mostra em quais módulos o recebimento chegou (contabilidade, caixa, receitas).'],
+      ['Enviar cobrança', 'Na conta vencida: abre a mensagem pronta no WhatsApp, Gmail, Outlook ou Telegram — você revisa e envia.'],
+      ['Cobrança', 'Abre a Central de Cobrança da conta.'],
+      ['✏️ Editar', 'Nunca muda o que já foi recebido.'],
+      ['🗑️ Excluir', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Conta com qualquer recebimento não pode ser excluída: estorne primeiro.'],
+    ] } },
     { h2: 'Central de Cobrança da conta' },
     { p: 'Mostra a **chance de receber no prazo**, a próxima ação da régua, os contatos registrados (contato, negociação, nota, telefone, presencial) e as **Promessas e Acordos**, marcados como **Cumprido** ou **Quebrado**.' },
 
     { h1: 'Passo a passo' },
     { numerada: [
-      'Clique em **+ Nova Conta**: cliente, descrição, número do documento, valor, já recebido, desconto, juros, multa, forma de recebimento, parcelas, centro de custo e se é recorrente.',
-      'Clique em **Salvar Conta**.',
+      'Clique em **+ Nova Conta**: cliente, descrição, número do documento, valor, desconto, juros, multa, forma de recebimento, parcelas, centro de custo e se é recorrente.',
+      'Clique em **Salvar Conta**. A conta nasce sem recebimento e avisa a contabilidade.',
       'Ao receber, clique em **Receber**, informe o valor (pode ser parcial) e **Confirmar**.',
       'Errou? **Estornar recebimento** com o motivo.',
     ] },
-    { nota: 'Conta já recebida não pode ser excluída: estorne o recebimento primeiro. Contas vencidas aparecem automaticamente em Inadimplência.' },
+    { nota: 'Contas vencidas aparecem automaticamente em Inadimplência. Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "nada a receber" por engano.' },
   ],
 }
 
+const en: DocumentoAxioma = {
+  arquivo: '30 - Commercial - Receivables.docx',
+  titulo: 'Manual 30 — Receivables',
+  subtitulo: 'Receivables Financial Intelligence Center',
+  info: ['Menu: Commercial → Receivables  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  blocos: [
+    { h1: 'What it is for' },
+    { p: 'Controls everything clients owe the company and helps you **collect more and faster**: it shows who pays on time, who is late, the collection queue, the cash inflow forecast and the effect of anticipating receivables.' },
+
+    { h1: 'How to get there' },
+    { lista: ['Top menu → **👥 Commercial ▼** → **Receivables**.'] },
+
+    { h1: 'Header buttons' },
+    { p: '**+ New Bill**, **Share**, period selector, search (client, document, person in charge) and status filter.' },
+
+    { h1: 'Parts of the screen' },
+    { h2: 'Executive Dashboard' },
+    { p: '**Total Receivable**, **Received this Month and Year**, **Upcoming**, **Default Rate**, **Punctuality Rate**, **Days Sales Outstanding (DSO)**, **Forecast**, **Confirmed** and **At-Risk Revenue**, **Late Clients**, **Critical Clients**, **Average Ticket** and **Recurring / Non-Recurring Revenue**. Click an indicator to see the items behind it.' },
+    { h2: 'Smart Alerts' },
+    { p: 'Critical and attention alerts, each with a **suggested action**.' },
+    { h2: 'Portfolio Aging' },
+    { p: 'How much is overdue in each range: **0-30**, **31-60**, **61-90** and **90+ days**.' },
+    { h2: 'Axioma Client Score' },
+    { p: 'Each client’s score (Critical, Attention, Good, Excellent) and the **portfolio average**. Click to see the calculation detail.' },
+    { h2: 'Axioma Explanatory Analysis' },
+    { p: 'Explains the situation in four parts: **What happened**, **Why**, **Impact** and **Action**. Rule-based: no text is generated by a language model.' },
+    { h2: 'Prioritized Collection Queue' },
+    { p: 'Clients with overdue balance, sorted by Score (worst score and largest amount first), with days late.' },
+    { h2: 'Collection Ladder' },
+    { p: 'Organize collection steps: how many days before or after the due date, through which **channel** and with which **template message**. **Use default ladder** creates a ready-made ladder; **New Step** adds steps. The ladder organizes the steps; no message is sent automatically.' },
+    { h2: 'Cash Forecast' },
+    { p: 'What should come in for each horizon, classified by confidence: **Forecast**, **Likely**, **At Risk** and **Lost**. It considers the Score and the collection probability, not just the gross amount. The starting cash is the same balance as Cash Flow (including POS sales).' },
+    { h2: 'Executive Simulator' },
+    { p: 'Adjust **Δ Default**, **DSO Reduction**, **% Anticipated**, **Anticipation Discount Rate** and **Discount Offered** and see net profit, EBITDA and cash in four scenarios. Includes the **Receivables Anticipation** calculator and the Tax Reform **Split Payment Impact** (how much of what you receive would go straight to the government, with the rate you enter).' },
+    { alerta: 'Split Payment — assumption: provided for in Constitutional Amendment 132/2023 and Complementary Law 214/2025 (planalto.gov.br, checked in October 2026), phased in gradually. The rate is an adjustable estimate. Rules in transition: they may change.' },
+    { h2: 'Analytics' },
+    { p: '**Default Heatmap**, **Portfolio Evolution (12 months)**, **Client ABC Curve**, **Recurring vs Non-Recurring**, **Top 5 Concentration** and distribution by segment, state and city.' },
+    { h2: 'Receivables Center' },
+    { p: 'The full table with client, document, due date, days late, amounts (original, discount, interest, penalty, updated), person in charge, priority, score and risk.' },
+    { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
+      ['Receive', 'Official receipt (can be partial): goes into Cash Flow, Revenue and accounting at once.'],
+      ['Reverse receipt', 'Undoes a receipt, with a reason.'],
+      ['🕘 Bill History', 'Each receipt with date, amount, method, interest, who did it and the path it took.'],
+      ['View traceability', 'Shows which modules the receipt reached (accounting, cash, revenue).'],
+      ['Send collection notice', 'On an overdue bill: opens a ready message in WhatsApp, Gmail, Outlook or Telegram — you review and send.'],
+      ['Collection', 'Opens the bill’s Collection Center.'],
+      ['✏️ Edit', 'Never changes what was already received.'],
+      ['🗑️ Delete', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A bill with any receipt cannot be deleted: reverse it first.'],
+    ] } },
+    { h2: 'Bill Collection Center' },
+    { p: 'Shows the **chance of receiving on time**, the ladder’s next action, recorded contacts (contact, negotiation, note, phone, in person) and **Promises and Agreements**, marked as **Fulfilled** or **Broken**.' },
+
+    { h1: 'Step by step' },
+    { numerada: [
+      'Click **+ New Bill**: client, description, document number, amount, discount, interest, penalty, payment method, installments, cost center and whether it is recurring.',
+      'Click **Save**. The bill starts with no receipt and notifies accounting.',
+      'When you receive, click **Receive**, enter the amount (can be partial) and **Confirm**.',
+      'Made a mistake? **Reverse receipt** with the reason.',
+    ] },
+    { nota: 'Overdue bills appear automatically in Default. If any loading fails, the screen warns that the data may be incomplete — it never shows "nothing to receive" by mistake.' },
+  ],
+}
+
+const es: DocumentoAxioma = {
+  arquivo: '30 - Comercial - Cuentas por Cobrar.docx',
+  titulo: 'Manual 30 — Cuentas por Cobrar',
+  subtitulo: 'Central de Inteligencia Financiera de Cobros',
+  info: ['Menú: Comercial → Cuentas por Cobrar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  blocos: [
+    { h1: 'Para qué sirve' },
+    { p: 'Controla todo lo que los clientes deben a la empresa y ayuda a **cobrar más y más rápido**: muestra quién paga a tiempo, quién se atrasa, la cola de cobro, la previsión de entrada de dinero y el efecto de anticipar cobros.' },
+
+    { h1: 'Cómo llegar' },
+    { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Cobrar**.'] },
+
+    { h1: 'Botones del encabezado' },
+    { p: '**+ Nueva Cuenta**, **Compartir**, selector de período, búsqueda (cliente, documento, responsable) y filtro de estado.' },
+
+    { h1: 'Las partes de la pantalla' },
+    { h2: 'Panel Ejecutivo' },
+    { p: '**Valor Total por Cobrar**, **Cobrado en el Mes y el Año**, **Por Vencer**, **Índice de Morosidad**, **Índice de Puntualidad**, **Plazo Promedio de Cobro (DSO)**, **Ingreso Previsto**, **Confirmado** y **en Riesgo**, **Clientes Atrasados**, **Clientes Críticos**, **Ticket Promedio** e **Ingreso Recurrente / No Recurrente**. Haga clic en un indicador para ver los ítems que lo forman.' },
+    { h2: 'Alertas Inteligentes' },
+    { p: 'Alertas críticas y de atención, cada una con la **acción sugerida**.' },
+    { h2: 'Envejecimiento de Cartera' },
+    { p: 'Cuánto está vencido en cada rango: **0-30**, **31-60**, **61-90** y **90+ días**.' },
+    { h2: 'Score Axioma del Cliente' },
+    { p: 'Nota de cada cliente (Crítico, Atención, Bueno, Excelente) y el **promedio de la cartera**. Haga clic para ver el detalle del cálculo.' },
+    { h2: 'Análisis Explicativo Axioma' },
+    { p: 'Explica la situación en cuatro partes: **Qué pasó**, **Por qué**, **Impacto** y **Acción**. Funciona por reglas: ningún texto es generado por un modelo de lenguaje.' },
+    { h2: 'Cola de Cobro Priorizada' },
+    { p: 'Clientes con saldo vencido, ordenados por Score (peor nota y mayor valor primero), con los días de atraso.' },
+    { h2: 'Regla de Cobro' },
+    { p: 'Organice los pasos del cobro: cuántos días antes o después del vencimiento, por qué **canal** y con qué **mensaje modelo**. **Usar regla predeterminada** crea una regla lista; **Nueva Etapa** agrega pasos. La regla organiza los pasos; ningún mensaje se envía automáticamente.' },
+    { h2: 'Previsión de Caja' },
+    { p: 'Lo que debe entrar en cada horizonte, clasificado por confianza: **Previsto**, **Probable**, **En Riesgo** y **Perdido**. Considera el Score y la probabilidad de cobro, no solo el valor bruto. La caja de partida es el mismo saldo del Flujo de Caja (con las ventas del PDV).' },
+    { h2: 'Simulador Ejecutivo' },
+    { p: 'Ajuste **Δ Morosidad**, **Reducción del DSO**, **% Anticipado**, **Descuento de la Anticipación** y **Descuento Ofrecido** y vea utilidad neta, EBITDA y caja en cuatro escenarios. Incluye la calculadora de **Anticipación de Cobros** y el **Impacto del Split Payment** de la Reforma Tributaria (cuánto de lo cobrado iría directo al gobierno, con la alícuota que usted informe).' },
+    { alerta: 'Split Payment — premisa: previsto en la Enmienda Constitucional 132/2023 y la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026), con implantación gradual. La alícuota es una estimación ajustable. Reglas en transición: pueden cambiar.' },
+    { h2: 'Paneles Analíticos' },
+    { p: '**Mapa de Calor de Morosidad**, **Evolución de la Cartera (12 meses)**, **Curva ABC de Clientes**, **Recurrente vs No Recurrente**, **Concentración Top 5** y distribución por segmento, estado y ciudad.' },
+    { h2: 'Centro de Cobros' },
+    { p: 'La tabla completa con cliente, documento, vencimiento, días de atraso, valores (original, descuento, intereses, multa, actualizado), responsable, prioridad, score y riesgo.' },
+    { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
+      ['Cobrar', 'Cobro oficial (puede ser parcial): entra en el Flujo de Caja, en Ingresos y en la contabilidad de una vez.'],
+      ['Revertir cobro', 'Deshace un cobro, con motivo.'],
+      ['🕘 Historial de la Cuenta', 'Cada cobro con fecha, valor, forma, intereses, quién lo hizo y el camino que recorrió.'],
+      ['Ver trazabilidad', 'Muestra a qué módulos llegó el cobro (contabilidad, caja, ingresos).'],
+      ['Enviar cobranza', 'En la cuenta vencida: abre el mensaje listo en WhatsApp, Gmail, Outlook o Telegram — usted revisa y envía.'],
+      ['Cobranza', 'Abre el Centro de Cobranza de la cuenta.'],
+      ['✏️ Editar', 'Nunca cambia lo ya cobrado.'],
+      ['🗑️ Eliminar', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Una cuenta con cualquier cobro no se puede eliminar: revierta primero.'],
+    ] } },
+    { h2: 'Centro de Cobranza de la cuenta' },
+    { p: 'Muestra la **probabilidad de cobrar a tiempo**, la próxima acción de la regla, los contactos registrados (contacto, negociación, nota, teléfono, presencial) y las **Promesas y Acuerdos**, marcados como **Cumplido** o **Incumplido**.' },
+
+    { h1: 'Paso a paso' },
+    { numerada: [
+      'Haga clic en **+ Nueva Cuenta**: cliente, descripción, número de documento, valor, descuento, intereses, multa, forma de cobro, cuotas, centro de costo y si es recurrente.',
+      'Haga clic en **Guardar**. La cuenta nace sin cobro y avisa a la contabilidad.',
+      'Al cobrar, haga clic en **Cobrar**, informe el valor (puede ser parcial) y **Confirmar**.',
+      '¿Se equivocó? **Revertir cobro** con el motivo.',
+    ] },
+    { nota: 'Las cuentas vencidas aparecen automáticamente en Morosidad. Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "nada por cobrar" por error.' },
+  ],
+}
+
+const doc: DocTrilingue = { pt, en, es }
 export default doc

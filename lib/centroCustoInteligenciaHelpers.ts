@@ -4,6 +4,7 @@
 // função aqui recalcula ou sobrescreve números desses módulos — só interpreta.
 // Escrita nova: só auditoria (Fase 1) e planos de ação (Fase 2).
 
+import { marcarFalhaLeituraCentro } from "./centroCustoHelpers";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import {
@@ -534,7 +535,8 @@ export type PlanoAcao = {
 };
 
 export async function carregarPlanosAcao(empresaId: string): Promise<PlanoAcao[]> {
-  const { data } = await supabase.from("centro_custo_plano_acao").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("centro_custo_plano_acao").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+  marcarFalhaLeituraCentro("planos_acao", error);
   return data || [];
 }
 

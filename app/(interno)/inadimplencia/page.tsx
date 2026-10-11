@@ -26,6 +26,7 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
 import { lerTodas } from '../../../lib/lerTodas'
+import { saldoCaixaRealizado } from '../../../lib/caixaSaldo'
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -169,20 +170,21 @@ export default function Inadimplencia() {
     setUserId(user.id)
     const empId = await obterEmpresaAtiva()
     const [
-      { data: empresa }, { data: cli }, { data: ct }, comps, interacoesData, etapasData, { data: fc },
-      { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: dreRows },
+      { data: empresa }, { data: cli, error: eCli }, { data: ct, error: eCt }, comps, interacoesData, etapasData, sc,
+      { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: div, error: eDiv }, { data: dreRows },
     ] = await Promise.all([
       empId ? supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
-      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [], error: null }),
       empId ? listarCompromissos(empId) : Promise.resolve([]),
       empId ? listarInteracoes(empId) : Promise.resolve([]),
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
-      empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Contas a Receber, Painel de Risco e IA.
+      empId ? saldoCaixaRealizado(supabase, empId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
+      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [], error: null }),
       empId ? supabase.from('dre_historico').select('*').eq('empresa_id', empId).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle() : Promise.resolve({ data: null }),
     ])
     setEmpresaId(empId)
@@ -192,7 +194,10 @@ export default function Inadimplencia() {
     setCompromissos(comps)
     setInteracoes(interacoesData)
     setEtapasRegua(etapasData)
-    setCaixaDisponivel((fc || []).filter((l: any) => l.status === 'realizado').reduce((s: number, l: any) => s + (l.tipo === 'entrada' ? Number(l.valor || 0) : -Number(l.valor || 0)), 0))
+    setCaixaDisponivel(sc.saldo)
+    // Leitura falhou ≠ "ninguém inadimplente": avisa em vez de mostrar indicadores incompletos calados.
+    const eLeitura = eCli?.message || eCt?.message || eRec?.message || eCf?.message || eCv?.message || eDiv?.message || sc.erro
+    if (eLeitura) showToast(L('Parte dos dados não carregou — títulos, clientes ou indicadores podem estar incompletos. Recarregue a página.', 'Some data did not load — bills, clients or indicators may be incomplete. Reload the page.', 'Parte de los datos no cargó — títulos, clientes o indicadores pueden estar incompletos. Recargue la página.'), 'erro')
     setReceitasRows(rec || [])
     setCustosFixosRows(cf || [])
     setCustosVarRows(cv || [])
@@ -479,8 +484,9 @@ export default function Inadimplencia() {
     }
     // empresa_id restaurado aqui — faltava neste refresh específico (o
     // carregamento inicial da tela já filtrava certo, este ponto não).
-    const { data: ct } = await lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empresaId).order('data_vencimento', { ascending: true }).order('id'))
-    setContas((ct as ContaRow[]) || [])
+    const { data: ct, error: eCt } = await lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empresaId).order('data_vencimento', { ascending: true }).order('id'))
+    if (eCt) showToast(L('O caso foi salvo, mas a lista não recarregou. Recarregue a página.', 'The case was saved, but the list did not reload. Reload the page.', 'El caso se guardó, pero la lista no se recargó. Recargue la página.'), 'erro')
+    else setContas((ct as ContaRow[]) || [])
     fecharModalCaso()
     setSalvandoCaso(false)
     showToast(L('Caso salvo.', 'Case saved.', 'Caso guardado.'), 'ok')

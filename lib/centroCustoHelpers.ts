@@ -20,6 +20,18 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
 
+// Leitura que falha NUNCA vira "lista vazia" calada: marca (Sentry) e a tela pergunta
+// consumirFalhaLeituraCentro() depois de carregar para avisar a pessoa.
+let falhaLeituraCentro = false;
+export function marcarFalhaLeituraCentro(contexto: string, error: { message: string } | null) {
+  if (!error) return;
+  falhaLeituraCentro = true;
+  Sentry.captureException(new Error(`[centro-custo] leitura falhou (${contexto}): ${error.message}`));
+}
+export function consumirFalhaLeituraCentro(): boolean {
+  const f = falhaLeituraCentro; falhaLeituraCentro = false; return f;
+}
+
 export type OrigemTabela = "custos_fixos" | "custos_variaveis" | "contas_pagar";
 
 export const LABEL_ORIGEM: Record<OrigemTabela, { pt: string; en: string; es: string }> = {
@@ -44,15 +56,18 @@ export type LancamentoOrigem = {
 
 export async function carregarLancamentosOrigem(empresaId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await lerTodas(() => soVigentes(supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId)).order("descricao").order("id"));
+    const { data, error } = await lerTodas(() => soVigentes(supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId)).order("descricao").order("id"));
+    marcarFalhaLeituraCentro("custos_fixos", error);
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {
     // lerTodas: o Supabase corta em 1000 por pedido (o .limit(5000) antigo não passava disso)
-    const { data } = await lerTodas(() => supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
+    const { data, error } = await lerTodas(() => supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
+    marcarFalhaLeituraCentro("custos_variaveis", error);
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await lerTodas(() => supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("empresa_id", empresaId).order("data_vencimento", { ascending: false }).order("id"));
+  const { data, error } = await lerTodas(() => supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("empresa_id", empresaId).order("data_vencimento", { ascending: false }).order("id"));
+  marcarFalhaLeituraCentro("contas_pagar", error);
   return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id, status: d.status, valor_pago: Number(d.valor_pago || 0) }));
 }
 
@@ -68,7 +83,8 @@ export async function carregarTodosLancamentosOrigem(empresaId: string): Promise
 export type ReceitaOrigem = { id: string; descricao: string; valor: number; data: string; categoria?: string; centro_custo_id: string | null };
 
 export async function carregarReceitasOrigem(empresaId: string): Promise<ReceitaOrigem[]> {
-  const { data } = await lerTodas(() => supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
+  const { data, error } = await lerTodas(() => supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id"));
+  marcarFalhaLeituraCentro("receitas", error);
   return (data || []).map((d: any) => ({ id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
 }
 
@@ -86,7 +102,8 @@ export type RateioRow = {
 };
 
 export async function carregarRateios(empresaId: string): Promise<RateioRow[]> {
-  const { data } = await supabase.from("centro_custo_rateio").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await lerTodas<RateioRow>(() => supabase.from("centro_custo_rateio").select("*").eq("empresa_id", empresaId).order("id"));
+  marcarFalhaLeituraCentro("rateios", error);
   return data || [];
 }
 
@@ -170,7 +187,8 @@ export function sugerirPercentuaisPorBase(
 export type OrcamentoRow = { id: string; centro_custo_id: string; periodo: string; valor_orcado: number };
 
 export async function carregarOrcamentos(empresaId: string): Promise<OrcamentoRow[]> {
-  const { data } = await supabase.from("centro_custo_orcamento").select("*").eq("empresa_id", empresaId);
+  const { data, error } = await lerTodas<OrcamentoRow>(() => supabase.from("centro_custo_orcamento").select("*").eq("empresa_id", empresaId).order("id"));
+  marcarFalhaLeituraCentro("orcamentos", error);
   return data || [];
 }
 
@@ -214,7 +232,8 @@ export type AuditoriaRow = {
 };
 
 export async function carregarAuditoriaCentro(empresaId: string, limit = 500): Promise<AuditoriaRow[]> {
-  const { data } = await supabase.from("centro_custo_auditoria").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }).limit(limit);
+  const { data, error } = await supabase.from("centro_custo_auditoria").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }).limit(limit);
+  marcarFalhaLeituraCentro("auditoria", error);
   return data || [];
 }
 

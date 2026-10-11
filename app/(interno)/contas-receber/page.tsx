@@ -27,6 +27,7 @@ import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
+import { saldoCaixaRealizado } from '../../../lib/caixaSaldo'
 import { lerTodas } from '../../../lib/lerTodas'
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from '../../../lib/iaTributariaHelpers'
 import {
@@ -241,19 +242,20 @@ export default function ContasReceber() {
       setRegimeTributario(empresa?.regime_tributario || ''); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
     }
     const [
-      { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
-      { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: fc },
+      { data: cli, error: eCli }, { data: cc, error: eCc }, { data: ct, error: eCt }, compromissosData, etapasData,
+      { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: div, error: eDiv }, sc,
     ] = await Promise.all([
-      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('centros_custo').select('id, nome').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome').order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from('centros_custo').select('id, nome').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }).order('id')) : Promise.resolve({ data: [], error: null }),
       empId ? listarCompromissos(empId) : Promise.resolve([]),
       empId ? listarEtapasRegua(empId) : Promise.resolve([]),
-      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
-      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from('receitas').select('valor, data').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? soVigentes(supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId)) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId).order('id')) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [], error: null }),
+      // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Simulações, Painel de Risco e IA.
+      empId ? saldoCaixaRealizado(supabase, empId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
@@ -262,7 +264,10 @@ export default function ContasReceber() {
     setCustosFixosRows(cf || [])
     setCustosVarRows(cv || [])
     setDividasRows(div || [])
-    setCaixaDisponivel((fc || []).filter((l: any) => l.status === 'realizado').reduce((s: number, l: any) => s + (l.tipo === 'entrada' ? Number(l.valor || 0) : -Number(l.valor || 0)), 0))
+    setCaixaDisponivel(sc.saldo)
+    // Leitura falhou ≠ "carteira vazia": avisa em vez de mostrar KPIs e previsão incompletos calados.
+    const eLeitura = eCli?.message || eCc?.message || eCt?.message || eRec?.message || eCf?.message || eCv?.message || eDiv?.message || sc.erro
+    if (eLeitura) showToast(L('Parte dos dados não carregou — contas, clientes ou indicadores podem estar incompletos. Recarregue a página.', 'Some data did not load — bills, clients or indicators may be incomplete. Reload the page.', 'Parte de los datos no cargó — cuentas, clientes o indicadores pueden estar incompletos. Recargue la página.'), 'erro')
     // As 3 tabelas novas da Fase 2 (cobranca_interacoes/compromissos/regua_etapas) só
     // existem depois do Elias rodar o SQL do relatório de entrega — checamos com uma
     // consulta direta (em vez de confiar só no retorno gracioso dos helpers) pra saber
@@ -1251,7 +1256,7 @@ export default function ContasReceber() {
               <p className="text-xs mb-2" style={{ color: TEXTO }}>
                 {L('Do total a receber', 'Of the total receivable', 'Del total por cobrar')} (<b>{fBRL(kpis.valorTotalAReceber)}</b>), {L('uma estimativa de', 'an estimated', 'una estimación de')} <b style={{ color: VERMELHO }}>{fBRL(splitPaymentResultado.valorRetidoEstimado)}</b> {L('iria direto ao governo na liquidação, restando', 'would go directly to the government at settlement, leaving', 'iría directo al gobierno en la liquidación, quedando')} <b style={{ color: VERDE }}>{fBRL(splitPaymentResultado.valorLiquidoEstimado)}</b> {L('em caixa.', 'in cash.', 'en caja.')}
               </p>
-              <p className="text-[10px] italic" style={{ color: CINZA }}>{L(`* Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString('pt-BR')}. A Reforma Tributária ainda está em andamento e pode sofrer alterações — este número reflete o melhor entendimento atual.`, `* Estimate based on the rules in effect as of ${new Date().toLocaleDateString('en-US')}. The Tax Reform is still in progress and may change — this figure reflects the best current understanding.`, `* Estimación con base en las reglas vigentes hasta ${new Date().toLocaleDateString('es-ES')}. La Reforma Tributaria sigue en curso y puede sufrir cambios — este número refleja el mejor entendimiento actual.`)}</p>
+              <p className="text-[10px] italic" style={{ color: CINZA }}>{L('* Premissa: split payment previsto na EC 132/2023 e na LC 214/2025 (planalto.gov.br, conferidas em out/2026), com implantação gradual; a alíquota acima é uma estimativa que você pode ajustar. Regras em transição, podem mudar.', '* Assumption: split payment provided for in Constitutional Amendment 132/2023 and LC 214/2025 (planalto.gov.br, checked Oct/2026), phased in gradually; the rate above is an estimate you can adjust. Rules in transition, may change.', '* Premisa: split payment previsto en la EC 132/2023 y la LC 214/2025 (planalto.gov.br, verificadas en oct/2026), con implantación gradual; la alícuota de arriba es una estimación que puede ajustar. Reglas en transición, pueden cambiar.')}</p>
             </div>
           </div>
         </div>

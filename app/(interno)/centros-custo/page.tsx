@@ -22,8 +22,7 @@ import {
   type RateioRow, carregarRateios, aplicarRateio, removerRateio, custosPorCentroReal, sugerirPercentuaisPorBase,
   type OrcamentoRow, carregarOrcamentos, definirOrcamento, orcamentoDoPeriodo, registrarAuditoriaCentro,
   type ReceitaOrigem, carregarReceitasOrigem, receitasPorCentroReal,
-  type AuditoriaRow, carregarAuditoriaCentro,
-} from "../../../lib/centroCustoHelpers";
+  type AuditoriaRow, carregarAuditoriaCentro, consumirFalhaLeituraCentro } from "../../../lib/centroCustoHelpers";
 import {
   analisarCausaRaiz, type CausaRaizItem, identificarOportunidades, type Oportunidade,
   priorizar, type ItemPriorizado, montarChoqueExecutivo, simularCenarioCascata, mapaDeImpacto,
@@ -244,19 +243,19 @@ export default function CentrosCustoPage() {
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     const [
-      { data: centrosData }, { data: lancamentosData }, origensData, rateiosData, orcamentosData,
-      receitasData, { data: fornecedoresData }, { data: contasPagarData }, { data: contratosData },
+      { data: centrosData, error: eCentros }, { data: lancamentosData, error: eLanc }, origensData, rateiosData, orcamentosData,
+      receitasData, { data: fornecedoresData, error: eForn }, { data: contasPagarData, error: eCp }, { data: contratosData, error: eCtr },
       auditoriaData, planosData,
     ] = await Promise.all([
-      empId ? supabase.from("centros_custo").select("*").eq("empresa_id", empId).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("lancamentos_centro").select("*").eq("empresa_id", empId).order("data", { ascending: false }) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("centros_custo").select("*").eq("empresa_id", empId).order("created_at", { ascending: true }).order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("lancamentos_centro").select("*").eq("empresa_id", empId).order("data", { ascending: false }).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? carregarTodosLancamentosOrigem(empId) : Promise.resolve([]),
       empId ? carregarRateios(empId) : Promise.resolve([]),
       empId ? carregarOrcamentos(empId) : Promise.resolve([]),
       empId ? carregarReceitasOrigem(empId) : Promise.resolve([]),
-      empId ? supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? carregarAuditoriaCentro(empId) : Promise.resolve([]),
       empId ? carregarPlanosAcao(empId) : Promise.resolve([]),
     ]);
@@ -271,11 +270,14 @@ export default function CentrosCustoPage() {
     setContratosF2(contratosData || []);
     setAuditoria(auditoriaData);
     setPlanosAcao(planosData);
+    // Leitura falhou ≠ "sem centros/sem lançamentos": avisa em vez de mostrar indicadores incompletos calados.
+    const falhouHelpers = consumirFalhaLeituraCentro();
+    if (falhouHelpers || eCentros || eLanc || eForn || eCp || eCtr) showToast(idioma === "en" ? "Some data did not load — centers, entries or indicators may be incomplete. Reload the page." : idioma === "es" ? "Parte de los datos no cargó — centros, registros o indicadores pueden estar incompletos. Recargue la página." : "Parte dos dados não carregou — centros, lançamentos ou indicadores podem estar incompletos. Recarregue a página.", "erro");
     setLoading(false);
   }
 
   async function salvarCentro() {
-    if (!nomeCentro.trim()) return;
+    if (!nomeCentro.trim()) { showToast(idioma === "en" ? "Enter the center name before saving." : idioma === "es" ? "Ingrese el nombre del centro antes de guardar." : "Preencha o nome do centro antes de salvar.", "erro"); return; }
     if (documentoCentro.trim()) {
       const ok = tipoPessoaCentro === "PF" ? validarCPF(documentoCentro) : validarCNPJ(documentoCentro);
       if (!ok) {
