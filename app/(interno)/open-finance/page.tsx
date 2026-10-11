@@ -1,4 +1,5 @@
 'use client'
+import { registrarLancamentoManual } from '../../../lib/rastreio/lancamentoManual'
 import { lerTodas } from '../../../lib/lerTodas'
 import { useRouter } from 'next/navigation'
 import { irParaDestino } from '../../../lib/cfoCore'
@@ -274,14 +275,16 @@ export default function OpenFinancePage() {
 
     const [conexRes, txRes, receitasRes, custosRes, historicoRes] = await Promise.all([
       supabase.from('open_finance').select('*').eq('empresa_id', empresaId).order('created_at', { ascending: false }),
-      supabase.from('of_transacoes')
+      lerTodas(() => supabase.from('of_transacoes')
         .select('id, item_id, account_id, descricao, valor, tipo, categoria, data, pluggy_transaction_id, lancamento_id, lancamento_tabela')
-        .eq('empresa_id', empresaId).gte('data', periodo.inicio).lte('data', periodo.fim).order('data', { ascending: false }),
+        .eq('empresa_id', empresaId).gte('data', periodo.inicio).lte('data', periodo.fim).order('data', { ascending: false }).order('id')),
       lerTodas(() => supabase.from('receitas').select('id, descricao, valor, data, categoria, status').eq('empresa_id', empresaId).order("id")),
       lerTodas(() => supabase.from('custos_variaveis').select('id, descricao, valor, data, categoria').eq('empresa_id', empresaId).order("id")),
       supabase.from('of_transacoes').select('descricao').eq('empresa_id', empresaId).eq('tipo', 'saida').lt('data', periodo.inicio).limit(1000),
     ])
 
+    // Leitura falhou ≠ "nada a conciliar": avisa em vez de mostrar divergência falsa.
+    if (conexRes.error || txRes.error || receitasRes.error || custosRes.error || historicoRes.error) avisar('erro', idioma === 'en' ? 'Some data did not load — reconciliation may be incomplete. Reload the page.' : idioma === 'es' ? 'Parte de los datos no cargó — la conciliación puede estar incompleta. Recargue la página.' : 'Parte dos dados não carregou — a conciliação pode estar incompleta. Recarregue a página.')
     setConexoes(conexRes.data || [])
     setTransacoesPeriodo((txRes.data || []) as TransacaoOF[])
     setReceitas(receitasRes.data || [])
@@ -429,7 +432,11 @@ export default function OpenFinancePage() {
         return
       }
 
-      avisar('sucesso', t.sucessoLancamentoCriado)
+      // Porta oficial (igual Receitas/Custos Variáveis): o dinheiro do extrato entra no
+      // Fluxo de Caixa e na Contabilidade pelo motor — antes ficava só na tabela.
+      const motor = await registrarLancamentoManual(empresaIdAtual, tabela, { id: novoLancamento.id, descricao: tx.descricao, valor: tx.valor, data: tx.data, natureza: tabela === 'receitas' ? 'receita' : 'custo', categoria })
+      if (motor.erro) avisar('erro', idioma === 'en' ? 'Entry created, but Accounting/Cash Flow was not updated now — the Guardian will retry.' : idioma === 'es' ? 'Registro creado, pero Contabilidad/Flujo no se actualizó ahora — el Guardián reintentará.' : 'Lançamento criado, mas Contabilidade/Fluxo não foi atualizado agora — o Guardião tenta de novo.')
+      else avisar('sucesso', t.sucessoLancamentoCriado)
       setEditandoCategoriaId(null)
       await carregarTudo()
     } finally {
