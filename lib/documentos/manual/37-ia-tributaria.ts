@@ -1,38 +1,41 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
-import type { DocumentoAxioma } from "../tipos"
+// Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
+import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
-const doc: DocumentoAxioma = {
+const pt: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributária.docx',
   titulo: 'Manual 37 — IA Tributária',
   subtitulo: 'Seu Consultor Fiscal Digital: simulação, economia e compliance',
-  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech'],
+  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Tributária mostra **quanto a empresa paga de imposto**, **se está no regime mais barato**, **quanto dá para economizar** e **como a Reforma Tributária vai afetar o negócio**. Tem um chat para tirar dúvidas fiscais com os dados reais da empresa.' },
 
+    { h1: 'Como chegar' },
+    { lista: ['Menu do topo → **🤖 IA Premium ▼** → **IA Tributária**.'] },
+
     { h1: 'Regime atual' },
-    { p: 'No topo aparece o regime tributário da empresa, com o botão para editar. Para o cálculo do Lucro Presumido ficar exato, confirme a **atividade**: **Serviços** (presunção 32%), **Comércio/Indústria** (8%) ou **Revenda de combustível** (1,6%), e o **ISS do município** (2% a 5%; padrão 5%). Sem confirmação, o Axioma presume Serviços e avisa.' },
+    { p: 'No topo aparece o regime tributário da empresa, com o botão para editar. Para o cálculo do Lucro Presumido ficar exato, confirme a **atividade**: **Serviços** (presunção 32%), **Comércio/Indústria** (8%) ou **Revenda de combustível** (1,6%), e o **ISS do município** (2% a 5%; padrão 5%). Sem confirmação, o Axioma presume Serviços e avisa. Para MEI, o imposto é o DAS da categoria certa.' },
 
     { h1: 'Como a inteligência funciona aqui' },
     { tabela: { colunas: ['Camada', 'O que faz'], larguras: [2600, 6426], linhas: [
       ['Cálculos do Axioma', 'Score Fiscal, Simulador de Regime, Carga Tributária, Economia, Reforma e Diagnóstico são **calculados por regras** com as alíquotas vigentes e os seus dados reais.'],
-      ['Chat Fiscal (inteligência artificial)', 'Usa o **motor de inteligência mais avançado do Axioma**, com um retrato fiscal da empresa (regime, faturamento, impostos calculados, obrigações) enviado junto com a pergunta. A resposta é conferida antes de aparecer.'],
+      ['Chat Fiscal (inteligência artificial)', 'Usa o **motor de inteligência mais avançado do Axioma**, com um retrato fiscal da empresa (regime, faturamento, impostos calculados, obrigações) enviado junto com a pergunta e as regras oficiais vigentes. A resposta é conferida antes de aparecer. A inteligência só lê: nunca apaga nem altera dados.'],
     ] } },
-    { alerta: 'As regras da Reforma Tributária ainda estão em transição. O Axioma sempre informa a premissa e a data usadas em cada cálculo, e atualiza quando a regulamentação mudar.' },
+    { alerta: 'Reforma Tributária — premissa: IBS e CBS criados pela Emenda Constitucional 132/2023 e regulados pela Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026); 2026 é ano de teste e as alíquotas finais ainda dependem de lei. O Axioma mostra a premissa e a data em cada cálculo. Regras em transição: podem mudar.' },
 
     { h1: 'As abas' },
     { h2: '🛡️ Score Fiscal' },
     { p: 'Nota de adequação fiscal e compliance da empresa, com o que está bom e o que melhorar.' },
     { h2: '💬 Chat Fiscal' },
-    { p: 'Pergunte sobre impostos, regime, DAS, notas, obrigações. Exemplos: "vale a pena sair do Simples?", "quanto vou pagar de imposto este mês?". **🗑️ Limpar** apaga o histórico.' },
+    { p: 'Pergunte sobre impostos, regime, DAS, notas, obrigações. Exemplos: "vale a pena sair do Simples?", "quanto vou pagar de imposto este mês?". **🗑️ Limpar** apaga o histórico das suas conversas.' },
     { h2: '🏛️ Simulador de Regime' },
     { p: 'Compara **Simples Nacional**, **Lucro Presumido** e **Lucro Real** com os seus dados reais. O mais barato aparece primeiro com a marca **MAIS BARATO**; o atual é marcado como **Atual**; regimes que a empresa não pode usar aparecem como **Inelegível**. Para cada um: imposto por mês e por ano, **alíquota efetiva** e **economia por ano** em relação ao atual.' },
     { h2: '📊 Carga Tributária' },
-    { p: 'Quanto da receita vai para impostos e a **composição** (quais impostos).' },
+    { p: 'Quanto da receita vai para impostos e a **composição** (quais impostos). Os gráficos saem no idioma escolhido.' },
     { h2: '💰 Economia' },
     { p: '**Economia mensal**, **Economia anual**, o **Regime ideal** e as **ações para economizar**.' },
     { h2: '🔔 Reforma 2026' },
-    { p: 'Linha do tempo da transição para IBS/CBS (2026 a 2033) e os impactos no seu negócio, classificados como **Positivo**, **Neutro** ou **Atenção**.' },
+    { p: 'Linha do tempo da transição para IBS/CBS (2026 a 2033) e os impactos no seu negócio, classificados como **Positivo**, **Neutro** ou **Atenção**, com a fonte de cada regra.' },
     { h2: '📋 Diagnóstico' },
     { p: 'Parecer tributário completo, gerado a partir de todos os dados fiscais da empresa.' },
     { h2: '📅 Calendário' },
@@ -40,7 +43,101 @@ const doc: DocumentoAxioma = {
 
     { h1: 'Compartilhar e exportar' },
     { p: '**📤 Compartilhar** abre o Centro de Compartilhamento e o **PDF Relatório**, útil para levar ao contador.' },
+    { nota: 'Os dados são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa em vez de simular regime ou economia com zero no lugar do dado.' },
   ],
 }
 
+const en: DocumentoAxioma = {
+  arquivo: '37 - AI Premium - Tax AI.docx',
+  titulo: 'Manual 37 — Tax AI',
+  subtitulo: 'Your Digital Tax Advisor: simulation, savings and compliance',
+  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  blocos: [
+    { h1: 'What it is for' },
+    { p: 'Tax AI shows **how much tax the company pays**, **whether it is in the cheapest regime**, **how much it can save** and **how the Tax Reform will affect the business**. It has a chat to answer tax questions with the company’s real data.' },
+
+    { h1: 'How to get there' },
+    { lista: ['Top menu → **🤖 AI Premium ▼** → **Tax AI**.'] },
+
+    { h1: 'Current regime' },
+    { p: 'At the top you see the company’s tax regime, with a button to edit it. For an exact Lucro Presumido calculation, confirm the **activity**: **Services** (32% presumption), **Trade/Industry** (8%) or **Fuel resale** (1.6%), and the **municipal ISS** (2% to 5%; default 5%). Without confirmation, Axioma assumes Services and warns you. For MEI, the tax is the DAS of the right category.' },
+
+    { h1: 'How the intelligence works here' },
+    { tabela: { colunas: ['Layer', 'What it does'], larguras: [2600, 6426], linhas: [
+      ['Axioma calculations', 'Tax Score, Regime Simulator, Tax Burden, Savings, Reform and Diagnosis are **calculated by rules** with the current rates and your real data.'],
+      ['Tax Chat (artificial intelligence)', 'Uses **Axioma’s most advanced intelligence engine**, with a tax snapshot of the company (regime, revenue, calculated taxes, obligations) sent with the question and the current official rules. The answer is checked before it appears. The AI only reads: it never deletes or changes data.'],
+    ] } },
+    { alerta: 'Tax Reform — assumption: IBS and CBS created by Constitutional Amendment 132/2023 and regulated by Complementary Law 214/2025 (planalto.gov.br, checked in October 2026); 2026 is a test year and final rates still depend on law. Axioma shows the assumption and date in each calculation. Rules in transition: they may change.' },
+
+    { h1: 'The tabs' },
+    { h2: '🛡️ Tax Score' },
+    { p: 'The company’s tax compliance score, with what is fine and what to improve.' },
+    { h2: '💬 Tax Chat' },
+    { p: 'Ask about taxes, regime, DAS, invoices, obligations. Examples: "is it worth leaving Simples?", "how much tax will I pay this month?". **🗑️ Clear** deletes your conversation history.' },
+    { h2: '🏛️ Regime Simulator' },
+    { p: 'Compares **Simples Nacional**, **Lucro Presumido** and **Lucro Real** with your real data. The cheapest appears first with the **CHEAPEST** tag; the current one is marked **Current**; regimes the company cannot use appear as **Ineligible**. For each: tax per month and per year, **effective rate** and **savings per year** compared with the current one.' },
+    { h2: '📊 Tax Burden' },
+    { p: 'How much of revenue goes to taxes and the **composition** (which taxes). Charts come out in the chosen language.' },
+    { h2: '💰 Savings' },
+    { p: '**Monthly savings**, **Annual savings**, the **Ideal regime** and the **actions to save**.' },
+    { h2: '🔔 2026 Reform' },
+    { p: 'Timeline of the transition to IBS/CBS (2026 to 2033) and the impacts on your business, classified as **Positive**, **Neutral** or **Attention**, with the source of each rule.' },
+    { h2: '📋 Diagnosis' },
+    { p: 'A complete tax opinion, generated from all of the company’s tax data.' },
+    { h2: '📅 Calendar' },
+    { p: 'Shortcut to obligations, which are managed in **Company → Compliance & Tax** and in the Obligations Calendar of the Tax module.' },
+
+    { h1: 'Share and export' },
+    { p: '**📤 Share** opens the Sharing Center and the **PDF Report**, useful to take to the accountant.' },
+    { nota: 'Data is read with no row limit. If any loading fails, the screen warns you instead of simulating regime or savings with zero in place of the data.' },
+  ],
+}
+
+const es: DocumentoAxioma = {
+  arquivo: '37 - IA Premium - IA Tributaria.docx',
+  titulo: 'Manual 37 — IA Tributaria',
+  subtitulo: 'Su Consultor Fiscal Digital: simulación, ahorro y cumplimiento',
+  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  blocos: [
+    { h1: 'Para qué sirve' },
+    { p: 'La IA Tributaria muestra **cuánto paga de impuestos la empresa**, **si está en el régimen más barato**, **cuánto se puede ahorrar** y **cómo la Reforma Tributaria afectará al negocio**. Tiene un chat para resolver dudas fiscales con los datos reales de la empresa.' },
+
+    { h1: 'Cómo llegar' },
+    { lista: ['Menú superior → **🤖 IA Premium ▼** → **IA Tributaria**.'] },
+
+    { h1: 'Régimen actual' },
+    { p: 'Arriba aparece el régimen tributario de la empresa, con el botón para editarlo. Para que el cálculo del Lucro Presumido sea exacto, confirme la **actividad**: **Servicios** (presunción 32%), **Comercio/Industria** (8%) o **Reventa de combustible** (1,6%), y el **ISS del municipio** (2% a 5%; estándar 5%). Sin confirmación, Axioma presume Servicios y avisa. Para MEI, el impuesto es el DAS de la categoría correcta.' },
+
+    { h1: 'Cómo funciona la inteligencia aquí' },
+    { tabela: { colunas: ['Capa', 'Qué hace'], larguras: [2600, 6426], linhas: [
+      ['Cálculos de Axioma', 'Score Fiscal, Simulador de Régimen, Carga Tributaria, Ahorro, Reforma y Diagnóstico se **calculan por reglas** con las alícuotas vigentes y sus datos reales.'],
+      ['Chat Fiscal (inteligencia artificial)', 'Usa el **motor de inteligencia más avanzado de Axioma**, con un retrato fiscal de la empresa (régimen, facturación, impuestos calculados, obligaciones) enviado junto con la pregunta y las reglas oficiales vigentes. La respuesta se revisa antes de aparecer. La inteligencia solo lee: nunca borra ni altera datos.'],
+    ] } },
+    { alerta: 'Reforma Tributaria — premisa: IBS y CBS creados por la Enmienda Constitucional 132/2023 y regulados por la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026); 2026 es año de prueba y las alícuotas finales aún dependen de ley. Axioma muestra la premisa y la fecha en cada cálculo. Reglas en transición: pueden cambiar.' },
+
+    { h1: 'Las pestañas' },
+    { h2: '🛡️ Score Fiscal' },
+    { p: 'Nota de adecuación fiscal y cumplimiento de la empresa, con lo que está bien y lo que mejorar.' },
+    { h2: '💬 Chat Fiscal' },
+    { p: 'Pregunte sobre impuestos, régimen, DAS, facturas, obligaciones. Ejemplos: "¿vale la pena salir del Simples?", "¿cuánto voy a pagar de impuestos este mes?". **🗑️ Limpiar** borra el historial de sus conversaciones.' },
+    { h2: '🏛️ Simulador de Régimen' },
+    { p: 'Compara **Simples Nacional**, **Lucro Presumido** y **Lucro Real** con sus datos reales. El más barato aparece primero con la marca **MÁS BARATO**; el actual se marca como **Actual**; los regímenes que la empresa no puede usar aparecen como **Inelegible**. Para cada uno: impuesto por mes y por año, **alícuota efectiva** y **ahorro por año** frente al actual.' },
+    { h2: '📊 Carga Tributaria' },
+    { p: 'Cuánto de los ingresos va a impuestos y la **composición** (qué impuestos). Los gráficos salen en el idioma elegido.' },
+    { h2: '💰 Ahorro' },
+    { p: '**Ahorro mensual**, **Ahorro anual**, el **Régimen ideal** y las **acciones para ahorrar**.' },
+    { h2: '🔔 Reforma 2026' },
+    { p: 'Línea de tiempo de la transición a IBS/CBS (2026 a 2033) y los impactos en su negocio, clasificados como **Positivo**, **Neutro** o **Atención**, con la fuente de cada regla.' },
+    { h2: '📋 Diagnóstico' },
+    { p: 'Parecer tributario completo, generado a partir de todos los datos fiscales de la empresa.' },
+    { h2: '📅 Calendario' },
+    { p: 'Atajo a las obligaciones, que se gestionan en **Empresa → Compliance y Fiscal** y en el Calendario de Obligaciones del módulo Fiscal.' },
+
+    { h1: 'Compartir y exportar' },
+    { p: '**📤 Compartir** abre el Centro de Compartir y el **PDF Informe**, útil para llevar al contador.' },
+    { nota: 'Los datos se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa en lugar de simular régimen o ahorro con cero en lugar del dato.' },
+  ],
+}
+
+const doc: DocTrilingue = { pt, en, es }
 export default doc

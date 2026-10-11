@@ -85,21 +85,24 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const inicio12m = new Date(anoAtual - 1, mesAtual - 1, 1).toISOString().slice(0, 10);
 
   const [
-    { data: rec12m },
-    { data: recMes },
-    { data: custosFix },
-    { data: custosVar },
-    { data: empresa },
+    { data: rec12m, error: e1 },
+    { data: recMes, error: e2 },
+    { data: custosFix, error: e3 },
+    { data: custosVar, error: e4 },
+    { data: empresa, error: e5 },
     { data: obrigacoes },
   ] = await Promise.all([
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
+    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
   ]);
 
+  // Leitura que falha lança erro: a tela avisa em vez de simular regime/economia com zero.
+  const eLeitura = e1 || e2 || e3 || e4 || e5;
+  if (eLeitura) throw new Error(`[ia-tributaria] leitura falhou: ${eLeitura.message}`);
   const receita_bruta_12m = (rec12m || []).reduce((s, r) => s + Number(r.valor || 0), 0);
   const receita_bruta_mensal = (recMes || []).reduce((s, r) => s + Number(r.valor || 0), 0);
   const custos_fixos_mensal = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);

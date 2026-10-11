@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
@@ -85,7 +86,8 @@ export default function FiscalConfigPage() {
       if (!empId) { setLoading(false); return }
 
       const [papel, cfg, dadosFiscais] = await Promise.all([
-        obterMeuPapel(empId), obterConfigFiscal(empId), uid ? carregarDadosFiscais(uid, empId) : Promise.resolve(null),
+        obterMeuPapel(empId), obterConfigFiscal(empId), // Receita é só referência aqui: se não carregar, a tela segue (sem travar no carregando) e o erro vai pro Sentry.
+        uid ? carregarDadosFiscais(uid, empId).catch((e) => { Sentry.captureException(e); return null }) : Promise.resolve(null),
       ])
       setPodeEditar(papel != null && PAPEIS_CONFIG.includes(papel))
       setConfig(cfg)
