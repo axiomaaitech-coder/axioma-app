@@ -1,17 +1,20 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
-import type { DocumentoAxioma } from "../tipos"
+// Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
+import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
-const doc: DocumentoAxioma = {
+const pt: DocumentoAxioma = {
   arquivo: '27 - Comercial - Fornecedores.docx',
   titulo: 'Manual 27 — Fornecedores',
   subtitulo: 'Cadeia de suprimentos com score, risco e inteligência de compras',
-  info: ['Menu: Comercial → Fornecedores  •  Manual de uso do Axioma AI.Tech'],
+  info: ['Menu: Comercial → Fornecedores  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
-    { p: 'Organiza todos os fornecedores e mostra **de quem a empresa depende**, **quem está aumentando preço**, **onde há desperdício** e **quais contratos e documentos vão vencer**. Cada fornecedor recebe o **Score Corporativo Axioma** (0 a 1000).' },
+    { p: 'Organiza todos os fornecedores e mostra **de quem a empresa depende**, **quem está aumentando preço**, **onde há desperdício** e **quais contratos e documentos vão vencer**. Cada fornecedor recebe o **Score Corporativo Axioma** (0 a 1000). A tela tem duas abas: **Fornecedores** e **Contas a Pagar**.' },
+
+    { h1: 'Como chegar' },
+    { lista: ['Menu do topo → **👥 Comercial ▼** → **Fornecedores**.'] },
 
     { h1: 'Dashboard Executivo' },
-    { p: 'Grade de 17 indicadores. Clique em qualquer um para ver o detalhe e a explicação de como é calculado:' },
+    { p: 'Grade de indicadores. Clique em qualquer um para ver o detalhe e a explicação de como é calculado:' },
     { tabela: { colunas: ['Indicador', 'Como é calculado'], larguras: [3000, 6026], linhas: [
       ['Total / Ativos / Inativos', 'Contagem pelo status no cadastro.'],
       ['Valor Total Contratado', 'Soma do valor de todos os contratos cadastrados.'],
@@ -25,7 +28,7 @@ const doc: DocumentoAxioma = {
       ['Score Médio dos Fornecedores', 'Média do Score Corporativo Axioma.'],
     ] } },
     { nota: 'Indicadores como Economia Obtida, Índice de Negociação e Lead Time aparecem como "Sem dados suficientes" porque dependem de informações que o Axioma ainda não registra (cotações e prazo de entrega). Nada é inventado.' },
-    { h2: 'Curva ABC e Distribuição Geográfica' },
+    { h2: 'Curva ABC de Fornecedores e Distribuição Geográfica' },
     { p: 'A Curva ABC mostra a concentração de gasto: **Classe A** (80% do gasto), **Classe B** (até 95%) e **Classe C**. O mapa mostra fornecedores por estado.' },
     { h2: 'Radar de Risco e Escada de Vencimentos' },
     { p: 'O Radar mostra risco, dependência, concentração, qualidade e atraso de pagamento. A Escada lista documentos e contratos que vencem nos próximos 6 meses.' },
@@ -44,11 +47,12 @@ const doc: DocumentoAxioma = {
     { h1: 'Painel de Alertas' },
     { p: 'Tudo que pede atenção agora, cada um com a ação sugerida: **Fornecedor parado**, **Fornecedor em risco**, **Contrato vencendo**, **Documento vencendo**, **Preço acima da média interna**, **Dependência elevada**, **Compras concentradas** e **Aumento recorrente de preço** (subiu em 3 compras seguidas).' },
     { h1: 'Simulador Executivo' },
-    { p: 'Simule uma decisão antes de tomá-la: **Troca de Fornecedor**, **Mudança de Preço**, **Mudança de Prazo**, **Mudança Cambial**, **Perda de Fornecedor Estratégico** ou **Novo Fornecedor**. Informe se o gasto é custo fixo ou variável, os valores e o horizonte. O resultado mostra Receita, EBITDA, Lucro Líquido, Caixa Projetado e Margem em quatro cenários (Conservador, Base, Otimista, Adverso).' },
+    { p: 'Simule uma decisão antes de tomá-la: **Troca de Fornecedor**, **Mudança de Preço**, **Mudança de Prazo**, **Mudança Cambial**, **Perda de Fornecedor Estratégico** ou **Novo Fornecedor**. Informe se o gasto é custo fixo ou variável, os valores e o horizonte. O resultado mostra Receita, EBITDA, Lucro Líquido, Caixa Projetado e Margem em quatro cenários (Conservador, Base, Otimista, Adverso). O caixa de partida é o mesmo saldo do Fluxo de Caixa (com as vendas do PDV). Nada é gravado.' },
     { h1: 'Reforma Tributária 2026 por Fornecedor' },
-    { p: 'Mostra o potencial de cada fornecedor gerar **crédito tributário** no novo IVA (CBS/IBS): **Crédito Pleno**, **Parcial**, **Baixo** ou **Indefinido**, com base no regime do fornecedor. Como as alíquotas finais ainda não estão regulamentadas, o Axioma mostra o potencial estrutural e atualiza quando a legislação fechar.' },
+    { p: 'Mostra o potencial de cada fornecedor gerar **crédito tributário** no IVA dual (CBS/IBS): **Crédito Pleno**, **Parcial**, **Baixo** ou **Indefinido**, com base no regime do fornecedor.' },
+    { alerta: 'Premissa: IBS e CBS foram criados pela Emenda Constitucional 132/2023 e regulados pela Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026). 2026 é ano de teste e as alíquotas finais ainda dependem de lei — por isso o Axioma mostra só o potencial de crédito, não o valor em reais. Regras em transição: podem mudar.' },
     { h1: 'IA Executiva' },
-    { p: 'Recomendações em linguagem de CFO sobre a carteira: risco de interrupção, aumentos anormais de preço, oportunidades de renegociação e consolidação, contratos vencendo e dependência. Hoje o parecer é gerado por **regras sobre dados reais**, com a mesma transparência do resto do Axioma.' },
+    { p: 'Recomendações em linguagem de CFO sobre a carteira: risco de interrupção, aumentos anormais de preço, oportunidades de renegociação e consolidação, contratos vencendo e dependência. O parecer é gerado por **regras sobre dados reais**.' },
 
     { h1: 'Passo a passo: cadastrar um fornecedor' },
     { p: 'Clique em **+ Novo Fornecedor**. O cadastro tem etapas (use **Anterior** e **Próximo**):' },
@@ -63,8 +67,179 @@ const doc: DocumentoAxioma = {
       '**Produtos**, **Qualidade** (nível e certificações) e **Risco** (classificação e dependência).',
       '**Observações** e a **Timeline de Interações**. Clique em **Concluir Cadastro**.',
     ] },
-    { p: 'Na aba **Contas a Pagar** da própria tela você vê as contas de cada fornecedor.' },
+
+    { h1: 'Aba Contas a Pagar' },
+    { p: 'As contas dos fornecedores, com busca por descrição ou fornecedor. **Ver as contas deste fornecedor** (no cartão do fornecedor) abre a aba já filtrada. Tudo aqui passa pela **mesma porta oficial** de Contas a Pagar: aprovação, contabilidade, Fluxo de Caixa e rastreabilidade.' },
+    { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
+      ['+ Nova Conta a Pagar', 'Cria a conta (fornecedor, descrição, valor, vencimento, parcelas, nota fiscal, forma de pagamento). Se a empresa exige aprovação, ela nasce "aguardando aprovação".'],
+      ['Quitar', 'Baixa oficial do que falta pagar, com a data de hoje: entra na contabilidade, no Fluxo de Caixa e na DRE. Conta aguardando aprovação não pode ser quitada; DAS do MEI só se paga em MEI → DAS e Obrigações.'],
+      ['🕘 Histórico', 'Criação, aprovação, cada pagamento, juros e quanto falta.'],
+      ['✏️ Lápis', 'Edita a conta. Nunca muda o que já foi pago, nem tira a conta da fila de aprovação; o valor não pode ficar abaixo do já pago.'],
+      ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Conta paga não pode ser apagada.'],
+    ] } },
+    { nota: 'Fornecedores, documentos, contratos e contas são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos. Toda gravação que falha também avisa.' },
   ],
 }
 
+const en: DocumentoAxioma = {
+  arquivo: '27 - Commercial - Suppliers.docx',
+  titulo: 'Manual 27 — Suppliers',
+  subtitulo: 'Supply chain with score, risk and purchasing intelligence',
+  info: ['Menu: Commercial → Suppliers  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  blocos: [
+    { h1: 'What it is for' },
+    { p: 'Organizes all suppliers and shows **who the company depends on**, **who is raising prices**, **where there is waste** and **which contracts and documents are about to expire**. Each supplier gets the **Axioma Corporate Score** (0 to 1000). The screen has two tabs: **Suppliers** and **Payables**.' },
+
+    { h1: 'How to get there' },
+    { lista: ['Top menu → **👥 Commercial ▼** → **Suppliers**.'] },
+
+    { h1: 'Executive Dashboard' },
+    { p: 'A grid of indicators. Click any of them to see the detail and how it is calculated:' },
+    { tabela: { colunas: ['Indicator', 'How it is calculated'], larguras: [3000, 6026], linhas: [
+      ['Total / Active / Inactive', 'Count by status in the record.'],
+      ['Total Contracted Value', 'Sum of all registered contracts.'],
+      ['Purchases this Month / Year', 'Sum of payables issued to suppliers in the period.'],
+      ['Financial Dependency', 'How much of the total paid is with the largest supplier.'],
+      ['Supply Chain Diversification', 'Index from 0 to 100: 100 is spending well spread, 0 is all in one.'],
+      ['Average Portfolio Risk', 'Average of the risk rating entered in the record.'],
+      ['Payment Punctuality', 'How often the company pays suppliers on time.'],
+      ['Quality Index', 'Average of the quality level entered in the record.'],
+      ['Stability Index', 'Average relationship time with active suppliers.'],
+      ['Average Supplier Score', 'Average of the Axioma Corporate Score.'],
+    ] } },
+    { nota: 'Indicators such as Savings Achieved, Negotiation Index and Lead Time show "Not enough data" because they depend on information Axioma does not record yet (quotes and delivery time). Nothing is made up.' },
+    { h2: 'Supplier ABC Curve and Geographic Distribution' },
+    { p: 'The ABC Curve shows spending concentration: **Class A** (80% of spending), **Class B** (up to 95%) and **Class C**. The map shows suppliers by state.' },
+    { h2: 'Risk Radar and Expiration Ladder' },
+    { p: 'The Radar shows risk, dependency, concentration, quality and payment delay. The Ladder lists documents and contracts expiring in the next 6 months.' },
+    { h2: 'Axioma Ranking' },
+    { p: 'Suppliers sorted by the **Axioma Corporate Score** (0 to 1000), made of weighted criteria: Risk, Compliance, Relationship, Reliability, Price, Delivery Capacity, Financial Health, Sustainability, Innovation and Flexibility, among others. **View Score** shows each criterion’s weight and contribution.' },
+
+    { h1: 'Purchasing Intelligence' },
+    { lista: [
+      '**Purchase Evolution** for each supplier.',
+      '**Supplier Inflation**: how much they raised compared with the previous period.',
+      '**Price Increase Trend**: flags "Above its own average" and "Recurring increase".',
+      '**Seasonality**: distribution of purchases over the last 12 months.',
+      '**Waste**: very similar descriptions, possible duplicate charge.',
+      '**Consolidation Opportunities**: suppliers in the same category and the estimated savings by concentrating on the lowest-ticket one.',
+    ] },
+    { h1: 'Alerts Panel' },
+    { p: 'Everything that needs attention now, each with a suggested action: **Idle supplier**, **Supplier at risk**, **Contract expiring**, **Document expiring**, **Price above internal average**, **High dependency**, **Concentrated purchases** and **Recurring price increase** (rose in 3 purchases in a row).' },
+    { h1: 'Executive Simulator' },
+    { p: 'Simulate a decision before making it: **Supplier Switch**, **Price Change**, **Term Change**, **Exchange Rate Change**, **Loss of Strategic Supplier** or **New Supplier**. Say whether the spending is a fixed or variable cost, the amounts and the horizon. The result shows Revenue, EBITDA, Net Profit, Projected Cash and Margin in four scenarios (Conservative, Base, Optimistic, Adverse). The starting cash is the same balance as Cash Flow (including POS sales). Nothing is saved.' },
+    { h1: '2026 Tax Reform by Supplier' },
+    { p: 'Shows each supplier’s potential to generate **tax credit** under the dual VAT (CBS/IBS): **Full Credit**, **Partial**, **Low** or **Undefined**, based on the supplier’s regime.' },
+    { alerta: 'Assumption: IBS and CBS were created by Constitutional Amendment 132/2023 and regulated by Complementary Law 214/2025 (planalto.gov.br, checked in October 2026). 2026 is a test year and final rates still depend on law — so Axioma shows only the credit potential, not the amount in reais. Rules in transition: they may change.' },
+    { h1: 'Executive AI' },
+    { p: 'CFO-style recommendations about the portfolio: risk of interruption, abnormal price increases, renegotiation and consolidation opportunities, expiring contracts and dependency. The opinion is generated by **rules over real data**.' },
+
+    { h1: 'Step by step: registering a supplier' },
+    { p: 'Click **+ New Supplier**. Registration has steps (use **Previous** and **Next**):' },
+    { numerada: [
+      '**Identification**: person type, legal name, trade name, CNPJ/CPF (validated), size, category, status and monthly spending.',
+      '**Contacts**: main contact and other contacts.',
+      '**Address**: the ZIP code (CEP) fills in the address automatically.',
+      '**Documents**: type, number, issue date, expiration and file. Expired and expiring ones are flagged.',
+      '**Tax**: registrations, tax regime and ICMS taxpayer.',
+      '**Financial**: bank, branch, account, Pix key, payment terms, currency and cost center.',
+      '**Contracts**: start, end, automatic renewal, adjustment index and amounts.',
+      '**Products**, **Quality** (level and certifications) and **Risk** (rating and dependency).',
+      '**Notes** and the **Interaction Timeline**. Click **Finish Registration**.',
+    ] },
+
+    { h1: 'Payables tab' },
+    { p: 'Suppliers’ bills, with search by description or supplier. **See this supplier’s bills** (on the supplier card) opens the tab already filtered. Everything here goes through the **same official path** as Accounts Payable: approval, accounting, Cash Flow and traceability.' },
+    { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
+      ['+ New Bill', 'Creates the bill (supplier, description, amount, due date, installments, invoice number, payment method). If the company requires approval, it starts as "awaiting approval".'],
+      ['Settle', 'Official payment of what is left, dated today: it goes into accounting, Cash Flow and the Income Statement. A bill awaiting approval cannot be settled; an MEI DAS is only paid in MEI → DAS & Obligations.'],
+      ['🕘 History', 'Creation, approval, each payment, interest and what is left.'],
+      ['✏️ Pencil', 'Edits the bill. It never changes what was already paid, nor removes the bill from the approval queue; the amount cannot go below what was paid.'],
+      ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A paid bill cannot be deleted.'],
+    ] } },
+    { nota: 'Suppliers, documents, contracts and bills are read with no row limit. If any loading fails, the screen warns that data may be incomplete. Every failed save also warns you.' },
+  ],
+}
+
+const es: DocumentoAxioma = {
+  arquivo: '27 - Comercial - Proveedores.docx',
+  titulo: 'Manual 27 — Proveedores',
+  subtitulo: 'Cadena de suministro con score, riesgo e inteligencia de compras',
+  info: ['Menú: Comercial → Proveedores  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  blocos: [
+    { h1: 'Para qué sirve' },
+    { p: 'Organiza todos los proveedores y muestra **de quién depende la empresa**, **quién está subiendo precios**, **dónde hay desperdicio** y **qué contratos y documentos van a vencer**. Cada proveedor recibe el **Score Corporativo Axioma** (0 a 1000). La pantalla tiene dos pestañas: **Proveedores** y **Cuentas por Pagar**.' },
+
+    { h1: 'Cómo llegar' },
+    { lista: ['Menú superior → **👥 Comercial ▼** → **Proveedores**.'] },
+
+    { h1: 'Dashboard Ejecutivo' },
+    { p: 'Una grilla de indicadores. Haga clic en cualquiera para ver el detalle y cómo se calcula:' },
+    { tabela: { colunas: ['Indicador', 'Cómo se calcula'], larguras: [3000, 6026], linhas: [
+      ['Total / Activos / Inactivos', 'Conteo por estado en el registro.'],
+      ['Valor Total Contratado', 'Suma del valor de todos los contratos registrados.'],
+      ['Compras del Mes / del Año', 'Suma de las cuentas por pagar emitidas a proveedores en el período.'],
+      ['Dependencia Financiera', 'Cuánto del total pagado está en el mayor proveedor.'],
+      ['Diversificación de la Cadena', 'Índice de 0 a 100: 100 es gasto bien distribuido, 0 es todo en uno.'],
+      ['Riesgo Promedio de la Cartera', 'Promedio de la clasificación de riesgo informada en el registro.'],
+      ['Puntualidad de Pago', 'Cuánto paga la empresa a los proveedores a tiempo.'],
+      ['Índice de Calidad', 'Promedio del nivel de calidad informado en el registro.'],
+      ['Índice de Estabilidad', 'Tiempo promedio de relación con los proveedores activos.'],
+      ['Score Promedio de los Proveedores', 'Promedio del Score Corporativo Axioma.'],
+    ] } },
+    { nota: 'Indicadores como Ahorro Obtenido, Índice de Negociación y Lead Time aparecen como "Sin datos suficientes" porque dependen de información que Axioma aún no registra (cotizaciones y plazo de entrega). Nada se inventa.' },
+    { h2: 'Curva ABC de Proveedores y Distribución Geográfica' },
+    { p: 'La Curva ABC muestra la concentración del gasto: **Clase A** (80% del gasto), **Clase B** (hasta 95%) y **Clase C**. El mapa muestra proveedores por estado.' },
+    { h2: 'Radar de Riesgo y Escalera de Vencimientos' },
+    { p: 'El Radar muestra riesgo, dependencia, concentración, calidad y atraso de pago. La Escalera lista documentos y contratos que vencen en los próximos 6 meses.' },
+    { h2: 'Ranking Axioma' },
+    { p: 'Proveedores ordenados por el **Score Corporativo Axioma** (0 a 1000), formado por criterios con peso propio: Riesgo, Compliance, Relación, Confiabilidad, Precio, Capacidad de Entrega, Salud Financiera, Sostenibilidad, Innovación y Flexibilidad, entre otros. **Ver Score** muestra el peso y la contribución de cada criterio.' },
+
+    { h1: 'Inteligencia de Compras' },
+    { lista: [
+      '**Evolución de Compras** de cada proveedor.',
+      '**Inflación del Proveedor**: cuánto aumentó frente al período anterior.',
+      '**Tendencia de Reajuste**: señala "Por encima de su propio promedio" y "Aumento recurrente".',
+      '**Estacionalidad**: distribución de las compras en los últimos 12 meses.',
+      '**Desperdicios**: descripciones muy parecidas, posible cobro duplicado.',
+      '**Oportunidades de Consolidación**: proveedores en la misma categoría y el ahorro estimado concentrando en el de menor ticket.',
+    ] },
+    { h1: 'Panel de Alertas' },
+    { p: 'Todo lo que requiere atención ahora, cada uno con la acción sugerida: **Proveedor inactivo**, **Proveedor en riesgo**, **Contrato por vencer**, **Documento por vencer**, **Precio por encima del promedio interno**, **Dependencia elevada**, **Compras concentradas** y **Aumento recurrente de precio** (subió en 3 compras seguidas).' },
+    { h1: 'Simulador Ejecutivo' },
+    { p: 'Simule una decisión antes de tomarla: **Cambio de Proveedor**, **Cambio de Precio**, **Cambio de Plazo**, **Cambio Cambiario**, **Pérdida de Proveedor Estratégico** o **Nuevo Proveedor**. Indique si el gasto es costo fijo o variable, los valores y el horizonte. El resultado muestra Ingresos, EBITDA, Utilidad Neta, Caja Proyectada y Margen en cuatro escenarios (Conservador, Base, Optimista, Adverso). La caja de partida es el mismo saldo del Flujo de Caja (con las ventas del PDV). Nada se guarda.' },
+    { h1: 'Reforma Tributaria 2026 por Proveedor' },
+    { p: 'Muestra el potencial de cada proveedor de generar **crédito tributario** en el IVA dual (CBS/IBS): **Crédito Pleno**, **Parcial**, **Bajo** o **Indefinido**, según el régimen del proveedor.' },
+    { alerta: 'Premisa: IBS y CBS fueron creados por la Enmienda Constitucional 132/2023 y regulados por la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026). 2026 es año de prueba y las alícuotas finales aún dependen de ley — por eso Axioma muestra solo el potencial de crédito, no el valor en reales. Reglas en transición: pueden cambiar.' },
+    { h1: 'IA Ejecutiva' },
+    { p: 'Recomendaciones en lenguaje de CFO sobre la cartera: riesgo de interrupción, aumentos anormales de precio, oportunidades de renegociación y consolidación, contratos por vencer y dependencia. El parecer se genera por **reglas sobre datos reales**.' },
+
+    { h1: 'Paso a paso: registrar un proveedor' },
+    { p: 'Haga clic en **+ Nuevo Proveedor**. El registro tiene etapas (use **Anterior** y **Siguiente**):' },
+    { numerada: [
+      '**Identificación**: tipo de persona, razón social, nombre comercial, CNPJ/CPF (validado), tamaño, categoría, estado y gasto mensual.',
+      '**Contactos**: contacto principal y otros contactos.',
+      '**Dirección**: el código postal (CEP) completa la dirección solo.',
+      '**Documentos**: tipo, número, emisión, validez y archivo. Los vencidos y por vencer quedan marcados.',
+      '**Fiscal**: inscripciones, régimen tributario y contribuyente de ICMS.',
+      '**Financiero**: banco, agencia, cuenta, clave Pix, condición y plazo de pago, moneda y centro de costo.',
+      '**Contratos**: inicio, fin, renovación automática, índice de reajuste y valores.',
+      '**Productos**, **Calidad** (nivel y certificaciones) y **Riesgo** (clasificación y dependencia).',
+      '**Observaciones** y la **Línea de Tiempo de Interacciones**. Haga clic en **Finalizar Registro**.',
+    ] },
+
+    { h1: 'Pestaña Cuentas por Pagar' },
+    { p: 'Las cuentas de los proveedores, con búsqueda por descripción o proveedor. **Ver las cuentas de este proveedor** (en la tarjeta del proveedor) abre la pestaña ya filtrada. Todo aquí pasa por la **misma puerta oficial** de Cuentas por Pagar: aprobación, contabilidad, Flujo de Caja y trazabilidad.' },
+    { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
+      ['+ Nueva Cuenta por Pagar', 'Crea la cuenta (proveedor, descripción, valor, vencimiento, cuotas, factura, forma de pago). Si la empresa exige aprobación, nace "esperando aprobación".'],
+      ['Liquidar', 'Pago oficial de lo que falta, con la fecha de hoy: entra en la contabilidad, el Flujo de Caja y el Estado de Resultados. Una cuenta esperando aprobación no se puede liquidar; el DAS del MEI solo se paga en MEI → DAS y Obligaciones.'],
+      ['🕘 Historial', 'Creación, aprobación, cada pago, intereses y lo que falta.'],
+      ['✏️ Lápiz', 'Edita la cuenta. Nunca cambia lo ya pagado ni saca la cuenta de la fila de aprobación; el valor no puede quedar por debajo de lo ya pagado.'],
+      ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Una cuenta pagada no se puede borrar.'],
+    ] } },
+    { nota: 'Proveedores, documentos, contratos y cuentas se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos. Toda grabación que falla también avisa.' },
+  ],
+}
+
+const doc: DocTrilingue = { pt, en, es }
 export default doc

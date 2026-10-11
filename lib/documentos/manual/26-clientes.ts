@@ -1,14 +1,17 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
-import type { DocumentoAxioma } from "../tipos"
+// Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
+import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
-const doc: DocumentoAxioma = {
+const pt: DocumentoAxioma = {
   arquivo: '26 - Comercial - Clientes.docx',
   titulo: 'Manual 26 — Clientes',
   subtitulo: 'Cada cliente como ativo financeiro: valor, risco e oportunidade',
-  info: ['Menu: Comercial → Clientes  •  Manual de uso do Axioma AI.Tech'],
+  info: ['Menu: Comercial → Clientes  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Clientes vai além de uma agenda de contatos: trata cada cliente como um **ativo financeiro**. Mostra quanto cada um vale, quanto paga em dia, o risco de inadimplência e as oportunidades de vender mais. A tela tem três abas: **📊 Carteira**, **🧬 Cliente** e **💳 Cobranças**.' },
+
+    { h1: 'Como chegar' },
+    { lista: ['Menu do topo → **👥 Comercial ▼** → **Clientes**.'] },
 
     { h1: 'Aba Carteira' },
     { h2: 'Mapa Executivo da Carteira' },
@@ -18,34 +21,35 @@ const doc: DocumentoAxioma = {
     { h2: 'Radar Executivo' },
     { p: 'Agrupa a carteira por sinal: **Premium**, **Prontos p/ Upsell**, **Em Risco**, **Negligenciados**, **Caixa Recorrente** e **Concentração Alta**. Clique em um grupo para filtrar a lista; **Limpar filtro** volta a mostrar todos.' },
     { h2: 'Mapa de Valor dos Clientes' },
-    { p: 'Gráfico de bolhas: valor (IVCA) × segurança. O tamanho da bolha é o ticket médio. Clique numa bolha para abrir o cliente. Precisa de pelo menos 2 clientes com cobranças.' },
+    { p: 'Gráfico de bolhas: valor (IVCA) × segurança (100 = baixo risco). O tamanho da bolha é o ticket médio. Clique numa bolha para abrir o cliente. Precisa de pelo menos 2 clientes com cobranças.' },
     { h2: 'Top listas e receita por região' },
     { p: '**Top 5 — IVCA**, **Top 5 — Valor Cobrado**, **Top 5 — Crescimento** e a **Receita por Segmento, Cidade e Estado** (preencha esses dados no cadastro para o painel ganhar detalhe).' },
 
     { h1: 'Aba Cliente (Digital Twin)' },
-    { p: 'É a "ficha inteligente" de um cliente. Selecione o cliente na Carteira.' },
+    { p: 'É a "ficha inteligente" de um cliente. Clique num cliente na Carteira; **Voltar à Carteira** retorna.' },
     { h2: 'IVCA — Índice de Valor do Cliente Axioma' },
     { p: 'Nota de **0 a 1000**, calculada só com dado real: **pontualidade**, **volume**, **recorrência**, **tendência** e **risco**.' },
     { h2: 'Saúde do Cliente' },
     { p: 'Quatro dimensões: **Pagamento**, **Relacionamento**, **Recorrência** e **Comercial**.' },
     { h2: 'Resumo de Compras e Radar de Sinais' },
     { p: '**Última Compra**, **Maior Compra** e **Primeira Compra**. O Radar de Sinais lista oportunidades e riscos detectados automaticamente, **sempre com o motivo**.' },
-    { h2: 'Parecer Executivo e Conselho Executivo' },
+    { h2: 'Parecer Executivo e Conselho Executivo do Cliente' },
     { p: 'O Parecer traz **Resumo Executivo**, **Pontos Fortes**, **Pontos Fracos**, **Riscos**, **Oportunidades**, **Sugestão** e **Próximo Passo**. O Conselho mostra a visão de cada especialista sobre o mesmo dado e termina com a **Recomendação Consolidada da ZIA**.' },
     { h2: 'Pergunte à ZIA sobre este cliente' },
-    { p: 'ZIA é a assistente de inteligência artificial de Clientes. Você escreve uma pergunta (ex.: "esse cliente merece desconto?") e ela responde **com os dados reais deste cliente**. Como funciona: o Axioma monta uma ficha do cliente (compras, pagamentos, atrasos, IVCA) e um retrato da empresa e envia ao motor de inteligência; a resposta volta em linguagem simples. Se a inteligência estiver indisponível, a ZIA responde por regras e avisa.' },
-    { h2: 'Linha do Tempo, Dados Cadastrais e Cobranças' },
+    { p: 'ZIA é a assistente de inteligência artificial de Clientes. Você escreve uma pergunta (ex.: "esse cliente merece desconto?") e ela responde **com os dados reais deste cliente** (compras, pagamentos, atrasos, IVCA) e um retrato da empresa. Se a inteligência estiver indisponível, a ZIA responde por regras e avisa. A ZIA só lê: nunca apaga nem altera dados.' },
+    { h2: 'Linha do Tempo Financeira, Dados Cadastrais e Cobranças' },
     { p: 'Histórico financeiro do cliente, os dados de cadastro e as cobranças dele, com o atalho **Ver Todas as Cobranças**.' },
 
     { h1: 'Aba Cobranças' },
-    { p: 'Lista as cobranças de todos os clientes, com **Detalhes** (parcelas, juros, multa, forma de recebimento) e a ação **Marcar como recebido**.' },
+    { p: 'Lista as cobranças de todos os clientes, com **Detalhes** (parcelas, juros, multa, forma de recebimento, observações e sugestão de ação) e o botão **Recebido**.' },
+    { p: '**Recebido** é um recebimento oficial: o valor que falta entra no **Fluxo de Caixa**, em **Receitas** e na **contabilidade** de uma vez (a mesma porta usada em Contas a Receber). Antes só trocava o status — agora o dinheiro entra de verdade.' },
 
     { h1: 'Passo a passo: cadastrar um cliente' },
     { p: 'Clique em **+ Novo Cliente**. O cadastro é feito em etapas (use **Anterior** e **Próximo**):' },
     { numerada: [
-      '**Identificação**: Razão Social, Nome Fantasia, CNPJ/CPF, Inscrição Estadual.',
+      '**Identificação**: Razão Social (obrigatório), Nome Fantasia, CNPJ/CPF, Inscrição Estadual.',
       '**Contato**: responsável, cargo, telefone, WhatsApp, e-mail, site.',
-      '**Endereço**: país, estado e cidade (a lista de cidades carrega sozinha).',
+      '**Endereço**: país, estado e cidade (a lista de cidades carrega sozinha; se estiver fora do ar, digite a cidade).',
       '**Fiscal**: regime tributário e porte.',
       '**Financeiro**: condição de pagamento, prazo médio e limite de crédito.',
       '**Comercial**: segmento, origem, responsável comercial, classificação (Lead, Cliente, Parceiro, Estratégico, Premium) e data da primeira compra.',
@@ -53,8 +57,144 @@ const doc: DocumentoAxioma = {
       '**Documentos** (links, um por linha) e **Observações**. Clique em **Salvar Cliente**.',
     ] },
     { h1: 'Passo a passo: nova cobrança' },
-    { p: 'A janela de cobrança tem as etapas **Básico** (cliente, descrição, valor, vencimento), **Documentação** (contrato, número, categoria, centro de receita, conta contábil), **Pagamento** (banco recebedor, emissão, competência, desconto, valor final, cobrança recorrente e frequência), **Inteligência** (prévia do **Score de Recebimento** e da **Probabilidade de Inadimplência**, calculados por regra) e **Anexo & Observações**.' },
+    { p: 'Clique em **+ Nova Cobrança**. A janela tem as etapas **Básico** (cliente, descrição, valor, vencimento), **Documentação** (contrato, número, categoria, centro de receita, conta contábil), **Pagamento** (banco recebedor, emissão, competência, desconto, valor final, cobrança recorrente e frequência), **Inteligência** (prévia do **Score de Recebimento** e da **Probabilidade de Inadimplência**, calculados por regra) e **Anexo & Observações**. A cobrança nasce em Contas a Receber e avisa a contabilidade.' },
+    { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
+      ['✏️ Lápis', 'Edita o cadastro do cliente.'],
+      ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador).'],
+    ] } },
+    { nota: 'Se a leitura de clientes ou cobranças falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "carteira vazia" por engano. Toda gravação que falha também avisa.' },
   ],
 }
 
+const en: DocumentoAxioma = {
+  arquivo: '26 - Commercial - Clients.docx',
+  titulo: 'Manual 26 — Clients',
+  subtitulo: 'Each client as a financial asset: value, risk and opportunity',
+  info: ['Menu: Commercial → Clients  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  blocos: [
+    { h1: 'What it is for' },
+    { p: 'Clients goes beyond a contact book: it treats each client as a **financial asset**. It shows how much each one is worth, how often they pay on time, the default risk and the opportunities to sell more. The screen has three tabs: **📊 Portfolio**, **🧬 Client** and **💳 Receivables**.' },
+
+    { h1: 'How to get there' },
+    { lista: ['Top menu → **👥 Commercial ▼** → **Clients**.'] },
+
+    { h1: 'Portfolio tab' },
+    { h2: 'Portfolio Executive Map' },
+    { p: '**Portfolio Value**, **Avg. Ticket**, **Portfolio Default**, **Top 5 Concentration** and the **IVCA Distribution** (Critical, Attention, Healthy, Premium).' },
+    { h2: 'Portfolio Executive Dashboard' },
+    { p: '**Active Clients**, **New This Month**, **Inactive Clients**, **Average Relationship Time**, **Premium Clients**, **Strategic Clients**, **At-Risk Clients** and **Neglected** (good clients with no contact for a long time).' },
+    { h2: 'Executive Radar' },
+    { p: 'Groups the portfolio by signal: **Premium**, **Upsell Ready**, **At Risk**, **Neglected**, **Recurring Cash** and **High Concentration**. Click a group to filter the list; **Clear filter** shows everyone again.' },
+    { h2: 'Client Value Map' },
+    { p: 'Bubble chart: value (IVCA) × safety (100 = low risk). Bubble size is the average ticket. Click a bubble to open the client. Needs at least 2 clients with charges.' },
+    { h2: 'Top lists and revenue by region' },
+    { p: '**Top 5 — IVCA**, **Top 5 — Billed Value**, **Top 5 — Growth** and **Revenue by Segment, City and State** (fill in these fields in the client record for more detail).' },
+
+    { h1: 'Client tab (Digital Twin)' },
+    { p: 'The client’s "smart record". Click a client in the Portfolio; **Back to Portfolio** returns.' },
+    { h2: 'IVCA — Axioma Client Value Index' },
+    { p: 'Score from **0 to 1000**, calculated only from real data: **punctuality**, **volume**, **recurrence**, **trend** and **risk**.' },
+    { h2: 'Client Health' },
+    { p: 'Four dimensions: **Payment**, **Relationship**, **Recurrence** and **Commercial**.' },
+    { h2: 'Purchase Summary and Signal Radar' },
+    { p: '**Last Purchase**, **Largest Purchase** and **First Purchase**. The Signal Radar lists opportunities and risks detected automatically, **always with the reason**.' },
+    { h2: 'Executive Opinion and Client Executive Board' },
+    { p: 'The Opinion brings **Executive Summary**, **Strengths**, **Weaknesses**, **Risks**, **Opportunities**, **Suggestion** and **Next Step**. The Board shows each specialist’s view of the same data and ends with **ZIA’s Consolidated Recommendation**.' },
+    { h2: 'Ask ZIA about this client' },
+    { p: 'ZIA is the Clients AI assistant. You write a question (e.g., "does this client deserve a discount?") and it answers **using this client’s real data** (purchases, payments, delays, IVCA) and a snapshot of the company. If the AI is unavailable, ZIA answers by rules and says so. ZIA only reads: it never deletes or changes data.' },
+    { h2: 'Financial Timeline, Record Data and Charges' },
+    { p: 'The client’s financial history, record data and charges, with the **View All Receivables** shortcut.' },
+
+    { h1: 'Receivables tab' },
+    { p: 'Lists all clients’ charges, with **Details** (installments, interest, penalty, payment method, notes and suggested action) and the **Received** button.' },
+    { p: '**Received** is an official receipt: the remaining amount goes into **Cash Flow**, **Revenue** and **accounting** at once (the same path used in Receivables). Before, it only changed the status — now the money really comes in.' },
+
+    { h1: 'Step by step: registering a client' },
+    { p: 'Click **+ New Customer**. Registration is done in steps (use **Previous** and **Next**):' },
+    { numerada: [
+      '**Identification**: Legal Name (required), Trade Name, CNPJ/CPF, State Registration.',
+      '**Contact**: person in charge, role, phone, WhatsApp, email, website.',
+      '**Address**: country, state and city (the city list loads by itself; if it is down, type the city).',
+      '**Tax**: tax regime and company size.',
+      '**Financial**: payment terms, average term and credit limit.',
+      '**Commercial**: segment, source, sales owner, classification (Lead, Client, Partner, Strategic, Premium) and first purchase date.',
+      '**Charges**, **Risks** and **AI Intelligence**: read-only previews, available after the first history.',
+      '**Documents** (links, one per line) and **Notes**. Click **Save Customer**.',
+    ] },
+    { h1: 'Step by step: new charge' },
+    { p: 'Click **+ New Charge**. The window has the steps **Basic** (client, description, amount, due date), **Documentation** (contract, number, category, revenue center, ledger account), **Payment** (receiving bank, issue date, accrual period, discount, final amount, recurring charge and frequency), **Intelligence** (preview of the **Collection Score** and **Default Probability**, rule-based) and **Attachment & Notes**. The charge is created in Receivables and notifies accounting.' },
+    { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
+      ['✏️ Pencil', 'Edits the client record.'],
+      ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator).'],
+    ] } },
+    { nota: 'If loading clients or charges fails, the screen warns that data may be incomplete — it never shows an "empty portfolio" by mistake. Every failed save also warns you.' },
+  ],
+}
+
+const es: DocumentoAxioma = {
+  arquivo: '26 - Comercial - Clientes.docx',
+  titulo: 'Manual 26 — Clientes',
+  subtitulo: 'Cada cliente como activo financiero: valor, riesgo y oportunidad',
+  info: ['Menú: Comercial → Clientes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  blocos: [
+    { h1: 'Para qué sirve' },
+    { p: 'Clientes va más allá de una agenda de contactos: trata a cada cliente como un **activo financiero**. Muestra cuánto vale cada uno, cuánto paga a tiempo, el riesgo de impago y las oportunidades de vender más. La pantalla tiene tres pestañas: **📊 Cartera**, **🧬 Cliente** y **💳 Cobros**.' },
+
+    { h1: 'Cómo llegar' },
+    { lista: ['Menú superior → **👥 Comercial ▼** → **Clientes**.'] },
+
+    { h1: 'Pestaña Cartera' },
+    { h2: 'Mapa Ejecutivo de la Cartera' },
+    { p: '**Valor de la Cartera**, **Ticket Promedio**, **Impago de la Cartera**, **Concentración Top 5** y la **Distribución por IVCA** (Crítico, Atención, Saludable, Premium).' },
+    { h2: 'Dashboard Ejecutivo de la Cartera' },
+    { p: '**Clientes Activos**, **Nuevos del Mes**, **Clientes Inactivos**, **Tiempo Promedio de Relación**, **Clientes Premium**, **Clientes Estratégicos**, **Clientes en Riesgo** y **Descuidados** (buenos clientes sin contacto hace mucho tiempo).' },
+    { h2: 'Radar Ejecutivo' },
+    { p: 'Agrupa la cartera por señal: **Premium**, **Listos p/ Upsell**, **En Riesgo**, **Descuidados**, **Caja Recurrente** y **Concentración Alta**. Haga clic en un grupo para filtrar la lista; **Limpiar filtro** vuelve a mostrar todos.' },
+    { h2: 'Mapa de Valor de Clientes' },
+    { p: 'Gráfico de burbujas: valor (IVCA) × seguridad (100 = bajo riesgo). El tamaño de la burbuja es el ticket promedio. Haga clic en una burbuja para abrir el cliente. Necesita al menos 2 clientes con cobros.' },
+    { h2: 'Top listas e ingresos por región' },
+    { p: '**Top 5 — IVCA**, **Top 5 — Valor Cobrado**, **Top 5 — Crecimiento** y los **Ingresos por Segmento, Ciudad y Estado** (complete esos datos en el registro para que el panel gane detalle).' },
+
+    { h1: 'Pestaña Cliente (Digital Twin)' },
+    { p: 'Es la "ficha inteligente" de un cliente. Haga clic en un cliente en la Cartera; **Volver a la Cartera** regresa.' },
+    { h2: 'IVCA — Índice de Valor del Cliente Axioma' },
+    { p: 'Nota de **0 a 1000**, calculada solo con datos reales: **puntualidad**, **volumen**, **recurrencia**, **tendencia** y **riesgo**.' },
+    { h2: 'Salud del Cliente' },
+    { p: 'Cuatro dimensiones: **Pago**, **Relación**, **Recurrencia** y **Comercial**.' },
+    { h2: 'Resumen de Compras y Radar de Señales' },
+    { p: '**Última Compra**, **Mayor Compra** y **Primera Compra**. El Radar de Señales lista oportunidades y riesgos detectados automáticamente, **siempre con el motivo**.' },
+    { h2: 'Parecer Ejecutivo y Consejo Ejecutivo del Cliente' },
+    { p: 'El Parecer trae **Resumen Ejecutivo**, **Fortalezas**, **Debilidades**, **Riesgos**, **Oportunidades**, **Sugerencia** y **Próximo Paso**. El Consejo muestra la visión de cada especialista sobre el mismo dato y termina con la **Recomendación Consolidada de la ZIA**.' },
+    { h2: 'Pregúntale a la ZIA sobre este cliente' },
+    { p: 'ZIA es la asistente de inteligencia artificial de Clientes. Usted escribe una pregunta (ej.: "¿este cliente merece descuento?") y ella responde **con los datos reales de este cliente** (compras, pagos, atrasos, IVCA) y un retrato de la empresa. Si la inteligencia no está disponible, la ZIA responde por reglas y avisa. La ZIA solo lee: nunca borra ni altera datos.' },
+    { h2: 'Línea de Tiempo Financiera, Datos de Registro y Cobros' },
+    { p: 'Historial financiero del cliente, sus datos de registro y sus cobros, con el atajo **Ver Todos los Cobros**.' },
+
+    { h1: 'Pestaña Cobros' },
+    { p: 'Lista los cobros de todos los clientes, con **Detalles** (cuotas, intereses, multa, forma de cobro, observaciones y sugerencia de acción) y el botón **Cobrado**.' },
+    { p: '**Cobrado** es un cobro oficial: el valor que falta entra en el **Flujo de Caja**, en **Ingresos** y en la **contabilidad** de una vez (la misma puerta usada en Cuentas por Cobrar). Antes solo cambiaba el estado — ahora el dinero entra de verdad.' },
+
+    { h1: 'Paso a paso: registrar un cliente' },
+    { p: 'Haga clic en **+ Nuevo Cliente**. El registro se hace por etapas (use **Anterior** y **Siguiente**):' },
+    { numerada: [
+      '**Identificación**: Razón Social (obligatorio), Nombre Comercial, CNPJ/CPF, Inscripción Estatal.',
+      '**Contacto**: responsable, cargo, teléfono, WhatsApp, correo, sitio web.',
+      '**Dirección**: país, estado y ciudad (la lista de ciudades carga sola; si no está disponible, escriba la ciudad).',
+      '**Fiscal**: régimen tributario y tamaño.',
+      '**Financiero**: condición de pago, plazo promedio y límite de crédito.',
+      '**Comercial**: segmento, origen, responsable comercial, clasificación (Lead, Cliente, Socio, Estratégico, Premium) y fecha de la primera compra.',
+      '**Cobros**, **Riesgos** e **Inteligencia IA**: vistas previas de solo lectura, disponibles después del primer historial.',
+      '**Documentos** (enlaces, uno por línea) y **Observaciones**. Haga clic en **Guardar Cliente**.',
+    ] },
+    { h1: 'Paso a paso: nuevo cobro' },
+    { p: 'Haga clic en **+ Nuevo Cobro**. La ventana tiene las etapas **Básico** (cliente, descripción, valor, vencimiento), **Documentación** (contrato, número, categoría, centro de ingresos, cuenta contable), **Pago** (banco receptor, emisión, competencia, descuento, valor final, cobro recurrente y frecuencia), **Inteligencia** (vista previa del **Score de Cobro** y de la **Probabilidad de Impago**, calculados por regla) y **Anexo y Observaciones**. El cobro nace en Cuentas por Cobrar y avisa a la contabilidad.' },
+    { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
+      ['✏️ Lápiz', 'Edita el registro del cliente.'],
+      ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador).'],
+    ] } },
+    { nota: 'Si la lectura de clientes o cobros falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "cartera vacía" por error. Toda grabación que falla también avisa.' },
+  ],
+}
+
+const doc: DocTrilingue = { pt, en, es }
 export default doc

@@ -461,20 +461,20 @@ export default function IAFinanceiraPage() {
         subtitulo: snap.periodo,
         colunas: [
           { header: lang === "en" ? "INDICATOR" : lang === "es" ? "INDICADOR" : "INDICADOR", key: "ind", width: 55, align: "left" as const },
-          { header: lang === "en" ? "VALUE" : "VALOR", key: "val", width: 35, align: "right" as const },
+          { header: lang === "en" ? "VALUE" : lang === "es" ? "VALOR" : "VALOR", key: "val", width: 35, align: "right" as const },
           { header: "STATUS", key: "st", width: 25, align: "left" as const },
         ],
         linhas: [
-          { ind: lang === "en" ? "Revenue" : "Receita", val: formatBRL2(snap.receita_bruta), st: "—" },
-          { ind: lang === "en" ? "Net Profit" : "Lucro Líquido", val: formatBRL2(snap.lucro_liquido), st: snap.lucro_liquido >= 0 ? "OK" : "⚠️" },
-          { ind: lang === "en" ? "Gross Margin" : "Margem Bruta", val: `${snap.margem_bruta.toFixed(1)}%`, st: snap.margem_bruta >= 40 ? "OK" : "⚠️" },
-          { ind: lang === "en" ? "Net Margin" : "Margem Líquida", val: `${snap.margem_liquida.toFixed(1)}%`, st: snap.margem_liquida >= 10 ? "OK" : "⚠️" },
-          { ind: lang === "en" ? "Delinquency" : "Inadimplência", val: `${snap.inadimplencia_pct.toFixed(1)}%`, st: snap.inadimplencia_pct <= 5 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", val: formatBRL2(snap.receita_bruta), st: "—" },
+          { ind: lang === "en" ? "Net Profit" : lang === "es" ? "Utilidad Neta" : "Lucro Líquido", val: formatBRL2(snap.lucro_liquido), st: snap.lucro_liquido >= 0 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Gross Margin" : lang === "es" ? "Margen Bruto" : "Margem Bruta", val: `${snap.margem_bruta.toFixed(1)}%`, st: snap.margem_bruta >= 40 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Net Margin" : lang === "es" ? "Margen Neto" : "Margem Líquida", val: `${snap.margem_liquida.toFixed(1)}%`, st: snap.margem_liquida >= 10 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Delinquency" : lang === "es" ? "Morosidad" : "Inadimplência", val: `${snap.inadimplencia_pct.toFixed(1)}%`, st: snap.inadimplencia_pct <= 5 ? "OK" : "⚠️" },
           ...score360.dimensoes.map(d => ({ ind: lang === "en" ? d.nome_en : d.nome, val: `${d.score}/100`, st: d.score >= 60 ? "OK" : "⚠️" })),
         ],
         resumo: [
           { label: "Score 360°", valor: `${score360.total}/100 (${lang === "en" ? score360.nivel_en : score360.nivel})` },
-          { label: lang === "en" ? "Period" : "Período", valor: snap.periodo },
+          { label: lang === "en" ? "Period" : lang === "es" ? "Período" : "Período", valor: snap.periodo },
         ],
         nomeArquivo: `axioma-ia-financeira-${snap.periodo.replace("/", "-")}.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);

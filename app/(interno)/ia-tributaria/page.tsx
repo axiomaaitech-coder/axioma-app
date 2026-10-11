@@ -308,14 +308,14 @@ export default function IATributariaPage() {
   function montarTextoShare(): string {
     if (!dados || !scoreFiscal) return "Axioma AI.Tech";
     return [`🦅 *AXIOMA AI.TECH — IA Tributária*`, ``, `🛡️ *Score Fiscal:* ${scoreFiscal.score}/100`,
-      `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : "Receita"}: ${formatBRL2(dados.receita_bruta_mensal)}${tt.porMes}`,
-      `🏛️ ${lang === "en" ? "Regime" : "Regime"}: ${dados.regime_atual || "—"}`,
+      `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita"}: ${formatBRL2(dados.receita_bruta_mensal)}${tt.porMes}`,
+      `🏛️ ${lang === "en" ? "Regime" : lang === "es" ? "Régimen" : "Regime"}: ${dados.regime_atual || "—"}`,
       economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL2(economia.economia_mensal)}` : "",
       ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
   }
   function montarTextoDetalhado(): string {
     return [`AXIOMA AI.TECH — IA Tributária (detalhado)`, ...simulacoes.filter(s => s.elegivel).map(s =>
-      `${s.regime_label} | ${lang === "en" ? "Tax/mo" : "Imposto/mês"} ${formatBRL2(s.imposto_mensal)} | ${s.aliquota_efetiva}% | ${lang === "en" ? "Savings/yr" : "Economia/ano"} ${formatBRL2(s.economia_vs_atual)}`
+      `${s.regime_label} | ${lang === "en" ? "Tax/mo" : lang === "es" ? "Impuesto/mes" : "Imposto/mês"} ${formatBRL2(s.imposto_mensal)} | ${s.aliquota_efetiva}% | ${lang === "en" ? "Savings/yr" : lang === "es" ? "Ahorro/año" : "Economia/ano"} ${formatBRL2(s.economia_vs_atual)}`
     )].join("\n");
   }
 
@@ -326,15 +326,15 @@ export default function IATributariaPage() {
       await gerarPdfTabela({
         titulo: `${tt.titulo} — Score ${scoreFiscal.score}/100`, subtitulo: `${dados.regime_atual || "—"}`,
         colunas: [
-          { header: lang === "en" ? "REGIME" : "REGIME", key: "reg", width: 40, align: "left" as const },
-          { header: lang === "en" ? "TAX/MO" : "IMPOSTO/MÊS", key: "imp", width: 30, align: "right" as const },
-          { header: lang === "en" ? "EFF.RATE" : "ALÍQ.EFET.", key: "aliq", width: 25, align: "right" as const },
-          { header: lang === "en" ? "SAVINGS/YR" : "ECONOMIA/ANO", key: "eco", width: 30, align: "right" as const },
+          { header: lang === "en" ? "REGIME" : lang === "es" ? "RÉGIMEN" : "REGIME", key: "reg", width: 40, align: "left" as const },
+          { header: lang === "en" ? "TAX/MO" : lang === "es" ? "IMPUESTO/MES" : "IMPOSTO/MÊS", key: "imp", width: 30, align: "right" as const },
+          { header: lang === "en" ? "EFF.RATE" : lang === "es" ? "ALÍC.EFEC." : "ALÍQ.EFET.", key: "aliq", width: 25, align: "right" as const },
+          { header: lang === "en" ? "SAVINGS/YR" : lang === "es" ? "AHORRO/AÑO" : "ECONOMIA/ANO", key: "eco", width: 30, align: "right" as const },
         ],
         linhas: simulacoes.filter(s => s.elegivel).map(s => ({ reg: s.regime_label, imp: formatBRL2(s.imposto_mensal), aliq: `${s.aliquota_efetiva}%`, eco: formatBRL2(s.economia_vs_atual) })),
         resumo: [
           { label: "Score Fiscal", valor: `${scoreFiscal.score}/100 (${lang === "en" ? scoreFiscal.nivel_en : scoreFiscal.nivel})` },
-          { label: lang === "en" ? "Tax Burden" : "Carga Tributária", valor: `${carga?.carga_pct.toFixed(1)}%` },
+          { label: lang === "en" ? "Tax Burden" : lang === "es" ? "Carga Tributaria" : "Carga Tributária", valor: `${carga?.carga_pct.toFixed(1)}%` },
         ],
         nomeArquivo: `axioma-ia-tributaria.pdf`,
       }, (msg) => showToast(msg, "erro"), lang);
@@ -381,9 +381,9 @@ export default function IATributariaPage() {
               <p className="text-xs font-bold" style={{ color: scoreFiscal.cor }}>{lang === "en" ? scoreFiscal.nivel_en : lang === "es" ? scoreFiscal.nivel_es : scoreFiscal.nivel}</p>
             </CanvasBox>
             {[
-              { label: lang === "en" ? "Tax Burden" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? AMARELO : VERDE, ir: "/fiscal" },
-              { label: lang === "en" ? "Tax/Month" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO, ir: "/fiscal/obrigacoes" },
-              { label: lang === "en" ? "Savings" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
+              { label: lang === "en" ? "Tax Burden" : lang === "es" ? "Carga" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? AMARELO : VERDE, ir: "/fiscal" },
+              { label: lang === "en" ? "Tax/Month" : lang === "es" ? "Impuesto/Mes" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO, ir: "/fiscal/obrigacoes" },
+              { label: lang === "en" ? "Savings" : lang === "es" ? "Ahorro" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
             ].map((c, i) => (
               <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/fiscal", router)}><CanvasBox cor={c.cor} {...cartaoTema}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>

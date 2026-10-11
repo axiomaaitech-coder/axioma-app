@@ -478,11 +478,14 @@ export default function ClientesPage() {
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     if (!empId) { setLoading(false); return; }
-    const [{ data: clientesData }, { data: contasData }, { data: inadData }] = await Promise.all([
+    const [{ data: clientesData, error: eCli }, { data: contasData, error: eCon }, { data: inadData, error: eInad }] = await Promise.all([
       lerTodas(() => supabase.from("clientes").select("*").eq("empresa_id", empId).order("created_at", { ascending: false }).order("id")),
       lerTodas(() => supabase.from("contas_receber").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }).order("id")),
       lerTodas(() => supabase.from("inadimplencia").select("*").eq("empresa_id", empId).order("id")),
     ]);
+    // Leitura falhou ≠ "carteira vazia": avisa em vez de mostrar IVCA/cobranças incompletos calados.
+    const eLeitura = eCli || eCon || eInad;
+    if (eLeitura) { showToast(lang === "en" ? "Some data did not load — clients or charges may be incomplete. Reload the page." : lang === "es" ? "Parte de los datos no cargó — clientes o cobros pueden estar incompletos. Recargue la página." : "Parte dos dados não carregou — clientes ou cobranças podem estar incompletos. Recarregue a página.", "erro"); reportarFalhaEscrita("clientes", "leitura", eLeitura.message); }
     setClientes(clientesData || []);
     setContas(contasData || []);
     setInadimplencias(inadData || []);
@@ -1464,7 +1467,7 @@ export default function ClientesPage() {
                   <div className="flex-1">
                     <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
                       <input value={buscaContas} onChange={(e) => { setBuscaContas(e.target.value); }}
-                        placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : "Search..."}
+                        placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : idioma === "es" ? "Buscar por descripción o cliente..." : "Search by description or client..."}
                         className="w-full text-sm focus:outline-none bg-transparent py-1"
                         style={{ color: ct("#c8d8f0") }} />
                     </CanvasBox>

@@ -743,11 +743,11 @@ export function respostaZIAPorRegras(lang: Idioma3, s: ClienteSnapshot, ivca: IV
     return risco ? montarNarrativaSinal(lang, risco) : (lang === "en" ? "No active risk signal for this client." : lang === "es" ? "Sin señal de riesgo activa para este cliente." : "Nenhum sinal de risco ativo para este cliente.");
   }
   if (p.includes("atras") || p.includes("delay") || p.includes("overdue")) {
-    return `${s.cliente.nome}: ${fBRLLocal(s.valorVencido)} ${lang === "en" ? "overdue" : lang === "es" ? "vencido" : "vencido"}, ${Math.round(s.diasAtrasoMedio)} ${lang === "en" ? "days avg. delay historically" : "dias de atraso médio histórico"}.`;
+    return `${s.cliente.nome}: ${fBRLLocal(s.valorVencido)} ${lang === "en" ? "overdue" : lang === "es" ? "vencido" : "vencido"}, ${Math.round(s.diasAtrasoMedio)} ${lang === "en" ? "days avg. delay historically" : lang === "es" ? "días de atraso promedio histórico" : "dias de atraso médio histórico"}.`;
   }
   if (p.includes("upsell") || p.includes("desconto") || p.includes("discount")) {
     const upsell = sinais.find((x) => x.tipo === "prontoParaUpsell");
-    return upsell ? montarNarrativaSinal(lang, upsell) : (lang === "en" ? "Not yet a clear upsell candidate — payment/trend data don't support it." : "Ainda não é um candidato claro a upsell — os dados de pagamento/tendência não sustentam isso.");
+    return upsell ? montarNarrativaSinal(lang, upsell) : (lang === "en" ? "Not yet a clear upsell candidate — payment/trend data don't support it." : lang === "es" ? "Aún no es un candidato claro a upsell — los datos de pago/tendencia no lo sustentan." : "Ainda não é um candidato claro a upsell — os dados de pagamento/tendência não sustentam isso.");
   }
   if (p.includes("score") || p.includes("ivca") || p.includes("nota")) {
     return montarNarrativaIVCA(lang, ivca);

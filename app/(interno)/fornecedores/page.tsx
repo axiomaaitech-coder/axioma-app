@@ -54,6 +54,7 @@ import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
+import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -368,7 +369,7 @@ const T = {
     nomeConservador: "Conservador", nomeBase: "Base", nomeOtimista: "Otimista", nomeAdverso: "Adverso",
     notaCapitalGiro: "Capital de giro aproximado pelo impacto no caixa disponível — o Axioma não tem balanço patrimonial completo (ativo/passivo circulante) ainda.",
     reformaTitulo: "Reforma Tributária 2026 por Fornecedor", reformaSub: "Potencial de cada fornecedor gerar crédito tributário no IVA dual (CBS/IBS), com base no cadastro.",
-    reformaAviso: "As alíquotas finais do IBS/CBS ainda não estão regulamentadas — por isso não calculamos R$ de impacto, só o potencial estrutural de crédito. Atualiza automaticamente quando a legislação fechar.",
+    reformaAviso: "Premissa: IBS/CBS criados pela EC 132/2023 e regulados pela LC 214/2025 (planalto.gov.br, conferidas em out/2026); 2026 é ano de teste e as alíquotas finais ainda dependem de lei — por isso mostramos só o potencial estrutural de crédito, não R$ de impacto. Regras em transição, podem mudar.",
     nivelPleno: "Crédito Pleno", nivelParcial: "Crédito Parcial", nivelBaixo: "Crédito Baixo", nivelIndefinido: "Indefinido",
     reformaVazio: "Nenhum fornecedor ativo cadastrado ainda.",
     iaExecutivaTitulo: "IA Executiva", iaExecutivaSub: "Recomendações em linguagem de CFO — motor por regras, com o fio pronto pra IA real quando a chave for ativada.",
@@ -522,7 +523,7 @@ const T = {
     nomeConservador: "Conservative", nomeBase: "Base", nomeOtimista: "Optimistic", nomeAdverso: "Adverse",
     notaCapitalGiro: "Working capital approximated by the impact on available cash — Axioma doesn't have a full balance sheet (current assets/liabilities) yet.",
     reformaTitulo: "2026 Tax Reform by Supplier", reformaSub: "Each supplier's potential to generate tax credit under the dual VAT (CBS/IBS), based on registration data.",
-    reformaAviso: "Final IBS/CBS rates aren't regulated yet — so we don't compute a R$ impact, only the structural credit potential. Updates automatically once legislation is finalized.",
+    reformaAviso: "Assumption: IBS/CBS created by Constitutional Amendment 132/2023 and regulated by LC 214/2025 (planalto.gov.br, checked Oct/2026); 2026 is a test year and final rates still depend on law — so we show only the structural credit potential, not a R$ impact. Rules in transition, may change.",
     nivelPleno: "Full Credit", nivelParcial: "Partial Credit", nivelBaixo: "Low Credit", nivelIndefinido: "Undefined",
     reformaVazio: "No active supplier registered yet.",
     iaExecutivaTitulo: "Executive AI", iaExecutivaSub: "CFO-voice recommendations — rules engine, wired for real AI once the key is activated.",
@@ -676,7 +677,7 @@ const T = {
     nomeConservador: "Conservador", nomeBase: "Base", nomeOtimista: "Optimista", nomeAdverso: "Adverso",
     notaCapitalGiro: "Capital de trabajo aproximado por el impacto en la caja disponible — Axioma aún no tiene un balance completo (activo/pasivo circulante).",
     reformaTitulo: "Reforma Tributaria 2026 por Proveedor", reformaSub: "Potencial de cada proveedor de generar crédito tributario en el IVA dual (CBS/IBS), según el registro.",
-    reformaAviso: "Las alícuotas finales del IBS/CBS aún no están reglamentadas — por eso no calculamos impacto en R$, solo el potencial estructural de crédito. Se actualiza automáticamente cuando la legislación se cierre.",
+    reformaAviso: "Premisa: IBS/CBS creados por la EC 132/2023 y regulados por la LC 214/2025 (planalto.gov.br, verificadas en oct/2026); 2026 es año de prueba y las alícuotas finales aún dependen de ley — por eso mostramos solo el potencial estructural de crédito, no impacto en R$. Reglas en transición, pueden cambiar.",
     nivelPleno: "Crédito Pleno", nivelParcial: "Crédito Parcial", nivelBaixo: "Crédito Bajo", nivelIndefinido: "Indefinido",
     reformaVazio: "Ningún proveedor activo registrado aún.",
     iaExecutivaTitulo: "IA Ejecutiva", iaExecutivaSub: "Recomendaciones en lenguaje de CFO — motor por reglas, con el cable listo para IA real cuando se active la clave.",
@@ -789,7 +790,7 @@ export default function Fornecedores() {
   const [custosFixosRows, setCustosFixosRows] = useState<{ valor_mensal: number }[]>([]);
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
-  const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
+  const [caixaDisponivelSim, setCaixaDisponivelSim] = useState(0);
   const [regimeTributario, setRegimeTributario] = useState("");
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
@@ -881,24 +882,31 @@ export default function Fornecedores() {
     setUserId(user.id);
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
-    const { data: forn } = empId ? await supabase.from("fornecedores").select("*").eq("empresa_id", empId).order("nome", { ascending: true }) : { data: [] };
-    const { data: cp } = empId ? await supabase.from("contas_pagar").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }) : { data: [] };
-    const { data: docs } = empId ? await supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId) : { data: [] };
-    const { data: contratos } = empId ? await supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId) : { data: [] };
-    const { data: interacoes } = empId ? await supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId) : { data: [] };
+    const vazio = Promise.resolve({ data: [], error: null });
+    const [{ data: forn, error: eForn }, { data: cp, error: eCp }, { data: docs, error: eDocs }, { data: contratos, error: eCtr }, { data: interacoes, error: eInt }] = await Promise.all([
+      empId ? lerTodas(() => supabase.from("fornecedores").select("*").eq("empresa_id", empId).order("nome", { ascending: true }).order("id")) : vazio,
+      empId ? lerTodas(() => supabase.from("contas_pagar").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }).order("id")) : vazio,
+      empId ? lerTodas(() => supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId).order("id")) : vazio,
+      empId ? lerTodas(() => supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId).order("id")) : vazio,
+      empId ? lerTodas(() => supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId).order("id")) : vazio,
+    ]);
 
     // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
     const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
-    const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp2 }] = await Promise.all([
-      empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [] }),
-      empId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId)) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [] }),
+    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp2 }] = await Promise.all([
+      empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId)) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Simulações, Painel de Risco e IA.
+      empId ? saldoCaixaRealizado(supabase, empId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
       empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
+    // Leitura falhou ≠ "sem fornecedores/sem contas": avisa em vez de mostrar painéis incompletos calados.
+    const eLeitura = eForn?.message || eCp?.message || eDocs?.message || eCtr?.message || eInt?.message || eRec?.message || eCf?.message || eCv?.message || eDv?.message || sc.erro;
+    if (eLeitura) { showToast(lang === "en" ? "Some data did not load — suppliers, bills or indicators may be incomplete. Reload the page." : lang === "es" ? "Parte de los datos no cargó — proveedores, cuentas o indicadores pueden estar incompletos. Recargue la página." : "Parte dos dados não carregou — fornecedores, contas ou indicadores podem estar incompletos. Recarregue a página.", "erro"); reportarFalhaEscrita("fornecedores", "leitura", eLeitura); }
     setFornecedores(forn || []);
     setContas(cp || []);
     setTodosDocumentos(docs || []);
@@ -908,7 +916,7 @@ export default function Fornecedores() {
     setCustosFixosRows(cf || []);
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
-    setFluxoCaixaRows(fc || []);
+    setCaixaDisponivelSim(sc.saldo);
     setRegimeTributario(emp2?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp2));
     setCarregando(false);
   };
@@ -1372,7 +1380,9 @@ export default function Fornecedores() {
   const quitarConta = async (c: ContaPagar) => {
     const r = await darBaixaContaPagar({ ...c, empresa_id: empresaId } as unknown as ContaPagarOficial, c.valor_total, hojeISO(), c.forma_pagamento || "PIX");
     if (r.erro) {
-      showToast(r.erro === "aguardando_aprovacao" ? txt.erroQuitarAguardando : txt.erroQuitarConta, "erro");
+      showToast(r.erro === "aguardando_aprovacao" ? txt.erroQuitarAguardando
+        : r.erro === "conta_do_das" ? (lang === "en" ? "This is an MEI DAS: pay, reverse or fix it in MEI → DAS & Obligations." : lang === "es" ? "Este es un DAS del MEI: pague, reverse o corrija en MEI → DAS y Obligaciones." : "Este é um DAS do MEI: pague, estorne ou corrija em MEI → DAS e Obrigações.")
+        : txt.erroQuitarConta, "erro");
       return;
     }
     showToast(txt.contaQuitada, "ok");
@@ -1412,10 +1422,10 @@ export default function Fornecedores() {
   }
 
   function statusLabel(s?: string) {
-    if (s === "pago") return idioma === "pt" ? "Pago" : "Paid";
-    if (s === "parcial") return idioma === "pt" ? "Parcial" : "Partial";
-    if (s === "vencido") return idioma === "pt" ? "Vencido" : "Overdue";
-    return idioma === "pt" ? "Pendente" : "Pending";
+    if (s === "pago") return idioma === "pt" ? "Pago" : idioma === "es" ? "Pagado" : "Paid";
+    if (s === "parcial") return idioma === "pt" ? "Parcial" : idioma === "es" ? "Parcial" : "Partial";
+    if (s === "vencido") return idioma === "pt" ? "Vencido" : idioma === "es" ? "Vencido" : "Overdue";
+    return idioma === "pt" ? "Pendente" : idioma === "es" ? "Pendiente" : "Pending";
   }
   function statusCor(s?: string) {
     if (s === "pago") return ct("#34d399");
@@ -1694,8 +1704,7 @@ export default function Fornecedores() {
   const despesasFinanceirasMensalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
   const impostoMensalEstimadoSim = calcularImpostoRegime(regimeTributario, receitaBruta12m, receitaMensalMedia, undefined, undefined, categoriaMei);
   const aliquotaEfetivaPctSim = receitaMensalMedia > 0 ? (impostoMensalEstimadoSim / receitaMensalMedia) * 100 : 0;
-  const caixaDisponivelSim = fluxoCaixaRows.filter(l => l.status === "realizado")
-    .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+  // caixaDisponivelSim: saldo único carregado em carregarDados.
   const temDadosSimulador = receitaMensalMedia > 0 || custoFixoMensalTotal > 0 || custoVariavelMensalMedia > 0;
 
   const dreHojeSim = montarDRE({
@@ -1783,7 +1792,7 @@ export default function Fornecedores() {
         onClick={abrirNovaConta}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
         style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
-        + {idioma === "pt" ? "Nova Conta a Pagar" : "New Bill"}
+        + {idioma === "pt" ? "Nova Conta a Pagar" : idioma === "es" ? "Nueva Cuenta por Pagar" : "New Bill"}
       </motion.button>
       <ThemeToggle />
     </>
@@ -2220,10 +2229,10 @@ export default function Fornecedores() {
         {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { label: idioma === "pt" ? "Fornecedores" : "Suppliers", value: `${fornecedores.length}`, cor: AMBAR },
-            { label: idioma === "pt" ? "A Pagar (aberto)" : "Payable", value: fmt(totalEmAberto), cor: ct("#2ecc9b") },
-            { label: idioma === "pt" ? "Total Pago" : "Total Paid", value: fmt(totalPago), cor: ct("#34d399") },
-            { label: idioma === "pt" ? "Vencido" : "Overdue", value: fmt(totalVencido), cor: ct("#f87171") },
+            { label: idioma === "pt" ? "Fornecedores" : idioma === "es" ? "Proveedores" : "Suppliers", value: `${fornecedores.length}`, cor: AMBAR },
+            { label: idioma === "pt" ? "A Pagar (aberto)" : idioma === "es" ? "Por Pagar (abierto)" : "Payable (open)", value: fmt(totalEmAberto), cor: ct("#2ecc9b") },
+            { label: idioma === "pt" ? "Total Pago" : idioma === "es" ? "Total Pagado" : "Total Paid", value: fmt(totalPago), cor: ct("#34d399") },
+            { label: idioma === "pt" ? "Vencido" : idioma === "es" ? "Vencido" : "Overdue", value: fmt(totalVencido), cor: ct("#f87171") },
             { label: tt.kpiDocumentosVencer, value: `${qtdDocVencer}`, cor: qtdDocVencer > 0 ? ct("#f87171") : ct("#5a7a9a") },
             { label: tt.kpiContratosVencer, value: `${qtdContratoVencer}`, cor: qtdContratoVencer > 0 ? ct("#f87171") : ct("#5a7a9a") },
           ].map((card) => (
@@ -2237,8 +2246,8 @@ export default function Fornecedores() {
         {/* Abas */}
         <div className="flex gap-2">
           {[
-            { key: "fornecedores", label: idioma === "pt" ? "Fornecedores" : "Suppliers", Icon: Building2 },
-            { key: "contas", label: idioma === "pt" ? "Contas a Pagar" : "Payables", Icon: FileText },
+            { key: "fornecedores", label: idioma === "pt" ? "Fornecedores" : idioma === "es" ? "Proveedores" : "Suppliers", Icon: Building2 },
+            { key: "contas", label: idioma === "pt" ? "Contas a Pagar" : idioma === "es" ? "Cuentas por Pagar" : "Payables", Icon: FileText },
           ].map((a) => (
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBusca(""); setBuscaContas(""); }}
@@ -2285,7 +2294,7 @@ export default function Fornecedores() {
                               <div className="flex items-center gap-2 flex-wrap mt-0.5">
                                 <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(46,204,155,0.1)", color: AMBAR }}>{f.categoria || "-"}</span>
                                 <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: (f.status || "ativo") === "ativo" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: (f.status || "ativo") === "ativo" ? ct("#34d399") : ct("#f87171") }}>
-                                  {(f.status || "ativo") === "ativo" ? (idioma === "pt" ? "Ativo" : "Active") : (idioma === "pt" ? "Inativo" : "Inactive")}
+                                  {(f.status || "ativo") === "ativo" ? (idioma === "pt" ? "Ativo" : idioma === "es" ? "Activo" : "Active") : (idioma === "pt" ? "Inativo" : idioma === "es" ? "Inactivo" : "Inactive")}
                                 </span>
                                 {alertas > 0 && (
                                   <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>
@@ -2342,7 +2351,7 @@ export default function Fornecedores() {
             <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
               <div className="flex items-center gap-2">
                 <Search size={16} style={{ color: ct("#5a7a9a") }} />
-                <input value={buscaContas} onChange={(e) => setBuscaContas(e.target.value)} placeholder={idioma === "pt" ? "Buscar por descrição ou fornecedor..." : "Search..."} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: ct("#c8d8f0") }} />
+                <input value={buscaContas} onChange={(e) => setBuscaContas(e.target.value)} placeholder={idioma === "pt" ? "Buscar por descrição ou fornecedor..." : idioma === "es" ? "Buscar por descripción o proveedor..." : "Search by description or supplier..."} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: ct("#c8d8f0") }} />
               </div>
             </CanvasBox>
 
@@ -2352,7 +2361,7 @@ export default function Fornecedores() {
               </div>
             ) : contasFiltradas.length === 0 ? (
               <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-                <div className="text-center py-12"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma conta a pagar cadastrada." : "No payables yet."}</p></div>
+                <div className="text-center py-12"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma conta a pagar cadastrada." : idioma === "es" ? "Ninguna cuenta por pagar registrada." : "No payables yet."}</p></div>
               </CanvasBox>
             ) : (
               <div className="space-y-3">
@@ -2382,9 +2391,9 @@ export default function Fornecedores() {
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           {[
-                            { label: idioma === "pt" ? "Total" : "Total", val: fmt(c.valor_total), cor: ct("#c8d8f0") },
-                            { label: idioma === "pt" ? "Pago" : "Paid", val: fmt(c.valor_pago), cor: ct("#34d399") },
-                            { label: idioma === "pt" ? "Resta" : "Remaining", val: fmt(resta), cor: ct("#2ecc9b") },
+                            { label: idioma === "pt" ? "Total" : idioma === "es" ? "Total" : "Total", val: fmt(c.valor_total), cor: ct("#c8d8f0") },
+                            { label: idioma === "pt" ? "Pago" : idioma === "es" ? "Pagado" : "Paid", val: fmt(c.valor_pago), cor: ct("#34d399") },
+                            { label: idioma === "pt" ? "Resta" : idioma === "es" ? "Resta" : "Remaining", val: fmt(resta), cor: ct("#2ecc9b") },
                           ].map((s) => (
                             <div key={s.label}>
                               <p className="text-xs mb-0.5" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
@@ -2398,14 +2407,14 @@ export default function Fornecedores() {
                         </div>
                         <div className="flex justify-between items-center flex-wrap gap-2">
                           <span className="text-xs" style={{ color: ct("#5a7a9a") }}>
-                            {c.data_vencimento ? `${idioma === "pt" ? "Vence" : "Due"}: ${new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                            {c.data_vencimento ? `${idioma === "pt" ? "Vence" : idioma === "es" ? "Vence" : "Due"}: ${new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
                             {c.parcelas && c.parcelas > 1 ? ` · ${c.parcelas}x` : ""}
                           </span>
                           {c.status !== "pago" && (
                             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => quitarConta(c)}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 axi-card-premium3d axi-card-faixa"
                               style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: "none" }}>
-                              <CheckCircle2 size={13} /> {idioma === "pt" ? "Quitar" : "Settle"}
+                              <CheckCircle2 size={13} /> {idioma === "pt" ? "Quitar" : idioma === "es" ? "Liquidar" : "Settle"}
                             </motion.button>
                           )}
                         </div>
@@ -2462,7 +2471,7 @@ export default function Fornecedores() {
                         <Campo label={nf.tipo_pessoa === "PF" ? "CPF" : "CNPJ"} value={nf.documento}
                           onChange={(v) => setNf({ ...nf, documento: nf.tipo_pessoa === "PF" ? formatarCPF(v) : formatarCNPJ(v) })}
                           onBlur={() => validarCampoForm("documento", nf.documento)} erro={errosForm.documento} />
-                        <Campo label={`${idioma === "pt" ? "Nome / Apelido" : "Name"} *`} value={nf.nome} onChange={(v) => setNf({ ...nf, nome: v })} />
+                        <Campo label={`${idioma === "pt" ? "Nome / Apelido" : idioma === "es" ? "Nombre / Apodo" : "Name / Nickname"} *`} value={nf.nome} onChange={(v) => setNf({ ...nf, nome: v })} />
                         <Campo label={tt.lblRazaoSocial} value={nf.razao_social} onChange={(v) => setNf({ ...nf, razao_social: v })} />
                         <Campo label={tt.lblNomeFantasia} value={nf.nome_fantasia} onChange={(v) => setNf({ ...nf, nome_fantasia: v })} />
                         <CampoSelect label={tt.lblPorte} value={nf.porte} onChange={(v) => setNf({ ...nf, porte: v })} opcoes={tt.portes} />
@@ -2630,7 +2639,7 @@ export default function Fornecedores() {
                         <Campo label={tt.lblAgencia} value={nf.agencia} onChange={(v) => setNf({ ...nf, agencia: v })} />
                         <Campo label={tt.lblConta} value={nf.conta} onChange={(v) => setNf({ ...nf, conta: v })} />
                         <Campo label={tt.lblPix} value={nf.chave_pix} onChange={(v) => setNf({ ...nf, chave_pix: v })} />
-                        <Campo label={tt.lblCondicaoPagamento} value={nf.condicao_pagamento} onChange={(v) => setNf({ ...nf, condicao_pagamento: v })} placeholder={idioma === "pt" ? "ex: 30 dias" : "e.g. 30 days"} />
+                        <Campo label={tt.lblCondicaoPagamento} value={nf.condicao_pagamento} onChange={(v) => setNf({ ...nf, condicao_pagamento: v })} placeholder={idioma === "pt" ? "ex: 30 dias" : idioma === "es" ? "ej.: 30 días" : "e.g. 30 days"} />
                         <Campo label={tt.lblPrazoMedio} value={nf.prazo_medio_dias} onChange={(v) => setNf({ ...nf, prazo_medio_dias: v })} tipo="number" />
                         <CampoSelect label={tt.lblMoeda} value={nf.moeda} onChange={(v) => setNf({ ...nf, moeda: v })} opcoes={moedas.map(m => ({ value: m, label: m }))} />
                         <CampoSelect label={tt.lblFormaPagamentoPreferencial} value={nf.forma_pagamento_preferencial} onChange={(v) => setNf({ ...nf, forma_pagamento_preferencial: v })} opcoes={formasPagamento.map(f => ({ value: f, label: f }))} />
@@ -2837,29 +2846,29 @@ export default function Fornecedores() {
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#2ecc9b") }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{editandoConta ? (idioma === "pt" ? "Editar Conta a Pagar" : "Edit Bill") : (idioma === "pt" ? "Nova Conta a Pagar" : "New Bill")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{editandoConta ? (idioma === "pt" ? "Editar Conta a Pagar" : idioma === "es" ? "Editar Cuenta por Pagar" : "Edit Bill") : (idioma === "pt" ? "Nova Conta a Pagar" : idioma === "es" ? "Nueva Cuenta por Pagar" : "New Bill")}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalConta} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Fornecedor" : "Supplier"}</label>
+                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Fornecedor" : idioma === "es" ? "Proveedor" : "Supplier"}</label>
                       <select value={nc.fornecedor_id} onChange={(e) => {
                           const fid = e.target.value;
                           const f = fornecedores.find((x) => x.id === fid);
                           setNc((prev) => ({ ...prev, fornecedor_id: fid, ...(f ? sugerirDadosContaPorFornecedor(f, prev.data_emissao) : {}) }));
                         }} className={inputCls} style={selectStyle}>
-                        <option value="">-- {idioma === "pt" ? "Selecione" : "Select"} --</option>
+                        <option value="">-- {idioma === "pt" ? "Selecione" : idioma === "es" ? "Seleccione" : "Select"} --</option>
                         {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Descrição" : "Description"} *</label>
+                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Descrição" : idioma === "es" ? "Descripción" : "Description"} *</label>
                       <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} className={inputCls} style={inputStyle} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Valor Total (R$)" : "Total (R$)"} *</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Valor Total (R$)" : idioma === "es" ? "Valor Total (R$)" : "Total (R$)"} *</label>
                         <input type="number" value={nc.valor_total} onChange={(e) => setNc({ ...nc, valor_total: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
@@ -2868,29 +2877,29 @@ export default function Fornecedores() {
                         <input type="number" value={nc.valor_pago || "0"} readOnly disabled className={inputCls} style={{ ...inputStyle, opacity: 0.6 }} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Forma de Pagamento" : "Payment Method"}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Forma de Pagamento" : idioma === "es" ? "Forma de Pago" : "Payment Method"}</label>
                         <select value={nc.forma_pagamento} onChange={(e) => setNc({ ...nc, forma_pagamento: e.target.value })} className={inputCls} style={selectStyle}>
                           {formasPagamento.map(f => <option key={f}>{f}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Parcelas" : "Installments"}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Parcelas" : idioma === "es" ? "Cuotas" : "Installments"}</label>
                         <input type="number" value={nc.parcelas} onChange={(e) => setNc({ ...nc, parcelas: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Emissão" : "Issue Date"}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Emissão" : idioma === "es" ? "Emisión" : "Issue Date"}</label>
                         <input type="date" value={nc.data_emissao} onChange={(e) => setNc({ ...nc, data_emissao: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Vencimento" : "Due Date"}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Vencimento" : idioma === "es" ? "Vencimiento" : "Due Date"}</label>
                         <input type="date" value={nc.data_vencimento} onChange={(e) => setNc({ ...nc, data_vencimento: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Nº Nota Fiscal" : "Invoice No."}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Nº Nota Fiscal" : idioma === "es" ? "N.º de Factura" : "Invoice No."}</label>
                         <input value={nc.numero_nota} onChange={(e) => setNc({ ...nc, numero_nota: e.target.value })} className={inputCls} style={inputStyle} />
                       </div>
                       <div>
-                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Categoria" : "Category"}</label>
+                        <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Categoria" : idioma === "es" ? "Categoría" : "Category"}</label>
                         <select value={nc.categoria} onChange={(e) => setNc({ ...nc, categoria: e.target.value })} className={inputCls} style={selectStyle}>
                           {categorias.map(c => <option key={c}>{c}</option>)}
                         </select>
@@ -2906,7 +2915,7 @@ export default function Fornecedores() {
                       </div>
                     </div>
                     <div>
-                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Observações" : "Notes"}</label>
+                      <label className={labelCls} style={{ color: ct("#2ecc9b") }}>{idioma === "pt" ? "Observações" : idioma === "es" ? "Observaciones" : "Notes"}</label>
                       <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -2914,7 +2923,7 @@ export default function Fornecedores() {
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                         style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
-                        {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : "Save Bill")}
+                        {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : idioma === "es" ? "Guardar Cuenta" : "Save Bill")}
                       </motion.button>
                     </div>
                   </div>

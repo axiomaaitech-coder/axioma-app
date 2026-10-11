@@ -169,7 +169,7 @@ export default function Precificacao() {
     despesasLabel: idioma === "pt" ? "Despesas Operacionais (%)" : idioma === "en" ? "Operating Expenses (%)" : "Gastos Operativos (%)",
     categoriaLabel: idioma === "pt" ? "Categoria" : idioma === "en" ? "Category" : "Categoría",
     unidadesLabel: idioma === "pt" ? "Unidades Vendidas/Mês" : idioma === "en" ? "Units Sold/Month" : "Unidades Vendidas/Mes",
-    statusLabel: idioma === "pt" ? "Status" : "Status",
+    statusLabel: idioma === "pt" ? "Status" : idioma === "es" ? "Estado" : "Status",
     erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto. Tente novamente." : idioma === "en" ? "Could not save the product. Try again." : "No se pudo guardar el producto. Intente de nuevo.",
     erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto. Tente novamente." : idioma === "en" ? "Could not delete the product. Try again." : "No se pudo eliminar el producto. Intente de nuevo.",
     erroAplicarPreco: idioma === "pt" ? "Não foi possível aplicar o novo preço. Tente novamente." : idioma === "en" ? "Could not apply the new price. Try again." : "No se pudo aplicar el nuevo precio. Intente de nuevo.",
@@ -625,7 +625,7 @@ export default function Precificacao() {
               </div>
               <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.prcRadarSub}</p>
               {oportunidades.length === 0 ? (
-                <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#6ee7b7") }}>{idioma === "pt" ? "Nenhuma oportunidade crítica detectada — cadastre unidades vendidas/mês pros produtos pra habilitar essa análise." : "No critical opportunity detected."}</p>
+                <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#6ee7b7") }}>{idioma === "pt" ? "Nenhuma oportunidade crítica detectada — cadastre unidades vendidas/mês pros produtos pra habilitar essa análise." : idioma === "es" ? "Ninguna oportunidad crítica detectada — registre unidades vendidas/mes de los productos para habilitar este análisis." : "No critical opportunity detected — enter units sold/month for the products to enable this analysis."}</p>
               ) : (
                 <div className="space-y-2">
                   {oportunidades.map((o, i) => {
@@ -810,7 +810,7 @@ export default function Precificacao() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                 {[
                   { l: cx.prcEspecialistaCFO, t: `${cx.prcImpactoLucroLabel}: ${fBRL(dreAtual.lucroLiquido.valor)}` },
-                  { l: cx.prcEspecialistaTributario, t: `${cx.prcImpactoTributarioLabel}: ${fPct(aliquotaEfetivaPct)} ${idioma === "pt" ? "sobre a receita" : "on revenue"}` },
+                  { l: cx.prcEspecialistaTributario, t: `${cx.prcImpactoTributarioLabel}: ${fPct(aliquotaEfetivaPct)} ${idioma === "pt" ? "sobre a receita" : idioma === "es" ? "sobre los ingresos" : "on revenue"}` },
                   { l: cx.prcEspecialistaComercial, t: `${cx.prcSubCompetitividade}: ${Math.round(ippa.subscores.find((s) => s.chave === "competitividade")?.valor || 0)}/100` },
                   { l: cx.prcEspecialistaRisco, t: `${cx.prcRadarTitulo}: ${oportunidadesRisco.length}` },
                   { l: cx.prcEspecialistaAnalista, t: elasticidade.temDadosSuficientes ? montarNarrativaElasticidade(lang, elasticidade) : cx.prcElasticidadeDadosInsuficientes },
