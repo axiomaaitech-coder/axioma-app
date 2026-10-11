@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 

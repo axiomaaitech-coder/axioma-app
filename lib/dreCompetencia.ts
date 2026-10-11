@@ -17,7 +17,7 @@
 //              ignoradas: a própria conta a pagar já representa o custo)
 //   FIXO      custos fixos só nos meses de vigência (início → término), nunca no futuro
 //   JUROS     pagos = conta contábil 9.01 (real) · estimados = dívidas × taxa (separado)
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";
 import { hojeISO } from "./datas";

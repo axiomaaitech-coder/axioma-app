@@ -66,7 +66,7 @@
 // Só vale pra lançamentos NOVOS — não desfaz nem corrige nenhum lançamento
 // já gravado (ledger imutável por desenho).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { registrarLancamentoContabil, type PartidaContabilInput } from "./contabilidadeHelpers";
 import { type CategoriaDespesa } from "./categoriasDespesa";

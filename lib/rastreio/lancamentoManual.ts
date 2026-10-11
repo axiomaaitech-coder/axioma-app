@@ -12,7 +12,7 @@
 //   mesmo valor + data a 1 dia + descrição/cliente parecido → DUPLICATA (bloqueia e avisa)
 //   mesmo valor + data a 1 dia, texto diferente            → PERGUNTA (caso extremo)
 //   mesmo valor em outro mês, ou data longe                → segue (recorrente/outro dinheiro)
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../supabaseBrowser";
 import { registrarMovimentacao, type PayloadRastreio, type Destino } from "./motor";
 import { normalizarTexto } from "../cfoCore";
 import { avaliarDuplicidade, type Idioma } from "../motorDuplicidade";

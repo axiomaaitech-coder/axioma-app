@@ -6,7 +6,7 @@
 // Inteligência do Axioma a explicação em linguagem simples do que sobrou.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { Check, Clock, X, Minus, Sparkles, RotateCcw, ExternalLink } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'

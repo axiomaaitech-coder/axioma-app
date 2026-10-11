@@ -5,7 +5,7 @@ import { copiarTexto } from "../../../lib/copiar";
 import { motion } from "framer-motion";
 import ProgressoEtapas from "../../../components/ProgressoEtapas";
 import { useLanguage } from "../../../lib/LanguageContext";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { ThemeToggle } from "../../../components/ThemeToggle";

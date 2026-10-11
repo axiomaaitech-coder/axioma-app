@@ -3,7 +3,7 @@
 // entre vários centros por % — nunca duplica o valor, só a fração de cada centro.
 
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
 import { lerTodas } from "./lerTodas";

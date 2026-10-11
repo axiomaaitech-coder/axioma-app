@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../../lib/LanguageContext";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import DashFinanceiro from "../../../components/DashFinanceiro";

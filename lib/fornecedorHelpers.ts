@@ -2,7 +2,7 @@
 // Fase 1: Cadastro Enterprise (contatos, documentos com validade, contratos, produtos, timeline).
 // Mesmo padrão de storage/CRUD já usado em empresaHelpers.ts (bucket + tabela de metadados).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { hojeISO } from "./datas";
 

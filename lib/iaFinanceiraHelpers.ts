@@ -4,7 +4,7 @@
 
 import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(

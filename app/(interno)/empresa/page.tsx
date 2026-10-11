@@ -3,7 +3,7 @@ import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef } from "react";
 import { copiarTexto } from "../../../lib/copiar";
 import { useLanguage } from "../../../lib/LanguageContext";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox, BORDA_3D, SOMBRA_3D } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";

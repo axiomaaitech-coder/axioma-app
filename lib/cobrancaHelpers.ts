@@ -5,7 +5,7 @@
 // Reaproveita 100% o motor da Fase 1 (clienteIntelHelpers.ts) — nada
 // recalculado do zero.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { scoreRecebimento } from "./clienteIntelHelpers";

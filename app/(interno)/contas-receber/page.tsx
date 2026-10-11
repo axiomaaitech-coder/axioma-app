@@ -3,7 +3,7 @@ import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import * as Sentry from '@sentry/nextjs'
 import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'

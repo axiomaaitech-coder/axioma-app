@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import { CheckCircle2, XCircle, Pencil, ArrowLeft } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../../components/ThemeToggle'

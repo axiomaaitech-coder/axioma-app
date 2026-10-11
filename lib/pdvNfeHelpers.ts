@@ -5,7 +5,7 @@
 // (lib/estoqueHelpers.ts).
 
 import { lerTodas } from "./lerTodas";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { ItemNFe } from "./importarParsers";
 import { vincularItensAoPedidoAberto } from "./pedidoCompraHelpers";

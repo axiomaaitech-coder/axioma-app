@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, X, CheckCircle2, XCircle, Eye, BookOpenText, TrendingDown, ClipboardCheck, BookText } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'

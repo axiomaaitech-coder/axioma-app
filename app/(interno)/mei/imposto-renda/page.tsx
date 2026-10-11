@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import { FileText, AlertTriangle, CheckCircle, Share2, Upload, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, X, Check } from 'lucide-react'

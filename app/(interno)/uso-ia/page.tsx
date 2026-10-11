@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { useEffect, useMemo, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'

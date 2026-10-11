@@ -5,7 +5,7 @@
 import { saldoCaixaRealizado } from "./caixaSaldo";
 import { soVigentes } from "./custoFixoVigente";
 import { lerTodas } from "./lerTodas";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { nomeMesPt, mesesPorLang } from "./cfoCore";
 import { reportarFalhaLeitura } from "./erroUiHelpers";

@@ -3,7 +3,7 @@
 // meio, queda de internet, banco lento) e termina o caminho — antes de alguém
 // abrir a tela e ver número faltando. Roda ao abrir o Axioma e a cada 5 min
 // (components/GuardiaoRastreio.tsx) e pelo botão "Houve falha?".
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../supabaseBrowser";
 import { percorrerRastreio, type ResolvidoPor } from "./motor";
 
 const supabase = createBrowserClient(

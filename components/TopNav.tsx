@@ -5,7 +5,7 @@ import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Menu, X, LogOut, ChevronDown, Landmark, Home, Globe, Wallet, BookOpen, Users, TrendingUp, Building2, Store, ShoppingCart, Bot, Settings, BookMarked, FileText, Lock, UsersRound } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../lib/supabaseBrowser";
 import { motion, AnimatePresence } from "framer-motion";
 import { obterEmpresaAtiva, carregarEmpresaPorId, obterMeuPapel, obterMeuNivel, listarPedidosEquipe } from "../lib/empresaHelpers";
 import BadgeDestaque from "./BadgeDestaque";

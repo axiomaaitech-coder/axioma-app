@@ -3,7 +3,7 @@
 // trigger no banco (ver ESTOQUE-FASE1-SQL.sql) — este arquivo nunca soma isso
 // no navegador, só lê o que a trigger já calculou.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as XLSX from "xlsx";
 import { exportarPlanilha } from "./exportarPlanilha";
 import * as Sentry from "@sentry/nextjs";

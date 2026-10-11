@@ -16,7 +16,7 @@
 //
 // O rastro nasce ANTES de qualquer destino rodar: se o navegador fechar no meio,
 // fica "pendente" com o caminho inteiro anotado e o Guardião termina depois.
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEvento } from "../eventFabricHelpers";
 import { processarEventoContabil } from "../contabilidadeConsumidor";

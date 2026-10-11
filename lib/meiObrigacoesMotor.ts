@@ -13,7 +13,7 @@
 // DRE gerencial NÃO recebe o DAS como custo (já deduz o imposto do regime).
 //
 // Projeção (ano sem regra oficial) nunca vira conta a pagar nem dívida.
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { registrarMovimentacao } from "./rastreio/motor";
 import { criarContaPagar } from "./contasPagarHelpers";

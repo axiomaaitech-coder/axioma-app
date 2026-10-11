@@ -17,7 +17,7 @@ import { useTurnstile, TURNSTILE_ATIVO } from "../../../../components/Turnstile"
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../../lib/supabaseBrowser";
 import { motion } from "framer-motion";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings, LayoutDashboard, Lock } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";

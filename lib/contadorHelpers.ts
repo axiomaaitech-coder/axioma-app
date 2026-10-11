@@ -13,7 +13,7 @@
 // daqui em diante é direto do client, coberto pela RLS FOR ALL já criada.
 
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { resolverPeriodo, periodoAnterior, topConcentracao, fBRL2, type Periodo } from "./cfoCore";
 import {

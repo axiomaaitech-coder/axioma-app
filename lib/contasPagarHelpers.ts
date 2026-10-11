@@ -5,7 +5,7 @@
 
 import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";

@@ -3,7 +3,7 @@ import { reportarFalhaLeitura } from "./erroUiHelpers";
 // Integrações: BrasilAPI (CNPJ), ViaCEP (endereço)
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP } from "./enderecoHelpers";
 import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "./datas";

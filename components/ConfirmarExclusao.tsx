@@ -8,7 +8,7 @@
 //   if (!(await confirmar({ oQue: `"${nome}"`, efeito: EFEITO.financeiro, tabela: "receitas", registroId: id }))) return
 //   ... e renderizar {janelaConfirmacao} uma vez na tela.
 import { useEffect, useState, type ReactNode } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../lib/supabaseBrowser'
 import { ShieldAlert } from 'lucide-react'
 import Modal from './Modal'
 import { CanvasBox } from './CanvasBox'

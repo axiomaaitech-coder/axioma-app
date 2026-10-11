@@ -4,7 +4,7 @@
 // ESTOQUE-FASE3-SUGESTOES-SQL.sql). Trocar pra IA depois é só mudar o corpo
 // destas 3 funções — quem chama (os campos da tela) não muda nada.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

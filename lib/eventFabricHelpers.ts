@@ -3,7 +3,7 @@
 // módulo chama isso ainda (publisher liga no Commit 2) — este arquivo só
 // entrega a capacidade + o tipo do evento.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(

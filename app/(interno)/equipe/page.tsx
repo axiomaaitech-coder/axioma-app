@@ -1,7 +1,7 @@
 'use client'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { copiarTexto } from '../../../lib/copiar'

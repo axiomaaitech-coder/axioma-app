@@ -19,7 +19,7 @@
 // Tributaria/gerarAlertasReforma vêm de lib/iaTributariaHelpers.ts, fonte
 // canônica única — nunca recalculados aqui.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { registrarAuditoria } from "./empresaHelpers";
 import {

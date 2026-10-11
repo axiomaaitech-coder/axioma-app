@@ -8,7 +8,7 @@ import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, I
 import type { CobrancaCompromisso, EtapaRegua, AlertaCobranca, CardExplicativo } from "./cobrancaHelpers";
 import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers";
 import { montarDRE, serieRolling, type DRE, type Lancamento } from "./cfoCore";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { hojeISO } from "./datas";
 

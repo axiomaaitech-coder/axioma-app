@@ -1,7 +1,7 @@
 ﻿'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import * as Sentry from '@sentry/nextjs'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { motion, AnimatePresence } from 'framer-motion'

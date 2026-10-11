@@ -4,7 +4,7 @@
 // ponytail: aprendizado usa a 1ª palavra significativa do nome como "termo" —
 // upgrade real (extração de palavra-chave por NLP) fica pra quando plugarmos LLM.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { Idioma } from "./translations";
 

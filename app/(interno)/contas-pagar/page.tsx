@@ -10,7 +10,7 @@ import {
   Send, MessageCircleQuestion, ListChecks, ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";

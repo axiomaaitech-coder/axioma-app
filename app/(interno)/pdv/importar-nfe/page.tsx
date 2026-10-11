@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import { Upload, Loader2, CheckCircle2, AlertTriangle, Sparkles, Package } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../../lib/supabaseBrowser";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";

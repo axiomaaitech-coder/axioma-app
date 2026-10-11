@@ -3,7 +3,7 @@
 // estoque_movimentacoes e contas_pagar. Nenhum valor "adivinhado".
 // Reaproveitado sem mudança: obterConfigAp (contasPagarHelpers.ts).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { obterConfigAp } from "./contasPagarHelpers";
 import { calcularStatusPedido } from "./pedidoCompraHelpers";

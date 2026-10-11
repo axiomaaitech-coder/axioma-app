@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import { ArrowLeft, Save, Lock, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../../components/ThemeToggle'

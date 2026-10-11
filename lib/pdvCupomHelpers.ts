@@ -7,7 +7,7 @@
 // (lib/pdvVendaHelpers.ts): 0 linhas sem error = sem permissão, não erro
 // genérico.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(

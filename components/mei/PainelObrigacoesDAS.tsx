@@ -5,7 +5,7 @@
 // Nenhuma conta é refeita aqui: totais vêm de mei_resumo_obrigacoes e dos meses do banco.
 // Cenário mexe SÓ nas estimativas e nunca grava dado real (vai pra tabela simulacoes).
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../lib/supabaseBrowser'
 import * as Sentry from '@sentry/nextjs'
 import { Pencil, Trash2, Copy, Eye, CalendarClock, Info } from 'lucide-react'
 import { CanvasBox } from '../CanvasBox'

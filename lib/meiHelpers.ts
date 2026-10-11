@@ -6,7 +6,7 @@
 // no mesmo arquivo).
 
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
 import { hojeISO, dataLocal } from "./datas";

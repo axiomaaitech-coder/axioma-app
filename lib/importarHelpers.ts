@@ -3,7 +3,7 @@
 // Cada destino tem um builder que monta o payload EXATO pra aquela tabela.
 
 import CryptoJS from "crypto-js";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarParsers";
 import { criarContaPagar, editarContaPagar, darBaixaContaPagar, excluirContaPagar, type ContaPagar } from "./contasPagarHelpers";

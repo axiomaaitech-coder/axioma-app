@@ -6,7 +6,7 @@
 //     desconto ficaria "a receber" pra sempre no Dashboard, na IA e na Tesouraria.
 //   • O que passar do que faltava do principal é juros/multa: vai pra
 //     6.04 Receitas Financeiras, nunca crédito extra em Clientes.
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import { registrarMovimentacao } from "./rastreio/motor";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import * as Sentry from "@sentry/nextjs";

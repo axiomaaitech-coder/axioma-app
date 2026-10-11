@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, TrendingUp, AlertTriangle, Sparkles } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import SeloOrigem from "../../../components/SeloOrigem";
 import { lerTodas } from "../../../lib/lerTodas";

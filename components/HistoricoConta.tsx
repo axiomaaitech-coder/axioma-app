@@ -8,7 +8,7 @@
 // aconteceu) + rastreio_movimentacao (Motor de Rastreabilidade).
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../lib/supabaseBrowser'
 import { X, Check, AlertTriangle, Route } from 'lucide-react'
 import Modal from './Modal'
 import { useLanguage } from '../lib/LanguageContext'

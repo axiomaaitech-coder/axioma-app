@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { Share2, AlertTriangle, Sparkles, Zap, MessageSquareText, History, X, ShieldCheck, Clock } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { lerTodas } from "../../../lib/lerTodas";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";

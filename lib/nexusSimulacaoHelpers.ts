@@ -1,5 +1,5 @@
 import { soVigentes } from "./custoFixoVigente";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import { obterEmpresaAtiva } from "./empresaHelpers";
 import { lerTodas } from "./lerTodas";
 import { montarDRE, simularCenariosExecutivos, type ResultadoCenario, type ChoqueSimulador } from "./cfoCore";

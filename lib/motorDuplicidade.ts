@@ -19,7 +19,7 @@
 // Linhas criadas pelo próprio Motor de Rastreabilidade (rastreio_id) são CÓPIAS da
 // conta de origem: não contam como "outra conta" (a origem já é candidata), exceto
 // no Fluxo de Caixa quando o que entra é extrato — aí a cópia é o pagamento já lançado.
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import { normalizarTexto } from "./cfoCore";
 
 const supabase = createBrowserClient(

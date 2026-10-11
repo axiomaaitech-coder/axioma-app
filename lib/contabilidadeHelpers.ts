@@ -4,7 +4,7 @@
 // parte antes de ligar o consumidor automático. Este arquivo só entrega a
 // CAPACIDADE de gravar um lançamento já validado, determinística, sem IA.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { hojeISO } from "./datas";
 

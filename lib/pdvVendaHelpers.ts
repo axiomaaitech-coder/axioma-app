@@ -4,7 +4,7 @@
 // lib/estoqueHelpers.ts: sempre checa {data, error} e trata 0 linhas
 // afetadas como falha (RLS pode bloquear e devolver 0 linhas sem `error`).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { criarMovimentacao } from "./estoqueHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";

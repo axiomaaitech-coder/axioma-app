@@ -1,7 +1,7 @@
 "use client";
 import { soVigentes } from "../lib/custoFixoVigente";
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../lib/supabaseBrowser";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";

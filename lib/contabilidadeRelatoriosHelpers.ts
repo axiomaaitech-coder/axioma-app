@@ -2,7 +2,7 @@
 // escreve. Base compartilhada pelas 3 telas de Contabilidade (Razão,
 // Balancete, DRE): elas só formatam e agrupam o que sai daqui.
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import type { NaturezaContabil } from "./contabilidadeHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";

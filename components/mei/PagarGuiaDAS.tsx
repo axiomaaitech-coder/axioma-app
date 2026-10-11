@@ -7,7 +7,7 @@
 // ME/EPP (Simples): mesma tela com `simples` — guia do PGDAS-D ligada à conta a pagar do DAS,
 // e "Já paguei" dá a baixa pela própria Contas a Pagar (multa/juros da guia viram encargos).
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '../../lib/supabaseBrowser'
 import * as Sentry from '@sentry/nextjs'
 import { Copy, ExternalLink, Upload, Check, AlertTriangle } from 'lucide-react'
 import Modal from '../Modal'

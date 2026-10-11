@@ -5,7 +5,7 @@
 // Escrita nova: só auditoria (Fase 1) e planos de ação (Fase 2).
 
 import { marcarFalhaLeituraCentro } from "./centroCustoHelpers";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import {
   detectarAnomaliasHistoricas, type AnomaliaHistorica, type Lancamento,

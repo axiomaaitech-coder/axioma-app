@@ -8,7 +8,7 @@
 // não expõe custo/lucro, é a mesma tabela que a Frente de Caixa já lê hoje).
 
 import { hojeISO } from "./datas";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 

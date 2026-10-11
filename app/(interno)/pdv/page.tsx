@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Plus } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
 import type { Idioma } from "../../../lib/translations";

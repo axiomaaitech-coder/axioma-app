@@ -2,7 +2,7 @@
 // 3-way). CRUD mínimo + vínculo automático com os itens de uma NF-e recém
 // gravada. Reaproveitado sem mudança: normalizarTexto (cfoCore.ts).
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { normalizarTexto } from "./cfoCore";
 

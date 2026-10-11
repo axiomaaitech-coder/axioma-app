@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import type { PayloadEvento } from "./nexusEventDetector";
 import type { BriefingJose } from "./nexusBriefing";
 

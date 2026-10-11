@@ -8,7 +8,7 @@
 // E monta a PRÉVIA dos casos históricos (D3 pagamento sem rastro, D4 baixa sem rastro,
 // D5 receita fora da Contabilidade, D7 receita pendente sem conta a receber): registros,
 // IDs, antes × depois, impacto por módulo e risco de duplicidade. Nada é executado aqui.
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";
 import { carregarBaseDRE, custoFixoDoMes, mesesEntre, somaNoPeriodo } from "./dreCompetencia";

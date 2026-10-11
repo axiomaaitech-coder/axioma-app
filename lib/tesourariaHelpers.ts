@@ -5,7 +5,7 @@
 // 100%: nada de IA nesta rodada (ZIA é Rodada 3).
 
 import { lerTodas } from "./lerTodas";
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto } from "./cfoCore";
