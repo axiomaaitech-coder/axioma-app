@@ -1,11 +1,11 @@
-// Fonte única: gera o Word (scripts/gerar-docs) e a página no site.
-import type { DocumentoAxioma } from "../tipos"
+// Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
+import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
-const doc: DocumentoAxioma = {
+const pt: DocumentoAxioma = {
   arquivo: '43 - Nexus - Inteligência Econômica.docx',
   titulo: 'Manual 43 — Nexus e o José',
   subtitulo: 'Inteligência econômica que atravessa toda a empresa',
-  info: ['Menu: Nexus  •  Manual de uso do Axioma AI.Tech'],
+  info: ['Menu: Nexus (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Nexus acompanha a economia do Brasil e do mundo (câmbio, juros, inflação, petróleo, emprego, notícias) e traduz o que acontece em **impacto para a sua empresa**. Quem faz essa leitura é o **José**, a inteligência do Nexus.' },
@@ -17,20 +17,22 @@ const doc: DocumentoAxioma = {
     { h2: 'Indicadores do Brasil' },
     { p: 'Câmbio, juros, inflação, emprego e atividade, de fontes oficiais (Banco Central, IBGE e Banco Central Europeu como reserva), atualizados todo dia. Cada indicador mostra a **confiabilidade do dado** e a data de referência. Quando a fonte principal atrasa, o Axioma usa a reserva e avisa.' },
     { h2: 'Economia mundial' },
-    { p: 'Petróleo Brent, crescimento e inflação mundial, **matérias-primas** que o Brasil mais exporta (soja, milho, café, minério, pelo FMI), **combustíveis nos postos** (ANP) e comércio exterior.' },
+    { p: 'Petróleo Brent, crescimento e inflação mundial, **matérias-primas** que o Brasil mais exporta (soja, milho, café, açúcar, minério, pelo FMI), **combustíveis nos postos** (ANP) e comércio exterior.' },
+    { h2: 'Pesquisar (Motor de Pesquisa Nexus)' },
+    { p: 'Os cards de indicadores, moedas, petróleo, países, matérias-primas, combustíveis, comércio exterior, ciclo econômico, notícias e eventos do Radar têm o botão **Pesquisar**. Ele mostra o **dado oficial** (valor, referência, fonte com página pública, hora da coleta e o valor de cerca de 1 mês antes), as **reportagens** dos últimos 30 dias (título, veículo, data e link) e a **leitura do José** (resumo, pontos que dá para conferir e o efeito na empresa). A inteligência só cita reportagens que existem no banco; sem inteligência, a pesquisa sai assinada "Motor de Pesquisa Nexus".' },
     { h2: 'Radar Global Axioma' },
     { p: 'Mudanças relevantes nos indicadores, percebidas automaticamente. Os eventos que afetam o seu setor são marcados com **"Mexe com o seu ramo"**. Clique num evento para a **leitura do José**: impacto no Brasil e no mundo, setores afetados, o que muda para uma empresa como a sua, cenários, o que fazer, riscos, oportunidades, confiança da leitura (e por quê) e o que pode mudar o quadro. O botão **Simular este evento na minha empresa** leva ao simulador.' },
     { h2: 'Central Nexus (notícias)' },
     { p: 'Manchetes por canal, inclusive **Reforma Tributária**, com link para a matéria completa e para a página oficial do Senado. Quando a notícia em tempo real não está disponível, a tela avisa que está em modo de demonstração.' },
     { h2: 'Painel executivo do José' },
-    { p: 'Resumo diário de tudo o que mudou e o que fazer: **O Mundo**, **Brasil**, **Alertas**, **Riscos**, **Oportunidades**, horizontes de **12 meses, 3, 5 e 10 anos**, **O que você pode não estar vendo**, **O que o José faria**, de onde vieram os dados e os limites da análise. O primeiro do dia leva até 1 minuto e depois fica pronto para todos.' },
+    { p: 'Resumo diário de tudo o que mudou e o que fazer: **O Mundo**, **Brasil**, **Alertas**, **Riscos**, **Oportunidades**, horizontes de **12 meses, 3, 5 e 10 anos**, **O que você pode não estar vendo**, **O que o José faria**, de onde vieram os dados (com link para conferir) e os limites da análise. O primeiro do dia leva até 1 minuto e depois fica pronto para todos; o botão **Atualizar** refaz a leitura.' },
     { h2: 'Placar do José' },
     { p: 'O José faz previsões e o Axioma confere depois, no prazo. O placar mostra **acertos** e **erros**, sem esconder nada, e as previsões que ainda aguardam o prazo.' },
     { h2: 'Saúde das fontes' },
-    { p: 'Mostra se cada fonte de dados está funcionando, com último sucesso, última falha e confiança. Fonte fora do ar tenta de novo em até 6 horas.' },
+    { p: 'Mostra se cada fonte de dados está funcionando, com último sucesso, última falha e confiança. Fonte fora do ar tenta de novo em até 6 horas, e quase todas têm uma segunda fonte gratuita de reserva.' },
 
     { h1: 'Converse com o José' },
-    { p: 'Chat em linguagem natural. A cada pergunta, o José recebe os indicadores oficiais, os eventos do Radar, as leituras já feitas e os números da sua empresa, e responde usando o **motor de inteligência mais avançado do Axioma**. Use **Nova conversa** para recomeçar.' },
+    { p: 'Chat em linguagem natural. A cada pergunta, o José recebe os indicadores oficiais, os eventos do Radar, as leituras já feitas e os números da sua empresa, e responde usando o **motor de inteligência mais avançado do Axioma**; se ele estiver fora, um motor de reserva responde. Use **Nova conversa** para recomeçar. O José só lê: nunca apaga nem altera dados.' },
     { h1: 'Plano do José para sua empresa' },
     { p: 'Pergunte como a empresa pode estar em um horizonte e o José monta um plano: indicadores atuais (receita, lucro, caixa, fôlego de caixa), **veredito**, onde a empresa está, o que a economia sinaliza, **sobrevivência**, **onde economizar**, **o que cortar**, **como crescer**, **metas de indicadores** e **gatilhos para vigiar**.' },
     { p: 'Os planos ficam salvos em **Meus planos salvos** por **90 dias**. O Axioma avisa antes de apagar; use **Salvar em PDF** para guardar por mais tempo.' },
@@ -50,4 +52,107 @@ const doc: DocumentoAxioma = {
   ],
 }
 
+const en: DocumentoAxioma = {
+  arquivo: '43 - Nexus - Economic Intelligence.docx',
+  titulo: 'Manual 43 — Nexus and José',
+  subtitulo: 'Economic intelligence that runs through the whole company',
+  info: ['Menu: Nexus (top bar)  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  blocos: [
+    { h1: 'What it is for' },
+    { p: 'Nexus follows the economy of Brazil and the world (exchange rates, interest, inflation, oil, employment, news) and translates what happens into **impact on your company**. The one who does this reading is **José**, Nexus’s intelligence.' },
+    { h2: 'Why "José"' },
+    { p: 'In the biblical story, Joseph of Egypt interpreted the signs and prepared the country for seven lean years. That is Nexus’s idea: **read today’s signs to prepare for tomorrow**.' },
+    { alerta: 'José only uses official data and your company’s numbers in Axioma: nothing is made up. Readings are **interpretations, not facts**, and **are not investment advice**.' },
+
+    { h1: 'Parts of the screen' },
+    { h2: 'Brazil indicators' },
+    { p: 'Exchange rate, interest, inflation, employment and activity, from official sources (Central Bank of Brazil, IBGE and the European Central Bank as backup), updated daily. Each indicator shows the **data reliability** and the reference date. When the main source is late, Axioma uses the backup and says so.' },
+    { h2: 'World economy' },
+    { p: 'Brent oil, world growth and inflation, the **commodities** Brazil exports most (soybeans, corn, coffee, sugar, iron ore, from the IMF), **fuel prices at the pump** (ANP) and foreign trade.' },
+    { h2: 'Search (Nexus Research Engine)' },
+    { p: 'The cards for indicators, currencies, oil, countries, commodities, fuels, foreign trade, economic cycle, news and Radar events have a **Search** button. It shows the **official data** (value, reference, source with a public page, collection time and the value about 1 month earlier), the **news reports** from the last 30 days (title, outlet, date and link) and **José’s reading** (summary, verifiable points and the effect on the company). The AI only cites reports that exist in the database; without AI, the search is signed "Nexus Research Engine".' },
+    { h2: 'Axioma Global Radar' },
+    { p: 'Relevant changes in indicators, detected automatically. Events that affect your industry are marked **"Affects your industry"**. Click an event for **José’s reading**: impact on Brazil and the world, affected industries, what changes for a company like yours, scenarios, what to do, risks, opportunities, confidence of the reading (and why) and what could change the picture. **Simulate this event in my company** takes you to the simulator.' },
+    { h2: 'Nexus Center (news)' },
+    { p: 'Headlines by channel, including **Tax Reform**, with a link to the full article and to the Senate’s official page. When real-time news is unavailable, the screen says it is in demo mode.' },
+    { h2: 'José’s executive panel' },
+    { p: 'A daily summary of everything that changed and what to do: **The World**, **Brazil**, **Alerts**, **Risks**, **Opportunities**, **12-month, 3, 5 and 10-year** horizons, **What you may not be seeing**, **What José would do**, where the data came from (with links to check) and the limits of the analysis. The first of the day takes up to 1 minute and is then ready for everyone; the **Update** button redoes the reading.' },
+    { h2: 'José’s scoreboard' },
+    { p: 'José makes predictions and Axioma checks them later, when due. The scoreboard shows **hits** and **misses**, hiding nothing, and the predictions still waiting for their deadline.' },
+    { h2: 'Source health' },
+    { p: 'Shows whether each data source is working, with last success, last failure and confidence. A source that is down retries within 6 hours, and almost all have a second free backup source.' },
+
+    { h1: 'Talk to José' },
+    { p: 'Plain-language chat. For each question, José receives the official indicators, Radar events, readings already done and your company’s numbers, and answers using **Axioma’s most advanced intelligence engine**; if it is down, a backup engine answers. Use **New conversation** to start over. José only reads: it never deletes or changes data.' },
+    { h1: 'José’s plan for your company' },
+    { p: 'Ask how the company could be over a horizon and José builds a plan: current indicators (revenue, profit, cash, cash runway), **verdict**, where the company stands, what the economy signals, **survival**, **where to save**, **what to cut**, **how to grow**, **indicator targets** and **triggers to watch**.' },
+    { p: 'Plans are kept in **My saved plans** for **90 days**. Axioma warns before deleting; use **Save as PDF** to keep them longer.' },
+
+    { h1: 'What if...? (My Simulations)' },
+    { numerada: [
+      'Check **Your company today** (average of the last 12 months of revenue, costs, debts and cash).',
+      'In **What changes in the economy**, adjust dollar, Selic, inflation, oil or a sales drop.',
+      'In **How much it hits your company**, enter your exposure (e.g., how much of the cost is imported).',
+      'Choose the horizon and click **Simulate**. The result shows profit and cash against today and how many months the cash lasts.',
+      'Click **José explains** to understand the result, including why some part did not change.',
+      'Give it a name and **Save simulation**.',
+    ] },
+    { p: 'Saved simulations can be **favorited**, **edited**, **duplicated**, **archived** or **deleted**. Those unused for 90 days (and not favorites) move to Archived on their own; nothing is deleted automatically.' },
+    { h1: 'Alerts on any screen' },
+    { p: 'When something high-impact happens, a discreet alert appears in the corner while you use Axioma. Turn it on or off in **Global Radar on any screen**, in the "What Nexus does for you" block.' },
+  ],
+}
+
+const es: DocumentoAxioma = {
+  arquivo: '43 - Nexus - Inteligencia Económica.docx',
+  titulo: 'Manual 43 — Nexus y José',
+  subtitulo: 'Inteligencia económica que atraviesa toda la empresa',
+  info: ['Menú: Nexus (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  blocos: [
+    { h1: 'Para qué sirve' },
+    { p: 'Nexus sigue la economía de Brasil y del mundo (tipo de cambio, intereses, inflación, petróleo, empleo, noticias) y traduce lo que pasa en **impacto para su empresa**. Quien hace esa lectura es **José**, la inteligencia de Nexus.' },
+    { h2: 'Por qué "José"' },
+    { p: 'En la historia bíblica, José de Egipto interpretó las señales y preparó al país para los siete años de vacas flacas. Es la idea de Nexus: **leer las señales de hoy para prepararse para mañana**.' },
+    { alerta: 'José solo usa datos oficiales y los números de su empresa en Axioma: nada se inventa. Las lecturas son **interpretaciones, no hechos**, y **no son recomendación de inversión**.' },
+
+    { h1: 'Las partes de la pantalla' },
+    { h2: 'Indicadores de Brasil' },
+    { p: 'Tipo de cambio, intereses, inflación, empleo y actividad, de fuentes oficiales (Banco Central de Brasil, IBGE y Banco Central Europeo como respaldo), actualizados todos los días. Cada indicador muestra la **confiabilidad del dato** y la fecha de referencia. Cuando la fuente principal se atrasa, Axioma usa el respaldo y avisa.' },
+    { h2: 'Economía mundial' },
+    { p: 'Petróleo Brent, crecimiento e inflación mundial, **materias primas** que Brasil más exporta (soja, maíz, café, azúcar, mineral de hierro, del FMI), **combustibles en las estaciones** (ANP) y comercio exterior.' },
+    { h2: 'Buscar (Motor de Investigación Nexus)' },
+    { p: 'Las tarjetas de indicadores, monedas, petróleo, países, materias primas, combustibles, comercio exterior, ciclo económico, noticias y eventos del Radar tienen el botón **Buscar**. Muestra el **dato oficial** (valor, referencia, fuente con página pública, hora de la recolección y el valor de cerca de 1 mes antes), los **reportajes** de los últimos 30 días (título, medio, fecha y enlace) y la **lectura de José** (resumen, puntos verificables y el efecto en la empresa). La inteligencia solo cita reportajes que existen en la base; sin inteligencia, la búsqueda sale firmada "Motor de Pesquisa Nexus".' },
+    { h2: 'Radar Global Axioma' },
+    { p: 'Cambios relevantes en los indicadores, detectados automáticamente. Los eventos que afectan su sector se marcan con **"Afecta a su rubro"**. Haga clic en un evento para la **lectura de José**: impacto en Brasil y el mundo, sectores afectados, qué cambia para una empresa como la suya, escenarios, qué hacer, riesgos, oportunidades, confianza de la lectura (y por qué) y qué puede cambiar el cuadro. El botón **Simular este evento en mi empresa** lleva al simulador.' },
+    { h2: 'Central Nexus (noticias)' },
+    { p: 'Titulares por canal, incluida la **Reforma Tributaria**, con enlace a la nota completa y a la página oficial del Senado. Cuando la noticia en tiempo real no está disponible, la pantalla avisa que está en modo demostración.' },
+    { h2: 'Panel ejecutivo de José' },
+    { p: 'Resumen diario de todo lo que cambió y qué hacer: **El Mundo**, **Brasil**, **Alertas**, **Riesgos**, **Oportunidades**, horizontes de **12 meses, 3, 5 y 10 años**, **Lo que quizá no está viendo**, **Lo que José haría**, de dónde vinieron los datos (con enlace para verificar) y los límites del análisis. El primero del día tarda hasta 1 minuto y luego queda listo para todos; el botón **Actualizar** rehace la lectura.' },
+    { h2: 'Marcador de José' },
+    { p: 'José hace previsiones y Axioma las verifica después, en el plazo. El marcador muestra **aciertos** y **errores**, sin esconder nada, y las previsiones que aún esperan su plazo.' },
+    { h2: 'Salud de las fuentes' },
+    { p: 'Muestra si cada fuente de datos funciona, con último éxito, última falla y confianza. Una fuente caída reintenta en hasta 6 horas, y casi todas tienen una segunda fuente gratuita de respaldo.' },
+
+    { h1: 'Converse con José' },
+    { p: 'Chat en lenguaje natural. En cada pregunta, José recibe los indicadores oficiales, los eventos del Radar, las lecturas ya hechas y los números de su empresa, y responde usando el **motor de inteligencia más avanzado de Axioma**; si está caído, responde un motor de respaldo. Use **Nueva conversación** para empezar de nuevo. José solo lee: nunca borra ni altera datos.' },
+    { h1: 'Plan de José para su empresa' },
+    { p: 'Pregunte cómo puede estar la empresa en un horizonte y José arma un plan: indicadores actuales (ingresos, utilidad, caja, autonomía de caja), **veredicto**, dónde está la empresa, qué señala la economía, **supervivencia**, **dónde ahorrar**, **qué cortar**, **cómo crecer**, **metas de indicadores** y **disparadores a vigilar**.' },
+    { p: 'Los planes quedan guardados en **Mis planes guardados** por **90 días**. Axioma avisa antes de borrar; use **Guardar en PDF** para conservarlos más tiempo.' },
+
+    { h1: '¿Y si...? (Mis Simulaciones)' },
+    { numerada: [
+      'Revise **Su empresa hoy** (promedio de los últimos 12 meses de ingresos, costos, deudas y caja).',
+      'En **Qué cambia en la economía**, ajuste dólar, Selic, inflación, petróleo o caída de ventas.',
+      'En **Cuánto afecta a su empresa**, informe su exposición (ej.: cuánto del costo es importado).',
+      'Elija el horizonte y haga clic en **Simular**. El resultado muestra utilidad y caja frente a hoy y cuántos meses dura la caja.',
+      'Haga clic en **José explica** para entender el resultado, incluso por qué alguna parte no cambió.',
+      'Póngale un nombre y **Guardar simulación**.',
+    ] },
+    { p: 'Las simulaciones guardadas se pueden **marcar como favoritas**, **editar**, **duplicar**, **archivar** o **eliminar**. Las sin uso por 90 días (y no favoritas) pasan solas a Archivadas; nada se borra automáticamente.' },
+    { h1: 'Avisos en cualquier pantalla' },
+    { p: 'Cuando ocurre algo de alto impacto, aparece un aviso discreto en la esquina mientras usa Axioma. Actívelo o desactívelo en **Radar Global en cualquier pantalla**, en el bloque "Lo que Nexus hace por usted".' },
+  ],
+}
+
+const doc: DocTrilingue = { pt, en, es }
 export default doc
