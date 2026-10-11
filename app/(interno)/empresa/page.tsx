@@ -866,7 +866,9 @@ export default function EmpresaPage() {
   // carregarTudo() que vinha em seguida apagava o rascunho de volta.
   async function recarregarSocios() {
     if (!empresa || !userId) return;
-    const s = await carregarSocios(empresa.id, userId);
+    let s: any[];
+    try { s = await carregarSocios(empresa.id, userId); }
+    catch (err) { showToast(tratarFalhaCarregamento("empresa.socios", err, lang), "erro"); return; }
     setSocios(s);
     setHealthScore(calcularHealthScore(empresa, s, documentos));
   }

@@ -424,12 +424,14 @@ export async function atualizarEmpresa(
 // ============================================================================
 
 export async function carregarSocios(empresaId: string, userId: string): Promise<any[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("empresa_socios")
     .select("*")
     .eq("empresa_id", empresaId)
     .eq("ativo", true)
     .order("participacao_pct", { ascending: false });
+  // Leitura falhou ≠ lista vazia: lança e a tela avisa (carregarTudo tem try/catch).
+  if (error) throw new Error(`[empresa] leitura de empresa_socios falhou: ${error.message}`);
   return data || [];
 }
 
@@ -564,11 +566,13 @@ export async function importarSociosDoQSA(
 // ============================================================================
 
 export async function carregarDocumentos(empresaId: string, userId: string): Promise<any[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("empresa_documentos")
     .select("*")
     .eq("empresa_id", empresaId)
     .order("created_at", { ascending: false });
+  // Leitura falhou ≠ lista vazia: lança e a tela avisa (carregarTudo tem try/catch).
+  if (error) throw new Error(`[empresa] leitura de empresa_documentos falhou: ${error.message}`);
   return data || [];
 }
 
@@ -725,12 +729,14 @@ export async function registrarAuditoria(params: {
 }
 
 export async function carregarAuditoria(empresaId: string, userId: string, limit: number = 100): Promise<any[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("empresa_auditoria")
     .select("*")
     .eq("empresa_id", empresaId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  // Leitura falhou ≠ lista vazia: lança e a tela avisa (carregarTudo tem try/catch).
+  if (error) throw new Error(`[empresa] leitura de empresa_auditoria falhou: ${error.message}`);
   return data || [];
 }
 
@@ -739,11 +745,13 @@ export async function carregarAuditoria(empresaId: string, userId: string, limit
 // ============================================================================
 
 export async function carregarObrigacoes(empresaId: string, userId: string): Promise<any[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("empresa_obrigacoes")
     .select("*")
     .eq("empresa_id", empresaId)
     .order("data_vencimento", { ascending: true });
+  // Leitura falhou ≠ lista vazia: lança e a tela avisa (carregarTudo tem try/catch).
+  if (error) throw new Error(`[empresa] leitura de empresa_obrigacoes falhou: ${error.message}`);
   return data || [];
 }
 
