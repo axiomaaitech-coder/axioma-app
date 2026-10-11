@@ -8,6 +8,7 @@
 // curada (produto cadastrado com texto livre precisa continuar achável,
 // nunca some da navegação).
 
+import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 
 const supabase = createBrowserClient(
@@ -50,9 +51,10 @@ const COLUNAS_SEGURAS = "id, nome, codigo_barras, sku, categoria, subcategoria, 
 // ============================================================================
 
 export async function listarCategoriasReais(empresaId: string, segmento: string): Promise<string[]> {
-  const { data } = await supabase.from("produtos").select("categoria")
+  // Em lotes: o .limit(500) antigo escondia categorias de quem tem mais de 500 produtos.
+  const { data } = await lerTodas(() => supabase.from("produtos").select("categoria")
     .eq("empresa_id", empresaId).eq("segmento", segmento).eq("status", "ativo")
-    .not("categoria", "is", null).limit(500);
+    .not("categoria", "is", null).order("id"));
   const linhas = (data || []) as { categoria: string | null }[];
   const vistos = new Set<string>();
   for (const linha of linhas) {
@@ -63,9 +65,9 @@ export async function listarCategoriasReais(empresaId: string, segmento: string)
 }
 
 export async function listarSubNichosReais(empresaId: string, segmento: string, categoria: string): Promise<string[]> {
-  const { data } = await supabase.from("produtos").select("subcategoria")
+  const { data } = await lerTodas(() => supabase.from("produtos").select("subcategoria")
     .eq("empresa_id", empresaId).eq("segmento", segmento).eq("categoria", categoria).eq("status", "ativo")
-    .not("subcategoria", "is", null).limit(500);
+    .not("subcategoria", "is", null).order("id"));
   const linhas = (data || []) as { subcategoria: string | null }[];
   const vistos = new Set<string>();
   for (const linha of linhas) {

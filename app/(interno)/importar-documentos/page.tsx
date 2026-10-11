@@ -805,7 +805,10 @@ export default function ImportarDocumentosPage() {
     // Não achou pelo CNPJ (ou a nota não tem CNPJ): procura pelo nome antes de cadastrar
     // outro. Nome igual (sem LTDA/ME/pontuação) liga sozinho; parecido vira pergunta.
     if (ehCompra && !res.metadados?.fornecedor_cadastrado) {
-      const parecido = await buscarFornecedorPorNome(empresaId, [classificado.metadados?.razao_social, classificado.metadados?.fantasia], cnpjEmit);
+      const parecido = await buscarFornecedorPorNome(empresaId, [classificado.metadados?.razao_social, classificado.metadados?.fantasia], cnpjEmit).catch(() => {
+        showToast(langAtual === "en" ? "Could not check existing suppliers by name — review the supplier before importing." : langAtual === "es" ? "No se pudo verificar los proveedores existentes por nombre — revise el proveedor antes de importar." : "Não foi possível conferir os fornecedores pelo nome — confira o fornecedor antes de importar.", "erro");
+        return null;
+      });
       if (parecido?.confianca === "alta") res = { ...res, metadados: { ...res.metadados, fornecedor_cadastrado: { id: parecido.id, nome: parecido.nome } } };
       else if (parecido) res = { ...res, metadados: { ...res.metadados, fornecedor_parecido: parecido } };
     }

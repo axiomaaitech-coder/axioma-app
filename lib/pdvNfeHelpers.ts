@@ -4,6 +4,7 @@
 // buscarProdutoPorCodigo/criarProduto/atualizarProduto/criarMovimentacao
 // (lib/estoqueHelpers.ts).
 
+import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { ItemNFe } from "./importarParsers";
@@ -26,9 +27,11 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 
 export async function nfeJaImportada(empresaId: string, chaveAcesso: string): Promise<boolean> {
   if (!chaveAcesso) return false;
-  const { data } = await supabase.from("estoque_nfe_importadas").select("id")
-    .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).maybeSingle();
-  return !!data;
+  const { data, error } = await supabase.from("estoque_nfe_importadas").select("id")
+    .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).limit(1);
+  // Falha na checagem NUNCA vira "não importada" (deixaria a mesma nota entrar 2x no estoque).
+  if (error) throw new Error(`[nfe-checagem] ${error.message}`);
+  return (data || []).length > 0;
 }
 
 // Caminho ÚNICO de gravação de NF-e — PDV (importar-nfe) e Contas a Pagar
@@ -118,7 +121,8 @@ export type FornecedorParecido = FornecedorMinimo & { confianca: "alta" | "media
 export async function buscarFornecedorPorNome(empresaId: string, nomes: (string | null | undefined)[], cnpjNota?: string): Promise<FornecedorParecido | null> {
   const alvos = nomes.map(nomeEmpresaNormalizado).filter((t) => t.length);
   if (!alvos.length) return null;
-  const { data } = await supabase.from("fornecedores").select("id, nome, razao_social, nome_fantasia, documento").eq("empresa_id", empresaId).limit(2000);
+  const { data, error } = await lerTodas(() => supabase.from("fornecedores").select("id, nome, razao_social, nome_fantasia, documento").eq("empresa_id", empresaId).order("id"));
+  if (error) throw new Error(`[nfe-fornecedor] ${error.message}`);
   const doc = (cnpjNota || "").replace(/\D/g, "");
   let melhor: FornecedorParecido | null = null;
   for (const f of (data || []) as { id: string; nome: string; razao_social: string | null; nome_fantasia: string | null; documento: string | null }[]) {

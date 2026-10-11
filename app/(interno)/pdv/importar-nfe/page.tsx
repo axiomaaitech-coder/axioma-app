@@ -158,8 +158,12 @@ export default function PDVImportarNFe() {
       setFornecedorInfo({ existente, cnpj: cnpjEmit, razaoSocial: resultado.metadados.razao_social, fantasia: resultado.metadados.fantasia });
 
       await resolverItens(resultado.itensNFe, existente);
-    } catch {
-      setErroArquivo(t("erroXmlInvalido", lang));
+    } catch (err) {
+      // Falha de leitura no banco ≠ XML inválido: diz a verdade e não deixa seguir.
+      const leitura = err instanceof Error && /^\[nfe-(checagem|fornecedor)\]/.test(err.message);
+      setErroArquivo(leitura
+        ? (lang === "en" ? "Could not check this invoice right now (connection). Nothing was imported — try again." : lang === "es" ? "No se pudo verificar esta factura ahora (conexión). No se importó nada — intente de nuevo." : "Não foi possível conferir esta nota agora (conexão). Nada foi importado — tente de novo.")
+        : t("erroXmlInvalido", lang));
     } finally {
       setProcessandoArquivo(false);
     }
