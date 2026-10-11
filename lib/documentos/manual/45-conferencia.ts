@@ -34,6 +34,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { p: 'Quando a prévia aponta **risco de duplicar** (já existe um lançamento igual no Fluxo), aparecem dois botões: **Corrigir sem mexer no Fluxo (já está lá)** — lança só nas outras portas — e **Corrigir tudo (é outro dinheiro)**. Depois de corrigir, a conferência recalcula sozinha.' },
     { nota: 'A correção passa pelo mesmo motor de um lançamento normal: o resultado é igual a ter sido lançado certo desde o começo. Se o caso já foi resolvido por outro caminho, a tela avisa e não faz nada.' },
+    { nota: 'Cada caso mostra **onde está** (o módulo, como Contas a Pagar ou Receitas), sem códigos internos.' },
   ],
 }
 
@@ -70,6 +71,7 @@ const en: DocumentoAxioma = {
     ] } },
     { p: 'When the preview points to **duplication risk** (a matching entry already exists in Cash Flow), two buttons appear: **Fix without touching Cash Flow (already there)** — posts only to the other modules — and **Fix everything (different money)**. After fixing, the check recalculates on its own.' },
     { nota: 'The fix goes through the same engine as a normal entry: the result is the same as if it had been entered correctly from the start. If the case was already resolved another way, the screen says so and does nothing.' },
+    { nota: 'Each case shows **where it is** (the module, such as Accounts Payable or Revenue), with no internal codes.' },
   ],
 }
 
@@ -106,6 +108,7 @@ const es: DocumentoAxioma = {
     ] } },
     { p: 'Cuando la vista previa señala **riesgo de duplicar** (ya existe un registro igual en el Flujo), aparecen dos botones: **Corregir sin tocar el Flujo (ya está)** — registra solo en los otros módulos — y **Corregir todo (es otro dinero)**. Después de corregir, la conciliación se recalcula sola.' },
     { nota: 'La corrección pasa por el mismo motor que un registro normal: el resultado es igual a haberlo registrado bien desde el inicio. Si el caso ya se resolvió por otro camino, la pantalla avisa y no hace nada.' },
+    { nota: 'Cada caso muestra **dónde está** (el módulo, como Cuentas por Pagar o Ingresos), sin códigos internos.' },
   ],
 }
 

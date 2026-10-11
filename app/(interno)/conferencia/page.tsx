@@ -19,6 +19,17 @@ const PALETA = {
   xms: { VERDE: '#0f7d5c', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 
+// Nome do módulo que a pessoa reconhece (nunca nome de tabela/código interno na tela).
+const MODULO_TABELA: Record<string, { pt: string; en: string; es: string }> = {
+  contas_pagar: { pt: 'Contas a Pagar', en: 'Accounts Payable', es: 'Cuentas por Pagar' },
+  contas_receber: { pt: 'Contas a Receber', en: 'Receivables', es: 'Cuentas por Cobrar' },
+  receitas: { pt: 'Receitas', en: 'Revenue', es: 'Ingresos' },
+  custos_variaveis: { pt: 'Custos Variáveis', en: 'Variable Costs', es: 'Costos Variables' },
+  custos_fixos: { pt: 'Custos Fixos', en: 'Fixed Costs', es: 'Costos Fijos' },
+  fluxo_caixa: { pt: 'Fluxo de Caixa', en: 'Cash Flow', es: 'Flujo de Caja' },
+  dividas: { pt: 'Endividamento', en: 'Debt', es: 'Endeudamiento' },
+}
+
 export default function ConferenciaPage() {
   const { idioma } = useLanguage()
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
@@ -134,7 +145,7 @@ export default function ConferenciaPage() {
                     {g.itens.slice(0, 50).map((c) => (
                       <div key={`${c.codigo}-${c.id}`} className="rounded-lg p-2.5 text-[11px] axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
                         <p className="font-bold">{c.descricao} {c.data ? `· ${new Date(`${c.data}T00:00:00`).toLocaleDateString(local)}` : ''}</p>
-                        <p style={{ color: P.CINZA }}>{L('Registro', 'Record', 'Registro')}: {c.tabela} · <span className="font-mono">{c.id}</span></p>
+                        <p style={{ color: P.CINZA }}>{L('Onde está', 'Where it is', 'Dónde está')}: {MODULO_TABELA[c.tabela] ? L(MODULO_TABELA[c.tabela].pt, MODULO_TABELA[c.tabela].en, MODULO_TABELA[c.tabela].es) : c.tabela}</p>
                         <p className="mt-1"><b>{L('Antes', 'Before', 'Antes')}:</b> {c.antes}</p>
                         <p><b>{L('Depois', 'After', 'Después')}:</b> {c.depois}</p>
                         <ul className="mt-1 list-disc pl-4" style={{ color: P.CINZA }}>{c.impacto.map((i) => <li key={i.modulo}><b style={{ color: P.TEXTO }}>{i.modulo}:</b> {i.efeito}</li>)}</ul>
