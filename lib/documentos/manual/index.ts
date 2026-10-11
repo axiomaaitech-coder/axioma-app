@@ -45,6 +45,9 @@ import m40 from "./40-planos"
 import m41 from "./41-uso-ia"
 import m42 from "./42-pdv"
 import m43 from "./43-nexus"
+import m44 from "./44-painel-risco"
+import m45 from "./45-conferencia"
+import m46 from "./46-rastreabilidade"
 
 // Manual ainda só em português aparece igual nos 3 idiomas até ganhar a tradução.
 const tri = (d: DocumentoAxioma | DocTrilingue): DocTrilingue => (ehTrilingue(d) ? d : { pt: d, en: d, es: d })
@@ -99,6 +102,9 @@ export const MANUAIS: ManualAxioma[] = ([
   { numero: "41", nome: "Configurações — Uso da IA", doc: m41 },
   { numero: "42", nome: "PDV — Ponto de Venda", doc: m42 },
   { numero: "43", nome: "Nexus — Inteligência Econômica e o José", doc: m43 },
+  { numero: "44", nome: "Financeiro — Painel de Risco e Métricas do CFO", doc: m44 },
+  { numero: "45", nome: "Contabilidade — Conferência entre módulos", doc: m45 },
+  { numero: "46", nome: "Contabilidade — Rastreabilidade", doc: m46 },
 ] as { numero: string; nome: string; doc: DocumentoAxioma | DocTrilingue }[]).map((m) => ({ ...m, doc: tri(m.doc) }))
 
 // Tela → manual (o prefixo mais longo vence). Usado pelo Assistente de Ajuda.
@@ -110,7 +116,7 @@ const ROTAS: [string, string][] = [
   ["/metas", "22"], ["/investimentos", "23"], ["/simulacoes", "24"], ["/precificacao", "25"], ["/clientes", "26"], ["/fornecedores", "27"],
   ["/contas-pagar", "28"], ["/estoque", "29"], ["/contas-receber", "30"], ["/inadimplencia", "31"], ["/centros-custo", "32"],
   ["/importar-documentos", "33"], ["/relatorios", "34"], ["/open-finance", "35"], ["/ia-financeira", "36"], ["/ia-tributaria", "37"],
-  ["/empresa", "38"], ["/equipe", "39"], ["/planos", "40"], ["/uso-ia", "41"], ["/pdv", "42"], ["/nexus", "43"],
+  ["/empresa", "38"], ["/equipe", "39"], ["/planos", "40"], ["/uso-ia", "41"], ["/pdv", "42"], ["/nexus", "43"], ["/risco", "44"], ["/conferencia", "45"], ["/rastreabilidade", "46"],
 ]
 export function manualDaRota(caminho: string): ManualAxioma | null {
   const achado = ROTAS.filter(([r]) => caminho === r || caminho.startsWith(`${r}/`)).sort((a, b) => b[0].length - a[0].length)[0]

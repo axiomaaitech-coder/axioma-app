@@ -130,8 +130,8 @@ const pt: DocumentoAxioma = {
     { tabela: { colunas: ['Cartão', 'O que tem dentro'], larguras: [2400, 6626], linhas: [
       ['Dashboard', 'Visão geral da empresa (Manual 01).'],
       ['Nexus', 'Inteligência de mercado com o assistente José (Manual 43).'],
-      ['Financeiro ▼', 'Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE, Endividamento, Tesouraria (Manuais 10 a 16).'],
-      ['Contabilidade ▼', 'Contador, Fiscal, Livro Razão, Balancete, DRE Contábil (Manuais 17 a 21).'],
+      ['Financeiro ▼', 'Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE, Endividamento, Tesouraria (Manuais 10 a 16) e Painel de Risco (Manual 44).'],
+      ['Contabilidade ▼', 'Contador, Fiscal, Livro Razão, Balancete, DRE Contábil (Manuais 17 a 21), Rastreabilidade (Manual 46) e Conferência (Manual 45).'],
       ['Comercial ▼', 'Clientes, Fornecedores, Contas a Pagar, Estoque, Contas a Receber, Inadimplência (Manuais 26 a 31).'],
       ['Crescimento ▼', 'Metas, Investimentos, Simulações, Precificação (Manuais 22 a 25).'],
       ['Gestão ▼', 'Centros de Custo, Importar Documentos, Relatórios, Open Finance (Manuais 32 a 35).'],
@@ -363,8 +363,8 @@ const en: DocumentoAxioma = {
     { tabela: { colunas: ['Card', 'What it contains'], larguras: [2400, 6626], linhas: [
       ['Dashboard', 'Company overview (Manual 01).'],
       ['Nexus', 'Market intelligence with the assistant José (Manual 43).'],
-      ['Financial ▼', 'Revenue, Fixed Costs, Variable Costs, Cash Flow, Income Statement, Debt, Treasury (Manuals 10 to 16).'],
-      ['Accounting ▼', 'Accountant, Tax, General Ledger, Trial Balance, Accounting Income Statement (Manuals 17 to 21).'],
+      ['Financial ▼', 'Revenue, Fixed Costs, Variable Costs, Cash Flow, Income Statement, Debt, Treasury (Manuals 10 to 16) and Risk Panel (Manual 44).'],
+      ['Accounting ▼', 'Accountant, Tax, General Ledger, Trial Balance, Accounting Income Statement (Manuals 17 to 21), Traceability (Manual 46) and Reconciliation (Manual 45).'],
       ['Commercial ▼', 'Clients, Suppliers, Accounts Payable, Inventory, Receivables, Default (Manuals 26 to 31).'],
       ['Growth ▼', 'Goals, Investments, Simulations, Pricing (Manuals 22 to 25).'],
       ['Management ▼', 'Cost Centers, Import Documents, Reports, Open Finance (Manuals 32 to 35).'],
@@ -596,8 +596,8 @@ const es: DocumentoAxioma = {
     { tabela: { colunas: ['Tarjeta', 'Qué contiene'], larguras: [2400, 6626], linhas: [
       ['Panel (Dashboard)', 'Visión general de la empresa (Manual 01).'],
       ['Nexus', 'Inteligencia de mercado con el asistente José (Manual 43).'],
-      ['Financiero ▼', 'Ingresos, Costos Fijos, Costos Variables, Flujo de Caja, Estado de Resultados, Endeudamiento, Tesorería (Manuales 10 a 16).'],
-      ['Contabilidad ▼', 'Contador, Fiscal, Libro Mayor, Balance de Comprobación, Estado de Resultados Contable (Manuales 17 a 21).'],
+      ['Financiero ▼', 'Ingresos, Costos Fijos, Costos Variables, Flujo de Caja, Estado de Resultados, Endeudamiento, Tesorería (Manuales 10 a 16) y Panel de Riesgo (Manual 44).'],
+      ['Contabilidad ▼', 'Contador, Fiscal, Libro Mayor, Balance de Comprobación, Estado de Resultados Contable (Manuales 17 a 21), Trazabilidad (Manual 46) y Conciliación (Manual 45).'],
       ['Comercial ▼', 'Clientes, Proveedores, Cuentas por Pagar, Inventario, Cuentas por Cobrar, Morosidad (Manuales 26 a 31).'],
       ['Crecimiento ▼', 'Metas, Inversiones, Simulaciones, Precios (Manuales 22 a 25).'],
       ['Gestión ▼', 'Centros de Costo, Importar Documentos, Informes, Open Finance (Manuales 32 a 35).'],
