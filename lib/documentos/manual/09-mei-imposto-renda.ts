@@ -60,6 +60,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Excluir', 'Pede para apagar o arquivo.', 'Abre o aviso de exclusão: motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Só então o arquivo é apagado.'],
     ] } },
     { p: 'O quadro **Você já subiu o que o IRPF precisa?** mostra quais tipos de documento ainda faltam no ano.' },
+    { nota: 'Abaixo da tabela, a tela mostra a fonte (Receita Federal) e a data da conferência. Regras podem mudar com lei nova.' },
   ],
 }
 
@@ -122,6 +123,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Delete', 'Asks to delete the file.', 'Opens the deletion notice: reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). Only then is the file deleted.'],
     ] } },
     { p: 'The **Have you uploaded what the IRPF needs?** box shows which document types are still missing for the year.' },
+    { nota: 'Below the table, the screen shows the source (Receita Federal) and the check date. Rules may change with a new law.' },
   ],
 }
 
@@ -184,6 +186,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Eliminar', 'Pide borrar el archivo.', 'Abre el aviso de eliminación: motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Solo entonces se borra el archivo.'],
     ] } },
     { p: 'El cuadro **¿Ya subió lo que el IRPF necesita?** muestra qué tipos de documento todavía faltan en el año.' },
+    { nota: 'Debajo de la tabla, la pantalla muestra la fuente (Receita Federal) y la fecha de verificación. Las reglas pueden cambiar con una nueva ley.' },
   ],
 }
 

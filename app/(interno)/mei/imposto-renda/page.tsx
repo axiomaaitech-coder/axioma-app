@@ -546,16 +546,16 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                 })
               })()}
               <p className="text-[11px] mt-2" style={{ color: TEXTO_SEC }}>
-                {lang === 'pt' ? `Base de cálculo = renda tributável − desconto simplificado de R$ 607,20. Desde janeiro de 2026 (Lei 15.270/2025), quem tem renda de até R$ 5.000 por mês não paga; de R$ 5.000,01 a R$ 7.350 o imposto tem um desconto que diminui conforme a renda. Isso aparece na declaração de 2027. Tabela conferida em 10/10/2026 — se a lei mudar, o Axioma atualiza.`
-                  : lang === 'en' ? `Calculation base = taxable income − simplified discount of R$ 607.20. Since January 2026 (Law 15,270/2025), income up to R$ 5,000 per month pays nothing; from R$ 5,000.01 to R$ 7,350 the tax gets a discount that shrinks as income rises. This shows in the 2027 return. Table checked on 10/10/2026 — if the law changes, Axioma updates it.`
-                  : `Base de cálculo = renta gravable − descuento simplificado de R$ 607,20. Desde enero de 2026 (Ley 15.270/2025), quien tiene renta de hasta R$ 5.000 por mes no paga; de R$ 5.000,01 a R$ 7.350 el impuesto tiene un descuento que disminuye según la renta. Esto aparece en la declaración de 2027. Tabla verificada el 10/10/2026 — si la ley cambia, Axioma la actualiza.`}
+                {lang === 'pt' ? `Base de cálculo = renda tributável − desconto simplificado de R$ 607,20. Desde janeiro de 2026 (Lei 15.270/2025), quem tem renda de até R$ 5.000 por mês não paga; de R$ 5.000,01 a R$ 7.350 o imposto tem um desconto que diminui conforme a renda. Isso aparece na declaração de 2027. Fonte: Receita Federal (gov.br), tabela conferida em 10/10/2026. Regras podem mudar com lei nova.`
+                  : lang === 'en' ? `Calculation base = taxable income − simplified discount of R$ 607.20. Since January 2026 (Law 15,270/2025), income up to R$ 5,000 per month pays nothing; from R$ 5,000.01 to R$ 7,350 the tax gets a discount that shrinks as income rises. This shows in the 2027 return. Source: Receita Federal (gov.br), table checked on 10/10/2026. Rules may change with a new law.`
+                  : `Base de cálculo = renta gravable − descuento simplificado de R$ 607,20. Desde enero de 2026 (Ley 15.270/2025), quien tiene renta de hasta R$ 5.000 por mes no paga; de R$ 5.000,01 a R$ 7.350 el impuesto tiene un descuento que disminuye según la renta. Esto aparece en la declaración de 2027. Fuente: Receita Federal (gov.br), tabla verificada el 10/10/2026. Las reglas pueden cambiar con una nueva ley.`}
               </p>
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>
-            {lang === 'pt' ? '* Tabela IRPF 2025, calculada automaticamente com base nos seus dados reais.'
-              : lang === 'en' ? '* IRPF 2025 table, calculated automatically based on your real data.'
-              : '* Tabla IRPF 2025, calculada automáticamente con base en sus datos reales.'}
+            {lang === 'pt' ? '* Tabela mensal do IRPF vigente em 2026, calculada automaticamente com base nos seus dados reais.'
+              : lang === 'en' ? '* IRPF monthly table in force in 2026, calculated automatically based on your real data.'
+              : '* Tabla mensual del IRPF vigente en 2026, calculada automáticamente con base en sus datos reales.'}
           </p>
         </CanvasBox>
 
