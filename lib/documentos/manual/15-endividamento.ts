@@ -54,6 +54,7 @@ const pt: DocumentoAxioma = {
       'Clique em **Salvar Dívida**.',
     ] },
     { p: 'As parcelas entram na previsão do Fluxo de Caixa e os juros estimados entram na DRE como despesa financeira. Pagamento de dívida não é despesa: a DRE só mostra os juros.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -110,6 +111,7 @@ const en: DocumentoAxioma = {
       'Click **Save Debt**.',
     ] },
     { p: 'Installments enter the Cash Flow forecast and estimated interest enters the P&L as a financial expense. Paying debt is not an expense: the P&L only shows the interest.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -166,6 +168,7 @@ const es: DocumentoAxioma = {
       'Haga clic en **Guardar Deuda**.',
     ] },
     { p: 'Las cuotas entran en la previsión del Flujo de Caja y los intereses estimados entran en el Estado de Resultados como gasto financiero. Pagar deuda no es gasto: el Estado de Resultados solo muestra los intereses.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 

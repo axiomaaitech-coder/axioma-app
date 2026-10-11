@@ -575,7 +575,9 @@ export default function DREPage() {
           ))}
         </div>
 
-        {!temDados ? (
+        {carregando ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDados ? (
           <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
             <p className="text-sm text-center py-8" style={{ color: TEXTO_SEC }}>{d.semDados}</p>
           </CanvasBox>

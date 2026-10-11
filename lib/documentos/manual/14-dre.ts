@@ -66,6 +66,7 @@ const pt: DocumentoAxioma = {
     { p: 'Recomendações práticas quando há algo crítico. No prejuízo, o conselho diz isso claramente e sugere segurar gastos novos, rever custos ou aumentar a receita — nunca "está tudo sob controle" com prejuízo.' },
     { h2: 'Histórico de Resultados' },
     { p: 'A DRE guarda um retrato de cada período para comparar a evolução. Para conferir se a DRE bate com a Contabilidade mês a mês, use **Contabilidade → Conferência**.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -134,6 +135,7 @@ const en: DocumentoAxioma = {
     { p: 'Practical recommendations when something is critical. At a loss, the advice says so clearly and suggests holding new spending, reviewing costs or increasing revenue — never "all under control" with a loss.' },
     { h2: 'Results History' },
     { p: 'The P&L keeps a snapshot of each period to compare over time. To check whether the P&L matches Accounting month by month, use **Accounting → Reconciliation**.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -202,6 +204,7 @@ const es: DocumentoAxioma = {
     { p: 'Recomendaciones prácticas cuando hay algo crítico. Con pérdida, el consejo lo dice claramente y sugiere frenar gastos nuevos, revisar costos o aumentar ingresos — nunca "todo bajo control" con pérdida.' },
     { h2: 'Historial de Resultados' },
     { p: 'El Estado de Resultados guarda una foto de cada período para comparar la evolución. Para revisar si coincide con la Contabilidad mes a mes, use **Contabilidad → Conciliación**.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 

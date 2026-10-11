@@ -61,6 +61,7 @@ const pt: DocumentoAxioma = {
       'Errou? **Estornar recebimento** com o motivo.',
     ] },
     { nota: 'Contas vencidas aparecem automaticamente em Inadimplência. Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "nada a receber" por engano.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -124,6 +125,7 @@ const en: DocumentoAxioma = {
       'Made a mistake? **Reverse receipt** with the reason.',
     ] },
     { nota: 'Overdue bills appear automatically in Default. If any loading fails, the screen warns that the data may be incomplete — it never shows "nothing to receive" by mistake.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -187,6 +189,7 @@ const es: DocumentoAxioma = {
       '¿Se equivocó? **Revertir cobro** con el motivo.',
     ] },
     { nota: 'Las cuentas vencidas aparecen automáticamente en Morosidad. Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "nada por cobrar" por error.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 

@@ -2091,7 +2091,9 @@ export default function Fornecedores() {
             <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.simuladorSub}</p>
           </div>
 
-          {!temDadosSimulador ? (
+          {carregando ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDadosSimulador ? (
             <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.simuladorVazio}</p>
           ) : (
             <>

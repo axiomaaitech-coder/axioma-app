@@ -91,7 +91,7 @@ export default function Simulacoes() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  const [, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [macro, setMacro] = useState<IndicadoresMacro | null>(null);
@@ -361,7 +361,9 @@ export default function Simulacoes() {
           </motion.button>
         </div>
 
-        {!temDadosSimulacao ? (
+        {carregando ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDadosSimulacao ? (
           <CanvasBox cor={ct(CORES.indigo)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <Sliders size={48} style={{ color: "#2e2a5a" }} className="mb-4" />

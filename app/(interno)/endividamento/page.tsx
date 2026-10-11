@@ -504,7 +504,9 @@ export default function Endividamento() {
           ))}
         </div>
 
-        {!temDados ? (
+        {carregando ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDados ? (
           <CanvasBox cor={ct(temaClaro ? CORES.verde : CORES.rosa)} {...cartaoTema}>
             <p className="text-sm text-center py-8" style={{ color: TEXTO_SEC }}>{cx.semDividaTitulo}</p>
           </CanvasBox>

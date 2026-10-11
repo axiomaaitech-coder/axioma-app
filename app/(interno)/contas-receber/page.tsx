@@ -1182,7 +1182,9 @@ export default function ContasReceber() {
           </p>
           <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Mesmo motor de DRE do módulo Investimentos — impacto em margem, caixa e lucro antes de decidir.', 'Same DRE engine as the Investments module — margin, cash and profit impact before deciding.', 'Mismo motor de DRE del módulo Inversiones — impacto en margen, caja y ganancia antes de decidir.')}</p>
 
-          {!temDadosSimulador ? (
+          {loading ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDadosSimulador ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Cadastre receitas para habilitar o simulador.', 'Register revenue to enable the simulator.', 'Registre ingresos para habilitar el simulador.')}</p>
           ) : (
             <>

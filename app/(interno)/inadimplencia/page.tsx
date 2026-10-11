@@ -976,7 +976,9 @@ export default function Inadimplencia() {
             <Calculator size={14} /> {L('Simulador Executivo de Recuperação', 'Executive Recovery Simulator', 'Simulador Ejecutivo de Recuperación')}
           </p>
           <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Ajuste as alavancas e veja o impacto em caixa, EBITDA e lucro — reaproveita o mesmo motor de DRE de Investimentos/Simulações.', 'Adjust the levers and see the impact on cash, EBITDA and profit — reuses the same DRE engine from Investments/Simulations.', 'Ajuste las palancas y vea el impacto en caja, EBITDA y ganancia — reutiliza el mismo motor de DRE de Inversiones/Simulaciones.')}</p>
-          {!temDadosSimulador ? (
+          {loading ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDadosSimulador ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes de Receitas para simular ainda.', 'Not enough Revenue data to simulate yet.', 'Sin datos suficientes de Ingresos para simular aún.')}</p>
           ) : (
             <>

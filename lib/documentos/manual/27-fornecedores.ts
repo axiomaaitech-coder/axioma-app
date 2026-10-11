@@ -78,6 +78,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Conta paga não pode ser apagada.'],
     ] } },
     { nota: 'Fornecedores, documentos, contratos e contas são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos. Toda gravação que falha também avisa.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -158,6 +159,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A paid bill cannot be deleted.'],
     ] } },
     { nota: 'Suppliers, documents, contracts and bills are read with no row limit. If any loading fails, the screen warns that data may be incomplete. Every failed save also warns you.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -238,6 +240,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Una cuenta pagada no se puede borrar.'],
     ] } },
     { nota: 'Proveedores, documentos, contratos y cuentas se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos. Toda grabación que falla también avisa.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 

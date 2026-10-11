@@ -579,7 +579,9 @@ export default function Investimentos() {
           ))}
         </div>
 
-        {!temDados ? (
+        {carregando ? (
+          <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : !temDados ? (
           <CanvasBox cor={ct(CORES.azul)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <TrendingUp size={48} style={{ color: "#1a3a5a" }} className="mb-4" />

@@ -50,6 +50,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Excluir', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Título com recebimento não pode ser excluído.'],
     ] } },
     { nota: 'Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "ninguém inadimplente" por engano.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -102,6 +103,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Delete', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A bill with a receipt cannot be deleted.'],
     ] } },
     { nota: 'If any loading fails, the screen warns that the data may be incomplete — it never shows "no one in default" by mistake.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -154,6 +156,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Eliminar', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Un título con cobro no se puede eliminar.'],
     ] } },
     { nota: 'Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "nadie moroso" por error.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 

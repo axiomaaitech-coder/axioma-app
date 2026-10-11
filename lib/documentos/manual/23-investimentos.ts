@@ -45,6 +45,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador).'],
     ] } },
     { nota: 'Se a leitura dos investimentos falhar, a tela avisa — nunca mostra "nenhum investimento" por engano. O mesmo vale para receitas, custos, dívidas e caixa usados nos indicadores.' },
+    { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
   ],
 }
 
@@ -92,6 +93,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator).'],
     ] } },
     { nota: 'If loading the investments fails, the screen warns you — it never shows "no investments" by mistake. The same goes for revenue, costs, debts and cash used in the indicators.' },
+    { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
   ],
 }
 
@@ -139,6 +141,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador).'],
     ] } },
     { nota: 'Si la lectura de las inversiones falla, la pantalla avisa — nunca muestra "ninguna inversión" por error. Lo mismo vale para ingresos, costos, deudas y caja usados en los indicadores.' },
+    { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
   ],
 }
 
