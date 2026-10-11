@@ -379,7 +379,7 @@ export default function FiscalPage() {
               ))}
             </div>
             <p className="text-[10px] mt-2" style={{ color: CINZA }}>
-              {L('Educativo — regras ainda em transição, podem mudar. Fonte: pesquisa interna da Axioma sobre a Reforma Tributária 2026+.', 'Educational — rules still in transition, may change. Source: Axioma internal research on the 2026+ Tax Reform.', 'Educativo — reglas aún en transición, pueden cambiar. Fuente: investigación interna de Axioma sobre la Reforma Tributaria 2026+.')}
+              {L('Educativo — regras em transição, podem mudar. Fonte: EC 132/2023 e LC 214/2025 (planalto.gov.br), conferidas em 11/10/2026; alíquotas finais dependem de lei.', 'Educational — rules in transition, may change. Source: Constitutional Amendment 132/2023 and LC 214/2025 (planalto.gov.br), checked on 10/11/2026; final rates depend on law.', 'Educativo — reglas en transición, pueden cambiar. Fuente: EC 132/2023 y LC 214/2025 (planalto.gov.br), verificadas el 11/10/2026; las alícuotas finales dependen de ley.')}
             </p>
           </div>
         </div>

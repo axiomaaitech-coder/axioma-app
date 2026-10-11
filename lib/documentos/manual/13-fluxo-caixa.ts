@@ -103,7 +103,7 @@ const en: DocumentoAxioma = {
       ['🎯 Forecast Accuracy', 'How well past forecasts matched what happened. Below 60%, red.'],
     ] } },
     { h2: 'Automatic Forecasts' },
-    { p: 'Without re-entering anything, Axioma adds to the forecast: open **Receivables** and **Payables**, the month\'s **Fixed Costs** (no duplicates once the month\'s bill exists) and **Debt installments** — showing how much comes from each source. The **Include automatic forecasts in the projection** switch turns it on and off; turn it off only if you already enter these items here by hand.' },
+    { p: 'Without re-entering anything, Axioma adds to the forecast: open **Receivables** and **Payables**, the month\'s valid **Fixed Costs** (ended ones are left out; no duplicates once the month\'s bill exists) and **Debt installments** — showing how much comes from each source. The **Include automatic forecasts in the projection** switch turns it on and off; turn it off only if you already enter these items here by hand.' },
     { h2: 'Forecast (next 3 months)' },
     { p: 'Projected balance in three scenarios: **Optimistic**, **Expected** and **Pessimistic**. **Weekly View (13 weeks)** and **Monthly View** change the detail.' },
     { h2: 'Period Entries' },

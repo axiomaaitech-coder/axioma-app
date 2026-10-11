@@ -35,7 +35,8 @@ const PALETA = {
   },
 } as const
 
-const PAPEIS_CONFIG = ['dono', 'admin']
+// Igual à regra do banco (RLS de empresas: só o dono altera) — antes o admin editava e só falhava ao salvar.
+const PAPEIS_CONFIG = ['dono']
 
 const ATIVIDADES: { key: AtividadeFiscalConfig; label: Record<Idioma3, string> }[] = [
   { key: 'comercio', label: { pt: 'Comércio', en: 'Trade', es: 'Comercio' } },
@@ -151,7 +152,7 @@ export default function FiscalConfigPage() {
           {!podeEditar && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-fit axi-card-premium3d axi-card-faixa" style={{ background: `${CINZA}15`, color: CINZA }}>
               <Lock size={14} />
-              {L('Só dono ou admin da empresa pode editar — você está vendo em modo leitura.', 'Only the company owner or admin can edit — you are viewing in read-only mode.', 'Solo el dueño o admin de la empresa puede editar — estás viendo en modo lectura.')}
+              {L('Só o Proprietário da empresa pode editar a atividade fiscal — você está vendo em modo leitura.', 'Only the company Owner can edit the tax activity — you are viewing in read-only mode.', 'Solo el Propietario de la empresa puede editar la actividad fiscal — usted está viendo en modo lectura.')}
             </div>
           )}
 
