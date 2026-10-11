@@ -34,6 +34,8 @@ import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
+import { lerTodas } from "../../../lib/lerTodas";
+import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,6 +101,7 @@ type CtxMeta = {
   clientes: { status: string; created_at: string }[];
   regimeTributario: string;
   categoriaMei: string | null; // MEI: DAS da categoria certa
+  saldoCaixaHoje: number | null; // saldo único (lib/caixaSaldo) — igual Fluxo, Painel de Risco e IA
 };
 
 function raciocinioFluxo(lang: string, n: number, origemLabel: string, desde: string, ate: string): string {
@@ -148,6 +151,8 @@ function valorMetrica(tipo: TipoMeta, ate: string, dataInicioFluxo: string, ctx:
       return { valor, raciocinio: raciocinioNivel(lang, origemLabels.reducao_divida, ate) };
     }
     case "caixa": {
+      // Hoje: o saldo único (desde sempre + PDV). Data passada: a soma da janela carregada.
+      if (ctx.saldoCaixaHoje != null && ate >= hojeISO()) return { valor: ctx.saldoCaixaHoje, raciocinio: raciocinioNivel(lang, origemLabels.caixa, ate) };
       const valor = ctx.fluxo.filter(f => f.status === "realizado" && f.data <= ate)
         .reduce((s, f) => s + (f.tipo === "entrada" ? Number(f.valor || 0) : -Number(f.valor || 0)), 0);
       return { valor, raciocinio: raciocinioNivel(lang, origemLabels.caixa, ate) };
@@ -269,6 +274,7 @@ export default function Metas() {
   const [erroModal, setErroModal] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  const [saldoCaixaHoje, setSaldoCaixaHoje] = useState<number | null>(null);
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
     setToast({ msg, tipo });
@@ -318,16 +324,24 @@ export default function Metas() {
 
     const empresaId = await obterEmpresaAtiva();
 
-    const [{ data: mt }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: cli }, { data: emp }] = await Promise.all([
-      empresaId ? supabase.from("metas").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
-      empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    const [{ data: mt, error: eMt }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc, error: eFc }, { data: cli, error: eCli }, { data: emp }] = await Promise.all([
+      empresaId ? supabase.from("metas").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+      empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
+      empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
+      empresaId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
+      empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
       empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
+
+    // Leitura incompleta NUNCA vira número gravado: avisa e não sincroniza valor_atual/status.
+    const sc = empresaId ? await saldoCaixaRealizado(supabase, empresaId, hoje) : { saldo: 0, erro: undefined as string | undefined };
+    const leituraFalhou = !!(eMt || eRec || eCf || eCv || eDv || eFc || eCli || sc.erro);
+    if (leituraFalhou) {
+      showToast(L("Alguns dados não carregaram — o progresso das metas pode estar incompleto e não foi gravado. Recarregue a página.", "Some data did not load — goal progress may be incomplete and was not saved. Reload the page.", "Algunos datos no cargaron — el progreso de las metas puede estar incompleto y no se guardó. Recargue la página."), "erro");
+      Sentry.captureException(new Error(`[metas] leitura incompleta: ${[eMt, eRec, eCf, eCv, eDv, eFc, eCli].map((e) => e?.message).filter(Boolean).join(" | ") || sc.erro}`));
+    }
 
     const custoFixoMensalTotal = (cf || []).reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
     const despesasFinanceirasMensal = (dv || []).reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)) * (Number(d.taxa_juros || 0) / 100), 0);
@@ -339,6 +353,7 @@ export default function Metas() {
       dividas: dv || [], fluxo: fc || [], clientes: cli || [],
       regimeTributario: emp?.regime_tributario || "",
       categoriaMei: categoriaMeiDaEmpresa(emp),
+      saldoCaixaHoje: sc.erro ? null : sc.saldo,
     };
 
     const origemLabels: Record<TipoMeta, string> = {
@@ -369,7 +384,7 @@ export default function Metas() {
       return { ...m, valor_atual: valor, status: novoStatus };
     });
 
-    if (atualizacoes.length > 0) {
+    if (atualizacoes.length > 0 && !leituraFalhou) {
       const resultados = await Promise.all(atualizacoes.map(a => supabase.from("metas").update({ valor_atual: a.valor_atual, status: a.status }).eq("id", a.id).select("id")));
       const falha = resultados.find(r => r.error || !r.data || r.data.length === 0);
       if (falha) reportarFalhaEscrita("metas", "update valor_atual/status (sync)", falha.error?.message || "0 linhas afetadas (RLS?)");
@@ -382,6 +397,7 @@ export default function Metas() {
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
     setClientesRows(cli || []);
+    setSaldoCaixaHoje(sc.erro ? null : sc.saldo);
     setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
@@ -391,7 +407,7 @@ export default function Metas() {
     custosVar: custosVarRows.map(c => ({ valor: Number(c.valor || 0), data: c.data })),
     custoFixoMensalTotal: custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0),
     despesasFinanceirasMensal: dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0),
-    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, regimeTributario, categoriaMei,
+    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, regimeTributario, categoriaMei, saldoCaixaHoje,
   };
   const origemLabels: Record<TipoMeta, string> = {
     faturamento: t.receitas?.titulo || "Receitas", lucro: cx.dreLucroLiquido, margem: cx.dreMargemLiquida,
