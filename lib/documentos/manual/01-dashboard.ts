@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '01 - Dashboard.docx',
   titulo: 'Manual 01 — Dashboard',
   subtitulo: 'A visão geral da empresa em uma tela: financeiro, comercial e atalhos para todos os módulos',
-  info: ['Menu: Dashboard (primeiro cartão do menu do topo)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0'],
+  info: ['Menu: Dashboard (primeiro cartão do menu do topo)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Dashboard é a primeira tela depois do login. Ele junta, em um só lugar, os números mais importantes de todos os módulos: receita, custos, sobra do mês, dívidas, metas, clientes, recebíveis, inadimplência e investimentos. Serve para você saber, em poucos segundos, **como a empresa está** e onde precisa olhar com mais atenção. Cada número leva, com um clique, à tela de onde ele vem.' },
@@ -41,6 +41,7 @@ const pt: DocumentoAxioma = {
       '**Módulos Axioma:** doze atalhos para os módulos mais usados.',
     ] },
 
+    { nota: 'Avisos: confirmações e erros aparecem num cartão animado no topo da tela (some sozinho). As faixas fixas do topo são o aviso de contas que vencem em 7 dias e, quando algo não bate, a Conferência diária (Manual 45).' },
     { h1: 'Botões e ações' },
     { tabela: { colunas: ['Botão', 'Onde fica', 'O que faz', 'O que acontece depois'], larguras: [1800, 1700, 2900, 2626], linhas: [
       ['Compartilhar', 'Boas-vindas (canto direito)', 'Abre o Centro de Compartilhamento com o resumo: empresa, Score 360°, receita, lucro e margem.', 'Você escolhe WhatsApp, Telegram, Gmail, Outlook, E-mail, Copiar ou PDF. Nada é enviado sem você confirmar no aplicativo escolhido.'],
@@ -132,7 +133,7 @@ const en: DocumentoAxioma = {
   arquivo: '01 - Dashboard.docx',
   titulo: 'Manual 01 — Dashboard',
   subtitulo: 'The company overview on one screen: financial, commercial and shortcuts to every module',
-  info: ['Menu: Dashboard (first card on the top menu)  •  Axioma AI.Tech user manual  •  Version 2.0'],
+  info: ['Menu: Dashboard (first card on the top menu)  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'The Dashboard is the first screen after sign-in. It brings together, in one place, the most important figures from every module: revenue, costs, the month\'s surplus, debts, goals, clients, receivables, delinquency and investments. It lets you know, in a few seconds, **how the company is doing** and where you need to look more closely. Each figure leads, with one click, to the screen it comes from.' },
@@ -168,6 +169,7 @@ const en: DocumentoAxioma = {
       '**Axioma Modules:** twelve shortcuts to the most used modules.',
     ] },
 
+    { nota: 'Notices: confirmations and errors show in an animated card at the top of the screen (it fades on its own). The fixed banners at the top are the bills-due-in-7-days notice and, when something does not match, the daily Reconciliation (Manual 45).' },
     { h1: 'Buttons and actions' },
     { tabela: { colunas: ['Button', 'Where', 'What it does', 'What happens next'], larguras: [1800, 1700, 2900, 2626], linhas: [
       ['Share', 'Welcome (right corner)', 'Opens the Sharing Center with the summary: company, 360° Score, revenue, profit and margin.', 'You choose WhatsApp, Telegram, Gmail, Outlook, E-mail, Copy or PDF. Nothing is sent until you confirm in the chosen app.'],
@@ -259,7 +261,7 @@ const es: DocumentoAxioma = {
   arquivo: '01 - Dashboard.docx',
   titulo: 'Manual 01 — Panel (Dashboard)',
   subtitulo: 'La visión general de la empresa en una pantalla: financiero, comercial y atajos a todos los módulos',
-  info: ['Menú: Panel (primera tarjeta del menú superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0'],
+  info: ['Menú: Panel (primera tarjeta del menú superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'El Panel (Dashboard) es la primera pantalla después de ingresar. Reúne, en un solo lugar, los números más importantes de todos los módulos: ingresos, costos, sobrante del mes, deudas, metas, clientes, cuentas por cobrar, morosidad e inversiones. Sirve para saber, en pocos segundos, **cómo está la empresa** y dónde necesita mirar con más atención. Cada número lleva, con un clic, a la pantalla de donde viene.' },
@@ -295,6 +297,7 @@ const es: DocumentoAxioma = {
       '**Módulos Axioma:** doce atajos a los módulos más usados.',
     ] },
 
+    { nota: 'Avisos: confirmaciones y errores aparecen en una tarjeta animada arriba de la pantalla (desaparece sola). Las franjas fijas de arriba son el aviso de cuentas que vencen en 7 días y, cuando algo no cuadra, la Conciliación diaria (Manual 45).' },
     { h1: 'Botones y acciones' },
     { tabela: { colunas: ['Botón', 'Dónde está', 'Qué hace', 'Qué pasa después'], larguras: [1800, 1700, 2900, 2626], linhas: [
       ['Compartir', 'Bienvenida (esquina derecha)', 'Abre el Centro de Compartir con el resumen: empresa, Puntuación 360°, ingresos, utilidad y margen.', 'Usted elige WhatsApp, Telegram, Gmail, Outlook, E-mail, Copiar o PDF. Nada se envía sin que usted confirme en la aplicación elegida.'],

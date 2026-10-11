@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '08 - MEI - IA MEI Advisor.docx',
   titulo: 'Manual 08 — IA MEI Advisor',
   subtitulo: 'Seu consultor financeiro e fiscal MEI, com os seus números reais',
-  info: ['Menu: MEI → IA MEI Advisor  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: MEI → IA MEI Advisor  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Um chat que **conhece os dados reais do seu MEI** (faturamento, teto, DAS, despesas e configuração) e responde, em linguagem simples, perguntas sobre DAS, limite anual, imposto de renda, Reforma Tributária e preço.' },
@@ -31,6 +31,7 @@ const pt: DocumentoAxioma = {
       ['Perguntas prontas', '**Vou estourar o limite?**, **Preciso declarar IRPF?**, **MEI ou ME em 2027?**, **Como reduzir meus impostos?**, **Qual meu DAS correto?**', 'O clique **preenche o campo**; confira e clique em **Enviar**.'],
     ] } },
     { nota: 'Em pergunta sobre imposto, limite ou Reforma, a IA usa a lista de **Regras Oficiais Vigentes** do Axioma, com a fonte e a data da última conferência. Notícia ou projeto de lei nunca é tratado como lei. Se a IA não puder responder no momento, a tela responde por regras — você não fica sem resposta.' },
+    { p: 'O Cofre e a reserva de IR que o Advisor cita usam a mesma conta do Painel MEI e do Manual 09: lucro (receita − despesas) acima da parte isenta, tabela de 2026.' },
 
     { h1: 'Exemplos de perguntas' },
     { lista: ['"Quanto ainda posso faturar este ano sem estourar o teto?"', '"Meu DAS está em dia?"', '"Preciso declarar imposto de renda?"', '"O que muda para mim com a Reforma Tributária?"', '"Meu preço está cobrindo os custos?"'] },
@@ -43,7 +44,7 @@ const en: DocumentoAxioma = {
   arquivo: '08 - MEI - AI MEI Advisor.docx',
   titulo: 'Manual 08 — AI MEI Advisor',
   subtitulo: 'Your MEI financial and tax advisor, with your real numbers',
-  info: ['Menu: MEI → AI MEI Advisor  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: MEI → AI MEI Advisor  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'A chat that **knows your MEI\'s real data** (revenue, cap, DAS, expenses and settings) and answers, in plain language, questions about the DAS, the annual limit, income tax, the Tax Reform and pricing.' },
@@ -69,6 +70,7 @@ const en: DocumentoAxioma = {
       ['Ready questions', '**Will I exceed the limit?**, **Do I need to declare IRPF?**, **MEI or ME in 2027?**, **How to reduce my taxes?**, **What is my correct DAS?**', 'The click **fills in the field**; check it and click **Send**.'],
     ] } },
     { nota: 'For questions about tax, the limit or the Reform, the AI uses Axioma\'s **Official Rules in Force** list, with the source and the date of the last check. A news story or a bill is never treated as law. If the AI cannot answer at the moment, the screen answers with rules — you are never left without an answer.' },
+    { p: 'The Vault and the income tax reserve the Advisor cites use the same math as the MEI Dashboard and Manual 09: profit (revenue − expenses) above the exempt part, 2026 table.' },
 
     { h1: 'Example questions' },
     { lista: ['"How much more can I bill this year without exceeding the cap?"', '"Is my DAS up to date?"', '"Do I need to file income tax?"', '"What does the Tax Reform change for me?"', '"Is my price covering my costs?"'] },
@@ -81,7 +83,7 @@ const es: DocumentoAxioma = {
   arquivo: '08 - MEI - IA MEI Advisor.docx',
   titulo: 'Manual 08 — IA MEI Advisor',
   subtitulo: 'Su consultor financiero y fiscal MEI, con sus números reales',
-  info: ['Menú: MEI → IA Advisor MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: MEI → IA Advisor MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Un chat que **conoce los datos reales de su MEI** (facturación, tope, DAS, gastos y configuración) y responde, en lenguaje simple, preguntas sobre el DAS, el límite anual, el impuesto a la renta, la Reforma Tributaria y los precios.' },
@@ -107,6 +109,7 @@ const es: DocumentoAxioma = {
       ['Preguntas listas', '**¿Superaré el límite?**, **¿Necesito declarar IRPF?**, **¿MEI o ME en 2027?**, **¿Cómo reducir mis impuestos?**, **¿Cuál es mi DAS correcto?**', 'El clic **completa el campo**; revíselo y haga clic en **Enviar**.'],
     ] } },
     { nota: 'En preguntas sobre impuesto, límite o Reforma, la IA usa la lista de **Reglas Oficiales Vigentes** de Axioma, con la fuente y la fecha de la última verificación. Una noticia o un proyecto de ley nunca se trata como ley. Si la IA no puede responder en el momento, la pantalla responde por reglas — usted nunca se queda sin respuesta.' },
+    { p: 'La Caja y la reserva del impuesto a la renta que cita el Advisor usan la misma cuenta del Panel MEI y del Manual 09: ganancia (ingresos − gastos) por encima de la parte exenta, tabla de 2026.' },
 
     { h1: 'Ejemplos de preguntas' },
     { lista: ['"¿Cuánto más puedo facturar este año sin superar el tope?"', '"¿Mi DAS está al día?"', '"¿Necesito declarar impuesto a la renta?"', '"¿Qué cambia para mí con la Reforma Tributaria?"', '"¿Mi precio cubre los costos?"'] },

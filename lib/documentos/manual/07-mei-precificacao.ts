@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '07 - MEI - Precificação.docx',
   titulo: 'Manual 07 — Precificação MEI',
   subtitulo: 'Descubra o preço mínimo real e pare de trabalhar de graça',
-  info: ['Menu: MEI → Precificação MEI  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: MEI → Precificação MEI  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Calcula **quanto você precisa cobrar** por hora, por projeto ou por produto para cobrir seus custos, o DAS, o imposto de renda e ainda pagar o seu próprio tempo. Compara com o que você cobra hoje, mostra se há prejuízo e guarda os preços que você quiser reaproveitar.' },
@@ -41,7 +41,7 @@ const pt: DocumentoAxioma = {
     { tabela: { colunas: ['Linha', 'O que é'], larguras: [3000, 6026], linhas: [
       ['Custo Base', 'Custos + pró-labore rateados.'],
       ['DAS (no preço)', 'A parte do DAS que cada venda precisa cobrir.'],
-      ['Exposição IRPF (no preço)', 'A parte do imposto de renda.'],
+      ['Exposição IRPF (no preço)', 'A parte do imposto de renda, pela alíquota REAL do seu MEI (lucro acima da parte isenta, tabela de 2026 — renda até R$ 5 mil/mês não paga). Sem faturamento ainda, usa uma estimativa conservadora.'],
       ['Sua Margem em R$', 'O lucro em reais.'],
       ['⚠️ Preço Mínimo (sem lucro)', 'Abaixo disso você perde dinheiro.'],
       ['💰 Preço Sugerido', 'Preço com a margem desejada.'],
@@ -70,7 +70,7 @@ const en: DocumentoAxioma = {
   arquivo: '07 - MEI - Pricing.docx',
   titulo: 'Manual 07 — MEI Pricing',
   subtitulo: 'Find your real minimum price and stop working for free',
-  info: ['Menu: MEI → MEI Pricing  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: MEI → MEI Pricing  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Calculates **how much you need to charge** per hour, per project or per product to cover your costs, the DAS, income tax and still pay for your own time. It compares with what you charge today, shows whether you are losing money and stores the prices you want to reuse.' },
@@ -106,7 +106,7 @@ const en: DocumentoAxioma = {
     { tabela: { colunas: ['Line', 'What it is'], larguras: [3000, 6026], linhas: [
       ['Base Cost', 'Costs + owner\'s pay spread out.'],
       ['DAS (in the price)', 'The share of the DAS each sale must cover.'],
-      ['Income tax exposure (in the price)', 'The income tax share.'],
+      ['Income tax exposure (in the price)', 'The income tax share, at your MEI’s REAL rate (profit above the exempt part, 2026 table — income up to R$ 5k/month pays nothing). With no revenue yet, it uses a conservative estimate.'],
       ['Your Margin in R$', 'The profit in reais.'],
       ['⚠️ Minimum Price (no profit)', 'Below this you lose money.'],
       ['💰 Suggested Price', 'Price with the desired margin.'],
@@ -135,7 +135,7 @@ const es: DocumentoAxioma = {
   arquivo: '07 - MEI - Precios.docx',
   titulo: 'Manual 07 — Precios MEI',
   subtitulo: 'Descubra su precio mínimo real y deje de trabajar gratis',
-  info: ['Menú: MEI → Precios MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: MEI → Precios MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Calcula **cuánto necesita cobrar** por hora, por proyecto o por producto para cubrir sus costos, el DAS, el impuesto a la renta y además pagar su propio tiempo. Compara con lo que cobra hoy, muestra si hay pérdida y guarda los precios que quiera reutilizar.' },
@@ -171,7 +171,7 @@ const es: DocumentoAxioma = {
     { tabela: { colunas: ['Línea', 'Qué es'], larguras: [3000, 6026], linhas: [
       ['Costo Base', 'Costos + retiro repartidos.'],
       ['DAS (en el precio)', 'La parte del DAS que cada venta debe cubrir.'],
-      ['Exposición IRPF (en el precio)', 'La parte del impuesto a la renta.'],
+      ['Exposición IRPF (en el precio)', 'La parte del impuesto a la renta, con la alícuota REAL de su MEI (ganancia por encima de la parte exenta, tabla de 2026 — renta hasta R$ 5 mil/mes no paga). Sin facturación aún, usa una estimación conservadora.'],
       ['Su Margen en R$', 'La ganancia en reales.'],
       ['⚠️ Precio Mínimo (sin ganancia)', 'Por debajo usted pierde dinero.'],
       ['💰 Precio Sugerido', 'Precio con el margen deseado.'],

@@ -5,10 +5,11 @@ const pt: DocumentoAxioma = {
   arquivo: '03 - MEI - Cockpit.docx',
   titulo: 'Manual 03 — Cockpit MEI',
   subtitulo: 'A foto do dia do MEI em quatro vereditos: teto, dinheiro que é seu, impostos e preço',
-  info: ['Menu: MEI → Cockpit  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0'],
+  info: ['Menu: MEI → Cockpit  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Cockpit é a "foto do dia" do MEI. Enquanto o Painel MEI mostra tudo em detalhe, o Cockpit resume em **um alerta e quatro vereditos** se você está bem ou se precisa agir hoje: teto, dinheiro que é seu, impostos e preço cobrado. É uma tela só de leitura: não grava nada.' },
+    { nota: 'Teto do MEI pela categoria e pela lei: **R$ 81.000/ano** (comum) ou **R$ 251.600/ano** (caminhoneiro, LC 188/2021), proporcional aos meses no ano de abertura. A reserva de IRPF usa o **lucro** (receita − despesas do negócio) acima da parte isenta, com a tabela de 2026 — veja o Manual 09.' },
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **MEI ▼** → **Cockpit**.'] },
@@ -93,10 +94,11 @@ const en: DocumentoAxioma = {
   arquivo: '03 - MEI - Cockpit.docx',
   titulo: 'Manual 03 — MEI Cockpit',
   subtitulo: 'The MEI\'s snapshot of the day in four verdicts: cap, money that is yours, taxes and price',
-  info: ['Menu: MEI → Cockpit  •  Axioma AI.Tech user manual  •  Version 2.0'],
+  info: ['Menu: MEI → Cockpit  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'The Cockpit is the MEI\'s "snapshot of the day". While the MEI Dashboard shows everything in detail, the Cockpit sums up in **one alert and four verdicts** whether you are fine or need to act today: cap, money that is yours, taxes and the price you charge. It is a read-only screen: it saves nothing.' },
+    { nota: 'MEI cap by category and by law: **R$ 81,000/year** (standard) or **R$ 251,600/year** (truck driver, LC 188/2021), proportional to the months in the opening year. The income tax reserve uses the **profit** (revenue − business expenses) above the exempt part, with the 2026 table — see Manual 09.' },
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **MEI ▼** → **Cockpit**.'] },
@@ -181,10 +183,11 @@ const es: DocumentoAxioma = {
   arquivo: '03 - MEI - Cockpit.docx',
   titulo: 'Manual 03 — Cockpit MEI',
   subtitulo: 'La foto del día del MEI en cuatro veredictos: tope, dinero que es suyo, impuestos y precio',
-  info: ['Menú: MEI → Cockpit  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0'],
+  info: ['Menú: MEI → Cockpit  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'El Cockpit es la "foto del día" del MEI. Mientras el Panel MEI muestra todo en detalle, el Cockpit resume en **una alerta y cuatro veredictos** si usted está bien o si necesita actuar hoy: tope, dinero que es suyo, impuestos y precio cobrado. Es una pantalla solo de lectura: no guarda nada.' },
+    { nota: 'Tope del MEI por categoría y por ley: **R$ 81.000/año** (común) o **R$ 251.600/año** (camionero, LC 188/2021), proporcional a los meses en el año de apertura. La reserva del impuesto a la renta usa la **ganancia** (ingresos − gastos del negocio) por encima de la parte exenta, con la tabla de 2026 — vea el Manual 09.' },
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **MEI ▼** → **Cockpit**.'] },

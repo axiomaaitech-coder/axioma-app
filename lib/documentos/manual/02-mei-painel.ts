@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '02 - MEI - Painel MEI.docx',
   titulo: 'Manual 02 — Painel MEI',
   subtitulo: 'A central do Microempreendedor Individual: teto, DAS, quanto do dinheiro é seu e a saúde do negócio',
-  info: ['Menu: MEI → Painel MEI  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0'],
+  info: ['Menu: MEI → Painel MEI  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Painel MEI responde, em uma tela, as perguntas que mais importam para quem é MEI: **quanto faturei, quanto falta para o teto de R$ 81.000 por ano, quanto do dinheiro que entrou é realmente meu, quando vence o DAS e se a minha saúde financeira está boa**.' },
@@ -77,7 +77,7 @@ const pt: DocumentoAxioma = {
     { p: 'Pega a sobra do mês (o que entrou menos o que saiu) e separa o que **já tem dono**:' },
     { lista: [
       '**DAS do mês** — não é seu, vence no dia configurado.',
-      '**Reserva de IRPF** — guardando para a declaração do ano (Manual 09).',
+      '**Reserva de IRPF** — guardando para a declaração do ano: imposto sobre o **lucro** (receita − despesas) acima da parte isenta, tabela de 2026 com o desconto até R$ 5 mil/mês (Manual 09).',
       '**Contas a pagar do período** — boletos em aberto que vencem neste mês.',
       '**Reserva de emergência** — a porcentagem que você configurou.',
       '**Seu pró-labore seguro este mês** — o que sobra e pode ser retirado sem risco.',
@@ -160,7 +160,7 @@ const en: DocumentoAxioma = {
   arquivo: '02 - MEI - MEI Dashboard.docx',
   titulo: 'Manual 02 — MEI Dashboard',
   subtitulo: 'The hub for the Individual Micro-Entrepreneur (MEI): revenue cap, DAS, how much of the money is yours and business health',
-  info: ['Menu: MEI → MEI Dashboard  •  Axioma AI.Tech user manual  •  Version 2.0'],
+  info: ['Menu: MEI → MEI Dashboard  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'MEI is the Brazilian Individual Micro-Entrepreneur regime. The MEI Dashboard answers, on one screen, the questions that matter most to an MEI: **how much did I bill, how much is left before the R$ 81,000 annual cap, how much of the money that came in is really mine, when the DAS (the monthly MEI tax slip) is due, and whether my financial health is good**.' },
@@ -232,7 +232,7 @@ const en: DocumentoAxioma = {
     { p: 'Takes the month\'s surplus (what came in minus what went out) and separates what **already has an owner**:' },
     { lista: [
       '**This month\'s DAS** — not yours, due on the configured day.',
-      '**Income tax (IRPF) reserve** — saving for the year\'s return (Manual 09).',
+      '**Income tax (IRPF) reserve** — saving for the year’s return: tax on the **profit** (revenue − expenses) above the exempt part, 2026 table with the discount up to R$ 5k/month (Manual 09).',
       '**Payables for the period** — open bills due this month.',
       '**Emergency reserve** — the percentage you configured.',
       '**Your safe owner\'s draw this month** — what is left and can be taken out without risk.',
@@ -315,7 +315,7 @@ const es: DocumentoAxioma = {
   arquivo: '02 - MEI - Panel MEI.docx',
   titulo: 'Manual 02 — Panel MEI',
   subtitulo: 'La central del Microemprendedor Individual (MEI): tope, DAS, cuánto del dinero es suyo y la salud del negocio',
-  info: ['Menú: MEI → Panel MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0'],
+  info: ['Menú: MEI → Panel MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'El MEI es el régimen brasileño del Microemprendedor Individual. El Panel MEI responde, en una pantalla, las preguntas que más importan para quien es MEI: **cuánto facturé, cuánto falta para el tope de R$ 81.000 por año, cuánto del dinero que entró es realmente mío, cuándo vence el DAS (la boleta mensual del MEI) y si mi salud financiera está bien**.' },
@@ -387,7 +387,7 @@ const es: DocumentoAxioma = {
     { p: 'Toma el sobrante del mes (lo que entró menos lo que salió) y separa lo que **ya tiene dueño**:' },
     { lista: [
       '**DAS del mes** — no es suyo, vence el día configurado.',
-      '**Reserva de impuesto a la renta (IRPF)** — guardando para la declaración del año (Manual 09).',
+      '**Reserva de impuesto a la renta (IRPF)** — guardando para la declaración del año: impuesto sobre la **ganancia** (ingresos − gastos) por encima de la parte exenta, tabla de 2026 con el descuento hasta R$ 5 mil/mes (Manual 09).',
       '**Cuentas por pagar del período** — boletas abiertas que vencen este mes.',
       '**Reserva de emergencia** — el porcentaje que configuró.',
       '**Su retiro seguro este mes** — lo que sobra y puede retirarse sin riesgo.',
