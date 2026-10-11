@@ -48,7 +48,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { h1: 'Transparência' },
     { p: 'O Painel de Especialistas e a Recomendação Consolidada são gerados **100% por regras** a partir dos seus dados reais. Nenhum texto aqui é escrito por modelo de linguagem.' },
-    { nota: 'Se a leitura de produtos, concorrentes, receitas ou custos falhar, a tela avisa que os números podem estar incompletos — nunca mostra "nenhum produto" por engano. Toda gravação que falha também avisa.' },
+    { nota: 'Se a leitura de produtos, concorrentes, receitas ou custos falhar, a tela avisa que os números podem estar incompletos — nunca mostra "nenhum produto" por engano. Toda gravação que falha também avisa. Todos os textos da tela (status, mensagens do Radar) aparecem em português, inglês e espanhol.' },
   ],
 }
 
@@ -99,7 +99,7 @@ const en: DocumentoAxioma = {
     ] } },
     { h1: 'Transparency' },
     { p: 'The Specialist Panel and the Consolidated Recommendation are **100% rule-generated** from your real data. No text here is written by a language model.' },
-    { nota: 'If loading products, competitors, revenue or costs fails, the screen warns that the numbers may be incomplete — it never shows "no products" by mistake. Every failed save also warns you.' },
+    { nota: 'If loading products, competitors, revenue or costs fails, the screen warns that the numbers may be incomplete — it never shows "no products" by mistake. Every failed save also warns you. All screen texts (status, Radar messages) appear in Portuguese, English and Spanish.' },
   ],
 }
 
@@ -150,7 +150,7 @@ const es: DocumentoAxioma = {
     ] } },
     { h1: 'Transparencia' },
     { p: 'El Panel de Especialistas y la Recomendación Consolidada se generan **100% por reglas** a partir de sus datos reales. Ningún texto aquí es escrito por un modelo de lenguaje.' },
-    { nota: 'Si la lectura de productos, competidores, ingresos o costos falla, la pantalla avisa que los números pueden estar incompletos — nunca muestra "ningún producto" por error. Toda grabación que falla también avisa.' },
+    { nota: 'Si la lectura de productos, competidores, ingresos o costos falla, la pantalla avisa que los números pueden estar incompletos — nunca muestra "ningún producto" por error. Toda grabación que falla también avisa. Todos los textos de la pantalla (estado, mensajes del Radar) aparecen en portugués, inglés y español.' },
   ],
 }
 

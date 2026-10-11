@@ -44,7 +44,7 @@ const pt: DocumentoAxioma = {
       ['✏️ Lápis', 'Edita o investimento (ex.: marcar como Resgatado).'],
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador).'],
     ] } },
-    { nota: 'Se a leitura dos investimentos falhar, a tela avisa — nunca mostra "nenhum investimento" por engano.' },
+    { nota: 'Se a leitura dos investimentos falhar, a tela avisa — nunca mostra "nenhum investimento" por engano. O mesmo vale para receitas, custos, dívidas e caixa usados nos indicadores.' },
   ],
 }
 
@@ -91,7 +91,7 @@ const en: DocumentoAxioma = {
       ['✏️ Pencil', 'Edits the investment (e.g., mark as Redeemed).'],
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator).'],
     ] } },
-    { nota: 'If loading the investments fails, the screen warns you — it never shows "no investments" by mistake.' },
+    { nota: 'If loading the investments fails, the screen warns you — it never shows "no investments" by mistake. The same goes for revenue, costs, debts and cash used in the indicators.' },
   ],
 }
 
@@ -138,7 +138,7 @@ const es: DocumentoAxioma = {
       ['✏️ Lápiz', 'Edita la inversión (ej.: marcar como Rescatada).'],
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador).'],
     ] } },
-    { nota: 'Si la lectura de las inversiones falla, la pantalla avisa — nunca muestra "ninguna inversión" por error.' },
+    { nota: 'Si la lectura de las inversiones falla, la pantalla avisa — nunca muestra "ninguna inversión" por error. Lo mismo vale para ingresos, costos, deudas y caja usados en los indicadores.' },
   ],
 }
 

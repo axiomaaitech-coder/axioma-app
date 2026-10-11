@@ -44,7 +44,7 @@ const pt: DocumentoAxioma = {
     { p: 'Nos detalhes há a **Fila de Exceções** (o que o sistema não decidiu sozinho, para você marcar como resolvida) e a **Linha do Tempo** de tudo o que aconteceu.' },
     { h2: 'Painel de Importações (este mês)' },
     { p: '**Total Importado**, **Documentos Processados**, **Taxa de Sucesso**, **Duplicatas Evitadas**, **Tempo Médio** e **Horas Economizadas**.' },
-    { nota: 'Compras de mercadoria podem ser lançadas como custo variável, custo fixo mensal, estoque ou investimento: o Axioma pergunta antes de lançar. Notas já importadas pelo PDV são reconhecidas para não duplicar. O custo da nota lançado na importação não é lançado de novo quando a conta é paga. Se o histórico não carregar, a tela avisa.' },
+    { nota: 'Compras de mercadoria podem ser lançadas como custo variável, custo fixo mensal, estoque ou investimento: o Axioma pergunta antes de lançar. Notas já importadas pelo PDV são reconhecidas para não duplicar. O custo da nota lançado na importação não é lançado de novo quando a conta é paga. Se o histórico não carregar, ou se não der para conferir os fornecedores pelo nome, a tela avisa.' },
   ],
 }
 
@@ -91,7 +91,7 @@ const en: DocumentoAxioma = {
     { p: 'In the details there is the **Exception Queue** (what the system did not decide by itself, for you to mark as resolved) and the **Timeline** of everything that happened.' },
     { h2: 'Imports Panel (this month)' },
     { p: '**Total Imported**, **Documents Processed**, **Success Rate**, **Duplicates Avoided**, **Average Time** and **Hours Saved**.' },
-    { nota: 'Merchandise purchases can be posted as variable cost, monthly fixed cost, inventory or investment: Axioma asks before posting. Invoices already imported through the POS are recognized so they are not duplicated. The invoice cost posted at import is not posted again when the bill is paid. If the history does not load, the screen warns you.' },
+    { nota: 'Merchandise purchases can be posted as variable cost, monthly fixed cost, inventory or investment: Axioma asks before posting. Invoices already imported through the POS are recognized so they are not duplicated. The invoice cost posted at import is not posted again when the bill is paid. If the history does not load, or suppliers cannot be checked by name, the screen warns you.' },
   ],
 }
 
@@ -138,7 +138,7 @@ const es: DocumentoAxioma = {
     { p: 'En los detalles está la **Cola de Excepciones** (lo que el sistema no decidió solo, para que usted lo marque como resuelto) y la **Línea de Tiempo** de todo lo que pasó.' },
     { h2: 'Panel de Importaciones (este mes)' },
     { p: '**Total Importado**, **Documentos Procesados**, **Tasa de Éxito**, **Duplicados Evitados**, **Tiempo Promedio** y **Horas Ahorradas**.' },
-    { nota: 'Las compras de mercadería pueden registrarse como costo variable, costo fijo mensual, inventario o inversión: Axioma pregunta antes de registrar. Las facturas ya importadas por el PDV se reconocen para no duplicar. El costo de la factura registrado en la importación no se registra de nuevo cuando se paga la cuenta. Si el historial no carga, la pantalla avisa.' },
+    { nota: 'Las compras de mercadería pueden registrarse como costo variable, costo fijo mensual, inventario o inversión: Axioma pregunta antes de registrar. Las facturas ya importadas por el PDV se reconocen para no duplicar. El costo de la factura registrado en la importación no se registra de nuevo cuando se paga la cuenta. Si el historial no carga, o no se pueden verificar los proveedores por nombre, la pantalla avisa.' },
   ],
 }
 
