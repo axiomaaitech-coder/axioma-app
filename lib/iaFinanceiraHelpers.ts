@@ -2,6 +2,7 @@
 // Motor de inteligência: Score 360°, anomalias, projeções, what-if, benchmarks, plano de ação.
 // Funciona com dados reais do Supabase. Chat via Claude API (ou regras se API indisponível).
 
+import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -127,11 +128,11 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
     { data: dividas },
     { data: empresa },
   ] = await Promise.all([
-    empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
+    empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
+    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [] }),
     empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
-    empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    empresaId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
+    empresaId ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
     // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
     // uma tabela órfã com schema diferente, nunca alimentada pela UI.
     Promise.resolve(empresaId ? supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),

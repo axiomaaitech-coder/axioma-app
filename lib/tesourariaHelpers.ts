@@ -4,6 +4,7 @@
 // aplicadas no banco) — nenhuma escrita nova de schema aqui. Determinístico
 // 100%: nada de IA nesta rodada (ZIA é Rodada 3).
 
+import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
@@ -216,8 +217,8 @@ export function montarBlendFluxoProjetado(
 export async function obterFluxoProjetado(empresaId: string, reservaMinima: number): Promise<FluxoProjetadoResultado> {
   const [rpcResultados, { data: cpPagas }, { data: crRecebidas }] = await Promise.all([
     Promise.all(HORIZONTES_TESOURARIA.map((dias) => supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias }))),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
-    supabase.from("contas_receber").select("valor, data_vencimento, data_recebimento").eq("empresa_id", empresaId).eq("status", "recebido"),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
+    lerTodas(() => supabase.from("contas_receber").select("valor, data_vencimento, data_recebimento").eq("empresa_id", empresaId).eq("status", "recebido").order("id")),
   ]);
 
   rpcResultados.forEach((r, i) => {
@@ -708,8 +709,8 @@ export type CapitalDeGiro = {
 
 export async function obterCapitalDeGiro(empresaId: string): Promise<CapitalDeGiro> {
   const [{ data: crAbertas }, { data: cpAbertas }, kpisEstoque] = await Promise.all([
-    supabase.from("contas_receber").select("valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId).neq("status", "pago"),
+    lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId).neq("status", "pago").order("id")),
     carregarKpisEstoque(empresaId),
   ]);
   const contasAReceberAberto = ((crAbertas as { valor: number; valor_recebido: number | null }[]) || [])

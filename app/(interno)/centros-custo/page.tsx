@@ -1,4 +1,5 @@
 "use client";
+import { lerTodas } from "../../../lib/lerTodas";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -254,7 +255,7 @@ export default function CentrosCustoPage() {
       empId ? carregarOrcamentos(empId) : Promise.resolve([]),
       empId ? carregarReceitasOrigem(empId) : Promise.resolve([]),
       empId ? supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       empId ? carregarAuditoriaCentro(empId) : Promise.resolve([]),
       empId ? carregarPlanosAcao(empId) : Promise.resolve([]),

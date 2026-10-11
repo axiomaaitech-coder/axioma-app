@@ -3,6 +3,7 @@
 // (funções puras + supabase direto, sem RPC nova, retorno { erro? }).
 // calcStatus é REAPROVEITADO de fornecedorHelpers.ts — não duplicado aqui.
 
+import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "@supabase/ssr";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
@@ -689,11 +690,11 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
 
   const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
-    supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
-    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId),
+    lerTodas(() => supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId).order("id")),
+    lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
     soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
   ]);
 
   const saldoAtual = (fc || []).filter((l: any) => l.status === "realizado")
@@ -1086,7 +1087,7 @@ export async function detectarMultasEvitaveis(empresaId: string): Promise<{ mult
     supabase.from("contas_pagar")
       .select("id, descricao, fornecedor_id, valor_total, valor_pago, data_vencimento, data_pagamento, taxa_multa_mensal")
       .eq("empresa_id", empresaId).eq("status", "pago"),
-    supabase.from("fluxo_caixa").select("data, valor, tipo").eq("empresa_id", empresaId).eq("status", "realizado"),
+    lerTodas(() => supabase.from("fluxo_caixa").select("data, valor, tipo").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
   ]);
 
   const linhasCaixa = ((fc as { data: string; valor: number; tipo: string }[]) || [])
@@ -1474,11 +1475,11 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
   const selecionadas = new Set(contaIds);
 
   const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
-    supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
-    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
-    supabase.from("contas_pagar").select("id, valor_total, valor_pago, status, data_vencimento, custo_fixo_id, desconto_disponivel_pct, desconto_data_limite").eq("empresa_id", empresaId),
+    lerTodas(() => supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId).order("id")),
+    lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
+    lerTodas(() => supabase.from("contas_pagar").select("id, valor_total, valor_pago, status, data_vencimento, custo_fixo_id, desconto_disponivel_pct, desconto_data_limite").eq("empresa_id", empresaId).order("id")),
     soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
   ]);
 
   type ContaPagarParaAntecipacao = {

@@ -1,4 +1,5 @@
 "use client";
+import { lerTodas } from "../../../lib/lerTodas";
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -890,11 +891,11 @@ export default function Fornecedores() {
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
     const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp2 }] = await Promise.all([
-      empId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [] }),
       empId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId)) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 

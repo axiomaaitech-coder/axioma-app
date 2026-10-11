@@ -1,4 +1,5 @@
 'use client'
+import { lerTodas } from '../../../lib/lerTodas'
 import { useRouter } from 'next/navigation'
 import { irParaDestino } from '../../../lib/cfoCore'
 import { useState, useEffect, useMemo, useRef } from 'react'
@@ -276,8 +277,8 @@ export default function OpenFinancePage() {
       supabase.from('of_transacoes')
         .select('id, item_id, account_id, descricao, valor, tipo, categoria, data, pluggy_transaction_id, lancamento_id, lancamento_tabela')
         .eq('empresa_id', empresaId).gte('data', periodo.inicio).lte('data', periodo.fim).order('data', { ascending: false }),
-      supabase.from('receitas').select('id, descricao, valor, data, categoria, status').eq('empresa_id', empresaId),
-      supabase.from('custos_variaveis').select('id, descricao, valor, data, categoria').eq('empresa_id', empresaId),
+      lerTodas(() => supabase.from('receitas').select('id, descricao, valor, data, categoria, status').eq('empresa_id', empresaId).order("id")),
+      lerTodas(() => supabase.from('custos_variaveis').select('id, descricao, valor, data, categoria').eq('empresa_id', empresaId).order("id")),
       supabase.from('of_transacoes').select('descricao').eq('empresa_id', empresaId).eq('tipo', 'saida').lt('data', periodo.inicio).limit(1000),
     ])
 

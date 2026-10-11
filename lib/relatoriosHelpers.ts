@@ -2,6 +2,7 @@
 // Cálculos profissionais com dados reais do Supabase.
 // Implementa 12+ indicadores brasileiros, Score CFO 0-100, insights automáticos.
 
+import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "@supabase/ssr";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { nomeMesPt } from "./cfoCore";
@@ -138,7 +139,7 @@ export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<
   const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
   const [{ data: empresa }, { data: rec12m }] = await Promise.all([
     supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
-    supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim),
+    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim).order("id")),
   ]);
   const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
   const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta, undefined, undefined, categoriaMeiDaEmpresa(empresa)));
@@ -193,8 +194,8 @@ export async function carregarEvolucao12Meses(
     const periodo = montarPeriodo(ano, mes);
 
     const [{ data: rec }, { data: cv }] = await Promise.all([
-      supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim),
-      supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim),
+      lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
+      lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
     ]);
 
     const receita = (rec || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -353,8 +354,8 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
 
   // ---- 5. LIQUIDEZ CORRENTE ----
   const [{ data: cRecAtiv }, { data: cPagAtiv }] = await Promise.all([
-    supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago"),
+    lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
+    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago").order("id")),
   ]);
   const ativoCirc = (cRecAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0);
   const passivoCirc = (cPagAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);

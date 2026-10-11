@@ -1,4 +1,5 @@
 "use client";
+import { lerTodas } from "../lib/lerTodas";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
@@ -165,7 +166,7 @@ export default function DashComercial() {
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId).eq("status", "ativo"),
         supabase.from("clientes").select("created_at").eq("empresa_id", empresaId).gte("created_at", doze),
         supabase.from("metas").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId),
-        supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId),
+        lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")),
         supabase.from("investimentos").select("valor, categoria").eq("empresa_id", empresaId),
       ]);
       if (!ativo) return;

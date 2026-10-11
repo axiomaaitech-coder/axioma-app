@@ -1,4 +1,5 @@
 "use client";
+import { lerTodas } from "../../../lib/lerTodas";
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect } from "react";
 import {
@@ -137,13 +138,13 @@ export default function Simulacoes() {
     const inicioHist = inicioJanela12m(periodo.fim);
     const empresaId = await obterEmpresaAtiva();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [] }),
-      empresaId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — nunca escreve em dividas.
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       // Mesma definição de "caixa disponível" do Fluxo de Caixa/Investimentos.
-      empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [] }),
       // Regime da empresa ABERTA (antes: a 1ª empresa do usuário — quem tem 2 empresas via o imposto da outra).
       empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
