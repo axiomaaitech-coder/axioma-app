@@ -196,10 +196,10 @@ export default function Planos() {
                     <div className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
                       <plano.Icon size={22} style={{ color: plano.cor }} />
                     </div>
-                    <h2 className={`${cinzel.className} text-2xl font-bold`} style={{ color: plano.cor }}>{plano.nome[lang]}</h2>
+                    <h2 className={`${cinzel.className} text-[26px] font-bold`} style={{ color: plano.cor }}>{plano.nome[lang]}</h2>
                   </div>
 
-                  <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
+                  <p className="text-sm mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
 
                   <div className="mb-4">
                     <div className="flex flex-wrap items-end gap-x-1.5">
@@ -209,7 +209,7 @@ export default function Planos() {
                       <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>
                     </div>
                     {periodo === 'anual' && <p className="text-xs mt-1" style={{ color: TEXTO_MUTED }}>{txt.anualCobrado(reais(plano.anualPorMesCentavos * 12, lang))}</p>}
-                    <p className="text-xs mt-2" style={{ color: TEXTO_MUTED }}>
+                    <p className="text-sm mt-2" style={{ color: TEXTO_MUTED }}>
                       {txt.ate} {plano.pessoas} {txt.usuarios}
                     </p>
                   </div>
@@ -222,7 +222,7 @@ export default function Planos() {
                     </span>
                   </div>
 
-                  <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: TEXTO_PRINC }}>
+                  <div className="rounded-xl p-3 mb-4 text-sm" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: TEXTO_PRINC }}>
                     <p className="font-bold mb-1" style={{ color: '#2ecc9b' }}>{txt.iaMes}</p>
                     <p>{plano.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {txt.iaComum}</p>
                     <p>{plano.ia.anthropic} {txt.iaAvancada}</p>
@@ -236,7 +236,7 @@ export default function Planos() {
                           style={{ background: `${plano.cor}20` }}>
                           <Check size={12} style={{ color: plano.cor }} />
                         </div>
-                        <span className="text-sm" style={{ color: TEXTO_PRINC }}>{label}</span>
+                        <span className="text-[15px] leading-snug" style={{ color: TEXTO_PRINC }}>{label}</span>
                       </div>
                     ))}
                   </div>
