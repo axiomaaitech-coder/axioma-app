@@ -15,9 +15,9 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Os planos (do mais simples ao mais completo)' },
     { tabela: { colunas: ['Plano', 'Mensal', 'Pessoas', 'O que inclui'], larguras: [1500, 1300, 1000, 5226], linhas: [
-      ['MEI', 'R$ 59,90', '1', 'Módulo MEI completo (DAS, DASN, abrir empresa), receitas, custos, Fluxo de Caixa e DRE, IA MEI Advisor, 3 idiomas, exportar PDF/Excel/CSV.'],
-      ['Essencial', 'R$ 149,90', '2', 'Tudo do MEI + Contabilidade, contas a pagar e a receber, estoque, Relatórios, IA Financeira e Conferência diária entre módulos.'],
-      ['Empresa (mais escolhido)', 'R$ 297,90', '5', 'Tudo do Essencial + IA Tributária, PDV, Centros de Custo, Painel de Risco e Métricas do CFO.'],
+      ['MEI', 'R$ 59,90', '1', 'Para MEI e autônomos. Módulo MEI completo (DAS, DASN, limite de faturamento, abrir empresa, documentos para o contador), receitas, custos fixos e variáveis, Fluxo de Caixa, DRE, Precificação, IR do MEI, IA MEI Advisor com regras oficiais, 3 idiomas, PDF/Excel/CSV.'],
+      ['Essencial', 'R$ 149,90', '2', 'Tudo do MEI + contabilidade completa (Livro Razão, Balancete, DRE contábil, Fiscal, área do contador), contas a pagar e a receber, clientes, fornecedores, inadimplência, estoque, tesouraria, endividamento, metas, investimentos, simulações, importação de documentos com IA, IA Financeira, conferência diária, rastreabilidade e equipe com hierarquia.'],
+      ['Empresa (mais escolhido)', 'R$ 297,90', '5', 'Tudo do Essencial + IA Tributária e Reforma Tributária, PDV ligado ao estoque e ao financeiro, Centros de Custo, relatórios gerenciais, Painel de Risco e Métricas do CFO.'],
       ['Premium', 'R$ 597,90', '10', 'Tudo do Empresa + Nexus e o José (inteligência de mercado), várias empresas na mesma conta e suporte prioritário.'],
     ] } },
     { p: 'No topo da tela, a chave **Mensal / Anual** troca os preços. O **anual** dá **2 meses grátis**: MEI R$ 49,90/mês, Essencial R$ 124,90/mês, Empresa R$ 247,90/mês e Premium R$ 497,90/mês, cobrados uma vez por ano.' },
@@ -67,9 +67,9 @@ const en: DocumentoAxioma = {
 
     { h1: 'The plans (from simplest to most complete)' },
     { tabela: { colunas: ['Plan', 'Monthly', 'People', 'What it includes'], larguras: [1500, 1300, 1000, 5226], linhas: [
-      ['MEI', 'R$ 59.90', '1', 'Full MEI module (DAS, DASN, open a company), revenue, costs, Cash Flow and P&L, MEI AI Advisor, 3 languages, export PDF/Excel/CSV.'],
-      ['Essential', 'R$ 149.90', '2', 'Everything in MEI + Accounting, payables and receivables, inventory, Reports, Financial AI and daily cross-module check.'],
-      ['Business (most chosen)', 'R$ 297.90', '5', 'Everything in Essential + Tax AI, POS, Cost Centers, Risk Panel and CFO Metrics.'],
+      ['MEI', 'R$ 59.90', '1', 'For MEI and freelancers. Full MEI module (DAS, DASN, revenue limit, open a company, documents for the accountant), revenue, fixed and variable costs, Cash Flow, P&L, Pricing, MEI Income Tax, MEI AI Advisor with official rules, 3 languages, PDF/Excel/CSV.'],
+      ['Essential', 'R$ 149.90', '2', 'Everything in MEI + full accounting (General Ledger, Trial Balance, accounting P&L, Tax, accountant area), payables and receivables, customers, suppliers, defaults, inventory, treasury, debt, goals, investments, simulations, AI document import, Financial AI, daily check, traceability and team with hierarchy.'],
+      ['Business (most chosen)', 'R$ 297.90', '5', 'Everything in Essential + Tax AI and Tax Reform, POS linked to inventory and finance, Cost Centers, management reports, Risk Panel and CFO Metrics.'],
       ['Premium', 'R$ 597.90', '10', 'Everything in Business + Nexus and José (market intelligence), several companies in one account and priority support.'],
     ] } },
     { p: 'At the top of the screen, the **Monthly / Yearly** switch changes the prices. **Yearly** gives **2 months free**: MEI R$ 49.90/mo, Essential R$ 124.90/mo, Business R$ 247.90/mo and Premium R$ 497.90/mo, billed once a year.' },
@@ -119,9 +119,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Los planes (del más simple al más completo)' },
     { tabela: { colunas: ['Plan', 'Mensual', 'Personas', 'Qué incluye'], larguras: [1500, 1300, 1000, 5226], linhas: [
-      ['MEI', 'R$ 59,90', '1', 'Módulo MEI completo (DAS, DASN, abrir empresa), ingresos, costos, Flujo de Caja y Estado de Resultados, IA MEI Advisor, 3 idiomas, exportar PDF/Excel/CSV.'],
-      ['Esencial', 'R$ 149,90', '2', 'Todo de MEI + Contabilidad, cuentas por pagar y cobrar, inventario, Informes, IA Financiera y conciliación diaria entre módulos.'],
-      ['Empresa (más elegido)', 'R$ 297,90', '5', 'Todo de Esencial + IA Tributaria, PDV, Centros de Costo, Panel de Riesgo y Métricas del CFO.'],
+      ['MEI', 'R$ 59,90', '1', 'Para MEI y autónomos. Módulo MEI completo (DAS, DASN, límite de facturación, abrir empresa, documentos para el contador), ingresos, costos fijos y variables, Flujo de Caja, Estado de Resultados, Precios, IR del MEI, IA MEI Advisor con reglas oficiales, 3 idiomas, PDF/Excel/CSV.'],
+      ['Esencial', 'R$ 149,90', '2', 'Todo de MEI + contabilidad completa (Libro Mayor, Balance de Comprobación, Estado de Resultados contable, Fiscal, área del contador), cuentas por pagar y cobrar, clientes, proveedores, morosidad, inventario, tesorería, endeudamiento, metas, inversiones, simulaciones, importación de documentos con IA, IA Financiera, conciliación diaria, trazabilidad y equipo con jerarquía.'],
+      ['Empresa (más elegido)', 'R$ 297,90', '5', 'Todo de Esencial + IA Tributaria y Reforma Tributaria, PDV conectado al inventario y a las finanzas, Centros de Costo, informes de gestión, Panel de Riesgo y Métricas del CFO.'],
       ['Premium', 'R$ 597,90', '10', 'Todo de Empresa + Nexus y José (inteligencia de mercado), varias empresas en la misma cuenta y soporte prioritario.'],
     ] } },
     { p: 'Arriba de la pantalla, el selector **Mensual / Anual** cambia los precios. El **anual** da **2 meses gratis**: MEI R$ 49,90/mes, Esencial R$ 124,90/mes, Empresa R$ 247,90/mes y Premium R$ 497,90/mes, cobrados una vez al año.' },

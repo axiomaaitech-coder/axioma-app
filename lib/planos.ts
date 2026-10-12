@@ -31,33 +31,33 @@ export const ehTipoIA = (x: unknown): x is TipoIA => x === 'openai' || x === 'an
 export const reais = (centavos: number, lang: 'pt' | 'en' | 'es' = 'pt') =>
   (centavos / 100).toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { style: 'currency', currency: 'BRL' })
 
-// O que cada plano traz (só o que existe hoje no Axioma) — tela Planos e página inicial.
+// O que cada plano traz (só o que existe hoje no Axioma; sem limitar por porte) — tela Planos e página inicial.
 export const PLANO_DESCRICAO: Record<PlanoId, T3> = {
   starter: { pt: 'Para MEI e autônomos', en: 'For MEI and freelancers', es: 'Para MEI y autónomos' },
-  pro: { pt: 'Financeiro e contabilidade completos, com IA Financeira', en: 'Full finance and accounting, with Financial AI', es: 'Finanzas y contabilidad completas, con IA Financiera' },
+  pro: { pt: 'Financeiro, contabilidade e operação completos, com IA Financeira', en: 'Complete finance, accounting and operations, with Financial AI', es: 'Finanzas, contabilidad y operación completas, con IA Financiera' },
   business: { pt: 'Gestão completa com IA Tributária, PDV e Painel de Risco', en: 'Complete management with Tax AI, POS and Risk Panel', es: 'Gestión completa con IA Tributaria, PDV y Panel de Riesgo' },
   enterprise: { pt: 'Tudo do Axioma, com inteligência de mercado', en: 'All of Axioma, with market intelligence', es: 'Todo Axioma, con inteligencia de mercado' },
 }
 export const PLANO_RECURSOS: Record<PlanoId, Record<'pt' | 'en' | 'es', string[]>> = {
   starter: {
-    pt: ['Módulo MEI completo (DAS, DASN, abrir empresa)', 'Receitas, custos, Fluxo de Caixa e DRE', 'IA MEI Advisor', 'Português, inglês e espanhol', 'Exportar PDF, Excel e CSV'],
-    en: ['Full MEI module (DAS, DASN, open a company)', 'Revenue, costs, Cash Flow and P&L', 'MEI AI Advisor', 'Portuguese, English and Spanish', 'Export PDF, Excel and CSV'],
-    es: ['Módulo MEI completo (DAS, DASN, abrir empresa)', 'Ingresos, costos, Flujo de Caja y Estado de Resultados', 'IA MEI Advisor', 'Portugués, inglés y español', 'Exportar PDF, Excel y CSV'],
+    pt: ['Módulo MEI completo: DAS, DASN, limite de faturamento, abrir empresa e documentos para o contador', 'Receitas, custos fixos e variáveis, Fluxo de Caixa e DRE', 'Precificação e Imposto de Renda do MEI', 'IA MEI Advisor com as regras oficiais vigentes', 'Português, inglês e espanhol · PDF, Excel e CSV'],
+    en: ['Full MEI module: DAS, DASN, revenue limit, open a company and documents for the accountant', 'Revenue, fixed and variable costs, Cash Flow and P&L', 'Pricing and MEI Income Tax', 'MEI AI Advisor with the current official rules', 'Portuguese, English and Spanish · PDF, Excel and CSV'],
+    es: ['Módulo MEI completo: DAS, DASN, límite de facturación, abrir empresa y documentos para el contador', 'Ingresos, costos fijos y variables, Flujo de Caja y Estado de Resultados', 'Precios e Impuesto a la Renta del MEI', 'IA MEI Advisor con las reglas oficiales vigentes', 'Portugués, inglés y español · PDF, Excel y CSV'],
   },
   pro: {
-    pt: ['Tudo do MEI', 'Contabilidade, contas a pagar e a receber, estoque', 'Relatórios', 'IA Financeira', 'Conferência diária entre módulos'],
-    en: ['Everything in MEI', 'Accounting, payables and receivables, inventory', 'Reports', 'Financial AI', 'Daily cross-module check'],
-    es: ['Todo de MEI', 'Contabilidad, cuentas por pagar y cobrar, inventario', 'Informes', 'IA Financiera', 'Conciliación diaria entre módulos'],
+    pt: ['Tudo do MEI', 'Contabilidade completa: Livro Razão, Balancete, DRE contábil, Fiscal e área do contador', 'Contas a pagar e a receber, clientes, fornecedores, inadimplência e estoque', 'Tesouraria, endividamento, metas, investimentos e simulações', 'Importar documentos: NF-e, extrato, PDF e foto lidos pela IA', 'IA Financeira que confere cada número com os seus dados', 'Conferência diária entre módulos e rastreabilidade de cada valor', 'Equipe com hierarquia e permissões'],
+    en: ['Everything in MEI', 'Full accounting: General Ledger, Trial Balance, accounting P&L, Tax and accountant area', 'Payables and receivables, customers, suppliers, defaults and inventory', 'Treasury, debt, goals, investments and simulations', 'Import documents: e-invoices, statements, PDF and photos read by AI', 'Financial AI that checks every number against your data', 'Daily cross-module check and traceability of every amount', 'Team with hierarchy and permissions'],
+    es: ['Todo de MEI', 'Contabilidad completa: Libro Mayor, Balance de Comprobación, Estado de Resultados contable, Fiscal y área del contador', 'Cuentas por pagar y cobrar, clientes, proveedores, morosidad e inventario', 'Tesorería, endeudamiento, metas, inversiones y simulaciones', 'Importar documentos: NF-e, extractos, PDF y fotos leídos por IA', 'IA Financiera que verifica cada número con sus datos', 'Conciliación diaria entre módulos y trazabilidad de cada valor', 'Equipo con jerarquía y permisos'],
   },
   business: {
-    pt: ['Tudo do Essencial', 'IA Tributária', 'PDV (ponto de venda)', 'Centros de Custo', 'Painel de Risco e Métricas do CFO'],
-    en: ['Everything in Essential', 'Tax AI', 'POS (point of sale)', 'Cost Centers', 'Risk Panel and CFO Metrics'],
-    es: ['Todo de Esencial', 'IA Tributaria', 'PDV (punto de venta)', 'Centros de Costo', 'Panel de Riesgo y Métricas del CFO'],
+    pt: ['Tudo do Essencial', 'IA Tributária e Reforma Tributária com fonte oficial', 'PDV (ponto de venda) ligado ao estoque e ao financeiro', 'Centros de Custo e relatórios gerenciais', 'Painel de Risco e Métricas do CFO'],
+    en: ['Everything in Essential', 'Tax AI and Tax Reform with official sources', 'POS (point of sale) linked to inventory and finance', 'Cost Centers and management reports', 'Risk Panel and CFO Metrics'],
+    es: ['Todo de Esencial', 'IA Tributaria y Reforma Tributaria con fuente oficial', 'PDV (punto de venta) conectado al inventario y a las finanzas', 'Centros de Costo e informes de gestión', 'Panel de Riesgo y Métricas del CFO'],
   },
   enterprise: {
-    pt: ['Tudo do Empresa', 'Nexus e o José (inteligência de mercado)', 'Várias empresas na mesma conta', 'Suporte prioritário'],
-    en: ['Everything in Business', 'Nexus and José (market intelligence)', 'Several companies in one account', 'Priority support'],
-    es: ['Todo de Empresa', 'Nexus y José (inteligencia de mercado)', 'Varias empresas en la misma cuenta', 'Soporte prioritario'],
+    pt: ['Tudo do Empresa', 'Nexus e o José: economia, mercado e notícias cruzados com a sua empresa', 'Várias empresas na mesma conta', 'Suporte prioritário'],
+    en: ['Everything in Business', 'Nexus and José: economy, markets and news matched to your company', 'Several companies in one account', 'Priority support'],
+    es: ['Todo de Empresa', 'Nexus y José: economía, mercado y noticias cruzados con su empresa', 'Varias empresas en la misma cuenta', 'Soporte prioritario'],
   },
 }
 export const ORDEM_PLANOS: PlanoId[] = ['starter', 'pro', 'business', 'enterprise']
