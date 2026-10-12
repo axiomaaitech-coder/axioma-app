@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cinzel } from './(interno)/nexus/fonteJose'
+import { JosephAvatar } from '../components/JosephAvatar'
 import { PLANOS, PLANO_RECURSOS, PLANO_DESCRICAO, ORDEM_PLANOS, reais } from '../lib/planos'
 
 // ============================================================
@@ -103,6 +104,23 @@ const idiomas = {
         { nome: 'Equipe', desc: 'Pessoas com hierarquia e permissões' },
         { nome: 'Manual completo', desc: 'Cada tela explicada em 3 idiomas' },
       ] as { nome: string; desc: string; link?: string }[],
+    },
+    jose: {
+      titulo: 'Nexus e o José',
+      sub: 'O José é a inteligência econômica do Axioma. Todo dia ele lê a economia do Brasil e do mundo e explica o que isso muda para a sua empresa, com os seus números.',
+      brasilTitulo: 'No Brasil',
+      brasil: ['Câmbio, juros e inflação do Banco Central', 'Emprego e atividade do IBGE', 'Combustíveis nos postos (ANP)', 'Reforma Tributária pela página oficial do Senado'],
+      mundoTitulo: 'No mundo',
+      mundo: ['Petróleo Brent', 'Crescimento e inflação mundial', 'Matérias-primas que o Brasil exporta (FMI)', 'Comércio exterior'],
+      tecTitulo: 'A tecnologia por trás',
+      tec: [
+        { titulo: 'Radar automático', desc: 'Percebe mudanças relevantes e marca o que mexe com o seu ramo.' },
+        { titulo: 'E se...?', desc: 'Mude dólar, Selic, inflação ou vendas e veja o efeito no lucro e no caixa.' },
+        { titulo: 'Placar de acertos', desc: 'Cada previsão é conferida depois, no prazo. Acertos e erros ficam à mostra.' },
+        { titulo: 'Sem ficar parado', desc: 'Três motores de inteligência e fontes de reserva: se um falha, outro assume.' },
+      ],
+      nota: 'Só dados oficiais e os números da sua empresa. Leituras são interpretações, não recomendação de investimento. Incluído no plano Premium.',
+      btn: 'Conheça o Nexus e o José',
     },
     clowdbot: {
       badge: '🤖 INTELIGÊNCIA DO AXIOMA',
@@ -222,6 +240,23 @@ const idiomas = {
         { nome: 'Full manual', desc: 'Every screen explained in 3 languages' },
       ] as { nome: string; desc: string; link?: string }[],
     },
+    jose: {
+      titulo: 'Nexus and José',
+      sub: 'José is Axioma’s economic intelligence. Every day he reads the Brazilian and world economy and explains what it changes for your company, using your numbers.',
+      brasilTitulo: 'In Brazil',
+      brasil: ['Exchange rate, interest and inflation from the Central Bank', 'Employment and activity from IBGE', 'Fuel prices at the pump (ANP)', 'Tax Reform from the Senate’s official page'],
+      mundoTitulo: 'Worldwide',
+      mundo: ['Brent oil', 'World growth and inflation', 'Commodities Brazil exports (IMF)', 'Foreign trade'],
+      tecTitulo: 'The technology behind it',
+      tec: [
+        { titulo: 'Automatic radar', desc: 'Detects relevant changes and flags what affects your industry.' },
+        { titulo: 'What if...?', desc: 'Change the dollar, Selic, inflation or sales and see the effect on profit and cash.' },
+        { titulo: 'Track record', desc: 'Every forecast is checked later, on time. Hits and misses are shown openly.' },
+        { titulo: 'Never stops', desc: 'Three intelligence engines and backup sources: if one fails, another takes over.' },
+      ],
+      nota: 'Only official data and your company’s numbers. Readings are interpretations, not investment advice. Included in the Premium plan.',
+      btn: 'Meet Nexus and José',
+    },
     clowdbot: {
       badge: '🤖 AXIOMA INTELLIGENCE',
       titulo: 'Your financial manager never sleeps.',
@@ -339,6 +374,23 @@ const idiomas = {
         { nome: 'Equipo', desc: 'Personas con jerarquía y permisos' },
         { nome: 'Manual completo', desc: 'Cada pantalla explicada en 3 idiomas' },
       ] as { nome: string; desc: string; link?: string }[],
+    },
+    jose: {
+      titulo: 'Nexus y José',
+      sub: 'José es la inteligencia económica de Axioma. Cada día lee la economía de Brasil y del mundo y explica qué cambia para su empresa, con sus números.',
+      brasilTitulo: 'En Brasil',
+      brasil: ['Tipo de cambio, tasas e inflación del Banco Central', 'Empleo y actividad del IBGE', 'Combustibles en las estaciones (ANP)', 'Reforma Tributaria por la página oficial del Senado'],
+      mundoTitulo: 'En el mundo',
+      mundo: ['Petróleo Brent', 'Crecimiento e inflación mundial', 'Materias primas que Brasil exporta (FMI)', 'Comercio exterior'],
+      tecTitulo: 'La tecnología detrás',
+      tec: [
+        { titulo: 'Radar automático', desc: 'Detecta cambios relevantes y marca lo que afecta a su rubro.' },
+        { titulo: '¿Y si...?', desc: 'Cambie dólar, Selic, inflación o ventas y vea el efecto en la utilidad y la caja.' },
+        { titulo: 'Marcador de aciertos', desc: 'Cada previsión se verifica después, en plazo. Aciertos y errores quedan a la vista.' },
+        { titulo: 'Nunca se detiene', desc: 'Tres motores de inteligencia y fuentes de reserva: si uno falla, otro asume.' },
+      ],
+      nota: 'Solo datos oficiales y los números de su empresa. Las lecturas son interpretaciones, no recomendación de inversión. Incluido en el plan Premium.',
+      btn: 'Conozca Nexus y José',
     },
     clowdbot: {
       badge: '🤖 INTELIGENCIA DE AXIOMA',
@@ -522,6 +574,15 @@ export default function LandingPage() {
       )}
     </button>
   )
+
+  // Luz verde-menta dos cartões .ax-mod: leva a posição do cursor para --mx/--my do cartão
+  const seguirMouse = (e: React.PointerEvent) => {
+    const card = (e.target as HTMLElement).closest<HTMLElement>('.ax-mod')
+    if (!card) return
+    const r = card.getBoundingClientRect()
+    card.style.setProperty('--mx', `${e.clientX - r.left}px`)
+    card.style.setProperty('--my', `${e.clientY - r.top}px`)
+  }
 
   // Paleta de texto — mais forte e legível
   const cBody = '#cfe0fa'
@@ -777,19 +838,65 @@ export default function LandingPage() {
               <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" />
             </div>
           </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
+            onPointerMove={seguirMouse}>
             {t.modulos.lista.map((m, i) => (
-              <NeonBox key={i}>
-                <a href={m.link ?? '/cadastro'} className="block p-4 h-full">
-                  <p className="font-bold text-sm md:text-base mb-1" style={{ color: '#eaf2ff' }}>{m.nome}</p>
-                  <p className="text-xs md:text-sm font-medium" style={{ color: cMuted }}>{m.desc}</p>
-                </a>
-              </NeonBox>
+              <a key={i} href={m.link ?? '/cadastro'} className="ax-mod group relative block rounded-2xl p-6 md:p-7 min-h-[150px]">
+                <span className="ax-mod-faixa" aria-hidden="true" />
+                <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
+                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: cBody }}>{m.desc}</p>
+              </a>
             ))}
           </div>
           <div className="text-center mt-10">
             {btn(t.comecarGratis, () => router.push('/cadastro'))}
           </div>
+        </div>
+      </section>
+
+      {/* ============ SEÇÃO 9b — NEXUS E O JOSÉ (resumo da página /nexus-jose) ============ */}
+      <section className="relative py-20 md:py-32 overflow-hidden"
+        style={{ background: 'radial-gradient(ellipse at 20% 30%, rgba(46,204,155,0.08), transparent 55%), #020810' }}>
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-10 md:gap-14 items-center mb-12">
+            <Reveal className="mx-auto">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full" aria-hidden="true"
+                  style={{ background: 'radial-gradient(circle, rgba(46,204,155,0.28), transparent 70%)', transform: 'scale(1.35)' }} />
+                <div className="relative"><JosephAvatar tamanho={220} /></div>
+              </div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <h2 className="text-4xl md:text-6xl font-bold mb-5" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.titulo}</h2>
+              <p className="text-base md:text-xl leading-relaxed mb-8 max-w-2xl" style={{ color: cBody }}>{t.jose.sub}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {([[t.jose.brasilTitulo, t.jose.brasil], [t.jose.mundoTitulo, t.jose.mundo]] as const).map(([tit, itens]) => (
+                  <div key={tit}>
+                    <h3 className="text-lg font-bold mb-3" style={{ fontFamily: cinzel.style.fontFamily, color: '#2ecc9b' }}>{tit}</h3>
+                    <ul className="space-y-2">
+                      {itens.map(it => (
+                        <li key={it} className="flex gap-2 text-sm md:text-base" style={{ color: cBody }}>
+                          <span aria-hidden="true" style={{ color: '#2ecc9b' }}>✓</span><span>{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+          <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.tecTitulo}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8" onPointerMove={seguirMouse}>
+            {t.jose.tec.map(it => (
+              <div key={it.titulo} className="ax-mod relative rounded-2xl p-6">
+                <span className="ax-mod-faixa" aria-hidden="true" />
+                <p className="ax-mod-nome font-extrabold text-lg mb-2">{it.titulo}</p>
+                <p className="text-sm md:text-base leading-relaxed" style={{ color: cBody }}>{it.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm mb-6 max-w-3xl" style={{ color: cMuted }}>{t.jose.nota}</p>
+          {btn(t.jose.btn, () => router.push('/nexus-jose'))}
         </div>
       </section>
 
@@ -957,6 +1064,22 @@ export default function LandingPage() {
         .ax-plano:hover { transform: translateY(-4px); border-color: rgba(46,204,155,0.6) !important; box-shadow: 0 0 50px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(0,0,0,0.6); }
         .ax-plano:hover::before { opacity: 1; }
         @media (prefers-reduced-motion: reduce) { .ax-plano, .ax-plano:hover { transform: none; } }
+
+        /* Cartões de módulos: nome verde-menta, luz que segue o mouse e borda que acende onde o cursor está */
+        .ax-mod { background: linear-gradient(160deg, rgba(10,30,52,0.95), rgba(4,10,22,0.98)); border: 1px solid rgba(46,204,155,0.22); overflow: hidden; isolation: isolate;
+          transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), border-color 0.35s ease, box-shadow 0.35s ease; }
+        .ax-mod::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
+          background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(46,204,155,0.18), transparent 65%); }
+        .ax-mod::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
+          background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), #2ecc9b, transparent 70%);
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .ax-mod-faixa { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #0f7d5c, #2ecc9b, #0f7d5c); transform: scaleX(0); transform-origin: left; transition: transform 0.45s cubic-bezier(0.22,1,0.36,1); }
+        .ax-mod-nome { color: #2ecc9b; text-shadow: 0 0 18px rgba(46,204,155,0.25); transition: text-shadow 0.35s ease, letter-spacing 0.35s ease; }
+        .ax-mod:hover, .ax-mod:focus-visible { transform: translateY(-6px); border-color: rgba(46,204,155,0.55); box-shadow: 0 24px 50px -24px rgba(46,204,155,0.45), 0 0 0 1px rgba(46,204,155,0.08) inset; outline: none; }
+        .ax-mod:hover::after, .ax-mod:hover::before, .ax-mod:focus-visible::before { opacity: 1; }
+        .ax-mod:hover .ax-mod-faixa, .ax-mod:focus-visible .ax-mod-faixa { transform: scaleX(1); }
+        .ax-mod:hover .ax-mod-nome { text-shadow: 0 0 22px rgba(46,204,155,0.55); letter-spacing: 0.01em; }
+        @media (prefers-reduced-motion: reduce) { .ax-mod, .ax-mod:hover { transform: none; } }
 
         .ax-neon {
           color: #2ecc9b;
