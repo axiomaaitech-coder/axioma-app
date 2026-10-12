@@ -4,6 +4,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cinzel } from '../nexus/fonteJose'
 import { PLANOS, TESTE, INAUGURACAO, PLANO_RECURSOS, PLANO_DESCRICAO, reais } from '../../../lib/planos'
 
 const supabase = createBrowserClient(
@@ -195,14 +196,14 @@ export default function Planos() {
                     <div className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
                       <plano.Icon size={22} style={{ color: plano.cor }} />
                     </div>
-                    <h2 className="text-2xl font-black" style={{ color: plano.cor }}>{plano.nome[lang]}</h2>
+                    <h2 className={`${cinzel.className} text-2xl font-bold`} style={{ color: plano.cor }}>{plano.nome[lang]}</h2>
                   </div>
 
                   <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
 
                   <div className="mb-4">
                     <div className="flex flex-wrap items-end gap-x-1.5">
-                      <span className="text-3xl xl:text-4xl font-black whitespace-nowrap" style={{ color: TEXTO_PRINC }}>
+                      <span className={`${cinzel.className} text-3xl xl:text-4xl font-bold whitespace-nowrap`} style={{ color: TEXTO_PRINC }}>
                         {reais(periodo === 'anual' ? plano.anualPorMesCentavos : plano.mensalCentavos, lang)}
                       </span>
                       <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>

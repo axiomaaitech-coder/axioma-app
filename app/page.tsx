@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { cinzel } from './(interno)/nexus/fonteJose'
 import { PLANOS, PLANO_RECURSOS, PLANO_DESCRICAO, ORDEM_PLANOS, reais } from '../lib/planos'
 
 // ============================================================
@@ -1047,10 +1048,10 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="p-5 pt-7 flex flex-col h-full">
-                    <h3 className="ax-display text-2xl font-black mb-1 text-center" style={{ color: '#2ecc9b' }}>{p.nome[lang]}</h3>
+                    <h3 className="text-2xl font-bold mb-1 text-center" style={{ color: '#2ecc9b', fontFamily: cinzel.style.fontFamily }}>{p.nome[lang]}</h3>
                     <p className="text-xs text-center mb-3 font-medium" style={{ color: cMuted }}>{PLANO_DESCRICAO[id][lang]}</p>
                     <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="ax-display text-4xl font-black" style={{ color: '#ffffff' }}>{reais(p.mensalCentavos, lang)}</span>
+                      <span className="text-3xl xl:text-4xl font-bold whitespace-nowrap" style={{ color: '#ffffff', fontFamily: cinzel.style.fontFamily }}>{reais(p.mensalCentavos, lang)}</span>
                       <span className="text-sm mb-1" style={{ color: cMuted }}>{t.planos.mes}</span>
                     </div>
                     <p className="text-xs text-center mb-3 font-medium" style={{ color: '#9ab6e2' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
