@@ -34,8 +34,8 @@ export const reais = (centavos: number, lang: 'pt' | 'en' | 'es' = 'pt') =>
 // O que cada plano traz (só o que existe hoje no Axioma) — tela Planos e página inicial.
 export const PLANO_DESCRICAO: Record<PlanoId, T3> = {
   starter: { pt: 'Para MEI e autônomos', en: 'For MEI and freelancers', es: 'Para MEI y autónomos' },
-  pro: { pt: 'Para microempresas', en: 'For micro businesses', es: 'Para microempresas' },
-  business: { pt: 'Para pequenas empresas', en: 'For small businesses', es: 'Para pequeñas empresas' },
+  pro: { pt: 'Financeiro e contabilidade completos, com IA Financeira', en: 'Full finance and accounting, with Financial AI', es: 'Finanzas y contabilidad completas, con IA Financiera' },
+  business: { pt: 'Gestão completa com IA Tributária, PDV e Painel de Risco', en: 'Complete management with Tax AI, POS and Risk Panel', es: 'Gestión completa con IA Tributaria, PDV y Panel de Riesgo' },
   enterprise: { pt: 'Tudo do Axioma, com inteligência de mercado', en: 'All of Axioma, with market intelligence', es: 'Todo Axioma, con inteligencia de mercado' },
 }
 export const PLANO_RECURSOS: Record<PlanoId, Record<'pt' | 'en' | 'es', string[]>> = {
