@@ -105,7 +105,7 @@ const idiomas = {
         { icon: '📋', nome: 'Relatórios', desc: 'PDF com identidade Axioma' },
         { icon: '🏢', nome: 'Empresa', desc: 'Configurações completas' },
         { icon: '💳', nome: 'Planos', desc: 'Gestão de assinatura' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Conexão bancária automática (em breve)' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Conexão bancária via Pluggy' },
       ],
     },
     clowdbot: {
@@ -227,7 +227,7 @@ const idiomas = {
         { icon: '📋', nome: 'Reports', desc: 'PDF with Axioma identity' },
         { icon: '🏢', nome: 'Company', desc: 'Complete settings' },
         { icon: '💳', nome: 'Plans', desc: 'Subscription management' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Automatic bank connection (coming soon)' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Bank connection via Pluggy' },
       ],
     },
     clowdbot: {
@@ -349,7 +349,7 @@ const idiomas = {
         { icon: '📋', nome: 'Reportes', desc: 'PDF con identidad Axioma' },
         { icon: '🏢', nome: 'Empresa', desc: 'Configuraciones completas' },
         { icon: '💳', nome: 'Planes', desc: 'Gestión de suscripción' },
-        { icon: '🏦', nome: 'Open Finance', desc: 'Conexión bancaria automática (próximamente)' },
+        { icon: '🏦', nome: 'Open Finance', desc: 'Conexión bancaria vía Pluggy' },
       ],
     },
     clowdbot: {
