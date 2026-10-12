@@ -809,7 +809,10 @@ export default function LandingPage() {
                 {t.clowdbot.titulo}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.clowdbot.sub}</p>
-              {btn(t.comecar, () => router.push('/cadastro'))}
+              <div className="flex flex-wrap gap-3">
+                {btn(lang === 'en' ? 'Meet Nexus and José' : lang === 'es' ? 'Conozca Nexus y José' : 'Conheça o Nexus e o José', () => router.push('/nexus-jose'))}
+                {btn(t.comecar, () => router.push('/cadastro'), false)}
+              </div>
             </Reveal>
           </div>
         </div>

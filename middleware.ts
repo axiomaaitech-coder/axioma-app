@@ -82,6 +82,7 @@ export async function middleware(request: NextRequest) {
     '/auth/callback',
     '/privacidade',
     '/termos',
+    '/nexus-jose',
   ]
 
   const isRotaPublica = rotasPublicas.some(rota => pathname === rota)
@@ -109,7 +110,7 @@ export async function middleware(request: NextRequest) {
 
   // ✅ Usuário logado em rota pública — mas deixa passar recuperar/atualizar senha
   if (user && isRotaPublica) {
-    if (pathname === '/recuperar-senha' || pathname === '/atualizar-senha' || pathname === '/termos' || pathname === '/privacidade') {
+    if (pathname === '/recuperar-senha' || pathname === '/atualizar-senha' || pathname === '/termos' || pathname === '/privacidade' || pathname === '/nexus-jose') {
       return addSecurityHeaders(supabaseResponse)
     }
     const response = NextResponse.redirect(new URL('/dashboard', request.url))
