@@ -42,7 +42,7 @@ const doc: DocumentoAxioma = {
       '**Proprietário:** o Usuário titular da empresa no Axioma, responsável pela assinatura e pela gestão da Equipe.',
       '**Equipe:** os Usuários vinculados a uma empresa por convite (por exemplo: CEO, sócio, administrador, contador, funcionário, consultor, operador de caixa).',
       '**Dados do Cliente:** todas as informações que o Cliente ou sua Equipe lançam, importam ou conectam ao Axioma (receitas, custos, contas, notas fiscais, extratos, cadastros de clientes e fornecedores, entre outros).',
-      '**Assinatura ou Plano:** a modalidade contratada (Starter, Pro, Business ou Enterprise), com seus limites e preço.',
+      '**Assinatura ou Plano:** a modalidade contratada (MEI, Essencial, Empresa ou Premium), com seus limites e preço.',
       '**Open Finance:** o sistema regulado pelo Banco Central do Brasil que permite, com o consentimento do titular, compartilhar dados e iniciar pagamentos entre instituições.',
       '**LGPD:** a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).',
     ] },
@@ -93,7 +93,7 @@ const doc: DocumentoAxioma = {
     { h1: '8. Planos, assinatura e pagamento' },
     { h2: '8.1 Planos e limites' },
     { p: 'O Axioma é oferecido em planos com preços e limites diferentes, exibidos na tela Planos no momento da contratação. A Assinatura pertence à empresa. Os limites de pessoas vigentes são:' },
-    { tabela: { colunas: ['Plano', 'Pessoas na equipe (contando o Proprietário)'], larguras: [3000, 6026], linhas: [['Starter', '1'], ['Pro', '2'], ['Business', '5'], ['Enterprise', '10']] } },
+    { tabela: { colunas: ['Plano', 'Pessoas na equipe (contando o Proprietário)'], larguras: [3000, 6026], linhas: [['MEI', '1'], ['Essencial', '2'], ['Empresa', '5'], ['Premium', '10']] } },
     { lista: [
       'Não ocupam vaga: o operador de caixa (PDV) e o contador ou consultor externo.',
       'Cada Plano dá direito a **3 convites temporários de até 7 dias** (por exemplo, para analistas convidados). Esses convites não ocupam vaga, mas, uma vez usados, só são renovados quando a empresa muda para um Plano superior.',
@@ -104,6 +104,9 @@ const doc: DocumentoAxioma = {
     { lista: [
       'Os pagamentos são processados pela Stripe, empresa especializada em pagamentos. O Axioma não armazena os dados completos do cartão.',
       'A Assinatura é cobrada de forma recorrente (mensal, salvo outra modalidade escolhida) e renovada automaticamente até ser cancelada.',
+      'A primeira Assinatura começa com **7 dias de teste grátis**, com cartão cadastrado no início; a primeira cobrança ocorre ao fim do teste, salvo cancelamento antes dele. Durante o teste, a inteligência artificial fica disponível apenas nos **3 primeiros dias**, com limite de uso. Quem já assinou antes não tem novo período de teste.',
+      'Cada Plano inclui um **saldo mensal de uso de inteligência artificial**, da empresa, renovado a cada ciclo de cobrança e sem acúmulo para o mês seguinte. Esgotado o saldo, o Cliente pode contratar **recargas** avulsas, pagas no cartão, que não vencem enquanto a Assinatura estiver ativa e não são reembolsáveis depois de usadas. Os limites e preços vigentes ficam na tela Planos e no manual 40.',
+      'Descontos promocionais (como o de inauguração) valem pelo prazo e pelas vagas anunciados e se aplicam apenas à Assinatura, não às recargas.',
       'Se um pagamento não for confirmado, o acesso pode ser suspenso até a regularização. Os Dados do Cliente são preservados durante a suspensão, nos prazos da cláusula 16.',
       'Os preços podem ser reajustados, com aviso de pelo menos 30 dias antes da próxima cobrança. Se não concordar, o Cliente pode cancelar antes do reajuste.',
       'Tributos incidentes sobre o serviço seguem a legislação aplicável.',

@@ -5,35 +5,51 @@ const pt: DocumentoAxioma = {
   arquivo: '40 - Configurações - Planos.docx',
   titulo: 'Manual 40 — Planos e Assinatura',
   subtitulo: 'Escolha, assine e gerencie o plano da empresa',
-  info: ['Menu: Config → Planos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Config → Planos  •  Manual de uso do Axioma AI.Tech  •  Versão 3.0 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
-    { p: 'Mostra os planos do Axioma e permite assinar. O plano define os recursos disponíveis e quantas pessoas podem usar a empresa.' },
+    { p: 'Mostra os planos do Axioma e permite assinar. O plano define os recursos, quantas pessoas podem usar a empresa e quanto de IA a empresa tem por mês.' },
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **⚙️ Config ▼** → **Planos**.'] },
 
-    { h1: 'Os planos' },
-    { tabela: { colunas: ['Plano', 'Para quem e o que inclui'], larguras: [2400, 6626], linhas: [
-      ['Starter (1 pessoa)', 'Para MEI e autônomos: mais de 40 módulos financeiros e contábeis, módulo MEI completo (DAS, DASN, abrir empresa), Dashboard, DRE e Fluxo de Caixa, português/inglês/espanhol, exportar PDF, Excel e CSV.'],
-      ['Pro (2 pessoas)', 'Tudo do Starter + IA Financeira, relatórios avançados, Painel de Risco e Métricas do CFO, Conferência diária entre módulos.'],
-      ['Business (5 pessoas) ⭐ Mais Popular', 'Tudo do Pro + IA Tributária, IA MEI Advisor, Centros de Custo e suporte prioritário.'],
-      ['Enterprise (10 pessoas)', 'Tudo do Business + Nexus e o José (inteligência de mercado), várias empresas na mesma conta e suporte prioritário.'],
+    { h1: 'Os planos (do mais simples ao mais completo)' },
+    { tabela: { colunas: ['Plano', 'Mensal', 'Pessoas', 'O que inclui'], larguras: [1500, 1300, 1000, 5226], linhas: [
+      ['MEI', 'R$ 59,90', '1', 'Módulo MEI completo (DAS, DASN, abrir empresa), receitas, custos, Fluxo de Caixa e DRE, IA MEI Advisor, 3 idiomas, exportar PDF/Excel/CSV.'],
+      ['Essencial', 'R$ 149,90', '2', 'Tudo do MEI + Contabilidade, contas a pagar e a receber, estoque, Relatórios, IA Financeira e Conferência diária entre módulos.'],
+      ['Empresa (mais escolhido)', 'R$ 297,90', '5', 'Tudo do Essencial + IA Tributária, PDV, Centros de Custo, Painel de Risco e Métricas do CFO.'],
+      ['Premium', 'R$ 597,90', '10', 'Tudo do Empresa + Nexus e o José (inteligência de mercado), várias empresas na mesma conta e suporte prioritário.'],
     ] } },
-    { nota: 'Os recursos e preços de cada plano podem ser atualizados. Os valores válidos são sempre os mostrados na tela no momento da assinatura.' },
+    { p: 'No topo da tela, a chave **Mensal / Anual** troca os preços. O **anual** dá **2 meses grátis**: MEI R$ 49,90/mês, Essencial R$ 124,90/mês, Empresa R$ 247,90/mês e Premium R$ 497,90/mês, cobrados uma vez por ano.' },
+    { p: '**Inauguração:** **30% de desconto nos 3 primeiros meses**, só para as **100 primeiras empresas**. O desconto entra sozinho no pagamento; quando as 100 vagas acabam, o preço volta ao normal. Recarga de IA não tem desconto.' },
+
+    { h1: 'IA incluída por mês' },
+    { tabela: { colunas: ['Plano', 'IA comum (OpenAI)', 'IA avançada (Anthropic)', 'Notas lidas pela IA'], larguras: [2000, 2300, 2400, 2326], linhas: [
+      ['Teste grátis (só 3 primeiros dias)', '20', '5', '5'],
+      ['MEI', '150', '20', '20'],
+      ['Essencial', '500', '60', '60'],
+      ['Empresa', '1.000', '120', '120'],
+      ['Premium', '2.000', '300', '250'],
+    ] } },
+    { lista: [
+      '**IA avançada** = IA Financeira, IA Tributária, José (Nexus) e relatórios complexos. **IA comum** = as demais perguntas à IA. **Notas** = nota fiscal ou guia do DAS lida pela IA a partir de PDF ou foto.',
+      'O saldo é da **empresa** (a equipe toda usa o mesmo) e **volta cheio todo mês**, no dia da cobrança.',
+      'Acabou antes do fim do mês? Compre uma **recarga** com o cartão em **Config → Uso da IA** (manual 41): +100 IA comum por R$ 29,90, +20 IA avançada por R$ 19,90 ou +20 notas por R$ 14,90. A recarga não vence enquanto a assinatura estiver ativa.',
+      'Se a IA não responder ou não conseguir ler o documento, a pergunta **não é descontada**.',
+    ] },
 
     { h1: 'Como assinar' },
     { numerada: [
-      'Abra **Planos** e compare os cards.',
+      'Abra **Planos**, escolha **Mensal** ou **Anual** e compare os cards.',
       'Clique em **Começar agora** no plano desejado.',
       'Você vai para a página de pagamento segura do **Stripe**, parceiro de pagamentos usado por empresas do mundo todo. O Axioma não vê nem guarda os dados do seu cartão.',
       'Ao concluir, o acesso é liberado automaticamente.',
     ] },
-    { p: 'Todo plano começa com **14 dias grátis** — o cartão é pedido no início, e a primeira cobrança só acontece depois do período grátis. **Cancele quando quiser, sem fidelidade.**' },
+    { p: 'A primeira assinatura começa com **7 dias grátis** — o cartão é pedido no início e a primeira cobrança só acontece no 8º dia. A **IA funciona só nos 3 primeiros dias** do teste, com o saldo do teste; depois o Axioma segue liberado até o fim do teste, sem IA (ou com recarga). Cancele antes do fim do teste e não paga nada. **Sem fidelidade.** Quem já assinou antes não ganha um novo teste.' },
 
     { h1: 'Assinatura da empresa' },
     { p: 'A assinatura pertence à **empresa**: se a propriedade for transferida, o plano vai junto. Na **transferência da empresa** (venda, doação, herança), o que o antigo dono já pagou vale até o fim do período e a renovação no cartão dele é cancelada sozinha; o novo dono assina o próprio plano aqui (manual 38). Detalhes de quem conta como vaga estão no manual 39 (Equipe).' },
-    { nota: 'Se o pagamento não abrir, a tela mostra uma mensagem de erro — tente de novo. Se você não estiver conectado, ela pede o login antes.' },
+    { nota: 'Se o pagamento não abrir, a tela mostra uma mensagem de erro — tente de novo. Se você não estiver conectado, ela pede o login antes. Os valores válidos são sempre os mostrados na tela no momento da assinatura.' },
   ],
 }
 
@@ -41,71 +57,103 @@ const en: DocumentoAxioma = {
   arquivo: '40 - Settings - Plans.docx',
   titulo: 'Manual 40 — Plans and Subscription',
   subtitulo: 'Choose, subscribe and manage the company plan',
-  info: ['Menu: Settings → Plans  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Settings → Plans  •  Axioma AI.Tech user manual  •  Version 3.0 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
-    { p: 'Shows Axioma’s plans and lets you subscribe. The plan defines the available features and how many people can use the company.' },
+    { p: 'Shows Axioma’s plans and lets you subscribe. The plan defines the features, how many people can use the company and how much AI the company has per month.' },
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **⚙️ Settings ▼** → **Plans**.'] },
 
-    { h1: 'The plans' },
-    { tabela: { colunas: ['Plan', 'Who it is for and what it includes'], larguras: [2400, 6626], linhas: [
-      ['Starter (1 person)', 'For MEI and freelancers: 40+ financial and accounting modules, full MEI module (DAS, DASN, open a company), Dashboard, P&L and Cash Flow, Portuguese/English/Spanish, export PDF, Excel and CSV.'],
-      ['Pro (2 people)', 'Everything in Starter + Financial AI, advanced reports, Risk Panel and CFO Metrics, daily cross-module check.'],
-      ['Business (5 people) ⭐ Most Popular', 'Everything in Pro + Tax AI, MEI AI Advisor, Cost Centers and priority support.'],
-      ['Enterprise (10 people)', 'Everything in Business + Nexus and José (market intelligence), several companies in one account and priority support.'],
+    { h1: 'The plans (from simplest to most complete)' },
+    { tabela: { colunas: ['Plan', 'Monthly', 'People', 'What it includes'], larguras: [1500, 1300, 1000, 5226], linhas: [
+      ['MEI', 'R$ 59.90', '1', 'Full MEI module (DAS, DASN, open a company), revenue, costs, Cash Flow and P&L, MEI AI Advisor, 3 languages, export PDF/Excel/CSV.'],
+      ['Essential', 'R$ 149.90', '2', 'Everything in MEI + Accounting, payables and receivables, inventory, Reports, Financial AI and daily cross-module check.'],
+      ['Business (most chosen)', 'R$ 297.90', '5', 'Everything in Essential + Tax AI, POS, Cost Centers, Risk Panel and CFO Metrics.'],
+      ['Premium', 'R$ 597.90', '10', 'Everything in Business + Nexus and José (market intelligence), several companies in one account and priority support.'],
     ] } },
-    { nota: 'Each plan’s features and prices may be updated. The valid values are always the ones shown on screen at the time of subscribing.' },
+    { p: 'At the top of the screen, the **Monthly / Yearly** switch changes the prices. **Yearly** gives **2 months free**: MEI R$ 49.90/mo, Essential R$ 124.90/mo, Business R$ 247.90/mo and Premium R$ 497.90/mo, billed once a year.' },
+    { p: '**Launch offer:** **30% off for the first 3 months**, only for the **first 100 companies**. The discount is applied automatically at payment; when the 100 spots run out, the price goes back to normal. AI top-ups have no discount.' },
+
+    { h1: 'AI included per month' },
+    { tabela: { colunas: ['Plan', 'Standard AI (OpenAI)', 'Advanced AI (Anthropic)', 'Invoices read by AI'], larguras: [2000, 2300, 2400, 2326], linhas: [
+      ['Free trial (first 3 days only)', '20', '5', '5'],
+      ['MEI', '150', '20', '20'],
+      ['Essential', '500', '60', '60'],
+      ['Business', '1,000', '120', '120'],
+      ['Premium', '2,000', '300', '250'],
+    ] } },
+    { lista: [
+      '**Advanced AI** = Financial AI, Tax AI, José (Nexus) and complex reports. **Standard AI** = all other AI questions. **Invoices** = an invoice or DAS slip read by AI from a PDF or photo.',
+      'The balance belongs to the **company** (the whole team shares it) and **refills every month** on the billing day.',
+      'Ran out before the end of the month? Buy a **top-up** with your card in **Settings → AI usage** (manual 41): +100 standard AI for R$ 29.90, +20 advanced AI for R$ 19.90 or +20 invoices for R$ 14.90. Top-ups do not expire while the subscription is active.',
+      'If the AI does not answer or cannot read the document, the question is **not deducted**.',
+    ] },
 
     { h1: 'How to subscribe' },
     { numerada: [
-      'Open **Plans** and compare the cards.',
+      'Open **Plans**, choose **Monthly** or **Yearly** and compare the cards.',
       'Click **Start now** on the plan you want.',
-      'You go to **Stripe**’s secure payment page, a payment partner used by companies worldwide. Axioma neither sees nor stores your card data.',
-      'When you finish, access is released automatically.',
+      'You go to the secure **Stripe** payment page, the payments partner used by companies worldwide. Axioma never sees or stores your card details.',
+      'When done, access is unlocked automatically.',
     ] },
-    { p: 'Every plan starts with a **14-day free trial** — the card is requested at the start, and the first charge only happens after the free period. **Cancel anytime, no lock-in.**' },
+    { p: 'The first subscription starts with **7 days free** — the card is requested at the start and the first charge only happens on day 8. **AI works only in the first 3 days** of the trial, with the trial balance; after that Axioma stays open until the trial ends, without AI (or with a top-up). Cancel before the trial ends and pay nothing. **No commitment.** Anyone who has subscribed before does not get a new trial.' },
 
     { h1: 'Company subscription' },
-    { p: 'The subscription belongs to the **company**: if ownership is transferred, the plan goes with it. In a **company transfer** (sale, donation, inheritance), what the former owner already paid is valid until the end of the period and renewal on their card is canceled automatically; the new owner subscribes to their own plan here (manual 38). Details on who takes a seat are in manual 39 (Team).' },
-    { nota: 'If the payment page does not open, the screen shows an error message — try again. If you are not signed in, it asks you to log in first.' },
+    { p: 'The subscription belongs to the **company**: if ownership is transferred, the plan goes with it. In a **company transfer** (sale, donation, inheritance), what the former owner already paid is valid until the end of the period and the renewal on their card is cancelled automatically; the new owner subscribes to their own plan here (manual 38). Who counts as a seat is explained in manual 39 (Team).' },
+    { nota: 'If the payment does not open, the screen shows an error message — try again. If you are not signed in, it asks you to log in first. The valid prices are always the ones shown on screen at the time of subscribing.' },
   ],
 }
 
 const es: DocumentoAxioma = {
   arquivo: '40 - Configuración - Planes.docx',
   titulo: 'Manual 40 — Planes y Suscripción',
-  subtitulo: 'Elija, suscriba y gestione el plan de la empresa',
-  info: ['Menú: Config → Planes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  subtitulo: 'Elija, suscríbase y gestione el plan de la empresa',
+  info: ['Menú: Config → Planes  •  Manual de uso de Axioma AI.Tech  •  Versión 3.0 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
-    { p: 'Muestra los planes de Axioma y permite suscribirse. El plan define los recursos disponibles y cuántas personas pueden usar la empresa.' },
+    { p: 'Muestra los planes de Axioma y permite suscribirse. El plan define los recursos, cuántas personas pueden usar la empresa y cuánta IA tiene la empresa por mes.' },
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **⚙️ Config ▼** → **Planes**.'] },
 
-    { h1: 'Los planes' },
-    { tabela: { colunas: ['Plan', 'Para quién y qué incluye'], larguras: [2400, 6626], linhas: [
-      ['Starter (1 persona)', 'Para MEI y autónomos: más de 40 módulos financieros y contables, módulo MEI completo (DAS, DASN, abrir empresa), Panel, Estado de Resultados y Flujo de Caja, portugués/inglés/español, exportar PDF, Excel y CSV.'],
-      ['Pro (2 personas)', 'Todo de Starter + IA Financiera, informes avanzados, Panel de Riesgo y Métricas del CFO, conciliación diaria entre módulos.'],
-      ['Business (5 personas) ⭐ Más Popular', 'Todo de Pro + IA Tributaria, IA MEI Advisor, Centros de Costo y soporte prioritario.'],
-      ['Enterprise (10 personas)', 'Todo de Business + Nexus y José (inteligencia de mercado), varias empresas en la misma cuenta y soporte prioritario.'],
+    { h1: 'Los planes (del más simple al más completo)' },
+    { tabela: { colunas: ['Plan', 'Mensual', 'Personas', 'Qué incluye'], larguras: [1500, 1300, 1000, 5226], linhas: [
+      ['MEI', 'R$ 59,90', '1', 'Módulo MEI completo (DAS, DASN, abrir empresa), ingresos, costos, Flujo de Caja y Estado de Resultados, IA MEI Advisor, 3 idiomas, exportar PDF/Excel/CSV.'],
+      ['Esencial', 'R$ 149,90', '2', 'Todo de MEI + Contabilidad, cuentas por pagar y cobrar, inventario, Informes, IA Financiera y conciliación diaria entre módulos.'],
+      ['Empresa (más elegido)', 'R$ 297,90', '5', 'Todo de Esencial + IA Tributaria, PDV, Centros de Costo, Panel de Riesgo y Métricas del CFO.'],
+      ['Premium', 'R$ 597,90', '10', 'Todo de Empresa + Nexus y José (inteligencia de mercado), varias empresas en la misma cuenta y soporte prioritario.'],
     ] } },
-    { nota: 'Los recursos y precios de cada plan pueden actualizarse. Los valores válidos son siempre los mostrados en pantalla al momento de suscribirse.' },
+    { p: 'Arriba de la pantalla, el selector **Mensual / Anual** cambia los precios. El **anual** da **2 meses gratis**: MEI R$ 49,90/mes, Esencial R$ 124,90/mes, Empresa R$ 247,90/mes y Premium R$ 497,90/mes, cobrados una vez al año.' },
+    { p: '**Inauguración:** **30% de descuento los primeros 3 meses**, solo para las **100 primeras empresas**. El descuento se aplica solo en el pago; cuando se acaban los 100 cupos, el precio vuelve a lo normal. La recarga de IA no tiene descuento.' },
+
+    { h1: 'IA incluida por mes' },
+    { tabela: { colunas: ['Plan', 'IA común (OpenAI)', 'IA avanzada (Anthropic)', 'Facturas leídas por IA'], larguras: [2000, 2300, 2400, 2326], linhas: [
+      ['Prueba gratis (solo 3 primeros días)', '20', '5', '5'],
+      ['MEI', '150', '20', '20'],
+      ['Esencial', '500', '60', '60'],
+      ['Empresa', '1.000', '120', '120'],
+      ['Premium', '2.000', '300', '250'],
+    ] } },
+    { lista: [
+      '**IA avanzada** = IA Financiera, IA Tributaria, José (Nexus) e informes complejos. **IA común** = las demás preguntas a la IA. **Facturas** = factura o guía del DAS leída por IA desde PDF o foto.',
+      'El saldo es de la **empresa** (todo el equipo usa el mismo) y **vuelve completo cada mes**, el día del cobro.',
+      '¿Se acabó antes de fin de mes? Compre una **recarga** con tarjeta en **Config → Uso de la IA** (manual 41): +100 IA común por R$ 29,90, +20 IA avanzada por R$ 19,90 o +20 facturas por R$ 14,90. La recarga no vence mientras la suscripción esté activa.',
+      'Si la IA no responde o no logra leer el documento, la pregunta **no se descuenta**.',
+    ] },
 
     { h1: 'Cómo suscribirse' },
     { numerada: [
-      'Abra **Planes** y compare las tarjetas.',
+      'Abra **Planes**, elija **Mensual** o **Anual** y compare las tarjetas.',
       'Haga clic en **Empezar ahora** en el plan deseado.',
       'Irá a la página de pago segura de **Stripe**, socio de pagos usado por empresas de todo el mundo. Axioma no ve ni guarda los datos de su tarjeta.',
       'Al concluir, el acceso se libera automáticamente.',
     ] },
-    { p: 'Todo plan empieza con **14 días gratis** — la tarjeta se pide al inicio y el primer cobro solo ocurre después del período gratis. **Cancele cuando quiera, sin permanencia.**' },
+    { p: 'La primera suscripción empieza con **7 días gratis** — la tarjeta se pide al inicio y el primer cobro solo ocurre el día 8. La **IA funciona solo los 3 primeros días** de la prueba, con el saldo de la prueba; después Axioma sigue abierto hasta el fin de la prueba, sin IA (o con recarga). Cancele antes del fin de la prueba y no paga nada. **Sin permanencia.** Quien ya se suscribió antes no recibe una nueva prueba.' },
 
     { h1: 'Suscripción de la empresa' },
-    { p: 'La suscripción pertenece a la **empresa**: si la propiedad se transfiere, el plan va con ella. En la **transferencia de la empresa** (venta, donación, herencia), lo que el antiguo dueño ya pagó vale hasta el fin del período y la renovación en su tarjeta se cancela sola; el nuevo dueño suscribe su propio plan aquí (manual 38). Los detalles de quién ocupa cupo están en el manual 39 (Equipo).' },
-    { nota: 'Si la página de pago no abre, la pantalla muestra un mensaje de error — intente de nuevo. Si no ha iniciado sesión, pide el inicio de sesión antes.' },
+    { p: 'La suscripción pertenece a la **empresa**: si se transfiere la propiedad, el plan va junto. En la **transferencia de la empresa** (venta, donación, herencia), lo que el antiguo dueño ya pagó vale hasta el fin del período y la renovación en su tarjeta se cancela sola; el nuevo dueño suscribe su propio plan aquí (manual 38). Quién cuenta como cupo está en el manual 39 (Equipo).' },
+    { nota: 'Si el pago no se abre, la pantalla muestra un mensaje de error — intente de nuevo. Si no ha iniciado sesión, primero pide el login. Los valores válidos son siempre los mostrados en pantalla al momento de suscribirse.' },
   ],
 }
 

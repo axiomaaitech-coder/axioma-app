@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
+import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
@@ -67,12 +68,17 @@ export async function POST(request: NextRequest) {
   // RLS: só acha a empresa quem tem acesso a ela.
   const { data: emp } = await supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle()
   if (!emp) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
+  // Saldo de IA da empresa: cada documento lido pela IA gasta 1 "nota" (devolve se a IA não ler).
+  const lang = form?.get('lang') === 'en' ? 'en' : form?.get('lang') === 'es' ? 'es' : 'pt'
+  const saldo = await consumirIA(supabase, empresaId, 'nota')
+  if (!saldo.ok) return NextResponse.json({ error: 'sem_saldo_ia', motivo: saldo.motivo, mensagem: mensagemSemSaldo(saldo.motivo, lang) }, { status: 402 })
 
   try {
     const uso = usoZerado()
     const base64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64')
     const diag: { motivo?: string } = {}
     const r = await lerDocumentoComVisao({ base64, mediaType }, INSTRUCAO, ESQUEMA, uso, diag)
+    if (!r) await devolverIA(supabase, saldo.id) // IA não leu: não cobra do saldo
     if (!r) Sentry.captureMessage(`[importar/ler-nota] IA não leu a nota: ${diag.motivo ?? '?'}`, { level: 'error', extra: { rota: 'importar/ler-nota', mediaType, tamanho: arquivo.size } })
     // Auditoria no mesmo formato do motor (aparece no painel Uso da IA) — nunca o conteúdo.
     after(() => registrarAuditoria({
@@ -83,6 +89,7 @@ export async function POST(request: NextRequest) {
     }))
     return NextResponse.json({ nota: r?.dados ?? null, ...(r ? {} : { motivo: diag.motivo ?? null }) })
   } catch (err) {
+    await devolverIA(supabase, saldo.id)
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[importar/ler-nota]', msg)
     Sentry.captureException(err instanceof Error ? err : new Error(msg), { extra: { rota: 'importar/ler-nota' } })

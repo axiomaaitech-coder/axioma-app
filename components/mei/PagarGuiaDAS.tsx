@@ -58,8 +58,9 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
 
   async function enviarArquivo(f: File) {
     setLendo(true)
-    const r = await lerGuiaComIA(f, empresaId)
+    const r = await lerGuiaComIA(f, empresaId, lang)
     setLendo(false)
+    if (r.aviso) { showToast(r.aviso); return }
     if (!r.guia) { showToast(L('Não consegui ler a guia. Tente uma foto mais nítida ou o PDF original.', 'Could not read the slip. Try a sharper photo or the original PDF.', 'No pude leer la guía. Intente una foto más nítida o el PDF original.')); return }
     setGuia({ ...r.guia, competencias: r.guia.competencias.length ? r.guia.competencias : competenciaInicial ? [competenciaInicial] : [] })
   }

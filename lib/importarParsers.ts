@@ -1391,8 +1391,10 @@ async function lerNotaComIA(file: File, formato: "pdf" | "imagem", empresaCnpj: 
   const form = new FormData();
   form.append("arquivo", corpo, file.name);
   form.append("empresa_id", empresaId ?? "");
+  form.append("lang", lang);
   try {
     const r = await fetch("/api/importar/ler-nota", { method: "POST", body: form });
+    if (r.status === 402) { const j = await r.json().catch(() => null); return vazio(j?.mensagem || MSG_LEITURA_IA.falhou[lang]); } // saldo de IA acabou
     if (!r.ok) return vazio(MSG_LEITURA_IA.falhou[lang]);
     const { nota, motivo } = (await r.json()) as { nota: NotaLidaIA | null; motivo?: string | null };
     // Falha do serviço de IA (sem crédito, fora do ar, sem chave) não é culpa do arquivo.

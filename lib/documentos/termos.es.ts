@@ -43,7 +43,7 @@ const doc: DocumentoAxioma = {
       '**Propietario:** el Usuario titular de la empresa en Axioma, responsable de la suscripción y de la gestión del Equipo.',
       '**Equipo:** los Usuarios vinculados a una empresa por invitación (por ejemplo: CEO, socio, administrador, contador, empleado, consultor, cajero).',
       '**Datos del Cliente:** toda la información que el Cliente o su Equipo registran, importan o conectan a Axioma (ingresos, costos, cuentas, facturas, extractos, registros de clientes y proveedores, entre otros).',
-      '**Suscripción o Plan:** la modalidad contratada (Starter, Pro, Business o Enterprise), con sus límites y precio.',
+      '**Suscripción o Plan:** la modalidad contratada (MEI, Esencial, Empresa o Premium), con sus límites y precio.',
       '**Open Finance:** el sistema regulado por el Banco Central de Brasil que permite, con el consentimiento del titular, compartir datos e iniciar pagos entre instituciones.',
       '**LGPD:** la Ley General de Protección de Datos Personales de Brasil (Ley nº 13.709/2018).',
     ] },
@@ -94,7 +94,7 @@ const doc: DocumentoAxioma = {
     { h1: '8. Planes, suscripción y pago' },
     { h2: '8.1 Planes y límites' },
     { p: 'Axioma se ofrece en planes con precios y límites diferentes, mostrados en la pantalla Planes al momento de la contratación. La Suscripción pertenece a la empresa. Los límites de personas vigentes son:' },
-    { tabela: { colunas: ['Plan', 'Personas en el equipo (incluido el Propietario)'], larguras: [3000, 6026], linhas: [['Starter', '1'], ['Pro', '2'], ['Business', '5'], ['Enterprise', '10']] } },
+    { tabela: { colunas: ['Plan', 'Personas en el equipo (incluido el Propietario)'], larguras: [3000, 6026], linhas: [['MEI', '1'], ['Esencial', '2'], ['Empresa', '5'], ['Premium', '10']] } },
     { lista: [
       'No ocupan plaza: el cajero (PDV) y el contador o consultor externo.',
       'Cada Plan da derecho a **3 invitaciones temporales de hasta 7 días** (por ejemplo, para analistas invitados). Estas invitaciones no ocupan plaza, pero, una vez usadas, solo se renuevan cuando la empresa pasa a un Plan superior.',
@@ -105,6 +105,9 @@ const doc: DocumentoAxioma = {
     { lista: [
       'Los pagos son procesados por Stripe, empresa especializada en pagos. Axioma no almacena los datos completos de la tarjeta.',
       'La Suscripción se cobra de forma recurrente (mensual, salvo otra modalidad elegida) y se renueva automáticamente hasta su cancelación.',
+      'La primera Suscripción empieza con **7 días de prueba gratis**, con tarjeta registrada al inicio; el primer cobro ocurre al final de la prueba, salvo cancelación antes. Durante la prueba, la inteligencia artificial está disponible solo los **3 primeros días**, con límite de uso. Quien ya se suscribió antes no tiene nuevo período de prueba.',
+      'Cada Plan incluye un **saldo mensual de uso de inteligencia artificial**, de la empresa, renovado en cada ciclo de cobro y sin acumulación para el mes siguiente. Agotado el saldo, el Cliente puede contratar **recargas** sueltas, pagadas con tarjeta, que no vencen mientras la Suscripción esté activa y no son reembolsables una vez usadas. Los límites y precios vigentes están en la pantalla Planes y en el manual 40.',
+      'Los descuentos promocionales (como el de inauguración) valen por el plazo y los cupos anunciados y se aplican solo a la Suscripción, no a las recargas.',
       'Si un pago no se confirma, el acceso puede suspenderse hasta su regularización. Los Datos del Cliente se preservan durante la suspensión, en los plazos de la cláusula 16.',
       'Los precios pueden reajustarse, con aviso de al menos 30 días antes del próximo cobro. Si no está de acuerdo, el Cliente puede cancelar antes del reajuste.',
       'Los tributos que inciden sobre el servicio siguen la legislación aplicable.',

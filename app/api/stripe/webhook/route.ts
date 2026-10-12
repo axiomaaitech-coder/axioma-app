@@ -55,9 +55,25 @@ export async function POST(request: NextRequest) {
       // ✅ 1. Checkout concluído — ativa o plano pela primeira vez
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        // Recarga de IA paga: credita o saldo da empresa (o mesmo pagamento nunca credita 2 vezes).
+        if (session.metadata?.recarga === '1') {
+          if (session.payment_status !== 'paid') break
+          const { error } = await supabase.rpc('ia_creditar_recarga', {
+            p_session: session.id, p_empresa: session.metadata.empresa_id, p_tipo: session.metadata.tipo,
+            p_qtd: Number(session.metadata.quantidade), p_valor: session.amount_total ?? 0,
+          })
+          if (error) logFalhaWebhook('ia_recarga', 'creditar (checkout.session.completed)', error.message, { sessionId: session.id, empresaId: session.metadata.empresa_id })
+          break
+        }
         const userId = session.metadata?.userId
         const plano = session.metadata?.plano
         if (userId && plano) {
+          // Fim do teste grátis (a IA do teste vale só nos 3 primeiros dias — ia_situacao no banco).
+          let testeAte: string | null = null
+          if (session.subscription) {
+            const sub = await stripe.subscriptions.retrieve(session.subscription as string).catch(() => null)
+            if (sub?.trial_end) testeAte = new Date(sub.trial_end * 1000).toISOString()
+          }
           const { data, error } = await supabase.from('perfis').upsert({
             user_id: userId,
             plano: plano,
@@ -71,7 +87,7 @@ export async function POST(request: NextRequest) {
           }
           // Assinatura é da EMPRESA (Elias 2026-10-03): a(s) empresa(s) de quem assinou recebem o plano
           const { data: empAtivadas, error: eEmp } = await supabase.from('empresas')
-            .update({ plano, plano_ativo: true, assinante_user_id: userId, plano_desde: new Date().toISOString() })
+            .update({ plano, plano_ativo: true, assinante_user_id: userId, plano_desde: new Date().toISOString(), teste_ate: testeAte })
             .or(`assinante_user_id.eq.${userId},user_id.eq.${userId}`) // + empresas de que ele é DONO (inclui a recebida por transferência)
             .select('id')
           if (eEmp || !empAtivadas?.length) logFalhaWebhook('empresas', 'update plano (checkout.session.completed)', eEmp?.message || '0 empresas encontradas', { userId, plano })

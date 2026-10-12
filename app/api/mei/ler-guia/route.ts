@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
+import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
@@ -61,12 +62,17 @@ export async function POST(request: NextRequest) {
   if (!TIPOS.includes(mediaType) || arquivo.size > MAX_BYTES) return NextResponse.json({ error: 'arquivo invalido' }, { status: 400 })
   const { data: emp } = await supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle()
   if (!emp) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
+  // Saldo de IA da empresa: cada documento lido pela IA gasta 1 "nota" (devolve se a IA não ler).
+  const lang = form?.get('lang') === 'en' ? 'en' : form?.get('lang') === 'es' ? 'es' : 'pt'
+  const saldo = await consumirIA(supabase, empresaId, 'nota')
+  if (!saldo.ok) return NextResponse.json({ error: 'sem_saldo_ia', motivo: saldo.motivo, mensagem: mensagemSemSaldo(saldo.motivo, lang) }, { status: 402 })
 
   try {
     const uso = usoZerado()
     const base64 = Buffer.from(await arquivo.arrayBuffer()).toString('base64')
     const diag: { motivo?: string } = {}
     const r = await lerDocumentoComVisao({ base64, mediaType }, INSTRUCAO, ESQUEMA, uso, diag)
+    if (!r) await devolverIA(supabase, saldo.id) // IA não leu: não cobra do saldo
     if (!r) Sentry.captureMessage(`[mei/ler-guia] IA não leu a guia: ${diag.motivo ?? '?'}`, { level: 'error', extra: { rota: 'mei/ler-guia', mediaType, tamanho: arquivo.size } })
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
@@ -77,6 +83,7 @@ export async function POST(request: NextRequest) {
     if (!r) return NextResponse.json({ error: 'nao_leu' }, { status: 422 })
     return NextResponse.json({ guia: r.dados })
   } catch (err) {
+    await devolverIA(supabase, saldo.id)
     const msg = err instanceof Error ? err.message : String(err)
     Sentry.captureException(err instanceof Error ? err : new Error(msg), { extra: { rota: 'mei/ler-guia' } })
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })

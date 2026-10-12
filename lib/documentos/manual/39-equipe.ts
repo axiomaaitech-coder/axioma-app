@@ -32,7 +32,7 @@ const pt: DocumentoAxioma = {
     { p: 'A pessoa abre o link, preenche nome, CPF e e-mail e confirma com o **código enviado ao e-mail dela**. Ela cria uma senha e aceita os Termos e a LGPD, declarando quem enviou o convite (a responsabilidade é de quem enviou). CEO, Sócio e Admin enviam direto. Se quem convida é outra pessoa (ex.: funcionário), o convite precisa do **motivo** e da autorização (e-mail e senha) de um deles, ou fica **Aguardando sua aprovação** para o responsável **Aprovar** ou **Recusar**.' },
 
     { h1: 'Vagas do plano' },
-    { p: 'A assinatura pertence à **empresa**. Cada plano tem um número de pessoas: **Starter 1**, **Pro 2**, **Business 5**, **Enterprise 10**. Contam: o dono, a equipe fixa e convites de **8 dias ou mais**. **Não contam**: operador de caixa e contador ou consultor externo.' },
+    { p: 'A assinatura pertence à **empresa**. Cada plano tem um número de pessoas: **MEI 1**, **Essencial 2**, **Empresa 5**, **Premium 10**. Contam: o dono, a equipe fixa e convites de **8 dias ou mais**. **Não contam**: operador de caixa e contador ou consultor externo.' },
     { p: 'Convites **temporários de até 7 dias** (ex.: um analista para uma segunda opinião) não ocupam vaga, mas cada plano tem **3** desses convites; eles se esgotam ao usar e só renovam ao subir de plano. No limite, o convite é bloqueado e aparece o botão **Ver planos**.' },
 
     { h1: 'Remover, cortar e restaurar acesso' },
@@ -89,7 +89,7 @@ const en: DocumentoAxioma = {
     { p: 'The person opens the link, fills in name, CPF and email and confirms with the **code sent to their email**. They create a password and accept the Terms and LGPD, declaring who sent the invite (responsibility lies with the sender). CEO, Partner and Admin send directly. If someone else invites (e.g., an employee), the invite needs a **reason** and the authorization (email and password) of one of them, or it stays **Awaiting your approval** for the person in charge to **Approve** or **Decline**.' },
 
     { h1: 'Plan seats' },
-    { p: 'The subscription belongs to the **company**. Each plan has a number of people: **Starter 1**, **Pro 2**, **Business 5**, **Enterprise 10**. They count: the owner, the permanent team and invites of **8 days or more**. They **do not count**: cashier and external accountant or consultant.' },
+    { p: 'The subscription belongs to the **company**. Each plan has a number of people: **MEI 1**, **Essential 2**, **Business 5**, **Premium 10**. They count: the owner, the permanent team and invites of **8 days or more**. They **do not count**: cashier and external accountant or consultant.' },
     { p: '**Temporary invites of up to 7 days** (e.g., an analyst for a second opinion) do not take a seat, but each plan has **3** of them; they run out as you use them and only renew when you upgrade. At the limit, the invite is blocked and the **See plans** button appears.' },
 
     { h1: 'Remove, cut and restore access' },
@@ -146,7 +146,7 @@ const es: DocumentoAxioma = {
     { p: 'La persona abre el enlace, completa nombre, CPF y correo y confirma con el **código enviado a su correo**. Crea una contraseña y acepta los Términos y la LGPD, declarando quién envió la invitación (la responsabilidad es de quien la envió). CEO, Socio y Admin envían directo. Si quien invita es otra persona (ej.: un empleado), la invitación necesita el **motivo** y la autorización (correo y contraseña) de uno de ellos, o queda **Esperando su aprobación** para que el responsable **Apruebe** o **Rechace**.' },
 
     { h1: 'Cupos del plan' },
-    { p: 'La suscripción pertenece a la **empresa**. Cada plan tiene un número de personas: **Starter 1**, **Pro 2**, **Business 5**, **Enterprise 10**. Cuentan: el dueño, el equipo fijo e invitaciones de **8 días o más**. **No cuentan**: operador de caja y contador o consultor externo.' },
+    { p: 'La suscripción pertenece a la **empresa**. Cada plan tiene un número de personas: **MEI 1**, **Esencial 2**, **Empresa 5**, **Premium 10**. Cuentan: el dueño, el equipo fijo e invitaciones de **8 días o más**. **No cuentan**: operador de caja y contador o consultor externo.' },
     { p: 'Las invitaciones **temporales de hasta 7 días** (ej.: un analista para una segunda opinión) no ocupan cupo, pero cada plan tiene **3**; se agotan al usarlas y solo se renuevan al subir de plan. En el límite, la invitación se bloquea y aparece el botón **Ver planes**.' },
 
     { h1: 'Quitar, cortar y restaurar acceso' },

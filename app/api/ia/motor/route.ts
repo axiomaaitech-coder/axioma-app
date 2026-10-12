@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
-import { perguntarAoMotor, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
+import { perguntarAoMotor, TELAS_ANTHROPIC, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
+import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
 
 // POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang?, contexto_tela? }
 // Porta única do motor de IA (docs/MOTOR-IA.md). A tela manda só a pergunta:
@@ -32,6 +33,10 @@ export async function POST(request: NextRequest) {
   const contextoTela = typeof corpo?.contexto_tela === 'string' ? corpo.contexto_tela : undefined
   if (!pergunta || !UUID.test(empresaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
+  // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
+  const saldo = await consumirIA(supabase, empresaId, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai')
+  if (!saldo.ok) return NextResponse.json({ error: 'sem_saldo_ia', motivo: saldo.motivo, mensagem: mensagemSemSaldo(saldo.motivo, lang) }, { status: 402 })
+
   try {
     const r = await perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela })
     // Auditoria: quem, qual empresa, qual nível/IA e quanto texto saiu — nunca o conteúdo.
@@ -41,8 +46,10 @@ export async function POST(request: NextRequest) {
         tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
         tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
     }))
+    if (!r.resposta) await devolverIA(supabase, saldo.id) // IA não respondeu: não cobra do saldo
     return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou })
   } catch (err) {
+    await devolverIA(supabase, saldo.id)
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('empresa não encontrada')) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
     console.error('[ia/motor]', msg)

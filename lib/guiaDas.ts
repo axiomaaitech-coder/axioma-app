@@ -70,11 +70,12 @@ export function conferirGuia(g: GuiaLida, cnpjEmpresa?: string | null): { ok: bo
 }
 
 // ---------------------------------------------------------------- serviços (navegador)
-export async function lerGuiaComIA(arquivo: File, empresaId: string): Promise<{ guia?: GuiaLida; erro?: string }> {
-  const fd = new FormData(); fd.append("arquivo", arquivo); fd.append("empresa_id", empresaId);
+export async function lerGuiaComIA(arquivo: File, empresaId: string, lang: "pt" | "en" | "es" = "pt"): Promise<{ guia?: GuiaLida; erro?: string; aviso?: string }> {
+  const fd = new FormData(); fd.append("arquivo", arquivo); fd.append("empresa_id", empresaId); fd.append("lang", lang);
   const r = await fetch("/api/mei/ler-guia", { method: "POST", body: fd }).catch(() => null);
   if (!r) return { erro: "rede" };
   const j = await r.json().catch(() => ({}));
+  if (r.status === 402) return { erro: "sem_saldo_ia", aviso: j.mensagem }; // saldo de IA acabou: a tela mostra o aviso
   if (!r.ok || !j.guia) return { erro: j.error || "nao_leu" };
   return { guia: j.guia as GuiaLida };
 }

@@ -3,39 +3,26 @@ import Stripe from 'stripe'
 import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { PLANOS, TESTE, INAUGURACAO, ehPlano } from '@/lib/planos'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
 })
 
-// ============================================================
-// PLANOS AXIOMA AI.TECH — preços em centavos (R$)
-// ============================================================
-const PLANOS = {
-  starter: {
-    name: 'Starter',
-    price: 4700, // R$ 47,00
-    description: 'Para MEI e autônomos — mais de 40 módulos',
-  },
-  pro: {
-    name: 'Pro',
-    price: 9700, // R$ 97,00
-    description: 'Para profissionais — IA Financeira',
-  },
-  business: {
-    name: 'Business',
-    price: 19700, // R$ 197,00
-    description: 'Para empresas em crescimento — IA Tributária',
-  },
-  enterprise: {
-    name: 'Enterprise',
-    price: 29700, // R$ 297,00
-    description: 'Solução completa — Nexus e o José',
-  },
-}
 
-// Cupom de lançamento (40% nos 3 primeiros meses) — aplicado automaticamente
-const CUPOM_LANCAMENTO = 'LANCAMENTO40'
+// Cupom de inauguração criado no Stripe na 1ª vez (30% por 3 meses, 100 usos). Esgotado = segue sem desconto.
+async function cupomInauguracao(): Promise<string | null> {
+  try {
+    const c = await stripe.coupons.retrieve(INAUGURACAO.cupom).catch(async () => stripe.coupons.create({
+      id: INAUGURACAO.cupom, percent_off: INAUGURACAO.porcento, duration: 'repeating', duration_in_months: INAUGURACAO.meses,
+      max_redemptions: INAUGURACAO.vagas, name: `Inauguração ${INAUGURACAO.porcento}%`,
+    }))
+    return c.valid ? c.id : null
+  } catch (e) {
+    Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { extra: { rota: 'stripe/create-checkout', etapa: 'cupom' } })
+    return null
+  }
+}
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://axiomaai.com.br'
 
@@ -50,49 +37,43 @@ export async function POST(request: NextRequest) {
   const userId = user.id
   const email = user.email
   try {
-    const { plano } = await request.json()
+    const { plano, periodo } = await request.json()
+    if (!ehPlano(plano)) return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
+    const anual = periodo === 'anual'
+    const dadosPlano = PLANOS[plano]
 
-    if (!plano || !PLANOS[plano as keyof typeof PLANOS]) {
-      return NextResponse.json({ error: 'Plano inválido' }, { status: 400 })
-    }
+    // Teste grátis só na 1ª assinatura (quem já assinou antes não ganha outro teste).
+    const { data: perfil } = await supabase.from('perfis').select('stripe_customer_id').eq('user_id', userId).maybeSingle()
+    const primeiraVez = !perfil?.stripe_customer_id
+    const cupom = await cupomInauguracao()
 
-    const dadosPlano = PLANOS[plano as keyof typeof PLANOS]
-
-    // Monta a sessão de checkout
     const params: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
-      // Preço definido na hora (não precisa de Price IDs fixos no painel)
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: 'brl',
-            unit_amount: dadosPlano.price,
-            recurring: { interval: 'month' },
-            product_data: {
-              name: `Axioma AI.Tech — Plano ${dadosPlano.name}`,
-              description: dadosPlano.description,
-            },
-          },
+      // Preço definido na hora (não precisa de Price IDs fixos no painel). Anual = 10 meses (2 grátis).
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'brl',
+          unit_amount: anual ? dadosPlano.anualPorMesCentavos * 12 : dadosPlano.mensalCentavos,
+          recurring: { interval: anual ? 'year' : 'month' },
+          product_data: { name: `Axioma AI.Tech — Plano ${dadosPlano.nome.pt}${anual ? ' (anual)' : ''}` },
         },
-      ],
-      // Trial de 14 dias COM cartão obrigatório
-      subscription_data: {
-        trial_period_days: 14,
-        metadata: { userId, plano },
-      },
+      }],
+      // Teste de 7 dias COM cartão obrigatório
+      subscription_data: { ...(primeiraVez ? { trial_period_days: TESTE.dias } : {}), metadata: { userId, plano, periodo: anual ? 'anual' : 'mensal' } },
       payment_method_collection: 'always',
-      // Cupom de lançamento aplicado automaticamente (cliente não digita nada)
-      discounts: [{ coupon: CUPOM_LANCAMENTO }],
-      customer_email: email,
+      ...(cupom ? { discounts: [{ coupon: cupom }] } : {}),
+      ...(perfil?.stripe_customer_id ? { customer: perfil.stripe_customer_id } : { customer_email: email }),
       locale: 'pt-BR',
       success_url: `${SITE_URL}/dashboard?assinatura=sucesso&plano=${plano}`,
       cancel_url: `${SITE_URL}/cadastro?checkout=cancelado`,
       metadata: { userId, plano },
       custom_text: {
         submit: {
-          message: 'Você não será cobrado durante os 14 dias de teste. Cancele quando quiser. Após o período de teste, a assinatura é renovada automaticamente.',
+          message: primeiraVez
+            ? `Você não será cobrado durante os ${TESTE.dias} dias de teste (IA liberada nos ${TESTE.diasIA} primeiros dias). Cancele quando quiser. Depois do teste, a assinatura é renovada automaticamente.`
+            : 'A assinatura é renovada automaticamente. Cancele quando quiser.',
         },
       },
     }

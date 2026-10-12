@@ -43,7 +43,7 @@ const doc: DocumentoAxioma = {
       '**Owner:** the User who holds the company in Axioma, responsible for the subscription and for managing the Team.',
       '**Team:** the Users linked to a company by invitation (for example: CEO, partner, administrator, accountant, employee, consultant, cashier).',
       '**Customer Data:** all information that the Customer or its Team enters, imports or connects to Axioma (revenues, costs, bills, invoices, statements, customer and supplier records, among others).',
-      '**Subscription or Plan:** the contracted tier (Starter, Pro, Business or Enterprise), with its limits and price.',
+      '**Subscription or Plan:** the contracted tier (MEI, Essential, Business or Premium), with its limits and price.',
       '**Open Finance:** the system regulated by the Central Bank of Brazil that allows, with the holder\'s consent, sharing data and initiating payments between institutions.',
       '**LGPD:** the Brazilian General Personal Data Protection Law (Law no. 13,709/2018).',
     ] },
@@ -94,7 +94,7 @@ const doc: DocumentoAxioma = {
     { h1: '8. Plans, subscription and payment' },
     { h2: '8.1 Plans and limits' },
     { p: 'Axioma is offered in plans with different prices and limits, shown on the Plans screen at the time of contracting. The Subscription belongs to the company. The current people limits are:' },
-    { tabela: { colunas: ['Plan', 'People on the team (including the Owner)'], larguras: [3000, 6026], linhas: [['Starter', '1'], ['Pro', '2'], ['Business', '5'], ['Enterprise', '10']] } },
+    { tabela: { colunas: ['Plan', 'People on the team (including the Owner)'], larguras: [3000, 6026], linhas: [['MEI', '1'], ['Essential', '2'], ['Business', '5'], ['Premium', '10']] } },
     { lista: [
       'The following do not take a seat: the cashier (POS) and the external accountant or consultant.',
       'Each Plan includes **3 temporary invitations of up to 7 days** (for example, for guest analysts). These invitations do not take a seat but, once used, are only renewed when the company moves to a higher Plan.',
@@ -105,6 +105,9 @@ const doc: DocumentoAxioma = {
     { lista: [
       'Payments are processed by Stripe, a company specialized in payments. Axioma does not store full card data.',
       'The Subscription is charged on a recurring basis (monthly, unless another option is chosen) and renewed automatically until cancelled.',
+      'The first Subscription starts with a **7-day free trial**, with a card registered at the start; the first charge happens at the end of the trial unless cancelled before. During the trial, artificial intelligence is available only in the **first 3 days**, with a usage limit. Anyone who has subscribed before gets no new trial.',
+      'Each Plan includes a **monthly artificial intelligence usage balance**, belonging to the company, renewed each billing cycle and not carried over to the next month. Once the balance runs out, the Customer may buy one-off **top-ups**, paid by card, which do not expire while the Subscription is active and are non-refundable once used. Current limits and prices are on the Plans screen and in manual 40.',
+      'Promotional discounts (such as the launch offer) are valid for the announced period and number of spots and apply only to the Subscription, not to top-ups.',
       'If a payment is not confirmed, access may be suspended until it is settled. Customer Data is preserved during the suspension, within the periods of clause 16.',
       'Prices may be adjusted, with at least 30 days\' notice before the next charge. If the Customer does not agree, they may cancel before the adjustment.',
       'Taxes levied on the service follow the applicable legislation.',

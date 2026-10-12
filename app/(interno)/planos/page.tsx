@@ -4,6 +4,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '../../../lib/supabaseBrowser'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { PLANOS, TESTE, INAUGURACAO, PLANO_RECURSOS, PLANO_DESCRICAO, reais } from '../../../lib/planos'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,94 +25,62 @@ export default function Planos() {
   const [loadingPlano, setLoadingPlano] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
+  const [periodo, setPeriodo] = useState<'mensal' | 'anual'>('mensal')
+  const lang = (idioma === 'en' || idioma === 'es' ? idioma : 'pt') as 'pt' | 'en' | 'es'
   const txt = {
     pt: {
-      titulo: 'Escolha seu Plano', sub: 'Comece agora com 14 dias grátis em qualquer plano',
-      usuarios: 'usuário(s)', ate: 'até', assinar: 'Começar agora',
-      popular: '⭐ Mais Popular', mes: '/mês', trial: '14 dias grátis',
+      titulo: 'Escolha seu Plano', sub: `Teste grátis por ${TESTE.dias} dias com cartão (IA liberada nos ${TESTE.diasIA} primeiros dias). Cancele antes e não paga nada.`,
+      usuarios: 'pessoa(s)', ate: 'até', assinar: 'Começar agora',
+      popular: 'Mais escolhido', mes: '/mês', trial: `${TESTE.dias} dias grátis`,
+      mensal: 'Mensal', anual: 'Anual (2 meses grátis)', anualCobrado: (v: string) => `cobrado ${v} por ano`,
+      inauguracao: `Inauguração: ${INAUGURACAO.porcento}% off nos ${INAUGURACAO.meses} primeiros meses — só para as ${INAUGURACAO.vagas} primeiras empresas`,
+      iaMes: 'IA por mês', iaComum: 'perguntas IA comum', iaAvancada: 'perguntas IA avançada', notas: 'notas lidas pela IA',
+      recarga: 'Acabou a IA do mês? Recarregue com o cartão em Config → Uso da IA, em qualquer plano.',
       cancelar: 'Cancele quando quiser. Sem fidelidade.',
+      selos: ['Conexão protegida', 'Pagamento seguro via Stripe', 'Ativação imediata', 'Cancele quando quiser'],
       processando: 'Processando...',
       erroLogin: 'Faça login para assinar um plano.',
       erroGeral: 'Erro ao processar pagamento. Tente novamente.',
     },
     en: {
-      titulo: 'Choose Your Plan', sub: 'Start now with a 14-day free trial on any plan',
-      usuarios: 'user(s)', ate: 'up to', assinar: 'Start now',
-      popular: '⭐ Most Popular', mes: '/mo', trial: '14-day free trial',
+      titulo: 'Choose Your Plan', sub: `${TESTE.dias}-day free trial with a card (AI available in the first ${TESTE.diasIA} days). Cancel before and pay nothing.`,
+      usuarios: 'person(s)', ate: 'up to', assinar: 'Start now',
+      popular: 'Most chosen', mes: '/mo', trial: `${TESTE.dias}-day free trial`,
+      mensal: 'Monthly', anual: 'Yearly (2 months free)', anualCobrado: (v: string) => `billed ${v} per year`,
+      inauguracao: `Launch offer: ${INAUGURACAO.porcento}% off for the first ${INAUGURACAO.meses} months — first ${INAUGURACAO.vagas} companies only`,
+      iaMes: 'AI per month', iaComum: 'standard AI questions', iaAvancada: 'advanced AI questions', notas: 'invoices read by AI',
+      recarga: 'Ran out of AI this month? Top up with your card in Settings → AI usage, on any plan.',
       cancelar: 'Cancel anytime. No commitment.',
+      selos: ['Secure connection', 'Secure payment via Stripe', 'Instant activation', 'Cancel anytime'],
       processando: 'Processing...',
       erroLogin: 'Please login to subscribe.',
       erroGeral: 'Payment error. Please try again.',
     },
     es: {
-      titulo: 'Elige tu Plan', sub: 'Empieza ahora con 14 días gratis en cualquier plan',
-      usuarios: 'usuario(s)', ate: 'hasta', assinar: 'Empezar ahora',
-      popular: '⭐ Más Popular', mes: '/mes', trial: '14 días gratis',
-      cancelar: 'Cancela cuando quieras. Sin fidelidad.',
+      titulo: 'Elige tu Plan', sub: `Prueba gratis por ${TESTE.dias} días con tarjeta (IA disponible los primeros ${TESTE.diasIA} días). Cancela antes y no pagas nada.`,
+      usuarios: 'persona(s)', ate: 'hasta', assinar: 'Empezar ahora',
+      popular: 'Más elegido', mes: '/mes', trial: `${TESTE.dias} días gratis`,
+      mensal: 'Mensual', anual: 'Anual (2 meses gratis)', anualCobrado: (v: string) => `cobrado ${v} por año`,
+      inauguracao: `Inauguración: ${INAUGURACAO.porcento}% de descuento los primeros ${INAUGURACAO.meses} meses — solo para las ${INAUGURACAO.vagas} primeras empresas`,
+      iaMes: 'IA por mes', iaComum: 'preguntas IA común', iaAvancada: 'preguntas IA avanzada', notas: 'facturas leídas por IA',
+      recarga: '¿Se acabó la IA del mes? Recarga con tarjeta en Config → Uso de la IA, en cualquier plan.',
+      cancelar: 'Cancela cuando quieras. Sin permanencia.',
+      selos: ['Conexión protegida', 'Pago seguro vía Stripe', 'Activación inmediata', 'Cancela cuando quieras'],
       processando: 'Procesando...',
       erroLogin: 'Inicia sesión para suscribirte.',
       erroGeral: 'Error de pago. Inténtalo de nuevo.',
     },
-  }[idioma]
+  }[lang]
 
-  // Só o que existe hoje no Axioma (2026-10-10). Preços e divisão por plano: decisão do Elias na etapa final.
-  const feats = {
-    pt: {
-      starter: ['Mais de 40 módulos financeiros e contábeis', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Dashboard, DRE e Fluxo de Caixa', 'Português, inglês e espanhol', 'Exportar PDF, Excel e CSV'],
-      pro: ['Tudo do Starter', 'IA Financeira', 'Relatórios avançados', 'Painel de Risco e Métricas do CFO', 'Conferência diária entre módulos'],
-      business: ['Tudo do Pro', 'IA Tributária', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'],
-      enterprise: ['Tudo do Business', 'Nexus e o José (inteligência de mercado)', 'Várias empresas na mesma conta', 'Até 10 pessoas na equipe', 'Suporte prioritário'],
-    },
-    en: {
-      starter: ['40+ financial and accounting modules', 'Full MEI module (DAS, DASN, open a company)', 'Dashboard, P&L and Cash Flow', 'Portuguese, English and Spanish', 'Export PDF, Excel and CSV'],
-      pro: ['Everything in Starter', 'Financial AI', 'Advanced reports', 'Risk Panel and CFO Metrics', 'Daily cross-module check'],
-      business: ['Everything in Pro', 'Tax AI', 'MEI AI Advisor', 'Cost Centers', 'Priority support'],
-      enterprise: ['Everything in Business', 'Nexus and José (market intelligence)', 'Several companies in one account', 'Up to 10 people on the team', 'Priority support'],
-    },
-    es: {
-      starter: ['Más de 40 módulos financieros y contables', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Panel, Estado de Resultados y Flujo de Caja', 'Portugués, inglés y español', 'Exportar PDF, Excel y CSV'],
-      pro: ['Todo de Starter', 'IA Financiera', 'Informes avanzados', 'Panel de Riesgo y Métricas del CFO', 'Conciliación diaria entre módulos'],
-      business: ['Todo de Pro', 'IA Tributaria', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'],
-      enterprise: ['Todo de Business', 'Nexus y José (inteligencia de mercado)', 'Varias empresas en la misma cuenta', 'Hasta 10 personas en el equipo', 'Soporte prioritario'],
-    },
-  }[idioma]
+  // Cores do Axioma: cartão azul-marinho, destaque verde-menta, botão verde-menta escuro — iguais nos 4 (hierarquia pela ordem e pelo preço).
+  const planos = ([
+    { id: 'starter', Icon: Zap, cor: '#2ecc9b', corGrad: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', destaque: false },
+    { id: 'pro', Icon: Crown, cor: '#2ecc9b', corGrad: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', destaque: false },
+    { id: 'business', Icon: Building2, cor: '#2ecc9b', corGrad: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', destaque: true },
+    { id: 'enterprise', Icon: Rocket, cor: '#2ecc9b', corGrad: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', destaque: false },
+  ] as const).map((p) => ({ ...p, ...PLANOS[p.id], recursos: PLANO_RECURSOS[p.id][lang], desc: PLANO_DESCRICAO[p.id][lang], badge: p.destaque ? txt.popular : null }))
 
-  const planos = [
-    {
-      id: 'starter', nome: 'Starter', Icon: Zap,
-      mensal: 47, usuarios: 1,
-      cor: '#6ab0ff', corGrad: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)',
-      destaque: false, badge: null, ia: false,
-      desc: idioma === 'pt' ? 'Para MEI e autônomos' : idioma === 'en' ? 'For MEI and freelancers' : 'Para MEI y autónomos',
-      recursos: feats.starter,
-    },
-    {
-      id: 'pro', nome: 'Pro', Icon: Crown,
-      mensal: 97, usuarios: 2,
-      cor: '#f59e0b', corGrad: 'linear-gradient(135deg, #92400e, #f59e0b)',
-      destaque: false, badge: null, ia: true,
-      desc: idioma === 'pt' ? 'Para profissionais' : idioma === 'en' ? 'For professionals' : 'Para profesionales',
-      recursos: feats.pro,
-    },
-    {
-      id: 'business', nome: 'Business', Icon: Building2,
-      mensal: 197, usuarios: 5,
-      cor: '#34d399', corGrad: 'linear-gradient(135deg, #064e3b, #059669)',
-      destaque: true, badge: txt.popular, ia: true,
-      desc: idioma === 'pt' ? 'Para empresas em crescimento' : idioma === 'en' ? 'For growing businesses' : 'Para empresas en crecimiento',
-      recursos: feats.business,
-    },
-    {
-      id: 'enterprise', nome: 'Enterprise', Icon: Rocket,
-      mensal: 297, usuarios: 10,
-      cor: '#a78bfa', corGrad: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
-      destaque: false, badge: null, ia: true,
-      desc: idioma === 'pt' ? 'Solução sem limites' : idioma === 'en' ? 'Solution without limits' : 'Solución sin límites',
-      recursos: feats.enterprise,
-    },
-  ]
-
-  // ✅ Função de checkout com Stripe (trial 14 dias + cupom automático no backend)
+  // Checkout com Stripe (teste de 7 dias + cupom de inauguração no servidor)
   async function assinar(planoId: string) {
     setLoadingPlano(planoId)
     setErro(null)
@@ -126,7 +95,7 @@ export default function Planos() {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plano: planoId }), // quem assina sai da sessão no servidor, nunca daqui
+        body: JSON.stringify({ plano: planoId, periodo }), // quem assina sai da sessão no servidor, nunca daqui
       })
 
       const data = await response.json()
@@ -167,6 +136,19 @@ export default function Planos() {
             {txt.sub}
           </motion.p>
 
+          <p className="text-xs md:text-sm text-center mb-4 px-4 py-2 rounded-xl font-bold max-w-xl"
+            style={{ background: 'rgba(46,204,155,0.12)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.35)' }}>
+            {txt.inauguracao}
+          </p>
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(16,27,61,0.8)', border: '1px solid rgba(46,204,155,0.2)' }}>
+            {(['mensal', 'anual'] as const).map((p) => (
+              <button key={p} onClick={() => setPeriodo(p)} className="px-4 py-2 rounded-lg text-xs font-bold"
+                style={{ background: periodo === p ? 'linear-gradient(135deg,#0a4f3b,#0f7d5c)' : 'transparent', color: '#ffffff' }}>
+                {p === 'mensal' ? txt.mensal : txt.anual}
+              </button>
+            ))}
+          </div>
+
           {/* Erro */}
           <AnimatePresence>
             {erro && (
@@ -188,18 +170,20 @@ export default function Planos() {
               <motion.div key={plano.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.08, duration: 0.4, ease: 'easeOut' }}
                 onHoverStart={() => setHover(plano.id)} onHoverEnd={() => setHover(null)}
-                className="relative rounded-3xl overflow-hidden flex flex-col"
+                className="relative rounded-3xl overflow-hidden flex flex-col axi-card-premium3d"
                 style={{
                   background: CARD_BG,
-                  border: `1px solid ${plano.cor}${plano.destaque ? '70' : '30'}`,
-                  boxShadow: isHover || plano.destaque ? `0 0 60px ${plano.cor}22, 0 0 30px ${plano.cor}10` : 'none',
-                  transition: 'box-shadow 200ms ease',
+                  border: `1px solid ${isHover || plano.destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}`,
+                  boxShadow: isHover ? '0 0 50px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(0,0,0,0.6)' : plano.destaque ? '0 0 30px rgba(46,204,155,0.10)' : 'none',
+                  transform: isHover ? 'translateY(-4px)' : 'none',
+                  transition: 'box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease',
                 }}>
+                <div className="absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b', opacity: isHover || plano.destaque ? 1 : 0, transition: 'opacity 200ms ease' }} />
 
                 {plano.badge && (
                   <div className="relative z-10 flex justify-center pt-4">
                     <span className="text-xs font-black px-4 py-1.5 rounded-full"
-                      style={{ background: `${plano.cor}20`, color: plano.cor, border: `1px solid ${plano.cor}50` }}>
+                      style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.6)' }}>
                       {plano.badge}
                     </span>
                   </div>
@@ -210,7 +194,7 @@ export default function Planos() {
                     <div className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
                       <plano.Icon size={22} style={{ color: plano.cor }} />
                     </div>
-                    <h2 className="text-2xl font-black" style={{ color: plano.cor }}>{plano.nome}</h2>
+                    <h2 className="text-2xl font-black" style={{ color: plano.cor }}>{plano.nome[lang]}</h2>
                   </div>
 
                   <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
@@ -218,21 +202,29 @@ export default function Planos() {
                   <div className="mb-4">
                     <div className="flex items-end gap-2">
                       <span className="text-4xl md:text-5xl font-black" style={{ color: TEXTO_PRINC }}>
-                        R$ {plano.mensal}
+                        {reais(periodo === 'anual' ? plano.anualPorMesCentavos : plano.mensalCentavos, lang)}
                       </span>
                       <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>
                     </div>
+                    {periodo === 'anual' && <p className="text-xs mt-1" style={{ color: TEXTO_MUTED }}>{txt.anualCobrado(reais(plano.anualPorMesCentavos * 12, lang))}</p>}
                     <p className="text-xs mt-2" style={{ color: TEXTO_MUTED }}>
-                      {txt.ate} {plano.usuarios} {txt.usuarios}
+                      {txt.ate} {plano.pessoas} {txt.usuarios}
                     </p>
                   </div>
 
                   {/* Selo trial */}
                   <div className="flex justify-start mb-4">
                     <span className="text-xs px-2.5 py-1 rounded-full font-bold"
-                      style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-                      ✨ {txt.trial}
+                      style={{ background: 'rgba(46,204,155,0.15)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.3)' }}>
+                      {txt.trial}
                     </span>
+                  </div>
+
+                  <div className="rounded-xl p-3 mb-4 text-xs" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: TEXTO_PRINC }}>
+                    <p className="font-bold mb-1" style={{ color: '#2ecc9b' }}>{txt.iaMes}</p>
+                    <p>{plano.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {txt.iaComum}</p>
+                    <p>{plano.ia.anthropic} {txt.iaAvancada}</p>
+                    <p>{plano.ia.nota} {txt.notas}</p>
                   </div>
 
                   <div className="flex-1 space-y-2.5 mb-6">
@@ -269,12 +261,13 @@ export default function Planos() {
         </div>
 
         {/* Rodapé */}
-        <p className="text-center text-xs mt-12" style={{ color: TEXTO_MUTED }}>
+        <p className="text-center text-xs mt-12" style={{ color: TEXTO_MUTED }}>{txt.recarga}</p>
+        <p className="text-center text-xs mt-2" style={{ color: TEXTO_MUTED }}>
           {txt.cancelar}
         </p>
 
         <div className="flex justify-center gap-6 mt-6 flex-wrap">
-          {['🔒 SSL Seguro', '💳 Pagamento Seguro via Stripe', '⚡ Ativação Imediata', '🔄 Cancele Quando Quiser'].map((item, i) => (
+          {txt.selos.map((item, i) => (
             <span key={i} className="text-xs" style={{ color: TEXTO_MUTED2 }}>{item}</span>
           ))}
         </div>

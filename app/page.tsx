@@ -1,14 +1,15 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PLANOS, PLANO_RECURSOS, PLANO_DESCRICAO, ORDEM_PLANOS, reais } from '../lib/planos'
 
 // ============================================================
 // TRADUÇÕES COMPLETAS PT / EN / ES
 // ============================================================
 const idiomas = {
   pt: {
-    login: 'Login', comecar: 'Começar Agora', comecarGratis: 'Começar Trial 14 Dias',
-    semCartao: '14 dias grátis. Cancele quando quiser.',
+    login: 'Login', comecar: 'Começar Agora', comecarGratis: 'Testar 7 dias grátis',
+    semCartao: '7 dias grátis com cartão (IA nos 3 primeiros dias). Cancele antes e não paga nada.',
     nav: { modulos: 'Módulos', planos: 'Planos', sobre: 'Sobre' },
     hero: {
       legenda1: 'Enquanto o mercado ainda usa planilhas...',
@@ -115,28 +116,22 @@ const idiomas = {
     },
     planos: {
       titulo: 'Escolha seu plano',
-      sub: 'Comece com 14 dias grátis em qualquer plano. Cancele quando quiser.',
-      popular: '⭐ MAIS POPULAR',
-      trial: '14 dias grátis',
+      sub: '7 dias grátis em qualquer plano. Inauguração: 30% off nos 3 primeiros meses para as 100 primeiras empresas.',
+      popular: 'Mais escolhido',
+      trial: '7 dias grátis',
       mes: '/mês',
-      lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para MEI e autônomos', usuarios: '1 usuário', features: ['Mais de 40 módulos financeiros e contábeis', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Dashboard, DRE e Fluxo de Caixa', 'Português, inglês e espanhol', 'Exportar PDF, Excel e CSV'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profissionais', usuarios: 'até 2 usuários', features: ['Tudo do Starter', 'IA Financeira', 'Relatórios avançados', 'Painel de Risco e Métricas do CFO', 'Conferência diária entre módulos'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas em crescimento', usuarios: 'até 5 usuários', features: ['Tudo do Pro', 'IA Tributária', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solução sem limites', usuarios: 'até 10 usuários', features: ['Tudo do Business', 'Nexus e o José (inteligência de mercado)', 'Várias empresas na mesma conta', 'Até 10 pessoas na equipe', 'Suporte prioritário'], ia: true },
-      ],
     },
     cta: {
       titulo: 'Sua concorrência já usa IA. E você?',
       sub: 'Cada dia sem controle financeiro é dinheiro saindo do seu bolso. As empresas que sobrevivem são as que têm dados reais na mão.',
-      btn: 'Começar 14 Dias Grátis',
+      btn: 'Testar 7 dias grátis',
       sub2: 'Junte-se a empresas que já descobriram o poder da Axioma',
     },
-    footer: '© 2026 Axioma AI.Tech — Inteligência Financeira para PMEs',
+    footer: '© 2026 axiomaai.com.br — Axioma AI.Tech. Todos os direitos reservados.',
   },
   en: {
-    login: 'Login', comecar: 'Start Now', comecarGratis: 'Start 14-Day Trial',
-    semCartao: '14 days free. Cancel anytime.',
+    login: 'Login', comecar: 'Start Now', comecarGratis: 'Start 7-Day Trial',
+    semCartao: '7 days free. Cancel anytime.',
     nav: { modulos: 'Modules', planos: 'Plans', sobre: 'About' },
     hero: {
       legenda1: 'While the market still uses spreadsheets...',
@@ -243,28 +238,22 @@ const idiomas = {
     },
     planos: {
       titulo: 'Choose your plan',
-      sub: 'Start with 14 days free on any plan. Cancel anytime.',
-      popular: '⭐ MOST POPULAR',
-      trial: '14 days free',
+      sub: 'Start with 7 days free on any plan. Cancel anytime.',
+      popular: 'Most chosen',
+      trial: '7 days free',
       mes: '/mo',
-      lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'For freelancers', usuarios: '1 user', features: ['40+ financial and accounting modules', 'Full MEI module (DAS, DASN, open a company)', 'Dashboard, P&L and Cash Flow', 'Portuguese, English and Spanish', 'Export PDF, Excel and CSV'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'For professionals', usuarios: 'up to 2 users', features: ['Everything in Starter', 'Financial AI', 'Advanced reports', 'Risk Panel and CFO Metrics', 'Daily cross-module check'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'For growing companies', usuarios: 'up to 5 users', features: ['Everything in Pro', 'Tax AI', 'MEI AI Advisor', 'Cost Centers', 'Priority support'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Unlimited solution', usuarios: 'up to 10 users', features: ['Everything in Business', 'Nexus and José (market intelligence)', 'Several companies in one account', 'Up to 10 people on the team', 'Priority support'], ia: true },
-      ],
     },
     cta: {
       titulo: 'Your competition already uses AI. Do you?',
       sub: 'Every day without financial control is money leaving your pocket. Companies that survive have real data at hand.',
-      btn: 'Start 14 Days Free',
+      btn: 'Start 7 Days Free',
       sub2: 'Join companies that have discovered the power of Axioma',
     },
-    footer: '© 2026 Axioma AI.Tech — Financial Intelligence for SMEs',
+    footer: '© 2026 axiomaai.com.br — Axioma AI.Tech. All rights reserved.',
   },
   es: {
-    login: 'Iniciar Sesión', comecar: 'Empezar Ahora', comecarGratis: 'Empezar Prueba 14 Días',
-    semCartao: '14 días gratis. Cancela cuando quieras.',
+    login: 'Iniciar Sesión', comecar: 'Empezar Ahora', comecarGratis: 'Empezar Prueba 7 Días',
+    semCartao: '7 días gratis. Cancela cuando quieras.',
     nav: { modulos: 'Módulos', planos: 'Planes', sobre: 'Sobre' },
     hero: {
       legenda1: 'Mientras el mercado sigue usando planillas...',
@@ -371,24 +360,18 @@ const idiomas = {
     },
     planos: {
       titulo: 'Elige tu plan',
-      sub: 'Empieza con 14 días gratis en cualquier plan. Cancela cuando quieras.',
-      popular: '⭐ MÁS POPULAR',
-      trial: '14 días gratis',
+      sub: 'Empieza con 7 días gratis en cualquier plan. Cancela cuando quieras.',
+      popular: 'Más elegido',
+      trial: '7 días gratis',
       mes: '/mes',
-      lista: [
-        { nome: 'Starter', preco: 47, cor: '#6ab0ff', desc: 'Para autónomos', usuarios: '1 usuario', features: ['Más de 40 módulos financieros y contables', 'Módulo MEI completo (DAS, DASN, abrir empresa)', 'Panel, Estado de Resultados y Flujo de Caja', 'Portugués, inglés y español', 'Exportar PDF, Excel y CSV'], ia: false },
-        { nome: 'Pro', preco: 97, cor: '#34d399', desc: 'Para profesionales', usuarios: 'hasta 2 usuarios', features: ['Todo de Starter', 'IA Financiera', 'Informes avanzados', 'Panel de Riesgo y Métricas del CFO', 'Conciliación diaria entre módulos'], ia: true },
-        { nome: 'Business', preco: 197, cor: '#f59e0b', desc: 'Para empresas en crecimiento', usuarios: 'hasta 5 usuarios', features: ['Todo de Pro', 'IA Tributaria', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'], ia: true, destaque: true },
-        { nome: 'Enterprise', preco: 297, cor: '#a78bfa', desc: 'Solución sin límites', usuarios: 'hasta 10 usuarios', features: ['Todo de Business', 'Nexus y José (inteligencia de mercado)', 'Varias empresas en la misma cuenta', 'Hasta 10 personas en el equipo', 'Soporte prioritario'], ia: true },
-      ],
     },
     cta: {
       titulo: '¿Tu competencia ya usa IA. Y tú?',
       sub: 'Cada día sin control financiero es dinero saliendo de tu bolsillo. Las empresas que sobreviven tienen datos reales en la mano.',
-      btn: 'Empezar 14 Días Gratis',
+      btn: 'Empezar 7 Días Gratis',
       sub2: 'Únete a empresas que descubrieron el poder de Axioma',
     },
-    footer: '© 2026 Axioma AI.Tech — Inteligencia Financiera para PYMEs',
+    footer: '© 2026 axiomaai.com.br — Axioma AI.Tech. Todos los derechos reservados.',
   },
 }
 
@@ -621,13 +604,12 @@ function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa'
 function HeroVideos() {
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
-      <FrameRain cor="#00E5FF" />
-      <video autoPlay loop muted playsInline
+      <video autoPlay loop muted playsInline preload="auto"
         controlsList="nodownload nofullscreen noremoteplayback"
         disablePictureInPicture
         disableRemotePlayback
-        className="absolute inset-0 w-full h-full object-contain"
-        style={{ zIndex: 1, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ zIndex: 1, objectPosition: 'center', filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
         <source src="/videos/hero-5.mp4" type="video/mp4" />
       </video>
 
@@ -1050,52 +1032,46 @@ export default function LandingPage() {
             <p className="text-sm font-medium" style={{ color: cMuted }}>{t.planos.sub}</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-4">
-            {t.planos.lista.map((p: any, i) => (
-              <Reveal key={i} delay={0.07 * i} className="h-full">
-                <div className="relative h-full rounded-2xl"
-                  style={{
-                    background: 'rgba(4,10,22,0.97)',
-                    border: `1px solid ${p.destaque ? p.cor : `${p.cor}30`}`,
-                    boxShadow: p.destaque ? `0 0 50px ${p.cor}40` : `0 0 30px ${p.cor}10`,
-                  }}>
-                  {p.destaque && (
+            {ORDEM_PLANOS.map((id, i) => {
+              const p = PLANOS[id]
+              const destaque = id === 'business'
+              return (
+              <Reveal key={id} delay={0.07 * i} className="h-full">
+                <div className="ax-plano relative h-full rounded-2xl"
+                  style={{ background: 'rgba(4,10,22,0.97)', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
+                  {destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap z-10"
-                      style={{ background: `linear-gradient(135deg,${cGold},#ea580c)`, color: '#1a1206', boxShadow: '0 4px 20px rgba(245,158,11,0.5)' }}>
+                      style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.6)' }}>
                       {t.planos.popular}
                     </div>
                   )}
                   <div className="p-5 pt-7 flex flex-col h-full">
-                    <h3 className="ax-display text-2xl font-black mb-1 text-center" style={{ color: p.cor }}>{p.nome}</h3>
-                    <p className="text-xs text-center mb-3 font-medium" style={{ color: cMuted }}>{p.desc}</p>
+                    <h3 className="ax-display text-2xl font-black mb-1 text-center" style={{ color: '#2ecc9b' }}>{p.nome[lang]}</h3>
+                    <p className="text-xs text-center mb-3 font-medium" style={{ color: cMuted }}>{PLANO_DESCRICAO[id][lang]}</p>
                     <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="ax-display text-4xl font-black" style={{ color: '#ffffff' }}>R$ {p.preco}</span>
+                      <span className="ax-display text-4xl font-black" style={{ color: '#ffffff' }}>{reais(p.mensalCentavos, lang)}</span>
                       <span className="text-sm mb-1" style={{ color: cMuted }}>{t.planos.mes}</span>
                     </div>
-                    <p className="text-xs text-center mb-3 font-medium" style={{ color: '#7d9bc9' }}>{p.usuarios}</p>
-                    <div className="flex justify-center mb-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                        style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-                        ✨ {t.planos.trial}
-                      </span>
+                    <p className="text-xs text-center mb-3 font-medium" style={{ color: '#9ab6e2' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
+                    <div className="rounded-xl p-3 mb-3 text-xs" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: cBody }}>
+                      <p className="font-bold mb-1" style={{ color: '#2ecc9b' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
+                      <p>{p.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {lang === 'en' ? 'standard AI questions' : lang === 'es' ? 'preguntas IA común' : 'perguntas IA comum'}</p>
+                      <p>{p.ia.anthropic} {lang === 'en' ? 'advanced AI questions' : lang === 'es' ? 'preguntas IA avanzada' : 'perguntas IA avançada'}</p>
+                      <p>{p.ia.nota} {lang === 'en' ? 'invoices read by AI' : lang === 'es' ? 'facturas leídas por IA' : 'notas lidas pela IA'}</p>
                     </div>
-                    {p.ia && (
-                      <div className="flex justify-center mb-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                          style={{ background: 'rgba(251,191,36,0.12)', color: cGold, border: '1px solid rgba(251,191,36,0.3)' }}>⭐ IA Premium</span>
-                      </div>
-                    )}
                     <div className="space-y-2 mb-5 flex-1">
-                      {p.features.map((f: string, j: number) => (
+                      {PLANO_RECURSOS[id][lang].map((f, j) => (
                         <div key={j} className="flex items-start gap-2 text-xs font-medium" style={{ color: cBody }}>
-                          <span style={{ color: p.cor }}>✓</span> <span>{f}</span>
+                          <span style={{ color: '#2ecc9b' }}>✓</span> <span>{f}</span>
                         </div>
                       ))}
                     </div>
-                    {btn(t.comecar, () => router.push('/cadastro'), true, true)}
+                    {btn(t.comecarGratis, () => router.push('/cadastro'), true, true)}
                   </div>
                 </div>
               </Reveal>
-            ))}
+              )
+            })}
           </div>
           <p className="text-center text-xs mt-8 font-medium" style={{ color: '#5a7aaa' }}>{t.semCartao}</p>
         </div>
@@ -1129,17 +1105,13 @@ export default function LandingPage() {
 
       {/* ============ FOOTER ============ */}
       <footer className="text-center py-8 px-4" style={{ borderTop: '1px solid rgba(59,111,212,0.1)', background: '#020810' }}>
-        <div className="flex justify-center gap-4 mb-4 text-xs" style={{ color: '#6a8bbd' }}>
-          <button onClick={() => router.push('/privacidade')} className="hover:text-blue-400 transition-colors">
-            {lang === 'pt' ? 'Privacidade' : lang === 'en' ? 'Privacy' : 'Privacidad'}
-          </button>
-          <span>·</span>
-          <button onClick={() => router.push('/termos')} className="hover:text-blue-400 transition-colors">
-            {lang === 'pt' ? 'Termos' : lang === 'en' ? 'Terms' : 'Términos'}
-          </button>
-          <span>·</span>
-          <button onClick={() => router.push('/login')} className="hover:text-blue-400 transition-colors">{t.login}</button>
-        </div>
+        <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4 text-xs" style={{ color: '#9ab6e2' }}>
+          <a href="/termos" className="hover:text-[#2ecc9b] transition-colors">{lang === 'pt' ? 'Termos de Uso' : lang === 'en' ? 'Terms of Use' : 'Términos de Uso'}</a>
+          <span aria-hidden="true">·</span>
+          <a href="/privacidade" className="hover:text-[#2ecc9b] transition-colors">{lang === 'pt' ? 'Política de Privacidade' : lang === 'en' ? 'Privacy Policy' : 'Política de Privacidad'}</a>
+          <span aria-hidden="true">·</span>
+          <a href="/login" className="hover:text-[#2ecc9b] transition-colors">{t.login}</a>
+        </nav>
         <p className="text-xs" style={{ color: '#5a7aaa' }}>{t.footer}</p>
       </footer>
 
@@ -1156,6 +1128,11 @@ export default function LandingPage() {
 
         .ax-video-frame { transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
         .ax-video-frame:hover { transform: translateY(-6px) scale(1.01); }
+        .ax-plano { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+        .ax-plano::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2ecc9b; border-radius: 16px 16px 0 0; opacity: 0; transition: opacity 0.25s ease; }
+        .ax-plano:hover { transform: translateY(-4px); border-color: rgba(46,204,155,0.6) !important; box-shadow: 0 0 50px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(0,0,0,0.6); }
+        .ax-plano:hover::before { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) { .ax-plano, .ax-plano:hover { transform: none; } }
 
         .ax-neon {
           color: #00E5FF;

@@ -18,6 +18,7 @@ import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { reportarFalhaLeitura } from '../../../lib/erroUiHelpers'
 import { lerTodas } from '../../../lib/lerTodas'
+import { SaldoIA } from '../../../components/SaldoIA'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 type Idioma = 'pt' | 'en' | 'es'
@@ -90,6 +91,8 @@ export default function UsoIaPage() {
   const [dias, setDias] = useState<(typeof PERIODOS)[number]>(30)
   const [registros, setRegistros] = useState<Registro[] | null>(null)
   const [erro, setErro] = useState(false)
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
+  useEffect(() => { obterEmpresaAtiva().then(setEmpresaId) }, [])
 
   useEffect(() => {
     let cancelado = false
@@ -149,6 +152,7 @@ export default function UsoIaPage() {
             `${(lang === 'en' ? 'Numbers checked' : lang === 'es' ? 'Números verificados' : 'Números conferidos')}: ${pct(r.conferidas, r.respondidas)}`,
             `${(lang === 'en' ? 'Cost' : lang === 'es' ? 'Costo' : 'Custo')}: US$ ${r.custo.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           ]} />
+          <SaldoIA empresaId={empresaId} lang={lang} temaClaro={temaClaro} />
           <div className="flex flex-wrap gap-2">
             {PERIODOS.map((d) => (
               <button key={d} onClick={() => setDias(d)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
