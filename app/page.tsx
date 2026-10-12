@@ -480,11 +480,15 @@ function HeroVideos() {
   const fonte = <source src="/videos/hero-5.mp4" type="video/mp4" />
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
-      <video autoPlay loop muted playsInline aria-hidden="true" tabIndex={-1}
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'blur(28px) brightness(0.4) saturate(1.1)', transform: 'scale(1.15)' }}>
-        {fonte}
-      </video>
+      {/* Laterais: cópia pequena do vídeo ampliada (fica borrada sozinha, sem filtro de desfoque, que pesa) + véu escuro */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        <video autoPlay loop muted playsInline tabIndex={-1}
+          className="absolute left-1/2 top-1/2 object-cover"
+          style={{ width: '6%', height: '6%', transform: 'translate(-50%, -50%) scale(20)' }}>
+          {fonte}
+        </video>
+        <div className="absolute inset-0" style={{ background: 'rgba(2,8,16,0.6)' }} />
+      </div>
       <video autoPlay loop muted playsInline preload="auto"
         controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback
         className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 1 }}>
@@ -900,12 +904,12 @@ export default function LandingPage() {
       {/* ============ SEÇÃO 13 — CTA FINAL (logo no lugar do foguete) ============ */}
       <section className="relative py-24 md:py-40 overflow-hidden text-center">
         <div className="absolute inset-0">
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(59,111,212,0.2) 0%, transparent 60%)', animation: 'pulse-aura 4s ease-in-out infinite alternate' }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(46,204,155,0.12) 0%, transparent 60%)', animation: 'pulse-aura 4s ease-in-out infinite alternate' }} />
         </div>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom,rgba(2,8,16,0.7),rgba(2,8,16,0.5),rgba(2,8,16,0.95))' }} />
         <Reveal className="relative z-10 max-w-4xl mx-auto px-4">
           <img src="/logo-aitech.png" alt="Axioma" className="mx-auto mb-6"
-            style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.9))', animation: 'logo-float 4s ease-in-out infinite alternate' }} />
+            style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(46,204,155,0.6))', animation: 'logo-float 4s ease-in-out infinite alternate' }} />
           <h2 className="ax-display text-3xl md:text-6xl font-black mb-4"
             style={{ color: '#eaf2ff' }}>
             {t.cta.titulo}
