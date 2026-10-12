@@ -180,16 +180,17 @@ export default function Planos() {
                 }}>
                 <div className="absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b', opacity: isHover || plano.destaque ? 1 : 0, transition: 'opacity 200ms ease' }} />
 
-                {plano.badge && (
-                  <div className="relative z-10 flex justify-center pt-4">
-                    <span className="text-xs font-black px-4 py-1.5 rounded-full"
+                {/* Faixa do selo em todos os cartões (vazia nos outros) — os 4 ficam alinhados. */}
+                <div className="relative z-10 flex justify-center pt-4 h-10">
+                  {plano.badge && (
+                    <span className="text-xs font-black px-4 py-1 rounded-full h-fit"
                       style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.6)' }}>
                       {plano.badge}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                <div className="relative z-10 p-5 md:p-6 flex flex-col flex-1">
+                <div className="relative z-10 px-5 pb-5 md:px-6 md:pb-6 pt-1 flex flex-col flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
                       <plano.Icon size={22} style={{ color: plano.cor }} />
@@ -200,8 +201,8 @@ export default function Planos() {
                   <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
 
                   <div className="mb-4">
-                    <div className="flex items-end gap-2">
-                      <span className="text-4xl md:text-5xl font-black" style={{ color: TEXTO_PRINC }}>
+                    <div className="flex flex-wrap items-end gap-x-1.5">
+                      <span className="text-3xl xl:text-4xl font-black whitespace-nowrap" style={{ color: TEXTO_PRINC }}>
                         {reais(periodo === 'anual' ? plano.anualPorMesCentavos : plano.mensalCentavos, lang)}
                       </span>
                       <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>

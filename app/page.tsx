@@ -690,7 +690,8 @@ export default function LandingPage() {
       </nav>
 
       {/* ============ SEÇÃO 1 — HERO (5 vídeos, inteiros) ============ */}
-      <section className="relative h-screen min-h-[680px] flex flex-col items-center justify-end overflow-hidden">
+      {/* Topo no formato do vídeo (16:9) logo abaixo do menu: vídeo inteiro de ponta a ponta, sem corte nem faixa. Celular: preenche a altura. */}
+      <section className="relative w-full mt-[60px] h-[80vh] md:h-auto md:aspect-video flex flex-col items-center justify-end overflow-hidden">
         <HeroVideos />
         <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-24 md:pb-20">
           <div className="max-w-md text-left">
