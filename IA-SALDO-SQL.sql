@@ -148,6 +148,29 @@ end $$;
 revoke all on function public.ia_situacao(uuid), public.ia_consumir(uuid, text), public.ia_devolver(uuid) from public, anon;
 grant execute on function public.ia_situacao(uuid), public.ia_consumir(uuid, text), public.ia_devolver(uuid) to authenticated;
 revoke all on function public.ia_creditar_recarga(text, uuid, text, int, int) from public, anon, authenticated;
+grant execute on function public.ia_creditar_recarga(text, uuid, text, int, int) to service_role;
 
--- ===== BLOCO 4: empresa interna de teste sem limite =====
+-- ===== BLOCO 4: trava — o navegador não mexe em plano, teste nem saldo de IA =====
+-- Antes, o dono podia gravar plano_ativo = true na própria empresa direto pela API (pular o
+-- pagamento). Só o Stripe (chave de serviço) e as funções do banco mudam estes campos.
+create or replace function public.fn_empresas_campos_protegidos() returns trigger
+language plpgsql as $$
+begin
+  if current_user not in ('authenticated', 'anon') then return new; end if;
+  if tg_op = 'INSERT' then
+    new.plano := null; new.plano_ativo := false; new.plano_desde := null; new.assinante_user_id := null; new.teste_ate := null;
+    new.ia_recarga_openai := 0; new.ia_recarga_anthropic := 0; new.ia_recarga_nota := 0; new.ia_ilimitada := false;
+  else
+    new.plano := old.plano; new.plano_ativo := old.plano_ativo; new.plano_desde := old.plano_desde;
+    new.assinante_user_id := old.assinante_user_id; new.teste_ate := old.teste_ate;
+    new.ia_recarga_openai := old.ia_recarga_openai; new.ia_recarga_anthropic := old.ia_recarga_anthropic;
+    new.ia_recarga_nota := old.ia_recarga_nota; new.ia_ilimitada := old.ia_ilimitada;
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_empresas_campos_protegidos on public.empresas;
+create trigger trg_empresas_campos_protegidos before insert or update on public.empresas
+  for each row execute function public.fn_empresas_campos_protegidos();
+
+-- ===== BLOCO 5: empresa interna de teste sem limite =====
 update public.empresas set ia_ilimitada = true where nome = 'Axioma Teste — Distribuidora Horizonte';
