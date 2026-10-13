@@ -109,7 +109,7 @@ export const MANUAIS: ManualAxioma[] = ([
 
 // Tela → manual (o prefixo mais longo vence). Usado pelo Assistente de Ajuda.
 const ROTAS: [string, string][] = [
-  ["/manual", "00"], ["/dashboard", "01"], ["/mei", "02"], ["/mei/cockpit", "03"], ["/mei/faturamento", "04"], ["/mei/das", "05"],
+  ["/", "00"], ["/manual", "00"], ["/dashboard", "01"], ["/mei", "02"], ["/mei/cockpit", "03"], ["/mei/faturamento", "04"], ["/mei/das", "05"],
   ["/mei/reforma", "06"], ["/mei/precificacao", "07"], ["/mei/ia-advisor", "08"], ["/mei/imposto-renda", "09"], ["/receitas", "10"],
   ["/custos-fixos", "11"], ["/custos-variaveis", "12"], ["/fluxo-caixa", "13"], ["/dre", "14"], ["/endividamento", "15"], ["/tesouraria", "16"],
   ["/contador", "17"], ["/fiscal", "18"], ["/contabilidade/razao", "19"], ["/contabilidade/balancete", "20"], ["/contabilidade/dre", "21"],
