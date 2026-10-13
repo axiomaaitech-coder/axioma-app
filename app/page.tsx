@@ -1,5 +1,7 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useRouter } from 'next/navigation'
 import { cinzel } from './(interno)/nexus/fonteJose'
 import { fonteRedHat } from './fontesLanding'
@@ -442,9 +444,11 @@ function useInView<T extends HTMLElement>(threshold = 0.15) {
 // de: por onde o bloco entra ao rolar a página (baixo = padrão; esquerda/direita = surge da lateral)
 function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { children: React.ReactNode; delay?: number; className?: string; de?: 'baixo' | 'esquerda' | 'direita' }) {
   const { ref, inView } = useInView<HTMLDivElement>()
-  const inicio = de === 'esquerda' ? 'translateX(-160px)' : de === 'direita' ? 'translateX(160px)' : 'translateY(34px)'
+  // Laterais: animadas pelo GSAP ScrollTrigger (useEntradaLateral), presas ao movimento da rolagem
+  if (de !== 'baixo') return <div data-entrada={de} className={className}>{children}</div>
+  const inicio = 'translateY(34px)'
   return (
-    <div ref={ref} className={`ax-reveal ${className}`}
+    <div ref={ref} className={className}
       style={{
         opacity: inView ? 1 : 0,
         transform: inView ? 'translate(0, 0)' : inicio,
@@ -454,6 +458,26 @@ function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { childre
       {children}
     </div>
   )
+}
+
+// ============================================================
+// ENTRADA LATERAL — GSAP ScrollTrigger: o bloco vem de longe da lateral, em 3D e crescendo,
+// acompanhando a rolagem (scrub). Roda mesmo com "menos movimento" do sistema (pedido do Elias).
+// ============================================================
+function useEntradaLateral() {
+  useLayoutEffect(() => {
+    gsap.registerPlugin(ScrollTrigger)
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('[data-entrada]').forEach(el => {
+        const esq = el.dataset.entrada === 'esquerda'
+        gsap.fromTo(el,
+          { xPercent: esq ? -55 : 55, rotationY: esq ? 28 : -28, scale: 0.82, opacity: 0, transformPerspective: 1200, transformOrigin: esq ? 'left center' : 'right center' },
+          { xPercent: 0, rotationY: 0, scale: 1, opacity: 1, ease: 'power3.out',
+            scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 45%', scrub: 0.6 } })
+      })
+    })
+    return () => ctx.revert()
+  }, [])
 }
 
 // ============================================================
@@ -630,6 +654,7 @@ export default function LandingPage() {
   const router = useRouter()
   const [lang, setLang] = useState<'pt' | 'en' | 'es'>('pt')
   const t = idiomas[lang]
+  useEntradaLateral()
 
 
   const btn = (label: string, onClick: () => void, primary = true, full = false, claro = false) => (
@@ -1175,10 +1200,8 @@ export default function LandingPage() {
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (prefers-reduced-motion: reduce) {
-          /* Entrada ao rolar (.ax-reveal) roda sempre: acontece uma vez só e o Elias pediu o efeito;
-             o resto (brilhos, pulsos, hovers) segue a preferência de "menos movimento" do sistema */
-          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
-          *:not(.ax-reveal) { transition-duration: 0.001ms !important; }
+          /* Entrada lateral (GSAP) roda sempre, pedido do Elias; brilhos, pulsos e hovers seguem "menos movimento" */
+          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
         }
       `}</style>
     </div>
