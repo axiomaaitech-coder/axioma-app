@@ -439,13 +439,15 @@ function useInView<T extends HTMLElement>(threshold = 0.15) {
   return { ref, inView }
 }
 
-function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+// de: por onde o bloco entra ao rolar a página (baixo = padrão; esquerda/direita = surge da lateral)
+function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { children: React.ReactNode; delay?: number; className?: string; de?: 'baixo' | 'esquerda' | 'direita' }) {
   const { ref, inView } = useInView<HTMLDivElement>()
+  const inicio = de === 'esquerda' ? 'translateX(-90px)' : de === 'direita' ? 'translateX(90px)' : 'translateY(34px)'
   return (
     <div ref={ref} className={className}
       style={{
         opacity: inView ? 1 : 0,
-        transform: inView ? 'translateY(0)' : 'translateY(34px)',
+        transform: inView ? 'translate(0, 0)' : inicio,
         transition: `opacity 0.9s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.9s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
         willChange: 'opacity, transform',
       }}>
@@ -718,7 +720,7 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <Badge cor="#6ab0ff">{t.einstein.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-2 leading-tight"
                 style={{ color: '#eaf2ff' }}>
@@ -731,7 +733,7 @@ export default function LandingPage() {
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.8 }}>{t.einstein.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <VideoFrame src="/videos/einstein.mp4" cor="#6ab0ff" />
             </Reveal>
           </div>
@@ -742,10 +744,10 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" />
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <Badge claro cor="#a78bfa">{t.platao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-5 leading-tight"
                 style={{ color: '#101b3d' }}>
@@ -765,10 +767,10 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <VideoFrame src="/videos/globo.mp4" cor="#34d399" />
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <Badge cor="#34d399">{t.global.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
@@ -794,7 +796,7 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <Badge claro cor="#a78bfa">{t.visao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#101b3d' }}>
@@ -811,7 +813,7 @@ export default function LandingPage() {
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa" />
             </Reveal>
           </div>
@@ -822,10 +824,10 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff" />
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <Badge cor="#6ab0ff">{t.mente.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
@@ -873,7 +875,7 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <Badge cor="#fbbf24">{t.robots.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
@@ -890,7 +892,7 @@ export default function LandingPage() {
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <VideoFrame src="/videos/robos.mp4" cor="#fbbf24" />
             </Reveal>
           </div>
@@ -929,14 +931,14 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-10 md:gap-14 items-center mb-12">
-            <Reveal className="mx-auto">
+            <Reveal className="mx-auto" de="esquerda">
               <div className="relative">
                 <div className="absolute inset-0 rounded-full" aria-hidden="true"
                   style={{ background: 'radial-gradient(circle, rgba(46,204,155,0.28), transparent 70%)', transform: 'scale(1.35)' }} />
                 <div className="relative"><JosephAvatar tamanho={220} /></div>
               </div>
             </Reveal>
-            <Reveal delay={0.08}>
+            <Reveal delay={0.08} de="direita">
               <h2 className="text-4xl md:text-6xl font-bold mb-5" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.titulo}</h2>
               <p className="text-base md:text-xl leading-relaxed mb-8 max-w-2xl" style={{ color: cBody }}>{t.jose.sub}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -974,7 +976,7 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
-            <Reveal>
+            <Reveal de="esquerda">
               <VideoFrame src="/videos/gerente.mp4" cor="#6ab0ff">
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full z-10"
                   style={{ background: 'rgba(4,10,22,0.92)', border: '1px solid rgba(52,211,153,0.4)' }}>
@@ -983,7 +985,7 @@ export default function LandingPage() {
                 </div>
               </VideoFrame>
             </Reveal>
-            <Reveal delay={0.12}>
+            <Reveal delay={0.12} de="direita">
               <Badge claro cor="#6ab0ff">{t.clowdbot.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#101b3d' }}>
