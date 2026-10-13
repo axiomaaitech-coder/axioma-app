@@ -462,7 +462,7 @@ function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { childre
 
 // ============================================================
 // ENTRADA LATERAL — GSAP ScrollTrigger: o bloco vem de longe da lateral, em 3D e crescendo,
-// acompanhando a rolagem (scrub). Roda mesmo com "menos movimento" do sistema (pedido do Elias).
+// acompanhando a rolagem (scrub). Efeitos da landing não seguem "menos movimento" do sistema (decisão do Elias 2026-10-13).
 // ============================================================
 function useEntradaLateral() {
   useLayoutEffect(() => {
@@ -1161,7 +1161,6 @@ export default function LandingPage() {
         .ax-plano::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2ecc9b; border-radius: 16px 16px 0 0; opacity: 0; transition: opacity 0.25s ease; }
         .ax-plano:hover { transform: translateY(-4px); border-color: rgba(46,204,155,0.6) !important; box-shadow: 0 0 50px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(0,0,0,0.6); }
         .ax-plano:hover::before { opacity: 1; }
-        @media (prefers-reduced-motion: reduce) { .ax-plano, .ax-plano:hover { transform: none; } }
 
         /* Cartões de módulos: nome verde-menta, luz que segue o mouse e borda que acende onde o cursor está */
         .ax-mod { background: linear-gradient(160deg, rgba(10,30,52,0.95), rgba(4,10,22,0.98)); border: 1px solid rgba(46,204,155,0.22); overflow: hidden; isolation: isolate;
@@ -1177,7 +1176,6 @@ export default function LandingPage() {
         .ax-mod:hover::after, .ax-mod:hover::before, .ax-mod:focus-visible::before { opacity: 1; }
         .ax-mod:hover .ax-mod-faixa, .ax-mod:focus-visible .ax-mod-faixa { transform: scaleX(1); }
         .ax-mod:hover .ax-mod-nome { text-shadow: 0 0 22px rgba(46,204,155,0.55); letter-spacing: 0.01em; }
-        @media (prefers-reduced-motion: reduce) { .ax-mod, .ax-mod:hover { transform: none; } }
 
         .ax-neon {
           color: #2ecc9b;
@@ -1199,10 +1197,6 @@ export default function LandingPage() {
         @keyframes logo-float { from { transform: translateY(0); } to { transform: translateY(-10px); } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        @media (prefers-reduced-motion: reduce) {
-          /* Entrada lateral (GSAP) roda sempre, pedido do Elias; brilhos, pulsos e hovers seguem "menos movimento" */
-          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-        }
       `}</style>
     </div>
   )
