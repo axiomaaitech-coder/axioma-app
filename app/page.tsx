@@ -15,6 +15,7 @@ const idiomas = {
     nav: { modulos: 'Módulos', planos: 'Planos', sobre: 'Sobre' },
     hero: {
       slogan: 'O Futuro Financeiro do Brasil Pensa Sozinho.',
+      sloganSub: 'Um diretor financeiro com inteligência artificial que confere cada número da sua empresa, avisa antes do problema chegar e mostra o caminho — em português, inglês e espanhol.',
       legenda1: 'Enquanto o mercado ainda usa planilhas...',
       legenda2: 'A Axioma comanda seu financeiro em tempo real.',
       legenda3: 'A verdade que move empresas.',
@@ -150,6 +151,7 @@ const idiomas = {
     nav: { modulos: 'Modules', planos: 'Plans', sobre: 'About' },
     hero: {
       slogan: 'Brazil’s Financial Future Thinks for Itself.',
+      sloganSub: 'An AI-powered financial director that checks every number in your company, warns you before problems arrive and shows the way — in Portuguese, English and Spanish.',
       legenda1: 'While the market still uses spreadsheets...',
       legenda2: 'Axioma commands your finances in real time.',
       legenda3: 'The truth that moves companies.',
@@ -285,6 +287,7 @@ const idiomas = {
     nav: { modulos: 'Módulos', planos: 'Planes', sobre: 'Sobre' },
     hero: {
       slogan: 'El Futuro Financiero de Brasil Piensa Solo.',
+      sloganSub: 'Un director financiero con inteligencia artificial que revisa cada número de su empresa, avisa antes de que llegue el problema y muestra el camino — en portugués, inglés y español.',
       legenda1: 'Mientras el mercado sigue usando planillas...',
       legenda2: 'Axioma controla tus finanzas en tiempo real.',
       legenda3: 'La verdad que mueve empresas.',
@@ -527,28 +530,94 @@ function NeonBox({ children, className = '' }: { children: React.ReactNode; clas
 // em loop contínuo (sem áudio, sem rotação de slides)
 // ============================================================
 function HeroVideos() {
-  // O vídeo é 3:2 (1764×1176): aparece INTEIRO na altura da tela, sem corte; nas laterais
-  // vai o mesmo vídeo desfocado e escurecido (sem faixa preta). Mesmo arquivo = um download só.
+  // O vídeo é 3:2 (1764×1176): aparece INTEIRO na altura da tela, sem corte. Sem cópia nas laterais
+  // (parecia uma 2ª tela): as bordas do vídeo se dissolvem no fundo escuro.
   const fonte = <source src="/videos/hero-5.mp4" type="video/mp4" />
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
-      {/* Laterais: cópia pequena do vídeo ampliada (fica borrada sozinha, sem filtro de desfoque, que pesa) + véu escuro */}
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <video autoPlay loop muted playsInline tabIndex={-1}
-          className="absolute left-1/2 top-1/2 object-cover"
-          style={{ width: '6%', height: '6%', transform: 'translate(-50%, -50%) scale(20)' }}>
+      {/* Caixa no formato do vídeo (3:2) na altura toda; só as bordas laterais se dissolvem */}
+      <div className="absolute top-0 bottom-0 left-1/2 md:left-[38%] -translate-x-1/2 h-full aspect-[3/2]"
+        style={{ zIndex: 1, WebkitMaskImage: 'linear-gradient(to right, transparent, #000 10%, #000 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, #000 10%, #000 90%, transparent)' }}>
+        <video autoPlay loop muted playsInline preload="auto"
+          controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback
+          className="w-full h-full object-cover">
           {fonte}
         </video>
-        <div className="absolute inset-0" style={{ background: 'rgba(2,8,16,0.6)' }} />
       </div>
-      <video autoPlay loop muted playsInline preload="auto"
-        controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback
-        className="absolute inset-0 w-full h-full object-contain" style={{ zIndex: 1 }}>
-        {fonte}
-      </video>
       <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{ zIndex: 2, background: 'linear-gradient(to top, rgba(2,8,16,0.85), transparent)' }} />
     </div>
+  )
+}
+
+// ============================================================
+// TESTE — faixa branco + azul-marinho + verde-menta (referência do Elias, 2026-10-13).
+// Se não aprovar, basta apagar este componente e o <SecaoBrancaMentaTeste /> abaixo do topo.
+// Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (texto no branco = #0f7a5a)
+// ============================================================
+const TXT_BM = {
+  pt: { t1: 'Gestão Financeira', t2: '& Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua empresa cresce, a gente cresce junto.',
+    saldo: 'Saldo em caixa', p1: 'Você conhece os ', p2: 'números', p3: ' da sua empresa?', cta: 'Quero conhecer',
+    itens: ['Conferência diária', 'Painel de Risco', 'IA Financeira'] },
+  en: { t1: 'Financial Management', t2: '& Intelligence that checks everything', txt: 'Axioma goes beyond accounting: it reads your numbers every day, cross-checks every module and warns you before problems arrive. When your company grows, we grow with it.',
+    saldo: 'Cash balance', p1: 'Do you know your company’s ', p2: 'numbers', p3: '?', cta: 'Show me',
+    itens: ['Daily cross-check', 'Risk Panel', 'Financial AI'] },
+  es: { t1: 'Gestión Financiera', t2: '& Inteligencia que lo revisa todo', txt: 'Axioma va más allá de la contabilidad: lee sus números todos los días, cruza los módulos y avisa antes de que llegue el problema. Si su empresa crece, crecemos juntos.',
+    saldo: 'Saldo en caja', p1: '¿Conoce los ', p2: 'números', p3: ' de su empresa?', cta: 'Quiero conocer',
+    itens: ['Conciliación diaria', 'Panel de Riesgo', 'IA Financiera'] },
+}
+
+function SecaoBrancaMentaTeste({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: () => void }) {
+  const x = TXT_BM[lang]
+  const NAVY = '#101b3d', MENTA = '#2ecc9b', MENTA_TX = '#0f7a5a'
+  const icones = [
+    <path key="a" d="M4 17l5-5 4 3 7-8M4 21h16" />,
+    <path key="b" d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" />,
+    <path key="c" d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" />,
+  ]
+  return (
+    <section style={{ background: '#ffffff' }}>
+      {/* Faixa branca: título + mockup com círculo menta */}
+      <div className="max-w-6xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div>
+          <h2 className="ax-display text-3xl md:text-5xl font-black leading-tight mb-5" style={{ color: NAVY }}>
+            {x.t1}<br /><span style={{ color: MENTA_TX }}>{x.t2}</span>.
+          </h2>
+          <p className="text-sm md:text-base font-medium" style={{ color: '#374151', lineHeight: 1.8 }}>{x.txt}</p>
+        </div>
+        <div className="relative flex justify-center">
+          <div className="absolute rounded-full" style={{ width: 280, height: 280, background: MENTA, bottom: -20, right: '18%' }} />
+          <div className="relative rounded-3xl p-6 w-[260px]" style={{ background: '#ffffff', border: `6px solid ${NAVY}`, boxShadow: '0 24px 60px rgba(16,27,61,0.25)' }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>{x.saldo}</p>
+            <p className="text-3xl font-black mb-4" style={{ color: NAVY }}>R$ 41.140</p>
+            <div className="flex items-end gap-2 h-28">
+              {[40, 55, 35, 70, 60, 85, 95].map((h, i) => (
+                <div key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%`, background: i % 2 ? MENTA : NAVY }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Faixa azul-marinho: pergunta + botão contorno menta */}
+      <div className="px-6 py-14 text-center" style={{ background: NAVY }}>
+        <p className="ax-display text-2xl md:text-3xl font-black mb-7" style={{ color: '#ffffff' }}>
+          {x.p1}<span style={{ color: MENTA }}>{x.p2}</span>{x.p3}
+        </p>
+        <button onClick={onCta} className="px-7 py-3 rounded-full font-bold text-sm transition-all hover:scale-105"
+          style={{ color: '#ffffff', border: `2px solid ${MENTA}`, background: 'transparent' }}>{x.cta}</button>
+      </div>
+      {/* Faixa branca: 3 destaques com ícone menta */}
+      <div className="max-w-5xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-3 gap-10 text-center">
+        {x.itens.map((nome, i) => (
+          <div key={nome} className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: MENTA }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{icones[i]}</svg>
+            </div>
+            <p className="text-lg font-black" style={{ color: MENTA_TX }}>{nome}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -623,10 +692,13 @@ export default function LandingPage() {
       {/* Topo no formato do vídeo (16:9) logo abaixo do menu: vídeo inteiro de ponta a ponta, sem corte nem faixa. Celular: preenche a altura. */}
       <section className="relative w-full mt-[60px] h-[calc(100svh-60px)] min-h-[420px] flex flex-col items-center justify-end overflow-hidden">
         <HeroVideos />
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-24 md:pb-20">
-          <div className="max-w-md text-left">
-            <p className="ax-display text-2xl md:text-4xl font-black mb-5 leading-[1.18]" style={{ color: '#ffffff', textShadow: '0 2px 12px rgba(2,8,16,0.9)' }}>
+        <div className="relative z-10 w-full px-6 md:px-12 pb-24 md:pb-0 md:absolute md:inset-y-0 md:right-0 md:w-auto md:flex md:items-center">
+          <div className="max-w-md md:max-w-[min(26rem,30vw)] text-left">
+            <p className="ax-display text-2xl md:text-4xl font-black mb-3 leading-[1.18]" style={{ color: '#ffffff', textShadow: '0 2px 12px rgba(2,8,16,0.9)' }}>
               {t.hero.slogan}
+            </p>
+            <p className="text-sm md:text-base font-medium mb-5" style={{ color: '#cfe0fa', lineHeight: 1.7, textShadow: '0 2px 10px rgba(2,8,16,0.95)' }}>
+              {t.hero.sloganSub}
             </p>
             <div className="flex">
               {btn(t.comecarGratis, () => router.push('/cadastro'))}
@@ -638,6 +710,8 @@ export default function LandingPage() {
           <div className="w-1 h-8" style={{ background: 'linear-gradient(to bottom, transparent, #2ecc9b)' }} />
         </div>
       </section>
+
+      <SecaoBrancaMentaTeste lang={lang} onCta={() => router.push('/cadastro')} />
 
       {/* ============ SEÇÃO 2 — EINSTEIN (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
