@@ -508,8 +508,8 @@ function VideoFrame({ src, className = '', children }: { src: string; cor?: stri
 function Badge({ children, claro = false }: { children: React.ReactNode; cor?: string; claro?: boolean }) {
   return (
     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-      style={{ background: claro ? 'rgba(46,204,155,0.12)' : 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.4)' }}>
-      <span className="text-xs font-bold tracking-[0.12em]" style={{ color: claro ? '#0f7a5a' : '#2ecc9b' }}>{children}</span>
+      style={claro ? { background: '#2ecc9b' } : { background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.4)' }}>
+      <span className="text-xs font-bold tracking-[0.12em]" style={{ color: claro ? '#101b3d' : '#2ecc9b' }}>{children}</span>
     </div>
   )
 }
@@ -517,10 +517,10 @@ function Badge({ children, claro = false }: { children: React.ReactNode; cor?: s
 // ============================================================
 // CARTÃO — azul-marinho, borda e faixa verde-menta ao passar o mouse (padrão Axioma)
 // ============================================================
-function NeonBox({ children, className = '' }: { children: React.ReactNode; className?: string; cor?: string; corB?: string; corC?: string; corD?: string }) {
+function NeonBox({ children, className = '', fundo = 'rgba(4,10,22,0.97)' }: { children: React.ReactNode; className?: string; fundo?: string; cor?: string; corB?: string; corC?: string; corD?: string }) {
   return (
     <div className={`ax-plano relative rounded-2xl overflow-hidden h-full ${className}`}
-      style={{ background: 'rgba(4,10,22,0.97)', border: '1px solid rgba(46,204,155,0.2)' }}>
+      style={{ background: fundo, border: '1px solid rgba(46,204,155,0.2)' }}>
       {children}
     </div>
   )
@@ -554,7 +554,7 @@ function HeroVideos() {
 // ============================================================
 // TESTE — faixa branco + azul-marinho + verde-menta (referência do Elias, 2026-10-13).
 // Se não aprovar, basta apagar este componente e o <SecaoBrancaMentaTeste /> abaixo do topo.
-// Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (texto no branco = #0f7a5a)
+// Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (todo verde = menta padrão, pedido do Elias 2026-10-13)
 // ============================================================
 const TXT_BM = {
   pt: { t1: 'Gestão Financeira', t2: '& Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua empresa cresce, a gente cresce junto.',
@@ -570,7 +570,7 @@ const TXT_BM = {
 
 function SecaoBrancaMentaTeste({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: () => void }) {
   const x = TXT_BM[lang]
-  const NAVY = '#101b3d', MENTA = '#2ecc9b', MENTA_TX = '#0f7a5a'
+  const NAVY = '#101b3d', MENTA = '#2ecc9b', MENTA_TX = '#2ecc9b'
   const icones = [
     <path key="a" d="M4 17l5-5 4 3 7-8M4 21h16" />,
     <path key="b" d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" />,
@@ -635,7 +635,7 @@ export default function LandingPage() {
     <button onClick={onClick}
       className={`${full ? 'w-full' : ''} relative px-6 py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105 active:scale-95 overflow-hidden group`}
       style={primary
-        ? { background: 'linear-gradient(135deg,#0a4f3b,#0f7d5c)', color: '#fff', boxShadow: '0 4px 24px rgba(46,204,155,0.25)' }
+        ? { background: '#2ecc9b', color: '#101b3d', boxShadow: '0 4px 24px rgba(46,204,155,0.25)' }
         : claro ? { background: 'transparent', color: '#101b3d', border: '1.5px solid #101b3d' }
         : { background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.4)' }}>
       <span className="relative z-10">{label}</span>
@@ -686,7 +686,7 @@ export default function LandingPage() {
             style={{ background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.3)' }}>{t.login}</button>
           <button onClick={() => router.push('/cadastro')}
             className="px-4 py-2 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105"
-            style={{ background: 'linear-gradient(135deg,#0a4f3b,#0f7d5c)', color: '#fff' }}>{t.comecar}</button>
+            style={{ background: '#2ecc9b', color: '#101b3d' }}>{t.comecar}</button>
         </div>
       </nav>
 
@@ -779,11 +779,11 @@ export default function LandingPage() {
               <div className="flex flex-wrap gap-2 mb-5">
                 {t.global.idiomas.map((idioma, i) => (
                   <span key={i} className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-                    style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.25)', color: '#cfe0fa' }}>{idioma}</span>
+                    style={{ background: '#2ecc9b', border: '1px solid #2ecc9b', color: '#ffffff' }}>{idioma}</span>
                 ))}
               </div>
-              <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.2)' }}>
-                <p className="text-sm font-medium" style={{ color: '#cfe0fa' }}>{t.global.copy}</p>
+              <div className="px-4 py-3 rounded-xl mb-5" style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
+                <p className="text-sm font-semibold" style={{ color: '#ffffff' }}>{t.global.copy}</p>
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
@@ -805,8 +805,8 @@ export default function LandingPage() {
               <div className="space-y-2.5 mb-5">
                 {t.visao.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                    style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.2)' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#374151' }}>{item}</span>
+                    style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
+                    <span className="text-sm font-semibold" style={{ color: '#ffffff' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -858,10 +858,10 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {t.seguranca.items.map((item, i) => (
               <Reveal key={i} delay={0.06 * i}>
-                <NeonBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
+                <NeonBox fundo="#2ecc9b" cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
                   <div className="p-5 text-center">
-                    <h3 className="font-bold text-base mb-2" style={{ color: '#0f7a5a' }}>{item.titulo}</h3>
-                    <p className="text-sm font-medium" style={{ color: '#374151', lineHeight: 1.6 }}>{item.desc}</p>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#ffffff' }}>{item.titulo}</h3>
+                    <p className="text-sm font-medium" style={{ color: '#ffffff', lineHeight: 1.6 }}>{item.desc}</p>
                   </div>
                 </NeonBox>
               </Reveal>
@@ -884,8 +884,8 @@ export default function LandingPage() {
               <div className="space-y-2.5 mb-5">
                 {t.robots.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-                    style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.2)' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#cfe0fa' }}>{item}</span>
+                    style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
+                    <span className="text-sm font-semibold" style={{ color: '#ffffff' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -916,7 +916,7 @@ export default function LandingPage() {
               <a key={i} href={m.link ?? '/cadastro'} className="ax-mod group relative block rounded-2xl p-6 md:p-7 min-h-[150px]">
                 <span className="ax-mod-faixa" aria-hidden="true" />
                 <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
-                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#374151' }}>{m.desc}</p>
+                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#ffffff' }}>{m.desc}</p>
               </a>
             ))}
           </div>
@@ -1038,7 +1038,7 @@ export default function LandingPage() {
               return (
               <Reveal key={id} delay={0.07 * i} className="h-full">
                 <div className="ax-plano relative h-full rounded-2xl"
-                  style={{ background: '#ffffff', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
+                  style={{ background: '#101b3d', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
                   {destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap z-10"
                       style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.6)' }}>
@@ -1046,23 +1046,23 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="p-5 pt-7 flex flex-col h-full">
-                    <h3 className="text-2xl font-bold mb-1 text-center" style={{ color: '#0f7a5a', fontFamily: cinzel.style.fontFamily }}>{p.nome[lang]}</h3>
-                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#4b5563' }}>{PLANO_DESCRICAO[id][lang]}</p>
+                    <h3 className="text-2xl font-bold mb-1 text-center" style={{ color: '#2ecc9b', fontFamily: cinzel.style.fontFamily }}>{p.nome[lang]}</h3>
+                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#ffffff' }}>{PLANO_DESCRICAO[id][lang]}</p>
                     <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="text-3xl xl:text-4xl font-bold whitespace-nowrap" style={{ color: '#101b3d', fontFamily: cinzel.style.fontFamily }}>{reais(p.mensalCentavos, lang)}</span>
-                      <span className="text-sm mb-1" style={{ color: '#4b5563' }}>{t.planos.mes}</span>
+                      <span className="text-3xl xl:text-4xl font-bold whitespace-nowrap" style={{ color: '#ffffff', fontFamily: cinzel.style.fontFamily }}>{reais(p.mensalCentavos, lang)}</span>
+                      <span className="text-sm mb-1" style={{ color: '#ffffff' }}>{t.planos.mes}</span>
                     </div>
-                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#4b5563' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
-                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: '#374151' }}>
-                      <p className="font-bold mb-1" style={{ color: '#0f7a5a' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
+                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#ffffff' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
+                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: '#2ecc9b', color: '#ffffff' }}>
+                      <p className="font-bold mb-1" style={{ color: '#101b3d' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
                       <p>{p.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {lang === 'en' ? 'standard AI questions' : lang === 'es' ? 'preguntas IA común' : 'perguntas IA comum'}</p>
                       <p>{p.ia.anthropic} {lang === 'en' ? 'advanced AI questions' : lang === 'es' ? 'preguntas IA avanzada' : 'perguntas IA avançada'}</p>
                       <p>{p.ia.nota} {lang === 'en' ? 'invoices read by AI' : lang === 'es' ? 'facturas leídas por IA' : 'notas lidas pela IA'}</p>
                     </div>
                     <div className="space-y-2 mb-5 flex-1">
                       {PLANO_RECURSOS[id][lang].map((f, j) => (
-                        <div key={j} className="flex items-start gap-2 text-sm font-medium" style={{ color: '#374151' }}>
-                          <span style={{ color: '#0f7a5a' }}>✓</span> <span>{f}</span>
+                        <div key={j} className="flex items-start gap-2 text-sm font-medium" style={{ color: '#ffffff' }}>
+                          <span style={{ color: '#2ecc9b' }}>✓</span> <span>{f}</span>
                         </div>
                       ))}
                     </div>
@@ -1093,7 +1093,7 @@ export default function LandingPage() {
           <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.cta.sub}</p>
           <button onClick={() => router.push('/cadastro')}
             className="relative px-10 md:px-20 py-5 md:py-7 rounded-2xl font-black text-sm md:text-xl tracking-widest uppercase hover:scale-105 transition-all overflow-hidden group"
-            style={{ background: 'linear-gradient(135deg,#0a4f3b,#0f7d5c)', color: '#fff', boxShadow: '0 8px 40px rgba(46,204,155,0.3)' }}>
+            style={{ background: '#2ecc9b', color: '#101b3d', boxShadow: '0 8px 40px rgba(46,204,155,0.3)' }}>
             <span className="relative z-10">{t.cta.btn}</span>
             <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
               style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
@@ -1117,15 +1117,13 @@ export default function LandingPage() {
 
       <style jsx global>{`
         .ax-root { font-family: var(--ax-texto), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
-        .ax-root .ax-display { font-family: var(--ax-titulo), sans-serif; letter-spacing: -0.02em; font-weight: 700; }
-        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: var(--ax-titulo), sans-serif; line-height: 1.18; padding-bottom: 0.12em; font-weight: 700; letter-spacing: -0.015em; }
+        .ax-root .ax-display { font-family: var(--ax-titulo), sans-serif; letter-spacing: -0.01em; font-weight: 700; }
+        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: var(--ax-titulo), sans-serif; line-height: 1.18; padding-bottom: 0.12em; font-weight: 700; letter-spacing: -0.005em; }
         .ax-eyebrow { font-family: var(--ax-titulo), sans-serif; }
 
         /* Faixas brancas (teste de alternância branco / azul-marinho / verde-menta) */
-        .ax-claro .ax-mod { background: #ffffff; border-color: #e4e7ec; box-shadow: 0 10px 30px -18px rgba(16,27,61,0.25); }
-        .ax-claro .ax-mod-nome { color: #0f7a5a; text-shadow: none; }
-        .ax-claro .ax-mod:hover .ax-mod-nome { text-shadow: none; }
-        .ax-claro .ax-plano { background: #ffffff !important; box-shadow: 0 10px 30px -18px rgba(16,27,61,0.25); }
+        .ax-claro .ax-mod { background: #101b3d; border-color: rgba(46,204,155,0.3); box-shadow: 0 14px 34px -18px rgba(16,27,61,0.45); }
+        .ax-claro .ax-plano { box-shadow: 0 14px 34px -18px rgba(16,27,61,0.45); }
         .ax-claro .ax-plano:hover { box-shadow: 0 0 40px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(16,27,61,0.3); }
 
         .ax-tilt { transition: transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.45s ease; transform-style: preserve-3d; }
@@ -1147,7 +1145,7 @@ export default function LandingPage() {
         .ax-mod::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; opacity: 0; transition: opacity 0.35s ease;
           background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), #2ecc9b, transparent 70%);
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-        .ax-mod-faixa { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #0f7d5c, #2ecc9b, #0f7d5c); transform: scaleX(0); transform-origin: left; transition: transform 0.45s cubic-bezier(0.22,1,0.36,1); }
+        .ax-mod-faixa { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2ecc9b; transform: scaleX(0); transform-origin: left; transition: transform 0.45s cubic-bezier(0.22,1,0.36,1); }
         .ax-mod-nome { color: #2ecc9b; text-shadow: 0 0 18px rgba(46,204,155,0.25); transition: text-shadow 0.35s ease, letter-spacing 0.35s ease; }
         .ax-mod:hover, .ax-mod:focus-visible { transform: translateY(-6px); border-color: rgba(46,204,155,0.55); box-shadow: 0 24px 50px -24px rgba(46,204,155,0.45), 0 0 0 1px rgba(46,204,155,0.08) inset; outline: none; }
         .ax-mod:hover::after, .ax-mod:hover::before, .ax-mod:focus-visible::before { opacity: 1; }
