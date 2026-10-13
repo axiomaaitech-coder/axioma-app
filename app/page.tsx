@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cinzel } from './(interno)/nexus/fonteJose'
+import { fonteTitulo, fonteTexto } from './fontesLanding'
 import { JosephAvatar } from '../components/JosephAvatar'
 import { PLANOS, PLANO_RECURSOS, PLANO_DESCRICAO, ORDEM_PLANOS, reais } from '../lib/planos'
 
@@ -504,11 +505,11 @@ function VideoFrame({ src, className = '', children }: { src: string; cor?: stri
 // ============================================================
 // BADGE — eyebrow premium reutilizável
 // ============================================================
-function Badge({ children }: { children: React.ReactNode; cor?: string }) {
+function Badge({ children, claro = false }: { children: React.ReactNode; cor?: string; claro?: boolean }) {
   return (
     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-      style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.4)' }}>
-      <span className="text-xs font-bold tracking-[0.12em]" style={{ color: '#2ecc9b' }}>{children}</span>
+      style={{ background: claro ? 'rgba(46,204,155,0.12)' : 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.4)' }}>
+      <span className="text-xs font-bold tracking-[0.12em]" style={{ color: claro ? '#0f7a5a' : '#2ecc9b' }}>{children}</span>
     </div>
   )
 }
@@ -630,11 +631,12 @@ export default function LandingPage() {
   const t = idiomas[lang]
 
 
-  const btn = (label: string, onClick: () => void, primary = true, full = false) => (
+  const btn = (label: string, onClick: () => void, primary = true, full = false, claro = false) => (
     <button onClick={onClick}
       className={`${full ? 'w-full' : ''} relative px-6 py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105 active:scale-95 overflow-hidden group`}
       style={primary
         ? { background: 'linear-gradient(135deg,#0a4f3b,#0f7d5c)', color: '#fff', boxShadow: '0 4px 24px rgba(46,204,155,0.25)' }
+        : claro ? { background: 'transparent', color: '#101b3d', border: '1.5px solid #101b3d' }
         : { background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.4)' }}>
       <span className="relative z-10">{label}</span>
       {primary && (
@@ -659,7 +661,7 @@ export default function LandingPage() {
   const cGold = '#F5D27A'
 
   return (
-    <div className="ax-root" style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div className={`ax-root ${fonteTitulo.variable} ${fonteTexto.variable}`} style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* ============ NAVBAR ============ */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 md:px-10 py-3"
@@ -714,8 +716,7 @@ export default function LandingPage() {
       <SecaoBrancaMentaTeste lang={lang} onCta={() => router.push('/cadastro')} />
 
       {/* ============ SEÇÃO 2 — EINSTEIN (vídeo 70 / texto 30) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(10,22,40,0.95), rgba(2,8,16,1))' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
@@ -739,22 +740,22 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 3 — PLATÃO / NÚCLEO (vídeo 70 / texto 30) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
             <Reveal>
               <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" />
             </Reveal>
             <Reveal delay={0.12}>
-              <Badge cor="#a78bfa">{t.platao.badge}</Badge>
+              <Badge claro cor="#a78bfa">{t.platao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-5 leading-tight"
-                style={{ color: '#eaf2ff' }}>
+                style={{ color: '#101b3d' }}>
                 {t.platao.titulo}
               </h2>
               <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(46,204,155,0.06)', borderLeft: '3px solid #2ecc9b' }}>
-                <p className="text-xs md:text-sm italic font-medium" style={{ color: '#e6dcfc', lineHeight: 1.6 }}>{t.platao.copy}</p>
+                <p className="text-xs md:text-sm italic font-medium" style={{ color: '#374151', lineHeight: 1.6 }}>{t.platao.copy}</p>
               </div>
-              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.8 }}>{t.platao.texto}</p>
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: '#374151', lineHeight: 1.8 }}>{t.platao.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
           </div>
@@ -762,8 +763,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 4 — DOMÍNIO GLOBAL (vídeo 70 / texto 30) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.8),rgba(2,8,16,1))' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
             <Reveal>
@@ -792,21 +792,21 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 5 — VISÃO CIRÚRGICA (texto 30 / vídeo 70) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
-              <Badge cor="#a78bfa">{t.visao.badge}</Badge>
+              <Badge claro cor="#a78bfa">{t.visao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
-                style={{ color: '#eaf2ff' }}>
+                style={{ color: '#101b3d' }}>
                 {t.visao.titulo}
               </h2>
-              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.visao.sub}</p>
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: '#374151', lineHeight: 1.7 }}>{t.visao.sub}</p>
               <div className="space-y-2.5 mb-5">
                 {t.visao.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                     style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.2)' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#cfe0fa' }}>{item}</span>
+                    <span className="text-sm font-semibold" style={{ color: '#374151' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -820,8 +820,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 6 — MENTE ONISCIENTE (vídeo 70 / texto 30) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
             <Reveal>
@@ -841,15 +840,15 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 7 — SEGURANÇA (BANNER largura total) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <Reveal className="text-center mb-10">
-            <Badge cor="#34d399">{t.seguranca.badge}</Badge>
+            <Badge claro cor="#34d399">{t.seguranca.badge}</Badge>
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-4"
-              style={{ color: '#eaf2ff' }}>
+              style={{ color: '#101b3d' }}>
               {t.seguranca.titulo}
             </h2>
-            <p className="text-sm md:text-lg max-w-2xl mx-auto font-medium" style={{ color: cBody }}>{t.seguranca.sub}</p>
+            <p className="text-sm md:text-lg max-w-2xl mx-auto font-medium" style={{ color: '#374151' }}>{t.seguranca.sub}</p>
           </Reveal>
           <Reveal delay={0.1}>
             <div className="mb-12">
@@ -861,8 +860,8 @@ export default function LandingPage() {
               <Reveal key={i} delay={0.06 * i}>
                 <NeonBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
                   <div className="p-5 text-center">
-                    <h3 className="font-bold text-base mb-2" style={{ color: '#2ecc9b' }}>{item.titulo}</h3>
-                    <p className="text-sm font-medium" style={{ color: cBody, lineHeight: 1.6 }}>{item.desc}</p>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#0f7a5a' }}>{item.titulo}</h3>
+                    <p className="text-sm font-medium" style={{ color: '#374151', lineHeight: 1.6 }}>{item.desc}</p>
                   </div>
                 </NeonBox>
               </Reveal>
@@ -872,7 +871,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 8 — EXÉRCITO DE IA (texto 30 / vídeo 70) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
@@ -900,12 +899,11 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 9 — MÓDULOS (banner dna + grid) ============ */}
-      <section className="relative py-20 md:py-32"
-        style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
+      <section className="relative py-20 md:py-32 ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <Reveal className="text-center mb-10">
-            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#eaf2ff' }}>{t.modulos.titulo}</h2>
-            <p className="text-sm md:text-lg font-medium" style={{ color: cMuted }}>{t.modulos.sub}</p>
+            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#101b3d' }}>{t.modulos.titulo}</h2>
+            <p className="text-sm md:text-lg font-medium" style={{ color: '#4b5563' }}>{t.modulos.sub}</p>
           </Reveal>
           <Reveal delay={0.08}>
             <div className="mb-12">
@@ -918,7 +916,7 @@ export default function LandingPage() {
               <a key={i} href={m.link ?? '/cadastro'} className="ax-mod group relative block rounded-2xl p-6 md:p-7 min-h-[150px]">
                 <span className="ax-mod-faixa" aria-hidden="true" />
                 <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
-                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: cBody }}>{m.desc}</p>
+                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#374151' }}>{m.desc}</p>
               </a>
             ))}
           </div>
@@ -929,8 +927,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 9b — NEXUS E O JOSÉ (resumo da página /nexus-jose) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 20% 30%, rgba(46,204,155,0.08), transparent 55%), #020810' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-10 md:gap-14 items-center mb-12">
             <Reveal className="mx-auto">
@@ -975,7 +972,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 10 — CLOWDBOT (vídeo 70 / texto 30) ============ */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
             <Reveal>
@@ -988,15 +985,15 @@ export default function LandingPage() {
               </VideoFrame>
             </Reveal>
             <Reveal delay={0.12}>
-              <Badge cor="#6ab0ff">{t.clowdbot.badge}</Badge>
+              <Badge claro cor="#6ab0ff">{t.clowdbot.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
-                style={{ color: '#eaf2ff' }}>
+                style={{ color: '#101b3d' }}>
                 {t.clowdbot.titulo}
               </h2>
-              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.clowdbot.sub}</p>
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: '#374151', lineHeight: 1.7 }}>{t.clowdbot.sub}</p>
               <div className="flex flex-wrap gap-3">
                 {btn(lang === 'en' ? 'Meet Nexus and José' : lang === 'es' ? 'Conozca Nexus y José' : 'Conheça o Nexus e o José', () => router.push('/nexus-jose'))}
-                {btn(t.comecar, () => router.push('/cadastro'), false)}
+                {btn(t.comecar, () => router.push('/cadastro'), false, false, true)}
               </div>
             </Reveal>
           </div>
@@ -1004,8 +1001,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 11 — DESTAQUE ROBÔ IA (banner antes dos planos) ============ */}
-      <section className="relative py-16 md:py-24 overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(10,22,40,0.9), rgba(2,8,16,1))' }}>
+      <section className="relative py-16 md:py-24 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-5xl mx-auto px-4 relative z-10 text-center">
           <Reveal>
             <Badge>{lang === 'en' ? 'SMART PANEL' : lang === 'es' ? 'PANEL INTELIGENTE' : 'PAINEL INTELIGENTE'}</Badge>
@@ -1026,15 +1022,14 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 12 — PLANOS 4 NÍVEIS ============ */}
-      <section className="relative py-20 md:py-32"
-        style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.95),rgba(2,8,16,1))' }}>
+      <section className="relative py-20 md:py-32 ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <Reveal className="text-center mb-14">
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-3"
-              style={{ color: '#eaf2ff' }}>
+              style={{ color: '#101b3d' }}>
               {t.planos.titulo}
             </h2>
-            <p className="text-sm font-medium" style={{ color: cMuted }}>{t.planos.sub}</p>
+            <p className="text-sm font-medium" style={{ color: '#4b5563' }}>{t.planos.sub}</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-4">
             {ORDEM_PLANOS.map((id, i) => {
@@ -1043,7 +1038,7 @@ export default function LandingPage() {
               return (
               <Reveal key={id} delay={0.07 * i} className="h-full">
                 <div className="ax-plano relative h-full rounded-2xl"
-                  style={{ background: 'rgba(4,10,22,0.97)', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
+                  style={{ background: '#ffffff', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
                   {destaque && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap z-10"
                       style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.6)' }}>
@@ -1051,23 +1046,23 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="p-5 pt-7 flex flex-col h-full">
-                    <h3 className="text-2xl font-bold mb-1 text-center" style={{ color: '#2ecc9b', fontFamily: cinzel.style.fontFamily }}>{p.nome[lang]}</h3>
-                    <p className="text-sm text-center mb-3 font-medium" style={{ color: cMuted }}>{PLANO_DESCRICAO[id][lang]}</p>
+                    <h3 className="text-2xl font-bold mb-1 text-center" style={{ color: '#0f7a5a', fontFamily: cinzel.style.fontFamily }}>{p.nome[lang]}</h3>
+                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#4b5563' }}>{PLANO_DESCRICAO[id][lang]}</p>
                     <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="text-3xl xl:text-4xl font-bold whitespace-nowrap" style={{ color: '#ffffff', fontFamily: cinzel.style.fontFamily }}>{reais(p.mensalCentavos, lang)}</span>
-                      <span className="text-sm mb-1" style={{ color: cMuted }}>{t.planos.mes}</span>
+                      <span className="text-3xl xl:text-4xl font-bold whitespace-nowrap" style={{ color: '#101b3d', fontFamily: cinzel.style.fontFamily }}>{reais(p.mensalCentavos, lang)}</span>
+                      <span className="text-sm mb-1" style={{ color: '#4b5563' }}>{t.planos.mes}</span>
                     </div>
-                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#9ab6e2' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
-                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: cBody }}>
-                      <p className="font-bold mb-1" style={{ color: '#2ecc9b' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
+                    <p className="text-sm text-center mb-3 font-medium" style={{ color: '#4b5563' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
+                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: 'rgba(46,204,155,0.06)', border: '1px solid rgba(46,204,155,0.18)', color: '#374151' }}>
+                      <p className="font-bold mb-1" style={{ color: '#0f7a5a' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
                       <p>{p.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {lang === 'en' ? 'standard AI questions' : lang === 'es' ? 'preguntas IA común' : 'perguntas IA comum'}</p>
                       <p>{p.ia.anthropic} {lang === 'en' ? 'advanced AI questions' : lang === 'es' ? 'preguntas IA avanzada' : 'perguntas IA avançada'}</p>
                       <p>{p.ia.nota} {lang === 'en' ? 'invoices read by AI' : lang === 'es' ? 'facturas leídas por IA' : 'notas lidas pela IA'}</p>
                     </div>
                     <div className="space-y-2 mb-5 flex-1">
                       {PLANO_RECURSOS[id][lang].map((f, j) => (
-                        <div key={j} className="flex items-start gap-2 text-sm font-medium" style={{ color: cBody }}>
-                          <span style={{ color: '#2ecc9b' }}>✓</span> <span>{f}</span>
+                        <div key={j} className="flex items-start gap-2 text-sm font-medium" style={{ color: '#374151' }}>
+                          <span style={{ color: '#0f7a5a' }}>✓</span> <span>{f}</span>
                         </div>
                       ))}
                     </div>
@@ -1078,16 +1073,16 @@ export default function LandingPage() {
               )
             })}
           </div>
-          <p className="text-center text-xs mt-8 font-medium" style={{ color: '#5a7aaa' }}>{t.semCartao}</p>
+          <p className="text-center text-xs mt-8 font-medium" style={{ color: '#4b5563' }}>{t.semCartao}</p>
         </div>
       </section>
 
       {/* ============ SEÇÃO 13 — CTA FINAL (logo no lugar do foguete) ============ */}
-      <section className="relative py-24 md:py-40 overflow-hidden text-center">
+      <section className="relative py-24 md:py-40 overflow-hidden text-center" style={{ background: '#101b3d' }}>
         <div className="absolute inset-0">
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(46,204,155,0.12) 0%, transparent 60%)', animation: 'pulse-aura 4s ease-in-out infinite alternate' }} />
         </div>
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom,rgba(2,8,16,0.7),rgba(2,8,16,0.5),rgba(2,8,16,0.95))' }} />
+        <div className="absolute inset-0" style={{ background: 'transparent' }} />
         <Reveal className="relative z-10 max-w-4xl mx-auto px-4">
           <img src="/logo-aitech.png" alt="Axioma" className="mx-auto mb-6"
             style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(46,204,155,0.6))', animation: 'logo-float 4s ease-in-out infinite alternate' }} />
@@ -1104,7 +1099,7 @@ export default function LandingPage() {
               style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
           </button>
           <p className="text-sm mt-4 font-medium" style={{ color: cMuted }}>{t.cta.sub2}</p>
-          <p className="text-xs mt-2" style={{ color: '#5a7aaa' }}>{t.semCartao}</p>
+          <p className="text-xs mt-2" style={{ color: '#9ab6e2' }}>{t.semCartao}</p>
         </Reveal>
       </section>
 
@@ -1121,12 +1116,17 @@ export default function LandingPage() {
       </footer>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+        .ax-root { font-family: var(--ax-texto), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+        .ax-root .ax-display { font-family: var(--ax-titulo), sans-serif; letter-spacing: -0.02em; font-weight: 700; }
+        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: var(--ax-titulo), sans-serif; line-height: 1.18; padding-bottom: 0.12em; font-weight: 700; letter-spacing: -0.015em; }
+        .ax-eyebrow { font-family: var(--ax-titulo), sans-serif; }
 
-        .ax-root { font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
-        .ax-display { font-family: 'Sora', 'Inter', sans-serif; letter-spacing: -0.01em; }
-        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: 'Sora', 'Inter', sans-serif; line-height: 1.18; padding-bottom: 0.12em; }
-        .ax-eyebrow { font-family: 'Sora', sans-serif; }
+        /* Faixas brancas (teste de alternância branco / azul-marinho / verde-menta) */
+        .ax-claro .ax-mod { background: #ffffff; border-color: #e4e7ec; box-shadow: 0 10px 30px -18px rgba(16,27,61,0.25); }
+        .ax-claro .ax-mod-nome { color: #0f7a5a; text-shadow: none; }
+        .ax-claro .ax-mod:hover .ax-mod-nome { text-shadow: none; }
+        .ax-claro .ax-plano { background: #ffffff !important; box-shadow: 0 10px 30px -18px rgba(16,27,61,0.25); }
+        .ax-claro .ax-plano:hover { box-shadow: 0 0 40px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(16,27,61,0.3); }
 
         .ax-tilt { transition: transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.45s ease; transform-style: preserve-3d; }
         .ax-tilt:hover { transform: perspective(900px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.02); }
