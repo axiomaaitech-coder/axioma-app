@@ -442,9 +442,9 @@ function useInView<T extends HTMLElement>(threshold = 0.15) {
 // de: por onde o bloco entra ao rolar a página (baixo = padrão; esquerda/direita = surge da lateral)
 function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { children: React.ReactNode; delay?: number; className?: string; de?: 'baixo' | 'esquerda' | 'direita' }) {
   const { ref, inView } = useInView<HTMLDivElement>()
-  const inicio = de === 'esquerda' ? 'translateX(-90px)' : de === 'direita' ? 'translateX(90px)' : 'translateY(34px)'
+  const inicio = de === 'esquerda' ? 'translateX(-160px)' : de === 'direita' ? 'translateX(160px)' : 'translateY(34px)'
   return (
-    <div ref={ref} className={className}
+    <div ref={ref} className={`ax-reveal ${className}`}
       style={{
         opacity: inView ? 1 : 0,
         transform: inView ? 'translate(0, 0)' : inicio,
@@ -1175,7 +1175,10 @@ export default function LandingPage() {
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (prefers-reduced-motion: reduce) {
-          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+          /* Entrada ao rolar (.ax-reveal) roda sempre: acontece uma vez só e o Elias pediu o efeito;
+             o resto (brilhos, pulsos, hovers) segue a preferência de "menos movimento" do sistema */
+          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+          *:not(.ax-reveal) { transition-duration: 0.001ms !important; }
         }
       `}</style>
     </div>
