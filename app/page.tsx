@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cinzel } from './(interno)/nexus/fonteJose'
-import { fonteTitulo, fonteTexto } from './fontesLanding'
+import { fonteRedHat } from './fontesLanding'
 import { JosephAvatar } from '../components/JosephAvatar'
 import { PLANOS, PLANO_RECURSOS, PLANO_DESCRICAO, ORDEM_PLANOS, reais } from '../lib/planos'
 
@@ -552,8 +552,7 @@ function HeroVideos() {
 }
 
 // ============================================================
-// TESTE — faixa branco + azul-marinho + verde-menta (referência do Elias, 2026-10-13).
-// Se não aprovar, basta apagar este componente e o <SecaoBrancaMentaTeste /> abaixo do topo.
+// Faixa branco + azul-marinho + verde-menta (referência do Elias, aprovada 2026-10-13).
 // Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (todo verde = menta padrão, pedido do Elias 2026-10-13)
 // ============================================================
 const TXT_BM = {
@@ -568,7 +567,7 @@ const TXT_BM = {
     itens: ['Conciliación diaria', 'Panel de Riesgo', 'IA Financiera'] },
 }
 
-function SecaoBrancaMentaTeste({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: () => void }) {
+function SecaoBrancaMenta({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: () => void }) {
   const x = TXT_BM[lang]
   const NAVY = '#101b3d', MENTA = '#2ecc9b', MENTA_TX = '#2ecc9b'
   const icones = [
@@ -661,7 +660,7 @@ export default function LandingPage() {
   const cGold = '#F5D27A'
 
   return (
-    <div className={`ax-root ${fonteTitulo.variable} ${fonteTexto.variable}`} style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div className={`ax-root ${fonteRedHat.variable}`} style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
 
       {/* ============ NAVBAR ============ */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 md:px-10 py-3"
@@ -713,7 +712,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <SecaoBrancaMentaTeste lang={lang} onCta={() => router.push('/cadastro')} />
+      <SecaoBrancaMenta lang={lang} onCta={() => router.push('/cadastro')} />
 
       {/* ============ SEÇÃO 2 — EINSTEIN (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden" style={{ background: '#101b3d' }}>
@@ -860,8 +859,8 @@ export default function LandingPage() {
               <Reveal key={i} delay={0.06 * i}>
                 <NeonBox fundo="#2ecc9b" cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
                   <div className="p-5 text-center">
-                    <h3 className="font-bold text-base mb-2" style={{ color: '#ffffff' }}>{item.titulo}</h3>
-                    <p className="text-sm font-medium" style={{ color: '#ffffff', lineHeight: 1.6 }}>{item.desc}</p>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#101b3d' }}>{item.titulo}</h3>
+                    <p className="text-sm font-medium" style={{ color: '#101b3d', lineHeight: 1.6 }}>{item.desc}</p>
                   </div>
                 </NeonBox>
               </Reveal>
@@ -1116,12 +1115,12 @@ export default function LandingPage() {
       </footer>
 
       <style jsx global>{`
-        .ax-root { font-family: var(--ax-texto), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
-        .ax-root .ax-display { font-family: var(--ax-titulo), sans-serif; letter-spacing: -0.01em; font-weight: 700; }
-        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: var(--ax-titulo), sans-serif; line-height: 1.18; padding-bottom: 0.12em; font-weight: 700; letter-spacing: -0.005em; }
-        .ax-eyebrow { font-family: var(--ax-titulo), sans-serif; }
+        .ax-root { font-family: var(--f-redhat), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+        .ax-root .ax-display { font-family: var(--f-redhat), sans-serif; letter-spacing: -0.01em; font-weight: 700; }
+        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: var(--f-redhat), sans-serif; line-height: 1.18; padding-bottom: 0.12em; font-weight: 700; letter-spacing: -0.005em; }
+        .ax-eyebrow { font-family: var(--f-redhat), sans-serif; }
 
-        /* Faixas brancas (teste de alternância branco / azul-marinho / verde-menta) */
+        /* Faixas brancas (alternância branco / azul-marinho / verde-menta) */
         .ax-claro .ax-mod { background: #101b3d; border-color: rgba(46,204,155,0.3); box-shadow: 0 14px 34px -18px rgba(16,27,61,0.45); }
         .ax-claro .ax-plano { box-shadow: 0 14px 34px -18px rgba(16,27,61,0.45); }
         .ax-claro .ax-plano:hover { box-shadow: 0 0 40px rgba(46,204,155,0.18), 0 18px 40px -20px rgba(16,27,61,0.3); }
