@@ -80,31 +80,48 @@ const idiomas = {
       sub: 'Mais de 40 módulos integrados, do MEI à empresa com vários sócios.',
       lista: [
         { nome: 'Nexus e o José', desc: 'Economia, mercado e notícias cruzados com a sua empresa', link: '/nexus-jose' },
-        { nome: 'MEI completo', desc: 'Abrir MEI/ME, pagar o DAS, DASN e limite de faturamento' },
-        { nome: 'Contas a Pagar', desc: 'Pague contas por dentro do Axioma' },
-        { nome: 'Contas a Receber', desc: 'Cobrança e baixa de recebimentos' },
-        { nome: 'Fluxo de Caixa', desc: 'Saldo real e previsão do caixa' },
-        { nome: 'DRE', desc: 'Resultado por competência, mês a mês' },
-        { nome: 'Receitas e Custos', desc: 'Fixos, variáveis e por categoria' },
-        { nome: 'Contabilidade', desc: 'Livro Razão, Balancete e DRE contábil' },
-        { nome: 'Fiscal e Reforma Tributária', desc: 'Regras oficiais vigentes, com fonte' },
-        { nome: 'PDV', desc: 'Ponto de venda ligado ao estoque' },
-        { nome: 'Estoque', desc: 'Entradas, giro e curva ABC' },
-        { nome: 'Clientes e Fornecedores', desc: 'Cadastro, histórico e contratos' },
-        { nome: 'Inadimplência', desc: 'Régua de cobrança e acordos' },
-        { nome: 'Tesouraria', desc: 'Previsão de 7 a 90 dias' },
-        { nome: 'Endividamento', desc: 'Dívidas, juros e parcelas' },
-        { nome: 'Metas e Investimentos', desc: 'Acompanhe objetivos e carteira' },
-        { nome: 'Simulações', desc: 'Cenários sem mexer nos dados reais' },
+        { nome: 'Dashboard', desc: 'A empresa inteira em uma tela, com atalhos para tudo' },
+        { nome: 'Painel MEI', desc: 'Limite, DAS e quanto do dinheiro é seu' },
+        { nome: 'Cockpit MEI', desc: 'A foto do dia do MEI em quatro vereditos' },
+        { nome: 'Faturamento MEI', desc: 'Vendas do ano e quanto já usou do limite' },
+        { nome: 'DAS e Obrigações MEI', desc: 'DAS mês a mês, pagar por dentro, DASN e abrir MEI/ME' },
+        { nome: 'Reforma Tributária no MEI', desc: 'O que muda no seu MEI, com prazo real' },
+        { nome: 'Precificação MEI', desc: 'Preço mínimo real para não trabalhar de graça' },
+        { nome: 'IA MEI Advisor', desc: 'Consultor do MEI com os seus números reais' },
+        { nome: 'Imposto de Renda do MEI', desc: 'IRPF com as regras oficiais de 2026' },
+        { nome: 'Receitas', desc: 'Todas as entradas de dinheiro da empresa' },
+        { nome: 'Custos Fixos', desc: 'Gastos de todo mês, com vigência e renovações' },
+        { nome: 'Custos Variáveis', desc: 'Margem de contribuição e ponto de equilíbrio' },
+        { nome: 'Fluxo de Caixa', desc: 'O que entrou, o que saiu e quanto haverá' },
+        { nome: 'DRE', desc: 'Lucro ou prejuízo por competência, e o porquê' },
+        { nome: 'Endividamento', desc: 'Qual dívida pagar primeiro e se vale refinanciar' },
+        { nome: 'Tesouraria', desc: 'Caixa, previsão de 7 a 90 dias e simulador' },
+        { nome: 'Contador', desc: 'O que o Axioma achou nos números, fechamento e lançamentos' },
+        { nome: 'Fiscal', desc: 'Obrigações e nota de saúde fiscal explicada' },
+        { nome: 'Livro Razão', desc: 'Extrato de cada conta contábil com saldo acumulado' },
+        { nome: 'Balancete', desc: 'Saldo de todas as contas e a prova de que fecha' },
+        { nome: 'DRE Contábil', desc: 'Resultado calculado direto do Livro Razão' },
+        { nome: 'Metas', desc: 'Progresso automático pelos números reais' },
+        { nome: 'Investimentos', desc: 'Onde está o capital e quanto rende' },
+        { nome: 'Simulações', desc: 'Teste decisões antes de arriscar o caixa' },
         { nome: 'Precificação', desc: 'Preço com custo e imposto reais' },
+        { nome: 'Clientes', desc: 'Valor, risco e oportunidade de cada cliente' },
+        { nome: 'Fornecedores', desc: 'Nota, risco e inteligência de compras' },
+        { nome: 'Contas a Pagar', desc: 'Contas com fornecedores, pagas por dentro do Axioma' },
+        { nome: 'Contas a Receber', desc: 'Recebimentos, cobrança e baixa' },
+        { nome: 'Inadimplência', desc: 'Régua de cobrança e acordos' },
+        { nome: 'Estoque', desc: 'Saldo, custo médio, validade e curva ABC' },
+        { nome: 'PDV', desc: 'Frente de caixa ligada ao estoque, com retaguarda' },
         { nome: 'Centros de Custo', desc: 'Gastos por área ou projeto' },
-        { nome: 'Importar documentos', desc: 'NF-e, extrato, PDF e foto lidos pela IA' },
-        { nome: 'Open Finance', desc: 'Conexão bancária via Pluggy' },
-        { nome: 'IA Financeira', desc: 'Respostas com os números da empresa' },
-        { nome: 'IA Tributária', desc: 'Impostos e regimes com regras oficiais' },
-        { nome: 'Painel de Risco', desc: 'Nota de risco e métricas do CFO' },
-        { nome: 'Conferência e Rastreabilidade', desc: 'Cada valor conferido, da origem ao destino' },
+        { nome: 'Importar Documentos', desc: 'NF-e, extrato, PDF e foto lançados no lugar certo' },
+        { nome: 'Open Finance', desc: 'Conecta o banco e confere com o extrato' },
+        { nome: 'IA Financeira', desc: 'Seu CFO digital com dados reais' },
+        { nome: 'IA Tributária', desc: 'Simulação de regimes e economia de impostos' },
+        { nome: 'Painel de Risco', desc: 'Nota de 0 a 100 e métricas do CFO' },
+        { nome: 'Conferência', desc: 'DRE, Contabilidade e Fluxo batendo mês a mês' },
+        { nome: 'Rastreabilidade', desc: 'O caminho de cada dinheiro entre os módulos' },
         { nome: 'Relatórios', desc: 'PDF, Excel e CSV prontos para compartilhar' },
+        { nome: 'Empresa', desc: 'Cadastro, compliance e cofre de documentos' },
         { nome: 'Equipe', desc: 'Pessoas com hierarquia e permissões' },
         { nome: 'Manual completo', desc: 'Cada tela explicada em 3 idiomas' },
       ] as { nome: string; desc: string; link?: string }[],
@@ -216,31 +233,48 @@ const idiomas = {
       sub: '40+ integrated modules, from MEI to companies with many partners.',
       lista: [
         { nome: 'Nexus and José', desc: 'Economy, markets and news matched to your company', link: '/nexus-jose' },
-        { nome: 'Full MEI', desc: 'Open an MEI/ME, pay the DAS, DASN and revenue limit' },
-        { nome: 'Accounts Payable', desc: 'Pay bills from inside Axioma' },
-        { nome: 'Accounts Receivable', desc: 'Collections and receipt settlement' },
-        { nome: 'Cash Flow', desc: 'Real balance and cash forecast' },
-        { nome: 'P&L', desc: 'Accrual-basis results, month by month' },
-        { nome: 'Revenue and Costs', desc: 'Fixed, variable and by category' },
-        { nome: 'Accounting', desc: 'General Ledger, Trial Balance and accounting P&L' },
-        { nome: 'Tax and Tax Reform', desc: 'Current official rules, with sources' },
-        { nome: 'POS', desc: 'Point of sale linked to inventory' },
-        { nome: 'Inventory', desc: 'Entries, turnover and ABC curve' },
-        { nome: 'Customers and Suppliers', desc: 'Records, history and contracts' },
-        { nome: 'Defaults', desc: 'Collection ladder and agreements' },
-        { nome: 'Treasury', desc: '7 to 90-day forecast' },
-        { nome: 'Debt', desc: 'Loans, interest and installments' },
-        { nome: 'Goals and Investments', desc: 'Track objectives and portfolio' },
-        { nome: 'Simulations', desc: 'Scenarios without touching real data' },
+        { nome: 'Dashboard', desc: 'The whole company on one screen, with shortcuts to everything' },
+        { nome: 'MEI Dashboard', desc: 'Revenue cap, DAS and how much of the money is yours' },
+        { nome: 'MEI Cockpit', desc: 'The MEI’s day in four verdicts' },
+        { nome: 'MEI Revenue', desc: 'Sales of the year and how much of the cap is used' },
+        { nome: 'MEI DAS and Obligations', desc: 'DAS month by month, pay inside Axioma, DASN and open an MEI/ME' },
+        { nome: 'Tax Reform for the MEI', desc: 'What changes for your MEI, with the real deadline' },
+        { nome: 'MEI Pricing', desc: 'Real minimum price so you never work for free' },
+        { nome: 'AI MEI Advisor', desc: 'MEI advisor with your real numbers' },
+        { nome: 'MEI Income Tax', desc: 'Income tax with the official 2026 rules' },
+        { nome: 'Revenue', desc: 'Every inflow of money into the company' },
+        { nome: 'Fixed Costs', desc: 'Monthly expenses, with validity dates and renewals' },
+        { nome: 'Variable Costs', desc: 'Contribution margin and break-even point' },
+        { nome: 'Cash Flow', desc: 'What came in, what went out and what is coming' },
+        { nome: 'P&L', desc: 'Profit or loss on an accrual basis, and why' },
+        { nome: 'Debt', desc: 'Which debt to pay first and whether to refinance' },
+        { nome: 'Treasury', desc: 'Cash, 7 to 90-day forecast and simulator' },
+        { nome: 'Accountant', desc: 'What Axioma found in your numbers, closing and entries' },
+        { nome: 'Tax', desc: 'Obligations and an explained tax health score' },
+        { nome: 'General Ledger', desc: 'Statement of each account with running balance' },
+        { nome: 'Trial Balance', desc: 'Balance of every account and proof that it closes' },
+        { nome: 'Accounting P&L', desc: 'Results calculated straight from the ledger' },
+        { nome: 'Goals', desc: 'Progress updated automatically from real numbers' },
+        { nome: 'Investments', desc: 'Where the capital is and how much it earns' },
+        { nome: 'Simulations', desc: 'Test decisions before risking your cash' },
         { nome: 'Pricing', desc: 'Prices with real cost and tax' },
+        { nome: 'Customers', desc: 'Value, risk and opportunity of each customer' },
+        { nome: 'Suppliers', desc: 'Score, risk and purchasing intelligence' },
+        { nome: 'Accounts Payable', desc: 'Supplier bills, paid from inside Axioma' },
+        { nome: 'Accounts Receivable', desc: 'Receipts, collections and settlement' },
+        { nome: 'Defaults', desc: 'Collection ladder and agreements' },
+        { nome: 'Inventory', desc: 'Balance, average cost, expiry and ABC curve' },
+        { nome: 'POS', desc: 'Checkout linked to inventory, with back office' },
         { nome: 'Cost Centers', desc: 'Spending by area or project' },
-        { nome: 'Import documents', desc: 'E-invoices, statements, PDF and photos read by AI' },
-        { nome: 'Open Finance', desc: 'Bank connection via Pluggy' },
-        { nome: 'Financial AI', desc: 'Answers with your company’s numbers' },
-        { nome: 'Tax AI', desc: 'Taxes and regimes with official rules' },
-        { nome: 'Risk Panel', desc: 'Risk score and CFO metrics' },
-        { nome: 'Checks and Traceability', desc: 'Every amount checked, from origin to destination' },
+        { nome: 'Import Documents', desc: 'E-invoices, statements, PDF and photos filed in the right place' },
+        { nome: 'Open Finance', desc: 'Connects your bank and checks it against the statement' },
+        { nome: 'Financial AI', desc: 'Your digital CFO with real data' },
+        { nome: 'Tax AI', desc: 'Tax regime simulation and tax savings' },
+        { nome: 'Risk Panel', desc: 'Score from 0 to 100 and CFO metrics' },
+        { nome: 'Cross-check', desc: 'P&L, Accounting and Cash Flow matching month by month' },
+        { nome: 'Traceability', desc: 'The path of every amount across modules' },
         { nome: 'Reports', desc: 'PDF, Excel and CSV ready to share' },
+        { nome: 'Company', desc: 'Records, compliance and document vault' },
         { nome: 'Team', desc: 'People with hierarchy and permissions' },
         { nome: 'Full manual', desc: 'Every screen explained in 3 languages' },
       ] as { nome: string; desc: string; link?: string }[],
@@ -352,31 +386,48 @@ const idiomas = {
       sub: 'Más de 40 módulos integrados, del MEI a la empresa con varios socios.',
       lista: [
         { nome: 'Nexus y José', desc: 'Economía, mercado y noticias cruzados con su empresa', link: '/nexus-jose' },
-        { nome: 'MEI completo', desc: 'Abrir MEI/ME, pagar el DAS, DASN y límite de facturación' },
-        { nome: 'Cuentas por Pagar', desc: 'Pague cuentas desde dentro de Axioma' },
-        { nome: 'Cuentas por Cobrar', desc: 'Cobranza y baja de cobros' },
-        { nome: 'Flujo de Caja', desc: 'Saldo real y previsión de caja' },
-        { nome: 'Estado de Resultados', desc: 'Resultado por devengo, mes a mes' },
-        { nome: 'Ingresos y Costos', desc: 'Fijos, variables y por categoría' },
-        { nome: 'Contabilidad', desc: 'Libro Mayor, Balance y Estado de Resultados contable' },
-        { nome: 'Fiscal y Reforma Tributaria', desc: 'Reglas oficiales vigentes, con fuente' },
-        { nome: 'PDV', desc: 'Punto de venta conectado al inventario' },
-        { nome: 'Inventario', desc: 'Entradas, rotación y curva ABC' },
-        { nome: 'Clientes y Proveedores', desc: 'Registro, historial y contratos' },
-        { nome: 'Morosidad', desc: 'Escalera de cobranza y acuerdos' },
-        { nome: 'Tesorería', desc: 'Previsión de 7 a 90 días' },
-        { nome: 'Endeudamiento', desc: 'Deudas, intereses y cuotas' },
-        { nome: 'Metas e Inversiones', desc: 'Siga objetivos y cartera' },
-        { nome: 'Simulaciones', desc: 'Escenarios sin tocar los datos reales' },
+        { nome: 'Panel', desc: 'Toda la empresa en una pantalla, con atajos a todo' },
+        { nome: 'Panel MEI', desc: 'Tope, DAS y cuánto del dinero es suyo' },
+        { nome: 'Cockpit MEI', desc: 'La foto del día del MEI en cuatro veredictos' },
+        { nome: 'Facturación MEI', desc: 'Ventas del año y cuánto ya usó del tope' },
+        { nome: 'DAS y Obligaciones MEI', desc: 'DAS mes a mes, pagar dentro de Axioma, DASN y abrir MEI/ME' },
+        { nome: 'Reforma Tributaria en el MEI', desc: 'Lo que cambia en su MEI, con el plazo real' },
+        { nome: 'Precios MEI', desc: 'Precio mínimo real para no trabajar gratis' },
+        { nome: 'IA MEI Advisor', desc: 'Consultor del MEI con sus números reales' },
+        { nome: 'Impuesto a la Renta del MEI', desc: 'IRPF con las reglas oficiales de 2026' },
+        { nome: 'Ingresos', desc: 'Todas las entradas de dinero de la empresa' },
+        { nome: 'Costos Fijos', desc: 'Gastos de todo mes, con vigencia y renovaciones' },
+        { nome: 'Costos Variables', desc: 'Margen de contribución y punto de equilibrio' },
+        { nome: 'Flujo de Caja', desc: 'Lo que entró, lo que salió y cuánto habrá' },
+        { nome: 'P&G', desc: 'Ganancia o pérdida por devengo, y el porqué' },
+        { nome: 'Endeudamiento', desc: 'Qué deuda pagar primero y si vale refinanciar' },
+        { nome: 'Tesorería', desc: 'Caja, previsión de 7 a 90 días y simulador' },
+        { nome: 'Contador', desc: 'Lo que Axioma encontró en los números, cierre y asientos' },
+        { nome: 'Fiscal', desc: 'Obligaciones y nota de salud fiscal explicada' },
+        { nome: 'Libro Mayor', desc: 'Extracto de cada cuenta contable con saldo acumulado' },
+        { nome: 'Balance de Comprobación', desc: 'Saldo de todas las cuentas y la prueba de que cierra' },
+        { nome: 'P&G Contable', desc: 'Resultado calculado directo del Libro Mayor' },
+        { nome: 'Metas', desc: 'Progreso automático con los números reales' },
+        { nome: 'Inversiones', desc: 'Dónde está el capital y cuánto rinde' },
+        { nome: 'Simulaciones', desc: 'Pruebe decisiones antes de arriesgar la caja' },
         { nome: 'Precios', desc: 'Precio con costo e impuesto reales' },
+        { nome: 'Clientes', desc: 'Valor, riesgo y oportunidad de cada cliente' },
+        { nome: 'Proveedores', desc: 'Nota, riesgo e inteligencia de compras' },
+        { nome: 'Cuentas por Pagar', desc: 'Cuentas con proveedores, pagadas dentro de Axioma' },
+        { nome: 'Cuentas por Cobrar', desc: 'Cobros, cobranza y baja' },
+        { nome: 'Morosidad', desc: 'Escala de cobranza y acuerdos' },
+        { nome: 'Inventario', desc: 'Saldo, costo promedio, vencimiento y curva ABC' },
+        { nome: 'PDV', desc: 'Caja ligada al inventario, con back office' },
         { nome: 'Centros de Costo', desc: 'Gastos por área o proyecto' },
-        { nome: 'Importar documentos', desc: 'NF-e, extractos, PDF y fotos leídos por IA' },
-        { nome: 'Open Finance', desc: 'Conexión bancaria vía Pluggy' },
-        { nome: 'IA Financiera', desc: 'Respuestas con los números de la empresa' },
-        { nome: 'IA Tributaria', desc: 'Impuestos y regímenes con reglas oficiales' },
-        { nome: 'Panel de Riesgo', desc: 'Nota de riesgo y métricas del CFO' },
-        { nome: 'Conciliación y Trazabilidad', desc: 'Cada valor verificado, del origen al destino' },
+        { nome: 'Importar Documentos', desc: 'NF-e, extracto, PDF y foto registrados en el lugar correcto' },
+        { nome: 'Open Finance', desc: 'Conecta el banco y lo compara con el extracto' },
+        { nome: 'IA Financiera', desc: 'Su CFO digital con datos reales' },
+        { nome: 'IA Tributaria', desc: 'Simulación de regímenes y ahorro de impuestos' },
+        { nome: 'Panel de Riesgo', desc: 'Nota de 0 a 100 y métricas del CFO' },
+        { nome: 'Conferencia', desc: 'P&G, Contabilidad y Flujo cuadrando mes a mes' },
+        { nome: 'Trazabilidad', desc: 'El camino de cada dinero entre los módulos' },
         { nome: 'Informes', desc: 'PDF, Excel y CSV listos para compartir' },
+        { nome: 'Empresa', desc: 'Registro, compliance y caja fuerte de documentos' },
         { nome: 'Equipo', desc: 'Personas con jerarquía y permisos' },
         { nome: 'Manual completo', desc: 'Cada pantalla explicada en 3 idiomas' },
       ] as { nome: string; desc: string; link?: string }[],
@@ -470,10 +521,11 @@ function useEntradaLateral() {
     const ctx = gsap.context(() => {
       gsap.utils.toArray<HTMLElement>('[data-entrada]').forEach(el => {
         const esq = el.dataset.entrada === 'esquerda'
+        // Distância medida pela largura da tela (não do bloco): bloco pequeno (ex.: o José) também vem de fora da tela
         gsap.fromTo(el,
-          { xPercent: esq ? -55 : 55, rotationY: esq ? 28 : -28, scale: 0.82, opacity: 0, transformPerspective: 1200, transformOrigin: esq ? 'left center' : 'right center' },
-          { xPercent: 0, rotationY: 0, scale: 1, opacity: 1, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 45%', scrub: 0.6 } })
+          { x: () => (esq ? -1 : 1) * window.innerWidth * 0.6, rotationY: esq ? 28 : -28, scale: 0.82, opacity: 0, transformPerspective: 1200, transformOrigin: esq ? 'left center' : 'right center' },
+          { x: 0, rotationY: 0, scale: 1, opacity: 1, ease: 'power3.out',
+            scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 50%', scrub: 0.3, invalidateOnRefresh: true } })
       })
     })
     return () => ctx.revert()
@@ -925,7 +977,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 9 — MÓDULOS (banner dna + grid) ============ */}
-      <section className="relative py-20 md:py-32 ax-claro" style={{ background: '#ffffff' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <Reveal className="text-center mb-10">
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#101b3d' }}>{t.modulos.titulo}</h2>
@@ -939,11 +991,13 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
             onPointerMove={seguirMouse}>
             {t.modulos.lista.map((m, i) => (
-              <a key={i} href={m.link ?? '/cadastro'} className="ax-mod group relative block rounded-2xl p-6 md:p-7 min-h-[150px]">
-                <span className="ax-mod-faixa" aria-hidden="true" />
-                <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
-                <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#ffffff' }}>{m.desc}</p>
-              </a>
+              <Reveal key={i} de={i % 2 ? 'direita' : 'esquerda'}>
+                <a href={m.link ?? '/cadastro'} className="ax-mod group relative block h-full rounded-2xl p-6 md:p-7 min-h-[150px]">
+                  <span className="ax-mod-faixa" aria-hidden="true" />
+                  <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
+                  <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#ffffff' }}>{m.desc}</p>
+                </a>
+              </Reveal>
             ))}
           </div>
           <div className="text-center mt-10">
@@ -982,18 +1036,24 @@ export default function LandingPage() {
               </div>
             </Reveal>
           </div>
-          <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.tecTitulo}</h3>
+          <Reveal de="esquerda">
+            <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.tecTitulo}</h3>
+          </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8" onPointerMove={seguirMouse}>
-            {t.jose.tec.map(it => (
-              <div key={it.titulo} className="ax-mod relative rounded-2xl p-6">
-                <span className="ax-mod-faixa" aria-hidden="true" />
-                <p className="ax-mod-nome font-extrabold text-lg mb-2">{it.titulo}</p>
-                <p className="text-sm md:text-base leading-relaxed" style={{ color: cBody }}>{it.desc}</p>
-              </div>
+            {t.jose.tec.map((it, i) => (
+              <Reveal key={it.titulo} de={i % 2 ? 'direita' : 'esquerda'}>
+                <div className="ax-mod relative h-full rounded-2xl p-6">
+                  <span className="ax-mod-faixa" aria-hidden="true" />
+                  <p className="ax-mod-nome font-extrabold text-lg mb-2">{it.titulo}</p>
+                  <p className="text-sm md:text-base leading-relaxed" style={{ color: cBody }}>{it.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
-          <p className="text-sm mb-6 max-w-3xl" style={{ color: cMuted }}>{t.jose.nota}</p>
-          {btn(t.jose.btn, () => router.push('/nexus-jose'))}
+          <Reveal de="direita">
+            <p className="text-sm mb-6 max-w-3xl" style={{ color: cMuted }}>{t.jose.nota}</p>
+            {btn(t.jose.btn, () => router.push('/nexus-jose'))}
+          </Reveal>
         </div>
       </section>
 
