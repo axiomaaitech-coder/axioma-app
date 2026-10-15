@@ -493,7 +493,7 @@ function useInView<T extends HTMLElement>(threshold = 0.15) {
 }
 
 // de: por onde o bloco entra ao rolar a página (baixo = padrão; esquerda/direita = surge da lateral)
-function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { children: React.ReactNode; delay?: number; className?: string; de?: 'baixo' | 'esquerda' | 'direita' }) {
+function Reveal({ children, delay = 0, className = '', de = 'baixo' }: { children: React.ReactNode; delay?: number; className?: string; de?: 'baixo' | 'esquerda' | 'direita' | 'lado' }) {
   const { ref, inView } = useInView<HTMLDivElement>()
   // Laterais: animadas pelo GSAP ScrollTrigger (useEntradaLateral), presas ao movimento da rolagem
   if (de !== 'baixo') return <div data-entrada={de} className={className}>{children}</div>
@@ -519,8 +519,15 @@ function useEntradaLateral() {
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger)
     const ctx = gsap.context(() => {
+      let meio = 0
       gsap.utils.toArray<HTMLElement>('[data-entrada]').forEach(el => {
-        const esq = el.dataset.entrada === 'esquerda'
+        // 'lado': cartão de grade entra pelo lado em que está (sem cruzar com o vizinho); coluna do meio / celular alterna
+        let lado = el.dataset.entrada
+        if (lado === 'lado') {
+          const r = el.getBoundingClientRect(), c = (r.left + r.width / 2) / window.innerWidth
+          lado = c < 0.42 ? 'esquerda' : c > 0.58 ? 'direita' : (meio++ % 2 ? 'direita' : 'esquerda')
+        }
+        const esq = lado === 'esquerda'
         // Distância medida pela largura da tela (não do bloco): bloco pequeno (ex.: o José) também vem de fora da tela
         gsap.fromTo(el,
           { x: () => (esq ? -1 : 1) * window.innerWidth * 0.6, rotationY: esq ? 28 : -28, scale: 0.82, opacity: 0, transformPerspective: 1200, transformOrigin: esq ? 'left center' : 'right center' },
@@ -991,7 +998,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
             onPointerMove={seguirMouse}>
             {t.modulos.lista.map((m, i) => (
-              <Reveal key={i} de={i % 2 ? 'direita' : 'esquerda'}>
+              <Reveal key={i} de="lado">
                 <a href={m.link ?? '/cadastro'} className="ax-mod group relative block h-full rounded-2xl p-6 md:p-7 min-h-[150px]">
                   <span className="ax-mod-faixa" aria-hidden="true" />
                   <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
@@ -1040,8 +1047,8 @@ export default function LandingPage() {
             <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.tecTitulo}</h3>
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8" onPointerMove={seguirMouse}>
-            {t.jose.tec.map((it, i) => (
-              <Reveal key={it.titulo} de={i % 2 ? 'direita' : 'esquerda'}>
+            {t.jose.tec.map(it => (
+              <Reveal key={it.titulo} de="lado">
                 <div className="ax-mod relative h-full rounded-2xl p-6">
                   <span className="ax-mod-faixa" aria-hidden="true" />
                   <p className="ax-mod-nome font-extrabold text-lg mb-2">{it.titulo}</p>
