@@ -20,7 +20,7 @@ const idiomas = {
       slogan: 'O Futuro Financeiro do Brasil Pensa Sozinho.',
       sloganSub: 'Um diretor financeiro com inteligência artificial que confere cada número da sua Empresa, avisa antes do problema chegar e mostra o caminho — em português, inglês e espanhol.',
       legenda1: 'Enquanto o mercado ainda usa planilhas...',
-      legenda2: 'A Axioma comanda seu financeiro em tempo real.',
+      legenda2: 'O Axioma comanda seu financeiro em tempo real.',
       legenda3: 'A verdade que move Empresas.',
       titulo: 'O sistema que substituiu contadores.',
       sub: 'Inteligência artificial que comanda todo o seu financeiro. Receitas, custos, impostos e fluxo de caixa — tudo conectado. Tudo automático.',
@@ -29,16 +29,16 @@ const idiomas = {
     einstein: {
       badge: '⚡ E = mc² → DADOS = VALOR',
       titulo: 'Einstein nos ensinou: massa é energia.',
-      subTitulo: 'A Axioma vai além: dados são lucro.',
+      subTitulo: 'O Axioma vai além: dados são lucros.',
       copy: '"A imaginação é mais importante que o conhecimento. Pois o conhecimento é limitado, enquanto a imaginação envolve o mundo inteiro." — Albert Einstein',
-      texto: 'Em 1905, Einstein revelou que tudo no universo se transforma. Energia em matéria. Tempo em espaço. Mais de um século depois, a Axioma traduz a mesma verdade para o mundo dos negócios: cada número da sua Empresa carrega uma energia oculta de lucro. Nossa IA é a equação que liberta esse valor.',
+      texto: 'Em 1905, Einstein revelou que tudo no universo se transforma. Energia em matéria. Tempo em espaço. Mais de um século depois, o Axioma traduz a mesma verdade para o mundo dos negócios: cada número da sua Empresa carrega uma energia oculta de lucro. Nossa IA é a equação que liberta esse valor.',
       formulas: ['E = mc²', 'R$ = D × IA', '∫ Lucro dt', 'Σ Receitas', 'Δ Crescimento', 'π × Decisões'],
     },
     platao: {
       badge: '◆ O FUNDAMENTO PLATÔNICO',
       titulo: 'Platão dizia: a verdade é uma forma perfeita.',
       copy: '"Axioma" — do grego antigo ἀξίωμα — significa "verdade que não precisa ser provada".',
-      texto: 'Há 2.400 anos, Platão descreveu cinco sólidos perfeitos como o fundamento do universo. O primeiro deles é o tetraedro — exatamente a forma do nosso logo. Não é coincidência. A Axioma foi construída sobre a verdade matemática mais antiga que existe: aquela que não pode ser refutada. Quando seu negócio se apoia em axiomas, ele se torna inquebrável.',
+      texto: 'Há 2.400 anos, Platão descreveu cinco sólidos perfeitos como o fundamento do universo. O primeiro deles é o tetraedro — exatamente a forma do nosso logo. Não é coincidência. O Axioma foi construído sobre a verdade matemática mais antiga que existe: aquela que não pode ser refutada. Quando seu negócio se apoia em axiomas, ele se torna inquebrável.',
     },
     global: {
       badge: 'TRÊS IDIOMAS',
@@ -182,7 +182,7 @@ const idiomas = {
     einstein: {
       badge: '⚡ E = mc² → DATA = VALUE',
       titulo: 'Einstein taught us: mass is energy.',
-      subTitulo: 'Axioma goes further: data is profit.',
+      subTitulo: 'Axioma goes further: data is profits.',
       copy: '"Imagination is more important than knowledge. For knowledge is limited, whereas imagination embraces the entire world." — Albert Einstein',
       texto: 'In 1905, Einstein revealed that everything in the universe transforms. Energy into matter. Time into space. More than a century later, Axioma translates the same truth into business: every number in your Company carries a hidden energy of profit. Our AI is the equation that unlocks that value.',
       formulas: ['E = mc²', '$ = D × AI', '∫ Profit dt', 'Σ Revenue', 'Δ Growth', 'π × Decisions'],
@@ -335,7 +335,7 @@ const idiomas = {
     einstein: {
       badge: '⚡ E = mc² → DATOS = VALOR',
       titulo: 'Einstein nos enseñó: la masa es energía.',
-      subTitulo: 'Axioma va más allá: los datos son ganancia.',
+      subTitulo: 'Axioma va más allá: los datos son ganancias.',
       copy: '"La imaginación es más importante que el conocimiento. Pues el conocimiento es limitado, mientras que la imaginación abarca el mundo entero." — Albert Einstein',
       texto: 'En 1905, Einstein reveló que todo en el universo se transforma. Energía en materia. Tiempo en espacio. Más de un siglo después, Axioma traduce la misma verdad al mundo de los negocios: cada número de tu Empresa lleva una energía oculta de ganancia. Nuestra IA es la ecuación que libera ese valor.',
       formulas: ['E = mc²', '$ = D × IA', '∫ Lucro dt', 'Σ Ingresos', 'Δ Crecimiento', 'π × Decisiones'],
@@ -471,6 +471,28 @@ const idiomas = {
     },
     footer: '© 2026 axiomaai.com.br — Axioma AI.Tech. Todos los derechos reservados.',
   },
+}
+
+// ============================================================
+// TÍTULOS EM DESTAQUE — inicial maiúscula em cada palavra (decisão do Elias 2026-10-15),
+// exceto palavrinhas de ligação no meio da frase ("Você Conhece os Números da Sua Empresa?").
+// Siglas (MEI, IA, CFO) ficam como estão. Primeira palavra e a que vem depois de ":" sempre maiúscula.
+// ============================================================
+const MINUSCULAS: Record<'pt' | 'en' | 'es', Set<string>> = {
+  pt: new Set('a o as os à às ao aos e é ou de do da dos das em no na nos nas num numa que por pelo pela pelos pelas para com um uma se'.split(' ')),
+  en: new Set('a an the and or but of in on at to for with by as vs'.split(' ')),
+  es: new Set('a al el la los las y e o u de del en con por para que un una es se'.split(' ')),
+}
+function tt(s: string, lang: 'pt' | 'en' | 'es') {
+  let inicio = !/^\s/.test(s) // trecho que começa com espaço é continuação de frase
+  return s.split(/(\s+)/).map(w => {
+    if (!w.trim()) return w
+    const primeira = inicio
+    inicio = /[:.?!]$/.test(w)
+    if (!primeira && MINUSCULAS[lang].has(w.toLowerCase())) return w
+    const i = w.search(/\p{L}/u)
+    return i < 0 ? w : w.slice(0, i) + w[i].toUpperCase() + w.slice(i + 1)
+  }).join('')
 }
 
 // ============================================================
@@ -641,13 +663,13 @@ function HeroVideos() {
 // Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (todo verde = menta padrão, pedido do Elias 2026-10-13)
 // ============================================================
 const TXT_BM = {
-  pt: { t1: 'Gestão Financeira', t2: '& Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua Empresa cresce, a gente cresce junto.',
+  pt: { t1: 'Gestão Financeira', t2: 'e Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua Empresa cresce, a gente cresce junto.',
     saldo: 'Saldo em caixa', p1: 'Você conhece os ', p2: 'números', p3: ' da sua Empresa?', cta: 'Quero conhecer',
     itens: ['Conferência diária', 'Painel de Risco', 'IA Financeira'] },
-  en: { t1: 'Financial Management', t2: '& Intelligence that checks everything', txt: 'Axioma goes beyond accounting: it reads your numbers every day, cross-checks every module and warns you before problems arrive. When your Company grows, we grow with it.',
+  en: { t1: 'Financial Management', t2: 'and Intelligence that checks everything', txt: 'Axioma goes beyond accounting: it reads your numbers every day, cross-checks every module and warns you before problems arrive. When your Company grows, we grow with it.',
     saldo: 'Cash balance', p1: 'Do you know your Company’s ', p2: 'numbers', p3: '?', cta: 'Show me',
     itens: ['Daily cross-check', 'Risk Panel', 'Financial AI'] },
-  es: { t1: 'Gestión Financiera', t2: '& Inteligencia que lo revisa todo', txt: 'Axioma va más allá de la contabilidad: lee sus números todos los días, cruza los módulos y avisa antes de que llegue el problema. Si su Empresa crece, crecemos juntos.',
+  es: { t1: 'Gestión Financiera', t2: 'e Inteligencia que lo revisa todo', txt: 'Axioma va más allá de la contabilidad: lee sus números todos los días, cruza los módulos y avisa antes de que llegue el problema. Si su Empresa crece, crecemos juntos.',
     saldo: 'Saldo en caja', p1: '¿Conoce los ', p2: 'números', p3: ' de su Empresa?', cta: 'Quiero conocer',
     itens: ['Conciliación diaria', 'Panel de Riesgo', 'IA Financiera'] },
 }
@@ -661,16 +683,16 @@ function SecaoBrancaMenta({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: ()
     <path key="c" d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" />,
   ]
   return (
-    <section style={{ background: '#ffffff' }}>
+    <section className="overflow-hidden" style={{ background: '#ffffff' }}>
       {/* Faixa branca: título + mockup com círculo menta */}
       <div className="max-w-6xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        <div>
+        <Reveal de="esquerda">
           <h2 className="ax-display text-3xl md:text-5xl font-black leading-tight mb-5" style={{ color: NAVY }}>
-            {x.t1}<br /><span style={{ color: MENTA_TX }}>{x.t2}</span>.
+            {tt(x.t1, lang)}<br /><span style={{ color: MENTA_TX }}>{tt(x.t2, lang).replace(/^\S+/, w => w.toLowerCase())}</span>.
           </h2>
           <p className="text-sm md:text-base font-medium" style={{ color: '#374151', lineHeight: 1.8 }}>{x.txt}</p>
-        </div>
-        <div className="relative flex justify-center">
+        </Reveal>
+        <Reveal de="direita" className="relative flex justify-center">
           <div className="absolute rounded-full" style={{ width: 280, height: 280, background: MENTA, bottom: -20, right: '18%' }} />
           <div className="relative rounded-3xl p-6 w-[260px]" style={{ background: '#ffffff', border: `6px solid ${NAVY}`, boxShadow: '0 24px 60px rgba(16,27,61,0.25)' }}>
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6b7280' }}>{x.saldo}</p>
@@ -681,25 +703,27 @@ function SecaoBrancaMenta({ lang, onCta }: { lang: 'pt' | 'en' | 'es'; onCta: ()
               ))}
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
       {/* Faixa azul-marinho: pergunta + botão contorno menta */}
-      <div className="px-6 py-14 text-center" style={{ background: NAVY }}>
+      <div className="px-6 py-14 text-center overflow-hidden" style={{ background: NAVY }}>
+        <Reveal de="esquerda">
         <p className="ax-display text-2xl md:text-3xl font-black mb-7" style={{ color: '#ffffff' }}>
-          {x.p1}<span style={{ color: MENTA }}>{x.p2}</span>{x.p3}
+          {tt(x.p1, lang)}<span style={{ color: MENTA }}>{tt(x.p2, lang)}</span>{tt(x.p3, lang)}
         </p>
         <button onClick={onCta} className="px-7 py-3 rounded-full font-bold text-sm transition-all hover:scale-105"
           style={{ color: '#ffffff', border: `2px solid ${MENTA}`, background: 'transparent' }}>{x.cta}</button>
+        </Reveal>
       </div>
       {/* Faixa branca: 3 destaques com ícone menta */}
       <div className="max-w-5xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-3 gap-10 text-center">
         {x.itens.map((nome, i) => (
-          <div key={nome} className="flex flex-col items-center gap-4">
+          <Reveal key={nome} de="lado" className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: MENTA }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{icones[i]}</svg>
             </div>
-            <p className="text-lg font-black" style={{ color: MENTA_TX }}>{nome}</p>
-          </div>
+            <p className="text-lg font-black" style={{ color: MENTA_TX }}>{tt(nome, lang)}</p>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -782,7 +806,7 @@ export default function LandingPage() {
         <div className="relative z-10 w-full px-6 md:px-12 pb-24 md:pb-0 md:absolute md:inset-y-0 md:right-0 md:w-auto md:flex md:items-center">
           <div className="max-w-md md:max-w-[min(26rem,30vw)] text-left">
             <p className="ax-display text-2xl md:text-4xl font-black mb-3 leading-[1.18]" style={{ color: '#ffffff', textShadow: '0 2px 12px rgba(2,8,16,0.9)' }}>
-              {t.hero.slogan}
+              {tt(t.hero.slogan, lang)}
             </p>
             <p className="text-sm md:text-base font-medium mb-5" style={{ color: '#cfe0fa', lineHeight: 1.7, textShadow: '0 2px 10px rgba(2,8,16,0.95)' }}>
               {t.hero.sloganSub}
@@ -808,11 +832,11 @@ export default function LandingPage() {
               <Badge cor="#6ab0ff">{t.einstein.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-2 leading-tight"
                 style={{ color: '#eaf2ff' }}>
-                {t.einstein.titulo}
+                {tt(t.einstein.titulo, lang)}
               </h2>
               <h3 className="ax-display text-lg md:text-2xl font-bold mb-5 leading-tight"
                 style={{ color: '#eaf2ff' }}>
-                {t.einstein.subTitulo}
+                {tt(t.einstein.subTitulo, lang)}
               </h3>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.8 }}>{t.einstein.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
@@ -835,7 +859,7 @@ export default function LandingPage() {
               <Badge claro cor="#a78bfa">{t.platao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-5 leading-tight"
                 style={{ color: '#101b3d' }}>
-                {t.platao.titulo}
+                {tt(t.platao.titulo, lang)}
               </h2>
               <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(46,204,155,0.06)', borderLeft: '3px solid #2ecc9b' }}>
                 <p className="text-xs md:text-sm italic font-medium" style={{ color: '#374151', lineHeight: 1.6 }}>{t.platao.copy}</p>
@@ -858,17 +882,17 @@ export default function LandingPage() {
               <Badge cor="#34d399">{t.global.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
-                {t.global.titulo}
+                {tt(t.global.titulo, lang)}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.global.sub}</p>
               <div className="flex flex-wrap gap-2 mb-5">
                 {t.global.idiomas.map((idioma, i) => (
                   <span key={i} className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-                    style={{ background: '#2ecc9b', border: '1px solid #2ecc9b', color: '#ffffff' }}>{idioma}</span>
+                    style={{ background: '#2ecc9b', border: '1px solid #2ecc9b', color: '#101b3d' }}>{idioma}</span>
                 ))}
               </div>
               <div className="px-4 py-3 rounded-xl mb-5" style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
-                <p className="text-sm font-semibold" style={{ color: '#ffffff' }}>{t.global.copy}</p>
+                <p className="text-sm font-semibold" style={{ color: '#101b3d' }}>{t.global.copy}</p>
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
@@ -884,14 +908,14 @@ export default function LandingPage() {
               <Badge claro cor="#a78bfa">{t.visao.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#101b3d' }}>
-                {t.visao.titulo}
+                {tt(t.visao.titulo, lang)}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: '#374151', lineHeight: 1.7 }}>{t.visao.sub}</p>
               <div className="space-y-2.5 mb-5">
                 {t.visao.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                     style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#ffffff' }}>{item}</span>
+                    <span className="text-sm font-semibold" style={{ color: '#101b3d' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -915,7 +939,7 @@ export default function LandingPage() {
               <Badge cor="#6ab0ff">{t.mente.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
-                {t.mente.titulo}
+                {tt(t.mente.titulo, lang)}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.mente.sub}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
@@ -927,25 +951,25 @@ export default function LandingPage() {
       {/* ============ SEÇÃO 7 — SEGURANÇA (BANNER largura total) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
-          <Reveal className="text-center mb-10">
+          <Reveal className="text-center mb-10" de="esquerda">
             <Badge claro cor="#34d399">{t.seguranca.badge}</Badge>
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-4"
               style={{ color: '#101b3d' }}>
-              {t.seguranca.titulo}
+              {tt(t.seguranca.titulo, lang)}
             </h2>
             <p className="text-sm md:text-lg max-w-2xl mx-auto font-medium" style={{ color: '#374151' }}>{t.seguranca.sub}</p>
           </Reveal>
-          <Reveal delay={0.1}>
+          <Reveal de="direita">
             <div className="mb-12">
               <VideoFrame src="/videos/seguranca.mp4" cor="#34d399" />
             </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {t.seguranca.items.map((item, i) => (
-              <Reveal key={i} delay={0.06 * i}>
+              <Reveal key={i} de="lado">
                 <NeonBox fundo="#2ecc9b" cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
                   <div className="p-5 text-center">
-                    <h3 className="font-bold text-base mb-2" style={{ color: '#101b3d' }}>{item.titulo}</h3>
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#101b3d' }}>{tt(item.titulo, lang)}</h3>
                     <p className="text-sm font-medium" style={{ color: '#101b3d', lineHeight: 1.6 }}>{item.desc}</p>
                   </div>
                 </NeonBox>
@@ -963,14 +987,14 @@ export default function LandingPage() {
               <Badge cor="#fbbf24">{t.robots.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#eaf2ff' }}>
-                {t.robots.titulo}
+                {tt(t.robots.titulo, lang)}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.robots.sub}</p>
               <div className="space-y-2.5 mb-5">
                 {t.robots.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
                     style={{ background: '#2ecc9b', border: '1px solid #2ecc9b' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#ffffff' }}>{item}</span>
+                    <span className="text-sm font-semibold" style={{ color: '#101b3d' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -986,11 +1010,11 @@ export default function LandingPage() {
       {/* ============ SEÇÃO 9 — MÓDULOS (banner dna + grid) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-4 relative z-10">
-          <Reveal className="text-center mb-10">
-            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#101b3d' }}>{t.modulos.titulo}</h2>
+          <Reveal className="text-center mb-10" de="esquerda">
+            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#101b3d' }}>{tt(t.modulos.titulo, lang)}</h2>
             <p className="text-sm md:text-lg font-medium" style={{ color: '#4b5563' }}>{t.modulos.sub}</p>
           </Reveal>
-          <Reveal delay={0.08}>
+          <Reveal de="direita">
             <div className="mb-12">
               <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" />
             </div>
@@ -1001,7 +1025,7 @@ export default function LandingPage() {
               <Reveal key={i} de="lado">
                 <a href={m.link ?? '/cadastro'} className="ax-mod group relative block h-full rounded-2xl p-6 md:p-7 min-h-[150px]">
                   <span className="ax-mod-faixa" aria-hidden="true" />
-                  <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{m.nome}</p>
+                  <p className="ax-mod-nome font-extrabold text-lg md:text-xl mb-2 leading-snug">{tt(m.nome, lang)}</p>
                   <p className="text-sm md:text-base font-medium leading-relaxed" style={{ color: '#ffffff' }}>{m.desc}</p>
                 </a>
               </Reveal>
@@ -1025,12 +1049,12 @@ export default function LandingPage() {
               </div>
             </Reveal>
             <Reveal delay={0.08} de="direita">
-              <h2 className="text-4xl md:text-6xl font-bold mb-5" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.titulo}</h2>
+              <h2 className="text-4xl md:text-6xl font-bold mb-5" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{tt(t.jose.titulo, lang)}</h2>
               <p className="text-base md:text-xl leading-relaxed mb-8 max-w-2xl" style={{ color: cBody }}>{t.jose.sub}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {([[t.jose.brasilTitulo, t.jose.brasil], [t.jose.mundoTitulo, t.jose.mundo]] as const).map(([tit, itens]) => (
                   <div key={tit}>
-                    <h3 className="text-lg font-bold mb-3" style={{ fontFamily: cinzel.style.fontFamily, color: '#2ecc9b' }}>{tit}</h3>
+                    <h3 className="text-lg font-bold mb-3" style={{ fontFamily: cinzel.style.fontFamily, color: '#2ecc9b' }}>{tt(tit, lang)}</h3>
                     <ul className="space-y-2">
                       {itens.map(it => (
                         <li key={it} className="flex gap-2 text-sm md:text-base" style={{ color: cBody }}>
@@ -1044,14 +1068,14 @@ export default function LandingPage() {
             </Reveal>
           </div>
           <Reveal de="esquerda">
-            <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{t.jose.tecTitulo}</h3>
+            <h3 className="text-2xl md:text-3xl font-bold mb-6" style={{ fontFamily: cinzel.style.fontFamily, color: '#eaf2ff' }}>{tt(t.jose.tecTitulo, lang)}</h3>
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8" onPointerMove={seguirMouse}>
             {t.jose.tec.map(it => (
               <Reveal key={it.titulo} de="lado">
                 <div className="ax-mod relative h-full rounded-2xl p-6">
                   <span className="ax-mod-faixa" aria-hidden="true" />
-                  <p className="ax-mod-nome font-extrabold text-lg mb-2">{it.titulo}</p>
+                  <p className="ax-mod-nome font-extrabold text-lg mb-2">{tt(it.titulo, lang)}</p>
                   <p className="text-sm md:text-base leading-relaxed" style={{ color: cBody }}>{it.desc}</p>
                 </div>
               </Reveal>
@@ -1081,7 +1105,7 @@ export default function LandingPage() {
               <Badge claro cor="#6ab0ff">{t.clowdbot.badge}</Badge>
               <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ color: '#101b3d' }}>
-                {t.clowdbot.titulo}
+                {tt(t.clowdbot.titulo, lang)}
               </h2>
               <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: '#374151', lineHeight: 1.7 }}>{t.clowdbot.sub}</p>
               <div className="flex flex-wrap gap-3">
@@ -1096,14 +1120,14 @@ export default function LandingPage() {
       {/* ============ SEÇÃO 11 — DESTAQUE ROBÔ IA (banner antes dos planos) ============ */}
       <section className="relative py-16 md:py-24 overflow-hidden" style={{ background: '#101b3d' }}>
         <div className="max-w-5xl mx-auto px-4 relative z-10 text-center">
-          <Reveal>
+          <Reveal de="esquerda">
             <Badge>{lang === 'en' ? 'SMART PANEL' : lang === 'es' ? 'PANEL INTELIGENTE' : 'PAINEL INTELIGENTE'}</Badge>
             <h2 className="ax-display text-2xl md:text-4xl font-black mb-6"
               style={{ color: '#eaf2ff' }}>
-              {lang === 'en' ? 'Your whole Company, in one panel.' : lang === 'es' ? 'Toda su Empresa, en un solo panel.' : 'Sua Empresa inteira, em um só painel.'}
+              {tt(lang === 'en' ? 'Your whole Company, in one panel.' : lang === 'es' ? 'Toda su Empresa, en un solo panel.' : 'Sua Empresa inteira, em um só painel.', lang)}
             </h2>
           </Reveal>
-          <Reveal delay={0.1}>
+          <Reveal de="direita">
             <div className="relative rounded-[20px] overflow-hidden mx-auto"
               style={{ border: '1px solid rgba(46,204,155,0.35)', boxShadow: '0 40px 100px -30px rgba(46,204,155,0.3)' }}>
               <img src="/robo-ia.png" alt="Painel IA Axioma" className="w-full h-auto block" />
@@ -1115,21 +1139,21 @@ export default function LandingPage() {
       </section>
 
       {/* ============ SEÇÃO 12 — PLANOS 4 NÍVEIS ============ */}
-      <section className="relative py-20 md:py-32 ax-claro" style={{ background: '#ffffff' }}>
+      <section className="relative py-20 md:py-32 overflow-hidden ax-claro" style={{ background: '#ffffff' }}>
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <Reveal className="text-center mb-14">
+          <Reveal className="text-center mb-14" de="esquerda">
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-3"
               style={{ color: '#101b3d' }}>
-              {t.planos.titulo}
+              {tt(t.planos.titulo, lang)}
             </h2>
             <p className="text-sm font-medium" style={{ color: '#4b5563' }}>{t.planos.sub}</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-4">
-            {ORDEM_PLANOS.map((id, i) => {
+            {ORDEM_PLANOS.map(id => {
               const p = PLANOS[id]
               const destaque = id === 'business'
               return (
-              <Reveal key={id} delay={0.07 * i} className="h-full">
+              <Reveal key={id} de="lado" className="h-full">
                 <div className="ax-plano relative h-full rounded-2xl"
                   style={{ background: '#101b3d', border: `1px solid ${destaque ? 'rgba(46,204,155,0.6)' : 'rgba(46,204,155,0.2)'}` }}>
                   {destaque && (
@@ -1146,7 +1170,7 @@ export default function LandingPage() {
                       <span className="text-sm mb-1" style={{ color: '#ffffff' }}>{t.planos.mes}</span>
                     </div>
                     <p className="text-sm text-center mb-3 font-medium" style={{ color: '#ffffff' }}>{lang === 'en' ? `up to ${p.pessoas} ${p.pessoas > 1 ? 'people' : 'person'}` : lang === 'es' ? `hasta ${p.pessoas} persona${p.pessoas > 1 ? 's' : ''}` : `até ${p.pessoas} pessoa${p.pessoas > 1 ? 's' : ''}`}</p>
-                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: '#2ecc9b', color: '#ffffff' }}>
+                    <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: '#2ecc9b', color: '#101b3d' }}>
                       <p className="font-bold mb-1" style={{ color: '#101b3d' }}>{lang === 'en' ? 'AI per month' : lang === 'es' ? 'IA por mes' : 'IA por mês'}</p>
                       <p>{p.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {lang === 'en' ? 'standard AI questions' : lang === 'es' ? 'preguntas IA común' : 'perguntas IA comum'}</p>
                       <p>{p.ia.anthropic} {lang === 'en' ? 'advanced AI questions' : lang === 'es' ? 'preguntas IA avanzada' : 'perguntas IA avançada'}</p>
@@ -1181,7 +1205,7 @@ export default function LandingPage() {
             style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 24px rgba(46,204,155,0.6))', animation: 'logo-float 4s ease-in-out infinite alternate' }} />
           <h2 className="ax-display text-3xl md:text-6xl font-black mb-4"
             style={{ color: '#eaf2ff' }}>
-            {t.cta.titulo}
+            {tt(t.cta.titulo, lang)}
           </h2>
           <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.cta.sub}</p>
           <button onClick={() => router.push('/cadastro')}
