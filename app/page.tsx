@@ -18,10 +18,10 @@ const idiomas = {
     nav: { modulos: 'Módulos', planos: 'Planos', sobre: 'Sobre' },
     hero: {
       slogan: 'O Futuro Financeiro do Brasil Pensa Sozinho.',
-      sloganSub: 'Um diretor financeiro com inteligência artificial que confere cada número da sua empresa, avisa antes do problema chegar e mostra o caminho — em português, inglês e espanhol.',
+      sloganSub: 'Um diretor financeiro com inteligência artificial que confere cada número da sua Empresa, avisa antes do problema chegar e mostra o caminho — em português, inglês e espanhol.',
       legenda1: 'Enquanto o mercado ainda usa planilhas...',
       legenda2: 'A Axioma comanda seu financeiro em tempo real.',
-      legenda3: 'A verdade que move empresas.',
+      legenda3: 'A verdade que move Empresas.',
       titulo: 'O sistema que substituiu contadores.',
       sub: 'Inteligência artificial que comanda todo o seu financeiro. Receitas, custos, impostos e fluxo de caixa — tudo conectado. Tudo automático.',
       modulos: ['DRE', 'Receitas', 'Fluxo de Caixa', 'MEI', 'IA Tributária', 'Open Finance', 'Custos', 'Investimentos'],
@@ -31,7 +31,7 @@ const idiomas = {
       titulo: 'Einstein nos ensinou: massa é energia.',
       subTitulo: 'A Axioma vai além: dados são lucro.',
       copy: '"A imaginação é mais importante que o conhecimento. Pois o conhecimento é limitado, enquanto a imaginação envolve o mundo inteiro." — Albert Einstein',
-      texto: 'Em 1905, Einstein revelou que tudo no universo se transforma. Energia em matéria. Tempo em espaço. Mais de um século depois, a Axioma traduz a mesma verdade para o mundo dos negócios: cada número da sua empresa carrega uma energia oculta de lucro. Nossa IA é a equação que liberta esse valor.',
+      texto: 'Em 1905, Einstein revelou que tudo no universo se transforma. Energia em matéria. Tempo em espaço. Mais de um século depois, a Axioma traduz a mesma verdade para o mundo dos negócios: cada número da sua Empresa carrega uma energia oculta de lucro. Nossa IA é a equação que liberta esse valor.',
       formulas: ['E = mc²', 'R$ = D × IA', '∫ Lucro dt', 'Σ Receitas', 'Δ Crescimento', 'π × Decisões'],
     },
     platao: {
@@ -56,14 +56,14 @@ const idiomas = {
     mente: {
       badge: 'INTELIGÊNCIA ARTIFICIAL',
       titulo: 'Um diretor financeiro com IA, sempre disponível.',
-      sub: 'Pergunte sobre caixa, impostos, custos ou preços: a IA responde com os números da sua empresa e as regras oficiais vigentes. Quem decide é sempre você.',
+      sub: 'Pergunte sobre caixa, impostos, custos ou preços: a IA responde com os números da sua Empresa e as regras oficiais vigentes. Quem decide é sempre você.',
     },
     seguranca: {
       badge: 'SEGURANÇA',
       titulo: 'Seus dados protegidos.',
-      sub: 'Cada empresa enxerga só os próprios dados. Pagamentos pelo Stripe, sem o Axioma guardar o seu cartão.',
+      sub: 'Cada Empresa enxerga só os próprios dados. Pagamentos pelo Stripe, sem o Axioma guardar o seu cartão.',
       items: [
-        { titulo: 'Dados separados', desc: 'Cada empresa e cada pessoa acessam só o que é delas.' },
+        { titulo: 'Dados separados', desc: 'Cada Empresa e cada pessoa acessam só o que é delas.' },
         { titulo: 'Conexão protegida', desc: 'Tudo trafega criptografado, do navegador ao banco de dados.' },
         { titulo: 'Acesso seguro', desc: 'Login com Google ou e-mail, proteção anti-robô e equipe com hierarquia.' },
         { titulo: 'LGPD', desc: 'Tratamento de dados conforme a Lei Geral de Proteção de Dados.' },
@@ -76,11 +76,11 @@ const idiomas = {
       items: ['Conferência diária entre módulos', 'Aviso de contas que vencem nos próximos dias', 'Painel de Risco com nota e explicação', 'Aprende com as suas correções de categoria e fornecedor'],
     },
     modulos: {
-      titulo: 'Tudo que sua empresa precisa em um só lugar',
-      sub: 'Mais de 40 módulos integrados, do MEI à empresa com vários sócios.',
+      titulo: 'Tudo que sua Empresa precisa em um só lugar',
+      sub: 'Mais de 40 módulos integrados, do MEI à Empresa com vários sócios.',
       lista: [
-        { nome: 'Nexus e o José', desc: 'Economia, mercado e notícias cruzados com a sua empresa', link: '/nexus-jose' },
-        { nome: 'Dashboard', desc: 'A empresa inteira em uma tela, com atalhos para tudo' },
+        { nome: 'Nexus e o José', desc: 'Economia, mercado e notícias cruzados com a sua Empresa', link: '/nexus-jose' },
+        { nome: 'Dashboard', desc: 'A Empresa inteira em uma tela, com atalhos para tudo' },
         { nome: 'Painel MEI', desc: 'Limite, DAS e quanto do dinheiro é seu' },
         { nome: 'Cockpit MEI', desc: 'A foto do dia do MEI em quatro vereditos' },
         { nome: 'Faturamento MEI', desc: 'Vendas do ano e quanto já usou do limite' },
@@ -89,7 +89,7 @@ const idiomas = {
         { nome: 'Precificação MEI', desc: 'Preço mínimo real para não trabalhar de graça' },
         { nome: 'IA MEI Advisor', desc: 'Consultor do MEI com os seus números reais' },
         { nome: 'Imposto de Renda do MEI', desc: 'IRPF com as regras oficiais de 2026' },
-        { nome: 'Receitas', desc: 'Todas as entradas de dinheiro da empresa' },
+        { nome: 'Receitas', desc: 'Todas as entradas de dinheiro da Empresa' },
         { nome: 'Custos Fixos', desc: 'Gastos de todo mês, com vigência e renovações' },
         { nome: 'Custos Variáveis', desc: 'Margem de contribuição e ponto de equilíbrio' },
         { nome: 'Fluxo de Caixa', desc: 'O que entrou, o que saiu e quanto haverá' },
@@ -128,7 +128,7 @@ const idiomas = {
     },
     jose: {
       titulo: 'Nexus e o José',
-      sub: 'O José é a inteligência econômica do Axioma. Todo dia ele lê a economia do Brasil e do mundo e explica o que isso muda para a sua empresa, com os seus números.',
+      sub: 'O José é a inteligência econômica do Axioma. Todo dia ele lê a economia do Brasil e do mundo e explica o que isso muda para a sua Empresa, com os seus números.',
       brasilTitulo: 'No Brasil',
       brasil: ['Câmbio, juros e inflação do Banco Central', 'Emprego e atividade do IBGE', 'Combustíveis nos postos (ANP)', 'Reforma Tributária pela página oficial do Senado'],
       mundoTitulo: 'No mundo',
@@ -140,7 +140,7 @@ const idiomas = {
         { titulo: 'Placar de acertos', desc: 'Cada previsão é conferida depois, no prazo. Acertos e erros ficam à mostra.' },
         { titulo: 'Sem ficar parado', desc: 'Três motores de inteligência e fontes de reserva: se um falha, outro assume.' },
       ],
-      nota: 'Só dados oficiais e os números da sua empresa. Leituras são interpretações, não recomendação de investimento. Incluído no plano Premium.',
+      nota: 'Só dados oficiais e os números da sua Empresa. Leituras são interpretações, não recomendação de investimento. Incluído no plano Premium.',
       btn: 'Conheça o Nexus e o José',
     },
     clowdbot: {
@@ -152,7 +152,7 @@ const idiomas = {
     },
     planos: {
       titulo: 'Escolha seu plano',
-      sub: '7 dias grátis em qualquer plano. Inauguração: 30% off nos 3 primeiros meses para as 100 primeiras empresas.',
+      sub: '7 dias grátis em qualquer plano. Inauguração: 30% off nos 3 primeiros meses para as 100 primeiras Empresas.',
       popular: 'Mais escolhido',
       trial: '7 dias grátis',
       mes: '/mês',
@@ -171,10 +171,10 @@ const idiomas = {
     nav: { modulos: 'Modules', planos: 'Plans', sobre: 'About' },
     hero: {
       slogan: 'Brazil’s Financial Future Thinks for Itself.',
-      sloganSub: 'An AI-powered financial director that checks every number in your company, warns you before problems arrive and shows the way — in Portuguese, English and Spanish.',
+      sloganSub: 'An AI-powered financial director that checks every number in your Company, warns you before problems arrive and shows the way — in Portuguese, English and Spanish.',
       legenda1: 'While the market still uses spreadsheets...',
       legenda2: 'Axioma commands your finances in real time.',
-      legenda3: 'The truth that moves companies.',
+      legenda3: 'The truth that moves Companies.',
       titulo: 'The system that replaced accountants.',
       sub: 'Artificial intelligence that commands your entire financial operation. Revenue, costs, taxes and cash flow — all connected. All automatic.',
       modulos: ['P&L', 'Revenue', 'Cash Flow', 'MEI', 'Tax AI', 'Open Finance', 'Costs', 'Investments'],
@@ -184,7 +184,7 @@ const idiomas = {
       titulo: 'Einstein taught us: mass is energy.',
       subTitulo: 'Axioma goes further: data is profit.',
       copy: '"Imagination is more important than knowledge. For knowledge is limited, whereas imagination embraces the entire world." — Albert Einstein',
-      texto: 'In 1905, Einstein revealed that everything in the universe transforms. Energy into matter. Time into space. More than a century later, Axioma translates the same truth into business: every number in your company carries a hidden energy of profit. Our AI is the equation that unlocks that value.',
+      texto: 'In 1905, Einstein revealed that everything in the universe transforms. Energy into matter. Time into space. More than a century later, Axioma translates the same truth into business: every number in your Company carries a hidden energy of profit. Our AI is the equation that unlocks that value.',
       formulas: ['E = mc²', '$ = D × AI', '∫ Profit dt', 'Σ Revenue', 'Δ Growth', 'π × Decisions'],
     },
     platao: {
@@ -209,14 +209,14 @@ const idiomas = {
     mente: {
       badge: 'ARTIFICIAL INTELLIGENCE',
       titulo: 'A financial director with AI, always available.',
-      sub: 'Ask about cash, taxes, costs or prices: the AI answers with your company’s numbers and the current official rules. You always make the decision.',
+      sub: 'Ask about cash, taxes, costs or prices: the AI answers with your Company’s numbers and the current official rules. You always make the decision.',
     },
     seguranca: {
       badge: 'SECURITY',
       titulo: 'Your data protected.',
-      sub: 'Each company sees only its own data. Payments through Stripe — Axioma never stores your card.',
+      sub: 'Each Company sees only its own data. Payments through Stripe — Axioma never stores your card.',
       items: [
-        { titulo: 'Separated data', desc: 'Each company and each person access only what is theirs.' },
+        { titulo: 'Separated data', desc: 'Each Company and each person access only what is theirs.' },
         { titulo: 'Protected connection', desc: 'Everything travels encrypted, from the browser to the database.' },
         { titulo: 'Secure access', desc: 'Google or e-mail login, anti-bot protection and a team with hierarchy.' },
         { titulo: 'LGPD', desc: 'Data handled under Brazil’s General Data Protection Law.' },
@@ -229,11 +229,11 @@ const idiomas = {
       items: ['Daily cross-module check', 'Notice of bills due in the coming days', 'Risk Panel with a score and an explanation', 'Learns from your category and supplier corrections'],
     },
     modulos: {
-      titulo: 'Everything your company needs in one place',
-      sub: '40+ integrated modules, from MEI to companies with many partners.',
+      titulo: 'Everything your Company needs in one place',
+      sub: '40+ integrated modules, from MEI to Companies with many partners.',
       lista: [
-        { nome: 'Nexus and José', desc: 'Economy, markets and news matched to your company', link: '/nexus-jose' },
-        { nome: 'Dashboard', desc: 'The whole company on one screen, with shortcuts to everything' },
+        { nome: 'Nexus and José', desc: 'Economy, markets and news matched to your Company', link: '/nexus-jose' },
+        { nome: 'Dashboard', desc: 'The whole Company on one screen, with shortcuts to everything' },
         { nome: 'MEI Dashboard', desc: 'Revenue cap, DAS and how much of the money is yours' },
         { nome: 'MEI Cockpit', desc: 'The MEI’s day in four verdicts' },
         { nome: 'MEI Revenue', desc: 'Sales of the year and how much of the cap is used' },
@@ -242,7 +242,7 @@ const idiomas = {
         { nome: 'MEI Pricing', desc: 'Real minimum price so you never work for free' },
         { nome: 'AI MEI Advisor', desc: 'MEI advisor with your real numbers' },
         { nome: 'MEI Income Tax', desc: 'Income tax with the official 2026 rules' },
-        { nome: 'Revenue', desc: 'Every inflow of money into the company' },
+        { nome: 'Revenue', desc: 'Every inflow of money into the Company' },
         { nome: 'Fixed Costs', desc: 'Monthly expenses, with validity dates and renewals' },
         { nome: 'Variable Costs', desc: 'Contribution margin and break-even point' },
         { nome: 'Cash Flow', desc: 'What came in, what went out and what is coming' },
@@ -281,7 +281,7 @@ const idiomas = {
     },
     jose: {
       titulo: 'Nexus and José',
-      sub: 'José is Axioma’s economic intelligence. Every day he reads the Brazilian and world economy and explains what it changes for your company, using your numbers.',
+      sub: 'José is Axioma’s economic intelligence. Every day he reads the Brazilian and world economy and explains what it changes for your Company, using your numbers.',
       brasilTitulo: 'In Brazil',
       brasil: ['Exchange rate, interest and inflation from the Central Bank', 'Employment and activity from IBGE', 'Fuel prices at the pump (ANP)', 'Tax Reform from the Senate’s official page'],
       mundoTitulo: 'Worldwide',
@@ -293,7 +293,7 @@ const idiomas = {
         { titulo: 'Track record', desc: 'Every forecast is checked later, on time. Hits and misses are shown openly.' },
         { titulo: 'Never stops', desc: 'Three intelligence engines and backup sources: if one fails, another takes over.' },
       ],
-      nota: 'Only official data and your company’s numbers. Readings are interpretations, not investment advice. Included in the Premium plan.',
+      nota: 'Only official data and your Company’s numbers. Readings are interpretations, not investment advice. Included in the Premium plan.',
       btn: 'Meet Nexus and José',
     },
     clowdbot: {
@@ -324,10 +324,10 @@ const idiomas = {
     nav: { modulos: 'Módulos', planos: 'Planes', sobre: 'Sobre' },
     hero: {
       slogan: 'El Futuro Financiero de Brasil Piensa Solo.',
-      sloganSub: 'Un director financiero con inteligencia artificial que revisa cada número de su empresa, avisa antes de que llegue el problema y muestra el camino — en portugués, inglés y español.',
+      sloganSub: 'Un director financiero con inteligencia artificial que revisa cada número de su Empresa, avisa antes de que llegue el problema y muestra el camino — en portugués, inglés y español.',
       legenda1: 'Mientras el mercado sigue usando planillas...',
       legenda2: 'Axioma controla tus finanzas en tiempo real.',
-      legenda3: 'La verdad que mueve empresas.',
+      legenda3: 'La verdad que mueve Empresas.',
       titulo: 'El sistema que reemplazó a los contadores.',
       sub: 'Inteligencia artificial que controla todo tu financiero. Ingresos, costos, impuestos y flujo de caja — todo conectado. Todo automático.',
       modulos: ['P&G', 'Ingresos', 'Flujo de Caja', 'MEI', 'IA Tributaria', 'Open Finance', 'Costos', 'Inversiones'],
@@ -337,7 +337,7 @@ const idiomas = {
       titulo: 'Einstein nos enseñó: la masa es energía.',
       subTitulo: 'Axioma va más allá: los datos son ganancia.',
       copy: '"La imaginación es más importante que el conocimiento. Pues el conocimiento es limitado, mientras que la imaginación abarca el mundo entero." — Albert Einstein',
-      texto: 'En 1905, Einstein reveló que todo en el universo se transforma. Energía en materia. Tiempo en espacio. Más de un siglo después, Axioma traduce la misma verdad al mundo de los negocios: cada número de tu empresa lleva una energía oculta de ganancia. Nuestra IA es la ecuación que libera ese valor.',
+      texto: 'En 1905, Einstein reveló que todo en el universo se transforma. Energía en materia. Tiempo en espacio. Más de un siglo después, Axioma traduce la misma verdad al mundo de los negocios: cada número de tu Empresa lleva una energía oculta de ganancia. Nuestra IA es la ecuación que libera ese valor.',
       formulas: ['E = mc²', '$ = D × IA', '∫ Lucro dt', 'Σ Ingresos', 'Δ Crecimiento', 'π × Decisiones'],
     },
     platao: {
@@ -362,14 +362,14 @@ const idiomas = {
     mente: {
       badge: 'INTELIGENCIA ARTIFICIAL',
       titulo: 'Un director financiero con IA, siempre disponible.',
-      sub: 'Pregunte sobre caja, impuestos, costos o precios: la IA responde con los números de su empresa y las reglas oficiales vigentes. Usted siempre decide.',
+      sub: 'Pregunte sobre caja, impuestos, costos o precios: la IA responde con los números de su Empresa y las reglas oficiales vigentes. Usted siempre decide.',
     },
     seguranca: {
       badge: 'SEGURIDAD',
       titulo: 'Sus datos protegidos.',
-      sub: 'Cada empresa ve solo sus propios datos. Pagos por Stripe, sin que Axioma guarde su tarjeta.',
+      sub: 'Cada Empresa ve solo sus propios datos. Pagos por Stripe, sin que Axioma guarde su tarjeta.',
       items: [
-        { titulo: 'Datos separados', desc: 'Cada empresa y cada persona acceden solo a lo suyo.' },
+        { titulo: 'Datos separados', desc: 'Cada Empresa y cada persona acceden solo a lo suyo.' },
         { titulo: 'Conexión protegida', desc: 'Todo viaja cifrado, del navegador a la base de datos.' },
         { titulo: 'Acceso seguro', desc: 'Login con Google o e-mail, protección anti-robots y equipo con jerarquía.' },
         { titulo: 'LGPD', desc: 'Tratamiento de datos conforme a la Ley General de Protección de Datos de Brasil.' },
@@ -382,11 +382,11 @@ const idiomas = {
       items: ['Conciliación diaria entre módulos', 'Aviso de cuentas que vencen en los próximos días', 'Panel de Riesgo con nota y explicación', 'Aprende de sus correcciones de categoría y proveedor'],
     },
     modulos: {
-      titulo: 'Todo lo que su empresa necesita en un solo lugar',
-      sub: 'Más de 40 módulos integrados, del MEI a la empresa con varios socios.',
+      titulo: 'Todo lo que su Empresa necesita en un solo lugar',
+      sub: 'Más de 40 módulos integrados, del MEI a la Empresa con varios socios.',
       lista: [
-        { nome: 'Nexus y José', desc: 'Economía, mercado y noticias cruzados con su empresa', link: '/nexus-jose' },
-        { nome: 'Panel', desc: 'Toda la empresa en una pantalla, con atajos a todo' },
+        { nome: 'Nexus y José', desc: 'Economía, mercado y noticias cruzados con su Empresa', link: '/nexus-jose' },
+        { nome: 'Panel', desc: 'Toda la Empresa en una pantalla, con atajos a todo' },
         { nome: 'Panel MEI', desc: 'Tope, DAS y cuánto del dinero es suyo' },
         { nome: 'Cockpit MEI', desc: 'La foto del día del MEI en cuatro veredictos' },
         { nome: 'Facturación MEI', desc: 'Ventas del año y cuánto ya usó del tope' },
@@ -395,7 +395,7 @@ const idiomas = {
         { nome: 'Precios MEI', desc: 'Precio mínimo real para no trabajar gratis' },
         { nome: 'IA MEI Advisor', desc: 'Consultor del MEI con sus números reales' },
         { nome: 'Impuesto a la Renta del MEI', desc: 'IRPF con las reglas oficiales de 2026' },
-        { nome: 'Ingresos', desc: 'Todas las entradas de dinero de la empresa' },
+        { nome: 'Ingresos', desc: 'Todas las entradas de dinero de la Empresa' },
         { nome: 'Costos Fijos', desc: 'Gastos de todo mes, con vigencia y renovaciones' },
         { nome: 'Costos Variables', desc: 'Margen de contribución y punto de equilibrio' },
         { nome: 'Flujo de Caja', desc: 'Lo que entró, lo que salió y cuánto habrá' },
@@ -434,7 +434,7 @@ const idiomas = {
     },
     jose: {
       titulo: 'Nexus y José',
-      sub: 'José es la inteligencia económica de Axioma. Cada día lee la economía de Brasil y del mundo y explica qué cambia para su empresa, con sus números.',
+      sub: 'José es la inteligencia económica de Axioma. Cada día lee la economía de Brasil y del mundo y explica qué cambia para su Empresa, con sus números.',
       brasilTitulo: 'En Brasil',
       brasil: ['Tipo de cambio, tasas e inflación del Banco Central', 'Empleo y actividad del IBGE', 'Combustibles en las estaciones (ANP)', 'Reforma Tributaria por la página oficial del Senado'],
       mundoTitulo: 'En el mundo',
@@ -446,7 +446,7 @@ const idiomas = {
         { titulo: 'Marcador de aciertos', desc: 'Cada previsión se verifica después, en plazo. Aciertos y errores quedan a la vista.' },
         { titulo: 'Nunca se detiene', desc: 'Tres motores de inteligencia y fuentes de reserva: si uno falla, otro asume.' },
       ],
-      nota: 'Solo datos oficiales y los números de su empresa. Las lecturas son interpretaciones, no recomendación de inversión. Incluido en el plan Premium.',
+      nota: 'Solo datos oficiales y los números de su Empresa. Las lecturas son interpretaciones, no recomendación de inversión. Incluido en el plan Premium.',
       btn: 'Conozca Nexus y José',
     },
     clowdbot: {
@@ -641,14 +641,14 @@ function HeroVideos() {
 // Cores do tema-tokens.md: branco #ffffff, navy #101b3d, menta #2ecc9b (todo verde = menta padrão, pedido do Elias 2026-10-13)
 // ============================================================
 const TXT_BM = {
-  pt: { t1: 'Gestão Financeira', t2: '& Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua empresa cresce, a gente cresce junto.',
-    saldo: 'Saldo em caixa', p1: 'Você conhece os ', p2: 'números', p3: ' da sua empresa?', cta: 'Quero conhecer',
+  pt: { t1: 'Gestão Financeira', t2: '& Inteligência que confere tudo', txt: 'O Axioma vai além da contabilidade: lê seus números todos os dias, cruza os módulos e avisa antes do problema chegar. Se a sua Empresa cresce, a gente cresce junto.',
+    saldo: 'Saldo em caixa', p1: 'Você conhece os ', p2: 'números', p3: ' da sua Empresa?', cta: 'Quero conhecer',
     itens: ['Conferência diária', 'Painel de Risco', 'IA Financeira'] },
-  en: { t1: 'Financial Management', t2: '& Intelligence that checks everything', txt: 'Axioma goes beyond accounting: it reads your numbers every day, cross-checks every module and warns you before problems arrive. When your company grows, we grow with it.',
-    saldo: 'Cash balance', p1: 'Do you know your company’s ', p2: 'numbers', p3: '?', cta: 'Show me',
+  en: { t1: 'Financial Management', t2: '& Intelligence that checks everything', txt: 'Axioma goes beyond accounting: it reads your numbers every day, cross-checks every module and warns you before problems arrive. When your Company grows, we grow with it.',
+    saldo: 'Cash balance', p1: 'Do you know your Company’s ', p2: 'numbers', p3: '?', cta: 'Show me',
     itens: ['Daily cross-check', 'Risk Panel', 'Financial AI'] },
-  es: { t1: 'Gestión Financiera', t2: '& Inteligencia que lo revisa todo', txt: 'Axioma va más allá de la contabilidad: lee sus números todos los días, cruza los módulos y avisa antes de que llegue el problema. Si su empresa crece, crecemos juntos.',
-    saldo: 'Saldo en caja', p1: '¿Conoce los ', p2: 'números', p3: ' de su empresa?', cta: 'Quiero conocer',
+  es: { t1: 'Gestión Financiera', t2: '& Inteligencia que lo revisa todo', txt: 'Axioma va más allá de la contabilidad: lee sus números todos los días, cruza los módulos y avisa antes de que llegue el problema. Si su Empresa crece, crecemos juntos.',
+    saldo: 'Saldo en caja', p1: '¿Conoce los ', p2: 'números', p3: ' de su Empresa?', cta: 'Quiero conocer',
     itens: ['Conciliación diaria', 'Panel de Riesgo', 'IA Financiera'] },
 }
 
@@ -1100,7 +1100,7 @@ export default function LandingPage() {
             <Badge>{lang === 'en' ? 'SMART PANEL' : lang === 'es' ? 'PANEL INTELIGENTE' : 'PAINEL INTELIGENTE'}</Badge>
             <h2 className="ax-display text-2xl md:text-4xl font-black mb-6"
               style={{ color: '#eaf2ff' }}>
-              {lang === 'en' ? 'Your whole company, in one panel.' : lang === 'es' ? 'Toda su empresa, en un solo panel.' : 'Sua empresa inteira, em um só painel.'}
+              {lang === 'en' ? 'Your whole Company, in one panel.' : lang === 'es' ? 'Toda su Empresa, en un solo panel.' : 'Sua Empresa inteira, em um só painel.'}
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
