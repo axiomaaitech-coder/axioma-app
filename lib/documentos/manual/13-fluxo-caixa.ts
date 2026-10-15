@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '13 - Fluxo de Caixa.docx',
   titulo: 'Manual 13 — Fluxo de Caixa',
   subtitulo: 'O dinheiro de verdade: o que entrou, o que saiu, quanto há hoje e quanto haverá',
-  info: ['Menu: Financeiro → Fluxo de Caixa  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Fluxo de Caixa  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Mostra o **dinheiro de verdade**: entradas e saídas realizadas, o **saldo de caixa hoje** e a **previsão** das próximas semanas, juntando sozinho o que vem de Contas a Receber, Contas a Pagar, Custos Fixos, Dívidas e vendas do PDV. O ponto mais importante é o **Alerta de Ruptura de Caixa**: avisa com antecedência se o dinheiro vai faltar.' },
@@ -63,6 +63,9 @@ const pt: DocumentoAxioma = {
     ] } },
     { alerta: 'Viu o **Alerta de Ruptura de Caixa**? Aja logo: antecipe recebimentos, renegocie pagamentos ou reforce o caixa. Quanto antes, mais opções.' },
     { nota: 'Quando a conexão bancária (Open Finance) estiver ativa, o extrato do banco entra sozinho e o caixa fica ainda mais fiel.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
 }
 
@@ -70,7 +73,7 @@ const en: DocumentoAxioma = {
   arquivo: '13 - Cash Flow.docx',
   titulo: 'Manual 13 — Cash Flow',
   subtitulo: 'Real money: what came in, what went out, how much there is today and how much there will be',
-  info: ['Menu: Financial → Cash Flow  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Financial → Cash Flow  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Shows **real money**: actual inflows and outflows, **today\'s cash balance** and the **forecast** for the coming weeks, automatically combining Receivables, Payables, Fixed Costs, Debts and POS sales. The key feature is the **Cash Shortfall Alert**: it warns in advance if money will run out.' },
@@ -128,6 +131,9 @@ const en: DocumentoAxioma = {
     ] } },
     { alerta: 'Seeing the **Cash Shortfall Alert**? Act quickly: bring receipts forward, renegotiate payments or reinforce cash. The sooner, the more options.' },
     { nota: 'Once the bank connection (Open Finance) is active, the bank statement comes in automatically and cash becomes even more accurate.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
 }
 
@@ -135,7 +141,7 @@ const es: DocumentoAxioma = {
   arquivo: '13 - Flujo de Caja.docx',
   titulo: 'Manual 13 — Flujo de Caja',
   subtitulo: 'El dinero real: lo que entró, lo que salió, cuánto hay hoy y cuánto habrá',
-  info: ['Menú: Financiero → Flujo de Caja  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Financiero → Flujo de Caja  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Muestra el **dinero real**: entradas y salidas realizadas, el **saldo de caja hoy** y la **previsión** de las próximas semanas, juntando solo lo que viene de Cuentas por Cobrar, Cuentas por Pagar, Costos Fijos, Deudas y ventas del PDV. Lo más importante es la **Alerta de Ruptura de Caja**: avisa con anticipación si va a faltar dinero.' },
@@ -193,6 +199,9 @@ const es: DocumentoAxioma = {
     ] } },
     { alerta: '¿Vio la **Alerta de Ruptura de Caja**? Actúe rápido: adelante cobros, renegocie pagos o refuerce la caja. Cuanto antes, más opciones.' },
     { nota: 'Cuando la conexión bancaria (Open Finance) esté activa, el extracto del banco entra solo y la caja queda aún más fiel.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],
 }
 

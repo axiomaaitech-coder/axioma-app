@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '22 - Metas.docx',
   titulo: 'Manual 22 — Metas',
   subtitulo: 'Metas ligadas aos números reais: o progresso se atualiza sozinho e o Axioma diz se o ritmo dá conta',
-  info: ['Menu: Crescimento → Metas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Crescimento → Metas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Você define o alvo (ex.: faturar R$ 500 mil no ano) e o Axioma acompanha **sozinho**, com os dados reais da empresa: quanto já foi, o ritmo atual, o ritmo necessário e se a meta é realista. Nada de atualizar à mão.' },
@@ -48,6 +48,9 @@ const pt: DocumentoAxioma = {
       ['Arquivar / Reativar', 'Tira a meta do acompanhamento sem apagar (fica como **Arquivada**).'],
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador).'],
     ] } },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
 }
 
@@ -55,7 +58,7 @@ const en: DocumentoAxioma = {
   arquivo: '22 - Goals.docx',
   titulo: 'Manual 22 — Goals',
   subtitulo: 'Goals tied to real numbers: progress updates itself and Axioma tells you whether the pace is enough',
-  info: ['Menu: Growth → Goals  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Growth → Goals  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'You set the target (e.g., bill R$ 500k this year) and Axioma tracks it **on its own**, with the company’s real data: how far you are, the current pace, the required pace and whether the goal is realistic. No manual updates.' },
@@ -98,6 +101,9 @@ const en: DocumentoAxioma = {
       ['Archive / Reactivate', 'Removes the goal from tracking without deleting it (it shows as **Archived**).'],
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator).'],
     ] } },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
 }
 
@@ -105,7 +111,7 @@ const es: DocumentoAxioma = {
   arquivo: '22 - Metas.docx',
   titulo: 'Manual 22 — Metas',
   subtitulo: 'Metas ligadas a los números reales: el progreso se actualiza solo y Axioma dice si el ritmo alcanza',
-  info: ['Menú: Crecimiento → Metas  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Crecimiento → Metas  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Usted define el objetivo (ej.: facturar R$ 500 mil en el año) y Axioma lo sigue **solo**, con los datos reales de la empresa: cuánto se logró, el ritmo actual, el ritmo necesario y si la meta es realista. Nada de actualizar a mano.' },
@@ -148,6 +154,9 @@ const es: DocumentoAxioma = {
       ['Archivar / Reactivar', 'Saca la meta del seguimiento sin borrarla (queda **Archivada**).'],
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador).'],
     ] } },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],
 }
 

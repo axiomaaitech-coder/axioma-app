@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '35 - Gestão - Open Finance.docx',
   titulo: 'Manual 35 — Open Finance (Conciliação)',
   subtitulo: 'Conecte o banco e veja se o sistema bate com o extrato',
-  info: ['Menu: Gestão → Open Finance  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Gestão → Open Finance  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Conecta a conta bancária da empresa ao Axioma pelo **Open Finance** (sistema regulado pelo Banco Central, por meio da parceira Pluggy). As transações do banco entram sozinhas e o Axioma **concilia**: compara com o que já está lançado e avisa o que está diferente ou estranho.' },
@@ -43,6 +43,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Como a inteligência funciona aqui' },
     { p: 'A conciliação usa **regras**: compara valor, data e descrição, e o histórico da empresa para apontar atípicos. Nada é lançado sem você clicar.' },
     { nota: 'Se alguma leitura falhar, a tela avisa que a conciliação pode estar incompleta — nunca mostra uma divergência falsa calada.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. Ao criar um lançamento a partir do extrato, se não for possível conferir se aquela transação já foi lançada, a criação é cancelada com aviso — nunca lança a mesma transação duas vezes.' },
   ],
 }
 
@@ -50,7 +53,7 @@ const en: DocumentoAxioma = {
   arquivo: '35 - Management - Open Finance.docx',
   titulo: 'Manual 35 — Open Finance (Reconciliation)',
   subtitulo: 'Connect the bank and see if the system matches the statement',
-  info: ['Menu: Management → Open Finance  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Management → Open Finance  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Connects the company’s bank account to Axioma through **Open Finance** (a system regulated by the Brazilian Central Bank, via the partner Pluggy). Bank transactions come in automatically and Axioma **reconciles** them: it compares with what is already posted and flags what is different or unusual.' },
@@ -88,6 +91,9 @@ const en: DocumentoAxioma = {
     { h1: 'How the intelligence works here' },
     { p: 'Reconciliation uses **rules**: it compares amount, date and description, and the company’s history to point out unusual items. Nothing is posted without your click.' },
     { nota: 'If any loading fails, the screen warns that reconciliation may be incomplete — it never shows a false discrepancy silently.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. When creating an entry from the statement, if it cannot be checked whether that transaction was already recorded, the creation is cancelled with a notice — the same transaction is never recorded twice.' },
   ],
 }
 
@@ -95,7 +101,7 @@ const es: DocumentoAxioma = {
   arquivo: '35 - Gestión - Open Finance.docx',
   titulo: 'Manual 35 — Open Finance (Conciliación)',
   subtitulo: 'Conecte el banco y vea si el sistema coincide con el extracto',
-  info: ['Menú: Gestión → Open Finance  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Gestión → Open Finance  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Conecta la cuenta bancaria de la empresa a Axioma por **Open Finance** (sistema regulado por el Banco Central de Brasil, por medio del socio Pluggy). Las transacciones del banco entran solas y Axioma **concilia**: compara con lo que ya está registrado y avisa lo que es diferente o extraño.' },
@@ -133,6 +139,9 @@ const es: DocumentoAxioma = {
     { h1: 'Cómo funciona la inteligencia aquí' },
     { p: 'La conciliación usa **reglas**: compara valor, fecha y descripción, y el historial de la empresa para señalar atípicos. Nada se registra sin su clic.' },
     { nota: 'Si alguna lectura falla, la pantalla avisa que la conciliación puede estar incompleta — nunca muestra una divergencia falsa en silencio.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. Al crear un asiento desde el extracto, si no se puede verificar si esa transacción ya fue registrada, la creación se cancela con aviso — nunca registra la misma transacción dos veces.' },
   ],
 }
 

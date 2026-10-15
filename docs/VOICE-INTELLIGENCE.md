@@ -89,9 +89,11 @@ de RLS (banco), fora da Fase 0.
 | `npx tsx scripts/check-voz-fase0.mts` (novo: papel, custos vigente/encerrado/futuro/limites/ausente/falha, datas na virada de mês/ano e 29/02, fuso na meia-noite, verificação estrita, retrato com falha de leitura, empresa sem vínculo) | OK |
 | `check-ia-motor`, `check-risco`, `check-regras-oficiais`, `check-dre-competencia`, `check-mei`, `check-mei-obrigacoes`, `check-guia-das`, `check-importar-nfe` | OK |
 | `check-nexus-previsoes`, `check-nexus-simulacao`, `check-pdf-relatorio`, `check-manuais` | OK |
-| `check-nexus-eventos`, `check-nexus-saude-fontes` | falham **também na versão anterior** (import `lib/datas` sem extensão no Node) — não relacionado |
-| ESLint nos arquivos alterados | 17 erros, **os mesmos 17 da versão anterior** (any/ordem de declaração nas telas de IA) — nenhum novo |
+| `check-nexus-eventos`, `check-nexus-saude-fontes` | OK (corrigidos em 2026-10-15: rodam com `npx tsx`; régua mensal do teste alinhada à regra atual) |
+| ESLint nas telas de IA | 0 erros (os 17 anteriores corrigidos em 2026-10-15) |
 | `npx tsc --noEmit` | OK |
+| `npx next build` | OK — 100/100 páginas (2026-10-15) |
+| `npx tsx scripts/check-anti-falha.mts` | OK |
 | Local (`next dev`): cabeçalhos | `permissions-policy: camera=(), microphone=(self), geolocation=()`; CSP com `media-src 'self' blob:`; X-Frame-Options, HSTS, nosniff e `frame-ancestors 'none'` intactos |
 | Local: `POST /api/ia/motor` sem login | 401 |
 | Não executado: operador real e usuário de outra empresa com sessão | precisa de contas de teste; roteiro: logar como operador e perguntar na IA Financeira (esperado: aviso de operador); logar na empresa A e chamar o motor com `empresa_id` da B (esperado: 404, saldo da B intacto) |

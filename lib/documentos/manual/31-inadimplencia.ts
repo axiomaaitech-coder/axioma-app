@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '31 - Comercial - Inadimplência.docx',
   titulo: 'Manual 31 — Inadimplência',
   subtitulo: 'Centro de Inteligência de Recuperação Financeira',
-  info: ['Menu: Comercial → Inadimplência  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Comercial → Inadimplência  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Cuida do dinheiro que **já venceu e não foi pago**. Lê as contas vencidas direto de Contas a Receber (sem cadastro duplicado) e ajuda a recuperar: prioriza quem cobrar, sugere a melhor estratégia, organiza negociações e calcula a perda provável.' },
@@ -51,6 +51,9 @@ const pt: DocumentoAxioma = {
     ] } },
     { nota: 'Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "ninguém inadimplente" por engano.' },
     { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. A receita bruta do ano conta pelo ano da própria data: uma receita de 1º de janeiro entra no ano certo.' },
   ],
 }
 
@@ -58,7 +61,7 @@ const en: DocumentoAxioma = {
   arquivo: '31 - Commercial - Default.docx',
   titulo: 'Manual 31 — Default',
   subtitulo: 'Financial Recovery Intelligence Center',
-  info: ['Menu: Commercial → Default  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Commercial → Default  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Takes care of money that is **already overdue and unpaid**. It reads overdue bills straight from Receivables (no duplicate registration) and helps you recover: it prioritizes whom to collect from, suggests the best strategy, organizes negotiations and calculates the probable loss.' },
@@ -104,6 +107,9 @@ const en: DocumentoAxioma = {
     ] } },
     { nota: 'If any loading fails, the screen warns that the data may be incomplete — it never shows "no one in default" by mistake.' },
     { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. Gross revenue for the year counts by the date’s own year: revenue from January 1 falls in the right year.' },
   ],
 }
 
@@ -111,7 +117,7 @@ const es: DocumentoAxioma = {
   arquivo: '31 - Comercial - Morosidad.docx',
   titulo: 'Manual 31 — Morosidad',
   subtitulo: 'Centro de Inteligencia de Recuperación Financiera',
-  info: ['Menú: Comercial → Morosidad  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Comercial → Morosidad  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Cuida el dinero que **ya venció y no fue pagado**. Lee las cuentas vencidas directo de Cuentas por Cobrar (sin registro duplicado) y ayuda a recuperar: prioriza a quién cobrar, sugiere la mejor estrategia, organiza negociaciones y calcula la pérdida probable.' },
@@ -157,6 +163,9 @@ const es: DocumentoAxioma = {
     ] } },
     { nota: 'Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "nadie moroso" por error.' },
     { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. El ingreso bruto del año cuenta por el año de la propia fecha: un ingreso del 1 de enero entra en el año correcto.' },
   ],
 }
 

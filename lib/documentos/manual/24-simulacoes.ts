@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '24 - Crescimento - Simulações.docx',
   titulo: 'Manual 24 — Simulações Estratégicas',
   subtitulo: 'Teste decisões antes de arriscar o caixa',
-  info: ['Menu: Crescimento → Simulações  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Crescimento → Simulações  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Responde perguntas do tipo **"e se?"**: e se a receita cair 20%? e se os juros subirem? e se eu contratar mais duas pessoas? A tela parte dos **números reais** da empresa, aplica as mudanças e mostra lucro, caixa, risco de ruptura e o impacto em cada regime tributário. **Nada do que você simula é gravado** — os dados reais não mudam.' },
@@ -40,6 +40,9 @@ const pt: DocumentoAxioma = {
     { nota: 'Receitas, custos e caixa são lidos sem limite de linhas. Se parte deles não carregar, a tela avisa que o ponto de partida pode estar incompleto — recarregue antes de decidir.' },
     { nota: 'Para simulações em conversa livre com inteligência artificial, use a IA Financeira (manual 36).' },
     { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
 }
 
@@ -47,7 +50,7 @@ const en: DocumentoAxioma = {
   arquivo: '24 - Growth - Simulations.docx',
   titulo: 'Manual 24 — Strategic Simulations',
   subtitulo: 'Test decisions before risking your cash',
-  info: ['Menu: Growth → Simulations  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Growth → Simulations  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Answers **"what if?"** questions: what if revenue drops 20%? what if interest rises? what if I hire two more people? The screen starts from the company’s **real numbers**, applies the changes and shows profit, cash, risk of running out of cash and the impact under each tax regime. **Nothing you simulate is saved** — the real data does not change.' },
@@ -82,6 +85,9 @@ const en: DocumentoAxioma = {
     { nota: 'Revenue, costs and cash are read with no row limit. If part of them does not load, the screen warns that the starting point may be incomplete — reload before deciding.' },
     { nota: 'For free-form simulations in conversation with artificial intelligence, use Financial AI (manual 36).' },
     { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
 }
 
@@ -89,7 +95,7 @@ const es: DocumentoAxioma = {
   arquivo: '24 - Crecimiento - Simulaciones.docx',
   titulo: 'Manual 24 — Simulaciones Estratégicas',
   subtitulo: 'Pruebe decisiones antes de arriesgar la caja',
-  info: ['Menú: Crecimiento → Simulaciones  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Crecimiento → Simulaciones  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Responde preguntas del tipo **"¿y si?"**: ¿y si los ingresos caen 20%? ¿y si suben los intereses? ¿y si contrato a dos personas más? La pantalla parte de los **números reales** de la empresa, aplica los cambios y muestra utilidad, caja, riesgo de quedarse sin caja y el impacto en cada régimen tributario. **Nada de lo que simula se guarda** — los datos reales no cambian.' },
@@ -124,6 +130,9 @@ const es: DocumentoAxioma = {
     { nota: 'Ingresos, costos y caja se leen sin límite de filas. Si parte de ellos no carga, la pantalla avisa que el punto de partida puede estar incompleto — recargue antes de decidir.' },
     { nota: 'Para simulaciones en conversación libre con inteligencia artificial, use la IA Financiera (manual 36).' },
     { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],
 }
 

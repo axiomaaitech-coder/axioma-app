@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '05 - MEI - DAS e Obrigacoes.docx',
   titulo: 'Manual 05 — DAS & Obrigações',
   subtitulo: 'O calendário fiscal do MEI: DAS mês a mês, pagar por dentro do Axioma, cenários, declaração anual, atrasos e documentos para o contador',
-  info: ['Menu: MEI → DAS & Obrigações  •  Manual de uso do Axioma AI.Tech  •  Versão 3.0 (outubro de 2026)'],
+  info: ['Menu: MEI → DAS & Obrigações  •  Manual de uso do Axioma AI.Tech  •  Versão 3.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Esta tela organiza **todas as obrigações fiscais do MEI**: o DAS de cada mês, a declaração anual (DASN-SIMEI) e o Imposto de Renda da pessoa física. Mostra **quanto já foi pago, quanto falta e quando vence**, deixa **pagar o DAS por dentro do Axioma**, simula cenários, calcula o custo do atraso e gera os **documentos para o contador** em PDF, Excel e CSV.' },
@@ -121,6 +121,9 @@ const pt: DocumentoAxioma = {
       ['Cenário não muda os números.', 'Os cenários só variam meses estimados; num ano todo oficial, eles mostram o ano seguinte ("Simulando ...").'],
       ['A dívida não bate com o PGMEI.', 'O Axioma estima pela regra (0,33% ao dia até 20% + Selic). O valor oficial é sempre o do PGMEI.'],
     ] } },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. O vencimento gravado ao registrar um DAS é o dia exato do calendário, também para quem usa o Axioma fora do Brasil.' },
   ],
 }
 
@@ -128,7 +131,7 @@ const en: DocumentoAxioma = {
   arquivo: '05 - MEI - DAS and Obligations.docx',
   titulo: 'Manual 05 — DAS & Obligations',
   subtitulo: 'The MEI tax calendar: DAS month by month, paying inside Axioma, scenarios, annual return, delays and documents for the accountant',
-  info: ['Menu: MEI → DAS & Obligations  •  Axioma AI.Tech user manual  •  Version 3.0 (October 2026)'],
+  info: ['Menu: MEI → DAS & Obligations  •  Axioma AI.Tech user manual  •  Version 3.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'This screen organizes **every MEI tax obligation**: the monthly DAS, the annual return (DASN-SIMEI) and personal income tax. It shows **what was paid, what is left and when it is due**, lets you **pay the DAS inside Axioma**, simulates scenarios, computes the cost of delays and creates **documents for the accountant** in PDF, Excel and CSV.' },
@@ -244,6 +247,9 @@ const en: DocumentoAxioma = {
       ['A scenario does not change the numbers.', 'Scenarios only vary estimated months; in a fully official year they show the next year ("Simulating ...").'],
       ['The debt does not match PGMEI.', 'Axioma estimates by rule (0.33% a day up to 20% + Selic). The official amount is always the one in PGMEI.'],
     ] } },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. The due date saved when recording a DAS is the exact calendar day, also for people using Axioma outside Brazil.' },
   ],
 }
 
@@ -251,7 +257,7 @@ const es: DocumentoAxioma = {
   arquivo: '05 - MEI - DAS y Obligaciones.docx',
   titulo: 'Manual 05 — DAS & Obligaciones',
   subtitulo: 'El calendario fiscal del MEI: DAS mes a mes, pagar dentro de Axioma, escenarios, declaración anual, atrasos y documentos para el contador',
-  info: ['Menú: MEI → DAS & Obligaciones  •  Manual de uso de Axioma AI.Tech  •  Versión 3.0 (octubre de 2026)'],
+  info: ['Menú: MEI → DAS & Obligaciones  •  Manual de uso de Axioma AI.Tech  •  Versión 3.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Esta pantalla organiza **todas las obligaciones fiscales del MEI**: el DAS de cada mes, la declaración anual (DASN-SIMEI) y el Impuesto de Renta de la persona física. Muestra **cuánto se pagó, cuánto falta y cuándo vence**, permite **pagar el DAS dentro de Axioma**, simula escenarios, calcula el costo del atraso y genera los **documentos para el contador** en PDF, Excel y CSV.' },
@@ -367,6 +373,9 @@ const es: DocumentoAxioma = {
       ['El escenario no cambia los números.', 'Los escenarios solo varían meses estimados; en un año todo oficial muestran el año siguiente ("Simulando ...").'],
       ['La deuda no coincide con el PGMEI.', 'Axioma estima por regla (0,33% al día hasta 20% + Selic). El valor oficial es siempre el del PGMEI.'],
     ] } },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. El vencimiento guardado al registrar un DAS es el día exacto del calendario, también para quien usa Axioma fuera de Brasil.' },
   ],
 }
 

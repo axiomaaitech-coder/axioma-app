@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '23 - Investimentos.docx',
   titulo: 'Manual 23 — Investimentos',
   subtitulo: 'Onde está o capital da empresa, quanto rende, quanto está parado e onde vale colocar o próximo real',
-  info: ['Menu: Crescimento → Investimentos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Crescimento → Investimentos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Junta as aplicações da empresa (renda fixa, renda variável, cripto, imóvel), compara com o **caixa** e com as **dívidas**, mostra a liquidez ao longo do tempo e os riscos, e ajuda a decidir **onde alocar o próximo real** — aplicar, quitar dívida ou investir no negócio.' },
@@ -46,6 +46,9 @@ const pt: DocumentoAxioma = {
     ] } },
     { nota: 'Se a leitura dos investimentos falhar, a tela avisa — nunca mostra "nenhum investimento" por engano. O mesmo vale para receitas, custos, dívidas e caixa usados nos indicadores.' },
     { nota: 'Enquanto os dados carregam, a tela mostra o sinal de carregando — o aviso de "sem dados" só aparece quando realmente não há lançamentos.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
 }
 
@@ -53,7 +56,7 @@ const en: DocumentoAxioma = {
   arquivo: '23 - Investments.docx',
   titulo: 'Manual 23 — Investments',
   subtitulo: 'Where the company’s capital is, what it earns, what is idle and where the next real is worth putting',
-  info: ['Menu: Growth → Investments  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Growth → Investments  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gathers the company’s investments (fixed income, equities, crypto, real estate), compares them with **cash** and **debts**, shows liquidity over time and the risks, and helps decide **where to allocate the next real** — invest, pay off debt or put it into the business.' },
@@ -94,6 +97,9 @@ const en: DocumentoAxioma = {
     ] } },
     { nota: 'If loading the investments fails, the screen warns you — it never shows "no investments" by mistake. The same goes for revenue, costs, debts and cash used in the indicators.' },
     { nota: 'While data loads, the screen shows the loading sign — the "no data" notice only appears when there really are no entries.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
 }
 
@@ -101,7 +107,7 @@ const es: DocumentoAxioma = {
   arquivo: '23 - Inversiones.docx',
   titulo: 'Manual 23 — Inversiones',
   subtitulo: 'Dónde está el capital de la empresa, cuánto rinde, cuánto está parado y dónde conviene poner el próximo real',
-  info: ['Menú: Crecimiento → Inversiones  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Crecimiento → Inversiones  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Junta las inversiones de la empresa (renta fija, renta variable, cripto, inmueble), las compara con la **caja** y las **deudas**, muestra la liquidez en el tiempo y los riesgos, y ayuda a decidir **dónde asignar el próximo real** — invertir, pagar deuda o ponerlo en el negocio.' },
@@ -142,6 +148,9 @@ const es: DocumentoAxioma = {
     ] } },
     { nota: 'Si la lectura de las inversiones falla, la pantalla avisa — nunca muestra "ninguna inversión" por error. Lo mismo vale para ingresos, costos, deudas y caja usados en los indicadores.' },
     { nota: 'Mientras los datos cargan, la pantalla muestra la señal de carga — el aviso de "sin datos" solo aparece cuando realmente no hay registros.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],
 }
 

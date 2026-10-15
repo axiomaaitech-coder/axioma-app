@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '33 - Gestão - Importar Documentos.docx',
   titulo: 'Manual 33 — Importar Documentos',
   subtitulo: 'Envie o arquivo e o Axioma lança no lugar certo',
-  info: ['Menu: Gestão → Importar Documentos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Gestão → Importar Documentos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Em vez de digitar lançamento por lançamento, você envia o arquivo e o Axioma lê, classifica e lança no módulo certo: Fluxo de Caixa, Receitas, Custos Fixos, Custos Variáveis, Contas a Pagar, Contas a Receber, Fornecedores ou Endividamento. **Você confere tudo antes de gravar.**' },
@@ -46,6 +46,9 @@ const pt: DocumentoAxioma = {
     { p: '**Total Importado**, **Documentos Processados**, **Taxa de Sucesso**, **Duplicatas Evitadas**, **Tempo Médio** e **Horas Economizadas**.' },
     { nota: 'Compras de mercadoria podem ser lançadas como custo variável, custo fixo mensal, estoque ou investimento: o Axioma pergunta antes de lançar. Notas já importadas pelo PDV são reconhecidas para não duplicar. O custo da nota lançado na importação não é lançado de novo quando a conta é paga. Se o histórico não carregar, ou se não der para conferir os fornecedores pelo nome, a tela avisa.' },
     { nota: 'Todos os textos da tela, inclusive os de carregamento, aparecem em português, inglês e espanhol.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. Compra no cartão parcelada: a parcela segue o mesmo dia nos meses seguintes e, quando o mês é mais curto, cai no último dia (compra em 31/01 → 28/02 → 31/03). Se a conferência de fornecedor pelo CNPJ ou de duplicatas não puder ser feita, o Axioma avisa e deixa as linhas desmarcadas para você revisar antes de importar — nada é gravado sem conferência.' },
   ],
 }
 
@@ -53,7 +56,7 @@ const en: DocumentoAxioma = {
   arquivo: '33 - Management - Import Documents.docx',
   titulo: 'Manual 33 — Import Documents',
   subtitulo: 'Upload the file and Axioma posts it in the right place',
-  info: ['Menu: Management → Import Documents  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Management → Import Documents  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Instead of typing entry by entry, you upload the file and Axioma reads, classifies and posts it to the right module: Cash Flow, Revenue, Fixed Costs, Variable Costs, Accounts Payable, Receivables, Suppliers or Debt. **You review everything before saving.**' },
@@ -94,6 +97,9 @@ const en: DocumentoAxioma = {
     { p: '**Total Imported**, **Documents Processed**, **Success Rate**, **Duplicates Avoided**, **Average Time** and **Hours Saved**.' },
     { nota: 'Merchandise purchases can be posted as variable cost, monthly fixed cost, inventory or investment: Axioma asks before posting. Invoices already imported through the POS are recognized so they are not duplicated. The invoice cost posted at import is not posted again when the bill is paid. If the history does not load, or suppliers cannot be checked by name, the screen warns you.' },
     { nota: 'All screen texts, including loading messages, appear in Portuguese, English and Spanish.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. Card purchase in installments: each installment keeps the same day in the following months and, when the month is shorter, falls on the last day (purchase on 01/31 → 02/28 → 03/31). If the supplier check by tax ID or the duplicate check cannot run, Axioma warns you and leaves the lines unchecked for you to review before importing — nothing is saved without review.' },
   ],
 }
 
@@ -101,7 +107,7 @@ const es: DocumentoAxioma = {
   arquivo: '33 - Gestión - Importar Documentos.docx',
   titulo: 'Manual 33 — Importar Documentos',
   subtitulo: 'Suba el archivo y Axioma lo registra en el lugar correcto',
-  info: ['Menú: Gestión → Importar Documentos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Gestión → Importar Documentos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'En lugar de escribir registro por registro, usted sube el archivo y Axioma lee, clasifica y registra en el módulo correcto: Flujo de Caja, Ingresos, Costos Fijos, Costos Variables, Cuentas por Pagar, Cuentas por Cobrar, Proveedores o Endeudamiento. **Usted revisa todo antes de guardar.**' },
@@ -142,6 +148,9 @@ const es: DocumentoAxioma = {
     { p: '**Total Importado**, **Documentos Procesados**, **Tasa de Éxito**, **Duplicados Evitados**, **Tiempo Promedio** y **Horas Ahorradas**.' },
     { nota: 'Las compras de mercadería pueden registrarse como costo variable, costo fijo mensual, inventario o inversión: Axioma pregunta antes de registrar. Las facturas ya importadas por el PDV se reconocen para no duplicar. El costo de la factura registrado en la importación no se registra de nuevo cuando se paga la cuenta. Si el historial no carga, o no se pueden verificar los proveedores por nombre, la pantalla avisa.' },
     { nota: 'Todos los textos de la pantalla, incluidos los de carga, aparecen en portugués, inglés y español.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. Compra con tarjeta en cuotas: cada cuota mantiene el mismo día en los meses siguientes y, cuando el mes es más corto, cae en el último día (compra el 31/01 → 28/02 → 31/03). Si la verificación del proveedor por CNPJ o de duplicados no se puede hacer, Axioma avisa y deja las líneas desmarcadas para que las revise antes de importar — nada se guarda sin revisión.' },
   ],
 }
 

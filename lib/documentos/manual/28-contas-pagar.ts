@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '28 - Comercial - Contas a Pagar.docx',
   titulo: 'Manual 28 — Contas a Pagar',
   subtitulo: 'Central de obrigações com fornecedores',
-  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne tudo o que a empresa tem para pagar: vencimentos, baixas, anexos, aprovações, pedidos de compra e conferência de notas. Além de organizar, o Axioma **protege o caixa**: detecta duplicidades, multas evitáveis, descontos que ainda dá para aproveitar e aumentos silenciosos de preço.' },
@@ -68,6 +68,9 @@ const pt: DocumentoAxioma = {
       'Informe a data e clique em **Já paguei**: a baixa sai nesta conta, com multa/juros da guia como encargos, e vai para o Fluxo de Caixa e a Contabilidade.',
     ] },
     { nota: 'O DAS do MEI não é pago por aqui: ele fica em MEI → DAS & Obrigações (Manual 05). Se tentar dar baixa nele por aqui, o Axioma avisa onde pagar.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. Ao abrir uma conta a partir de uma NF-e, se não for possível conferir o fornecedor pelo CNPJ, aparece o aviso para escolher o fornecedor antes de salvar (o Axioma não escolhe sozinho, para não cadastrar o mesmo fornecedor duas vezes). A conferência da nota com o pedido, quando não consegue ler os dados, avisa em vez de dizer que está tudo certo.' },
   ],
 }
 
@@ -75,7 +78,7 @@ const en: DocumentoAxioma = {
   arquivo: '28 - Commercial - Accounts Payable.docx',
   titulo: 'Manual 28 — Accounts Payable',
   subtitulo: 'Control center for supplier obligations',
-  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together everything the company has to pay: due dates, payments, attachments, approvals, purchase orders and invoice matching. Beyond organizing, Axioma **protects your cash**: it detects duplicates, avoidable penalties, discounts you can still take and silent price increases.' },
@@ -138,6 +141,9 @@ const en: DocumentoAxioma = {
       'Enter the date and click **I’ve paid**: the payment is recorded on this bill, with the slip’s penalty/interest as charges, and goes to Cash Flow and Accounting.',
     ] },
     { nota: 'The MEI DAS is not paid here: it is in MEI → DAS & Obligations (Manual 05). If you try to register its payment here, Axioma tells you where to pay it.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. When opening a bill from an NF-e, if the supplier cannot be checked by tax ID, a notice asks you to choose the supplier before saving (Axioma does not pick one on its own, so the same supplier is never registered twice). Invoice matching, when it cannot read the data, warns you instead of saying everything matches.' },
   ],
 }
 
@@ -145,7 +151,7 @@ const es: DocumentoAxioma = {
   arquivo: '28 - Comercial - Cuentas por Pagar.docx',
   titulo: 'Manual 28 — Cuentas por Pagar',
   subtitulo: 'Central de obligaciones con proveedores',
-  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne todo lo que la empresa tiene que pagar: vencimientos, pagos, adjuntos, aprobaciones, órdenes de compra y conciliación de facturas. Además de organizar, Axioma **protege la caja**: detecta duplicados, multas evitables, descuentos que aún se pueden aprovechar y aumentos silenciosos de precio.' },
@@ -208,6 +214,9 @@ const es: DocumentoAxioma = {
       'Informe la fecha y haga clic en **Ya pagué**: el pago se registra en esta cuenta, con la multa/intereses de la guía como cargos, y va al Flujo de Caja y a la Contabilidad.',
     ] },
     { nota: 'El DAS del MEI no se paga aquí: está en MEI → DAS y Obligaciones (Manual 05). Si intenta registrar su pago aquí, Axioma avisa dónde pagarlo.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. Al abrir una cuenta desde una NF-e, si no se puede verificar el proveedor por CNPJ, aparece el aviso para elegir el proveedor antes de guardar (Axioma no elige solo, para no registrar el mismo proveedor dos veces). La conciliación de la factura, cuando no logra leer los datos, avisa en lugar de decir que todo coincide.' },
   ],
 }
 

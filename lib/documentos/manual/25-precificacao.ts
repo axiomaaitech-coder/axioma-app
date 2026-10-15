@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '25 - Crescimento - Precificação.docx',
   titulo: 'Manual 25 — Precificação',
   subtitulo: 'Centro de Engenharia de Valor',
-  info: ['Menu: Crescimento → Precificação  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Crescimento → Precificação  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Ajuda a definir o **preço certo** de cada produto ou serviço: quanto cobrar, até onde dar desconto, como reagir à concorrência e o que acontece com o lucro se o preço mudar. Funciona para empresas de qualquer porte (para o MEI existe a Precificação MEI, manual 07).' },
@@ -49,6 +49,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Transparência' },
     { p: 'O Painel de Especialistas e a Recomendação Consolidada são gerados **100% por regras** a partir dos seus dados reais. Nenhum texto aqui é escrito por modelo de linguagem.' },
     { nota: 'Se a leitura de produtos, concorrentes, receitas ou custos falhar, a tela avisa que os números podem estar incompletos — nunca mostra "nenhum produto" por engano. Toda gravação que falha também avisa. Todos os textos da tela (status, mensagens do Radar) aparecem em português, inglês e espanhol.' },
+
+    { h1: 'Datas e dados confiáveis' },
+    { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
 }
 
@@ -56,7 +59,7 @@ const en: DocumentoAxioma = {
   arquivo: '25 - Growth - Pricing.docx',
   titulo: 'Manual 25 — Pricing',
   subtitulo: 'Value Engineering Center',
-  info: ['Menu: Growth → Pricing  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Growth → Pricing  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Helps you set the **right price** for each product or service: how much to charge, how far to discount, how to react to competitors and what happens to profit if the price changes. Works for companies of any size (for MEI there is MEI Pricing, manual 07).' },
@@ -100,6 +103,9 @@ const en: DocumentoAxioma = {
     { h1: 'Transparency' },
     { p: 'The Specialist Panel and the Consolidated Recommendation are **100% rule-generated** from your real data. No text here is written by a language model.' },
     { nota: 'If loading products, competitors, revenue or costs fails, the screen warns that the numbers may be incomplete — it never shows "no products" by mistake. Every failed save also warns you. All screen texts (status, Radar messages) appear in Portuguese, English and Spanish.' },
+
+    { h1: 'Reliable dates and data' },
+    { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
 }
 
@@ -107,7 +113,7 @@ const es: DocumentoAxioma = {
   arquivo: '25 - Crecimiento - Precios.docx',
   titulo: 'Manual 25 — Precios',
   subtitulo: 'Centro de Ingeniería de Valor',
-  info: ['Menú: Crecimiento → Precios  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Crecimiento → Precios  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Ayuda a definir el **precio correcto** de cada producto o servicio: cuánto cobrar, hasta dónde dar descuento, cómo reaccionar a la competencia y qué pasa con la utilidad si el precio cambia. Funciona para empresas de cualquier tamaño (para el MEI existe Precios MEI, manual 07).' },
@@ -151,6 +157,9 @@ const es: DocumentoAxioma = {
     { h1: 'Transparencia' },
     { p: 'El Panel de Especialistas y la Recomendación Consolidada se generan **100% por reglas** a partir de sus datos reales. Ningún texto aquí es escrito por un modelo de lenguaje.' },
     { nota: 'Si la lectura de productos, competidores, ingresos o costos falla, la pantalla avisa que los números pueden estar incompletos — nunca muestra "ningún producto" por error. Toda grabación que falla también avisa. Todos los textos de la pantalla (estado, mensajes del Radar) aparecen en portugués, inglés y español.' },
+
+    { h1: 'Fechas y datos confiables' },
+    { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],
 }
 
