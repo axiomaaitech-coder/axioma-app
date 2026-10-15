@@ -158,7 +158,7 @@ const idiomas = {
       mes: '/mês',
     },
     cta: {
-      titulo: 'Pronto para ter um CFO na sua empresa?',
+      titulo: 'Pronto para ter um CFO na sua Empresa?',
       sub: 'Números reais, conferidos e explicados, para decidir com segurança.',
       btn: 'Testar 7 dias grátis',
       sub2: 'Cancele antes do fim do teste e não paga nada.',
@@ -311,7 +311,7 @@ const idiomas = {
       mes: '/mo',
     },
     cta: {
-      titulo: 'Ready to have a CFO in your company?',
+      titulo: 'Ready to have a CFO in your Company?',
       sub: 'Real numbers, checked and explained, so you decide with confidence.',
       btn: 'Try 7 days free',
       sub2: 'Cancel before the trial ends and pay nothing.',
@@ -464,7 +464,7 @@ const idiomas = {
       mes: '/mes',
     },
     cta: {
-      titulo: '¿Listo para tener un CFO en su empresa?',
+      titulo: '¿Listo para tener un CFO en su Empresa?',
       sub: 'Números reales, verificados y explicados, para decidir con seguridad.',
       btn: 'Probar 7 días gratis',
       sub2: 'Cancele antes del fin de la prueba y no paga nada.',
