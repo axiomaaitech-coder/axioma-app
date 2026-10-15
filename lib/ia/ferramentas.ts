@@ -10,6 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { hojeISO } from '../datas'
 import { lerTodas } from '../lerTodas'
 import { soVigentes } from '../custoFixoVigente'
+import { registrarLeitura } from '../erroUiHelpers'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -58,7 +59,7 @@ export function mesesAte(dia: string, meses: number): string[] {
 async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedores', ids: unknown[]): Promise<Map<string, string>> {
   const unicos = [...new Set(ids.filter(Boolean).map(String))]
   if (!unicos.length) return new Map()
-  const { data } = await supabase.from(tabela).select('id, nome').in('id', unicos)
+  const data = await registrarLeitura(() => supabase.from(tabela).select('id, nome').in('id', unicos), "ferramentas:61")
   return new Map(((data ?? []) as Linha[]).map((l) => [String(l.id), String(l.nome ?? '')]))
 }
 function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: string): T[] {

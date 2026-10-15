@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { sobDemanda } from '@/lib/supabaseServico'
 import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { PLANOS, TESTE, INAUGURACAO, ehPlano } from '@/lib/planos'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Criado no 1º uso (lib/supabaseServico): sem a chave, só esta rota falha — a publicação do site segue
+const stripe = sobDemanda(() => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
-})
+}))
 
 
 // Cupom de inauguração criado no Stripe na 1ª vez (30% por 3 meses, 100 usos). Esgotado = segue sem desconto.
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
     const dadosPlano = PLANOS[plano]
 
     // Teste grátis só na 1ª assinatura (quem já assinou antes não ganha outro teste).
-    const { data: perfil } = await supabase.from('perfis').select('stripe_customer_id').eq('user_id', userId).maybeSingle()
+    const perfil = await exigirLeitura(() => supabase.from('perfis').select('stripe_customer_id').eq('user_id', userId).maybeSingle(), "create-checkout:46")
     const primeiraVez = !perfil?.stripe_customer_id
     const cupom = await cupomInauguracao()
 

@@ -5,6 +5,7 @@ import GuardiaoRastreio from "../../components/GuardiaoRastreio";
 import AvisoAprovacaoEquipe from "../../components/AvisoAprovacaoEquipe";
 import AvisoVencimentos from "../../components/AvisoVencimentos";
 import AvisoConferencia from "../../components/AvisoConferencia";
+import AvisoFalhaLeitura from "../../components/AvisoFalhaLeitura";
 
 export default function InternoLayout({
   children,
@@ -23,6 +24,7 @@ export default function InternoLayout({
       <AjudaAxioma />
       <GuardiaoRastreio />
       <AvisoAprovacaoEquipe />
+      <AvisoFalhaLeitura />
     </div>
   );
 }

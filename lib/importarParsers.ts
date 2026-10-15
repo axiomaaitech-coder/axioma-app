@@ -7,6 +7,7 @@ import { XMLParser } from "fast-xml-parser";
 import { estimarImpactoSplitPayment } from "./previsaoRecebimentoHelpers";
 import type { ItemClassificado, NaturezaItem } from "./categoriasDespesa";
 import { naturezaPorTexto, NATUREZAS_FLUXO } from "./rastreio/lancamentoManual";
+import { isoDia, hojeISO, somarMesesISO } from "./datas";
 
 // ============================================================================
 // TIPOS
@@ -146,7 +147,7 @@ function parseDataBR(texto: string): string | undefined {
     if (num > 25569 && num < 73050) {
       const ms = (num - 25569) * 86400 * 1000;
       const d = new Date(ms);
-      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10); // serial do Excel = dia em UTC
     }
   }
 
@@ -677,14 +678,14 @@ export function parcelarCompraCartao(res: ResultadoParse, n: number): ResultadoP
   if (!original || original.destinoSugerido === "receitas" || original.valor === undefined) return res;
   const totalCent = Math.round(original.valor * 100);
   const baseCent = Math.floor(totalCent / n);
-  const emissao = original.data ? new Date(`${original.data}T12:00:00`) : new Date();
+  const emissao = original.data ? String(original.data).slice(0, 10) : hojeISO();
   const descBase = String(original.descricao || "").replace(/ \(cartão .*\)$/, "");
   const linhas: LinhaImportada[] = n === 1
     ? [{ ...original, descricao: `${descBase} (cartão 1x)`, valorPago: original.valor }]
     : Array.from({ length: n }, (_, i) => {
-        const venc = new Date(emissao); venc.setMonth(venc.getMonth() + i + 1);
+        // 31/01 → 28/02 → 31/03 (antes setMonth transbordava: 31/01 + 1 mês caía em 03/03)
         const cent = i === n - 1 ? totalCent - baseCent * (n - 1) : baseCent;
-        return { ...original, valor: cent / 100, valorPago: undefined, vencimento: venc.toISOString().slice(0, 10), descricao: `${descBase} (cartão ${i + 1}/${n})` };
+        return { ...original, valor: cent / 100, valorPago: undefined, vencimento: somarMesesISO(emissao, i + 1), descricao: `${descBase} (cartão ${i + 1}/${n})` };
       });
   const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const parc = brl(baseCent / 100);
@@ -1220,11 +1221,11 @@ export function perguntasSupervisao(res: ResultadoParse, hoje = new Date()): Per
   }
 
   const emissao: string | undefined = m.data_emissao;
-  const hojeIso = hoje.toISOString().slice(0, 10);
+  const hojeIso = isoDia(hoje);
   const cincoAnos = new Date(hoje); cincoAnos.setFullYear(cincoAnos.getFullYear() - 5);
   if (!emissao) p.push({ id: "sem_emissao", tipo: "conferir", texto: { pt: "A nota está sem data de emissão. Preencha a data certa na tabela.", en: "The invoice has no issue date. Fill in the correct date in the table.", es: "La factura no tiene fecha de emisión. Complete la fecha correcta en la tabla." } });
   else if (emissao > hojeIso) p.push({ id: "emissao_futura", tipo: "conferir", texto: { pt: `A data de emissão (${dt(emissao)}) está no futuro. Está certa?`, en: `The issue date (${dt(emissao)}) is in the future. Is it right?`, es: `La fecha de emisión (${dt(emissao)}) está en el futuro. ¿Es correcta?` } });
-  else if (emissao < cincoAnos.toISOString().slice(0, 10)) p.push({ id: "emissao_antiga", tipo: "conferir", texto: { pt: `A data de emissão (${dt(emissao)}) tem mais de 5 anos. Está certa?`, en: `The issue date (${dt(emissao)}) is over 5 years old. Is it right?`, es: `La fecha de emisión (${dt(emissao)}) tiene más de 5 años. ¿Es correcta?` } });
+  else if (emissao < isoDia(cincoAnos)) p.push({ id: "emissao_antiga", tipo: "conferir", texto: { pt: `A data de emissão (${dt(emissao)}) tem mais de 5 anos. Está certa?`, en: `The issue date (${dt(emissao)}) is over 5 years old. Is it right?`, es: `La fecha de emisión (${dt(emissao)}) tiene más de 5 años. ¿Es correcta?` } });
   if (emissao && res.linhas.some((l) => l.vencimento && l.vencimento < emissao)) p.push({ id: "vencimento_antes", tipo: "conferir", texto: { pt: "Há vencimento ANTES da data de emissão. Confira as datas na tabela.", en: "There is a due date BEFORE the issue date. Check the dates in the table.", es: "Hay un vencimiento ANTES de la fecha de emisión. Verifique las fechas en la tabla." } });
 
   const raw = res.linhas[0]?.raw ?? {};

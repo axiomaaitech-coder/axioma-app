@@ -16,6 +16,7 @@ import { registrarMovimentacao } from "./rastreio/motor";
 import { registrarLancamentoManual } from "./rastreio/lancamentoManual";
 import { criarContaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -131,7 +132,7 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
       risco: noFluxo ? L(`Entrada igual já no Fluxo ("${noFluxo.descricao}"): reprocessar SÓ a Contabilidade, senão o caixa duplica.`, `Same inflow already in Cash Flow ("${noFluxo.descricao}"): reprocess ONLY Accounting, otherwise cash doubles.`, `Entrada igual ya en el Flujo ("${noFluxo.descricao}"): reprocesar SOLO Contabilidad, si no la caja se duplica.`) : null,
     });
   }
-  const { data: contasCliente } = await supabase.from("contas_receber").select("valor, cliente_id, descricao").eq("empresa_id", empresaId);
+  const contasCliente = await registrarLeitura(() => supabase.from("contas_receber").select("valor, cliente_id, descricao").eq("empresa_id", empresaId), "conferenciaHelpers:134");
   for (const r of receitasPend.data as { id: string; descricao: string; valor: number; data: string; cliente_id: string | null }[]) {
     const parecida = (contasCliente || []).find((c) => Math.abs(Number(c.valor) - Number(r.valor)) <= TOLERANCIA && (!r.cliente_id || c.cliente_id === r.cliente_id));
     casos.push({

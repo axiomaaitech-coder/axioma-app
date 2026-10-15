@@ -5,7 +5,7 @@
 // Sem dependência de React, Supabase ou UI — só cálculo.
 // ═══════════════════════════════════════════════════════════════
 
-import { agora } from "./datas";
+import { agora, isoDia } from "./datas";
 
 export type Lancamento = {
   valor: number;
@@ -145,7 +145,7 @@ export function serieSemanal(itens: Lancamento[], semanas = 13, ateData?: string
     const b = buckets.find((x) => d >= x.inicio && d <= x.fim);
     if (b) b.value += Number(it.valor) || 0;
   });
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const iso = (d: Date) => isoDia(d);
   return buckets.map((b) => ({ label: `${b.inicio.getDate()}/${b.inicio.getMonth() + 1}`, inicio: iso(b.inicio), fim: iso(b.fim), value: b.value }));
 }
 
@@ -179,7 +179,7 @@ export function detectarRupturaCaixa(
     if (dias > horizonteDias) break;
     saldo += ev.delta;
     if (saldo < 0) {
-      return { data: ev.data.toISOString().slice(0, 10), diasRestantes: dias, saldoProjetado: saldo };
+      return { data: isoDia(ev.data), diasRestantes: dias, saldoProjetado: saldo };
     }
   }
   return null;
@@ -212,7 +212,7 @@ export function proximaOcorrenciaDoDia(dia: number): string {
   const hoje = new Date(agora()); hoje.setHours(0, 0, 0, 0);
   let d = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
   if (d < hoje) d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, dia);
-  return d.toISOString().slice(0, 10);
+  return isoDia(d);
 }
 
 export function projetarRecorrenciaMensal(valor: number, primeiraData: string, horizonteDias: number, maxOcorrencias?: number): EventoCaixa[] {
@@ -222,7 +222,7 @@ export function projetarRecorrenciaMensal(valor: number, primeiraData: string, h
   let d = new Date(primeiraData + "T00:00:00");
   let i = 0;
   while (d <= limite && (maxOcorrencias === undefined || i < maxOcorrencias)) {
-    if (d >= hoje) out.push({ data: d.toISOString().slice(0, 10), valor });
+    if (d >= hoje) out.push({ data: isoDia(d), valor });
     d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
     i++;
   }
@@ -873,7 +873,7 @@ export type PeriodoPreset = "mes_atual" | "mes_anterior" | "trimestre_atual" | "
 export type Periodo = { inicio: string; fim: string };
 
 function isoData(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return isoDia(d);
 }
 
 export function resolverPeriodo(preset: PeriodoPreset, personalizado?: Periodo): Periodo {

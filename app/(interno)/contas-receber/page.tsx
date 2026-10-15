@@ -23,7 +23,7 @@ import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { statusEfetivo } from '../../../lib/fornecedorHelpers'
-import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, exigirLeitura } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
@@ -54,7 +54,7 @@ import {
 import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, editarContaReceber, excluirContaReceber } from '../../../lib/recebimentoHelpers'
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
-import { hojeISO } from '../../../lib/datas'
+import { hojeISO, isoDia } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -238,7 +238,7 @@ export default function ContasReceber() {
     const empId = await obterEmpresaAtiva()
     setEmpresaId(empId)
     if (empId) {
-      const { data: empresa } = await supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle()
+      const empresa = await exigirLeitura(() => supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle(), "contas-receber:241")
       setRegimeTributario(empresa?.regime_tributario || ''); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
     }
     const [
@@ -589,7 +589,7 @@ export default function ContasReceber() {
         .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(calcularLinha(c).saldo) }))
     }
     if (key === 'recebidoMes' || key === 'recebidoAno') {
-      const inicio = key === 'recebidoMes' ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10) : new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10)
+      const inicio = key === 'recebidoMes' ? isoDia(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) : isoDia(new Date(new Date().getFullYear(), 0, 1))
       return contas.filter((c) => c.status === 'recebido' && c.data_recebimento && c.data_recebimento >= inicio)
         .sort((a, b) => (b.valor_recebido || 0) - (a.valor_recebido || 0)).slice(0, 10)
         .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date((c.data_recebimento as string) + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(c.valor_recebido || 0) }))
@@ -753,7 +753,7 @@ export default function ContasReceber() {
 
   // ========== FASE 3 — SIMULADOR EXECUTIVO (Ponto de Partida automático, mesmo padrão de Investimentos/Simulações) ==========
   const anoAtual = new Date().getFullYear()
-  const receitaBrutaAno = receitasRows.filter((r) => r.data && new Date(r.data).getFullYear() === anoAtual).reduce((s, r) => s + (Number(r.valor) || 0), 0)
+  const receitaBrutaAno = receitasRows.filter((r) => r.data && String(r.data).slice(0, 4) === String(anoAtual)).reduce((s, r) => s + (Number(r.valor) || 0), 0)
   const receitaMensalAtual = receitaBrutaAno > 0 ? receitaBrutaAno / 12 : receitasRows.reduce((s, r) => s + (Number(r.valor) || 0), 0) / 12
   const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
   const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12
@@ -776,7 +776,7 @@ export default function ContasReceber() {
 
   function valorAReceberEmDias(dias: number): number {
     const limite = new Date(); limite.setDate(limite.getDate() + dias)
-    const limiteStr = limite.toISOString().slice(0, 10)
+    const limiteStr = isoDia(limite)
     return contas.filter((c) => c.status !== 'recebido' && c.data_vencimento <= limiteStr)
       .reduce((s, c) => s + Math.max(0, (c.valor || 0) - (c.valor_recebido || 0)), 0)
   }

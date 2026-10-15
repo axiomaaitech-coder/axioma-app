@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // Pagar a guia do DAS (MEI ou Simples/ME) com Pix pelo Axioma — Pluggy Payment Initiation.
 //   POST { guia_id }      → cria o pedido de pagamento e devolve o link (a pessoa escolhe o
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   const guiaId = String(body?.guia_id ?? '')
   if (!UUID.test(guiaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
   // RLS: só acha a guia quem tem acesso à empresa dela.
-  const { data: guia } = await supabase.from('guias_arrecadacao').select('id, empresa_id, valor_total, pix_copia_cola, status, competencias, pagamento_externo_id, pagamento_externo_url, pagamento_externo_status').eq('id', guiaId).maybeSingle()
+  const guia = await exigirLeitura(() => supabase.from('guias_arrecadacao').select('id, empresa_id, valor_total, pix_copia_cola, status, competencias, pagamento_externo_id, pagamento_externo_url, pagamento_externo_status').eq('id', guiaId).maybeSingle(), "pix:38")
   if (!guia) return NextResponse.json({ error: 'guia nao encontrada' }, { status: 404 })
   if (guia.status === 'paga') return NextResponse.json({ error: 'ja_paga' }, { status: 409 })
   if (!guia.pix_copia_cola) return NextResponse.json({ error: 'sem_pix' }, { status: 422 })
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   const guiaId = request.nextUrl.searchParams.get('guia_id') ?? ''
   if (!UUID.test(guiaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
-  const { data: guia } = await supabase.from('guias_arrecadacao').select('id, pagamento_externo_id, pagamento_externo_status').eq('id', guiaId).maybeSingle()
+  const guia = await exigirLeitura(() => supabase.from('guias_arrecadacao').select('id, pagamento_externo_id, pagamento_externo_status').eq('id', guiaId).maybeSingle(), "pix:78")
   if (!guia) return NextResponse.json({ error: 'guia nao encontrada' }, { status: 404 })
   if (!guia.pagamento_externo_id || !ativo()) return NextResponse.json({ status: guia.pagamento_externo_status ?? null })
   try {

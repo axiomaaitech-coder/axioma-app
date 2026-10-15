@@ -34,7 +34,7 @@ import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, naturezaDoFluxo, NATUREZAS_FLUXO, type Natureza, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
-import { hojeISO, agora } from "../../../lib/datas";
+import { hojeISO, agora, isoDia } from "../../../lib/datas";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.92), rgba(10,22,40,0.96))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.95), rgba(10,22,40,0.98))";
@@ -63,13 +63,13 @@ function isoHoje(): string { return hojeISO(); }
 // Nunca busca o histórico inteiro de uma vez, escala pra empresa de qualquer idade.
 function inicioJanelaHistorica(fimPeriodo: string): string {
   const fim = new Date(fimPeriodo + "T00:00:00");
-  return new Date(fim.getFullYear(), fim.getMonth() - 23, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(fim.getFullYear(), fim.getMonth() - 23, 1));
 }
 function fimJanelaFutura(fimPeriodo: string): string {
   const hoje = new Date();
   const futuro = new Date(hoje); futuro.setDate(hoje.getDate() + 120);
   const fimSel = new Date(fimPeriodo + "T00:00:00");
-  return (futuro > fimSel ? futuro : fimSel).toISOString().slice(0, 10);
+  return isoDia((futuro > fimSel ? futuro : fimSel));
 }
 
 const tip = {

@@ -30,7 +30,8 @@ import {
   carregarDadosFiscais, calcularImpostoRegime, calcularEconomiaTributaria, gerarAlertasReforma,
   type AtividadeFiscal as AtividadeFiscalPresuncao, type AlertaReforma,
 } from "./iaTributariaHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,8 +70,8 @@ export type DescobertaFiscal = {
 };
 
 export async function listarDescobertasFiscais(empresaId: string): Promise<DescobertaFiscal[]> {
-  const { data } = await supabase.from("fiscal_descoberta").select("*")
-    .eq("empresa_id", empresaId).order("prioridade", { ascending: true }).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("fiscal_descoberta").select("*")
+    .eq("empresa_id", empresaId).order("prioridade", { ascending: true }).order("criado_em", { ascending: false }), "fiscalHelpers:72");
   return (data as DescobertaFiscal[]) || [];
 }
 
@@ -102,9 +103,9 @@ async function gravarDescobertaFiscalSeNova(d: {
   causa: string | null; impacto_estimado: number; evidencia: Record<string, unknown> & { chave: string };
   confianca: Confianca;
 }): Promise<boolean> {
-  const { data: existente } = await supabase.from("fiscal_descoberta").select("id")
+  const existente = await exigirLeitura(() => supabase.from("fiscal_descoberta").select("id")
     .eq("empresa_id", d.empresa_id).eq("tipo", d.tipo).eq("status", "aberto")
-    .contains("evidencia", { chave: d.evidencia.chave }).limit(1);
+    .contains("evidencia", { chave: d.evidencia.chave }).limit(1), "fiscalHelpers:105");
   if (existente && existente.length > 0) return false;
   const { error } = await supabase.from("fiscal_descoberta").insert(d);
   if (error) { reportarFalhaEscrita("fiscal_descoberta", "insert (fiscal radar)", error.message); return false; }
@@ -133,7 +134,7 @@ export type FiscalHealth = {
 
 export async function obterFiscalHealth(empresaId: string, competenciaISO: string): Promise<FiscalHealth | null> {
   const primeiroDia = new Date(competenciaISO + "T00:00:00");
-  const competencia = new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1).toISOString().slice(0, 10);
+  const competencia = isoDia(new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1));
   const { data, error } = await supabase.rpc("fiscal_health_calcular", { p_empresa_id: empresaId, p_competencia: competencia });
   if (error) { reportarFalhaEscrita("fiscal_health_calcular", "rpc", error.message); return null; }
   const linha = Array.isArray(data) ? data[0] : data;

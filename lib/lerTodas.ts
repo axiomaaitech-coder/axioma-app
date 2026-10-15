@@ -2,6 +2,10 @@
 // mostraria totais errados sem aviso. Lê em lotes até vir tudo (regra 5 de
 // escala, P5 2026-10-02). `montar` recria a consulta a cada lote — precisa ter
 // .order() estável pra nenhuma linha pular ou repetir entre lotes.
+// Cada lote passa pelo sistema anti-falha (lib/antiFalha): banco lento/rede oscilando → tenta de novo
+// sozinho antes de devolver erro. Lote é leitura pura com .range(): repetir nunca duplica nada.
+import { comRetentativa } from './antiFalha'
+
 const LOTE = 1000
 const TETO = 50000
 
@@ -13,7 +17,7 @@ export async function lerTodas<T = any>(
 ): Promise<{ data: T[]; error: Erro }> {
   const tudo: T[] = []
   for (let de = 0; de < TETO; de += LOTE) {
-    const { data, error } = await montar().range(de, de + LOTE - 1)
+    const { data, error } = await comRetentativa(() => montar().range(de, de + LOTE - 1))
     if (error) return { data: tudo, error }
     tudo.push(...(data || []))
     if (!data || data.length < LOTE) break

@@ -53,7 +53,7 @@ import { criarContaPagar, editarContaPagar, excluirContaPagar, darBaixaContaPaga
 import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 
 const supabase = createBrowserClient(
@@ -893,7 +893,7 @@ export default function Fornecedores() {
 
     // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
-    const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
+    const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return isoDia(d); })();
     const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp2 }] = await Promise.all([
       empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId)) : Promise.resolve({ data: [], error: null }),

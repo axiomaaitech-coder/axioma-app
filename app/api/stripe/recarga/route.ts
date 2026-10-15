@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { sobDemanda } from '@/lib/supabaseServico'
 import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { RECARGAS, ehTipoIA } from '@/lib/planos'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/stripe/recarga { empresa_id, tipo } — recarga de IA (pagamento avulso, cartão).
 // O saldo entra quando o Stripe confirma o pagamento (webhook → ia_creditar_recarga), nunca aqui.
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-05-27.dahlia' })
+// Criado no 1º uso (lib/supabaseServico): sem a chave, só esta rota falha — a publicação do site segue
+const stripe = sobDemanda(() => new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-05-27.dahlia' }))
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://axiomaai.com.br'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -22,12 +25,12 @@ export async function POST(request: NextRequest) {
   const tipo = corpo?.tipo
   if (!UUID.test(empresaId) || !ehTipoIA(tipo)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
   // RLS: só acha a empresa quem faz parte dela.
-  const { data: emp } = await supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle()
+  const emp = await exigirLeitura(() => supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle(), "recarga:25")
   if (!emp) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
 
   try {
     const r = RECARGAS[tipo]
-    const { data: perfil } = await supabase.from('perfis').select('stripe_customer_id').eq('user_id', user.id).maybeSingle()
+    const perfil = await exigirLeitura(() => supabase.from('perfis').select('stripe_customer_id').eq('user_id', user.id).maybeSingle(), "recarga:30")
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],

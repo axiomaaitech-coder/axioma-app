@@ -6,6 +6,8 @@ import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { dasMensalPorCategoria, regraLimiteMEI } from "./meiHelpers";
+import { isoDia } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,11 +80,11 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const hoje = new Date();
   const mesAtual = hoje.getMonth() + 1;
   const anoAtual = hoje.getFullYear();
-  const inicio = new Date(anoAtual, mesAtual - 1, 1).toISOString().slice(0, 10);
-  const fim = new Date(anoAtual, mesAtual, 0).toISOString().slice(0, 10);
+  const inicio = isoDia(new Date(anoAtual, mesAtual - 1, 1));
+  const fim = isoDia(new Date(anoAtual, mesAtual, 0));
 
   // Últimos 12 meses
-  const inicio12m = new Date(anoAtual - 1, mesAtual - 1, 1).toISOString().slice(0, 10);
+  const inicio12m = isoDia(new Date(anoAtual - 1, mesAtual - 1, 1));
 
   const [
     { data: rec12m, error: e1 },
@@ -110,7 +112,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const folha_pagamento_mensal = Math.round(custos_fixos_mensal * 0.4); // estimativa
   const lucro_bruto_mensal = receita_bruta_mensal - custos_variaveis_mensal;
 
-  const hojeStr = hoje.toISOString().slice(0, 10);
+  const hojeStr = isoDia(hoje);
   const obrigLista = obrigacoes || [];
   const pendentes = obrigLista.filter((o: any) => o.status === "pendente");
   const vencidas = pendentes.filter((o: any) => o.data_vencimento && o.data_vencimento < hojeStr);
@@ -670,7 +672,7 @@ export async function salvarMensagemTrib(userId: string, empresaId: string | nul
 }
 
 export async function carregarHistoricoTrib(userId: string, limit: number = 50): Promise<any[]> {
-  const { data } = await supabase.from("ia_tributaria_historico").select("*").eq("user_id", userId).order("created_at", { ascending: true }).limit(limit);
+  const data = await registrarLeitura(() => supabase.from("ia_tributaria_historico").select("*").eq("user_id", userId).order("created_at", { ascending: true }).limit(limit), "iaTributariaHelpers:674");
   return data || [];
 }
 

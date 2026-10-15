@@ -15,6 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { jsonDoJose, usoZerado, type Uso } from './ia/motor'
 import { paginaDaFonte } from './nexusFontesLinks'
 import type { IdiomaJoseph } from './nexusJoseph'
+import { hojeISO } from './datas'
 
 type Tema = { titulo: Record<IdiomaJoseph, string>; series: string[]; termos: string[] }
 
@@ -145,7 +146,7 @@ Regras invioláveis:
 - Coerência de datas: reportagem publicada DEPOIS do mês do dado oficial nunca é a causa desse dado. Use-a só como "o que vem depois" (perspectiva), deixando as datas claras (ex.: "o IPCA de agosto caiu...; em outubro, as reportagens indicam...").
 - Nunca se identifique como IA, Claude ou modelo de linguagem. Você é o José, do Axioma.
 - Responda em ${NOME_IDIOMA[lang]}.`,
-      mensagem: `TEMA PESQUISADO: ${titulo}${foco ? `\nORIGEM DA PESQUISA: ${foco}` : ''}\nHoje: ${new Date().toISOString().slice(0, 10)}\n\nDADOS OFICIAIS:\n${listaDados || '- nenhum dado oficial ligado a este tema'}\n\nREPORTAGENS COLETADAS PELO AXIOMA (últimos 30 dias):\n${listaMaterias || '- nenhuma'}`,
+      mensagem: `TEMA PESQUISADO: ${titulo}${foco ? `\nORIGEM DA PESQUISA: ${foco}` : ''}\nHoje: ${hojeISO(new Date(), 'America/Sao_Paulo')}\n\nDADOS OFICIAIS:\n${listaDados || '- nenhum dado oficial ligado a este tema'}\n\nREPORTAGENS COLETADAS PELO AXIOMA (últimos 30 dias):\n${listaMaterias || '- nenhuma'}`,
       esquema: {
         type: 'object', additionalProperties: false, required: ['resumo', 'pontos', 'para_empresa', 'materias'],
         properties: {

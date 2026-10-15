@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto } from "./cfoCore";
 import { carregarKpisEstoque } from "./estoqueHelpers";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +35,7 @@ export type TesourariaConfig = {
 };
 
 export async function obterConfigTesouraria(empresaId: string): Promise<TesourariaConfig | null> {
-  const { data } = await supabase.from("tesouraria_config").select("id, empresa_id, reserva_minima, dias_alerta_ruptura").eq("empresa_id", empresaId).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("tesouraria_config").select("id, empresa_id, reserva_minima, dias_alerta_ruptura").eq("empresa_id", empresaId).maybeSingle(), "tesourariaHelpers:37");
   return (data as TesourariaConfig) || null;
 }
 
@@ -65,9 +66,9 @@ export type ContaTesouraria = {
 };
 
 export async function listarContasTesouraria(empresaId: string): Promise<ContaTesouraria[]> {
-  const { data } = await supabase.from("tesouraria_conta")
+  const data = await registrarLeitura(() => supabase.from("tesouraria_conta")
     .select("id, conta_id, tipo_liquidez, banco_nome, ativo, plano_de_contas!inner(codigo, nome)")
-    .eq("empresa_id", empresaId).order("tipo_liquidez");
+    .eq("empresa_id", empresaId).order("tipo_liquidez"), "tesourariaHelpers:68");
   return ((data as any[]) || []).map((r) => ({
     id: r.id, conta_id: r.conta_id, tipo_liquidez: r.tipo_liquidez, banco_nome: r.banco_nome, ativo: r.ativo,
     conta_codigo: r.plano_de_contas.codigo, conta_nome: r.plano_de_contas.nome,
@@ -397,7 +398,7 @@ export async function gerarAlertasCandidatos(empresaId: string, p: {
   }
 
   // Concentração de cliente — maior cliente vs total de contas_receber em aberto.
-  const { data: crAbertas } = await supabase.from("contas_receber").select("cliente_id, valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido");
+  const crAbertas = await registrarLeitura(() => supabase.from("contas_receber").select("cliente_id, valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido"), "tesourariaHelpers:400");
   const abertas = (crAbertas as { cliente_id: string | null; valor: number; valor_recebido: number | null }[]) || [];
   const totalAberto = abertas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
   if (totalAberto > 0) {
@@ -435,7 +436,7 @@ export async function gerarAlertasCandidatos(empresaId: string, p: {
 }
 
 async function obterLimiteConcentracao(empresaId: string): Promise<number> {
-  const { data } = await supabase.from("tesouraria_politica").select("valor").eq("empresa_id", empresaId).eq("tipo", "concentracao_maxima").eq("ativo", true).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("tesouraria_politica").select("valor").eq("empresa_id", empresaId).eq("tipo", "concentracao_maxima").eq("ativo", true).maybeSingle(), "tesourariaHelpers:438");
   const v = data ? Number((data as { valor: number }).valor) : null;
   return v && v > 0 ? v : CONCENTRACAO_MAXIMA_PADRAO;
 }
@@ -452,8 +453,8 @@ export type AlertaTesouraria = {
 };
 
 export async function listarAlertasAtivos(empresaId: string): Promise<AlertaTesouraria[]> {
-  const { data } = await supabase.from("tesouraria_alerta").select("id, tipo, severidade, titulo, descricao, dado_origem, criado_em, resolvido_em")
-    .eq("empresa_id", empresaId).is("resolvido_em", null).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("tesouraria_alerta").select("id, tipo, severidade, titulo, descricao, dado_origem, criado_em, resolvido_em")
+    .eq("empresa_id", empresaId).is("resolvido_em", null).order("criado_em", { ascending: false }), "tesourariaHelpers:455");
   return (data as AlertaTesouraria[]) || [];
 }
 
@@ -544,7 +545,7 @@ export async function resolverAlerta(id: string, empresaId: string): Promise<{ o
 // ============================================================================
 
 export async function obterDividaPendente(empresaId: string): Promise<number> {
-  const { data } = await supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId);
+  const data = await registrarLeitura(() => supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId), "tesourariaHelpers:547");
   return ((data as { valor_total: number; valor_pago: number }[]) || []).reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
 }
 
@@ -654,8 +655,8 @@ export type CenarioTesouraria = {
 };
 
 export async function listarCenarios(empresaId: string): Promise<CenarioTesouraria[]> {
-  const { data } = await supabase.from("tesouraria_cenario")
-    .select("id, nome, tipo, variaveis, criado_em").eq("empresa_id", empresaId).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("tesouraria_cenario")
+    .select("id, nome, tipo, variaveis, criado_em").eq("empresa_id", empresaId).order("criado_em", { ascending: false }), "tesourariaHelpers:657");
   return (data as CenarioTesouraria[]) || [];
 }
 

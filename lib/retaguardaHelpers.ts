@@ -11,6 +11,7 @@ import { hojeISO } from "./datas";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -230,7 +231,7 @@ export async function registrarMovimentacao(
   // leitura nunca desfaz a sangria/suprimento, que já foi gravada de verdade
   // pela RPC acima — só perde o lançamento contábil, reportado no Sentry
   // como toda falha silenciosa deste projeto.
-  const { data: mov } = await supabase.from("caixa_movimentacao").select("empresa_id, criado_em").eq("id", id).maybeSingle();
+  const mov = await registrarLeitura(() => supabase.from("caixa_movimentacao").select("empresa_id, criado_em").eq("id", id).maybeSingle(), "retaguardaHelpers:233");
   if (mov?.empresa_id) {
     publicarEventoNaoBloqueante(mov.empresa_id, tipo === "sangria" ? "CASH_WITHDRAWAL" : "CASH_DEPOSIT",
       { valor, data_hora: mov.criado_em, motivo: motivo || null },
@@ -276,7 +277,7 @@ export async function editarMovimentacao(
   // UPDATE no já gravado) e relança com o valor certo. tipo nunca muda aqui
   // (a RPC só aceita valor/motivo — ver "tipoNaoMuda" na tela), então o valor
   // NOVO junto do tipo já gravado é o suficiente pro consumidor relançar.
-  const { data: mov } = await supabase.from("caixa_movimentacao").select("empresa_id, tipo, criado_em").eq("id", movimentacaoId).maybeSingle();
+  const mov = await registrarLeitura(() => supabase.from("caixa_movimentacao").select("empresa_id, tipo, criado_em").eq("id", movimentacaoId).maybeSingle(), "retaguardaHelpers:279");
   if (mov?.empresa_id) {
     publicarEventoNaoBloqueante(mov.empresa_id, "CASH_MOVEMENT_UPDATED",
       { tipo: mov.tipo, valor_depois: valor, data_hora: mov.criado_em },
@@ -290,7 +291,7 @@ export async function editarMovimentacao(
 export async function excluirMovimentacao(movimentacaoId: string): Promise<{ erro?: string; codigo?: string }> {
   // Lê ANTES de excluir — depois da RPC a linha já não existe mais pra buscar
   // o empresa_id de volta.
-  const { data: antes } = await supabase.from("caixa_movimentacao").select("empresa_id").eq("id", movimentacaoId).maybeSingle();
+  const antes = await registrarLeitura(() => supabase.from("caixa_movimentacao").select("empresa_id").eq("id", movimentacaoId).maybeSingle(), "retaguardaHelpers:293");
   const { error } = await supabase.rpc("retaguarda_excluir_movimentacao", { p_movimentacao_id: movimentacaoId });
   if (error) return { erro: error.message, codigo: error.code };
   // Achado do Elias (2026-09-02): excluir não pode deixar o lançamento já

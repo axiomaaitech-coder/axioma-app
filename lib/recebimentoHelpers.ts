@@ -12,6 +12,7 @@ import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import * as Sentry from "@sentry/nextjs";
 import { statusEfetivo } from "./fornecedorHelpers";
 import { hojeISO } from "./datas";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -117,7 +118,7 @@ export async function registrarEstornoRecebimento(c: ContaParaReceber, valorEsto
 
 async function nomeCliente(id: string | null | undefined): Promise<string | null> {
   if (!id) return null;
-  const { data } = await supabase.from("clientes").select("nome").eq("id", id).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("clientes").select("nome").eq("id", id).maybeSingle(), "recebimentoHelpers:120");
   return (data?.nome as string) ?? null;
 }
 
@@ -210,7 +211,7 @@ export async function editarContaReceber(id: string, dados: Linha, modulo = "con
 }
 
 export async function excluirContaReceber(id: string, modulo = "contas_receber"): Promise<{ erro?: string }> {
-  const { data: antes } = await supabase.from("contas_receber").select("valor_recebido").eq("id", id).maybeSingle();
+  const antes = await exigirLeitura(() => supabase.from("contas_receber").select("valor_recebido").eq("id", id).maybeSingle(), "recebimentoHelpers:213");
   if (Number(antes?.valor_recebido) > 0) return { erro: "ja_recebida" };
   const { data, error } = await supabase.from("contas_receber").delete().eq("id", id).select("id, empresa_id");
   if (error || !data?.length) {

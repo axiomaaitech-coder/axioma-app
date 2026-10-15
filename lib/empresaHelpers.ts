@@ -1,4 +1,4 @@
-import { reportarFalhaLeitura } from "./erroUiHelpers";
+import { reportarFalhaLeitura, exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 // 🦅 AXIOMA AI.TECH - Helpers do Módulo Empresa
 // Integrações: BrasilAPI (CNPJ), ViaCEP (endereço)
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
@@ -6,7 +6,7 @@ import { reportarFalhaLeitura } from "./erroUiHelpers";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP } from "./enderecoHelpers";
-import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "./datas";
+import { hojeISO, definirFusoEmpresa, fusoDaEmpresa, isoDia } from "./datas";
 export { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP };
 
 const supabase = createBrowserClient(
@@ -229,11 +229,11 @@ export function sugerirRegimePorPorte(porte: string): string | null {
 // Carrega a empresa pelo id (funciona pro dono E pro convidado — RLS decide
 // quem enxerga, não o filtro). Usar junto de obterEmpresaAtiva().
 export async function carregarEmpresaPorId(empresaId: string): Promise<any | null> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("empresas")
     .select("*")
     .eq("id", empresaId)
-    .maybeSingle();
+    .maybeSingle(), "empresaHelpers:232");
   return data;
 }
 
@@ -272,32 +272,32 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
     // regra de acesso do banco ainda liberar (prazo vencido/acesso cortado = some).
     const preferida = localStorage.getItem(`axioma_empresa_preferida_${userId}`);
     if (preferida) {
-      const { data: ok } = await supabase.from("empresas").select("id").eq("id", preferida).maybeSingle();
+      const ok = await registrarLeitura(() => supabase.from("empresas").select("id").eq("id", preferida).maybeSingle(), "empresaHelpers:275");
       if (ok?.id) return salvar(ok.id);
       localStorage.removeItem(`axioma_empresa_preferida_${userId}`);
     }
   }
 
   // (a) empresa própria (dono)
-  const { data: propria } = await supabase
+  const propria = await registrarLeitura(() => supabase
     .from("empresas")
     .select("id, cadastro_completo")
     .eq("user_id", userId)
     .eq("ativo", true)
     .order("created_at", { ascending: true })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle(), "empresaHelpers:282");
   if (propria?.id && propria.cadastro_completo) return salvar(propria.id);
 
   // (b) vínculo de convidado (em outra empresa). Vem ANTES da empresa própria
   // vazia: quem foi convidado e aprovado ganhou uma "Minha Empresa" vazia no
   // cadastro — sem isto, entraria sempre nela e nunca na empresa que o convidou.
   // empresas_do_usuario (RLS) já some com acesso vencido/cortado.
-  const { data: vinculos } = await supabase
+  const vinculos = await registrarLeitura(() => supabase
     .from("empresa_usuarios")
     .select("empresa_id")
     .eq("user_id", userId)
-    .limit(20);
+    .limit(20), "empresaHelpers:296");
   const { data: acessiveis } = vinculos?.length
     ? await supabase.from("empresas").select("id").in("id", vinculos.map((v) => v.empresa_id))
     : { data: [] as { id: string }[] };
@@ -610,7 +610,7 @@ export async function criarDocumento(empresaId: string, userId: string, dados: a
 }
 
 export async function gerarUrlDocumento(path: string, segundos: number = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from("empresa-documentos").createSignedUrl(path, segundos);
+  const data = await registrarLeitura(() => supabase.storage.from("empresa-documentos").createSignedUrl(path, segundos), "empresaHelpers:613");
   return data?.signedUrl || null;
 }
 
@@ -825,7 +825,7 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
         tipo: "DAS-MEI",
         nome: `DAS MEI ${NOMES_MESES[mes]}/${ano}`,
         descricao: "Documento de Arrecadação do MEI",
-        data_vencimento: venc.toISOString().slice(0, 10),
+        data_vencimento: isoDia(venc),
         recorrencia: "mensal",
         notificar_dias_antes: 7,
         valor_estimado: 0,
@@ -848,7 +848,7 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
         tipo: "DAS",
         nome: `DAS ${NOMES_MESES[mes]}/${ano}`,
         descricao: "Documento de Arrecadação do Simples Nacional",
-        data_vencimento: venc.toISOString().slice(0, 10),
+        data_vencimento: isoDia(venc),
         recorrencia: "mensal",
         notificar_dias_antes: 7,
       });
@@ -870,7 +870,7 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
         tipo: "DCTF",
         nome: `DCTF ${NOMES_MESES[mes]}/${ano}`,
         descricao: "Declaração de Débitos e Créditos Tributários Federais",
-        data_vencimento: venc.toISOString().slice(0, 10),
+        data_vencimento: isoDia(venc),
         recorrencia: "mensal",
         notificar_dias_antes: 7,
       });
@@ -882,7 +882,7 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
         tipo: "EFD-Contribuicoes",
         nome: `EFD-Contribuições ${NOMES_MESES[mes]}/${ano}`,
         descricao: "Escrituração Fiscal Digital - PIS/COFINS",
-        data_vencimento: venc.toISOString().slice(0, 10),
+        data_vencimento: isoDia(venc),
         recorrencia: "mensal",
         notificar_dias_antes: 7,
       });
@@ -917,7 +917,7 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
 // Papel do usuário logado NAQUELA empresa (nunca global — a mesma pessoa
 // pode ser dono numa empresa e operador em outra). null = sem vínculo.
 export async function obterMeuPapel(empresaId: string): Promise<string | null> {
-  const { data } = await supabase.rpc("meu_papel", { p_empresa_id: empresaId });
+  const data = await registrarLeitura(() => supabase.rpc("meu_papel", { p_empresa_id: empresaId }), "empresaHelpers:920");
   return (data as string) || null;
 }
 
@@ -942,7 +942,7 @@ export type MembroEquipe = {
 
 // Meu nível na empresa (null = sem acesso). Ver MembroEquipe.nivel.
 export async function obterMeuNivel(empresaId: string, userId: string): Promise<number | null> {
-  const { data } = await supabase.rpc("equipe_nivel", { p_empresa: empresaId, p_user: userId });
+  const data = await registrarLeitura(() => supabase.rpc("equipe_nivel", { p_empresa: empresaId, p_user: userId }), "empresaHelpers:945");
   return typeof data === "number" ? data : null;
 }
 
@@ -996,7 +996,7 @@ export async function obterConvitePorToken(token: string): Promise<{
   // termo/prazo (EQUIPE-ACESSO-TEMPORARIO-SQL.sql) — ausentes antes do SQL rodar
   remetente_nome?: string | null; convidado_em?: string | null; acesso_dias?: number | null; motivo_convite?: string | null; expira_em?: string | null; relacao?: string | null; situacao?: string | null;
 } | null> {
-  const { data } = await supabase.rpc("obter_convite_por_token", { p_token: token });
+  const data = await exigirLeitura(() => supabase.rpc("obter_convite_por_token", { p_token: token }), "empresaHelpers:999");
   return data?.[0] || null;
 }
 

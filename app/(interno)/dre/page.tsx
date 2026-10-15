@@ -10,7 +10,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, exigirLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -35,7 +35,7 @@ import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, ler
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 import { dasMensalPorCategoria } from "../../../lib/meiHelpers";
 import { lerDASParaDRE, deducoesMEI, dasDaCompetencia, competenciasNoPeriodo, type ObrigacaoDRE } from "../../../lib/meiObrigacoesMotor";
 
@@ -67,13 +67,13 @@ function isoHoje(): string { return hojeISO(); }
 // projeção) mais os 12 meses adicionais que a série rolante pode precisar de contexto.
 function inicioJanelaHistorica(fimPeriodo: string): string {
   const fim = new Date(fimPeriodo + "T00:00:00");
-  return new Date(fim.getFullYear(), fim.getMonth() - 23, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(fim.getFullYear(), fim.getMonth() - 23, 1));
 }
 
 // Receita bruta dos últimos 12 meses terminando no fim do período — base da faixa do Simples Nacional.
 function inicioRolling12(fimPeriodo: string): string {
   const fim = new Date(fimPeriodo + "T00:00:00");
-  return new Date(fim.getFullYear(), fim.getMonth() - 11, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(fim.getFullYear(), fim.getMonth() - 11, 1));
 }
 
 function mesesNoPeriodo(periodo: Periodo): number {
@@ -219,7 +219,7 @@ export default function DREPage() {
   }
 
   async function carregarHistorico(empId: string) {
-    const { data } = await supabase.from("dre_historico").select("*").eq("empresa_id", empId).order("periodo_fim", { ascending: false }).limit(24);
+    const data = await exigirLeitura(() => supabase.from("dre_historico").select("*").eq("empresa_id", empId).order("periodo_fim", { ascending: false }).limit(24), "dre:222");
     setHistorico((data as HistoricoRow[]) || []);
   }
 
@@ -389,8 +389,8 @@ export default function DREPage() {
   async function salvarSnapshotHistorico() {
     if (!userId || !empresaId) return;
     const periodoJaFechado = periodo.fim < isoHoje();
-    const { data: existente } = await supabase.from("dre_historico").select("id")
-      .eq("empresa_id", empresaId).eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle();
+    const existente = await exigirLeitura(() => supabase.from("dre_historico").select("id")
+      .eq("empresa_id", empresaId).eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle(), "dre:392");
     if (existente && periodoJaFechado) return; // período fechado — nunca sobrescreve, fica congelado
 
     const labelPeriodo = presetPeriodo === "mes_atual" ? cx.periodoMesAtual

@@ -4,7 +4,8 @@
 
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,8 +71,8 @@ export const TIPOS_DOCUMENTO_FORNECEDOR = [
 // ============================================================================
 
 export async function listarContatos(fornecedorId: string): Promise<FornecedorContato[]> {
-  const { data } = await supabase.from("fornecedor_contatos").select("*")
-    .eq("fornecedor_id", fornecedorId).order("principal", { ascending: false }).order("created_at", { ascending: true });
+  const data = await registrarLeitura(() => supabase.from("fornecedor_contatos").select("*")
+    .eq("fornecedor_id", fornecedorId).order("principal", { ascending: false }).order("created_at", { ascending: true }), "fornecedorHelpers:73");
   return data || [];
 }
 
@@ -121,8 +122,8 @@ export async function uploadDocumentoFornecedor(file: File, fornecedorId: string
 }
 
 export async function listarDocumentos(fornecedorId: string): Promise<FornecedorDocumento[]> {
-  const { data } = await supabase.from("fornecedor_documentos").select("*")
-    .eq("fornecedor_id", fornecedorId).order("data_validade", { ascending: true, nullsFirst: false });
+  const data = await registrarLeitura(() => supabase.from("fornecedor_documentos").select("*")
+    .eq("fornecedor_id", fornecedorId).order("data_validade", { ascending: true, nullsFirst: false }), "fornecedorHelpers:124");
   return data || [];
 }
 
@@ -159,7 +160,7 @@ export async function excluirDocumentoFornecedor(doc: FornecedorDocumento): Prom
 }
 
 export async function gerarUrlDocumentoFornecedor(path: string, segundos: number = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from("fornecedor-documentos").createSignedUrl(path, segundos);
+  const data = await registrarLeitura(() => supabase.storage.from("fornecedor-documentos").createSignedUrl(path, segundos), "fornecedorHelpers:162");
   return data?.signedUrl || null;
 }
 
@@ -168,8 +169,8 @@ export async function gerarUrlDocumentoFornecedor(path: string, segundos: number
 // ============================================================================
 
 export async function listarContratos(fornecedorId: string, empresaId: string): Promise<FornecedorContrato[]> {
-  const { data } = await supabase.from("fornecedor_contratos").select("*")
-    .eq("fornecedor_id", fornecedorId).eq("empresa_id", empresaId).order("data_fim", { ascending: true, nullsFirst: false });
+  const data = await registrarLeitura(() => supabase.from("fornecedor_contratos").select("*")
+    .eq("fornecedor_id", fornecedorId).eq("empresa_id", empresaId).order("data_fim", { ascending: true, nullsFirst: false }), "fornecedorHelpers:171");
   return data || [];
 }
 
@@ -209,8 +210,8 @@ export async function excluirContrato(id: string): Promise<{ erro?: string }> {
 // ============================================================================
 
 export async function listarProdutos(fornecedorId: string): Promise<FornecedorProduto[]> {
-  const { data } = await supabase.from("fornecedor_produtos").select("*")
-    .eq("fornecedor_id", fornecedorId).order("created_at", { ascending: true });
+  const data = await registrarLeitura(() => supabase.from("fornecedor_produtos").select("*")
+    .eq("fornecedor_id", fornecedorId).order("created_at", { ascending: true }), "fornecedorHelpers:212");
   return data || [];
 }
 
@@ -250,8 +251,8 @@ export async function excluirProduto(id: string): Promise<{ erro?: string }> {
 // ============================================================================
 
 export async function listarInteracoes(fornecedorId: string): Promise<FornecedorInteracao[]> {
-  const { data } = await supabase.from("fornecedor_interacoes").select("*")
-    .eq("fornecedor_id", fornecedorId).order("data", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("fornecedor_interacoes").select("*")
+    .eq("fornecedor_id", fornecedorId).order("data", { ascending: false }), "fornecedorHelpers:253");
   return data || [];
 }
 
@@ -293,7 +294,7 @@ export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
 export function documentosVencendo(docs: FornecedorDocumento[], diasAlerta: number = 30): { vencidos: FornecedorDocumento[]; aVencer: FornecedorDocumento[] } {
   const hoje = hojeISO();
   const limite = new Date(); limite.setDate(limite.getDate() + diasAlerta);
-  const limiteISO = limite.toISOString().slice(0, 10);
+  const limiteISO = isoDia(limite);
   const comValidade = docs.filter((d) => d.data_validade);
   return {
     vencidos: comValidade.filter((d) => d.data_validade! < hoje),
@@ -304,7 +305,7 @@ export function documentosVencendo(docs: FornecedorDocumento[], diasAlerta: numb
 export function contratosVencendo(contratos: FornecedorContrato[], diasAlerta: number = 30): { vencidos: FornecedorContrato[]; aVencer: FornecedorContrato[] } {
   const hoje = hojeISO();
   const limite = new Date(); limite.setDate(limite.getDate() + diasAlerta);
-  const limiteISO = limite.toISOString().slice(0, 10);
+  const limiteISO = isoDia(limite);
   const comData = contratos.filter((c) => c.data_fim);
   return {
     vencidos: comData.filter((c) => c.data_fim! < hoje),
@@ -398,7 +399,7 @@ export function sugerirDadosContaPorFornecedor(
   if (f.prazo_medio_dias) {
     const base = dataEmissaoAtual ? new Date(dataEmissaoAtual + "T00:00:00") : new Date();
     base.setDate(base.getDate() + f.prazo_medio_dias);
-    sugestao.data_vencimento = base.toISOString().slice(0, 10);
+    sugestao.data_vencimento = isoDia(base);
   }
   return sugestao;
 }

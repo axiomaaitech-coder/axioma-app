@@ -800,7 +800,10 @@ export default function ImportarDocumentosPage() {
     const cnpjEmit = String(classificado.metadados?.cnpj_emitente ?? "").replace(/\D/g, "");
     const ehCompra = classificado.linhas.some((l) => l.destinoSugerido === "contas_pagar");
     let res = cnpjEmit && ehCompra
-      ? { ...classificado, metadados: { ...classificado.metadados, fornecedor_cadastrado: await buscarFornecedorPorCnpj(empresaId, cnpjEmit) } }
+      ? { ...classificado, metadados: { ...classificado.metadados, fornecedor_cadastrado: await buscarFornecedorPorCnpj(empresaId, cnpjEmit).catch(() => {
+          showToast(langAtual === "en" ? "Could not check the supplier by tax ID — review the supplier before importing." : langAtual === "es" ? "No se pudo verificar el proveedor por CNPJ — revise el proveedor antes de importar." : "Não foi possível conferir o fornecedor pelo CNPJ — confira o fornecedor antes de importar.", "erro");
+          return null;
+        }) } }
       : classificado;
     // Não achou pelo CNPJ (ou a nota não tem CNPJ): procura pelo nome antes de cadastrar
     // outro. Nome igual (sem LTDA/ME/pontuação) liga sozinho; parecido vira pergunta.
@@ -855,6 +858,12 @@ export default function ImportarDocumentosPage() {
         setDecisoesDuplicata(possiveis.map((p) => (p?.decisao === "duplicata" ? "pular" : p?.decisao === "baixar" ? "baixar" : null)));
         setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
         setVerificandoDuplicatas(false);
+      }).catch(() => {
+        // Conferência de duplicatas falhou mesmo após as novas tentativas: tudo nasce desmarcado
+        // para revisão (nada grava sozinho) e a tela não fica presa em "verificando".
+        setSelecionadas((prev) => prev.map(() => false));
+        setVerificandoDuplicatas(false);
+        showToast(langAtual === "en" ? "Could not check for duplicates — all lines were unchecked for you to review before importing." : langAtual === "es" ? "No se pudo verificar duplicados — todas las líneas quedaron desmarcadas para que las revise antes de importar." : "Não foi possível conferir duplicatas — todas as linhas ficaram desmarcadas para você revisar antes de importar.", "erro");
       });
     }
 

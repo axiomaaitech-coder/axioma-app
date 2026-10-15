@@ -135,7 +135,7 @@ export default function CentrosCustoPage() {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
-  const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+  const [periodo, setPeriodo] = useState(hojeISO().slice(0, 7));
 
   const [modalCentro, setModalCentro] = useState(false);
   const [editandoCentro, setEditandoCentro] = useState<Centro | null>(null);
@@ -607,7 +607,7 @@ export default function CentrosCustoPage() {
   });
 
   const hoje = new Date();
-  const periodoEhMesAtual = periodo === hoje.toISOString().slice(0, 7);
+  const periodoEhMesAtual = periodo === hojeISO().slice(0, 7);
   const dataRefReforecast = periodoEhMesAtual ? hoje : new Date(Number(periodo.slice(0, 4)), Number(periodo.slice(5, 7)), 0);
   const reforecast = reforecastOrcamento(centrosLeves, Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])), (id) => getOrcamento(centros.find(c => c.id === id)!), dataRefReforecast);
 

@@ -15,11 +15,12 @@ import { buscarComRetentativa } from './nexusRede'
 import * as XLSX from 'xlsx'
 import { buscarFeedRSS } from './nexusNewsIngest'
 import { moedasEmReais, lerCsvFmi, fimDoMes, linksResumoAnp, lerResumoAnp, lerCsvOcde, lerDbnomicsOcde, lerComex, type Ponto } from './nexusLeitoresFontes'
+import { exigirLeitura } from './erroUiHelpers'
 
 export type Fonte = { nome: string; tipo: string; provedor: string; endpoint: string; frequencia: string; licenca: string }
 
 export async function garantirFonte(supabase: SupabaseClient, f: Fonte): Promise<string> {
-  const { data: existente } = await supabase.from('nexus_source').select('source_id').eq('source_name', f.nome).maybeSingle()
+  const existente = await exigirLeitura(() => supabase.from('nexus_source').select('source_id').eq('source_name', f.nome).maybeSingle(), "nexusFontesMundo:22")
   if (existente?.source_id) return existente.source_id as string
   const { data, error } = await supabase.from('nexus_source').insert({
     source_name: f.nome, source_type: f.tipo, provider: f.provedor, country: 'WORLD', endpoint: f.endpoint,

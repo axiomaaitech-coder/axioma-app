@@ -5,6 +5,7 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { normalizarTexto } from "./cfoCore";
+import { exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -174,10 +175,10 @@ export async function editarPedidoCompra(empresaId: string, pedidoCompraId: stri
 // roda; entre o vínculo do import e essa recontagem, o pedido pode ainda
 // aparecer 'aberto' com item já ligado).
 async function pedidoTemNotaVinculada(empresaId: string, pedidoCompraId: string): Promise<boolean> {
-  const { data: itensDoPedido } = await supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId);
+  const itensDoPedido = await exigirLeitura(() => supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId), "pedidoCompraHelpers:177");
   const ids = (itensDoPedido || []).map((i: any) => i.id);
   if (ids.length === 0) return false;
-  const { data: vinculos } = await supabase.from("nfe_itens").select("id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids).limit(1);
+  const vinculos = await exigirLeitura(() => supabase.from("nfe_itens").select("id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids).limit(1), "pedidoCompraHelpers:180");
   return !!(vinculos && vinculos.length > 0);
 }
 
@@ -228,10 +229,10 @@ export function calcularStatusPedido(totalItens: number, itensFaturados: number)
 // o pedido estava cancelado (outra nota, uma edição), o número reflete a
 // realidade atual, não uma foto velha.
 async function recalcularStatusPedido(empresaId: string, pedidoCompraId: string): Promise<"aberto" | "parcial" | "faturado"> {
-  const { data: itensDoPedido } = await supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId);
+  const itensDoPedido = await exigirLeitura(() => supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId), "pedidoCompraHelpers:231");
   const ids = (itensDoPedido || []).map((i: any) => i.id);
   if (ids.length === 0) return "aberto";
-  const { data: vinculados } = await supabase.from("nfe_itens").select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids);
+  const vinculados = await exigirLeitura(() => supabase.from("nfe_itens").select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids), "pedidoCompraHelpers:234");
   const faturadosSet = new Set<string>();
   for (const v of vinculados || []) if (v.pedido_compra_item_id) faturadosSet.add(v.pedido_compra_item_id);
   return calcularStatusPedido(ids.length, faturadosSet.size);
@@ -264,16 +265,16 @@ export type ItemGravadoParaVinculo = { id: string; codigoFornecedor?: string | n
 export async function vincularItensAoPedidoAberto(empresaId: string, fornecedorId: string, itensGravados: ItemGravadoParaVinculo[]): Promise<void> {
   if (itensGravados.length === 0) return;
 
-  const { data: fornecedor } = await supabase.from("fornecedores").select("nivel_match").eq("empresa_id", empresaId).eq("id", fornecedorId).maybeSingle();
+  const fornecedor = await exigirLeitura(() => supabase.from("fornecedores").select("nivel_match").eq("empresa_id", empresaId).eq("id", fornecedorId).maybeSingle(), "pedidoCompraHelpers:267");
   if (fornecedor?.nivel_match !== "3way") return;
 
-  const { data: pedidosAbertos } = await supabase.from("pedido_compra")
-    .select("id").eq("empresa_id", empresaId).eq("fornecedor_id", fornecedorId).in("status", ["aberto", "parcial"]);
+  const pedidosAbertos = await exigirLeitura(() => supabase.from("pedido_compra")
+    .select("id").eq("empresa_id", empresaId).eq("fornecedor_id", fornecedorId).in("status", ["aberto", "parcial"]), "pedidoCompraHelpers:270");
   const pedidoIds = (pedidosAbertos || []).map((p: any) => p.id);
   if (pedidoIds.length === 0) return; // sem pedido aberto — a conferência vai marcar 'sem_pedido'
 
-  const { data: itensPedido } = await supabase.from("pedido_compra_itens")
-    .select("id, codigo_fornecedor, ean, descricao").eq("empresa_id", empresaId).in("pedido_compra_id", pedidoIds);
+  const itensPedido = await exigirLeitura(() => supabase.from("pedido_compra_itens")
+    .select("id, codigo_fornecedor, ean, descricao").eq("empresa_id", empresaId).in("pedido_compra_id", pedidoIds), "pedidoCompraHelpers:275");
 
   // Um pedido 'parcial' ainda tem linhas JÁ faturadas por uma nota anterior —
   // essas não podem voltar a casar com uma nota nova (double-counting da
@@ -281,7 +282,7 @@ export async function vincularItensAoPedidoAberto(empresaId: string, fornecedorI
   const idsCandidatos = (itensPedido || []).map((p: any) => p.id);
   const jaVinculados = new Set<string>();
   if (idsCandidatos.length > 0) {
-    const { data: vinculos } = await supabase.from("nfe_itens").select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", idsCandidatos);
+    const vinculos = await exigirLeitura(() => supabase.from("nfe_itens").select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", idsCandidatos), "pedidoCompraHelpers:284");
     for (const v of vinculos || []) if (v.pedido_compra_item_id) jaVinculados.add(v.pedido_compra_item_id);
   }
   const disponiveis = (itensPedido || []).filter((p: any) => !jaVinculados.has(p.id));

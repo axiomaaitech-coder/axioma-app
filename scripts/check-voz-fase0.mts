@@ -120,3 +120,17 @@ assert.ok(!ret2.texto.includes('LEITURAS QUE FALHARAM'))
 const { db: dbSemAcesso } = bancoFalso({ empresas: { rows: [] } })
 await assert.rejects(() => montarRetrato(dbSemAcesso, 'emp-1'), /empresa não encontrada/)
 console.log('OK — retrato: falha de leitura avisada, sem dado ≠ falha, empresa sem vínculo recusada')
+
+// ─── Datas do sistema todo (lib/datas): dia local, soma de dias e de meses ───
+const { isoDia, somarDiasISO, somarMesesISO } = await import('../lib/datas')
+assert.equal(isoDia(new Date(2026, 0, 1)), '2026-01-01') // dia 1º continua dia 1º em qualquer fuso
+assert.equal(isoDia(new Date(2026, 1, 0)), '2026-01-31')
+assert.equal(somarDiasISO('2026-12-31', 1), '2027-01-01')
+assert.equal(somarDiasISO('2026-03-01', -1), '2026-02-28')
+assert.equal(somarDiasISO('2028-02-28', 1), '2028-02-29')
+assert.equal(somarMesesISO('2026-01-31', 1), '2026-02-28') // antes: 03/03
+assert.equal(somarMesesISO('2028-01-31', 1), '2028-02-29')
+assert.equal(somarMesesISO('2026-01-31', 2), '2026-03-31')
+assert.equal(somarMesesISO('2026-11-15', 3), '2027-02-15')
+assert.equal(somarMesesISO('2026-05-10', -12), '2025-05-10')
+console.log('OK — datas do sistema: dia local, virada de ano, bissexto e parcela no fim do mês')

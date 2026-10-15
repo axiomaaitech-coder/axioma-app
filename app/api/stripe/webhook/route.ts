@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
+import { clienteServicoSobDemanda, sobDemanda } from '@/lib/supabaseServico'
 import * as Sentry from '@sentry/nextjs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Criado no 1º uso (lib/supabaseServico): sem a chave, só esta rota falha — a publicação do site segue
+const stripe = sobDemanda(() => new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
-})
+}))
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = clienteServicoSobDemanda() // conexão criada no 1º uso (lib/supabaseServico)
 
 // Webhook roda com service role (sem RLS) — mas uma gravação ainda pode
 // falhar (erro real, ou 0 linhas por não achar o customer_id/user_id) e

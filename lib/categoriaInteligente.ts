@@ -7,6 +7,7 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { Idioma } from "./translations";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -444,8 +445,8 @@ function sugerirPorDicionario(segmento: Segmento | null | undefined, nome: strin
 export async function sugerirCategoria(empresaId: string, segmento: Segmento | null | undefined, nome: string, idioma: Idioma): Promise<string | null> {
   const termo = extrairTermoChave(nome);
   if (termo) {
-    const { data } = await supabase.from("produtos_categoria_aprendizado").select("categoria")
-      .eq("empresa_id", empresaId).eq("termo", termo).order("ocorrencias", { ascending: false }).limit(1).maybeSingle();
+    const data = await registrarLeitura(() => supabase.from("produtos_categoria_aprendizado").select("categoria")
+      .eq("empresa_id", empresaId).eq("termo", termo).order("ocorrencias", { ascending: false }).limit(1).maybeSingle(), "categoriaInteligente:447");
     if (data?.categoria) return data.categoria;
   }
   return sugerirPorDicionario(segmento, nome, idioma);
@@ -460,8 +461,8 @@ export async function sugerirCategoria(empresaId: string, segmento: Segmento | n
 export async function registrarAprendizadoCategoria(empresaId: string, nome: string, categoriaEscolhida: string): Promise<void> {
   const termo = extrairTermoChave(nome);
   if (!termo || !categoriaEscolhida) return;
-  const { data: existente } = await supabase.from("produtos_categoria_aprendizado").select("id, ocorrencias")
-    .eq("empresa_id", empresaId).eq("termo", termo).maybeSingle();
+  const existente = await exigirLeitura(() => supabase.from("produtos_categoria_aprendizado").select("id, ocorrencias")
+    .eq("empresa_id", empresaId).eq("termo", termo).maybeSingle(), "categoriaInteligente:463");
   if (existente) {
     const { data, error } = await supabase.from("produtos_categoria_aprendizado")
       .update({ categoria: categoriaEscolhida, ocorrencias: (existente.ocorrencias || 1) + 1, ultima_vez_usado: new Date().toISOString() })

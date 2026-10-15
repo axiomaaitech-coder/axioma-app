@@ -6,7 +6,7 @@
 import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
-import { reportarFalhaLeitura } from "./erroUiHelpers";
+import { reportarFalhaLeitura, exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
@@ -248,7 +248,7 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
 
 async function nomeFornecedor(id: string | null | undefined): Promise<string | null> {
   if (!id) return null;
-  const { data } = await supabase.from("fornecedores").select("nome").eq("id", id).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("fornecedores").select("nome").eq("id", id).maybeSingle(), "contasPagarHelpers:251");
   return (data?.nome as string) ?? null;
 }
 
@@ -431,8 +431,8 @@ export async function gerarContasCustoFixoDoMes(userId: string, empresaId: strin
 // ============================================================================
 
 export async function listarDocumentos(contasPagarId: string, empresaId: string): Promise<ContaPagarDocumento[]> {
-  const { data } = await supabase.from("contas_pagar_documentos").select("*")
-    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("contas_pagar_documentos").select("*")
+    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false }), "contasPagarHelpers:434");
   return (data as ContaPagarDocumento[]) || [];
 }
 
@@ -472,7 +472,7 @@ export async function excluirDocumento(doc: ContaPagarDocumento): Promise<{ erro
 }
 
 export async function gerarUrlDocumento(path: string, segundos: number = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from("contas-pagar-documentos").createSignedUrl(path, segundos);
+  const data = await registrarLeitura(() => supabase.storage.from("contas-pagar-documentos").createSignedUrl(path, segundos), "contasPagarHelpers:475");
   return data?.signedUrl || null;
 }
 
@@ -496,8 +496,8 @@ export type NfeJaImportada = { id: string; numero_nf: string | null; fornecedor_
 
 export async function checarNfeJaImportadaNoPdv(empresaId: string, chaveAcesso: string): Promise<NfeJaImportada | null> {
   if (!chaveAcesso) return null;
-  const { data } = await supabase.from("estoque_nfe_importadas").select("id, numero_nf, fornecedor_id, created_at")
-    .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).maybeSingle();
+  const data = await exigirLeitura(() => supabase.from("estoque_nfe_importadas").select("id, numero_nf, fornecedor_id, created_at")
+    .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).maybeSingle(), "contasPagarHelpers:499");
   return (data as NfeJaImportada) || null;
 }
 
@@ -525,9 +525,9 @@ const CONFIG_AP_PADRAO: ConfigAp = {
 };
 
 export async function obterConfigAp(empresaId: string): Promise<ConfigAp> {
-  const { data } = await supabase.from("empresa_config_ap")
+  const data = await registrarLeitura(() => supabase.from("empresa_config_ap")
     .select("limite_aprovacao_automatica, aprovadores, bloquear_duplicata, dias_janela_duplicata, match_tolerancia_valor_pct, match_tolerancia_quantidade_pct")
-    .eq("empresa_id", empresaId).maybeSingle();
+    .eq("empresa_id", empresaId).maybeSingle(), "contasPagarHelpers:528");
   if (!data) return { ...CONFIG_AP_PADRAO };
   return {
     limite_aprovacao_automatica: Number(data.limite_aprovacao_automatica) || CONFIG_AP_PADRAO.limite_aprovacao_automatica,
@@ -570,7 +570,7 @@ export async function registrarAuditoriaAp(contasPagarId: string, acao: string, 
   // match_rejeitado (Match Engine, outro domínio) ficam de fora de propósito.
   const tipoEvento = acao === "duplicata_detectada" ? "AP_DUPLICATE_DETECTED" : acao === "duplicata_ignorada" ? "AP_DUPLICATE_IGNORED" : null;
   if (tipoEvento) {
-    const { data: conta } = await supabase.from("contas_pagar").select("empresa_id").eq("id", contasPagarId).maybeSingle();
+    const conta = await registrarLeitura(() => supabase.from("contas_pagar").select("empresa_id").eq("id", contasPagarId).maybeSingle(), "contasPagarHelpers:573");
     if (conta?.empresa_id) {
       publicarEventoNaoBloqueante(conta.empresa_id, tipoEvento, { conta_id: contasPagarId, depois: depois ?? null },
         { modulo: "contas_pagar", tabela: "contas_pagar", id: contasPagarId });
@@ -817,9 +817,9 @@ export type AprovacaoPendente = {
 };
 
 export async function listarAprovacoesPendentes(empresaId: string): Promise<AprovacaoPendente[]> {
-  const { data } = await supabase.from("contas_pagar_aprovacao")
+  const data = await registrarLeitura(() => supabase.from("contas_pagar_aprovacao")
     .select("*, contas_pagar(descricao, valor_total, data_vencimento, fornecedor_id)")
-    .eq("empresa_id", empresaId).eq("status", "pendente").order("criado_em", { ascending: true });
+    .eq("empresa_id", empresaId).eq("status", "pendente").order("criado_em", { ascending: true }), "contasPagarHelpers:820");
   return (data as AprovacaoPendente[]) || [];
 }
 
@@ -831,7 +831,7 @@ export async function decidirAprovacao(aprovacaoId: string, decisao: "aprovada" 
   }
   // RPC não devolve empresa_id (só contas_pagar_id/status) — busca na própria
   // linha de aprovação, que a RPC já atualizou acima, pra publicar o evento.
-  const { data: aprovacao } = await supabase.from("contas_pagar_aprovacao").select("contas_pagar_id, empresa_id").eq("id", aprovacaoId).maybeSingle();
+  const aprovacao = await registrarLeitura(() => supabase.from("contas_pagar_aprovacao").select("contas_pagar_id, empresa_id").eq("id", aprovacaoId).maybeSingle(), "contasPagarHelpers:834");
   if (aprovacao) {
     publicarEventoNaoBloqueante(aprovacao.empresa_id, decisao === "aprovada" ? "AP_APPROVED" : "AP_REJECTED",
       { conta_id: aprovacao.contas_pagar_id, aprovacao_id: aprovacaoId, motivo: motivo ?? null },
@@ -865,8 +865,8 @@ export const restaurarRegistroHistoricoAp = (id: string) => rpcHistoricoAp("ap_a
 export const anotarRegistroHistoricoAp = (id: string, observacao: string) => rpcHistoricoAp("ap_auditoria_anotar", { p_id: id, p_observacao: observacao });
 
 export async function listarAuditoriaConta(contasPagarId: string, empresaId: string): Promise<AuditoriaAp[]> {
-  const { data } = await supabase.from("contas_pagar_auditoria").select("*")
-    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("contas_pagar_auditoria").select("*")
+    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false }), "contasPagarHelpers:868");
   return (data as AuditoriaAp[]) || [];
 }
 

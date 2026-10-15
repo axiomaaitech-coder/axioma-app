@@ -5,7 +5,8 @@ import { lerTodas } from "./lerTodas";
 import { montarDRE, simularCenariosExecutivos, type ResultadoCenario, type ChoqueSimulador } from "./cfoCore";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { macroParaChoque, type VariaveisMacro } from "./nexusSimulacaoMotor";
-import { reportarFalhaLeitura as reportarFalhaEscrita } from "./erroUiHelpers"; // mesmo envio ao Sentry; nome local deixa claro que é escrita
+import { reportarFalhaLeitura as reportarFalhaEscrita, registrarLeitura } from "./erroUiHelpers"; // mesmo envio ao Sentry; nome local deixa claro que é escrita
+import { isoDia } from "./datas";
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Etapa 5: Minhas Simulações (nexus_simulation, empresa_id +
@@ -37,8 +38,8 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
   const empresaId = await obterEmpresaAtiva();
   if (!empresaId) return { ponto: null, empresaId: null, erro: false };
   const hoje = new Date();
-  const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - MESES_JANELA, hoje.getDate()).toISOString().slice(0, 10);
-  const fim = hoje.toISOString().slice(0, 10);
+  const inicio = isoDia(new Date(hoje.getFullYear(), hoje.getMonth() - MESES_JANELA, hoje.getDate()));
+  const fim = isoDia(hoje);
 
   const [rec, cf, cv, dv, fc, emp] = await Promise.all([
     // Paginado como o retrato do José: sem isso o banco corta em 1.000 linhas e a
@@ -192,6 +193,6 @@ export async function contarSimulacoes(empresaId: string): Promise<number> {
 export async function carregarCnaeEmpresa(): Promise<string | null> {
   const empresaId = await obterEmpresaAtiva();
   if (!empresaId) return null;
-  const { data } = await supabase.from("empresas").select("cnae_principal").eq("id", empresaId).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("empresas").select("cnae_principal").eq("id", empresaId).maybeSingle(), "nexusSimulacaoHelpers:196");
   return data?.cnae_principal ?? null;
 }

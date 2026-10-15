@@ -9,7 +9,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "./iaTributariaHelpers";
 import { nomeMesPt, mesesPorLang } from "./cfoCore";
 import { reportarFalhaLeitura } from "./erroUiHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
 export { nomeMesPt };
 
 const supabase = createBrowserClient(
@@ -86,8 +86,8 @@ export type Insight = {
 // ============================================================================
 
 export function montarPeriodo(ano: number, mes: number): Periodo {
-  const inicio = new Date(ano, mes - 1, 1).toISOString().slice(0, 10);
-  const fim = new Date(ano, mes, 0).toISOString().slice(0, 10);
+  const inicio = isoDia(new Date(ano, mes - 1, 1));
+  const fim = isoDia(new Date(ano, mes, 0));
   return { inicio, fim, ano, mes };
 }
 
@@ -105,7 +105,7 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, con
 export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
   // 1) Receitas do período
   // Todas as leituras em paralelo (antes uma depois da outra).
-  const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
+  const inicio12m = isoDia(new Date(periodo.ano, periodo.mes - 12, 1));
   const [rRecs, rCvs, rCfs, rDivs, rEmp, rRec12] = await Promise.all([
     lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
     lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),

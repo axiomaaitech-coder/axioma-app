@@ -30,7 +30,7 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 
@@ -71,7 +71,7 @@ type CustoVariavel = {
 // e escala igual pra empresa nova ou com anos de dado.
 function inicioJanelaHistorica(fimPeriodo: string): string {
   const fim = new Date(fimPeriodo + "T00:00:00");
-  return new Date(fim.getFullYear(), fim.getMonth() - 23, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(fim.getFullYear(), fim.getMonth() - 23, 1));
 }
 
 export default function CustosVariaveis() {

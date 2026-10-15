@@ -5,6 +5,7 @@ import Stripe from 'stripe'
 import { bloqueado, registrarFalha, admin, conferirSenha, papelLiberador, usuarioLogado } from '@/lib/supervisorServidor'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { checklistDe, docValido, type TipoOperacao, type TipoSocietario } from '@/lib/transferenciaEmpresa'
+import { hojeISO } from '@/lib/datas'
 
 // Transferir empresa (Elias, 2026-10-09) — passagem da empresa DE VERDADE (venda,
 // doação, sucessão, reorganização), diferente do botão da Equipe (que só passa o
@@ -134,7 +135,7 @@ async function criar(corpo: any) {
   const protocolo = txt(corpo.juntaProtocolo, 60)
   const juntaData = txt(corpo.juntaData, 10)
   if (protocolo.length < 3) return erro('junta')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(juntaData) || juntaData > new Date().toISOString().slice(0, 10)) return erro('junta_data')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(juntaData) || juntaData > hojeISO(new Date(), 'America/Sao_Paulo')) return erro('junta_data')
 
   const motivo = txt(corpo.motivo, 500)
   if (motivo.length < 5) return erro('motivo')

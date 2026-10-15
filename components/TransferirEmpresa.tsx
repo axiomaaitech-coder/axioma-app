@@ -9,6 +9,7 @@ import { CanvasBox } from './CanvasBox'
 import { copiarTexto } from '../lib/copiar'
 import { gerarPdfTabela } from '../lib/gerarPdfTabela'
 import { uploadDocumento, criarDocumento } from '../lib/empresaHelpers'
+import { hojeISO } from '../lib/datas'
 import {
   TIPOS_SOCIETARIOS, TIPOS_OPERACAO, AVISO_BLOQUEADO, BASE_LEGAL_DATA, checklistDe, tipoSugerido, docValido,
   listarTransferencias, pedirTransferencia, cancelarTransferencia,
@@ -277,7 +278,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
               {passo(3, L('Registro na Junta Comercial', 'Commercial Registry filing', 'Registro en la Junta Comercial'), (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {campo(L('Número do protocolo ou registro', 'Protocol or registration number', 'Número de protocolo o registro'), entrada(form.protocolo, (v) => setForm({ ...form, protocolo: v })))}
-                  {campo(L('Data do registro', 'Registration date', 'Fecha del registro'), entrada(form.juntaData, (v) => setForm({ ...form, juntaData: v }), { type: 'date', max: new Date().toISOString().slice(0, 10) }))}
+                  {campo(L('Data do registro', 'Registration date', 'Fecha del registro'), entrada(form.juntaData, (v) => setForm({ ...form, juntaData: v }), { type: 'date', max: hojeISO() }))}
                   <div className="sm:col-span-2">
                     {campo(L('Documento da transferência (PDF)', 'Transfer document (PDF)', 'Documento de la transferencia (PDF)'), (
                       <input type="file" accept="application/pdf" onChange={(e) => setArquivo(e.target.files?.[0] || null)} className="w-full text-sm" style={{ color: TEXTO }} />

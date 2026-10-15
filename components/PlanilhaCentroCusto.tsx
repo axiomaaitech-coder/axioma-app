@@ -182,7 +182,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
   const getOrcamentoCentro = (centroId: string) => {
     const c = centros.find(x => x.id === centroId);
     if (!c) return 0;
-    const periodoAtual = new Date().toISOString().slice(0, 7);
+    const periodoAtual = hojeISO().slice(0, 7);
     return orcamentoDoPeriodo(orcamentos, c.id, periodoAtual, c.orcamento_mensal || 0);
   };
 

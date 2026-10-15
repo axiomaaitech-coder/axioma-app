@@ -33,7 +33,7 @@ import {
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import PainelObrigacoesDAS from '../../../../components/mei/PainelObrigacoesDAS'
 import { dividaDoCalendario, type MesDAS } from '../../../../lib/meiObrigacoesMotor'
-import { hojeISO } from '../../../../lib/datas'
+import { hojeISO, isoDia } from '../../../../lib/datas'
 import DocumentosContador from '../../../../components/mei/DocumentosContador'
 
 const supabase = createBrowserClient(
@@ -268,7 +268,7 @@ export default function DASObrigacoes() {
     const vencimento = mes ? mes.dataVencimento : tipo === 'DAS' ? vencimentoDas : tipo === 'DASN' ? vencimentoDasn : vencimentoIrpf
     const { erro } = await salvarObrigacao({
       userId: user.id, empresaId, tipo, competencia, status,
-      dataVencimento: vencimento.toISOString().slice(0, 10),
+      dataVencimento: isoDia(vencimento),
       dataEntrega: status === 'Entregue' ? hojeISO() : null,
     })
     setSalvandoStatus(false)

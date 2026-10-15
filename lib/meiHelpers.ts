@@ -9,7 +9,7 @@ import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
-import { hojeISO, dataLocal } from "./datas";
+import { hojeISO, dataLocal, isoDia } from "./datas";
 import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
@@ -778,7 +778,7 @@ export function calcularDividaDASAcumulada(
       const diasAtraso = Math.floor((hoje.getTime() - c.dataVencimento.getTime()) / 86400000);
       return {
         competencia: c.competencia,
-        dataVencimento: c.dataVencimento.toISOString().slice(0, 10),
+        dataVencimento: isoDia(c.dataVencimento),
         diasAtraso,
         valorOriginal: dasValorMensal,
         penalidade: calcularPenalidadeDASAtraso(dasValorMensal, diasAtraso, selicAnualPct),

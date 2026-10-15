@@ -7,7 +7,7 @@
 import { montarDRE, serieRolling, type Lancamento } from "./cfoCore";
 import type { ClienteSnapshot, SnapshotCarteira, ContaRow, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { probabilidadeRecebimentoConta } from "./cobrancaHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
 
 function diffDias(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
@@ -40,13 +40,13 @@ export function previsaoCaixaMultiHorizonte(
   horizontes: number[] = HORIZONTES_PADRAO,
 ): PrevisaoHorizonte[] {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const hojeStr = hoje.toISOString().slice(0, 10);
+  const hojeStr = isoDia(hoje);
   const scorePorCliente = new Map(ranking.map((r) => [r.s.cliente.id, r]));
   const pendentes = contas.filter((c) => c.status !== "recebido");
 
   return horizontes.map((h) => {
     const limite = new Date(hoje); limite.setDate(limite.getDate() + h);
-    const limiteStr = limite.toISOString().slice(0, 10);
+    const limiteStr = isoDia(limite);
     const bucket: PrevisaoHorizonte = { horizonteDias: h, previsto: 0, provavel: 0, emRisco: 0, perdido: 0 };
     pendentes.filter((c) => c.data_vencimento <= limiteStr).forEach((c) => {
       const saldo = Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0));

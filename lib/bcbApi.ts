@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { hojeISO } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 export type IndicadoresMacro = {
   selic: number;       // % a.a. (meta Selic)
@@ -74,8 +75,8 @@ async function ultimosDoNexus(): Promise<{ selic?: number; ipca12m?: number; usd
   try {
     const { supabase } = await import("./supabase");
     const ultimos = async (codigo: string, n: number) => {
-      const { data } = await supabase.from("nexus_economic_series").select("valor").eq("serie_codigo", codigo)
-        .lte("data_referencia", hojeISO()).order("data_referencia", { ascending: false }).limit(n);
+      const data = await registrarLeitura(() => supabase.from("nexus_economic_series").select("valor").eq("serie_codigo", codigo)
+        .lte("data_referencia", hojeISO()).order("data_referencia", { ascending: false }).limit(n), "bcbApi:77");
       return (data ?? []).map((l) => Number(l.valor)).filter(Number.isFinite);
     };
     const [selic, ipca, usd] = await Promise.all([ultimos("432", 1), ultimos("433", 12), ultimos("1", 1)]);

@@ -7,6 +7,7 @@ import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
+import { isoDia } from "../lib/datas";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -149,9 +150,9 @@ export default function DashComercial() {
     let ativo = true;
     (async () => {
       const hoje = new Date();
-      const hojeStr = hoje.toISOString().slice(0, 10);
-      const em30 = new Date(hoje.getTime() + 30 * 86400000).toISOString().slice(0, 10);
-      const doze = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1).toISOString().slice(0, 10);
+      const hojeStr = isoDia(hoje);
+      const em30 = isoDia(new Date(hoje.getTime() + 30 * 86400000));
+      const doze = isoDia(new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1));
       const empresaId = await obterEmpresaAtiva();
       if (!ativo) return;
       if (!empresaId) return;

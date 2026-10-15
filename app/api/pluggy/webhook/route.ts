@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { clienteServicoSobDemanda } from '@/lib/supabaseServico'
 import { timingSafeEqual } from 'node:crypto'
 import * as Sentry from '@sentry/nextjs'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // ═══════════════════════════════════════════════════════════════
 // Webhook da Pluggy (Open Finance). Grava com service_role — por isso NUNCA
@@ -13,10 +14,7 @@ import * as Sentry from '@sentry/nextjs'
 //  3. status e transações vêm da API da Pluggy com a nossa chave, não do corpo.
 // Auditoria 2026-09-28: antes aceitava qualquer POST e fazia upsert do que chegasse.
 // ═══════════════════════════════════════════════════════════════
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabase = clienteServicoSobDemanda() // conexão criada no 1º uso (lib/supabaseServico)
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Webhook assíncrono, sem tela esperando resposta — uma falha de gravação
@@ -51,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (event.startsWith('payment_')) {
       const pedidoId = String(body?.paymentRequestId ?? body?.data?.paymentRequestId ?? body?.paymentRequest?.id ?? '')
       if (!/^[0-9a-f-]{36}$/i.test(pedidoId)) return NextResponse.json({ ok: true })
-      const { data: guia } = await supabase.from('guias_arrecadacao').select('id').eq('pagamento_externo_id', pedidoId).maybeSingle()
+      const guia = await exigirLeitura(() => supabase.from('guias_arrecadacao').select('id').eq('pagamento_externo_id', pedidoId).maybeSingle(), "webhook:54")
       if (!guia) return NextResponse.json({ ok: true })
       const auth = await fetch('https://api.pluggy.ai/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: process.env.PLUGGY_CLIENT_ID, clientSecret: process.env.PLUGGY_CLIENT_SECRET }) })
@@ -67,7 +65,7 @@ export async function POST(request: NextRequest) {
     if (!UUID.test(itemId) || !event.startsWith('item/')) return NextResponse.json({ ok: true })
 
     // Só conexões que o próprio Axioma criou (tela Open Finance, com dono).
-    const { data: conexao } = await supabase.from('open_finance').select('user_id, empresa_id').eq('item_id', itemId).maybeSingle()
+    const conexao = await exigirLeitura(() => supabase.from('open_finance').select('user_id, empresa_id').eq('item_id', itemId).maybeSingle(), "webhook:70")
     if (!conexao?.user_id) return NextResponse.json({ ok: true })
 
     const authResponse = await fetch('https://api.pluggy.ai/auth', {

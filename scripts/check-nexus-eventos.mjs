@@ -1,4 +1,4 @@
-// Self-check do detector de eventos do Nexus: node scripts/check-nexus-eventos.mjs
+// Self-check do detector de eventos do Nexus: npx tsx scripts/check-nexus-eventos.mjs (o node puro não acha imports sem extensão, ex.: lib/datas)
 import assert from 'node:assert/strict'
 import { detectarEventosSerie, textoEvento, travaDaVerdade } from '../lib/nexusEventDetector.ts'
 
@@ -57,7 +57,11 @@ const hoje = new Date('2026-09-26T12:00:00Z')
 assert.equal(calcularFreshness('2026-09-25', 'diaria', hoje), 'live')
 assert.equal(calcularFreshness('2026-09-10', 'diaria', hoje), 'stale')
 assert.equal(calcularFreshness('2026-07-01', 'mensal_defasada', hoje), 'live') // desemprego de julho, publicado em setembro
-assert.equal(calcularFreshness('2026-07-01', 'mensal', hoje), 'stale')
+// Mensal conta do FIM do mês de referência (db2ba94: o BCB grava "01/07" pro mês inteiro de julho)
+assert.equal(calcularFreshness('2026-08-01', 'mensal', hoje), 'live')   // agosto: 26 dias após o fim
+assert.equal(calcularFreshness('2026-07-01', 'mensal', hoje), 'recent') // julho: 57 dias, um mês atrás
+assert.equal(calcularFreshness('2026-06-01', 'mensal', hoje), 'stale')  // junho: 88 dias
+assert.equal(calcularFreshness('2026-05-01', 'mensal', hoje), 'expired') // maio: 118 dias
 assert.equal(calcularFreshness('lixo', 'diaria', hoje), 'unknown')
 console.log('OK — régua de atualidade')
 

@@ -9,7 +9,8 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { scoreRecebimento } from "./clienteIntelHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -153,7 +154,7 @@ export function etapasReguaPadrao(): Omit<EtapaRegua, "id" | "user_id">[] {
 }
 
 export async function listarEtapasRegua(empresaId: string): Promise<EtapaRegua[]> {
-  const { data } = await supabase.from("cobranca_regua_etapas").select("*").eq("empresa_id", empresaId).order("ordem", { ascending: true });
+  const data = await registrarLeitura(() => supabase.from("cobranca_regua_etapas").select("*").eq("empresa_id", empresaId).order("ordem", { ascending: true }), "cobrancaHelpers:156");
   return data || [];
 }
 
@@ -274,7 +275,7 @@ export function detectarAlertasCobranca(
   const alertas: AlertaCobranca[] = [];
   const hojeStr = hojeISO();
   const em3dias = new Date(); em3dias.setDate(em3dias.getDate() + 3);
-  const em3diasStr = em3dias.toISOString().slice(0, 10);
+  const em3diasStr = isoDia(em3dias);
 
   const T = {
     proximos: lang === "en" ? "Upcoming due dates" : lang === "es" ? "Vencimientos próximos" : "Recebimentos próximos",

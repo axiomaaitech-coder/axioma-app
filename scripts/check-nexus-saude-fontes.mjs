@@ -1,4 +1,4 @@
-// Self-check da régua de saúde das fontes: node scripts/check-nexus-saude-fontes.mjs
+// Self-check da régua de saúde das fontes: npx tsx scripts/check-nexus-saude-fontes.mjs (o node puro não acha imports sem extensão, ex.: lib/datas)
 import assert from 'node:assert/strict'
 import { calcularSaudeFonte } from '../lib/nexusFreshness.ts'
 

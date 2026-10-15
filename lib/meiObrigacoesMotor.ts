@@ -18,6 +18,7 @@ import * as Sentry from "@sentry/nextjs";
 import { registrarMovimentacao } from "./rastreio/motor";
 import { criarContaPagar } from "./contasPagarHelpers";
 import { hojeISO } from "./datas";
+import { exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -270,7 +271,7 @@ export async function estornarPagamentoDAS(empresaId: string, pagamentoId: strin
       payload: { descricao: "Estorno: DAS-MEI", categoria: "Impostos", evento_tipo: "AP_PAYMENT_REVERSED", evento_payload: { conta_id: a.conta_pagar_id, motivo, pagamento_obrigacao_id: pagamentoId } },
     });
     if (r1.erro) { falhou = true; continue; }
-    const { data: conta } = await supabase.from("contas_pagar").select("valor_pago, forma_pagamento, data_pagamento").eq("id", a.conta_pagar_id).maybeSingle();
+    const conta = await exigirLeitura(() => supabase.from("contas_pagar").select("valor_pago, forma_pagamento, data_pagamento").eq("id", a.conta_pagar_id).maybeSingle(), "meiObrigacoesMotor:273");
     const resta = r2(Number(conta?.valor_pago) || 0);
     if (resta > 0) {
       const r2_ = await registrarMovimentacao({
@@ -287,19 +288,19 @@ export async function estornarPagamentoDAS(empresaId: string, pagamentoId: strin
 // Conserto: pagamento gravado cujo caminho até Contabilidade/Fluxo não terminou (aba
 // fechada no meio). Chamado pelo Guardião; não duplica porque só pega rastreio_ok = false.
 export async function completarRastrosPendentes(empresaId: string): Promise<{ consertados: number }> {
-  const { data } = await supabase.from("pagamentos_obrigacao").select("id, data_pagamento, metodo")
+  const data = await exigirLeitura(() => supabase.from("pagamentos_obrigacao").select("id, data_pagamento, metodo")
     .eq("empresa_id", empresaId).eq("rastreio_ok", false).is("estorno_de", null).is("estornado_em", null)
-    .lt("criado_em", new Date(Date.now() - 2 * 60_000).toISOString()).limit(20);
+    .lt("criado_em", new Date(Date.now() - 2 * 60_000).toISOString()).limit(20), "meiObrigacoesMotor:290");
   let n = 0;
   for (const p of data || []) {
     // Já existe rastro desta baixa? (marcar ok falhou, mas o dinheiro chegou) — só marca.
-    const { data: ja } = await supabase.from("rastreio_movimentacao").select("id").eq("empresa_id", empresaId).eq("tipo", "ap_pagamento")
-      .contains("payload", { evento_payload: { pagamento_obrigacao_id: p.id } }).limit(1);
+    const ja = await exigirLeitura(() => supabase.from("rastreio_movimentacao").select("id").eq("empresa_id", empresaId).eq("tipo", "ap_pagamento")
+      .contains("payload", { evento_payload: { pagamento_obrigacao_id: p.id } }).limit(1), "meiObrigacoesMotor:296");
     if (ja?.length) { await supabase.rpc("mei_marcar_rastreio_ok", { p_empresa: empresaId, p_pagamento: p.id }); n++; continue; }
-    const { data: alocs } = await supabase.from("pagamento_alocacoes").select("obrigacao_id, valor, encargos, mei_obrigacoes(competencia)").eq("pagamento_id", p.id);
+    const alocs = await exigirLeitura(() => supabase.from("pagamento_alocacoes").select("obrigacao_id, valor, encargos, mei_obrigacoes(competencia)").eq("pagamento_id", p.id), "meiObrigacoesMotor:299");
     const lista: ResultadoAlocacao[] = [];
     for (const a of alocs || []) {
-      const { data: c } = await supabase.from("contas_pagar").select("id").eq("mei_obrigacao_id", a.obrigacao_id).maybeSingle();
+      const c = await exigirLeitura(() => supabase.from("contas_pagar").select("id").eq("mei_obrigacao_id", a.obrigacao_id).maybeSingle(), "meiObrigacoesMotor:302");
       const comp = (a as unknown as { mei_obrigacoes?: { competencia?: string } }).mei_obrigacoes?.competencia;
       lista.push({ obrigacao_id: a.obrigacao_id as string, competencia: comp, situacao: "pago", valor: Number(a.valor), encargos: Number(a.encargos), conta_pagar_id: (c?.id as string) ?? null });
     }

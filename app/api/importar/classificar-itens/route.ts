@@ -5,6 +5,7 @@ import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { tarefaDeRotina, MODELOS } from '@/lib/ia/motor'
 import { setorDaEmpresa } from '@/lib/ia/setores'
 import { CATEGORIAS_DESPESA, NATUREZAS_ITEM, type ItemClassificado } from '@/lib/categoriasDespesa'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/importar/classificar-itens { empresa_id, itens: [{ descricao, ncm?, cfop?, valor }] }
 // B3 item 3: classifica cada item de uma nota de COMPRA — categoria de despesa
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const itens = Array.isArray(corpo?.itens) ? corpo.itens.slice(0, MAX_ITENS) : []
   if (!UUID.test(empresaId) || !itens.length) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
   // RLS: só acha a empresa quem tem acesso a ela.
-  const { data: emp } = await supabase.from('empresas').select('setor, cnae_principal, cnae_descricao').eq('id', empresaId).maybeSingle()
+  const emp = await exigirLeitura(() => supabase.from('empresas').select('setor, cnae_principal, cnae_descricao').eq('id', empresaId).maybeSingle(), "classificar-itens:33")
   if (!emp) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
 
   const setor = setorDaEmpresa(emp.cnae_principal as string | null, emp.setor as string | null)

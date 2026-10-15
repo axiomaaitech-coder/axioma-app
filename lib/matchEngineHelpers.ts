@@ -7,6 +7,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { obterConfigAp } from "./contasPagarHelpers";
 import { calcularStatusPedido } from "./pedidoCompraHelpers";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +54,14 @@ export function diferencaPct(esperado: number, encontrado: number): number {
 // pagar. Grava (ou atualiza, se já existia) 1 linha em match_resultado e
 // substitui as divergências antigas pelas atuais. Idempotente — rodar de
 // novo na mesma nota não duplica nada (índice único empresa_id+nfe_importada_id).
+// Leitura que falhou mesmo depois das novas tentativas (lib/antiFalha) volta como erro no formato
+// de sempre ({ erro }) — as telas já tratam assim; nunca conclui "sem divergência" por falta de dado.
 export async function conferirNfe(empresaId: string, nfeImportadaId: string): Promise<ResultadoConferencia> {
+  try { return await conferirNfeSemProtecao(empresaId, nfeImportadaId); }
+  catch (e) { return { status: "excecao", score: 0, divergencias: [], erro: e instanceof Error ? e.message : String(e) }; }
+}
+
+async function conferirNfeSemProtecao(empresaId: string, nfeImportadaId: string): Promise<ResultadoConferencia> {
   const { data: nfe, error: erroNfe } = await supabase.from("estoque_nfe_importadas")
     .select("id, chave_acesso, valor_total, numero_nf, fornecedor_id")
     .eq("empresa_id", empresaId).eq("id", nfeImportadaId).maybeSingle();
@@ -72,14 +80,14 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
   let nivel: "2way" | "3way" = "2way";
   const pedidoItensPorId = new Map<string, { id: string; pedido_compra_id: string; descricao: string; quantidade: number; valor_total: number }>();
   if (nfe.fornecedor_id) {
-    const { data: fornecedor } = await supabase.from("fornecedores").select("nivel_match").eq("empresa_id", empresaId).eq("id", nfe.fornecedor_id).maybeSingle();
+    const fornecedor = await exigirLeitura(() => supabase.from("fornecedores").select("nivel_match").eq("empresa_id", empresaId).eq("id", nfe.fornecedor_id).maybeSingle(), "matchEngineHelpers:75");
     if (fornecedor?.nivel_match === "3way") {
       nivel = "3way";
       const idsPedidoItem = itens.map((i: any) => i.pedido_compra_item_id).filter(Boolean);
       if (idsPedidoItem.length > 0) {
-        const { data: pedidoItens } = await supabase.from("pedido_compra_itens")
+        const pedidoItens = await exigirLeitura(() => supabase.from("pedido_compra_itens")
           .select("id, pedido_compra_id, descricao, quantidade, valor_total")
-          .eq("empresa_id", empresaId).in("id", idsPedidoItem);
+          .eq("empresa_id", empresaId).in("id", idsPedidoItem), "matchEngineHelpers:80");
         // Pedido cancelado é ignorado pelo match — o item continua linkado no
         // banco (não desfaz o vínculo), mas não entra no mapa, então cai no
         // mesmo caminho de "sem_pedido" mais abaixo, como se o link não
@@ -87,7 +95,7 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
         const pedidoIdsCandidatos = Array.from(new Set((pedidoItens || []).map((pi: any) => pi.pedido_compra_id)));
         const canceladosSet = new Set<string>();
         if (pedidoIdsCandidatos.length > 0) {
-          const { data: statusPedidos } = await supabase.from("pedido_compra").select("id, status").eq("empresa_id", empresaId).in("id", pedidoIdsCandidatos);
+          const statusPedidos = await exigirLeitura(() => supabase.from("pedido_compra").select("id, status").eq("empresa_id", empresaId).in("id", pedidoIdsCandidatos), "matchEngineHelpers:90");
           for (const p of statusPedidos || []) if (p.status === "cancelado") canceladosSet.add(p.id);
         }
         for (const pi of pedidoItens || []) {
@@ -201,14 +209,14 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
   const pedidosAfetados = Array.from(new Set(Array.from(pedidoItensPorId.values()).map((pi) => pi.pedido_compra_id)));
   let pedidoCompraIdParaResultado: string | null = pedidosAfetados[0] || null;
   if (nivel === "3way" && pedidosAfetados.length > 0) {
-    const { data: itensDosPedidos } = await supabase.from("pedido_compra_itens")
+    const itensDosPedidos = await exigirLeitura(() => supabase.from("pedido_compra_itens")
       .select("id, descricao, quantidade, valor_total, pedido_compra_id")
-      .eq("empresa_id", empresaId).in("pedido_compra_id", pedidosAfetados);
+      .eq("empresa_id", empresaId).in("pedido_compra_id", pedidosAfetados), "matchEngineHelpers:204");
     const idsItensPedido = (itensDosPedidos || []).map((p: any) => p.id);
     const faturadosSet = new Set<string>();
     if (idsItensPedido.length > 0) {
-      const { data: vinculados } = await supabase.from("nfe_itens")
-        .select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", idsItensPedido);
+      const vinculados = await exigirLeitura(() => supabase.from("nfe_itens")
+        .select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", idsItensPedido), "matchEngineHelpers:210");
       for (const v of vinculados || []) if (v.pedido_compra_item_id) faturadosSet.add(v.pedido_compra_item_id);
     }
     for (const pi of itensDosPedidos || []) {
@@ -223,7 +231,7 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
       const itensDoPedido = (itensDosPedidos || []).filter((p: any) => p.pedido_compra_id === pedidoId);
       const totalItens = itensDoPedido.length;
       const faturados = itensDoPedido.filter((p: any) => faturadosSet.has(p.id)).length;
-      const { data: pedidoAtual } = await supabase.from("pedido_compra").select("status").eq("empresa_id", empresaId).eq("id", pedidoId).maybeSingle();
+      const pedidoAtual = await exigirLeitura(() => supabase.from("pedido_compra").select("status").eq("empresa_id", empresaId).eq("id", pedidoId).maybeSingle(), "matchEngineHelpers:226");
       if (!pedidoAtual || pedidoAtual.status === "cancelado") continue;
       const novoStatus = calcularStatusPedido(totalItens, faturados);
       if (pedidoAtual.status !== novoStatus) {
@@ -317,14 +325,14 @@ export async function listarMatchResultados(empresaId: string, filtroStatus?: st
   const fornecedorIds = Array.from(new Set(data.map((r: any) => r.nfe?.fornecedor_id).filter(Boolean)));
   const nomesPorFornecedor = new Map<string, string>();
   if (fornecedorIds.length > 0) {
-    const { data: forns } = await supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId).in("id", fornecedorIds);
+    const forns = await registrarLeitura(() => supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId).in("id", fornecedorIds), "matchEngineHelpers:320");
     for (const f of forns || []) nomesPorFornecedor.set(f.id, f.nome);
   }
 
   const matchIds = data.map((r: any) => r.id);
   const contagemPorMatch = new Map<string, number>();
   if (matchIds.length > 0) {
-    const { data: divs } = await supabase.from("match_divergencias").select("match_resultado_id").eq("empresa_id", empresaId).in("match_resultado_id", matchIds);
+    const divs = await registrarLeitura(() => supabase.from("match_divergencias").select("match_resultado_id").eq("empresa_id", empresaId).in("match_resultado_id", matchIds), "matchEngineHelpers:327");
     for (const d of divs || []) contagemPorMatch.set(d.match_resultado_id, (contagemPorMatch.get(d.match_resultado_id) || 0) + 1);
   }
 

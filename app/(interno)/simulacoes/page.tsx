@@ -38,7 +38,7 @@ import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTri
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,7 +56,7 @@ type ResultadoSimulacao = {
 
 function inicioJanela12m(ate: string): string {
   const d = new Date(ate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() - 11, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(d.getFullYear(), d.getMonth() - 11, 1));
 }
 function mesesNoPeriodo(periodo: Periodo): number {
   const ini = new Date(periodo.inicio + "T00:00:00");

@@ -15,6 +15,7 @@ import { CanvasBox } from '../CanvasBox'
 import { hojeISO } from '../../lib/datas'
 import { lerGuiaComIA, conferirGuia, iniciarPixAxioma, PIX_AXIOMA_ATIVO, URL_PGMEI, URL_PGDASD, soDigitos, type GuiaLida } from '../../lib/guiaDas'
 import { registrarPagamentoDAS, planejarAlocacao, type MesDAS, type MetodoPagamento } from '../../lib/meiObrigacoesMotor'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 type Lang = 'pt' | 'en' | 'es'
@@ -71,7 +72,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
     if (!guia || !(Number(guia.valor_total) > 0)) return null
     const { data: { user } } = await supabase.auth.getUser()
     if (guia.numero_documento) {
-      const { data: ja } = await supabase.from('guias_arrecadacao').select('id').eq('empresa_id', empresaId).eq('numero_documento', guia.numero_documento).maybeSingle()
+      const ja = await exigirLeitura(() => supabase.from('guias_arrecadacao').select('id').eq('empresa_id', empresaId).eq('numero_documento', guia.numero_documento).maybeSingle(), "PagarGuiaDAS:74")
       if (ja) { setGuiaId(ja.id); return ja.id }
     }
     const { data, error } = await supabase.from('guias_arrecadacao').insert({

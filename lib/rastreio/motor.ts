@@ -20,6 +20,7 @@ import { createBrowserClient } from "../supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEvento } from "../eventFabricHelpers";
 import { processarEventoContabil } from "../contabilidadeConsumidor";
+import { exigirLeitura } from "../erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -142,8 +143,10 @@ export async function percorrerRastreio(rastreioId: string, quem: ResolvidoPor):
   const existentes = new Map(((dests || []) as RastreioDestino[]).map((d) => [d.destino, d]));
   const faltando = DESTINOS_POR_TIPO[rastro.tipo].filter((d) => !existentes.has(d));
   if (faltando.length) {
-    const { data: novos } = await supabase.from("rastreio_destino")
+    const { data: novos, error: eNovos } = await supabase.from("rastreio_destino")
       .insert(faltando.map((destino) => ({ rastreio_id: rastro.id, empresa_id: rastro.empresa_id, destino }))).select("*");
+    // Gravação não é repetida aqui (poderia duplicar); o Guardião refaz este rastro na próxima rodada.
+    if (eNovos) return { ok: false, falhas: [`destinos do rastro não gravados: ${eNovos.message}`] };
     for (const d of (novos || []) as RastreioDestino[]) existentes.set(d.destino, d);
   }
 
@@ -151,8 +154,8 @@ export async function percorrerRastreio(rastreioId: string, quem: ResolvidoPor):
   // alguma porta: o que faltava não deve mais acontecer.
   let cancelado = false;
   if (rastro.tipo === "manual") {
-    const { data: est } = await supabase.from("rastreio_movimentacao").select("id")
-      .eq("empresa_id", rastro.empresa_id).eq("tipo", "manual_estorno").contains("payload", { rastreio_original_id: rastro.id }).limit(1);
+    const est = await exigirLeitura(() => supabase.from("rastreio_movimentacao").select("id")
+      .eq("empresa_id", rastro.empresa_id).eq("tipo", "manual_estorno").contains("payload", { rastreio_original_id: rastro.id }).limit(1), "motor:154");
     cancelado = !!est?.length;
   }
 
@@ -214,7 +217,7 @@ async function garantirEvento(r: Rastreio, tipo: string, payload: Record<string,
 }
 
 async function jaLancado(eventoId: string): Promise<boolean> {
-  const { data } = await supabase.from("lancamento_contabil").select("id").eq("evento_id", eventoId).limit(1);
+  const data = await exigirLeitura(() => supabase.from("lancamento_contabil").select("id").eq("evento_id", eventoId).limit(1), "motor:217");
   return !!data?.length;
 }
 
@@ -230,7 +233,7 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
     }
   }
   if (r.tipo === "manual_estorno" && !r.payload.evento_payload.evento_original_id && r.payload.rastreio_original_id) {
-    const { data: orig } = await supabase.from("rastreio_movimentacao").select("evento_id").eq("id", r.payload.rastreio_original_id).maybeSingle();
+    const orig = await exigirLeitura(() => supabase.from("rastreio_movimentacao").select("evento_id").eq("id", r.payload.rastreio_original_id).maybeSingle(), "motor:233");
     if (orig?.evento_id) r.payload.evento_payload = { ...r.payload.evento_payload, evento_original_id: orig.evento_id };
   }
   // 2) O fato principal (pagamento, recebimento ou estorno).
@@ -241,9 +244,9 @@ async function executarContabilidade(r: Rastreio): Promise<Resultado> {
   // houve pagamento DEPOIS deste estorno, refazê-lo às cegas desfaria o pagamento
   // novo — então para e pede revisão em vez de arriscar o dinheiro.
   if (r.tipo === "ap_estorno" || r.tipo === "ar_estorno") {
-    const { data: posteriores } = await supabase.from("rastreio_movimentacao").select("id")
+    const posteriores = await exigirLeitura(() => supabase.from("rastreio_movimentacao").select("id")
       .eq("empresa_id", r.empresa_id).eq("origem_tabela", r.origem_tabela).eq("origem_id", r.origem_id)
-      .eq("tipo", r.tipo === "ap_estorno" ? "ap_pagamento" : "ar_recebimento").gt("criado_em", r.criado_em).limit(1);
+      .eq("tipo", r.tipo === "ap_estorno" ? "ap_pagamento" : "ar_recebimento").gt("criado_em", r.criado_em).limit(1), "motor:244");
     if (posteriores?.length) return { status: "falhou", erro: "REVISAO_HUMANA: houve nova baixa depois deste estorno; refazer automaticamente desfaria a baixa nova" };
   }
   // Estorno não gera lançamento com o evento (gera espelhos) — é idempotente por

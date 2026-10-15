@@ -10,7 +10,8 @@ import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers
 import { montarDRE, serieRolling, type DRE, type Lancamento } from "./cfoCore";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
+import { exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,9 +163,9 @@ export function calcularKpisInadimplencia(
   caixaDisponivel: number,
 ): KpisInadimplencia {
   const hoje = new Date();
-  const hojeStr = hoje.toISOString().slice(0, 10);
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
-  const inicioAno = new Date(hoje.getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const hojeStr = isoDia(hoje);
+  const inicioMes = isoDia(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const inicioAno = isoDia(new Date(hoje.getFullYear(), 0, 1));
 
   const saldoAberto = (c: ContaRow) => Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0));
   const pendentes = contas.filter((c) => c.status !== "recebido");
@@ -346,7 +347,7 @@ export function gerarSinaisPrevencao(
   const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
   const hojeStr = hojeISO();
   const em15dias = new Date(); em15dias.setDate(em15dias.getDate() + 15);
-  const em15diasStr = em15dias.toISOString().slice(0, 10);
+  const em15diasStr = isoDia(em15dias);
 
   const aVencerEmBreve = (s: ClienteSnapshot) => s.contas.filter((c) => c.status !== "recebido" && c.data_vencimento >= hojeStr && c.data_vencimento <= em15diasStr);
   const emRiscoFuturo = ranking.filter(({ s, score }) => (score.nivel === "critico" || score.nivel === "atencao") && aVencerEmBreve(s).length > 0);
@@ -600,8 +601,8 @@ export function simularImpactoProvisaoNaDRE(
 }
 
 export async function atualizarProvisaoNaDRE(userId: string, empresaId: string, periodoInicio: string, periodoFim: string, provisaoPcld: number): Promise<{ atualizado: boolean; erro?: string }> {
-  const { data: existente } = await supabase.from("dre_historico").select("id")
-    .eq("empresa_id", empresaId).eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
+  const existente = await exigirLeitura(() => supabase.from("dre_historico").select("id")
+    .eq("empresa_id", empresaId).eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle(), "inadimplenciaHelpers:603");
   if (!existente) return { atualizado: false };
   const { data, error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id).select("id");
   if (error || !data || data.length === 0) {

@@ -38,7 +38,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -198,7 +198,7 @@ export default function Precificacao() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
     const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11);
-    const inicioIso = inicio12m.toISOString().slice(0, 10);
+    const inicioIso = isoDia(inicio12m);
     const hoje = hojeISO();
 
     const empresaIdAtiva = await obterEmpresaAtiva();

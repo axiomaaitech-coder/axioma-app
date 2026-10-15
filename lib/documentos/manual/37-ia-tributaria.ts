@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributária.docx',
   titulo: 'Manual 37 — IA Tributária',
   subtitulo: 'Seu Consultor Fiscal Digital: simulação, economia e compliance',
-  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Tributária mostra **quanto a empresa paga de imposto**, **se está no regime mais barato**, **quanto dá para economizar** e **como a Reforma Tributária vai afetar o negócio**. Tem um chat para tirar dúvidas fiscais com os dados reais da empresa.' },
@@ -23,6 +23,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { alerta: 'Reforma Tributária — premissa: IBS e CBS criados pela Emenda Constitucional 132/2023 e regulados pela Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026); 2026 é ano de teste e as alíquotas finais ainda dependem de lei. O Axioma mostra a premissa e a data em cada cálculo. Regras em transição: podem mudar.' },
 
+    { p: '**Avisos em vez de resposta**: se o saldo de IA do mês acabou, a conversa mostra o aviso com o caminho da recarga (Config → Uso da IA) em vez de uma resposta pronta. Quem tem acesso de **operador de caixa** recebe o aviso de que a inteligência financeira é do dono, sócios e administradores. Se algum dado não puder ser lido nem depois das novas tentativas automáticas, aparece no topo o aviso **Alguns dados não puderam ser carregados** — o número nunca é tratado como zero.' },
     { h1: 'As abas' },
     { h2: '🛡️ Score Fiscal' },
     { p: 'Nota de adequação fiscal e compliance da empresa, com o que está bom e o que melhorar.' },
@@ -51,7 +52,7 @@ const en: DocumentoAxioma = {
   arquivo: '37 - AI Premium - Tax AI.docx',
   titulo: 'Manual 37 — Tax AI',
   subtitulo: 'Your Digital Tax Advisor: simulation, savings and compliance',
-  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Tax AI shows **how much tax the company pays**, **whether it is in the cheapest regime**, **how much it can save** and **how the Tax Reform will affect the business**. It has a chat to answer tax questions with the company’s real data.' },
@@ -69,6 +70,7 @@ const en: DocumentoAxioma = {
     ] } },
     { alerta: 'Tax Reform — assumption: IBS and CBS created by Constitutional Amendment 132/2023 and regulated by Complementary Law 214/2025 (planalto.gov.br, checked in October 2026); 2026 is a test year and final rates still depend on law. Axioma shows the assumption and date in each calculation. Rules in transition: they may change.' },
 
+    { p: '**Notices instead of an answer**: if this month’s AI balance has run out, the chat shows the notice with the top-up path (Settings → AI Usage) instead of a canned answer. Users with **cashier operator** access get a notice that the financial intelligence is for owners, partners and administrators. If some data cannot be read even after the automatic retries, the notice **Some data could not be loaded** appears at the top — the number is never treated as zero.' },
     { h1: 'The tabs' },
     { h2: '🛡️ Tax Score' },
     { p: 'The company’s tax compliance score, with what is fine and what to improve.' },
@@ -97,7 +99,7 @@ const es: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributaria.docx',
   titulo: 'Manual 37 — IA Tributaria',
   subtitulo: 'Su Consultor Fiscal Digital: simulación, ahorro y cumplimiento',
-  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Tributaria muestra **cuánto paga de impuestos la empresa**, **si está en el régimen más barato**, **cuánto se puede ahorrar** y **cómo la Reforma Tributaria afectará al negocio**. Tiene un chat para resolver dudas fiscales con los datos reales de la empresa.' },
@@ -115,6 +117,7 @@ const es: DocumentoAxioma = {
     ] } },
     { alerta: 'Reforma Tributaria — premisa: IBS y CBS creados por la Enmienda Constitucional 132/2023 y regulados por la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026); 2026 es año de prueba y las alícuotas finales aún dependen de ley. Axioma muestra la premisa y la fecha en cada cálculo. Reglas en transición: pueden cambiar.' },
 
+    { p: '**Avisos en lugar de respuesta**: si el saldo de IA del mes se agotó, la conversación muestra el aviso con el camino de recarga (Config → Uso de la IA) en lugar de una respuesta predefinida. Quien tiene acceso de **operador de caja** recibe el aviso de que la inteligencia financiera es del dueño, socios y administradores. Si algún dato no se puede leer ni después de los reintentos automáticos, aparece arriba el aviso **Algunos datos no se pudieron cargar** — el número nunca se trata como cero.' },
     { h1: 'Las pestañas' },
     { h2: '🛡️ Score Fiscal' },
     { p: 'Nota de adecuación fiscal y cumplimiento de la empresa, con lo que está bien y lo que mejorar.' },

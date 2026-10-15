@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financeira.docx',
   titulo: 'Manual 36 — IA Financeira',
   subtitulo: 'Seu CFO Digital: análise inteligente com dados reais',
-  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Financeira é o **diretor financeiro digital** da empresa. Junta todos os módulos em uma nota geral (Score 360°), aponta anomalias, projeta a receita, simula cenários, monta um plano de ação e conversa com você sobre as finanças, sempre com os dados reais.' },
@@ -21,6 +21,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { nota: 'A inteligência só lê: nunca apaga nem altera dados. Toda chamada à inteligência artificial é registrada para auditoria, sem guardar o conteúdo das conversas no registro de auditoria.' },
 
+    { p: '**Avisos em vez de resposta**: se o saldo de IA do mês acabou, a conversa mostra o aviso com o caminho da recarga (Config → Uso da IA) em vez de uma resposta pronta. Quem tem acesso de **operador de caixa** recebe o aviso de que a inteligência financeira é do dono, sócios e administradores. Se algum dado não puder ser lido nem depois das novas tentativas automáticas, aparece no topo o aviso **Alguns dados não puderam ser carregados** — o número nunca é tratado como zero.' },
     { h1: 'As abas' },
     { h2: '🏆 Score 360°' },
     { p: 'Nota geral da empresa com o gráfico de radar das **dimensões** (rentabilidade, liquidez, endividamento, eficiência, crescimento). Cada dimensão tem um card com os indicadores que a formam, a cor (Bom, Atenção, Crítico) e uma **sugestão**.' },
@@ -51,7 +52,7 @@ const en: DocumentoAxioma = {
   arquivo: '36 - AI Premium - Financial AI.docx',
   titulo: 'Manual 36 — Financial AI',
   subtitulo: 'Your Digital CFO: smart analysis with real data',
-  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Financial AI is the company’s **digital CFO**. It combines every module into an overall score (360° Score), points out anomalies, projects revenue, simulates scenarios, builds an action plan and talks with you about the finances, always with real data.' },
@@ -67,6 +68,7 @@ const en: DocumentoAxioma = {
     ] } },
     { nota: 'The AI only reads: it never deletes or changes data. Every AI call is logged for auditing, without storing conversation content in the audit log.' },
 
+    { p: '**Notices instead of an answer**: if this month’s AI balance has run out, the chat shows the notice with the top-up path (Settings → AI Usage) instead of a canned answer. Users with **cashier operator** access get a notice that the financial intelligence is for owners, partners and administrators. If some data cannot be read even after the automatic retries, the notice **Some data could not be loaded** appears at the top — the number is never treated as zero.' },
     { h1: 'The tabs' },
     { h2: '🏆 360° Score' },
     { p: 'The company’s overall score with a radar chart of the **dimensions** (profitability, liquidity, indebtedness, efficiency, growth). Each dimension has a card with its indicators, color (Good, Attention, Critical) and a **suggestion**.' },
@@ -97,7 +99,7 @@ const es: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financiera.docx',
   titulo: 'Manual 36 — IA Financiera',
   subtitulo: 'Su CFO Digital: análisis inteligente con datos reales',
-  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Financiera es el **director financiero digital** de la empresa. Junta todos los módulos en una nota general (Score 360°), señala anomalías, proyecta los ingresos, simula escenarios, arma un plan de acción y conversa con usted sobre las finanzas, siempre con los datos reales.' },
@@ -113,6 +115,7 @@ const es: DocumentoAxioma = {
     ] } },
     { nota: 'La inteligencia solo lee: nunca borra ni altera datos. Cada llamada a la inteligencia artificial queda registrada para auditoría, sin guardar el contenido de las conversaciones en el registro de auditoría.' },
 
+    { p: '**Avisos en lugar de respuesta**: si el saldo de IA del mes se agotó, la conversación muestra el aviso con el camino de recarga (Config → Uso de la IA) en lugar de una respuesta predefinida. Quien tiene acceso de **operador de caja** recibe el aviso de que la inteligencia financiera es del dueño, socios y administradores. Si algún dato no se puede leer ni después de los reintentos automáticos, aparece arriba el aviso **Algunos datos no se pudieron cargar** — el número nunca se trata como cero.' },
     { h1: 'Las pestañas' },
     { h2: '🏆 Score 360°' },
     { p: 'Nota general de la empresa con el gráfico de radar de las **dimensiones** (rentabilidad, liquidez, endeudamiento, eficiencia, crecimiento). Cada dimensión tiene una tarjeta con sus indicadores, el color (Bueno, Atención, Crítico) y una **sugerencia**.' },

@@ -21,6 +21,7 @@
 // no Fluxo de Caixa quando o que entra é extrato — aí a cópia é o pagamento já lançado.
 import { createBrowserClient } from "./supabaseBrowser";
 import { normalizarTexto } from "./cfoCore";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -227,7 +228,7 @@ async function buscarCandidatos(empresaId: string, novos: Lancamento[]): Promise
       ...novos.map((n) => n.contraparteId),
     ].filter(Boolean) as string[])];
     if (!ids.length) continue;
-    const { data } = await supabase.from(tab).select("id, nome, documento").eq("empresa_id", empresaId).in("id", ids);
+    const data = await registrarLeitura(() => supabase.from(tab).select("id, nome, documento").eq("empresa_id", empresaId).in("id", ids), "motorDuplicidade:230");
     (data || []).forEach((c: { id: string; nome: string | null; documento: string | null }) => cadastros.set(c.id, { documento: c.documento, nome: c.nome }));
   }
   novos.forEach((n) => {
@@ -398,13 +399,13 @@ async function buscarObrigacoesAbertas(empresaId: string, pagamentos: Lancamento
   ];
   const saida: ObrigacaoAberta[] = [];
   for (const l of lados) {
-    const { data } = await supabase.from(l.tabela).select("*").eq("empresa_id", empresaId)
-      .not("status", "in", `(${STATUS_ABERTOS_FORA.join(",")})`).gte("data_vencimento", ini).lte("data_vencimento", fim).limit(1000);
+    const data = await exigirLeitura(() => supabase.from(l.tabela).select("*").eq("empresa_id", empresaId)
+      .not("status", "in", `(${STATUS_ABERTOS_FORA.join(",")})`).gte("data_vencimento", ini).lte("data_vencimento", fim).limit(1000), "motorDuplicidade:401");
     const linhas = (data || []) as Record<string, unknown>[];
     const ids = [...new Set(linhas.map((r) => r[l.contra] as string).filter(Boolean))];
     const cad = new Map<string, { nome: string | null; documento: string | null }>();
     if (ids.length) {
-      const { data: c } = await supabase.from(l.cad).select("id, nome, documento").eq("empresa_id", empresaId).in("id", ids);
+      const c = await registrarLeitura(() => supabase.from(l.cad).select("id, nome, documento").eq("empresa_id", empresaId).in("id", ids), "motorDuplicidade:407");
       (c || []).forEach((x: { id: string; nome: string | null; documento: string | null }) => cad.set(x.id, x));
     }
     linhas.forEach((r) => {

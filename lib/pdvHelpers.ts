@@ -10,6 +10,7 @@
 
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
+import { exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -163,9 +164,9 @@ export async function consultarIA(ean: string, idioma: string): Promise<Consulta
 export async function verificarNomeDuplicado(empresaId: string, segmento: string, nome: string): Promise<{ id: string; nome: string } | null> {
   const termo = nome.trim();
   if (!termo) return null;
-  const { data } = await supabase.from("produtos").select("id, nome")
+  const data = await exigirLeitura(() => supabase.from("produtos").select("id, nome")
     .eq("empresa_id", empresaId).eq("segmento", segmento).eq("status", "ativo")
     .ilike("nome", termo)
-    .limit(1).maybeSingle();
+    .limit(1).maybeSingle(), "pdvHelpers:166");
   return data || null;
 }

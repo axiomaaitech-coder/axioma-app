@@ -57,6 +57,7 @@ import {
   montarBriefingAp, type ItemBriefingAp,
   responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
+import { registrarLeitura } from "@/lib/erroUiHelpers";
 import { avaliarDuplicidade, type Avaliacao, type Suspeita } from "@/lib/motorDuplicidade";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
@@ -1688,7 +1689,7 @@ export default function ContasPagarPage() {
   const [cnpjEmpresa, setCnpjEmpresa] = useState<string | null>(null);
   async function abrirGuiaDas(c: ContaPagar) {
     if (empresaId && cnpjEmpresa === null) {
-      const { data } = await supabase.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle();
+      const data = await registrarLeitura(() => supabase.from("empresas").select("cnpj").eq("id", empresaId).maybeSingle(), "contas-pagar:1691");
       setCnpjEmpresa(data?.cnpj ?? "");
     }
     setContaDasGuia(c);
@@ -1854,7 +1855,11 @@ export default function ContasPagarPage() {
   async function abrirModalComDadosNfe(md: any, vincularNfeId: string | null, itensNfe: ItemNFe[] = []) {
     let fornecedorId = "";
     if (md.cnpj_emitente && empresaId) {
-      const forn = await buscarFornecedorPorCnpj(empresaId, md.cnpj_emitente);
+      // Falhou mesmo após as novas tentativas: não escolhe fornecedor sozinho (evita cadastrar 2x) e avisa.
+      const forn = await buscarFornecedorPorCnpj(empresaId, md.cnpj_emitente).catch(() => {
+        showToast(L("Não foi possível conferir o fornecedor pelo CNPJ — escolha o fornecedor antes de salvar.", "Could not check the supplier by tax ID — choose the supplier before saving.", "No se pudo verificar el proveedor por CNPJ — elija el proveedor antes de guardar."), "erro");
+        return null;
+      });
       if (forn) fornecedorId = forn.id;
     }
     setEditando(null);

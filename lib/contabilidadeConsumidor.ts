@@ -1,3 +1,4 @@
+import { exigirLeitura } from "./erroUiHelpers";
 // 🦅 AXIOMA AI.TECH — CFO Core, Fase 1, Commit 5: Accounting Core, consumidor
 // automático. De-para aprovado com o Elias em 2026-08-30:
 //   AP_CREATED  → débito despesa (por categoria) / crédito Fornecedores
@@ -201,7 +202,7 @@ function falha(ctx: CtxContabil | undefined, tabela: string, operacao: string, m
 // ============================================================================
 
 async function mapaContasPorCodigo(empresaId: string): Promise<Record<string, string>> {
-  const { data } = await supabase.from("plano_de_contas").select("id, codigo").eq("empresa_id", empresaId);
+  const data = await exigirLeitura(() => supabase.from("plano_de_contas").select("id, codigo").eq("empresa_id", empresaId), "contabilidadeConsumidor:204");
   const mapa: Record<string, string> = {};
   for (const c of (data as { id: string; codigo: string }[]) || []) mapa[c.codigo] = c.id;
   return mapa;
@@ -551,7 +552,7 @@ async function gerarBaixaRecebimento(
 
 async function custoUnitarioEfetivo(produtoId: string, custoDaLinha: number | null | undefined): Promise<number> {
   if (custoDaLinha != null && custoDaLinha > 0) return custoDaLinha;
-  const { data } = await supabase.from("produtos").select("preco_medio").eq("id", produtoId).maybeSingle();
+  const data = await exigirLeitura(() => supabase.from("produtos").select("preco_medio").eq("id", produtoId).maybeSingle(), "contabilidadeConsumidor:554");
   return Number((data as { preco_medio: number } | null)?.preco_medio) || 0;
 }
 

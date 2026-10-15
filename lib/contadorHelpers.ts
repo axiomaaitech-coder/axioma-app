@@ -25,7 +25,8 @@ import { detectarDescontosPerdidos, detectarDuplicidadesPassadas, type ContaPaga
 import { carregarAvisosEstoque } from "./estoqueHelpers";
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow, saldoNatural } from "./contabilidadeRelatoriosHelpers";
 import { listarPlanoDeContas, type ContaContabil } from "./contabilidadeHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,8 +66,8 @@ export type Descoberta = {
 };
 
 export async function listarDescobertas(empresaId: string): Promise<Descoberta[]> {
-  const { data } = await supabase.from("contador_descoberta").select("*")
-    .eq("empresa_id", empresaId).order("prioridade", { ascending: true }).order("criado_em", { ascending: false });
+  const data = await registrarLeitura(() => supabase.from("contador_descoberta").select("*")
+    .eq("empresa_id", empresaId).order("prioridade", { ascending: true }).order("criado_em", { ascending: false }), "contadorHelpers:68");
   return (data as Descoberta[]) || [];
 }
 
@@ -150,9 +151,9 @@ async function gravarDescobertaSeNova(d: {
   causa: string | null; impacto_estimado: number; evidencia: Record<string, unknown> & { chave: string };
   confianca: Confianca;
 }): Promise<boolean> {
-  const { data: existente } = await supabase.from("contador_descoberta").select("id")
+  const existente = await exigirLeitura(() => supabase.from("contador_descoberta").select("id")
     .eq("empresa_id", d.empresa_id).eq("tipo", d.tipo).eq("status", "aberto")
-    .contains("evidencia", { chave: d.evidencia.chave }).limit(1);
+    .contains("evidencia", { chave: d.evidencia.chave }).limit(1), "contadorHelpers:153");
   if (existente && existente.length > 0) return false;
   const { error } = await supabase.from("contador_descoberta").insert(d);
   if (error) { reportarFalhaEscrita("contador_descoberta", "insert (discovery engine)", error.message); return false; }
@@ -167,8 +168,8 @@ async function gravarDescobertaSeNova(d: {
 
 // ---- Concentração de fornecedor (lado AP — Tesouraria já cobre banco/cliente) ----
 export async function obterConcentracaoFornecedor(empresaId: string): Promise<{ fornecedorId: string; nome: string; percentual: number; totalAberto: number } | null> {
-  const { data: cpAbertas } = await supabase.from("contas_pagar").select("fornecedor_id, valor_total, valor_pago")
-    .eq("empresa_id", empresaId).neq("status", "pago");
+  const cpAbertas = await registrarLeitura(() => supabase.from("contas_pagar").select("fornecedor_id, valor_total, valor_pago")
+    .eq("empresa_id", empresaId).neq("status", "pago"), "contadorHelpers:170");
   const abertas = (cpAbertas as { fornecedor_id: string | null; valor_total: number; valor_pago: number | null }[]) || [];
   const porFornecedor = new Map<string, number>();
   abertas.filter((c) => c.fornecedor_id).forEach((c) => {
@@ -177,7 +178,7 @@ export async function obterConcentracaoFornecedor(empresaId: string): Promise<{ 
   });
   const top = topConcentracao(porFornecedor);
   if (!top) return null;
-  const { data: forn } = await supabase.from("fornecedores").select("nome").eq("id", top.chave).maybeSingle();
+  const forn = await registrarLeitura(() => supabase.from("fornecedores").select("nome").eq("id", top.chave).maybeSingle(), "contadorHelpers:180");
   return { fornecedorId: top.chave, nome: (forn as { nome: string } | null)?.nome || top.chave, percentual: top.percentual, totalAberto: top.total };
 }
 
@@ -350,8 +351,8 @@ async function regraDuplicidades(empresaId: string, contasPagar: ContaPagar[], l
 // ---- Classificação suspeita — muito gasto caindo no catch-all "Outros" ----
 function limitesCompetencia(competenciaISO: string): { inicio: string; fim: string } {
   const d = new Date(competenciaISO + "T00:00:00");
-  const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-  const fim = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const inicio = isoDia(new Date(d.getFullYear(), d.getMonth(), 1));
+  const fim = isoDia(new Date(d.getFullYear(), d.getMonth() + 1, 0));
   return { inicio, fim };
 }
 
@@ -752,7 +753,7 @@ export type FechamentoInfo = {
 
 export async function obterFechamento(empresaId: string, competenciaISO: string): Promise<FechamentoInfo | null> {
   const primeiroDia = new Date(competenciaISO + "T00:00:00");
-  const competencia = new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1).toISOString().slice(0, 10);
+  const competencia = isoDia(new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1));
   const { data, error } = await supabase.rpc("contador_close_readiness", { p_empresa_id: empresaId, p_competencia: competencia });
   if (error) { reportarFalhaEscrita("contador_close_readiness", "rpc", error.message); return null; }
   const linha = Array.isArray(data) ? data[0] : data;
@@ -768,8 +769,8 @@ export type DataTrust = {
 // ainda = "não calculado", nunca um score inventado.
 export async function obterDataTrust(empresaId: string, competenciaISO: string): Promise<DataTrust | null> {
   const primeiroDia = new Date(competenciaISO + "T00:00:00");
-  const competencia = new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1).toISOString().slice(0, 10);
-  const { data } = await supabase.from("contador_data_trust").select("*").eq("empresa_id", empresaId).eq("competencia", competencia).maybeSingle();
+  const competencia = isoDia(new Date(primeiroDia.getFullYear(), primeiroDia.getMonth(), 1));
+  const data = await registrarLeitura(() => supabase.from("contador_data_trust").select("*").eq("empresa_id", empresaId).eq("competencia", competencia).maybeSingle(), "contadorHelpers:772");
   return (data as DataTrust) || null;
 }
 

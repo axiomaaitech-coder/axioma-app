@@ -20,6 +20,7 @@
 // (mesma troca pra gerarUrlAssinada via getSignedUrl(GetObjectCommand) e removerArquivoStorage via DeleteObjectCommand)
 
 import { createBrowserClient } from "./supabaseBrowser";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,7 @@ export async function uploadArquivoStorage(path: string, file: File | Blob): Pro
 }
 
 export async function gerarUrlAssinada(path: string, segundos: number = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from(BUCKET_DOCUMENTOS_FISCAIS).createSignedUrl(path, segundos);
+  const data = await registrarLeitura(() => supabase.storage.from(BUCKET_DOCUMENTOS_FISCAIS).createSignedUrl(path, segundos), "documentoStorageAdapter:39");
   return data?.signedUrl || null;
 }
 

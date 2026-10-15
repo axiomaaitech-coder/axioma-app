@@ -20,6 +20,7 @@ import {
 } from '../../lib/meiObrigacoesMotor'
 import PagarGuiaDAS from './PagarGuiaDAS'
 import { conferirPixAxioma } from '../../lib/guiaDas'
+import { registrarLeitura } from '@/lib/erroUiHelpers'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
@@ -97,8 +98,8 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
     const voltouDe = params.get('guia')
     void (async () => {
       if (voltouDe) await conferirPixAxioma(voltouDe)
-      const { data: guias } = await supabase.from('guias_arrecadacao').select('id, valor_total, competencias, numero_documento, pagamento_externo_id, pagamento_externo_em')
-        .eq('empresa_id', empresaId).eq('status', 'emitida').eq('pagamento_externo_status', 'COMPLETED')
+      const guias = await registrarLeitura(() => supabase.from('guias_arrecadacao').select('id, valor_total, competencias, numero_documento, pagamento_externo_id, pagamento_externo_em')
+        .eq('empresa_id', empresaId).eq('status', 'emitida').eq('pagamento_externo_status', 'COMPLETED'), "PainelObrigacoesDAS:100")
       if (!guias?.length) return
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return

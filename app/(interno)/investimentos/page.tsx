@@ -1,7 +1,7 @@
 "use client";
 import { lerTodas } from "../../../lib/lerTodas";
 import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
-import { hojeISO as hojeCaixa } from "../../../lib/datas";
+import { hojeISO as hojeCaixa, isoDia } from "../../../lib/datas";
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -57,11 +57,11 @@ type InvestimentoRow = {
 
 function inicioJanela24m(ate: string): string {
   const d = new Date(ate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() - 23, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(d.getFullYear(), d.getMonth() - 23, 1));
 }
 function inicioRolling12(ate: string): string {
   const d = new Date(ate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() - 11, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(d.getFullYear(), d.getMonth() - 11, 1));
 }
 function mesesNoPeriodo(periodo: Periodo): number {
   const ini = new Date(periodo.inicio + "T00:00:00");

@@ -17,6 +17,7 @@ import * as Sentry from '@sentry/nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { textoEvento, fonteDaSerie, type PayloadEvento } from './nexusEventDetector'
 import { hojeISO } from './datas'
+import { exigirLeitura } from './erroUiHelpers'
 
 // Modelo principal do José: decidido no motor (com reserva OpenAI em 2 níveis).
 export const MODELO_JOSEPH = MODELO_JOSE
@@ -107,11 +108,11 @@ Regras invioláveis:
 type LinhaSerie = { serie_codigo: string; serie_nome: string | null; valor: number; data_referencia: string }
 
 async function indicadoresAtuais(supabase: SupabaseClient): Promise<string> {
-  const { data } = await supabase
+  const data = await exigirLeitura(() => supabase
     .from('nexus_economic_series')
     .select('serie_codigo, serie_nome, valor, data_referencia')
     .order('data_referencia', { ascending: false })
-    .limit(400)
+    .limit(400), "nexusJoseph:110")
   const ultimo = new Map<string, LinhaSerie>()
   for (const l of (data ?? []) as LinhaSerie[]) if (!ultimo.has(l.serie_codigo)) ultimo.set(l.serie_codigo, l)
   return [...ultimo.values()].map((l) => `- ${l.serie_nome ?? l.serie_codigo}: ${l.valor} (referência ${l.data_referencia})`).join('\n')

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import * as Sentry from '@sentry/nextjs'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // Puxa contas + transações dos bancos conectados e salva no Supabase.
 // Não depende do webhook — funciona na hora que o cliente conecta ou clica em "Sincronizar".
@@ -28,10 +29,10 @@ export async function POST(request: NextRequest) {
 
     // Empresa ativa do usuário (dono ou convidado) — mesma ordem de obterEmpresaAtiva() em lib/empresaHelpers.ts.
     let empresaId: string | null = null
-    const { data: propria } = await supabase.from('empresas').select('id').eq('user_id', user.id).eq('ativo', true).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    const propria = await exigirLeitura(() => supabase.from('empresas').select('id').eq('user_id', user.id).eq('ativo', true).order('created_at', { ascending: true }).limit(1).maybeSingle(), "sync:31")
     if (propria?.id) empresaId = propria.id
     else {
-      const { data: vinculo } = await supabase.from('empresa_usuarios').select('empresa_id').eq('user_id', user.id).limit(1).maybeSingle()
+      const vinculo = await exigirLeitura(() => supabase.from('empresa_usuarios').select('empresa_id').eq('user_id', user.id).limit(1).maybeSingle(), "sync:34")
       empresaId = vinculo?.empresa_id || null
     }
     if (!empresaId) return NextResponse.json({ error: 'Nenhuma empresa ativa' }, { status: 400 })

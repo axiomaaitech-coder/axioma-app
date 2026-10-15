@@ -11,6 +11,7 @@ import { criarContaReceber, editarContaReceber, excluirContaReceber, registrarRe
 import { hojeISO } from "./datas";
 import { NATUREZAS_FLUXO, naturezaDoFluxo, registrarLancamentoManual, desfazerLancamentoManual, type OrigemManual } from "./rastreio/lancamentoManual";
 import { avaliarDuplicidade, acharObrigacaoParaPagamento, type EstadoMatch, type Idioma, type Lancamento } from "./motorDuplicidade";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -345,7 +346,7 @@ async function desfazerLinhaNoDestino(
     return erroMotor ? `${tabela}: valor desfeito, mas a Contabilidade não foi atualizada agora — o Guardião tenta de novo` : null;
   }
   if (tabela === "contas_pagar") {
-    const { data: c } = await supabase.from("contas_pagar").select("status").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
+    const c = await exigirLeitura(() => supabase.from("contas_pagar").select("status").eq("id", id).eq("empresa_id", empresaId).maybeSingle(), "importarHelpers:348");
     if (!c) return `contas_pagar: registro ${id} não encontrado`;
     const r = await excluirContaPagar(id, c.status);
     return r.erro === "conta_paga" ? "contas_pagar: conta já paga — estorne o pagamento em Contas a Pagar antes de desfazer"
@@ -473,12 +474,12 @@ export async function registrarEventoTimeline(params: {
 }
 
 export async function listarTimeline(importacaoId: string, empresaId: string): Promise<any[]> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacao_timeline")
     .select("*")
     .eq("importacao_id", importacaoId)
     .eq("empresa_id", empresaId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true }), "importarHelpers:476");
   return data || [];
 }
 
@@ -536,12 +537,12 @@ export async function abrirExcecaoFormatoReforma(params: {
 }
 
 export async function listarExcecoes(importacaoId: string, empresaId: string): Promise<any[]> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacao_excecoes")
     .select("*")
     .eq("importacao_id", importacaoId)
     .eq("empresa_id", empresaId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true }), "importarHelpers:539");
   return data || [];
 }
 
@@ -606,12 +607,12 @@ async function atualizarPadroesClassificacao(
   if (contagem.size === 0) return;
 
   const chaves = Array.from(contagem.keys());
-  const { data: existentes } = await supabase
+  const existentes = await exigirLeitura(() => supabase
     .from("importacao_padroes_classificacao")
     .select("padrao_chave, ocorrencias")
     .eq("empresa_id", empresaId)
     .eq("destino_tabela", destino)
-    .in("padrao_chave", chaves);
+    .in("padrao_chave", chaves), "importarHelpers:609");
 
   const ocorrenciasExistentes = new Map((existentes || []).map((e: any) => [e.padrao_chave, e.ocorrencias]));
 
@@ -641,8 +642,8 @@ export type SugestaoClassificacao = { destino: DestinoTabela; categoria: string 
 // Categoria que você escolheu nas importações anteriores DESTE fornecedor (null = nunca importou).
 export async function categoriaAprendidaDoFornecedor(empresaId: string, cnpj: string, destino: DestinoTabela): Promise<string | null> {
   if ((cnpj || "").replace(/\D/g, "").length < 11) return null;
-  const { data } = await supabase.from("importacao_padroes_classificacao").select("categoria")
-    .eq("empresa_id", empresaId).eq("destino_tabela", destino).eq("padrao_chave", chaveFornecedor(cnpj)).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("importacao_padroes_classificacao").select("categoria")
+    .eq("empresa_id", empresaId).eq("destino_tabela", destino).eq("padrao_chave", chaveFornecedor(cnpj)).maybeSingle(), "importarHelpers:644");
   return (data?.categoria as string | null) ?? null;
 }
 
@@ -658,11 +659,11 @@ export async function sugerirClassificacoes(
   const chaves = Array.from(new Set(descricoes.map(normalizarPadraoChave).filter(Boolean)));
   if (chaves.length === 0) return mapa;
 
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacao_padroes_classificacao")
     .select("padrao_chave, destino_tabela, categoria, ocorrencias")
     .eq("empresa_id", empresaId)
-    .in("padrao_chave", chaves);
+    .in("padrao_chave", chaves), "importarHelpers:661");
 
   (data || []).forEach((p: any) => {
     const atual = mapa.get(p.padrao_chave);
@@ -703,13 +704,13 @@ export async function buscarImportacaoPorHash(
   empresaId: string,
   hash: string
 ): Promise<any | null> {
-  const { data } = await supabase
+  const data = await exigirLeitura(() => supabase
     .from("importacoes")
     .select("id, nome_arquivo, created_at, status, linhas_importadas")
     .eq("empresa_id", empresaId)
     .eq("hash_arquivo", hash)
     .neq("status", "revertido")
-    .maybeSingle();
+    .maybeSingle(), "importarHelpers:706");
   return data;
 }
 
@@ -737,13 +738,13 @@ export async function marcarDuplicatasPorLinha(
   const setExistente = new Set<string>();
   await Promise.all(
     Array.from(hashesPorDestino.entries()).map(async ([destino, hashes]) => {
-      const { data } = await supabase
+      const data = await exigirLeitura(() => supabase
         .from("importacao_linhas")
         .select("hash_linha")
         .eq("empresa_id", empresaId)
         .eq("destino_tabela", destino)
         .eq("status", "importada")
-        .in("hash_linha", hashes);
+        .in("hash_linha", hashes), "importarHelpers:740");
       (data || []).forEach((l: any) => setExistente.add(l.hash_linha));
     })
   );
@@ -775,7 +776,7 @@ export async function uploadArquivo(
 }
 
 export async function gerarUrlAssinada(path: string, segundos: number = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from("documentos").createSignedUrl(path, segundos);
+  const data = await registrarLeitura(() => supabase.storage.from("documentos").createSignedUrl(path, segundos), "importarHelpers:778");
   return data?.signedUrl || null;
 }
 
@@ -1300,12 +1301,12 @@ export async function listarLinhasImportacao(
   importacaoId: string,
   empresaId: string
 ): Promise<any[]> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacao_linhas")
     .select("*")
     .eq("importacao_id", importacaoId)
     .eq("empresa_id", empresaId)
-    .order("linha_numero", { ascending: true });
+    .order("linha_numero", { ascending: true }), "importarHelpers:1303");
   return data || [];
 }
 
@@ -1504,11 +1505,11 @@ export async function deletarLinhaImportada(
 // ============================================================================
 
 async function recalcularTotaisImportacao(importacaoId: string, empresaId: string): Promise<{ erro?: string }> {
-  const { data: linhasImp } = await supabase
+  const linhasImp = await exigirLeitura(() => supabase
     .from("importacao_linhas")
     .select("valor, status")
     .eq("importacao_id", importacaoId)
-    .eq("empresa_id", empresaId);
+    .eq("empresa_id", empresaId), "importarHelpers:1507");
 
   const lista = linhasImp || [];
   const importadas = lista.filter((l: any) => l.status === "importada").length;
@@ -1551,12 +1552,12 @@ export async function reverterImportacao(
 ): Promise<{ removidas: number; erros: string[] }> {
   // Filtrado pela empresa ativa: linha de outra empresa nem entra na lista
   // do que será desfeito.
-  const { data: linhas } = await supabase
+  const linhas = await exigirLeitura(() => supabase
     .from("importacao_linhas")
     .select("id, destino_tabela, destino_id, empresa_id, valor, status")
     .eq("importacao_id", importacaoId)
     .eq("empresa_id", empresaId)
-    .in("status", ["importada", "somada"]);
+    .in("status", ["importada", "somada"]), "importarHelpers:1554");
 
   const erros: string[] = [];
   let removidas = 0;
@@ -1651,11 +1652,11 @@ export async function carregarStatsMes(empresaId: string): Promise<StatsMes> {
   const agora = new Date();
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
 
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacoes")
     .select("status, valor_total_importado, linhas_importadas, linhas_duplicadas, tempo_processamento_ms")
     .eq("empresa_id", empresaId)
-    .gte("created_at", inicioMes);
+    .gte("created_at", inicioMes), "importarHelpers:1654");
 
   const lista = data || [];
   const total = lista.length;
@@ -1681,12 +1682,12 @@ export async function carregarStatsMes(empresaId: string): Promise<StatsMes> {
 // ============================================================================
 
 export async function carregarTemplates(empresaId: string): Promise<any[]> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("importacao_templates")
     .select("*")
     .eq("empresa_id", empresaId)
     .eq("ativo", true)
-    .order("ultimo_uso", { ascending: false, nullsFirst: false });
+    .order("ultimo_uso", { ascending: false, nullsFirst: false }), "importarHelpers:1684");
   return data || [];
 }
 

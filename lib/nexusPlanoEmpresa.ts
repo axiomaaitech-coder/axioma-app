@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/nextjs'
 import { montarContextoMundo } from './nexusBriefing'
 import { montarRetrato, textoSetor } from './ia/retratoEmpresa'
 import { hojeISO } from './datas'
+import { registrarLeitura } from './erroUiHelpers'
 
 export type HorizontePlano = '1-3' | '4-7' | '8-10'
 
@@ -135,8 +136,8 @@ export async function obterOuGerarPlano(supabase: SupabaseClient, empresaId: str
     gerado = await gerarPlano(supabase, empresaId, horizonte, lang)
   } catch (err) {
     // As 3 IAs falharam: entrega o último plano guardado deste horizonte (com a data dele) em vez de erro.
-    const { data: anterior } = await supabase.from('nexus_plano_empresa').select('data, conteudo')
-      .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
+    const anterior = await registrarLeitura(() => supabase.from('nexus_plano_empresa').select('data, conteudo')
+      .eq('empresa_id', empresaId).eq('horizonte', horizonte).eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle(), "nexusPlanoEmpresa:138")
     if (anterior) return { data: anterior.data as string, origem: 'anterior' as const, caracteresEnviados: 0, modelo: null, ...(anterior.conteudo as { plano: PlanoJose; numeros: NumerosEmpresa }) }
     throw err
   }

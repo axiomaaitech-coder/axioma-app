@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { tarefaDeAnalise, type Idioma } from '@/lib/ia/motor'
+import { exigirLeitura } from "@/lib/erroUiHelpers"
 
 // POST /api/ia/duplicidade { empresa_id, lang, casos }
 // Camada 2 do Motor Antiduplicidade (lib/motorDuplicidade.ts): só chegam aqui os casos
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const casos = Array.isArray(corpo?.casos) ? corpo.casos.slice(0, 15) : null
   if (!empresaId || !casos?.length) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
   // Só quem é da empresa pede análise dela (a RLS só mostra empresas do usuário).
-  const { data: minha } = await supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle()
+  const minha = await exigirLeitura(() => supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle(), "duplicidade:33")
   if (!minha) return NextResponse.json({ error: 'Sem acesso' }, { status: 403 })
 
   const idioma = lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'

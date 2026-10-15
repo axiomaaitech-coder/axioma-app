@@ -6,6 +6,8 @@ import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
+import { isoDia } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -114,9 +116,9 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
   const hoje = new Date();
   const mesAtual = hoje.getMonth() + 1;
   const anoAtual = hoje.getFullYear();
-  const inicio = new Date(anoAtual, mesAtual - 1, 1).toISOString().slice(0, 10);
-  const fim = new Date(anoAtual, mesAtual, 0).toISOString().slice(0, 10);
-  const hojeStr = hoje.toISOString().slice(0, 10);
+  const inicio = isoDia(new Date(anoAtual, mesAtual - 1, 1));
+  const fim = isoDia(new Date(anoAtual, mesAtual, 0));
+  const hojeStr = isoDia(hoje);
 
   // Buscar dados em paralelo
   const [
@@ -168,8 +170,8 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
   const custos6m: number[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anoAtual, mesAtual - 1 - i, 1);
-    const mInicio = d.toISOString().slice(0, 10);
-    const mFim = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const mInicio = isoDia(d);
+    const mFim = isoDia(new Date(d.getFullYear(), d.getMonth() + 1, 0));
     const [rRec, rCv] = empresaId ? await Promise.all([
       lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
       lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
@@ -213,22 +215,22 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
 
 export async function carregarBenchmark(setor: string): Promise<BenchmarkSetor | null> {
   // Tenta match por setor
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("benchmarks_setoriais")
     .select("*")
     .or(`setor.ilike.%${setor}%,cnae_prefixo.eq.${(setor || "").slice(0, 2)}`)
     .limit(1)
-    .maybeSingle();
+    .maybeSingle(), "iaFinanceiraHelpers:217");
 
   if (data) return data;
 
   // Fallback: "Outros / Geral"
-  const { data: geral } = await supabase
+  const geral = await registrarLeitura(() => supabase
     .from("benchmarks_setoriais")
     .select("*")
     .ilike("setor", "%Geral%")
     .limit(1)
-    .maybeSingle();
+    .maybeSingle(), "iaFinanceiraHelpers:227");
 
   return geral;
 }
@@ -769,12 +771,12 @@ export async function salvarMensagem(userId: string, empresaId: string | null, r
 }
 
 export async function carregarHistorico(userId: string, limit: number = 50): Promise<any[]> {
-  const { data } = await supabase
+  const data = await registrarLeitura(() => supabase
     .from("ia_financeira_historico")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: true })
-    .limit(limit);
+    .limit(limit), "iaFinanceiraHelpers:773");
   return data || [];
 }
 

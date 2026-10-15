@@ -9,6 +9,7 @@ import { exportarPlanilha } from "./exportarPlanilha";
 import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import { lerTodas } from "./lerTodas";
+import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -233,7 +234,7 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
     const camposDiretos = `nome.ilike.%${termo}%,codigo_interno.ilike.%${termo}%,codigo_barras.ilike.%${termo}%,sku.ilike.%${termo}%,categoria.ilike.%${termo}%,marca.ilike.%${termo}%,rua.ilike.%${termo}%,prateleira.ilike.%${termo}%,nivel.ilike.%${termo}%,posicao.ilike.%${termo}%`;
     // Fornecedor mora em outra tabela — resolve os IDs que batem com o nome primeiro
     // (1 consulta pequena, não é N+1) e inclui no mesmo OR.
-    const { data: fornecedoresBatidos } = await supabase.from("fornecedores").select("id").eq("empresa_id", empresaId).ilike("nome", `%${termo}%`);
+    const fornecedoresBatidos = await registrarLeitura(() => supabase.from("fornecedores").select("id").eq("empresa_id", empresaId).ilike("nome", `%${termo}%`), "estoqueHelpers:236");
     const idsFornecedor = (fornecedoresBatidos || []).map((f) => f.id);
     const clausulaFornecedor = idsFornecedor.length > 0 ? `,fornecedor_id.in.(${idsFornecedor.join(",")})` : "";
     query = query.or(camposDiretos + clausulaFornecedor);
@@ -244,15 +245,15 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
 }
 
 export async function buscarProdutoPorCodigo(empresaId: string, codigo: string): Promise<Produto | null> {
-  const { data } = await supabase.from("produtos").select("*").eq("empresa_id", empresaId)
-    .or(`codigo_barras.eq.${codigo},codigo_interno.eq.${codigo},sku.eq.${codigo}`).limit(1).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("produtos").select("*").eq("empresa_id", empresaId)
+    .or(`codigo_barras.eq.${codigo},codigo_interno.eq.${codigo},sku.eq.${codigo}`).limit(1).maybeSingle(), "estoqueHelpers:247");
   return data;
 }
 
 // Usado pelo PDV Fase 2 quando o aviso de nome duplicado (sem código de
 // barras) oferece "abrir o existente" — busca por id, não por código.
 export async function buscarProdutoPorId(id: string): Promise<Produto | null> {
-  const { data } = await supabase.from("produtos").select("*").eq("id", id).maybeSingle();
+  const data = await registrarLeitura(() => supabase.from("produtos").select("*").eq("id", id).maybeSingle(), "estoqueHelpers:255");
   return data;
 }
 
@@ -446,9 +447,9 @@ export async function confirmarRecebimento(id: string): Promise<{ erro?: string 
 // ============================================================================
 
 export async function listarLotesProduto(produtoId: string): Promise<EstoqueLote[]> {
-  const { data } = await supabase.from("estoque_lotes").select("*")
+  const data = await registrarLeitura(() => supabase.from("estoque_lotes").select("*")
     .eq("produto_id", produtoId).gt("quantidade_atual", 0)
-    .order("data_validade", { ascending: true, nullsFirst: false });
+    .order("data_validade", { ascending: true, nullsFirst: false }), "estoqueHelpers:449");
   return data || [];
 }
 
@@ -466,8 +467,8 @@ export function sugerirConsumoFefo(lotes: EstoqueLote[], quantidadeDesejada: num
 }
 
 async function obterOuCriarLote(empresaId: string, produtoId: string, lote: { numero_lote: string; data_fabricacao?: string; data_validade?: string; fornecedor_id?: string }): Promise<{ id?: string; erro?: string }> {
-  const { data: existente } = await supabase.from("estoque_lotes").select("id")
-    .eq("produto_id", produtoId).eq("numero_lote", lote.numero_lote).maybeSingle();
+  const existente = await exigirLeitura(() => supabase.from("estoque_lotes").select("id")
+    .eq("produto_id", produtoId).eq("numero_lote", lote.numero_lote).maybeSingle(), "estoqueHelpers:469");
   if (existente?.id) return { id: existente.id };
 
   const { data, error } = await supabase.from("estoque_lotes").insert({
@@ -687,11 +688,11 @@ export async function carregarComparativoFornecedores(empresaId: string): Promis
 export type UltimaCompraProduto = { custoUnitario: number; dataHora: string };
 
 export async function buscarUltimaCompraProduto(empresaId: string, produtoId: string): Promise<UltimaCompraProduto | null> {
-  const { data } = await supabase.from("estoque_movimentacoes")
+  const data = await registrarLeitura(() => supabase.from("estoque_movimentacoes")
     .select("custo_unitario, data_hora")
     .eq("empresa_id", empresaId).eq("produto_id", produtoId).eq("tipo", "entrada").eq("status_recebimento", "confirmada")
     .not("custo_unitario", "is", null)
-    .order("data_hora", { ascending: false }).limit(1).maybeSingle();
+    .order("data_hora", { ascending: false }).limit(1).maybeSingle(), "estoqueHelpers:690");
   if (!data || data.custo_unitario == null) return null;
   return { custoUnitario: Number(data.custo_unitario), dataHora: data.data_hora };
 }

@@ -228,7 +228,7 @@ export default function Inadimplencia() {
   // Simulador do Contas a Receber (Fase 3) — não recalculado do zero, mesma
   // média anual, mesmo cálculo de alíquota efetiva via calcularImpostoRegime.
   const anoAtual = new Date().getFullYear()
-  const receitaBrutaAno = receitasRows.filter((r) => r.data && new Date(r.data).getFullYear() === anoAtual).reduce((s, r) => s + (Number(r.valor) || 0), 0)
+  const receitaBrutaAno = receitasRows.filter((r) => r.data && String(r.data).slice(0, 4) === String(anoAtual)).reduce((s, r) => s + (Number(r.valor) || 0), 0)
   const receitaMensalAtual = receitaBrutaAno > 0 ? receitaBrutaAno / 12 : receitasRows.reduce((s, r) => s + (Number(r.valor) || 0), 0) / 12
   const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
   const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12

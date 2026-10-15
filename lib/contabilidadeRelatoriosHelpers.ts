@@ -6,6 +6,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import type { NaturezaContabil } from "./contabilidadeHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";
+import { isoDia } from "./datas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,7 +83,7 @@ export function saldoNatural(natureza: NaturezaContabil, totalDebito: number, to
 export function diaAnterior(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return isoDia(d);
 }
 
 const ORIGEM_LABEL: Record<string, { pt: string; en: string; es: string }> = {

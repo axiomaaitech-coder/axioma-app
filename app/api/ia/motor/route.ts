@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { perguntarAoMotor, podeUsarIAFinanceira, TELAS_ANTHROPIC, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
 import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
+import { registrarLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang?, contexto_tela? }
 // Porta única do motor de IA (docs/MOTOR-IA.md). A tela manda só a pergunta:
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   // Operador (PDV) não enxerga dado financeiro (RLS empresas_do_usuario_operacional): sem esta
   // trava a IA leria tudo vazio e responderia "sua empresa não tem receita". Antes de gastar saldo.
-  const { data: membro } = await supabase.from('empresa_usuarios').select('papel').eq('empresa_id', empresaId).eq('user_id', user.id).maybeSingle()
+  const membro = await registrarLeitura(() => supabase.from('empresa_usuarios').select('papel').eq('empresa_id', empresaId).eq('user_id', user.id).maybeSingle(), "motor:43")
   if (!podeUsarIAFinanceira(membro?.papel)) return NextResponse.json({ error: 'sem_acesso_financeiro', mensagem: SEM_ACESSO[lang] }, { status: 403 })
 
   // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).

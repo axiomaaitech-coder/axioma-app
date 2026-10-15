@@ -13,6 +13,7 @@ import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
 import { buscarComRetentativa } from '@/lib/nexusRede'
 import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, ingerirMoedasBce, ingerirCommodities, ingerirIbge, ingerirAnp, ingerirComex, ingerirOcde, COMBUSTIVEIS_ANP, SERIE_BRENT, SERIE_YUAN, COMMODITIES_FMI, SERIES_IBGE } from '@/lib/nexusFontesMundo'
+import { exigirLeitura, registrarLeitura } from './erroUiHelpers'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — coleta completa (BCB, fontes mundiais, notícias, detector,
@@ -316,7 +317,7 @@ export async function executarColeta(opcoes: { comIA: boolean }): Promise<NextRe
   // pra ele já ver o dado do dia). Coleta e notícias vêm ANTES do José: a IA é a
   // parte lenta e, se estourar os 300s, não pode levar a coleta junto.
   // Pausa automática (lib/nexusFreshness.ts): fonte fora do ar há 1+ dia espera 6h entre tentativas.
-  const { data: fontesAntes } = await supabase.from('nexus_source').select('source_name, last_success, last_failure')
+  const fontesAntes = await registrarLeitura(() => supabase.from('nexus_source').select('source_name, last_success, last_failure'), "nexusColeta:319")
   const tentar = (nome: string, f: () => Promise<string>) => {
     const fonteAntes = fontesAntes?.find((x) => x.source_name === nome)
     if (fonteAntes && fonteEmPausa(fonteAntes.last_success as string | null, fonteAntes.last_failure as string | null)) return Promise.resolve('em pausa (tenta de novo em até 6h)')
@@ -431,12 +432,12 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
     // apontam pra fonte de origem, não pro BCB.
     const fonteExterna = new Map<string, string>()
     for (const [codigo] of SERIES_EXTERNAS) {
-      const { data: linhas } = await supabase
+      const linhas = await exigirLeitura(() => supabase
         .from('nexus_economic_series')
         .select('data_referencia, valor, source_id')
         .eq('serie_codigo', codigo)
         .order('data_referencia', { ascending: false })
-        .limit(PONTOS_DETECCAO)
+        .limit(PONTOS_DETECCAO), "nexusColeta:434")
       const fonte = (linhas?.[0]?.source_id as string | undefined) ?? null
       if (!fonte) continue
       fonteExterna.set(codigo, fonte)
@@ -455,8 +456,8 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
     for (const e of detectados) {
       const bce = e.event_type === 'fx_5d' ? RESERVA_BCE[e.subcategory] : undefined
       if (!bce) continue
-      const { data: outra } = await supabase.from('nexus_economic_series').select('data_referencia, valor, source_id')
-        .eq('serie_codigo', bce).order('data_referencia', { ascending: false }).limit(PONTOS_DETECCAO)
+      const outra = await exigirLeitura(() => supabase.from('nexus_economic_series').select('data_referencia, valor, source_id')
+        .eq('serie_codigo', bce).order('data_referencia', { ascending: false }).limit(PONTOS_DETECCAO), "nexusColeta:458")
       const pct = confirmacaoCruzada(e.payload, (outra ?? []).map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })))
       if (pct == null) continue
       e.payload.confirmacao = { fonte: 'BCE', variacao: pct }

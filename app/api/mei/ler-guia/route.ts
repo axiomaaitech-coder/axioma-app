@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { lerDocumentoComVisao, usoZerado, MODELOS, type ArquivoVisao } from '@/lib/ia/motor'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/mei/ler-guia (multipart: arquivo, empresa_id) — lê a guia do DAS (MEI ou
 // Simples Nacional) em PDF/foto e devolve os dados num formato fixo (GuiaLida em
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   if (!(arquivo instanceof Blob) || !UUID.test(empresaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
   const mediaType = arquivo.type as ArquivoVisao['mediaType']
   if (!TIPOS.includes(mediaType) || arquivo.size > MAX_BYTES) return NextResponse.json({ error: 'arquivo invalido' }, { status: 400 })
-  const { data: emp } = await supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle()
+  const emp = await exigirLeitura(() => supabase.from('empresas').select('id').eq('id', empresaId).maybeSingle(), "ler-guia:63")
   if (!emp) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
   // Saldo de IA da empresa: cada documento lido pela IA gasta 1 "nota" (devolve se a IA não ler).
   const lang = form?.get('lang') === 'en' ? 'en' : form?.get('lang') === 'es' ? 'es' : 'pt'

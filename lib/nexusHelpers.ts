@@ -17,6 +17,7 @@ import { resumirPlacar } from "./nexusPrevisoes";
 import { paginaDaFonte } from "./nexusFontesLinks";
 import { calcularFreshness, calcularSaudeFonte, fonteEmPausa, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
 import { RESERVA_BCE, usarReserva } from "./nexusLeitoresFontes";
+import { registrarLeitura } from "./erroUiHelpers";
 export type { FreshnessStatus };
 
 export type PontoSerie = { data: string; valor: number };
@@ -78,15 +79,15 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
     );
 
     // Fonte reserva do câmbio: mesma moeda pelo Banco Central Europeu.
-    const { data: reserva } = await supabase
+    const reserva = await registrarLeitura(() => supabase
       .from("nexus_economic_series")
       .select("serie_codigo, valor, data_referencia, frequencia, retrieved_at, source_id")
       .in("serie_codigo", Object.values(RESERVA_BCE))
       .order("data_referencia", { ascending: false })
-      .limit(Object.keys(RESERVA_BCE).length * PONTOS_HISTORICO);
+      .limit(Object.keys(RESERVA_BCE).length * PONTOS_HISTORICO), "nexusHelpers:81");
 
     // Nome de cada fonte (procedência no cartão). Falha aqui não esconde o indicador.
-    const { data: fontes } = await supabase.from("nexus_source").select("source_id, source_name");
+    const fontes = await registrarLeitura(() => supabase.from("nexus_source").select("source_id, source_name"), "nexusHelpers:89");
     const nomeFonte = (id: unknown) => (fontes ?? []).find((f) => f.source_id === id)?.source_name as string | undefined;
     const algumErro = resultados.some((r) => r.error);
     const indicadores: IndicadorNexus[] = CATALOGO.map((c, i) => {

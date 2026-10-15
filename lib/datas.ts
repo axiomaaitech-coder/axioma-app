@@ -111,6 +111,26 @@ export function hojeISO(base: Date = new Date(agora()), fuso: string = fusoAtivo
   return f.format(base)
 }
 
+// Dia (AAAA-MM-DD) de uma data montada no horário LOCAL (new Date(ano, mes, dia)).
+// toISOString() converte pra UTC: em fuso a leste de Greenwich (Portugal, Espanha) o dia 1º
+// virava o último dia do mês anterior. Para "hoje", use hojeISO().
+export function isoDia(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// "AAAA-MM-DD" + n dias (n pode ser negativo), só com calendário — sem hora nem fuso no meio.
+export function somarDiasISO(iso: string, n: number): string {
+  const [a, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
+// "AAAA-MM-DD" + n meses, preso ao último dia do mês: 31/01 + 1 = 28/02 (ou 29), nunca 03/03.
+export function somarMesesISO(iso: string, n: number): string {
+  const [a, m, d] = iso.slice(0, 10).split('-').map(Number)
+  const ultimo = new Date(Date.UTC(a, m - 1 + n + 1, 0)).getUTCDate()
+  return new Date(Date.UTC(a, m - 1 + n, Math.min(d, ultimo))).toISOString().slice(0, 10)
+}
+
 // Data só-dia ("2026-01-01") vira meia-noite LOCAL. new Date("2026-01-01") seria meia-noite
 // UTC = 31/12 21h no Brasil: venda do dia 1º caía no mês (e no ano) anterior.
 export function dataLocal(iso: string): Date {

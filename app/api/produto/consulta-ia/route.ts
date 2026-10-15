@@ -1,9 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { clienteServicoSobDemanda } from "@/lib/supabaseServico";
 import { cookies } from "next/headers";
 import { tarefaDeRotina } from "@/lib/ia/motor";
+import { registrarLeitura } from "@/lib/erroUiHelpers";
 
 // 🦅 AXIOMA AI.TECH - Camada 3 da cascata de cadastro do PDV, server-side.
 // SÓ chamada quando a base própria (camada 1) e o catálogo Cosmos (camada 2)
@@ -18,10 +19,7 @@ import { tarefaDeRotina } from "@/lib/ia/motor";
 // IA, gravado DEPOIS de uma resposta real. Timeout curto, sem retry — se
 // falhar, falhou; o cadastro nunca trava esperando IA.
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = clienteServicoSobDemanda(); // conexão criada no 1º uso (lib/supabaseServico)
 
 type LinhaCache = { encontrado: boolean; nome: string | null; marca: string | null; categoria: string | null };
 
@@ -48,10 +46,10 @@ export async function GET(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ status: "nao_configurado" } satisfies ConsultaIaResposta);
 
   // Cache primeiro — nunca pergunta duas vezes pro mesmo EAN+idioma.
-  const { data: cacheado } = await supabaseAdmin
+  const cacheado = await registrarLeitura(() => supabaseAdmin
     .from("produtos_ia_cache")
     .select("encontrado, nome, marca, categoria")
-    .eq("ean", ean).eq("idioma", idioma).maybeSingle<LinhaCache>();
+    .eq("ean", ean).eq("idioma", idioma).maybeSingle<LinhaCache>(), "consulta-ia:51");
 
   if (cacheado) {
     if (!cacheado.encontrado) return NextResponse.json({ status: "nao_encontrado" } satisfies ConsultaIaResposta);

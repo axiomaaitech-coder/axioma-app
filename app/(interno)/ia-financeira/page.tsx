@@ -20,7 +20,7 @@ import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias,
   gerarProjecoes, simularWhatIf, gerarPlanoAcao, gerarResumoNarrado,
   respostaPorRegras, salvarMensagem, carregarHistorico, limparHistorico,
-  type SnapshotFinanceiro, type Score360, type Anomalia, type Projecao, type AcaoSugerida, type BenchmarkSetor,
+  type SnapshotFinanceiro, type Score360, type Dimensao360, type Anomalia, type Projecao, type AcaoSugerida, type BenchmarkSetor,
 } from "../../../lib/iaFinanceiraHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -295,7 +295,7 @@ export default function IAFinanceiraPage() {
   // What-If
   const [whatIfTipo, setWhatIfTipo] = useState("receita_pct");
   const [whatIfValor, setWhatIfValor] = useState(10);
-  const [whatIfResultado, setWhatIfResultado] = useState<any>(null);
+  const [whatIfResultado, setWhatIfResultado] = useState<ReturnType<typeof simularWhatIf> | null>(null);
 
   // Share
   const [shareAberto, setShareAberto] = useState(false);
@@ -306,8 +306,6 @@ export default function IAFinanceiraPage() {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
   }
-
-  useEffect(() => { inicializar(); }, []);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -358,6 +356,10 @@ export default function IAFinanceiraPage() {
     }
     setCarregando(false);
   }
+
+  // Carrega ao abrir — depois das funções que usa (antes ficava acima delas)
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { void inicializar(); }, []);
 
   // =========================================================================
   // CHAT
@@ -485,8 +487,8 @@ export default function IAFinanceiraPage() {
   }
 
   const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.2)", color: ct("#c8d8f0") };
-  const dimNome = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
-  const dimSugestao = (d: any) => lang === "en" ? d.sugestao_en : lang === "es" ? d.sugestao_es : d.sugestao;
+  const dimNome = (d: Dimensao360) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
+  const dimSugestao = (d: Dimensao360) => lang === "en" ? d.sugestao_en : lang === "es" ? d.sugestao_es : d.sugestao;
   const anomTitulo = (a: Anomalia) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
   const anomDesc = (a: Anomalia) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
   const acaoTitulo = (a: AcaoSugerida) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
@@ -565,7 +567,7 @@ export default function IAFinanceiraPage() {
               { key: "resumo", label: tt.abaResumo },
               { key: "benchmark", label: tt.abaBenchmark },
             ].map((a) => (
-              <button key={a.key} onClick={() => setAba(a.key as any)}
+              <button key={a.key} onClick={() => setAba(a.key as typeof aba)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
                 style={{
                   background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
@@ -596,14 +598,14 @@ export default function IAFinanceiraPage() {
                         <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#7fa3c9", fontSize: 10 }} axisLine={false} />
                         <Radar name="Benchmark" dataKey="benchmark" stroke="#2ecc9b" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
                         <Radar name="Score" dataKey="score" stroke={score360.cor} fill="url(#radarGrad)" strokeWidth={2.5}
-                          dot={(props: any) => {
-                            const dim = score360.dimensoes[props.index];
+                          dot={(props: { cx?: number; cy?: number; index?: number; payload?: Record<string, unknown> }) => {
+                            const dim = score360.dimensoes[props.index ?? -1];
                             if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={score360.cor} stroke="#04070f" strokeWidth={2} />;
                             return (
                               <g key={props.index}>
                                 <circle cx={props.cx} cy={props.cy} r={10} fill={dim.cor} fillOpacity={0.2} />
                                 <circle cx={props.cx} cy={props.cy} r={6} fill={dim.cor} stroke="#04070f" strokeWidth={2} />
-                                <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill="#eaf4ff" fontSize={11} fontWeight={800} style={{ paintOrder: "stroke", stroke: "#04070f", strokeWidth: 3 }}>{dim.score}</text>
+                                <text x={props.cx} y={(props.cy ?? 0) - 14} textAnchor="middle" fill="#eaf4ff" fontSize={11} fontWeight={800} style={{ paintOrder: "stroke", stroke: "#04070f", strokeWidth: 3 }}>{dim.score}</text>
                               </g>
                             );
                           }}
@@ -743,7 +745,7 @@ export default function IAFinanceiraPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
                     <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                     <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: unknown) => formatBRL(Number(v) || 0)} />
                     <Area type="monotone" dataKey="otimista" stroke={ct("#34d399")} fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
                     <Area type="monotone" dataKey="realista" stroke={ct("#2ecc9b")} fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
                     <Area type="monotone" dataKey="pessimista" stroke={ct("#f87171")} fill="url(#gPe)" strokeWidth={2} name={tt.pessimista} />

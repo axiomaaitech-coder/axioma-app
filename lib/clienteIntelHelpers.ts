@@ -8,7 +8,7 @@
 import type { CorSaude } from "./cfoCore";
 import { perguntarAoAxioma } from "./ia/cliente";
 import { obterEmpresaAtiva } from "./empresaHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, isoDia } from "./datas";
 
 // ============================================================================
 // TIPOS — LINHAS DO SUPABASE
@@ -123,7 +123,7 @@ export function montarSnapshotsCarteira(clientes: ClienteRow[], contas: ContaRow
   const hoje = new Date();
   const inicio3m = new Date(hoje); inicio3m.setMonth(inicio3m.getMonth() - 3);
   const inicio6m = new Date(hoje); inicio6m.setMonth(inicio6m.getMonth() - 6);
-  const hojeStr = hoje.toISOString().slice(0, 10);
+  const hojeStr = isoDia(hoje);
 
   const clientesSnapshot: ClienteSnapshot[] = clientes.map((cliente) => {
     const contasCliente = contas.filter((c) => c.cliente_id === cliente.id);
@@ -169,8 +169,8 @@ export function montarSnapshotsCarteira(clientes: ClienteRow[], contas: ContaRow
     const valorEmAtrasoAtual = valorVencido;
     const valorRecuperadoHistorico = inadCliente.reduce((s, i) => s + (Number(i.valor_recuperado) || 0), 0);
 
-    const iso3m = inicio3m.toISOString().slice(0, 10);
-    const iso6m = inicio6m.toISOString().slice(0, 10);
+    const iso3m = isoDia(inicio3m);
+    const iso6m = isoDia(inicio6m);
     const dataRef = (c: ContaRow) => c.data_emissao || c.data_vencimento;
     const valorUltimos3Meses = contasCliente.filter((c) => dataRef(c) >= iso3m).reduce((s, c) => s + (Number(c.valor) || 0), 0);
     const valorTresMesesAnteriores = contasCliente.filter((c) => dataRef(c) >= iso6m && dataRef(c) < iso3m).reduce((s, c) => s + (Number(c.valor) || 0), 0);
@@ -497,7 +497,7 @@ export type KpisCarteiraExecutivo = {
 
 export function calcularKpisCarteiraExecutivo(clientes: ClienteRow[], intel: ItemIntel[]): KpisCarteiraExecutivo {
   const hoje = new Date();
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+  const inicioMes = isoDia(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const clientesNovosMes = clientes.filter((c) => c.created_at && c.created_at.slice(0, 10) >= inicioMes).length;
   const clientesInativos = clientes.filter((c) => c.status !== "ativo").length;
   const ativos = intel.filter((i) => i.s.cliente.status === "ativo");
@@ -712,7 +712,7 @@ export function serieRecebimentosFutura(contas: ContaRow[], semanas = 8): Bucket
     if (c.status === "recebido") b.confirmado += Number(c.valor_recebido ?? c.valor) || 0;
     else b.previsto += Number(c.valor) || 0;
   });
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const iso = (d: Date) => isoDia(d);
   return buckets.map((b) => ({ label: `${b.inicio.getDate()}/${b.inicio.getMonth() + 1}`, inicio: iso(b.inicio), fim: iso(b.fim), previsto: b.previsto, confirmado: b.confirmado }));
 }
 
@@ -902,9 +902,9 @@ export function calcularKpisRecebimento(
   ranking: { score: ScoreAxiomaCliente }[],
 ): KpisRecebimentoExecutivo {
   const hoje = new Date();
-  const hojeStr = hoje.toISOString().slice(0, 10);
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
-  const inicioAno = new Date(hoje.getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const hojeStr = isoDia(hoje);
+  const inicioMes = isoDia(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+  const inicioAno = isoDia(new Date(hoje.getFullYear(), 0, 1));
 
   const pendentes = contas.filter((c) => c.status !== "recebido");
   const vencidas = pendentes.filter((c) => c.data_vencimento < hojeStr);

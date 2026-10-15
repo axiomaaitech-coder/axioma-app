@@ -7,6 +7,7 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { hojeISO } from "./datas";
+import { registrarLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,7 +102,7 @@ export async function registrarLancamentoContabil(
   // Mesmo evento já lançado (índice único em evento_id): refazer o caminho —
   // Guardião/botão "Houve falha?" — é seguro, devolve o lançamento que já existe.
   if (error?.code === "23505" && origem?.eventoId) {
-    const { data: existente } = await supabase.from("lancamento_contabil").select("id").eq("evento_id", origem.eventoId).maybeSingle();
+    const existente = await registrarLeitura(() => supabase.from("lancamento_contabil").select("id").eq("evento_id", origem.eventoId).maybeSingle(), "contabilidadeHelpers:104");
     if (existente?.id) return { id: existente.id as string };
   }
   if (error || !novoId) {
@@ -117,7 +118,7 @@ export async function registrarLancamentoContabil(
 // ============================================================================
 
 export async function listarPlanoDeContas(empresaId: string): Promise<ContaContabil[]> {
-  const { data } = await supabase.from("plano_de_contas").select("*").eq("empresa_id", empresaId).order("codigo");
+  const data = await registrarLeitura(() => supabase.from("plano_de_contas").select("*").eq("empresa_id", empresaId).order("codigo"), "contabilidadeHelpers:120");
   return (data as ContaContabil[]) || [];
 }
 

@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useRouter } from "next/navigation"
 import { irParaDestino } from "../../../lib/cfoCore"
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -195,12 +195,7 @@ export default function IATributariaPage() {
   const [aba, setAba] = useState<"score" | "chat" | "simulador" | "carga" | "economia" | "reforma" | "diagnostico" | "calendario">("score");
 
   const [dados, setDados] = useState<DadosFiscais | null>(null);
-  const [scoreFiscal, setScoreFiscal] = useState<ScoreFiscal | null>(null);
-  const [simulacoes, setSimulacoes] = useState<SimulacaoRegime[]>([]);
-  const [carga, setCarga] = useState<any>(null);
-  const [economia, setEconomia] = useState<any>(null);
   const [alertasReforma, setAlertasReforma] = useState<AlertaReforma[]>([]);
-  const [diagnostico, setDiagnostico] = useState("");
 
   const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([]);
   const [inputChat, setInputChat] = useState("");
@@ -219,7 +214,6 @@ export default function IATributariaPage() {
   const [atividadeFiscal, setAtividadeFiscal] = useState<AtividadeFiscal | "">("");
   const [issMunicipalPct, setIssMunicipalPct] = useState("");
 
-  useEffect(() => { inicializar(); }, []);
   useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [mensagens, chatCarregando]);
 
   // Recalcula score/simulação/carga/diagnóstico sempre que os dados fiscais
@@ -227,16 +221,15 @@ export default function IATributariaPage() {
   // banco. Separado do carregamento de histórico do chat (que só roda uma
   // vez, não deve reiniciar toda vez que o dono troca a atividade no
   // dropdown).
-  useEffect(() => {
-    if (!dados) return;
+  // Cálculo direto (useMemo): antes era um efeito que gravava 5 estados e redesenhava a tela 2x.
+  const { scoreFiscal, simulacoes, carga, economia, diagnostico } = useMemo(() => {
+    if (!dados) return { scoreFiscal: null as ScoreFiscal | null, simulacoes: [] as SimulacaoRegime[], carga: null as ReturnType<typeof calcularCargaTributaria> | null, economia: null as ReturnType<typeof calcularEconomiaTributaria> | null, diagnostico: "" };
     const atividade = atividadeFiscal || undefined;
     const issPct = issMunicipalPct ? Number(issMunicipalPct) : undefined;
     const sf = calcularScoreFiscal(dados);
-    const sims = simularRegimes(dados, atividade, issPct);
     const c = calcularCargaTributaria(dados, atividade, issPct);
     const eco = calcularEconomiaTributaria(dados);
-    const diag = gerarDiagnosticoFiscal(dados, sf, c, eco, lang);
-    setScoreFiscal(sf); setSimulacoes(sims); setCarga(c); setEconomia(eco); setDiagnostico(diag);
+    return { scoreFiscal: sf, simulacoes: simularRegimes(dados, atividade, issPct), carga: c, economia: eco, diagnostico: gerarDiagnosticoFiscal(dados, sf, c, eco, lang) };
   }, [dados, atividadeFiscal, issMunicipalPct, lang]);
 
   async function inicializar() {
@@ -269,6 +262,10 @@ export default function IATributariaPage() {
     } catch (err) { showToast(tratarFalhaCarregamento("ia-tributaria.carregarTudo", err, lang), "erro"); }
     setCarregando(false);
   }
+
+  // Carrega ao abrir — depois das funções que usa (antes ficava acima delas)
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { void inicializar(); }, []);
 
   async function enviarMensagem(texto: string) {
     if (!texto.trim() || chatCarregando || !dados || !scoreFiscal || !userId) return;
@@ -312,7 +309,7 @@ export default function IATributariaPage() {
     return [`🦅 *AXIOMA AI.TECH — IA Tributária*`, ``, `🛡️ *Score Fiscal:* ${scoreFiscal.score}/100`,
       `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita"}: ${formatBRL2(dados.receita_bruta_mensal)}${tt.porMes}`,
       `🏛️ ${lang === "en" ? "Regime" : lang === "es" ? "Régimen" : "Regime"}: ${dados.regime_atual || "—"}`,
-      economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL2(economia.economia_mensal)}` : "",
+      economia && economia.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL2(economia.economia_mensal)}` : "",
       ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
   }
   function montarTextoDetalhado(): string {
@@ -344,10 +341,10 @@ export default function IATributariaPage() {
     setExportando(false);
   }
 
-  const sfLabel = (it: any) => lang === "en" ? it.label_en : lang === "es" ? it.label_es : it.label;
+  const sfLabel = (it: ScoreFiscal["itens"][number]) => lang === "en" ? it.label_en : lang === "es" ? it.label_es : it.label;
   const reformaTit = (a: AlertaReforma) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
   const reformaDesc = (a: AlertaReforma) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
-  const ecoTit = (a: any) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
+  const ecoTit = (a: ReturnType<typeof calcularEconomiaTributaria>["acoes"][number]) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
 
   const CORES_PIE = [AZULC, VERDE, AMARELO, ROXO, VERMELHO];
 
@@ -370,7 +367,7 @@ export default function IATributariaPage() {
             `${(lang === "en" ? "Tax burden" : lang === "es" ? "Carga tributaria" : "Carga tributária")}: ${(carga?.carga_pct ?? 0).toFixed(1)}%`,
             `${(lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita")}: ${formatBRL(dados.receita_bruta_mensal)}${tt.porMes}`,
             `Regime: ${dados.regime_atual || "—"}`,
-            ...(economia?.economia_mensal > 0 ? [`${tt.economiaMensal}: ${formatBRL(economia.economia_mensal)}`] : []),
+            ...(economia && economia.economia_mensal > 0 ? [`${tt.economiaMensal}: ${formatBRL(economia.economia_mensal)}`] : []),
           ]} />
           {/* HEADER */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -383,9 +380,9 @@ export default function IATributariaPage() {
               <p className="text-xs font-bold" style={{ color: scoreFiscal.cor }}>{lang === "en" ? scoreFiscal.nivel_en : lang === "es" ? scoreFiscal.nivel_es : scoreFiscal.nivel}</p>
             </CanvasBox>
             {[
-              { label: lang === "en" ? "Tax Burden" : lang === "es" ? "Carga" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? AMARELO : VERDE, ir: "/fiscal" },
+              { label: lang === "en" ? "Tax Burden" : lang === "es" ? "Carga" : "Carga", valor: carga ? `${carga.carga_pct.toFixed(1)}%` : "—", cor: (carga?.carga_pct ?? 0) > 15 ? AMARELO : VERDE, ir: "/fiscal" },
               { label: lang === "en" ? "Tax/Month" : lang === "es" ? "Impuesto/Mes" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO, ir: "/fiscal/obrigacoes" },
-              { label: lang === "en" ? "Savings" : lang === "es" ? "Ahorro" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
+              { label: lang === "en" ? "Savings" : lang === "es" ? "Ahorro" : "Economia", valor: economia && economia.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
             ].map((c, i) => (
               <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/fiscal", router)}><CanvasBox cor={c.cor} {...cartaoTema}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>
@@ -415,7 +412,7 @@ export default function IATributariaPage() {
               { key: "economia", label: tt.abaEconomia }, { key: "reforma", label: tt.abaReforma },
               { key: "diagnostico", label: tt.abaDiagnostico }, { key: "calendario", label: tt.abaCalendario },
             ].map((a) => (
-              <button key={a.key} onClick={() => setAba(a.key as any)}
+              <button key={a.key} onClick={() => setAba(a.key as typeof aba)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
                 style={{ background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #16a97d, #2ecc9b)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"), color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC), border: temaClaro ? "none" : (aba === a.key ? "1px solid #2ecc9b" : "1px solid rgba(46,204,155,0.2)") }}>{a.label}</button>
             ))}
@@ -546,10 +543,10 @@ export default function IATributariaPage() {
                   <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.composicao}</p>
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
-                      <Pie data={carga.composicao} cx="50%" cy="50%" outerRadius={80} dataKey="valor" label={(e: any) => `${e.nome}: ${e.pct.toFixed(1)}%`} labelLine={false}>
-                        {carga.composicao.map((_: any, i: number) => <Cell key={i} fill={CORES_PIE[i % CORES_PIE.length]} />)}
+                      <Pie data={carga.composicao} cx="50%" cy="50%" outerRadius={80} dataKey="valor" label={(e: unknown) => { const x = e as { nome?: string; pct?: number }; return `${x.nome}: ${(x.pct ?? 0).toFixed(1)}%`; }} labelLine={false}>
+                        {carga.composicao.map((_: unknown, i: number) => <Cell key={i} fill={CORES_PIE[i % CORES_PIE.length]} />)}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: unknown) => formatBRL(Number(v) || 0)} />
                     </PieChart>
                   </ResponsiveContainer>
                 </CanvasBox>
@@ -579,7 +576,7 @@ export default function IATributariaPage() {
                 </div>
                 <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.acoesEconomia}</p>
                 <div className="space-y-2">
-                  {economia.acoes.map((a: any, i: number) => (
+                  {economia.acoes.map((a, i: number) => (
                     <div key={i} className="rounded-lg p-3 flex items-center justify-between axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(52,211,153,0.15)" }}>
                       <p className="text-xs" style={{ color: TEXTO }}>{ecoTit(a)}</p>
                       <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: VERDE }}>{a.economia}</span>

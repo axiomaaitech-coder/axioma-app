@@ -9,6 +9,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { ItemNFe } from "./importarParsers";
 import { vincularItensAoPedidoAberto } from "./pedidoCompraHelpers";
+import { exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,8 +104,8 @@ export async function buscarFornecedorPorCnpj(empresaId: string, cnpj: string): 
   // fornecedor duas vezes.
   const formatado = limpo.length === 14 ? limpo.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
     : limpo.length === 11 ? limpo.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4") : limpo;
-  const { data } = await supabase.from("fornecedores").select("id, nome")
-    .eq("empresa_id", empresaId).in("documento", [...new Set([limpo, formatado])]).limit(1);
+  const data = await exigirLeitura(() => supabase.from("fornecedores").select("id, nome")
+    .eq("empresa_id", empresaId).in("documento", [...new Set([limpo, formatado])]).limit(1), "pdvNfeHelpers:106");
   return data?.[0] ?? null;
 }
 
@@ -164,8 +165,8 @@ export async function criarFornecedorDaNfe(empresaId: string, userId: string, da
 
 export async function buscarVinculoFornecedor(fornecedorId: string, codigoFornecedor: string): Promise<string | null> {
   if (!codigoFornecedor) return null;
-  const { data } = await supabase.from("fornecedor_produtos").select("produto_id")
-    .eq("fornecedor_id", fornecedorId).eq("codigo_fornecedor", codigoFornecedor).maybeSingle();
+  const data = await exigirLeitura(() => supabase.from("fornecedor_produtos").select("produto_id")
+    .eq("fornecedor_id", fornecedorId).eq("codigo_fornecedor", codigoFornecedor).maybeSingle(), "pdvNfeHelpers:167");
   return data?.produto_id || null;
 }
 

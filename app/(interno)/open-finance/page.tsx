@@ -26,7 +26,7 @@ import {
 } from '../../../lib/cfoCore'
 import { cfoT } from '../../../lib/cfoTextos'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, tratarFalhaCarregamento, exigirLeitura } from '../../../lib/erroUiHelpers'
 import {
   classificarTransacoes, calcularSaldoSistema, calcularKPIsOpenFinance,
   type TransacaoOF, type LancamentoConciliavel, type TransacaoClassificada,
@@ -409,7 +409,7 @@ export default function OpenFinancePage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { avisar('erro', t.erroCriarLancamento); return }
-      const { data: atual } = await supabase.from('of_transacoes').select('lancamento_id').eq('id', tx.id).maybeSingle()
+      const atual = await exigirLeitura(() => supabase.from('of_transacoes').select('lancamento_id').eq('id', tx.id).maybeSingle(), "open-finance:412")
       if (atual?.lancamento_id) { await carregarTudo(); return }
 
       const tabela = tx.tipo === 'entrada' ? 'receitas' : 'custos_variaveis'

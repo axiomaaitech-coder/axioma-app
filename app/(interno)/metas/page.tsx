@@ -33,7 +33,7 @@ import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTri
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
-import { hojeISO } from "../../../lib/datas";
+import { hojeISO, isoDia } from "../../../lib/datas";
 import { lerTodas } from "../../../lib/lerTodas";
 import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
 
@@ -61,11 +61,11 @@ const DIRECAO_PADRAO: Record<TipoMeta, DirecaoMeta> = {
 
 function inicioJanela24m(ate: string): string {
   const d = new Date(ate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() - 23, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(d.getFullYear(), d.getMonth() - 23, 1));
 }
 function inicioRolling12(ate: string): string {
   const d = new Date(ate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() - 11, 1).toISOString().slice(0, 10);
+  return isoDia(new Date(d.getFullYear(), d.getMonth() - 11, 1));
 }
 function mesesNoPeriodo(periodo: Periodo): number {
   const ini = new Date(periodo.inicio + "T00:00:00");
@@ -76,7 +76,7 @@ function mesesNoPeriodo(periodo: Periodo): number {
 function trailing(ate: string, dias: number): Periodo {
   const fim = new Date(ate + "T00:00:00");
   const ini = new Date(fim.getTime() - dias * 86400000);
-  return { inicio: ini.toISOString().slice(0, 10), fim: ate };
+  return { inicio: isoDia(ini), fim: ate };
 }
 function diasEntre(a: string, b: string): number {
   return Math.round((new Date(b + "T00:00:00").getTime() - new Date(a + "T00:00:00").getTime()) / 86400000);

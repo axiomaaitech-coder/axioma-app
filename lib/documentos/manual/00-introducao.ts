@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '00 - Prólogo, Apresentação e Primeiros Passos.docx',
   titulo: 'Manual 00 — Prólogo e Apresentação',
   subtitulo: 'O que significa Axioma, o que é a plataforma, como pensa o seu motor de inteligência e tudo o que é igual em todas as telas',
-  info: ['Manual de uso do Axioma AI.Tech  •  Versão 2.1'],
+  info: ['Manual de uso do Axioma AI.Tech  •  Versão 2.2'],
   blocos: [
     { h1: 'Prólogo — o que significa "Axioma"' },
     { h2: 'A origem da palavra' },
@@ -174,6 +174,7 @@ const pt: DocumentoAxioma = {
     { lista: [
       '**"Complete o cadastro da sua empresa para liberar todos os cálculos do Axioma."** Aparece enquanto o cadastro da empresa estiver incompleto. Clique em **Completar agora →** para ir direto à tela Empresa.',
       '**"Pedido de aval na Equipe esperando a sua decisão."** Aparece para quem pode aprovar um pedido de aval (por exemplo, a remoção de alguém de nível alto). Clique para abrir a Equipe e decidir.',
+      '**"Alguns dados não puderam ser carregados."** Aparece só quando o Axioma não conseguiu ler um dado nem depois de tentar de novo sozinho (banco lento ou internet oscilando). O resto da tela continua funcionando; atualize a página em instantes. O dado faltante nunca aparece como zero.',
     ] },
 
     { h1: 'O Assistente de Ajuda' },
@@ -259,7 +260,7 @@ const en: DocumentoAxioma = {
   arquivo: '00 - Prologue, Introduction and First Steps.docx',
   titulo: 'Manual 00 — Prologue and Introduction',
   subtitulo: 'What Axioma means, what the platform is, how its intelligence engine thinks and everything that is the same on every screen',
-  info: ['Axioma AI.Tech user manual  •  Version 2.1'],
+  info: ['Axioma AI.Tech user manual  •  Version 2.2'],
   blocos: [
     { h1: 'Prologue — what "Axioma" means' },
     { h2: 'The origin of the word' },
@@ -428,6 +429,7 @@ const en: DocumentoAxioma = {
     { lista: [
       '**"Complete your company profile to unlock all of Axioma\'s calculations."** Appears while the company profile is incomplete. Click **Complete now →** to go straight to the Company screen.',
       '**"Approval request in the Team awaiting your decision."** Appears for those who can approve a request (for example, removing someone of a high level). Click to open the Team and decide.',
+      '**"Some data could not be loaded."** Appears only when Axioma could not read some data even after retrying on its own (slow database or unstable internet). The rest of the screen keeps working; refresh the page in a moment. Missing data is never shown as zero.',
     ] },
 
     { h1: 'The Help Assistant' },
@@ -513,7 +515,7 @@ const es: DocumentoAxioma = {
   arquivo: '00 - Prólogo, Presentación y Primeros Pasos.docx',
   titulo: 'Manual 00 — Prólogo y Presentación',
   subtitulo: 'Qué significa Axioma, qué es la plataforma, cómo piensa su motor de inteligencia y todo lo que es igual en todas las pantallas',
-  info: ['Manual de uso de Axioma AI.Tech  •  Versión 2.1'],
+  info: ['Manual de uso de Axioma AI.Tech  •  Versión 2.2'],
   blocos: [
     { h1: 'Prólogo — qué significa "Axioma"' },
     { h2: 'El origen de la palabra' },
@@ -682,6 +684,7 @@ const es: DocumentoAxioma = {
     { lista: [
       '**"Completa el registro de tu empresa para habilitar todos los cálculos de Axioma."** Aparece mientras el registro de la empresa esté incompleto. Haga clic en **Completar ahora →** para ir directamente a la pantalla Empresa.',
       '**"Solicitud de aval en el Equipo esperando su decisión."** Aparece para quien puede aprobar una solicitud (por ejemplo, la remoción de alguien de nivel alto). Haga clic para abrir el Equipo y decidir.',
+      '**"Algunos datos no se pudieron cargar."** Aparece solo cuando Axioma no logró leer un dato ni después de reintentar por su cuenta (base de datos lenta o internet inestable). El resto de la pantalla sigue funcionando; actualice la página en un momento. El dato faltante nunca aparece como cero.',
     ] },
 
     { h1: 'El Asistente de Ayuda' },

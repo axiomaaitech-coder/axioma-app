@@ -1,10 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { clienteServicoSobDemanda } from "@/lib/supabaseServico";
 import { cookies } from "next/headers";
 import { buscarNicho } from "../../../../lib/pdvCatalogoTaxonomia";
 import { tarefaDeRotina } from "@/lib/ia/motor";
+import { registrarLeitura } from "@/lib/erroUiHelpers";
 
 // 🦅 AXIOMA AI.TECH - PDV Fase 2.1: classificação em LOTE, server-side.
 // Uma chamada por NOTA INTEIRA, nunca uma por item — é o que torna barato.
@@ -15,10 +16,7 @@ import { tarefaDeRotina } from "@/lib/ia/motor";
 // já visto antes nem entra na chamada. Rotina → OpenAI pelo motor de IA
 // (decisão do Elias 2026-09-28: Groq saiu).
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = clienteServicoSobDemanda(); // conexão criada no 1º uso (lib/supabaseServico)
 
 type ItemEntrada = { ean?: string; descricao: string };
 type ResultadoItem = { descricao: string; ean?: string; nomeSugerido?: string; categoriaSugerida?: string; subNichoSugerido?: string };
@@ -50,8 +48,8 @@ export async function POST(req: NextRequest) {
   const eansUnicos = Array.from(new Set(corpo.itens.map((i) => i.ean).filter((e): e is string => !!e)));
   const cacheMap = new Map<string, LinhaCache>();
   if (eansUnicos.length > 0) {
-    const { data } = await supabaseAdmin.from("produtos_ia_cache")
-      .select("ean, nome, categoria, sub_nicho").eq("idioma", idioma).in("ean", eansUnicos);
+    const data = await registrarLeitura(() => supabaseAdmin.from("produtos_ia_cache")
+      .select("ean, nome, categoria, sub_nicho").eq("idioma", idioma).in("ean", eansUnicos), "classificar-lote:53");
     for (const linha of data || []) cacheMap.set((linha as any).ean, linha as LinhaCache);
   }
 

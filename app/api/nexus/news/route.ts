@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES, FONTES_RSS_ATIVAS, limiteDoCanal, type MotivoDemo } from '@/lib/nexusNewsIngest'
+import { registrarLeitura } from '@/lib/erroUiHelpers'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 03, Parte 4 (correção definitiva): a fonte de RSS
@@ -73,13 +74,13 @@ export async function GET(request: NextRequest) {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    const { data: ultima } = await supabase
+    const ultima = await registrarLeitura(() => supabase
       .from('nexus_news')
       .select('created_at')
       .eq('canal', canal)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle(), "news:76")
 
     const cacheExpirado = forcarRefresh || !ultima || Date.now() - new Date(ultima.created_at as string).getTime() > CACHE_HORAS * 3600000
 

@@ -19,6 +19,7 @@ import { buscarComRetentativa } from './nexusRede'
 import { calcularFreshness } from './nexusFreshness'
 import { garantirFonte, type Fonte, PAISES_BM, codigoBM } from './nexusFontesMundo'
 import { fimDoMes, type Ponto } from './nexusLeitoresFontes'
+import { exigirLeitura } from './erroUiHelpers'
 
 type ModoData = 'inicio' | 'fim' // 1º dia do mês (séries do BCB) ou último (séries do IBGE/FMI/Comex)
 type Leitor = { fonte: Fonte; ler: () => Promise<Ponto[]> }
@@ -237,7 +238,7 @@ async function aposentarReservas(supabase: SupabaseClient, ind: Indicador, princ
 // Etapa da coleta: cobre com reserva todo indicador atrasado e limpa reservas superadas.
 export async function cobrirComReservas(supabase: SupabaseClient): Promise<{ cobertos: string[]; semReserva: string[]; aposentadas: number }> {
   pinkSheet = null // planilha nova a cada coleta
-  const { data: fontes } = await supabase.from('nexus_source').select('source_id, source_name')
+  const fontes = await exigirLeitura(() => supabase.from('nexus_source').select('source_id, source_name'), "nexusReservas:240")
   const idDe = (nome: string) => fontes?.find((f) => f.source_name === nome)?.source_id as string | undefined
   const cobertos: string[] = []
   const semReserva: string[] = []
@@ -246,8 +247,8 @@ export async function cobrirComReservas(supabase: SupabaseClient): Promise<{ cob
     try {
       const principalId = idDe(ind.principal)
       if (principalId) aposentadas += await aposentarReservas(supabase, ind, principalId)
-      const { data: ultima } = await supabase.from('nexus_economic_series').select('data_referencia')
-        .eq('serie_codigo', ind.codigo).order('data_referencia', { ascending: false }).limit(1).maybeSingle()
+      const ultima = await exigirLeitura(() => supabase.from('nexus_economic_series').select('data_referencia')
+        .eq('serie_codigo', ind.codigo).order('data_referencia', { ascending: false }).limit(1).maybeSingle(), "nexusReservas:249")
       if (!atrasada((ultima?.data_referencia as string | undefined) ?? null, ind.frequencia)) return
       const motivos: string[] = []
       for (const leitor of ind.reservas) {
