@@ -45,8 +45,10 @@ export async function middleware(request: NextRequest) {
     request.headers.get('x-real-ip') || 'anonymous'
 
   if (pathname.startsWith('/api/') || pathname === '/login' || pathname === '/cadastro') {
-    const limite = pathname.startsWith('/api/ia/') ? 30 : 60
-    if (!checkRateLimit(`${ip}:${pathname}`, limite, 60000)) {
+    // Ditado (Voice Fase 1): 12 gravações/min; a consulta "está liberado?" (GET) conta à parte
+    const voz = pathname.startsWith('/api/voz/')
+    const limite = voz ? (request.method === 'GET' ? 60 : 12) : pathname.startsWith('/api/ia/') ? 30 : 60
+    if (!checkRateLimit(`${ip}:${voz ? request.method + ':' : ''}${pathname}`, limite, 60000)) {
       return new NextResponse('Too Many Requests', {
         status: 429,
         headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' }

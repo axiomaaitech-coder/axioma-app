@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Documento | Especificação técnica — voz como camada de entrada/saída do motor de IA |
-| Fase atual | **Fase 0 concluída** (correções de base, sem interface de voz) — 2026-10-15 |
+| Fase atual | **Fase 1 implementada — ditado (desligado para clientes até LEGAL-V01)** · Fase 0 concluída — 2026-10-15 |
 | Responsável pelo produto | Elias Tavares (CEO) |
 | Base | `docs/MOTOR-IA.md` (motor único de IA) |
 
@@ -104,3 +104,51 @@ Fase 1 — botão de ditado (`components/BotaoVoz.tsx`) + `app/api/voz/transcrev
 (José, IA Financeira, IA Tributária, IA MEI Advisor, Contas a Pagar, Importar Documentos, PDV, Contas a Receber):
 pedido de permissão só no clique, aviso claro de microfone negado/indisponível, 3 idiomas, 2 temas, saldo,
 auditoria sem conteúdo e manuais atualizados.
+
+## 9. Fase 1 — Ditado (implementada 2026-10-15, desligada para clientes)
+
+| Peça | Arquivo | Função |
+|---|---|---|
+| Regra do servidor | `lib/voz/servidor.ts` (`processarDitado`) | login → parâmetros → liberação → arquivo → acesso (RLS via `ia_situacao`) → papel → saldo → transcrição → texto não vazio → **cobra 1** (`ia_consumir`) |
+| Rota | `app/api/voz/transcrever/route.ts` | POST multipart (`audio`, `empresa_id`, `tela`, `lang`); GET `?empresa_id=` → `{ ativa }` |
+| Gravador | `lib/voz/gravador.ts` (`GravadorVoz`, `juntarTexto`) | microfone só após clique; 60 s; 2 MB; para no silêncio (~2,5 s após falar); cancelar; microfone sempre liberado |
+| Botão | `components/BotaoVoz.tsx` | toque para falar/parar ou segure e solte; tempo + nível do som; mensagens trilíngues; só PREENCHE o campo |
+| Limite de pedidos | `middleware.ts` | 12 gravações/min por conexão (GET de liberação à parte) |
+| Testes | `scripts/check-voz-fase1.mts` | 23 cenários do servidor, gravador simulado, 8 telas, chave/áudio/texto fora de logs |
+
+**Liberação:** `VOZ_ATIVA=on` (todas) ou `VOZ_EMPRESAS_TESTE=uuid,uuid` (só internas). Sem variável = botão não aparece e a rota responde 403 `voz_desativada`.
+
+**Modelo:** `whisper-1` com `verbose_json` (padrão; `VOZ_MODELO` troca) — único caminho em que a **duração vem do fornecedor**, então os 60 s são conferidos no servidor sem confiar no navegador. Dica de vocabulário financeiro por idioma.
+
+**Cobrança (saldo comum, sem mudar banco/planos):** confere saldo antes (sem debitar); transcreve; só depois de texto válido chama `ia_consumir` **uma vez** (atômico no banco). Falha técnica, áudio vazio/longo/inválido, transcrição vazia, recusa de acesso: **não cobra**. Se o saldo acabar entre a conferência e a cobrança, o texto **não é entregue** (nem uso grátis, nem cobrança dupla). Limite conhecido: repetir manualmente o mesmo áudio cobra de novo (sem chave de idempotência no banco — exigiria schema); o botão fica bloqueado enquanto transcreve.
+
+**Privacidade:** áudio só na memória do pedido; não vai a banco, storage, arquivo, log, Sentry ou PostHog; transcrição nunca vai à auditoria (só tela, idioma, código, cobrado, bytes, duração, modelo, ms). **Retenção no fornecedor:** pela API da OpenAI, até 30 dias em registros de monitoramento de abuso, salvo Zero Data Retention/Modified Abuse Monitoring aprovados pela OpenAI — por isso a função **não pode ser liberada a clientes** antes de `docs/PRIVACIDADE-VOZ-RASCUNHO.md` ser revisado e publicado (LEGAL-V01).
+
+**Telas e campos:** José (pergunta); IA Financeira, IA Tributária, IA MEI Advisor (pergunta do chat); Contas a Pagar (pergunta ao CFO, descrição); Importar Documentos (descrição na edição da linha); PDV (busca de produto — único campo do caixa; operador pode usar só aqui); Contas a Receber (descrição, anotação da cobrança).
+
+**Verificação manual pendente:** `docs/VOZ-FRASES-TESTE.md` (60 frases, NÃO executadas); Chrome/Edge/Firefox/Safari, Android e iPhone; microfone negado; tema Claro/Escuro em cada tela.
+
+## 10. Referência internacional (pesquisa 2026-10-15)
+
+| Fonte | Padrão | Como o Axioma aplica |
+|---|---|---|
+| Alipay + Banma (compra por voz no carro, 2026) | voz nunca executa pagamento sem **confirmação explícita**; risco e antifraude em camadas | voz só preenche; pessoa revisa e envia; nada financeiro automático |
+| Alipay (ligação de verificação de identidade) | conversa de verificação **não é armazenada** | áudio descartado após transcrever |
+| AliGenie (Alibaba) | impressão vocal + segundo fator para comprar | Axioma **não usa biometria de voz** (evita dado sensível; identidade = login) |
+| ING (Inge) e BBVA/Garanti (MIA) | voz para consultar e iniciar; confiança do cliente é a barreira | Fase 1 só ditado; Fase 2 resposta falada; lançamento por voz só como rascunho |
+| GDPR/UK GDPR | impressão vocal para identificar = dado biométrico de categoria especial | sem identificação por voz |
+| Guias de interface de voz (VAD, push-to-talk) | sinal claro de microfone ativo; parar no silêncio; modo "segure para falar" | nível do som + tempo; parada por silêncio; toque ou segure-e-solte |
+
+Fontes: SCMP (Alipay voice call); Fintech Hong Kong (Alipay in-car voice payments); Wikipedia (AliGenie); BBVA (Garanti MIA, Efma); Asian Banker/Emerj (ING Inge); OpenAI "Your data"; Picovoice (guia de VAD 2026).
+
+## 11. Fase 2 — A voz responde (pedido do Elias em 2026-10-15)
+
+Objetivo: depois que a IA pesquisa e responde (mesmo motor, mesmas regras e conferência de números), uma **voz natural lê a resposta**, e a pessoa pode responder falando — conversa por voz, sem perder o texto na tela.
+
+1. `app/api/voz/falar/route.ts`: recebe o texto da resposta já gerada pelo motor (nunca texto livre do navegador sem passar pelo motor), com as mesmas travas (login, papel, saldo, liberação); devolve áudio em fluxo; nada guardado.
+2. Botão "ouvir/parar" em cada resposta e modo **conversa** (após a resposta falada, o microfone reabre só com toque — nunca escuta escondido).
+3. Ressalvas faladas: valor não confirmado e dado que não pôde ser lido são ditos em voz (campo `verificacao` do motor).
+4. Comparativo antes de escolher a voz: OpenAI TTS × ElevenLabs, 10 respostas reais ouvidas às cegas pelo CEO (naturalidade pt-BR, latência para começar ≤ 3 s, custo/min, retenção e contrato LGPD).
+5. Cobrança: decidir com o CEO (1 pergunta comum por resposta falada, ou cota própria — cota própria exige schema).
+6. Privacidade: incluir a síntese de voz e o fornecedor escolhido no mesmo rascunho LEGAL-V01 antes de liberar.
+

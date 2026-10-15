@@ -25,6 +25,8 @@ import {
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import BotaoVoz from "../../../components/BotaoVoz";
+import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -688,6 +690,7 @@ export default function IAFinanceiraPage() {
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
                   placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={inputStyle} />
+                <BotaoVoz lang={lang} tela="ia-financeira" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setInputChat((a) => juntarTexto(a, x))} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50"
                   style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>

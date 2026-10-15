@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '08 - MEI - IA MEI Advisor.docx',
   titulo: 'Manual 08 — IA MEI Advisor',
   subtitulo: 'Seu consultor financeiro e fiscal MEI, com os seus números reais',
-  info: ['Menu: MEI → IA MEI Advisor  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: MEI → IA MEI Advisor  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Um chat que **conhece os dados reais do seu MEI** (faturamento, teto, DAS, despesas e configuração) e responde, em linguagem simples, perguntas sobre DAS, limite anual, imposto de renda, Reforma Tributária e preço.' },
@@ -37,6 +37,9 @@ const pt: DocumentoAxioma = {
     { lista: ['"Quanto ainda posso faturar este ano sem estourar o teto?"', '"Meu DAS está em dia?"', '"Preciso declarar imposto de renda?"', '"O que muda para mim com a Reforma Tributária?"', '"Meu preço está cobrindo os custos?"'] },
     { h1: 'Boas práticas' },
     { lista: ['Mantenha o faturamento e as despesas lançados: a IA responde melhor com dados completos.', 'Uma pergunta por vez, de forma direta.', 'A resposta orienta; a decisão é sempre sua.'] },
+
+    { h1: 'Ditado por voz' },
+    { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta do Advisor. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
   ],
 }
 
@@ -44,7 +47,7 @@ const en: DocumentoAxioma = {
   arquivo: '08 - MEI - AI MEI Advisor.docx',
   titulo: 'Manual 08 — AI MEI Advisor',
   subtitulo: 'Your MEI financial and tax advisor, with your real numbers',
-  info: ['Menu: MEI → AI MEI Advisor  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: MEI → AI MEI Advisor  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'A chat that **knows your MEI\'s real data** (revenue, cap, DAS, expenses and settings) and answers, in plain language, questions about the DAS, the annual limit, income tax, the Tax Reform and pricing.' },
@@ -76,6 +79,9 @@ const en: DocumentoAxioma = {
     { lista: ['"How much more can I bill this year without exceeding the cap?"', '"Is my DAS up to date?"', '"Do I need to file income tax?"', '"What does the Tax Reform change for me?"', '"Is my price covering my costs?"'] },
     { h1: 'Good practices' },
     { lista: ['Keep revenue and expenses recorded: the AI answers better with complete data.', 'One question at a time, straight to the point.', 'The answer guides you; the decision is always yours.'] },
+
+    { h1: 'Voice dictation' },
+    { p: 'When dictation is enabled for your company, a microphone button appears in the Advisor question box. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
   ],
 }
 
@@ -83,7 +89,7 @@ const es: DocumentoAxioma = {
   arquivo: '08 - MEI - IA MEI Advisor.docx',
   titulo: 'Manual 08 — IA MEI Advisor',
   subtitulo: 'Su consultor financiero y fiscal MEI, con sus números reales',
-  info: ['Menú: MEI → IA Advisor MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: MEI → IA Advisor MEI  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Un chat que **conoce los datos reales de su MEI** (facturación, tope, DAS, gastos y configuración) y responde, en lenguaje simple, preguntas sobre el DAS, el límite anual, el impuesto a la renta, la Reforma Tributaria y los precios.' },
@@ -115,6 +121,9 @@ const es: DocumentoAxioma = {
     { lista: ['"¿Cuánto más puedo facturar este año sin superar el tope?"', '"¿Mi DAS está al día?"', '"¿Necesito declarar impuesto a la renta?"', '"¿Qué cambia para mí con la Reforma Tributaria?"', '"¿Mi precio cubre los costos?"'] },
     { h1: 'Buenas prácticas' },
     { lista: ['Mantenga la facturación y los gastos registrados: la IA responde mejor con datos completos.', 'Una pregunta a la vez, directa.', 'La respuesta orienta; la decisión siempre es suya.'] },
+
+    { h1: 'Dictado por voz' },
+    { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta del Advisor. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
   ],
 }
 

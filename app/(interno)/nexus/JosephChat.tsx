@@ -20,6 +20,8 @@ import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimul
 import { PlanoJose } from './PlanoJose'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
+import BotaoVoz from '../../../components/BotaoVoz'
+import { juntarTexto } from '../../../lib/voz/gravador'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -256,6 +258,8 @@ Hoje: ${hojeISO()}.`
               className="flex-1 resize-none px-3.5 py-2.5 rounded-xl text-sm max-h-32"
               style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }}
             />
+            {/* Ditado (Voice Fase 1): só preenche o campo — a pessoa revisa e envia */}
+            <BotaoVoz lang={lang} tela="nexus" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setTexto((a) => juntarTexto(a, x).slice(0, 600))} />
             <button onClick={() => enviar(texto)} disabled={!texto.trim() || pensando} aria-label={L('Enviar', 'Send', 'Enviar')}
               className="shrink-0 flex items-center justify-center rounded-xl disabled:opacity-50" style={{ ...VERDE_SOLIDO, width: 44, height: 44 }}>
               <Send size={17} aria-hidden />

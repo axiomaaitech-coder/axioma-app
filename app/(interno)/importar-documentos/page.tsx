@@ -68,6 +68,8 @@ import { obterEmpresaAtiva, carregarEmpresaPorId } from "../../../lib/empresaHel
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
+import BotaoVoz from "../../../components/BotaoVoz";
+import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -2042,13 +2044,16 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
               <div>
                 <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Descrição</label>
+                <div className="flex gap-2 items-center mt-1">
                 <input
                   type="text"
                   value={formEdicao.descricao}
                   onChange={(e) => setFormEdicao({ ...formEdicao, descricao: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                  className="flex-1 min-w-0 px-3 py-2 rounded-lg text-sm"
                   style={{ background: fundoInput, color: ct("#c8d8f0"), border: bordaInput }}
                 />
+                <BotaoVoz lang={langAtual} tela="importar-documentos" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setFormEdicao((f) => ({ ...f, descricao: juntarTexto(f.descricao, x) }))} />
+                </div>
               </div>
 
               <div>

@@ -64,6 +64,8 @@ import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/Conf
 import { hojeISO, agora } from "../../../lib/datas";
 import PagarGuiaDAS from "../../../components/mei/PagarGuiaDAS";
 import type { MetodoPagamento } from "../../../lib/meiObrigacoesMotor";
+import BotaoVoz from "../../../components/BotaoVoz";
+import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -2172,6 +2174,7 @@ export default function ContasPagarPage() {
                   disabled={carregandoRespostaCfo}
                   placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
                   className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(46,204,155,0.2)"), color: TEXTO }} />
+                <BotaoVoz lang={idioma as "pt" | "en" | "es"} tela="contas-pagar" empresaId={empresaId} claro={temaClaro} desativado={carregandoRespostaCfo} onTexto={(x) => setPerguntaCfo((a) => juntarTexto(a, x))} />
                 <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
                   <Send size={16} />
                 </button>
@@ -3221,8 +3224,9 @@ export default function ContasPagarPage() {
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
-                      <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} onBlur={sugerirCategoriaPorDescricao}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
+                      <div className="flex gap-2 items-center"><input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} onBlur={sugerirCategoriaPorDescricao}
+                        className="flex-1 min-w-0 px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
+                        <BotaoVoz lang={idioma as "pt" | "en" | "es"} tela="contas-pagar" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setNc((n) => ({ ...n, descricao: juntarTexto(n.descricao, x) }))} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>

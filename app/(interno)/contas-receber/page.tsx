@@ -55,6 +55,8 @@ import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, e
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, isoDia } from '../../../lib/datas'
+import BotaoVoz from '../../../components/BotaoVoz'
+import { juntarTexto } from '../../../lib/voz/gravador'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1482,7 +1484,8 @@ export default function ContasReceber() {
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div>
                       <label className={labelInput} style={{ color: TEAL }}>{L('Descrição', 'Description', 'Descripción')} *</label>
-                      <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} className={inputCls} style={inputStyle} />
+                      <div className="flex gap-2 items-center"><input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} className={`${inputCls} flex-1 min-w-0`} style={inputStyle} />
+                      <BotaoVoz lang={idioma as 'pt' | 'en' | 'es'} tela="contas-receber" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setNc((n) => ({ ...n, descricao: juntarTexto(n.descricao, x) }))} /></div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -1841,6 +1844,7 @@ export default function ContasReceber() {
                       </div>
                       <div className="flex gap-2">
                         <input value={novoContato.descricao} onChange={(e) => setNovoContato({ ...novoContato, descricao: e.target.value })} placeholder={L('O que foi conversado...', 'What was discussed...', 'Qué se conversó...')} className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                        <BotaoVoz lang={idioma as 'pt' | 'en' | 'es'} tela="contas-receber" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setNovoContato((n) => ({ ...n, descricao: juntarTexto(n.descricao, x) }))} />
                         <button onClick={salvarContato} disabled={salvandoCobranca || !novoContato.descricao.trim()} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: TEAL, color: '#fff' }}>{L('Salvar', 'Save', 'Guardar')}</button>
                       </div>
                       <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">

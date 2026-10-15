@@ -34,6 +34,8 @@ import {
 import { obterDadosCupomEmpresa, salvarConfigCupom, type DadosEmpresaCupom } from "../../../../lib/pdvCupomHelpers";
 import { conectarQz, listarImpressorasQz, imprimirEscPos } from "../../../../lib/qzTrayHelpers";
 import AvisoAxioma from "../../../../components/AvisoAxioma";
+import BotaoVoz from "../../../../components/BotaoVoz";
+import { juntarTexto } from "../../../../lib/voz/gravador";
 
 // Lei 12.741/2012 (transparência fiscal ao consumidor) — percentual fixo,
 // só informativo. NÃO entra em nenhum cálculo de finalizar_venda nem é
@@ -1622,9 +1624,10 @@ function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef, grande }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   grande?: boolean;
 }) {
-  const { tokens } = useTemaPdv();
+  const { tokens, tema } = useTemaPdv();
   return (
-    <div className="relative">
+    <div className="flex gap-2 items-center">
+    <div className="relative flex-1 min-w-0">
       <Search size={grande ? 20 : 18} className={`absolute top-1/2 -translate-y-1/2 ${grande ? "left-3.5" : "left-3"}`} style={{ color: tokens.acento }} />
       <input
         ref={inputRef} autoFocus value={busca} onChange={(e) => onBusca(e.target.value)} onKeyDown={onKeyDown}
@@ -1632,6 +1635,9 @@ function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef, grande }: {
         className={`w-full font-semibold outline-none rounded-xl ${grande ? "pl-10 pr-3 py-3 text-xl md:text-2xl" : "pl-9 pr-3 py-2 text-base md:text-lg"}`}
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `2px solid ${tokens.inputBorda}` }}
       />
+    </div>
+    {/* Ditado (Voice Fase 1): só preenche a busca — o operador escolhe o produto */}
+    <BotaoVoz lang={lang} tela="pdv" claro={tema === "claro"} onTexto={(x) => onBusca(juntarTexto(busca, x))} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '43 - Nexus - Inteligência Econômica.docx',
   titulo: 'Manual 43 — Nexus e o José',
   subtitulo: 'Inteligência econômica que atravessa toda a empresa',
-  info: ['Menu: Nexus (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Nexus (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Nexus acompanha a economia do Brasil e do mundo (câmbio, juros, inflação, petróleo, emprego, notícias) e traduz o que acontece em **impacto para a sua empresa**. Quem faz essa leitura é o **José**, a inteligência do Nexus.' },
@@ -49,6 +49,9 @@ const pt: DocumentoAxioma = {
     { p: 'Simulações salvas podem ser **favoritadas**, **editadas**, **duplicadas**, **arquivadas** ou **excluídas**. As sem uso há 90 dias (e não favoritas) vão sozinhas para Arquivadas; nada é apagado automaticamente.' },
     { h1: 'Avisos em qualquer tela' },
     { p: 'Quando algo de impacto alto acontece, um aviso discreto aparece no canto enquanto você usa o Axioma. Ligue ou desligue em **Radar Global em qualquer tela**, no bloco "O que o Nexus faz por você".' },
+
+    { h1: 'Ditado por voz' },
+    { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta ao José. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
   ],
 }
 
@@ -56,7 +59,7 @@ const en: DocumentoAxioma = {
   arquivo: '43 - Nexus - Economic Intelligence.docx',
   titulo: 'Manual 43 — Nexus and José',
   subtitulo: 'Economic intelligence that runs through the whole company',
-  info: ['Menu: Nexus (top bar)  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Nexus (top bar)  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Nexus follows the economy of Brazil and the world (exchange rates, interest, inflation, oil, employment, news) and translates what happens into **impact on your company**. The one who does this reading is **José**, Nexus’s intelligence.' },
@@ -100,6 +103,9 @@ const en: DocumentoAxioma = {
     { p: 'Saved simulations can be **favorited**, **edited**, **duplicated**, **archived** or **deleted**. Those unused for 90 days (and not favorites) move to Archived on their own; nothing is deleted automatically.' },
     { h1: 'Alerts on any screen' },
     { p: 'When something high-impact happens, a discreet alert appears in the corner while you use Axioma. Turn it on or off in **Global Radar on any screen**, in the "What Nexus does for you" block.' },
+
+    { h1: 'Voice dictation' },
+    { p: 'When dictation is enabled for your company, a microphone button appears in the question box for José. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
   ],
 }
 
@@ -107,7 +113,7 @@ const es: DocumentoAxioma = {
   arquivo: '43 - Nexus - Inteligencia Económica.docx',
   titulo: 'Manual 43 — Nexus y José',
   subtitulo: 'Inteligencia económica que atraviesa toda la empresa',
-  info: ['Menú: Nexus (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Nexus (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Nexus sigue la economía de Brasil y del mundo (tipo de cambio, intereses, inflación, petróleo, empleo, noticias) y traduce lo que pasa en **impacto para su empresa**. Quien hace esa lectura es **José**, la inteligencia de Nexus.' },
@@ -151,6 +157,9 @@ const es: DocumentoAxioma = {
     { p: 'Las simulaciones guardadas se pueden **marcar como favoritas**, **editar**, **duplicar**, **archivar** o **eliminar**. Las sin uso por 90 días (y no favoritas) pasan solas a Archivadas; nada se borra automáticamente.' },
     { h1: 'Avisos en cualquier pantalla' },
     { p: 'Cuando ocurre algo de alto impacto, aparece un aviso discreto en la esquina mientras usa Axioma. Actívelo o desactívelo en **Radar Global en cualquier pantalla**, en el bloque "Lo que Nexus hace por usted".' },
+
+    { h1: 'Dictado por voz' },
+    { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta a José. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
   ],
 }
 

@@ -24,6 +24,8 @@ import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
+import BotaoVoz from '../../../../components/BotaoVoz'
+import { juntarTexto } from '../../../../lib/voz/gravador'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -384,6 +386,7 @@ DADOS REAIS DESTE MEI:
               placeholder={t('placeholder') as string}
               className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
               style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+            <BotaoVoz lang={lang} tela="mei-ia-advisor" claro={temaClaro} onTexto={(x) => setChatInput((a) => juntarTexto(a, x))} />
             <button onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
               className="px-4 py-3 rounded-xl font-bold text-sm disabled:opacity-50"
               style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>

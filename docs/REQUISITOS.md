@@ -72,7 +72,13 @@ Documentos técnicos: `docs/MOTOR-IA.md`, `docs/VOICE-INTELLIGENCE.md`. Última 
 | RNF-IA02 | Ferramenta `custos` da IA conta só custos fixos **vigentes**; leitura que falha vira erro explícito, nunca lista vazia. |
 | RNF-V01 | **Microfone:** `Permissions-Policy: microphone=(self)` (só o próprio Axioma; câmera e localização bloqueadas); `media-src 'self' blob:` para tocar áudio gerado. Nenhum domínio de fornecedor na CSP antes de integração efetiva. |
 | RNF-V02 | Voz (Fases 1 e 2, ainda não ligadas): áudio nunca guardado; nada de áudio/transcrição em analytics; auditoria só com metadados; chaves só no servidor; até 60 s / 2 MB por gravação. |
-| LEGAL-V01 | **Antes de ligar a voz para clientes:** Política de Privacidade (3 idiomas) deve citar o tratamento de voz, a transcrição pela OpenAI como suboperadora e a não retenção do áudio. Em 2026-10-15 nada disso está ativo — Termos e Privacidade **não** foram alterados. |
+| RF-V01 | **Ditado (Fase 1, 2026-10-15):** botão de microfone ao lado dos campos de José, IA Financeira, IA Tributária, IA MEI Advisor, Contas a Pagar (pergunta ao CFO, descrição), Importar (descrição), PDV (busca de produto) e Contas a Receber (descrição, anotação); o texto só **preenche** o campo (junto do já digitado) — nunca envia nem grava sozinho (`components/BotaoVoz.tsx`). |
+| RF-V02 | Microfone pedido só no clique; toque para falar/parar ou segure e solte; para no silêncio (~2,5 s após falar) e em 60 s; botão ✕ cancela; avisa microfone negado, inexistente ou navegador sem suporte (3 idiomas). |
+| RF-V03 | Operador de caixa usa o ditado **só na busca de produto do PDV**; nas demais telas recebe aviso (mesma regra da RLS). |
+| RNF-V03 | Servidor confere login, empresa (RLS), papel, saldo, formato (webm/ogg/mp4/m4a/mpeg/wav), tamanho (≤ 2 MB) e duração (≤ 60 s, informada pelo fornecedor) — `lib/voz/servidor.ts`; 12 gravações/min. |
+| RNF-V04 | **Cobrança:** 1 pergunta de IA comum por ditado **concluído e aceito**; nada cobrado em falha, áudio vazio/longo/inválido, transcrição vazia ou recusa; cobrança atômica (`ia_consumir`), no máximo 1 por pedido; saldo que acaba no meio = texto não entregue. Sem mudança de banco ou planos. |
+| RNF-V05 | **Liberação:** desligado por padrão; `VOZ_EMPRESAS_TESTE` (internas) ou `VOZ_ATIVA=on` (todas, só depois de LEGAL-V01). |
+| LEGAL-V01 | **Antes de ligar a voz para clientes:** Política de Privacidade (3 idiomas) deve citar o tratamento de voz, a transcrição pela OpenAI como suboperadora e a não retenção do áudio. Em 2026-10-15 a Fase 1 foi implementada **desligada para clientes**; rascunho trilíngue em `docs/PRIVACIDADE-VOZ-RASCUNHO.md` (inclui a retenção de até 30 dias da OpenAI, salvo Zero Data Retention) aguardando revisão. Termos e Privacidade publicados **não** foram alterados. |
 
 ---
 

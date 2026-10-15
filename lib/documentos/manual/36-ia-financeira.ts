@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financeira.docx',
   titulo: 'Manual 36 — IA Financeira',
   subtitulo: 'Seu CFO Digital: análise inteligente com dados reais',
-  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Financeira é o **diretor financeiro digital** da empresa. Junta todos os módulos em uma nota geral (Score 360°), aponta anomalias, projeta a receita, simula cenários, monta um plano de ação e conversa com você sobre as finanças, sempre com os dados reais.' },
@@ -45,6 +45,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Dicas para perguntar melhor' },
     { lista: ['Seja específico: cite o período ("em setembro") ou o módulo ("nos custos fixos").', 'Peça comparação: "compare com o mês passado".', 'Peça decisão: "o que você faria no meu lugar?".', 'Quanto mais completos os lançamentos, melhores as respostas.'] },
     { nota: 'Os dados são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa em vez de dar nota ou plano com zero no lugar do dado que não veio.' },
+
+    { h1: 'Ditado por voz' },
+    { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta do chat. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
   ],
 }
 
@@ -52,7 +55,7 @@ const en: DocumentoAxioma = {
   arquivo: '36 - AI Premium - Financial AI.docx',
   titulo: 'Manual 36 — Financial AI',
   subtitulo: 'Your Digital CFO: smart analysis with real data',
-  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Financial AI is the company’s **digital CFO**. It combines every module into an overall score (360° Score), points out anomalies, projects revenue, simulates scenarios, builds an action plan and talks with you about the finances, always with real data.' },
@@ -92,6 +95,9 @@ const en: DocumentoAxioma = {
     { h1: 'Tips for better questions' },
     { lista: ['Be specific: mention the period ("in September") or the module ("in fixed costs").', 'Ask for comparison: "compare with last month".', 'Ask for a decision: "what would you do in my place?".', 'The more complete your entries, the better the answers.'] },
     { nota: 'Data is read with no row limit. If any loading fails, the screen warns you instead of giving a score or plan with zero in place of the missing data.' },
+
+    { h1: 'Voice dictation' },
+    { p: 'When dictation is enabled for your company, a microphone button appears in the chat question box. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
   ],
 }
 
@@ -99,7 +105,7 @@ const es: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financiera.docx',
   titulo: 'Manual 36 — IA Financiera',
   subtitulo: 'Su CFO Digital: análisis inteligente con datos reales',
-  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Financiera es el **director financiero digital** de la empresa. Junta todos los módulos en una nota general (Score 360°), señala anomalías, proyecta los ingresos, simula escenarios, arma un plan de acción y conversa con usted sobre las finanzas, siempre con los datos reales.' },
@@ -139,6 +145,9 @@ const es: DocumentoAxioma = {
     { h1: 'Consejos para preguntar mejor' },
     { lista: ['Sea específico: cite el período ("en septiembre") o el módulo ("en los costos fijos").', 'Pida comparación: "compare con el mes pasado".', 'Pida una decisión: "¿qué haría usted en mi lugar?".', 'Cuanto más completos los registros, mejores las respuestas.'] },
     { nota: 'Los datos se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa en lugar de dar nota o plan con cero en lugar del dato que no llegó.' },
+
+    { h1: 'Dictado por voz' },
+    { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta del chat. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
   ],
 }
 
