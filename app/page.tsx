@@ -326,10 +326,10 @@ const idiomas = {
       slogan: 'El Futuro Financiero de Brasil Piensa Solo.',
       sloganSub: 'Un director financiero con inteligencia artificial que revisa cada número de su Empresa, avisa antes de que llegue el problema y muestra el camino — en portugués, inglés y español.',
       legenda1: 'Mientras el mercado sigue usando planillas...',
-      legenda2: 'Axioma controla tus finanzas en tiempo real.',
+      legenda2: 'Axioma controla sus finanzas en tiempo real.',
       legenda3: 'La verdad que mueve Empresas.',
       titulo: 'El sistema que reemplazó a los contadores.',
-      sub: 'Inteligencia artificial que controla todo tu financiero. Ingresos, costos, impuestos y flujo de caja — todo conectado. Todo automático.',
+      sub: 'Inteligencia artificial que controla todo su financiero. Ingresos, costos, impuestos y flujo de caja — todo conectado. Todo automático.',
       modulos: ['P&G', 'Ingresos', 'Flujo de Caja', 'MEI', 'IA Tributaria', 'Open Finance', 'Costos', 'Inversiones'],
     },
     einstein: {
@@ -337,14 +337,14 @@ const idiomas = {
       titulo: 'Einstein nos enseñó: la masa es energía.',
       subTitulo: 'Axioma va más allá: los datos son ganancias.',
       copy: '"La imaginación es más importante que el conocimiento. Pues el conocimiento es limitado, mientras que la imaginación abarca el mundo entero." — Albert Einstein',
-      texto: 'En 1905, Einstein reveló que todo en el universo se transforma. Energía en materia. Tiempo en espacio. Más de un siglo después, Axioma traduce la misma verdad al mundo de los negocios: cada número de tu Empresa lleva una energía oculta de ganancia. Nuestra IA es la ecuación que libera ese valor.',
+      texto: 'En 1905, Einstein reveló que todo en el universo se transforma. Energía en materia. Tiempo en espacio. Más de un siglo después, Axioma traduce la misma verdad al mundo de los negocios: cada número de su Empresa lleva una energía oculta de ganancia. Nuestra IA es la ecuación que libera ese valor.',
       formulas: ['E = mc²', '$ = D × IA', '∫ Lucro dt', 'Σ Ingresos', 'Δ Crecimiento', 'π × Decisiones'],
     },
     platao: {
       badge: '◆ EL FUNDAMENTO PLATÓNICO',
       titulo: 'Platón decía: la verdad es una forma perfecta.',
       copy: '"Axioma" — del griego antiguo ἀξίωμα — significa "verdad que no necesita ser probada".',
-      texto: 'Hace 2.400 años, Platón describió cinco sólidos perfectos como el fundamento del universo. El primero es el tetraedro — exactamente la forma de nuestro logo. No es coincidencia. Axioma fue construida sobre la verdad matemática más antigua que existe: la que no puede ser refutada. Cuando tu negocio se apoya en axiomas, se vuelve irrompible.',
+      texto: 'Hace 2.400 años, Platón describió cinco sólidos perfectos como el fundamento del universo. El primero es el tetraedro — exactamente la forma de nuestro logo. No es coincidencia. Axioma fue construida sobre la verdad matemática más antigua que existe: la que no puede ser refutada. Cuando su negocio se apoya en axiomas, se vuelve irrompible.',
     },
     global: {
       badge: 'TRES IDIOMAS',
@@ -451,13 +451,13 @@ const idiomas = {
     },
     clowdbot: {
       badge: '🤖 INTELIGENCIA DE AXIOMA',
-      titulo: 'Tu gerente financiero nunca duerme.',
+      titulo: 'Su gerente financiero nunca duerme.',
       sub: 'La inteligencia de Axioma lee sus números, los cruza con el mercado (Nexus y José) y le avisa qué hacer — usted siempre decide. Como tener un CFO de nivel mundial disponible 24/7.',
       status: 'Sistema Neural Activo',
       pensando: ['Analizando flujo de caja...', 'Detectando oportunidad de ahorro...', 'Generando reporte P&G...', 'Calculando punto de equilibrio...', 'Optimizando tributación...'],
     },
     planos: {
-      titulo: 'Elige tu plan',
+      titulo: 'Elija su plan',
       sub: 'Empieza con 7 días gratis en cualquier plan. Cancela cuando quieras.',
       popular: 'Más elegido',
       trial: '7 días gratis',
@@ -479,9 +479,9 @@ const idiomas = {
 // Siglas (MEI, IA, CFO) ficam como estão. Primeira palavra e a que vem depois de ":" sempre maiúscula.
 // ============================================================
 const MINUSCULAS: Record<'pt' | 'en' | 'es', Set<string>> = {
-  pt: new Set('a o as os à às ao aos e é ou de do da dos das em no na nos nas num numa que por pelo pela pelos pelas para com um uma se'.split(' ')),
+  pt: new Set('a o as os à às ao aos e é ou de do da dos das em no na nos nas num numa que por pelo pela pelos pelas para com sem entre um uma se'.split(' ')),
   en: new Set('a an the and or but of in on at to for with by as vs'.split(' ')),
-  es: new Set('a al el la los las y e o u de del en con por para que un una es se'.split(' ')),
+  es: new Set('a al el la lo los las y e o u de del en con sin entre por para que un una es se nos'.split(' ')),
 }
 function tt(s: string, lang: 'pt' | 'en' | 'es') {
   let inicio = !/^\s/.test(s) // trecho que começa com espaço é continuação de frase
