@@ -40,7 +40,14 @@ const OPENAI_RESERVA = 'gpt-4o-mini' // se o modelo barato principal falhar
 // Regra do Elias (2026-10-03): a Anthropic (paga) só atende IA Financeira, IA Tributária,
 // José/Nexus e relatórios complexos. Em qualquer outra tela, análise e estratégia vão
 // para o modelo forte da OpenAI. (O José usa lib/nexusJoseph/Briefing/Plano direto.)
-export const TELAS_ANTHROPIC = new Set(['ia-financeira', 'ia-tributaria', 'nexus', 'nexus-simulacoes', 'relatorios'])
+// Quem pode usar a inteligência financeira: a mesma regra da RLS das tabelas financeiras
+// (empresas_do_usuario_operacional: todo membro com acesso válido, menos 'operador').
+// Papéis reais (check do banco): dono, admin, financeiro, contabil, leitor, operador. Dono da
+// empresa sem linha em empresa_usuarios chega aqui com papel null = permitido.
+// A IA só lê; 'leitor' e 'contabil' leem os mesmos dados que já veem nas telas.
+export const podeUsarIAFinanceira = (papel: string | null | undefined) => papel !== 'operador'
+
+export const TELAS_ANTHROPIC =new Set(['ia-financeira', 'ia-tributaria', 'nexus', 'nexus-simulacoes', 'relatorios'])
 const OPENAI_FORTE = 'gpt-4o'
 
 // ─── Medição de consumo (B2 — painel de custo) ───
@@ -100,6 +107,12 @@ export function conferirNumeros(resposta: string, textoBase: string): string[] {
   return ruins
 }
 
+// Quantos R$ da resposta NÃO têm base no que o servidor leu, descontando os já inventados
+// (que não têm base em lugar nenhum). Sobra = valor que só veio do navegador (tela/histórico).
+export function contarSemFonteServidor(resposta: string, baseServidor: string, inventados: number): number {
+  return Math.max(0, conferirNumeros(resposta, baseServidor).length - inventados)
+}
+
 // ─── Prompt (estável primeiro → cache da Anthropic aproveita) ───
 const REGRAS = `Você é a inteligência do Axioma — o CFO digital de empresas brasileiras, experiente, direto e prático.
 Regras invioláveis:
@@ -113,6 +126,7 @@ Regras invioláveis:
 - Variação não é resposta: quando algo subiu ou caiu, investigue nos dados quais contas, fornecedores, clientes ou categorias explicam, desde quando, se é recorrente ou pontual e o impacto se continuar. Use as DESCOBERTAS ABERTAS DO MOTOR quando tratarem do assunto.
 - Quando não houver dado suficiente para concluir, diga "não há dados suficientes para concluir" e qual dado falta; nunca preencha com número inventado.
 - Recomendação importante responde: o quê, por quê, com qual dado e período, impacto, confiança e o que a pessoa pode fazer. Nunca execute nem prometa executar ação financeira (pagar, transferir, cancelar) — você recomenda, a pessoa decide.
+- Significado fixo dos termos (igual no texto e na voz): Faturamento = receita total do período que a pessoa pediu (sem período, diga qual usou). Lucro = o dos dados é MÉDIA mensal de 12 meses: diga sempre "em média por mês"; para o resultado de um mês específico por competência, indique a tela DRE. Caixa = caixa realizado até hoje; nunca diga que é "livre para gastar" (não desconta contas a pagar nem reservas). Contas a pagar = separe em aberto, vencido e próximos 30 dias. Sem lançamento no período = "não há registros de X no período". Módulo em LEITURAS QUE FALHARAM = "não foi possível consultar X agora", nunca zero.
 - Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
@@ -404,7 +418,8 @@ export type RespostaMotor = {
   modelo: string | null
   escalou: boolean
   triagem: 'regra' | 'ia'
-  valoresNaoConferidos: number
+  valoresNaoConferidos: number // R$ citado que não existe em lugar nenhum (inventado)
+  valoresSemFonteServidor: number // R$ que só existe no que o navegador mandou (tela/histórico)
   consultas: number // quantas ferramentas de consulta a IA usou
   uso: Uso // tokens e custo desta pergunta (painel de custo)
   setor: string | null
@@ -459,6 +474,10 @@ export async function perguntarAoMotor(args: {
   }
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
-  const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`) : []
-  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso }
+  const reaisConsultas = reaisDasConsultas(r.consultas ?? [])
+  const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`) : []
+  // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
+  // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.
+  const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
+  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso }
 }

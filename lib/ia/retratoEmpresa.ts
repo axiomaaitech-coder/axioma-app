@@ -62,6 +62,7 @@ export type Retrato = {
   alertas: string[] // situação da empresa em frases curtas (pt), já priorizadas
   temDados: boolean
   texto: string // versão compacta pro prompt
+  leiturasFalhas?: string[] // módulos cuja leitura falhou agora (≠ sem registro)
 }
 
 type Linha = Record<string, unknown>
@@ -80,15 +81,20 @@ function maiores(ls: Linha[], campo: string, divisor: number, qtd = 8): string {
 export async function montarRetrato(supabase: SupabaseClient, empresaId: string): Promise<Retrato> {
   const hoje = new Date()
   const iso = (d: Date) => d.toISOString().slice(0, 10)
-  const inicio12 = iso(new Date(hoje.getFullYear(), hoje.getMonth() - 12, hoje.getDate()))
+  // "Hoje" das leituras: horário de Brasília, não UTC (o servidor roda em UTC: depois das 21h
+  // o UTC já é amanhã). ponytail: fuso exato da empresa só existe depois desta leitura; AC/AM
+  // diferem 1-2h perto da meia-noite — buscar a empresa antes se isso pesar.
+  const hojeBR = hojeISO(hoje, 'America/Sao_Paulo')
+  const [aBR, mBR, dBR] = hojeBR.split('-').map(Number)
+  const inicio12 = iso(new Date(Date.UTC(aBR - 1, mBR - 1, dBR)))
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
     supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
     lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
-    lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId)).order('id')),
+    lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId), hojeBR).order('id')),
     lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).order('id')),
     // Caixa: conta única com o Fluxo de Caixa (realizado até hoje + PDV recebido) — lib/caixaSaldo.
-    saldoCaixaRealizado(supabase, empresaId, iso(hoje)),
+    saldoCaixaRealizado(supabase, empresaId, hojeBR),
     lerTodas(() => supabase.from('contas_receber').select('cliente_id, valor, valor_recebido, data_vencimento').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('contas_pagar').select('valor_total, valor_pago, data_vencimento').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => supabase.from('vw_estoque_avisos').select('ruptura, baixo_estoque, capital_parado').eq('empresa_id', empresaId).order('produto_id')),
@@ -103,13 +109,16 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const hojeIso = hojeISO(hoje, fuso)
   const em30 = hojeISO(new Date(hoje.getTime() + 30 * 86400000), fuso)
   const L = (r: { data: unknown }) => (r.data ?? []) as Linha[] // tabela ausente/erro = módulo sem dado, nunca derruba o retrato
+  // ...mas a leitura que falhou é dita à IA: "não consegui consultar" é diferente de "não há registro".
+  const leiturasFalhas = ([['receitas', rec], ['custos fixos', cf], ['custos variáveis', cv], ['dívidas', dv], ['caixa', fc], ['contas a receber', cr], ['contas a pagar', cp], ['estoque', est], ['obrigações fiscais', obr]] as [string, { error?: unknown; erro?: unknown }][])
+    .filter(([, r]) => r.error || r.erro).map(([nome]) => nome)
 
   // Receita: média 12m + série dos 6 últimos meses fechados
   const receitas = L(rec)
   const receita12 = soma(receitas, 'valor')
   const receitaMensal = receita12 / 12
   const receitas6m = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - 6 + i, 1)
+    const d = new Date(Date.UTC(aBR, mBR - 1 - 6 + i, 1))
     const chave = iso(d).slice(0, 7)
     return Math.round(receitas.filter((r) => String(r.data).startsWith(chave)).reduce((t, r) => t + n(r.valor), 0))
   })
@@ -167,12 +176,12 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const x = numeros
   const texto = `EMPRESA: ${nome} · regime ${regime ?? 'não informado'}${e.porte ? ` · porte ${e.porte}` : ''} · CNAE ${cnae ?? 'não cadastrado'}
 SETOR: ${setor ? setor.nome.pt : 'não identificado (sem CNAE) — trate como empresa típica e sugira cadastrar o CNAE'}
-NÚMEROS (calculados pelo Axioma — use-os, não recalcule; médias mensais dos últimos 12 meses):
+${leiturasFalhas.length ? `LEITURAS QUE FALHARAM AGORA (os valores delas abaixo NÃO são zero real — diga que não foi possível consultar): ${leiturasFalhas.join(', ')}\n` : ''}NÚMEROS (calculados pelo Axioma — use-os, não recalcule; médias mensais dos últimos 12 meses):
 - Receita ${fBRL(x.receitaMensal)}/mês; últimos 6 meses fechados: ${x.receitas6m.map(fBRL).join(' → ')}
 - Custo fixo ${fBRL(x.custoFixoMensal)}/mês (${pct(x.custoFixoSobreReceitaPct)} da receita) · custo variável ${fBRL(x.custoVariavelMensal)}/mês
 - Impostos ${fBRL(x.impostoMensal)}/mês (alíquota efetiva ${x.aliquotaEfetivaPct.toFixed(1)}%) · juros de dívidas ${fBRL(x.jurosMensal)}/mês
-- Lucro ${fBRL(x.lucroMensal)}/mês (margem ${pct(x.margemPct)}) · ponto de equilíbrio ${x.pontoEquilibrioMensal != null ? `${fBRL(x.pontoEquilibrioMensal)}/mês` : 'não calculável (margem de contribuição ≤ 0)'}
-- Caixa realizado ${fBRL(x.caixa)}${x.folegoMeses != null ? ` · fôlego ${x.folegoMeses} meses mantido o prejuízo` : ''}
+- Lucro médio ${fBRL(x.lucroMensal)}/mês (média de 12 meses, não é o resultado de um mês; margem ${pct(x.margemPct)}) · ponto de equilíbrio ${x.pontoEquilibrioMensal != null ? `${fBRL(x.pontoEquilibrioMensal)}/mês` : 'não calculável (margem de contribuição ≤ 0)'}
+- Caixa realizado até hoje ${fBRL(x.caixa)} (não desconta contas a pagar nem reservas)${x.folegoMeses != null ? ` · fôlego ${x.folegoMeses} meses mantido o prejuízo` : ''}
 - Dívida ${fBRL(x.dividaTotal)} (${pct(x.dividaSobreReceitaAnualPct)} da receita anual)
 - A receber ${fBRL(x.aReceberAberto)} (vencido ${fBRL(x.aReceberVencido)}, inadimplência ${pct(x.inadimplenciaPct)}; próximos 30 dias ${fBRL(x.aReceber30d)})${x.concentracaoTopClientePct != null ? ` · maior cliente = ${pct(x.concentracaoTopClientePct)} do a receber` : ''}
 - A pagar ${fBRL(x.aPagarAberto)} (vencido ${fBRL(x.aPagarVencido)}; próximos 30 dias ${fBRL(x.aPagar30d)})
@@ -184,7 +193,7 @@ DÍVIDAS: ${dividas.map((d) => `${d.descricao || 'dívida'} saldo ${fBRL(saldoDi
 ALERTAS DA SITUAÇÃO: ${alertas.join(' | ') || 'nenhum'}
 DESCOBERTAS ABERTAS DO MOTOR (com evidência; confiança indicada): ${descobertas || 'nenhuma'}`
 
-  return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso }
+  return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso, leiturasFalhas }
 }
 
 // Situação da empresa em frases (ordem = prioridade). Regras fixas e explicáveis.
@@ -231,5 +240,5 @@ export function textoFiscal(r: Retrato): string {
     obrigacoes_pendentes: 0, obrigacoes_vencidas: x.obrigacoesAtrasadas, total_obrigacoes: 0,
   })
   const linhas = sims.map((s) => `${s.regime_label}: ${fBRL(s.imposto_mensal)}/mês (${s.aliquota_efetiva.toFixed(1)}%)${s.elegivel ? '' : ` — não elegível: ${s.motivo_inelegivel ?? ''}`}${s.elegivel && s.economia_vs_atual > 0 ? ` — economia estimada de ${fBRL(s.economia_vs_atual)}/ano vs atual` : ''}`)
-  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${hojeISO()}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
+  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${hojeISO(new Date(), r.fuso)}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
 }

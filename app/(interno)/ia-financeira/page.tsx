@@ -391,6 +391,8 @@ export default function IAFinanceiraPage() {
           const data = await res.json();
           if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; }
         }
+        // Saldo de IA acabou (402) ou acesso de operador (403): mostra o aviso, não cai calado nas regras
+        else if (res.status === 402 || res.status === 403) { const d = await res.json().catch(() => null); if (typeof d?.mensagem === "string") { resposta = d.mensagem; modelo = "aviso"; } }
       } catch (err) {
         // Sem rede/motor: a tela responde pelas regras logo abaixo; a falha fica registrada.
         Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { tela: "ia-financeira", etapa: "motor" } });

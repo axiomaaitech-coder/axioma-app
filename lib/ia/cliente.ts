@@ -25,6 +25,8 @@ export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: 
     const json = await res.json().catch(() => null)
     // Saldo de IA acabou: a tela mostra o aviso (no idioma) no lugar da resposta, em vez de cair calada nas regras.
     if (res.status === 402 && typeof json?.mensagem === 'string') return { resposta: json.mensagem, nivel: 'sem_saldo' }
+    // Operador de caixa: aviso de acesso no lugar de uma análise sobre dados que ele não enxerga.
+    if (res.status === 403 && typeof json?.mensagem === 'string') return { resposta: json.mensagem, nivel: 'sem_acesso' }
     if (!res.ok) return null
     return typeof json?.resposta === 'string' && json.resposta.trim() ? { resposta: json.resposta.trim(), nivel: String(json.nivel ?? '') } : null
   } catch {

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '39 - Configurações - Equipe.docx',
   titulo: 'Manual 39 — Equipe',
   subtitulo: 'Quem tem acesso à empresa e com qual papel',
-  info: ['Menu: Equipe (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Equipe (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Controla quem entra na empresa dentro do Axioma, o que cada pessoa pode fazer e por quanto tempo. Tudo fica registrado na auditoria da empresa.' },
@@ -17,7 +17,7 @@ const pt: DocumentoAxioma = {
       ['Financeiro', 'Módulos financeiros.'],
       ['Contábil', 'Módulos contábeis e fiscais.'],
       ['Leitor', 'Só visualização.'],
-      ['Caixa', 'Só o PDV, sem acesso ao restante do Axioma.'],
+      ['Caixa', 'Só o PDV, sem acesso ao restante do Axioma. Se perguntar algo às inteligências financeiras (IA Financeira, IA Tributária, José), recebe o aviso de que o acesso dele é de operador de caixa.'],
     ] } },
     { p: '**Hierarquia**: Proprietário › CEO › Sócio › Admin › demais. Ninguém remove o Proprietário. Para remover alguém do mesmo nível ou acima, é preciso o **aval** de alguém acima.' },
 
@@ -62,7 +62,7 @@ const en: DocumentoAxioma = {
   arquivo: '39 - Settings - Team.docx',
   titulo: 'Manual 39 — Team',
   subtitulo: 'Who has access to the company and with which role',
-  info: ['Menu: Team (top bar)  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Team (top bar)  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Controls who enters the company inside Axioma, what each person can do and for how long. Everything is logged in the company’s audit trail.' },
@@ -74,7 +74,7 @@ const en: DocumentoAxioma = {
       ['Finance', 'Financial modules.'],
       ['Accounting', 'Accounting and tax modules.'],
       ['Viewer', 'View only.'],
-      ['Cashier', 'POS only, with no access to the rest of Axioma.'],
+      ['Cashier', 'POS only, with no access to the rest of Axioma. If they ask the financial intelligences (Financial AI, Tax AI, José) anything, they get a notice that their access is cashier operator.'],
     ] } },
     { p: '**Hierarchy**: Owner › CEO › Partner › Admin › others. Nobody removes the Owner. To remove someone at the same level or above, the **approval** of someone above is required.' },
 
@@ -119,7 +119,7 @@ const es: DocumentoAxioma = {
   arquivo: '39 - Configuración - Equipo.docx',
   titulo: 'Manual 39 — Equipo',
   subtitulo: 'Quién tiene acceso a la empresa y con qué rol',
-  info: ['Menú: Equipo (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Equipo (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Controla quién entra a la empresa dentro de Axioma, qué puede hacer cada persona y por cuánto tiempo. Todo queda registrado en la auditoría de la empresa.' },
@@ -131,7 +131,7 @@ const es: DocumentoAxioma = {
       ['Financiero', 'Módulos financieros.'],
       ['Contable', 'Módulos contables y fiscales.'],
       ['Lector', 'Solo visualización.'],
-      ['Caja', 'Solo el PDV, sin acceso al resto de Axioma.'],
+      ['Caja', 'Solo el PDV, sin acceso al resto de Axioma. Si pregunta algo a las inteligencias financieras (IA Financiera, IA Tributaria, José), recibe el aviso de que su acceso es de operador de caja.'],
     ] } },
     { p: '**Jerarquía**: Propietario › CEO › Socio › Admin › demás. Nadie quita al Propietario. Para quitar a alguien del mismo nivel o superior, se necesita el **aval** de alguien superior.' },
 

@@ -9,6 +9,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { hojeISO } from '../datas'
 import { lerTodas } from '../lerTodas'
+import { soVigentes } from '../custoFixoVigente'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -43,6 +44,16 @@ const r2 = (v: number) => Math.round(v * 100) / 100
 const hojeIso = (fuso: string) => hojeISO(new Date(), fuso)
 const em30 = (fuso: string) => hojeISO(new Date(Date.now() + 30 * 86400000), fuso)
 const lim = (v: unknown) => Math.min(30, Math.max(1, Math.floor(n(v)) || 10))
+// Datas como texto AAAA-MM-DD (sem Date/UTC): testadas em scripts/check-ia-motor.mts.
+export function umAnoAntes(dia: string): string {
+  const [a, m, d] = dia.split('-').map(Number)
+  return `${a - 1}-${String(m).padStart(2, '0')}-${String(m === 2 && d === 29 ? 28 : d).padStart(2, '0')}` // 29/02 não existe no ano anterior
+}
+// Os `meses` meses que terminam no mês de `dia` (inclusive), do mais antigo ao atual: ['2025-11', …, '2026-01'].
+export function mesesAte(dia: string, meses: number): string[] {
+  const [a, m] = dia.split('-').map(Number)
+  return Array.from({ length: meses }, (_, i) => { const t = a * 12 + (m - 1) - meses + 1 + i; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}` })
+}
 
 async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedores', ids: unknown[]): Promise<Map<string, string>> {
   const unicos = [...new Set(ids.filter(Boolean).map(String))]
@@ -61,10 +72,16 @@ function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: stri
 export async function executarFerramenta(supabase: SupabaseClient, empresaId: string, nome: string, input: Linha, fuso = 'America/Sao_Paulo'): Promise<string> {
   try {
     // Lê em lotes até vir tudo: o Supabase devolve no máximo 1000 linhas por pedido (lib/lerTodas.ts)
-    const q = (t: string, cols: string, desde?: string) => lerTodas(() => {
+    // Leitura que falha vira {"erro"} (catch abaixo), nunca lista vazia: "não consegui consultar" ≠ "não há registro"
+    const semFalha = async <T extends { error: { message: string } | null }>(p: PromiseLike<T>): Promise<T> => {
+      const r = await p
+      if (r.error) throw new Error(`não foi possível consultar agora: ${r.error.message}`)
+      return r
+    }
+    const q = (t: string, cols: string, desde?: string) => semFalha(lerTodas(() => {
       const b = supabase.from(t).select(cols).eq('empresa_id', empresaId)
       return (desde ? b.gte('data', desde) : b).order('id')
-    })
+    }))
     switch (nome) {
       case 'contas_a_pagar': {
         const { data } = await q('contas_pagar', 'descricao, categoria, fornecedor_id, valor_total, valor_pago, data_vencimento')
@@ -82,8 +99,11 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
       }
       case 'custos': {
         const fixos = input.tipo === 'fixos'
-        const inicio = new Date(new Date().getFullYear(), new Date().getMonth() - 12, new Date().getDate()).toISOString().slice(0, 10)
-        const base = fixos ? q('custos_fixos', 'descricao, categoria, valor_mensal') : q('custos_variaveis', 'descricao, categoria, valor, data', inicio)
+        const h = hojeIso(fuso), inicio = umAnoAntes(h)
+        // Fixos: só os vigentes hoje — mesma regra do retrato e das telas (lib/custoFixoVigente)
+        const base = fixos
+          ? semFalha(lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId), h).order('id')))
+          : q('custos_variaveis', 'descricao, categoria, valor, data', inicio)
         const { data } = await base
         const m = new Map<string, { categoria: unknown; valor: number }>()
         for (const l of (data ?? []) as unknown as Linha[]) {
@@ -97,17 +117,16 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
       }
       case 'receitas_por_mes': {
         const meses = Math.min(24, Math.max(1, Math.floor(n(input.meses)) || 6))
-        const hoje = new Date()
-        const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1).toISOString().slice(0, 10)
-        const { data } = await q('receitas', 'valor, data', inicio)
-        const soma = new Map<string, number>()
-        for (let i = 0; i < meses; i++) soma.set(new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1 + i, 1).toISOString().slice(0, 7), 0)
+        // Meses contados no fuso da empresa (toISOString é UTC: virava o mês 3h antes)
+        const lista = mesesAte(hojeIso(fuso), meses)
+        const { data } = await q('receitas', 'valor, data', `${lista[0]}-01`)
+        const soma = new Map<string, number>(lista.map((k) => [k, 0]))
         for (const l of (data ?? []) as unknown as Linha[]) { const k = String(l.data).slice(0, 7); if (soma.has(k)) soma.set(k, soma.get(k)! + n(l.valor)) }
         return JSON.stringify({ meses: [...soma.entries()].map(([mes, total]) => ({ mes, total: r2(total) })), obs: 'o último mês é o corrente (parcial)' })
       }
       case 'estoque_avisos': {
         const col = ['ruptura', 'baixo_estoque', 'capital_parado', 'custo_subindo'].includes(String(input.tipo)) ? String(input.tipo) : 'ruptura'
-        const { data } = await supabase.from('vw_estoque_avisos').select('nome, categoria, saldo_disponivel, estoque_minimo, estoque_maximo, preco_custo, preco_medio_anterior').eq('empresa_id', empresaId).eq(col, true).limit(lim(input.limite))
+        const { data } = await semFalha(supabase.from('vw_estoque_avisos').select('nome, categoria, saldo_disponivel, estoque_minimo, estoque_maximo, preco_custo, preco_medio_anterior').eq('empresa_id', empresaId).eq(col, true).limit(lim(input.limite)))
         return JSON.stringify({ tipo: col, itens: data ?? [] })
       }
       case 'dividas': {
