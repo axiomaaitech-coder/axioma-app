@@ -25,6 +25,8 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
+import ConversaAoVivo from "../../../components/ConversaAoVivo";
+import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -474,6 +476,13 @@ export default function IATributariaPage() {
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>➤</button>
               </div>
+              {/* Conversa ao vivo (tempo real): a voz consulta o MESMO motor desta tela; só aparece se liberada para a empresa */}
+              <ConversaAoVivo empresaId={empresaId} lang={lang as "pt" | "en" | "es"} claro={temaClaro} tela="ia-tributaria"
+                aoFalar={(quem, t) => setMensagens((m) => [...m, { role: quem === "voce" ? "user" : "assistant", texto: t }])}
+                consultar={async (pergunta) => {
+                  const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "ia-tributaria", lang: lang as "pt" | "en" | "es", historico: mensagens.slice(-8).map((m) => ({ role: m.role, content: m.texto })), contextoTela: lang === "en" ? "FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the Fact/Estimate/Scenario labels and the notes." : lang === "es" ? "FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga las etiquetas Hecho/Estimación/Escenario y los avisos." : "FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os rótulos Fato/Estimativa/Cenário e os avisos." });
+                  return ia?.resposta ?? (lang === "en" ? "It was not possible to check the data right now." : lang === "es" ? "No fue posible consultar los datos ahora." : "Não foi possível consultar os dados agora.");
+                }} />
             </CanvasBox>
           )}
 

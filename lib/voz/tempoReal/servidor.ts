@@ -12,11 +12,15 @@
 // (VOZ_EMPRESAS_TESTE/VOZ_ATIVA). Sem microfone permanente e sem palavra-chave (só no toque).
 // ═══════════════════════════════════════════════════════════════
 import type { IdiomaFala } from '../textoFala'
+import { identidadeDaTela } from '../../ia/identidade'
 
 export type FornecedorTR = 'gemini' | 'qwen'
 export const FORNECEDORES_TR: FornecedorTR[] = ['gemini', 'qwen']
 export const DURACAO_MAX_S = 600 // 10 minutos por sessão
 export const SILENCIO_MAX_S = 60 // encerra sozinha depois de 60 s sem ninguém falar
+// Telas com conversa ao vivo
+export const TELAS_TR = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor'] as const
+export type TelaTR = (typeof TELAS_TR)[number]
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type EnvTR = { VOZ_TEMPO_REAL?: string; GEMINI_API_KEY?: string; QWEN_API_KEY?: string }
@@ -26,16 +30,30 @@ export function fornecedoresTR(env: EnvTR): FornecedorTR[] {
   return FORNECEDORES_TR.filter((f) => ligados.includes(f) && (f === 'gemini' ? !!env.GEMINI_API_KEY : !!env.QWEN_API_KEY))
 }
 
-// ─── Instruções do José na conversa ao vivo (iguais nos dois fornecedores) ───
+// ─── Instruções da conversa ao vivo (iguais nos dois fornecedores) ───
+// Nexus: o José (texto aprovado pelo CEO em 2026-10-16, mantido). IA Financeira e Tributária: a Inteligência
+// Axioma com o título da especialidade (Opção A, lib/ia/identidade.ts) e o foco de cada tela.
 const NOME_IDIOMA: Record<IdiomaFala, string> = { pt: 'português do Brasil', en: 'English', es: 'español' }
-export function instrucoesJose(lang: IdiomaFala, nome: string): string {
-  return `Você é José, o diretor financeiro digital do Axioma, conversando AO VIVO, por voz, com ${nome || 'o dono da empresa'} numa reunião.
-Fale sempre em ${NOME_IDIOMA[lang]}, com voz calma, formal, educada e executiva. Frases curtas; no máximo 4 frases por vez; ofereça detalhar se fizer sentido.
-REGRA ABSOLUTA: qualquer dado da empresa (valores, contas, vencimentos, clientes, fornecedores, custos, dívidas, estoque, faturamento, caixa, riscos) você só obtém chamando a ferramenta perguntar_ao_axioma com a pergunta completa e clara (inclua o período e o assunto da conversa, ex.: "contas a receber desta semana que estão vencidas"). Nunca diga um número que não veio dessa ferramenta nesta conversa. Enquanto espera, diga só algo curto como "um instante, vou consultar".
+function apresentacao(tela: TelaTR, nome: string): { abertura: string; foco: string; eu: string } {
+  const com = nome || 'o dono da empresa'
+  if (tela === 'nexus') return { abertura: `Você é José, o diretor financeiro digital do Axioma, conversando AO VIVO, por voz, com ${com} numa reunião.`, foco: '', eu: 'o José, do Axioma' }
+  const titulo = identidadeDaTela(tela).titulo.pt.toLowerCase().replace(/\bmei\b/, 'MEI')
+  const foco = tela === 'ia-tributaria'
+    ? 'Foco: impostos, regime tributário, alíquota efetiva, obrigações e Reforma Tributária. Lei, limite, alíquota ou prazo só com a regra oficial que vier da ferramenta, com a data; avise que a lei pode mudar; nunca diga apenas "consulte um contador".'
+    : tela === 'mei-ia-advisor'
+      ? 'Foco: MEI — limite de faturamento, DAS, declaração anual (DASN-SIMEI), nota fiscal e quando é hora de virar ME; linguagem simples, sem jargão. Valor, limite ou prazo só com a regra oficial que vier da ferramenta, com a data.'
+      : 'Foco: caixa, margem, contas, recebimentos, custos, dívidas e riscos, com visão de dono e prioridade para a decisão.'
+  return { abertura: `Você é a Inteligência Axioma, ${titulo} do Axioma, conversando AO VIVO, por voz, com ${com} ${tela === 'mei-ia-advisor' ? 'numa conversa de consultoria' : 'numa reunião de diretoria'}. Se perguntarem quem você é: "Sou a Inteligência Axioma, ${titulo}".`, foco: `\n${foco}`, eu: 'a Inteligência Axioma, do Axioma' }
+}
+export function instrucoesJose(lang: IdiomaFala, nome: string, tela: TelaTR = 'nexus'): string {
+  const a = apresentacao(tela, nome)
+  return `${a.abertura}
+Fale sempre em ${NOME_IDIOMA[lang]}, com voz calma, formal, educada e executiva. Frases curtas; no máximo 4 frases por vez; ofereça detalhar se fizer sentido.${a.foco}
+REGRA ABSOLUTA: qualquer dado da empresa (valores, contas, vencimentos, clientes, fornecedores, custos, dívidas, estoque, faturamento, caixa, impostos, riscos) você só obtém chamando a ferramenta perguntar_ao_axioma com a pergunta completa e clara (inclua o período e o assunto da conversa, ex.: "contas a receber desta semana que estão vencidas"). Nunca diga um número que não veio dessa ferramenta nesta conversa. Enquanto espera, diga só algo curto como "um instante, vou consultar".
 Ao receber o resultado, transmita o conteúdo com fidelidade: os valores exatamente como vieram, as palavras Fato/Estimativa/Cenário quando existirem, e TODOS os avisos (consulta que falhou, valor não conferido, dado que não está disponível). Não acrescente número nem conclusão própria.
 Simulação ("e se…") também vai para a ferramenta; deixe claro que é um cenário hipotético. Correção ("na verdade, setembro") = nova consulta com o dado corrigido.
 Perguntas gerais (cumprimento, o que é um termo financeiro) você responde direto, sem ferramenta. Nunca execute nem prometa pagamento, transferência, exclusão ou alteração de dados.
-Nunca diga que é uma IA de outra empresa (Google, Alibaba, OpenAI etc.): você é o José, do Axioma.`
+Nunca diga que é uma IA de outra empresa (Google, Alibaba, OpenAI etc.): você é ${a.eu}.`
 }
 
 export const FERRAMENTA_AXIOMA = {
@@ -46,14 +64,14 @@ export const FERRAMENTA_AXIOMA = {
 
 // ─── Gemini Live: configuração TRAVADA no token efêmero ───
 const VOZ_GEMINI_PADRAO = 'Charon' // masculina, tom informativo (trocável por GEMINI_VOZ)
-export function setupGemini(p: { lang: IdiomaFala; nome: string; modelo: string; voz?: string }) {
+export function setupGemini(p: { lang: IdiomaFala; nome: string; modelo: string; voz?: string; tela?: TelaTR }) {
   return {
     model: p.modelo.startsWith('models/') ? p.modelo : `models/${p.modelo}`,
     generationConfig: {
       responseModalities: ['AUDIO'],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: p.voz || VOZ_GEMINI_PADRAO } }, languageCode: { pt: 'pt-BR', en: 'en-US', es: 'es-US' }[p.lang] },
     },
-    systemInstruction: { parts: [{ text: instrucoesJose(p.lang, p.nome) }] },
+    systemInstruction: { parts: [{ text: instrucoesJose(p.lang, p.nome, p.tela) }] },
     tools: [{ functionDeclarations: [FERRAMENTA_AXIOMA] }],
     realtimeInputConfig: { automaticActivityDetection: { silenceDurationMs: 700 } },
     inputAudioTranscription: {},
@@ -72,11 +90,11 @@ export function corpoTokenGemini(setup: ReturnType<typeof setupGemini>, agora = 
 }
 
 // ─── Qwen Omni Realtime: session.update que o navegador envia (WebRTC) ───
-export function sessaoQwen(p: { lang: IdiomaFala; nome: string; voz?: string }) {
+export function sessaoQwen(p: { lang: IdiomaFala; nome: string; voz?: string; tela?: TelaTR }) {
   return {
     modalities: ['text', 'audio'],
     ...(p.voz ? { voice: p.voz } : {}),
-    instructions: instrucoesJose(p.lang, p.nome),
+    instructions: instrucoesJose(p.lang, p.nome, p.tela),
     input_audio_transcription: { model: 'qwen3-asr-flash-realtime' },
     turn_detection: { type: 'server_vad', threshold: 0.5, silence_duration_ms: 700 },
     tools: [{ type: 'function', function: FERRAMENTA_AXIOMA }],

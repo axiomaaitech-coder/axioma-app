@@ -81,8 +81,8 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
     situacaoVoz(empresaId).then((s) => { if (vivo) setVozLiberada(s.ativa) })
     return () => { vivo = false }
   }, [empresaId])
-  // Saiu da tela: abandona a pergunta pendente e para a voz
-  useEffect(() => () => { pedidoRef.current?.abort(); pararFala() }, [])
+  // Saiu da tela: abandona a pergunta digitada pendente (a voz e a conversa ao vivo continuam — barra fixa)
+  useEffect(() => () => { pedidoRef.current?.abort() }, [])
 
   useEffect(() => {
     obterLeiturasRecentes(lang).then(setLeituras)

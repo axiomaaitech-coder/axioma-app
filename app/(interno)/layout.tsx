@@ -6,6 +6,7 @@ import AvisoAprovacaoEquipe from "../../components/AvisoAprovacaoEquipe";
 import AvisoVencimentos from "../../components/AvisoVencimentos";
 import AvisoConferencia from "../../components/AvisoConferencia";
 import AvisoFalhaLeitura from "../../components/AvisoFalhaLeitura";
+import BarraVozGlobal from "../../components/BarraVozGlobal";
 
 export default function InternoLayout({
   children,
@@ -25,6 +26,8 @@ export default function InternoLayout({
       <GuardiaoRastreio />
       <AvisoAprovacaoEquipe />
       <AvisoFalhaLeitura />
+      {/* Voz: conversa ao vivo e leitura continuam ao trocar de tela; esta barra mostra e permite encerrar */}
+      <BarraVozGlobal />
     </div>
   );
 }

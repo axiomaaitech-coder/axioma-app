@@ -6,7 +6,7 @@ import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { comRetentativa } from '@/lib/antiFalha'
 import { vozAtivaPara } from '@/lib/voz/servidor'
 import { primeiroNome, type IdiomaFala } from '@/lib/voz/textoFala'
-import { corpoTokenGemini, fornecedoresTR, MENSAGENS_INICIO, processarInicio, sessaoQwen, setupGemini, DURACAO_MAX_S, SILENCIO_MAX_S, type FornecedorTR } from '@/lib/voz/tempoReal/servidor'
+import { corpoTokenGemini, fornecedoresTR, MENSAGENS_INICIO, processarInicio, sessaoQwen, setupGemini, DURACAO_MAX_S, SILENCIO_MAX_S, TELAS_TR, type FornecedorTR, type TelaTR } from '@/lib/voz/tempoReal/servidor'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA VOICE INTELLIGENCE — PoC CONVERSA AO VIVO. Regra em lib/voz/tempoReal/servidor.ts.
@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
   const empresaId = String(body?.empresa_id ?? '')
   const lang = String(body?.lang ?? 'pt')
   const fornecedor = String(body?.fornecedor ?? '')
+  // Tela que abriu a conversa (define quem se apresenta); fora da lista = José
+  const tela: TelaTR = (TELAS_TR as readonly string[]).includes(String(body?.tela)) ? (String(body?.tela) as TelaTR) : 'nexus'
   const r = await processarInicio({ usuario: user?.id ?? null, empresaId, lang, fornecedor }, {
     ativa: (id) => vozAtivaPara(id, ENV_VOZ()),
     disponiveis: DISPONIVEIS(),
@@ -65,14 +67,14 @@ export async function POST(request: NextRequest) {
   if (r.codigo !== 'ok') return NextResponse.json({ error: r.codigo, mensagem: MENSAGENS_INICIO[r.codigo][idioma] }, { status: r.status })
 
   const nome = primeiroNome(user!.user_metadata?.nome || user!.user_metadata?.full_name || '')
-  after(() => registrarAuditoria({ empresaId, ator: user!.id, acao: 'voz.tempo_real.inicio', entidade: 'voz', parametros: { fornecedor, lang: idioma } }))
+  after(() => registrarAuditoria({ empresaId, ator: user!.id, acao: 'voz.tempo_real.inicio', entidade: 'voz', parametros: { fornecedor, lang: idioma, tela } }))
 
   if ((fornecedor as FornecedorTR) === 'qwen') {
-    return NextResponse.json({ fornecedor, sessao: sessaoQwen({ lang: idioma, nome, voz: process.env.QWEN_VOZ || undefined }), duracao_max_s: DURACAO_MAX_S, silencio_max_s: SILENCIO_MAX_S })
+    return NextResponse.json({ fornecedor, sessao: sessaoQwen({ lang: idioma, nome, voz: process.env.QWEN_VOZ || undefined, tela }), duracao_max_s: DURACAO_MAX_S, silencio_max_s: SILENCIO_MAX_S })
   }
 
   // Gemini: token efêmero de 1 uso com o setup inteiro travado no servidor
-  const setup = setupGemini({ lang: idioma, nome, modelo: MODELO_GEMINI(), voz: process.env.GEMINI_VOZ || undefined })
+  const setup = setupGemini({ lang: idioma, nome, modelo: MODELO_GEMINI(), voz: process.env.GEMINI_VOZ || undefined, tela })
   try {
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/auth_tokens', {
       method: 'POST', signal: AbortSignal.timeout(15000),

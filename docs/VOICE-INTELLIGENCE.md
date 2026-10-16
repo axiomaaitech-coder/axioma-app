@@ -327,3 +327,13 @@ pelo navegador chamando `/api/ia/motor` com a sessão do usuário — RLS, consu
   minutos do fornecedor é do Axioma — decidir regra antes de clientes.
 - **Pendente (precisa de chave e aparelho):** voz e português reais, latência, WebRTC do Qwen de ponta a ponta,
   conferência automática dos valores falados (transcrição × resposta do motor).
+
+
+### 14.1 Conversa ao vivo nas 4 IAs e fora da tela (2026-10-16)
+
+- Telas: `nexus` (José), `ia-financeira`, `ia-tributaria`, `mei-ia-advisor` — identidade da Opção A (`lib/ia/identidade.ts`) na
+  instrução travada no token; o José mantém o texto aprovado.
+- `lib/voz/tempoReal/sessaoGlobal.ts`: a sessão vive fora da tela; a tela aberta recebe as falas (as pendentes chegam ao
+  voltar) e pode dar uma consulta mais rica; com a tela fechada a consulta usa o mesmo motor com o histórico da conversa.
+- `components/BarraVozGlobal.tsx` no layout interno: microfone aberto, estado, última fala, Voltar à conversa, Encerrar; também
+  aparece quando o botão Ouvir está lendo (Parar). Testes em `scripts/check-voz-tempo-real.mts`.

@@ -67,6 +67,18 @@ assert.equal(qwen.tools.length, 1); assert.equal(qwen.tools[0].function.name, 'p
 assert.match(qwen.instructions, /español/); assert.equal(qwen.voice, 'Ethan')
 assert.ok(!('voice' in S.sessaoQwen({ lang: 'pt', nome: '' })), 'sem voz configurada: padrão do fornecedor')
 console.log('OK — configuração: só a ferramenta do motor, regras de fidelidade, token de 1 uso e curto')
+// Quem se apresenta em cada tela (Opção A do CEO; José mantido no Nexus)
+assert.match(S.instrucoesJose('pt', 'Elias'), /^Você é José, o diretor financeiro digital do Axioma/, 'Nexus: José (texto aprovado)')
+assert.match(S.instrucoesJose('pt', 'Elias', 'ia-financeira'), /^Você é a Inteligência Axioma, diretora financeira digital do Axioma/)
+assert.match(S.instrucoesJose('pt', 'Elias', 'ia-tributaria'), /^Você é a Inteligência Axioma, especialista tributária do Axioma[\s\S]*Reforma Tributária[\s\S]*nunca diga apenas "consulte um contador"/)
+assert.match(S.instrucoesJose('en', '', 'ia-tributaria'), /Fale sempre em English[\s\S]*você é a Inteligência Axioma, do Axioma\.$/)
+assert.ok(S.setupGemini({ lang: 'pt', nome: '', modelo: 'm', tela: 'ia-financeira' }).systemInstruction.parts[0].text.includes('diretora financeira digital'), 'token travado com a identidade da tela')
+for (const [arq, tela] of [['app/(interno)/ia-financeira/page.tsx', 'ia-financeira'], ['app/(interno)/ia-tributaria/page.tsx', 'ia-tributaria']]) {
+  const src = readFileSync(arq, 'utf8')
+  assert.ok(src.includes(`<ConversaAoVivo`) && src.includes(`tela="${tela}"`) && src.includes(`perguntarAoAxioma({ pergunta, empresaId, tela: "${tela}"`), `${arq}: conversa ao vivo ligada ao motor desta tela`)
+}
+assert.ok(readFileSync('app/api/voz/tempo-real/route.ts', 'utf8').includes("(TELAS_TR as readonly string[]).includes(String(body?.tela))"), 'rota só aceita telas conhecidas')
+console.log('OK — identidade por tela: José (Nexus), Diretora Financeira Digital, Especialista Tributária; painéis ligados ao motor')
 
 // ─── Áudio PCM ───
 const amostras = new Float32Array([0, 0.5, -0.5, 1, -1, 2, -2])
@@ -146,3 +158,46 @@ assert.ok(!/SERVICE_ROLE|supabaseServico/.test(rota + sdp), 'sem chave de servi�
 assert.ok(readFileSync('middleware.ts', 'utf8').includes("connect-src 'self' wss://generativelanguage.googleapis.com"), 'CSP libera só o WebSocket do Gemini')
 assert.ok(readFileSync('app/(interno)/nexus/JosephChat.tsx', 'utf8').includes('consultar={consultarAoVivo}'), 'José ligado ao motor')
 console.log('check-voz-tempo-real: tudo certo ✔')
+
+// ─── Conversa que CONTINUA ao trocar de tela (sessaoGlobal) ───
+{
+  const G = await import('../lib/voz/tempoReal/sessaoGlobal')
+  const motorPerguntas: Record<string, unknown>[] = []
+  enviados.length = 0
+  globalThis.fetch = (async (url: unknown, init?: { method?: string; body?: string }) => {
+    const u = String(url)
+    if (u === '/api/voz/tempo-real' && init?.method === 'POST') { const b = JSON.parse(String(init.body)); assert.equal(b.tela, 'mei-ia-advisor', 'a tela vai para o servidor'); return new Response(JSON.stringify({ fornecedor: 'gemini', ws: 'wss://exemplo/ws', token: 't', modelo: 'models/x', duracao_max_s: 600, silencio_max_s: 60 })) }
+    if (u === '/api/ia/motor') { motorPerguntas.push(JSON.parse(String(init?.body))); return new Response(JSON.stringify({ resposta: 'Fato: limite usado 40%.', nivel: 'rotina' })) }
+    return new Response('{}')
+  }) as typeof fetch
+  const noChat: string[] = []
+  const tela = { aoFalar: (q: string, t: string) => { noChat.push(`${q}:${t}`) } }
+  const sair = G.registrarTela('mei-ia-advisor', tela)
+  await G.iniciarConversaGlobal({ fornecedor: 'gemini', empresaId: EMP, lang: 'pt', tela: 'mei-ia-advisor', caminho: '/mei/ia-advisor', tela_aberta: tela })
+  await new Promise((ok) => setTimeout(ok, 5))
+  const m2 = (m: unknown) => wsAtual!.onmessage!({ data: JSON.stringify(m) })
+  await m2({ setupComplete: {} })
+  assert.equal(G.estadoConversaGlobal().ativa, true)
+  await m2({ serverContent: { inputTranscription: { text: 'Quanto do limite usei?' } } })
+  await m2({ serverContent: { turnComplete: true } })
+  assert.deepEqual(noChat, ['voce:Quanto do limite usei?'], 'tela aberta recebe a fala')
+  sair() // a pessoa foi conferir Custos Fixos
+  await m2({ toolCall: { functionCalls: [{ id: 'k1', name: 'perguntar_ao_axioma', args: { pergunta: 'limite de faturamento usado' } }] } })
+  assert.equal(motorPerguntas.length, 1, 'com a tela fechada a consulta continua indo ao motor')
+  assert.equal(motorPerguntas[0].tela, 'mei-ia-advisor'); assert.deepEqual(motorPerguntas[0].historico, [{ role: 'user', content: 'Quanto do limite usei?' }], 'histórico desta conversa')
+  await m2({ serverContent: { outputTranscription: { text: 'Você usou 40% do limite.' } } })
+  await m2({ serverContent: { turnComplete: true } })
+  assert.equal(G.estadoConversaGlobal().ativa, true, 'a conversa NÃO encerrou ao sair da tela')
+  assert.equal(G.estadoConversaGlobal().ultimaFala?.texto, 'Você usou 40% do limite.', 'a barra fixa mostra a última fala')
+  assert.deepEqual(noChat, ['voce:Quanto do limite usei?'], 'fora da tela nada é jogado num chat fechado')
+  G.registrarTela('mei-ia-advisor', tela) // voltou para a tela
+  assert.deepEqual(noChat, ['voce:Quanto do limite usei?', 'jose:Você usou 40% do limite.'], 'ao voltar, as falas pendentes entram no chat')
+  G.encerrarConversaGlobal()
+  await new Promise((ok) => setTimeout(ok, 5))
+  assert.equal(G.estadoConversaGlobal().ativa, false)
+  globalThis.fetch = fetchOriginal
+  for (const [arq, txt] of [['app/(interno)/layout.tsx', '<BarraVozGlobal />'], ['app/(interno)/mei/ia-advisor/page.tsx', 'tela="mei-ia-advisor"'], ['components/OuvirResposta.tsx', 'Trocar de tela NÃO para a leitura']]) assert.ok(readFileSync(arq, 'utf8').includes(txt), `${arq}`)
+  assert.ok(!readFileSync('components/ConversaAoVivo.tsx', 'utf8').includes("encerrar(\"saiu_da_tela\")"), 'o painel não encerra ao sair da tela')
+  assert.match(S.instrucoesJose('pt', '', 'mei-ia-advisor'), /^Você é a Inteligência Axioma, consultora do MEI do Axioma/)
+  console.log('OK — conversa continua fora da tela: consulta ao motor, barra fixa, falas pendentes entregues ao voltar; MEI com a Consultora do MEI')
+}

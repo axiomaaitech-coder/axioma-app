@@ -46,8 +46,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
     return () => { vivo = false; };
   }, [empresaId]);
 
-  // Esta resposta saiu da tela enquanto falava: para a fala
-  useEffect(() => () => { if (estadoFala().chave === texto) pararFala(); }, [texto]);
+  // Trocar de tela NÃO para a leitura (pedido do CEO, 2026-10-16): a barra fixa BarraVozGlobal tem o Parar
 
   if (!ativa || !empresa || !texto.trim()) return null;
 

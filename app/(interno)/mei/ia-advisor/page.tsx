@@ -26,6 +26,7 @@ import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
 import OuvirResposta from '../../../../components/OuvirResposta'
+import ConversaAoVivo from '../../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../../lib/voz/gravador'
 
 const supabase = createBrowserClient(
@@ -396,6 +397,16 @@ DADOS REAIS DESTE MEI:
               {t('enviar')}
             </button>
           </div>
+          {/* Conversa ao vivo: Inteligência Axioma — Consultora do MEI; consulta o MESMO motor desta tela */}
+          <ConversaAoVivo lang={lang} claro={temaClaro} tela="mei-ia-advisor"
+            aoFalar={(quem, texto) => setChatMensagens(prev => [...prev, { role: quem === 'voce' ? 'user' : 'assistant', content: texto }])}
+            consultar={async (pergunta) => {
+              const formato = lang === 'en' ? 'FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the notes.' : lang === 'es' ? 'FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga los avisos.' : 'FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os avisos.'
+              const ia = await perguntarAoAxioma({ pergunta, empresaId: await obterEmpresaAtiva(), tela: 'mei-ia-advisor', lang, historico: chatMensagens.slice(-8).map(m => ({ role: m.role, content: m.content })), contextoTela: `${formato}
+
+${montarContextoIA()}` })
+              return ia?.resposta ?? (lang === 'en' ? 'It was not possible to check the data right now.' : lang === 'es' ? 'No fue posible consultar los datos ahora.' : 'Não foi possível consultar os dados agora.')
+            }} />
 
           <div className="flex gap-2 flex-wrap mt-3">
             {((txt.sugestoes as any)[lang] as string[]).map((q: string, i: number) => (

@@ -22,6 +22,7 @@ export type EventosConversa = {
 export type OpcoesConversa = {
   fornecedor: FornecedorTR
   empresaId: string
+  tela?: 'nexus' | 'ia-financeira' | 'ia-tributaria' | 'mei-ia-advisor' // quem se apresenta (José ou Inteligência Axioma)
   lang: IdiomaFala
   eventos: EventosConversa
   consultar: (pergunta: string) => Promise<string> // o cérebro: motor do Axioma
@@ -269,7 +270,7 @@ export async function iniciarConversaAoVivo(o: OpcoesConversa): Promise<SessaoAo
   o.eventos.estado('conectando')
   let ini: Record<string, unknown>
   try {
-    const res = await fetch('/api/voz/tempo-real', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empresa_id: o.empresaId, lang: o.lang, fornecedor: o.fornecedor }) })
+    const res = await fetch('/api/voz/tempo-real', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empresa_id: o.empresaId, lang: o.lang, fornecedor: o.fornecedor, tela: o.tela ?? 'nexus' }) })
     ini = await res.json()
     if (!res.ok) { o.eventos.erro(typeof ini?.mensagem === 'string' ? ini.mensagem : MSG_FALHA[o.lang]); o.eventos.estado('erro'); return null }
   } catch { o.eventos.erro(MSG_FALHA[o.lang]); o.eventos.estado('erro'); return null }
