@@ -259,3 +259,43 @@ body {
 [data-theme="xms"].nexus-escala .nexus-titulo-secao { font-size: 1.5rem; line-height: 1.2; }
 [data-theme="xms"].nexus-escala h3.text-sm,
 [data-theme="xms"].nexus-escala h4.text-sm { font-size: 1.0625rem; line-height: 1.35; }
+
+/* ═══ Botão de voz (components/BotaoVoz) — "cápsula viva" nas cores do Axioma (tema-tokens.md):
+   parado = cápsula azul-marinho com faixa e borda verde-menta que acendem no hover (efeito padrão);
+   ouvindo = barras de som verde-menta que seguem a voz + anel pulsando (único movimento contínuo);
+   escrevendo = faixa de luz correndo; pronto = ✓ verde-menta. Escuro: cápsula verde-menta escuro. ═══ */
+.axv { position: relative; display: inline-flex; align-items: center; gap: .5rem; height: 44px; padding: 0 .95rem;
+  border-radius: 999px; color: #fff; font-weight: 600; font-size: .8125rem; letter-spacing: -0.005em; white-space: nowrap;
+  background: linear-gradient(160deg, #122b54 0%, #101b3d 70%); border: 1px solid rgba(46,204,155,.45);
+  box-shadow: 0 6px 18px -8px rgba(16,27,61,.55), inset 0 1px 0 rgba(255,255,255,.08);
+  overflow: hidden; isolation: isolate; cursor: pointer; user-select: none; touch-action: none;
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease, background .3s ease, padding .3s ease; }
+.axv.axv-escuro { background: linear-gradient(160deg, #13926b 0%, #0f7a5a 60%, #0a4f3b 100%); border-color: rgba(52,211,153,.55); }
+.axv::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #2ecc9b; opacity: 0; transition: opacity .25s ease; }
+.axv:hover:not(:disabled), .axv:focus-visible { transform: translateY(-2px); border-color: #2ecc9b; box-shadow: 0 0 28px rgba(46,204,155,.28), 0 10px 22px -10px rgba(16,27,61,.6); }
+.axv:hover::before, .axv:focus-visible::before { opacity: 1; }
+.axv:focus-visible { outline: 2px solid #2ecc9b; outline-offset: 2px; }
+.axv:active:not(:disabled) { transform: translateY(0) scale(.97); }
+.axv:disabled { cursor: not-allowed; opacity: 1; filter: saturate(.6); }
+.axv-mic { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: rgba(46,204,155,.18); color: #2ecc9b; flex: none; }
+.axv.axv-escuro .axv-mic { background: rgba(255,255,255,.16); color: #fff; }
+/* Ouvindo */
+.axv[data-estado="gravando"] { border-color: #2ecc9b; padding-right: 1.1rem; }
+.axv[data-estado="gravando"]::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid #2ecc9b; animation: axv-anel 1.6s ease-out infinite; pointer-events: none; }
+@keyframes axv-anel { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.18); } }
+.axv-barras { display: inline-flex; align-items: center; gap: 3px; height: 20px; }
+.axv-barras i { display: block; width: 3px; border-radius: 2px; background: #2ecc9b; transition: height .12s linear; }
+.axv-tempo { font-variant-numeric: tabular-nums; font-weight: 700; color: #34d399; }
+.axv.axv-escuro .axv-tempo, .axv.axv-escuro .axv-barras i { color: #fff; background: #fff; }
+.axv.axv-escuro .axv-tempo { background: none; }
+/* Escrevendo */
+.axv[data-estado="transcrevendo"]::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(46,204,155,.35) 50%, transparent 80%); animation: axv-luz 1.1s linear infinite; pointer-events: none; }
+@keyframes axv-luz { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+/* Pronto */
+.axv[data-estado="concluido"] { background: linear-gradient(160deg, #2ecc9b, #13926b); border-color: #2ecc9b; color: #101b3d; }
+.axv[data-estado="concluido"] .axv-mic { background: rgba(16,27,61,.15); color: #101b3d; }
+.axv-cancelar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; border: 1px solid rgba(46,204,155,.45); color: inherit; transition: background .2s ease, border-color .2s ease; }
+.axv-cancelar:hover { background: rgba(46,204,155,.15); border-color: #2ecc9b; }
+.axv-cancelar:focus-visible { outline: 2px solid #2ecc9b; outline-offset: 2px; }
+@media (max-width: 640px) { .axv-rotulo { display: none; } .axv { padding: 0 .6rem; } }
+@media (prefers-reduced-motion: reduce) { .axv, .axv-barras i { transition: none; } .axv[data-estado="gravando"]::after, .axv[data-estado="transcrevendo"]::after { animation: none; } }
