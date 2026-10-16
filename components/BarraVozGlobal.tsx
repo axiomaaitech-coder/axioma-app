@@ -26,6 +26,8 @@ const TX: Record<string, Record<L, string>> = {
   "ia-financeira": { pt: "Inteligência Axioma — Financeira", en: "Axioma Intelligence — Finance", es: "Inteligencia Axioma — Financiera" },
   "ia-tributaria": { pt: "Inteligência Axioma — Tributária", en: "Axioma Intelligence — Tax", es: "Inteligencia Axioma — Tributaria" },
   "mei-ia-advisor": { pt: "Inteligência Axioma — MEI", en: "Axioma Intelligence — MEI", es: "Inteligencia Axioma — MEI" },
+  "contas-pagar": { pt: "Inteligência Axioma — Contas a Pagar", en: "Axioma Intelligence — Payables", es: "Inteligencia Axioma — Cuentas por Pagar" },
+  "importar-documentos": { pt: "Inteligência Axioma — Importar", en: "Axioma Intelligence — Import", es: "Inteligencia Axioma — Importar" },
 };
 const PARADO = { chave: "", estado: "parado" as const };
 

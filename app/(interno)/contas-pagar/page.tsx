@@ -65,6 +65,7 @@ import { hojeISO, agora } from "../../../lib/datas";
 import PagarGuiaDAS from "../../../components/mei/PagarGuiaDAS";
 import type { MetodoPagamento } from "../../../lib/meiObrigacoesMotor";
 import BotaoVoz from "../../../components/BotaoVoz";
+import ChatInteligencia from "../../../components/ChatInteligencia";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
@@ -791,9 +792,6 @@ export default function ContasPagarPage() {
     if (item.filtroStatus) setFiltroStatus(item.filtroStatus);
   }
 
-  const [perguntaCfo, setPerguntaCfo] = useState("");
-  const [respostaCfo, setRespostaCfo] = useState<string | null>(null);
-  const [carregandoRespostaCfo, setCarregandoRespostaCfo] = useState(false);
 
   function contextoCfoPorRegra() {
     return {
@@ -816,9 +814,9 @@ export default function ContasPagarPage() {
   function montarContextoCfoIa(): string {
     const linhas: string[] = [];
     linhas.push(L(
-      "Você é a inteligência financeira do Axioma, especializada em Contas a Pagar de PMEs brasileiras. Responda de forma direta e prática, como um CFO experiente conversando com o dono do negócio. Use SOMENTE os números abaixo — nunca invente ou estime um valor que não esteja aqui; se a pergunta pedir algo que não está nos dados, diga claramente que ainda não tem essa informação.",
-      "You are Axioma's financial intelligence, specialized in Accounts Payable for Brazilian SMBs. Respond directly and practically, like an experienced CFO talking to the business owner. Use ONLY the numbers below — never invent or estimate a value that isn't here; if the question asks for something not in the data, clearly say you don't have that information yet.",
-      "Usted es la inteligencia financiera de Axioma, especializada en Cuentas por Pagar de PYMEs brasileñas. Responda de forma directa y práctica, como un CFO experimentado hablando con el dueño del negocio. Use SOLO los números abajo — nunca invente o estime un valor que no esté aquí; si la pregunta pide algo que no está en los datos, diga claramente que todavía no tiene esa información."
+      "DADOS DE CONTAS A PAGAR DESTA TELA (calculados pelo Axioma). Responda de forma direta e prática, como um diretor financeiro experiente conversando com o dono do negócio. Use SOMENTE os números abaixo — nunca invente ou estime um valor que não esteja aqui; se a pergunta pedir algo que não está nos dados, diga claramente que ainda não tem essa informação.",
+      "ACCOUNTS PAYABLE DATA FROM THIS SCREEN (calculated by Axioma). Respond directly and practically, like an experienced finance director talking to the business owner. Use ONLY the numbers below — never invent or estimate a value that isn't here; if the question asks for something not in the data, clearly say you don't have that information yet.",
+      "DATOS DE CUENTAS POR PAGAR DE ESTA PANTALLA (calculados por Axioma). Responda de forma directa y práctica, como un director financiero experimentado hablando con el dueño del negocio. Use SOLO los números abajo — nunca invente o estime un valor que no esté aquí; si la pregunta pide algo que no está en los datos, diga claramente que todavía no tiene esa información."
     ));
     linhas.push("");
     linhas.push(L("DADOS REAIS DESTA EMPRESA:", "REAL DATA FOR THIS COMPANY:", "DATOS REALES DE ESTA EMPRESA:"));
@@ -857,28 +855,6 @@ export default function ContasPagarPage() {
       linhas.push(`- ${L("Recuperação total estimada (descontos + multas evitáveis)", "Total estimated recovery (discounts + avoidable fees)", "Recuperación total estimada (descuentos + multas evitables)")}: ${fmt(totalRecuperacaoEstimada)}`);
     }
     return linhas.join("\n");
-  }
-
-  // IA real (OpenAI, via o motor de IA (lib/ia/cliente.ts)) primeiro; se falhar ou estiver fora,
-  // cai no V1 por regra que já existia — nunca quebra, só troca de fonte.
-  // Mesmo padrão do MEI IA Advisor (fetch + catch vazio + fallback síncrono).
-  async function perguntarAoCfo(perguntaDireta?: string) {
-    const pergunta = (perguntaDireta ?? perguntaCfo).trim();
-    if (!pergunta) return;
-    if (perguntaDireta) setPerguntaCfo(perguntaDireta);
-
-    setCarregandoRespostaCfo(true);
-    let resposta = "";
-    // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados de contas a pagar desta tela.
-    const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "contas-pagar", lang: idioma as "pt" | "en" | "es", contextoTela: montarContextoCfoIa() });
-    if (ia) resposta = ia.resposta;
-
-    if (!resposta) {
-      showToast(L("Respondendo com base em regras — a inteligência do Axioma está indisponível no momento.", "Answering based on rules — Axioma's intelligence is unavailable right now.", "Respondiendo con base en reglas — la inteligencia de Axioma está indisponible en este momento."), "erro");
-      resposta = responderPerguntaApPorRegra(pergunta, contextoCfoPorRegra());
-    }
-    setRespostaCfo(resposta);
-    setCarregandoRespostaCfo(false);
   }
 
   const PERGUNTAS_SUGERIDAS_CFO: Record<"pt" | "en" | "es", string[]> = {
@@ -2164,37 +2140,13 @@ export default function ContasPagarPage() {
             )}
 
             <div className="pt-3" style={{ borderTop: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
-              <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
-                <MessageCircleQuestion size={14} />
-                {L("Pergunte ao Axioma CFO", "Ask Axioma CFO", "Pregunte al Axioma CFO")}
-              </p>
-              <div className="flex gap-2 mb-2">
-                <input value={perguntaCfo} onChange={(e) => setPerguntaCfo(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") perguntarAoCfo(); }}
-                  disabled={carregandoRespostaCfo}
-                  placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(46,204,155,0.2)"), color: TEXTO }} />
-                <BotaoVoz lang={idioma as "pt" | "en" | "es"} tela="contas-pagar" empresaId={empresaId} claro={temaClaro} desativado={carregandoRespostaCfo} onTexto={(x) => setPerguntaCfo((a) => juntarTexto(a, x))} />
-                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" }}>
-                  <Send size={16} />
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {(PERGUNTAS_SUGERIDAS_CFO[idioma as "pt" | "en" | "es"] || PERGUNTAS_SUGERIDAS_CFO.pt).map((sug) => (
-                  <button key={sug} onClick={() => perguntarAoCfo(sug)} disabled={carregandoRespostaCfo} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)"), color: temaClaro ? CINZA : "#fff", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
-                    {sug}
-                  </button>
-                ))}
-              </div>
-              {carregandoRespostaCfo ? (
-                <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
-                  <p className="text-sm" style={{ color: CINZA }}>{L("Pensando...", "Thinking...", "Pensando...")}</p>
-                </div>
-              ) : respostaCfo && (
-                <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
-                  <p className="text-sm" style={{ color: TEXTO }}>{respostaCfo}</p>
-                </div>
-              )}
+              {/* Chat da Inteligência Axioma (Assistente Financeiro): conversa, voz, memória e conversa ao vivo — components/ChatInteligencia */}
+              <ChatInteligencia tela="contas-pagar" empresaId={empresaId} lang={idioma as "pt" | "en" | "es"} claro={temaClaro}
+                titulo={L("Pergunte à Inteligência Axioma — Assistente Financeiro", "Ask Axioma Intelligence — Financial Assistant", "Pregunte a la Inteligencia Axioma — Asistente Financiero")}
+                placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
+                sugestoes={PERGUNTAS_SUGERIDAS_CFO[idioma as "pt" | "en" | "es"] || PERGUNTAS_SUGERIDAS_CFO.pt}
+                contexto={montarContextoCfoIa}
+                porRegra={(p) => responderPerguntaApPorRegra(p, contextoCfoPorRegra())} />
             </div>
           </CanvasBox>
 

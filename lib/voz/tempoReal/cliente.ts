@@ -9,7 +9,7 @@
 // está aberto e fecha sozinha em 60 s de silêncio ou 10 min. Nada de áudio/texto vai para log.
 // ═══════════════════════════════════════════════════════════════
 import type { IdiomaFala } from '../textoFala'
-import type { FornecedorTR } from './servidor'
+import type { FornecedorTR, TelaTR } from './servidor'
 
 export type EstadoConversa = 'conectando' | 'ouvindo' | 'consultando' | 'falando' | 'encerrada' | 'erro'
 export type MotivoFim = 'usuario' | 'silencio' | 'tempo_esgotado' | 'erro' | 'saiu_da_tela'
@@ -22,7 +22,7 @@ export type EventosConversa = {
 export type OpcoesConversa = {
   fornecedor: FornecedorTR
   empresaId: string
-  tela?: 'nexus' | 'ia-financeira' | 'ia-tributaria' | 'mei-ia-advisor' // quem se apresenta (José ou Inteligência Axioma)
+  tela?: TelaTR // quem se apresenta (José ou Inteligência Axioma)
   lang: IdiomaFala
   eventos: EventosConversa
   consultar: (pergunta: string) => Promise<string> // o cérebro: motor do Axioma
