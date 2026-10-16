@@ -42,7 +42,7 @@ const supabase = createBrowserClient(
 const T = {
   pt: {
     titulo: "🧠 IA Financeira",
-    subtitulo: "Seu CFO Digital — análise inteligente com dados reais",
+    subtitulo: "Diretor Financeiro Digital da Inteligência Axioma — análise inteligente com dados reais",
     carregando: "Carregando inteligência...",
     // Abas
     abaScore: "🏆 Score 360°",
@@ -62,7 +62,7 @@ const T = {
     atencao: "Atenção",
     critico: "Crítico",
     // Chat
-    chatTitulo: "💬 Chat com seu CFO Digital",
+    chatTitulo: "💬 Chat com o Diretor Financeiro Digital — Inteligência Axioma",
     chatPlaceholder: "Pergunte sobre suas finanças...",
     chatAnalisando: "Analisando seus dados...",
     chatLimpar: "🗑️ Limpar histórico",
@@ -120,7 +120,7 @@ const T = {
   },
   en: {
     titulo: "🧠 Financial AI",
-    subtitulo: "Your Digital CFO — intelligent analysis with real data",
+    subtitulo: "Digital Finance Director of Axioma Intelligence — intelligent analysis with real data",
     carregando: "Loading intelligence...",
     abaScore: "🏆 Score 360°",
     abaChat: "💬 CFO Chat",
@@ -137,7 +137,7 @@ const T = {
     bom: "Good",
     atencao: "Caution",
     critico: "Critical",
-    chatTitulo: "💬 Chat with your Digital CFO",
+    chatTitulo: "💬 Chat with the Digital Finance Director — Axioma Intelligence",
     chatPlaceholder: "Ask about your finances...",
     chatAnalisando: "Analyzing your data...",
     chatLimpar: "🗑️ Clear history",
@@ -188,7 +188,7 @@ const T = {
   },
   es: {
     titulo: "🧠 IA Financiera",
-    subtitulo: "Su CFO Digital — análisis inteligente con datos reales",
+    subtitulo: "Director Financiero Digital de la Inteligencia Axioma — análisis inteligente con datos reales",
     carregando: "Cargando inteligencia...",
     abaScore: "🏆 Score 360°",
     abaChat: "💬 Chat CFO",
@@ -205,7 +205,7 @@ const T = {
     bom: "Bueno",
     atencao: "Atención",
     critico: "Crítico",
-    chatTitulo: "💬 Chat con su CFO Digital",
+    chatTitulo: "💬 Chat con el Director Financiero Digital — Inteligencia Axioma",
     chatPlaceholder: "Pregunte sobre sus finanzas...",
     chatAnalisando: "Analizando sus datos...",
     chatLimpar: "🗑️ Limpiar historial",
@@ -350,10 +350,10 @@ export default function IAFinanceiraPage() {
         setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
       } else {
         const msgInicial = lang === "en"
-          ? `Hello! I'm your Digital CFO. Your Business Score is ${score.total}/100. Ask me anything about your finances.`
+          ? `Hello! I'm the Digital Finance Director of Axioma Intelligence. Your Business Score is ${score.total}/100. Ask me anything about your finances.`
           : lang === "es"
-          ? `¡Hola! Soy su CFO Digital. Su Score Empresarial es ${score.total}/100. Pregunte lo que quiera sobre sus finanzas.`
-          : `Olá! Sou seu CFO Digital. Seu Score Empresarial é ${score.total}/100. Pergunte o que quiser sobre suas finanças.`;
+          ? `¡Hola! Soy el Director Financiero Digital de la Inteligencia Axioma. Su Score Empresarial es ${score.total}/100. Pregunte lo que quiera sobre sus finanzas.`
+          : `Olá! Sou o Diretor Financeiro Digital da Inteligência Axioma. Seu Score Empresarial é ${score.total}/100. Pergunte o que quiser sobre suas finanças.`;
         setMensagens([{ role: "assistant", texto: msgInicial }]);
       }
     } catch (err) {

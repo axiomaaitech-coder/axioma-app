@@ -69,16 +69,16 @@ assert.ok(!('voice' in S.sessaoQwen({ lang: 'pt', nome: '' })), 'sem voz configu
 console.log('OK — configuração: só a ferramenta do motor, regras de fidelidade, token de 1 uso e curto')
 // Quem se apresenta em cada tela (Opção A do CEO; José mantido no Nexus)
 assert.match(S.instrucoesJose('pt', 'Elias'), /^Você é José, o diretor financeiro digital do Axioma/, 'Nexus: José (texto aprovado)')
-assert.match(S.instrucoesJose('pt', 'Elias', 'ia-financeira'), /^Você é a Inteligência Axioma, diretora financeira digital do Axioma/)
-assert.match(S.instrucoesJose('pt', 'Elias', 'ia-tributaria'), /^Você é a Inteligência Axioma, especialista tributária do Axioma[\s\S]*Reforma Tributária[\s\S]*nunca diga apenas "consulte um contador"/)
-assert.match(S.instrucoesJose('en', '', 'ia-tributaria'), /Fale sempre em English[\s\S]*você é a Inteligência Axioma, do Axioma\.$/)
-assert.ok(S.setupGemini({ lang: 'pt', nome: '', modelo: 'm', tela: 'ia-financeira' }).systemInstruction.parts[0].text.includes('diretora financeira digital'), 'token travado com a identidade da tela')
+assert.match(S.instrucoesJose('pt', 'Elias', 'ia-financeira'), /^Você é o diretor financeiro digital da Inteligência Axioma/)
+assert.match(S.instrucoesJose('pt', 'Elias', 'ia-tributaria'), /^Você é o especialista tributário da Inteligência Axioma[\s\S]*Reforma Tributária[\s\S]*nunca diga apenas "consulte um contador"/)
+assert.match(S.instrucoesJose('en', '', 'ia-tributaria'), /Fale sempre em English[\s\S]*você é o especialista tributário da Inteligência Axioma\.$/)
+assert.ok(S.setupGemini({ lang: 'pt', nome: '', modelo: 'm', tela: 'ia-financeira' }).systemInstruction.parts[0].text.includes('diretor financeiro digital'), 'token travado com a identidade da tela')
 for (const [arq, tela] of [['app/(interno)/ia-financeira/page.tsx', 'ia-financeira'], ['app/(interno)/ia-tributaria/page.tsx', 'ia-tributaria']]) {
   const src = readFileSync(arq, 'utf8')
   assert.ok(src.includes(`<ConversaAoVivo`) && src.includes(`tela="${tela}"`) && src.includes(`perguntarAoAxioma({ pergunta, empresaId, tela: "${tela}"`), `${arq}: conversa ao vivo ligada ao motor desta tela`)
 }
 assert.ok(readFileSync('app/api/voz/tempo-real/route.ts', 'utf8').includes("(TELAS_TR as readonly string[]).includes(String(body?.tela))"), 'rota só aceita telas conhecidas')
-console.log('OK — identidade por tela: José (Nexus), Diretora Financeira Digital, Especialista Tributária; painéis ligados ao motor')
+console.log('OK — identidade por tela: José (Nexus), Diretor Financeiro Digital, Especialista Tributário; painéis ligados ao motor')
 
 // ─── Áudio PCM ───
 const amostras = new Float32Array([0, 0.5, -0.5, 1, -1, 2, -2])
@@ -198,6 +198,6 @@ console.log('check-voz-tempo-real: tudo certo ✔')
   globalThis.fetch = fetchOriginal
   for (const [arq, txt] of [['app/(interno)/layout.tsx', '<BarraVozGlobal />'], ['app/(interno)/mei/ia-advisor/page.tsx', 'tela="mei-ia-advisor"'], ['components/OuvirResposta.tsx', 'Trocar de tela NÃO para a leitura']]) assert.ok(readFileSync(arq, 'utf8').includes(txt), `${arq}`)
   assert.ok(!readFileSync('components/ConversaAoVivo.tsx', 'utf8').includes("encerrar(\"saiu_da_tela\")"), 'o painel não encerra ao sair da tela')
-  assert.match(S.instrucoesJose('pt', '', 'mei-ia-advisor'), /^Você é a Inteligência Axioma, consultora do MEI do Axioma/)
-  console.log('OK — conversa continua fora da tela: consulta ao motor, barra fixa, falas pendentes entregues ao voltar; MEI com a Consultora do MEI')
+  assert.match(S.instrucoesJose('pt', '', 'mei-ia-advisor'), /^Você é o consultor do MEI da Inteligência Axioma/)
+  console.log('OK — conversa continua fora da tela: consulta ao motor, barra fixa, falas pendentes entregues ao voltar; MEI com a Consultor do MEI')
 }

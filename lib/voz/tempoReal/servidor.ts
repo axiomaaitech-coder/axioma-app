@@ -43,7 +43,7 @@ function apresentacao(tela: TelaTR, nome: string): { abertura: string; foco: str
     : tela === 'mei-ia-advisor'
       ? 'Foco: MEI — limite de faturamento, DAS, declaração anual (DASN-SIMEI), nota fiscal e quando é hora de virar ME; linguagem simples, sem jargão. Valor, limite ou prazo só com a regra oficial que vier da ferramenta, com a data.'
       : 'Foco: caixa, margem, contas, recebimentos, custos, dívidas e riscos, com visão de dono e prioridade para a decisão.'
-  return { abertura: `Você é a Inteligência Axioma, ${titulo} do Axioma, conversando AO VIVO, por voz, com ${com} ${tela === 'mei-ia-advisor' ? 'numa conversa de consultoria' : 'numa reunião de diretoria'}. Se perguntarem quem você é: "Sou a Inteligência Axioma, ${titulo}".`, foco: `\n${foco}`, eu: 'a Inteligência Axioma, do Axioma' }
+  return { abertura: `Você é o ${titulo} da Inteligência Axioma, conversando AO VIVO, por voz, com ${com} ${tela === 'mei-ia-advisor' ? 'numa conversa de consultoria' : 'numa reunião de diretoria'}. Se perguntarem quem você é: "Sou o ${titulo} da Inteligência Axioma".`, foco: `\n${foco}`, eu: `o ${titulo} da Inteligência Axioma` }
 }
 export function instrucoesJose(lang: IdiomaFala, nome: string, tela: TelaTR = 'nexus'): string {
   const a = apresentacao(tela, nome)

@@ -33,13 +33,13 @@ const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proc
 
 const T = {
   pt: {
-    titulo: "🏛️ IA Tributária", subtitulo: "Seu Consultor Fiscal Digital — simulação, economia e compliance",
+    titulo: "🏛️ IA Tributária", subtitulo: "Especialista Tributário da Inteligência Axioma — simulação, economia e compliance",
     carregando: "Carregando inteligência fiscal...",
     abaScore: "🛡️ Score Fiscal", abaChat: "💬 Chat Fiscal", abaSimulador: "🏛️ Simulador de Regime",
     abaCarga: "📊 Carga Tributária", abaEconomia: "💰 Economia", abaReforma: "🔔 Reforma 2026",
     abaDiagnostico: "📋 Diagnóstico", abaCalendario: "📅 Calendário",
     scoreFiscal: "Score Fiscal", scoreFiscalDesc: "Adequação fiscal e compliance da sua empresa.",
-    chatTitulo: "💬 Chat com seu Consultor Fiscal Digital", chatPlaceholder: "Pergunte sobre impostos, regime, DAS...",
+    chatTitulo: "💬 Chat com o Especialista Tributário — Inteligência Axioma", chatPlaceholder: "Pergunte sobre impostos, regime, DAS...",
     chatAnalisando: "Consultando legislação...", chatLimpar: "🗑️ Limpar",
     chatLimparConfirm: "Limpar todo o histórico?",
     chatErroLimpar: "Não foi possível limpar o histórico no servidor — pode reaparecer ao recarregar. Tente novamente.",
@@ -62,13 +62,13 @@ const T = {
     copiado: "Copiado!", erroCopiar: "Erro ao copiar",
   },
   en: {
-    titulo: "🏛️ Tax AI", subtitulo: "Your Digital Tax Consultant — simulation, savings and compliance",
+    titulo: "🏛️ Tax AI", subtitulo: "Tax Specialist of Axioma Intelligence — simulation, savings and compliance",
     carregando: "Loading tax intelligence...",
     abaScore: "🛡️ Tax Score", abaChat: "💬 Tax Chat", abaSimulador: "🏛️ Regime Simulator",
     abaCarga: "📊 Tax Burden", abaEconomia: "💰 Savings", abaReforma: "🔔 Reform 2026",
     abaDiagnostico: "📋 Diagnosis", abaCalendario: "📅 Calendar",
     scoreFiscal: "Tax Score", scoreFiscalDesc: "Your company's fiscal adequacy and compliance.",
-    chatTitulo: "💬 Chat with your Digital Tax Consultant", chatPlaceholder: "Ask about taxes, regime, DAS...",
+    chatTitulo: "💬 Chat with the Tax Specialist — Axioma Intelligence", chatPlaceholder: "Ask about taxes, regime, DAS...",
     chatAnalisando: "Consulting legislation...", chatLimpar: "🗑️ Clear",
     chatLimparConfirm: "Clear all history?",
     chatErroLimpar: "Could not clear the history on the server — it may reappear on reload. Try again.",
@@ -91,13 +91,13 @@ const T = {
     copiado: "Copied!", erroCopiar: "Copy error",
   },
   es: {
-    titulo: "🏛️ IA Tributaria", subtitulo: "Su Consultor Fiscal Digital — simulación, ahorro y cumplimiento",
+    titulo: "🏛️ IA Tributaria", subtitulo: "Especialista Tributario de la Inteligencia Axioma — simulación, ahorro y cumplimiento",
     carregando: "Cargando inteligencia fiscal...",
     abaScore: "🛡️ Score Fiscal", abaChat: "💬 Chat Fiscal", abaSimulador: "🏛️ Simulador de Régimen",
     abaCarga: "📊 Carga Tributaria", abaEconomia: "💰 Ahorro", abaReforma: "🔔 Reforma 2026",
     abaDiagnostico: "📋 Diagnóstico", abaCalendario: "📅 Calendario",
     scoreFiscal: "Score Fiscal", scoreFiscalDesc: "Adecuación fiscal y cumplimiento de su empresa.",
-    chatTitulo: "💬 Chat con su Consultor Fiscal Digital", chatPlaceholder: "Pregunte sobre impuestos, régimen, DAS...",
+    chatTitulo: "💬 Chat con el Especialista Tributario — Inteligencia Axioma", chatPlaceholder: "Pregunte sobre impuestos, régimen, DAS...",
     chatAnalisando: "Consultando legislación...", chatLimpar: "🗑️ Limpiar",
     chatLimparConfirm: "¿Limpiar todo el historial?",
     chatErroLimpar: "No se pudo limpiar el historial en el servidor — puede reaparecer al recargar. Intente de nuevo.",
@@ -259,9 +259,9 @@ export default function IATributariaPage() {
       if (hist.length > 0) {
         setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
       } else {
-        const msg = lang === "en" ? `Hello! I'm your Tax Consultant. Your Tax Score is ${sf.score}/100. Ask me anything.`
-          : lang === "es" ? `¡Hola! Soy su Consultor Fiscal. Su Score Fiscal es ${sf.score}/100. Pregunte lo que quiera.`
-          : `Olá! Sou seu Consultor Fiscal Digital. Seu Score Fiscal é ${sf.score}/100. Pergunte o que quiser.`;
+        const msg = lang === "en" ? `Hello! I'm the Tax Specialist of Axioma Intelligence. Your Tax Score is ${sf.score}/100. Ask me anything.`
+          : lang === "es" ? `¡Hola! Soy el Especialista Tributario de la Inteligencia Axioma. Su Score Fiscal es ${sf.score}/100. Pregunte lo que quiera.`
+          : `Olá! Sou o Especialista Tributário da Inteligência Axioma. Seu Score Fiscal é ${sf.score}/100. Pergunte o que quiser.`;
         setMensagens([{ role: "assistant", texto: msg }]);
       }
     } catch (err) { showToast(tratarFalhaCarregamento("ia-tributaria.carregarTudo", err, lang), "erro"); }
