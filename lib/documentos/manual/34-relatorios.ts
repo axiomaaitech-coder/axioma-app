@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '34 - Gestão - Relatórios.docx',
   titulo: 'Manual 34 — Relatórios',
   subtitulo: 'Relatórios executivos prontos para compartilhar',
-  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne em um só lugar os relatórios que sócios, investidores, bancos e o contador costumam pedir, montados automaticamente com os dados do Axioma e prontos para enviar.' },
@@ -13,7 +13,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **🏢 Gestão ▼** → **Relatórios**.'] },
 
-    { p: '**Pergunte à Inteligência Axioma (Diretor Financeiro Digital):** No alto da tela há uma conversa com a Inteligência Axioma: pergunte digitando ou pelo botão **Falar** e continue o assunto. Peça relatórios sob medida com os dados da sua Empresa, por exemplo "resumo executivo deste mês" ou "relatório das contas vencidas": ela usa o período escolhido na tela. Embaixo de cada resposta há **🔊 Ouvir** (a voz do José), **"Quer que eu lembre disso?"** e **"Está errado?"**; abaixo ficam a **Conversa ao vivo** (continua se você mudar de tela) e o painel **Memória da IA**. Os números vêm dos dados da Empresa, conferidos.' },
+    { p: '**Pergunte à Inteligência Axioma (Diretor Financeiro Digital):** No alto da tela há uma conversa com a Inteligência Axioma: pergunte digitando ou pelo botão **Falar** e continue o assunto. Peça relatórios sob medida com os dados da sua Empresa, por exemplo "resumo executivo deste mês" ou "relatório das contas vencidas": ela usa o período escolhido na tela e consulta a DRE de qualquer mês ou período pelo mesmo cálculo da tela DRE (impostos aparecem como estimativa pelo regime). Embaixo de cada resposta há **🔊 Ouvir** (a voz do José), **"Quer que eu lembre disso?"** e **"Está errado?"**; abaixo ficam a **Conversa ao vivo** (continua se você mudar de tela) e o painel **Memória da IA**. Os números vêm dos dados da Empresa, conferidos.' },
     { h1: 'Como usar' },
     { numerada: ['Escolha o **Período** (mês e ano).', 'Escolha a aba do relatório.', 'Clique em **Exportar PDF** ou **Compartilhar** para enviar.'] },
 
@@ -36,7 +36,7 @@ const en: DocumentoAxioma = {
   arquivo: '34 - Management - Reports.docx',
   titulo: 'Manual 34 — Reports',
   subtitulo: 'Executive reports ready to share',
-  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gathers in one place the reports partners, investors, banks and the accountant usually ask for, built automatically from Axioma’s data and ready to send.' },
@@ -44,7 +44,7 @@ const en: DocumentoAxioma = {
     { h1: 'How to get there' },
     { lista: ['Top menu → **🏢 Management ▼** → **Reports**.'] },
 
-    { p: '**Ask Axioma Intelligence (Digital Finance Director):** At the top of the screen there is a conversation with Axioma Intelligence: ask by typing or with **Speak** and follow up. Ask for custom reports with your Company data, e.g. "executive summary of this month" or "report of overdue bills": it uses the period chosen on the screen. Below each answer there is **🔊 Listen** (José\'s voice), **"Should I remember this?"** and **"Is this wrong?"**; below are the **Live conversation** (it continues if you change screens) and the **AI Memory** panel. Numbers come from the Company data, checked.' },
+    { p: '**Ask Axioma Intelligence (Digital Finance Director):** At the top of the screen there is a conversation with Axioma Intelligence: ask by typing or with **Speak** and follow up. Ask for custom reports with your Company data, e.g. "executive summary of this month" or "report of overdue bills": it uses the period chosen on the screen and looks up the income statement for any month or period with the same calculation as the DRE screen (taxes shown as an estimate by tax regime). Below each answer there is **🔊 Listen** (José\'s voice), **"Should I remember this?"** and **"Is this wrong?"**; below are the **Live conversation** (it continues if you change screens) and the **AI Memory** panel. Numbers come from the Company data, checked.' },
     { h1: 'How to use' },
     { numerada: ['Choose the **Period** (month and year).', 'Choose the report tab.', 'Click **Export PDF** or **Share** to send it.'] },
 
@@ -67,7 +67,7 @@ const es: DocumentoAxioma = {
   arquivo: '34 - Gestión - Informes.docx',
   titulo: 'Manual 34 — Informes',
   subtitulo: 'Informes ejecutivos listos para compartir',
-  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne en un solo lugar los informes que socios, inversionistas, bancos y el contador suelen pedir, armados automáticamente con los datos de Axioma y listos para enviar.' },
@@ -75,7 +75,7 @@ const es: DocumentoAxioma = {
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **🏢 Gestión ▼** → **Informes**.'] },
 
-    { p: '**Pregunte a la Inteligencia Axioma (Director Financiero Digital):** Arriba en la pantalla hay una conversación con la Inteligencia Axioma: pregunte escribiendo o con **Hablar** y continúe el tema. Pida informes a medida con los datos de su Empresa, por ejemplo "resumen ejecutivo del mes" o "informe de cuentas vencidas": usa el período elegido en la pantalla. Debajo de cada respuesta hay **🔊 Escuchar** (la voz de José), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**; abajo están la **Conversación en vivo** (continúa si cambia de pantalla) y el panel **Memoria de la IA**. Los números vienen de los datos de la Empresa, verificados.' },
+    { p: '**Pregunte a la Inteligencia Axioma (Director Financiero Digital):** Arriba en la pantalla hay una conversación con la Inteligencia Axioma: pregunte escribiendo o con **Hablar** y continúe el tema. Pida informes a medida con los datos de su Empresa, por ejemplo "resumen ejecutivo del mes" o "informe de cuentas vencidas": usa el período elegido en la pantalla y consulta el estado de resultados de cualquier mes o período con el mismo cálculo de la pantalla DRE (los impuestos aparecen como estimación por régimen). Debajo de cada respuesta hay **🔊 Escuchar** (la voz de José), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**; abajo están la **Conversación en vivo** (continúa si cambia de pantalla) y el panel **Memoria de la IA**. Los números vienen de los datos de la Empresa, verificados.' },
     { h1: 'Cómo usar' },
     { numerada: ['Elija el **Período** (mes y año).', 'Elija la pestaña del informe.', 'Haga clic en **Exportar PDF** o **Compartir** para enviar.'] },
 

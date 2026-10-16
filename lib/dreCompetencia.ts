@@ -121,7 +121,9 @@ export type BaseDRE = {
   jurosPagos: { data: string; valor: number }[]; falhou: boolean; premissas: string[];
 };
 
-export async function carregarBaseDRE(empresaId: string, inicio: string, fim: string): Promise<BaseDRE> {
+// `cliente`: no navegador o padrão; no servidor (ferramenta DRE da IA) o cliente do usuário — mesma RLS, mesmo cálculo
+export async function carregarBaseDRE(empresaId: string, inicio: string, fim: string, cliente: typeof supabase = supabase): Promise<BaseDRE> {
+  const supabase = cliente
   const premissas: string[] = [];
   const [rec, cr, vd, cv, cp, cf, juros] = await Promise.all([
     lerTodas(() => supabase.from("receitas").select("id, valor, data, categoria, descricao, origem_tabela").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),

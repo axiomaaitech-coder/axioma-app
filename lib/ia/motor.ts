@@ -140,7 +140,8 @@ Regras invioláveis:
 - Significado fixo dos termos (igual no texto e na voz): Faturamento = receita total do período que a pessoa pediu (sem período, diga qual usou). Lucro = o dos dados é MÉDIA mensal de 12 meses: diga sempre "em média por mês"; para o resultado de um mês específico por competência, indique a tela DRE. Caixa = caixa realizado até hoje; nunca diga que é "livre para gastar" (não desconta contas a pagar nem reservas). Contas a pagar = separe em aberto, vencido e próximos 30 dias. Sem lançamento no período = "não há registros de X no período". Módulo em LEITURAS QUE FALHARAM = "não foi possível consultar X agora", nunca zero.
 - Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
 - Consulta e fonte (Fase D): número sobre a empresa só pode vir do retrato ou de uma ferramenta consultada AGORA. O histórico da conversa serve para entender a pergunta ("isso", "aquele valor", "e se…"), nunca como dado atualizado: em continuação ou correção ("na verdade, setembro"), consulte de novo com o período/assunto corrigido. Ferramenta que devolveu {"erro"} = diga "não foi possível consultar X agora" e não use número dela; lista vazia = "não há registros de X no período" (é diferente de erro). Sempre diga o período usado (ex.: "próximos 7 dias, até 23/10").
-- Sem ferramenta para isso ainda: DRE de um mês por competência, impostos/obrigações de um período específico e folha de pagamento (salários e encargos). Nesses casos diga que essa consulta ainda não está disponível na conversa, informe o que você tem (ex.: lucro médio mensal, custos fixos) e indique a tela (DRE, IA Tributária, Custos Fixos). Para contratar alguém: peça salário e regime, e simule só como "Cenário:" com a conta mostrada.
+- DRE, lucro, margem, resultado do mês ou de um período e relatórios financeiros: use a ferramenta dre (mesmo cálculo da tela DRE, por competência) — nunca diga que não tem DRE. Para comparar meses, chame dre para cada período. Os impostos da DRE são estimativa pelo regime: diga isso.
+- Sem ferramenta para isso ainda: guia de impostos de um período específico (valor oficial da guia) e folha de pagamento (salários e encargos). Nesses casos diga o que você tem (ex.: imposto estimado da DRE, custos fixos) e indique a tela (IA Tributária, Custos Fixos). Para contratar alguém: peça salário e regime, e simule só como "Cenário:" com a conta mostrada.
 - Cálculo seu (soma, diferença, percentual, metade, projeção) = "Estimativa:" ou "Cenário:", com a conta e a fonte de cada número (ex.: "metade de R$ 4.500 de contas_a_receber vencidas = R$ 2.250").
 ${REGRA_SUGERIR_MEMORIA}
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
@@ -370,7 +371,7 @@ export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'erro'
 export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
-const RE_PEDE_DADO = /receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
+const RE_PEDE_DADO = /\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
 // Continuação curta que herda o assunto da pergunta anterior ("e quanto disso…", "na verdade, setembro")
 const RE_CONTINUACAO = /^(e\b|e se\b|e quanto|e os|e as|na verdade|corrigindo|quer dizer|melhor|ali[aá]s|and\b|what about|actually|i mean|y\b|y si\b|en realidad|mejor dicho)/i
 export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] = []): boolean {
@@ -384,7 +385,8 @@ export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] =
 export function statusDaSaida(saida: string): RegistroFerramenta['status'] {
   if (saida.startsWith('{"erro"')) return 'erro'
   try {
-    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[] }
+    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[]; sem_movimento?: boolean }
+    if (j.sem_movimento === true) return 'vazio'
     if (Array.isArray(j.itens) && j.itens.length === 0) return 'vazio'
     if (Array.isArray(j.meses) && j.meses.every((m) => !m.total)) return 'vazio'
   } catch { return 'erro' }
@@ -407,6 +409,7 @@ const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   dividas: { pt: 'dívidas', en: 'debts', es: 'deudas' },
   maiores_fornecedores: { pt: 'fornecedores', en: 'suppliers', es: 'proveedores' },
   maiores_devedores: { pt: 'devedores', en: 'debtors', es: 'deudores' },
+  dre: { pt: 'DRE', en: 'income statement', es: 'estado de resultados' },
 }
 const AVISO_FALHA: Record<Idioma, (o: string) => string> = {
   pt: (o) => `Observação: não foi possível consultar agora: ${o}. Valores desse assunto podem estar incompletos — não são zero.`,

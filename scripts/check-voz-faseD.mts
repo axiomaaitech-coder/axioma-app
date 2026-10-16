@@ -86,7 +86,28 @@ console.log('OK — casos 11–12: falha ≠ vazio ≠ zero; aviso fixo quando f
 
 // ─── Casos 8–10, 7: regras no prompt (o texto do modelo só se prova com a IA real) ───
 const src = readFileSync('lib/ia/motor.ts', 'utf8')
-assert.ok(/DRE de um mês por competência, impostos\/obrigações de um período específico e folha de pagamento/.test(src), '8–10 sem ferramenta: dizer que não está disponível e indicar a tela')
+assert.ok(src.includes('use a ferramenta dre (mesmo cálculo da tela DRE, por competência) — nunca diga que não tem DRE'), '8 DRE: agora tem consulta e a IA não pode dizer que não tem')
+assert.ok(/Sem ferramenta para isso ainda: guia de impostos de um período específico \(valor oficial da guia\) e folha de pagamento/.test(src), '9–10 sem ferramenta: dizer o que tem e indicar a tela')
+assert.ok(!src.includes('DRE de um mês por competência, impostos'), 'a regra errada que fazia a IA recusar o DRE saiu')
+// Ferramenta DRE: período, 12 meses e status
+{
+  const D = await import('../lib/ia/ferramentaDre')
+  assert.deepEqual(D.periodoDre('2026-09', '2026-09', 'America/Sao_Paulo'), { inicio: '2026-09-01', fim: '2026-09-30', meses: ['2026-09'] })
+  assert.deepEqual(D.periodoDre('2026-01', '2026-03', 'America/Sao_Paulo'), { inicio: '2026-01-01', fim: '2026-03-31', meses: ['2026-01', '2026-02', '2026-03'] })
+  assert.equal(D.ultimoDia('2028-02'), '2028-02-29', 'ano bissexto')
+  assert.equal(D.inicio12('2026-09'), '2025-10-01', '12 meses terminando no mês')
+  assert.deepEqual(D.periodoDre('2026-05', '2026-03', 'America/Sao_Paulo'), { erro: 'mês final antes do inicial' })
+  assert.ok('erro' in D.periodoDre('2024-01', '2026-12', 'America/Sao_Paulo'), 'mais de 24 meses recusa')
+  const atual = D.periodoDre('lixo', undefined, 'America/Sao_Paulo') as { meses: string[] }
+  assert.equal(atual.meses.length, 1, 'sem período: mês corrente')
+  assert.equal(M.statusDaSaida(JSON.stringify({ fonte: 'DRE', sem_movimento: true })), 'vazio', 'DRE sem movimento = vazio (não é zero real)')
+  assert.equal(M.statusDaSaida(JSON.stringify({ fonte: 'DRE', receita_bruta: 10, sem_movimento: false })), 'ok')
+  assert.ok(M.exigeConsulta('Me faça a DRE de setembro'), 'pedido de DRE exige consulta'); assert.ok(M.exigeConsulta('Qual foi meu lucro em agosto?'))
+  const f = readFileSync('lib/ia/ferramentas.ts', 'utf8')
+  assert.ok(f.includes("name: 'dre'") && f.includes("case 'dre': return JSON.stringify(await consultarDRE(supabase, empresaId, input, fuso))"), 'ferramenta dre ligada (cliente do usuário, RLS)')
+  assert.ok(readFileSync('lib/ia/ferramentaDre.ts', 'utf8').includes("carregarBaseDRE(") && readFileSync('lib/dreCompetencia.ts', 'utf8').includes('cliente: typeof supabase = supabase'), 'mesmo cálculo da tela DRE')
+  console.log('OK — ferramenta DRE: período, bissexto, 12 meses, sem movimento ≠ zero, pedido de DRE exige consulta')
+}
 assert.ok(/nunca como dado atualizado: em continuação ou correção/.test(src), 'histórico não é fonte; correção consulta de novo')
 assert.ok(/"Estimativa:" ou "Cenário:", com a conta e a fonte/.test(src), '7 cálculo e simulação marcados, com fonte')
 console.log('OK — casos 7–10: regras no prompt (comportamento real do modelo: PENDENTE de teste com IA real)')

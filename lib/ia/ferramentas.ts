@@ -11,6 +11,7 @@ import { hojeISO } from '../datas'
 import { lerTodas } from '../lerTodas'
 import { soVigentes } from '../custoFixoVigente'
 import { registrarLeitura } from '../erroUiHelpers'
+import { consultarDRE } from './ferramentaDre'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -33,6 +34,8 @@ export const FERRAMENTAS: Ferramenta[] = [
     input_schema: obj({ limite }) },
   { name: 'maiores_fornecedores', strict: true, description: 'Fornecedores com mais valor em contas a pagar (total lançado e saldo em aberto), maiores primeiro.',
     input_schema: obj({ limite }) },
+  { name: 'dre', strict: true, description: 'DRE gerencial por competência (mesmo cálculo da tela DRE): receita bruta, devoluções, impostos estimados pelo regime, receita líquida, custos variáveis, margem de contribuição, custos fixos, resultado operacional, juros e lucro líquido, com receitas e custos por categoria e os custos fixos vigentes. Use para DRE, lucro, margem, resultado, relatório financeiro ou comparação entre meses (chame uma vez por período).',
+    input_schema: obj({ mes_inicio: { type: 'string', description: 'Primeiro mês, formato AAAA-MM (ex.: 2026-09).' }, mes_fim: { type: 'string', description: 'Último mês, formato AAAA-MM (igual ao inicial para um mês só).' } }) },
   { name: 'maiores_devedores', strict: true, description: 'Clientes com mais saldo em aberto a receber (e quanto disso está vencido), maiores primeiro.',
     input_schema: obj({ limite }) },
 ]
@@ -162,6 +165,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         const cli = await nomes(supabase, 'clientes', top.map(([id]) => id))
         return JSON.stringify({ itens: top.map(([id, v]) => ({ cliente: cli.get(id) ?? null, saldo_aberto: r2(v.saldo), vencido: r2(v.vencido) })) })
       }
+      case 'dre': return JSON.stringify(await consultarDRE(supabase, empresaId, input, fuso))
       default: return JSON.stringify({ erro: `ferramenta desconhecida: ${nome}` })
     }
   } catch (err) {
