@@ -372,7 +372,9 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
 // 3) Avisos fixos (não dependem do modelo) entram no FIM da resposta quando: a consulta falhou, a
 //    consulta exigida não aconteceu, ou há R$ que não existe em nada que o servidor leu.
 export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'erro'; ms: number }
-export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean }
+// relatorio: pedido do último relatório gerado pela ferramenta (a tela mostra "Abrir relatório e PDF")
+export type PedidoRelatorioMotor = { tipo: string; periodo: string; inicio: string | null; fim: string | null; comparar: boolean }
+export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
 const RE_PEDE_DADO = /\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
@@ -403,7 +405,9 @@ export function statusDaSaida(saida: string): RegistroFerramenta['status'] {
 async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Record<string, unknown>): Promise<string> {
   const t0 = Date.now()
   const saida = await executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso)
-  c.registro?.push({ nome, status: statusDaSaida(saida), ms: Date.now() - t0 })
+  const status = statusDaSaida(saida)
+  c.registro?.push({ nome, status, ms: Date.now() - t0 })
+  if (nome === 'relatorio' && status !== 'erro') { try { c.relatorio = (JSON.parse(saida) as { pedido?: PedidoRelatorioMotor }).pedido ?? null } catch { /* sem pedido */ } }
   return saida
 }
 
@@ -417,6 +421,7 @@ const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   maiores_fornecedores: { pt: 'fornecedores', en: 'suppliers', es: 'proveedores' },
   maiores_devedores: { pt: 'devedores', en: 'debtors', es: 'deudores' },
   dre: { pt: 'DRE', en: 'income statement', es: 'estado de resultados' },
+  relatorio: { pt: 'relatório', en: 'report', es: 'informe' },
 }
 const AVISO_FALHA: Record<Idioma, (o: string) => string> = {
   pt: (o) => `Observação: não foi possível consultar agora: ${o}. Valores desse assunto podem estar incompletos — não são zero.`,
@@ -590,6 +595,7 @@ export type RespostaMotor = {
   sugestaoMemoria: SugestaoMemoria | null // a IA sugere lembrar algo (a pessoa confirma na tela)
   memorias: number // quantas memórias confirmadas foram usadas
   memoriaFalhou: boolean
+  relatorio: PedidoRelatorioMotor | null // relatório gerado nesta resposta (a tela oferece abrir/baixar o PDF)
 }
 
 export async function perguntarAoMotor(args: {
@@ -674,5 +680,5 @@ export async function perguntarAoMotor(args: {
   const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
   return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
     exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro'),
-    sugestaoMemoria: resposta ? sugestaoMemoria : null, memorias: memoria.quantidade, memoriaFalhou: memoria.falhou }
+    sugestaoMemoria: resposta ? sugestaoMemoria : null, memorias: memoria.quantidade, memoriaFalhou: memoria.falhou, relatorio: resposta ? consulta.relatorio ?? null : null }
 }

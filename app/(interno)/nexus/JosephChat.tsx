@@ -22,6 +22,7 @@ import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
+import { BotaoAbrirRelatorio, type PedidoTela } from '../../../components/RelatorioCFO'
 import ConversaAoVivo from '../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../lib/voz/gravador'
 import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
@@ -43,7 +44,7 @@ function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {
     </motion.span>
   )
 }
-type Msg = { role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean }
+type Msg = { role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean; relatorio?: PedidoTela | null }
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
 const MAX_HISTORICO = 10
@@ -176,7 +177,7 @@ Hoje: ${hojeISO()}.`
     const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela: 'nexus', lang, historico, contextoTela: montarContexto(), conversaId: conversaId.current, signal: ctrl.signal })
     if (ctrl.signal.aborted) return // corrigida ou saiu da tela: a pergunta mais nova cuida do resto
     const resposta = ia?.resposta ?? L('Não consegui interpretar agora — tente de novo em instantes.', "I couldn't interpret that right now — try again in a moment.", 'No pude interpretar ahora — intente de nuevo en unos instantes.')
-    setMensagens((m) => [...m, { role: 'assistant', content: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva }])
+    setMensagens((m) => [...m, { role: 'assistant', content: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva, relatorio: ia?.relatorio ?? null }])
     setPensando(false)
     pedidoRef.current = null
     // Modo conversa: o José responde falando (a pessoa ligou o modo; o microfone só reabre no toque dela)
@@ -263,7 +264,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
                 <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
-                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /></div>}
+                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /><BotaoAbrirRelatorio pedido={m.relatorio} lang={lang} /></div>}
                 </div>
               </motion.div>
             ))}

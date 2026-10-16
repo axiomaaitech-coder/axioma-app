@@ -170,7 +170,7 @@ export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input
           saldoCaixaRealizado(supabase, empresaId, hoje),
           ler('contas_receber', lerTodas(() => supabase.from('contas_receber').select(receberCols).eq('empresa_id', empresaId).order('id'))),
           ler('contas_pagar', lerTodas(() => supabase.from('contas_pagar').select(pagarCols).eq('empresa_id', empresaId).order('id'))),
-          ler('dividas', supabase.from('dividas').select('valor_total, valor_pago')).then((l) => l as { valor_total: number; valor_pago: number }[]),
+          ler('dividas', supabase.from('dividas').select('valor_total, valor_pago').eq('empresa_id', empresaId)).then((l) => l as { valor_total: number; valor_pago: number }[]),
           carregarBaseDRE(empresaId, `${hoje.slice(0, 7)}-01`, hoje, supabase as never),
         ])
         const mes = resolverPeriodo('este_mes', hoje) as Periodo

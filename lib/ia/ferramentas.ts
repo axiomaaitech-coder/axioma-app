@@ -13,6 +13,7 @@ import { soVigentes } from '../custoFixoVigente'
 import { registrarLeitura } from '../erroUiHelpers'
 import { consultarDRE } from './ferramentaDre'
 import { executarFerramentaFinanceira, FERRAMENTAS_FINANCEIRAS, NOMES_FERRAMENTAS_FINANCEIRAS } from '../financeiro/ferramentasFinanceiras'
+import { FERRAMENTA_RELATORIO, relatorioParaIA } from '../financeiro/relatorios'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -23,6 +24,7 @@ const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object',
 // Plano 3: ferramentas do motor financeiro (contrato padrão, motor temporal, reconciliação) + as originais
 export const FERRAMENTAS: Ferramenta[] = [
   ...(FERRAMENTAS_FINANCEIRAS as Ferramenta[]),
+  FERRAMENTA_RELATORIO as Ferramenta, // Plano 3, Tarefa 2: o mesmo relatório da tela/PDF
   { name: 'contas_a_pagar', strict: true, description: 'Contas a pagar em aberto (saldo = valor − já pago), com fornecedor, categoria e vencimento, maiores primeiro. Use para o que vence (esta semana = proximos_7_dias), o que está atrasado ou a quem a empresa deve.',
     input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_7_dias', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
   { name: 'contas_a_receber', strict: true, description: 'Contas a receber em aberto (saldo = valor − já recebido), com cliente e vencimento, maiores primeiro. Use para inadimplência, quem deve e o que entra em breve (esta semana = proximos_7_dias).',
@@ -170,6 +172,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         return JSON.stringify({ itens: top.map(([id, v]) => ({ cliente: cli.get(id) ?? null, saldo_aberto: r2(v.saldo), vencido: r2(v.vencido) })) })
       }
       case 'dre': return JSON.stringify(await consultarDRE(supabase, empresaId, input, fuso))
+      case 'relatorio': return JSON.stringify(await relatorioParaIA({ supabase, empresaId, fuso }, input))
       default: return JSON.stringify({ erro: `ferramenta desconhecida: ${nome}` })
     }
   } catch (err) {

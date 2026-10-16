@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '34 - Gestão - Relatórios.docx',
   titulo: 'Manual 34 — Relatórios',
   subtitulo: 'Relatórios executivos prontos para compartilhar',
-  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
+  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne em um só lugar os relatórios que sócios, investidores, bancos e o contador costumam pedir, montados automaticamente com os dados do Axioma e prontos para enviar.' },
@@ -14,6 +14,12 @@ const pt: DocumentoAxioma = {
     { lista: ['Menu do topo → **🏢 Gestão ▼** → **Relatórios**.'] },
 
     { p: '**Pergunte à Inteligência Axioma (Diretor Financeiro Digital):** No alto da tela há uma conversa com a Inteligência Axioma: pergunte digitando ou pelo botão **Falar** e continue o assunto. Peça relatórios sob medida com os dados da sua Empresa, por exemplo "resumo executivo deste mês" ou "relatório das contas vencidas": ela usa o período escolhido na tela e consulta a DRE de qualquer mês ou período pelo mesmo cálculo da tela DRE (impostos aparecem como estimativa pelo regime). Embaixo de cada resposta há **🔊 Ouvir** (a voz do José), **"Quer que eu lembre disso?"** e **"Está errado?"**; abaixo ficam a **Conversa ao vivo** (continua se você mudar de tela) e o painel **Memória da IA**. Os números vêm dos dados da Empresa, conferidos.' },
+    { h1: 'Relatório CFO com PDF' },
+    { p: 'Logo abaixo da conversa fica o painel **📑 Relatório CFO com PDF**. Ele monta relatórios com os números oficiais do Axioma (os mesmos que a Inteligência Axioma consulta) e baixa um PDF com exatamente o que aparece na tela.' },
+    { numerada: ['Em **Relatório**, escolha: Executivo, DRE, Fluxo de Caixa, Contas a Receber, Contas a Pagar, Receitas, Custos e Despesas, Endividamento, Tributos e Obrigações, PDV ou Conciliação.', 'Em **Período**, escolha um período pronto (este mês, mês anterior, trimestre, ano, últimos 12 meses…) ou **Período escolhido** e preencha **De** e **Até** (até 24 meses).', 'Marque **Comparar com o período anterior** para ver quanto mudou em reais e em %.', 'Clique em **Gerar relatório**. Aparece a prévia: situação dos dados, resumo, indicadores, tabelas, riscos com a evidência e a recomendação, limitações e a metodologia.', 'Clique em **Baixar PDF** para salvar o documento com a marca Axioma, data e hora, páginas numeradas e as fontes de cada número.'] },
+    { p: 'Cada indicador diz se é **Fato** (lido nos registros), **Cálculo** (fórmula do Axioma) ou **Estimativa** (por exemplo, impostos pelo regime). Quando não há base no período anterior, a tela mostra "sem base para %" em vez de um percentual enganoso. Se uma consulta falhar, o relatório sai **Parcial**, o valor fica como "não consultado" (nunca zero) e o motivo aparece em Limitações; use **Tentar de novo**.' },
+    { p: 'Pela conversa (aqui, na IA Financeira ou com o José no Nexus) você também pode pedir "gere a DRE do mês passado" ou "relatório executivo em PDF": a resposta usa os mesmos números e traz o botão **📑 Abrir relatório e PDF**, que abre este painel já preenchido.' },
+    { nota: 'O relatório não gasta saldo de IA e nada é alterado nos seus lançamentos: duplicidades e divergências só são apontadas. O PDF é montado no seu navegador e não fica salvo em nenhum link público. O operador de caixa não acessa relatórios financeiros.' },
     { h1: 'Como usar' },
     { numerada: ['Escolha o **Período** (mês e ano).', 'Escolha a aba do relatório.', 'Clique em **Exportar PDF** ou **Compartilhar** para enviar.'] },
 
@@ -36,7 +42,7 @@ const en: DocumentoAxioma = {
   arquivo: '34 - Management - Reports.docx',
   titulo: 'Manual 34 — Reports',
   subtitulo: 'Executive reports ready to share',
-  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
+  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.3 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gathers in one place the reports partners, investors, banks and the accountant usually ask for, built automatically from Axioma’s data and ready to send.' },
@@ -45,6 +51,12 @@ const en: DocumentoAxioma = {
     { lista: ['Top menu → **🏢 Management ▼** → **Reports**.'] },
 
     { p: '**Ask Axioma Intelligence (Digital Finance Director):** At the top of the screen there is a conversation with Axioma Intelligence: ask by typing or with **Speak** and follow up. Ask for custom reports with your Company data, e.g. "executive summary of this month" or "report of overdue bills": it uses the period chosen on the screen and looks up the income statement for any month or period with the same calculation as the DRE screen (taxes shown as an estimate by tax regime). Below each answer there is **🔊 Listen** (José\'s voice), **"Should I remember this?"** and **"Is this wrong?"**; below are the **Live conversation** (it continues if you change screens) and the **AI Memory** panel. Numbers come from the Company data, checked.' },
+    { h1: 'CFO Report with PDF' },
+    { p: 'Right below the conversation is the **📑 CFO Report with PDF** panel. It builds reports with the official Axioma numbers (the same ones Axioma Intelligence queries) and downloads a PDF with exactly what appears on screen.' },
+    { numerada: ['In **Report**, choose: Executive, Income Statement, Cash Flow, Accounts Receivable, Accounts Payable, Revenue, Costs and Expenses, Debt, Taxes and Obligations, POS or Reconciliation.', 'In **Period**, choose a ready period (this month, previous month, quarter, year, last 12 months…) or **Custom period** and fill in **From** and **To** (up to 24 months).', 'Check **Compare with the previous period** to see how much changed in reais and in %.', 'Click **Generate report**. The preview shows: data status, summary, indicators, tables, risks with evidence and recommendation, limitations and methodology.', 'Click **Download PDF** to save the document with the Axioma brand, date and time, numbered pages and the sources of each number.'] },
+    { p: 'Each indicator says whether it is a **Fact** (read from records), a **Calculation** (Axioma formula) or an **Estimate** (for example, taxes by regime). When the previous period has no base, the screen shows "no base for %" instead of a misleading percentage. If a query fails, the report comes out **Partial**, the value shows "not queried" (never zero) and the reason appears under Limitations; use **Try again**.' },
+    { p: 'In the conversation (here, in AI Finance or with José in Nexus) you can also ask "generate the income statement for last month" or "executive report in PDF": the answer uses the same numbers and brings the **📑 Open report and PDF** button, which opens this panel already filled in.' },
+    { nota: 'The report does not use AI balance and nothing is changed in your entries: duplicates and divergences are only flagged. The PDF is built in your browser and is not stored at any public link. The cashier operator cannot access financial reports.' },
     { h1: 'How to use' },
     { numerada: ['Choose the **Period** (month and year).', 'Choose the report tab.', 'Click **Export PDF** or **Share** to send it.'] },
 
@@ -67,7 +79,7 @@ const es: DocumentoAxioma = {
   arquivo: '34 - Gestión - Informes.docx',
   titulo: 'Manual 34 — Informes',
   subtitulo: 'Informes ejecutivos listos para compartir',
-  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
+  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne en un solo lugar los informes que socios, inversionistas, bancos y el contador suelen pedir, armados automáticamente con los datos de Axioma y listos para enviar.' },
@@ -76,6 +88,12 @@ const es: DocumentoAxioma = {
     { lista: ['Menú superior → **🏢 Gestión ▼** → **Informes**.'] },
 
     { p: '**Pregunte a la Inteligencia Axioma (Director Financiero Digital):** Arriba en la pantalla hay una conversación con la Inteligencia Axioma: pregunte escribiendo o con **Hablar** y continúe el tema. Pida informes a medida con los datos de su Empresa, por ejemplo "resumen ejecutivo del mes" o "informe de cuentas vencidas": usa el período elegido en la pantalla y consulta el estado de resultados de cualquier mes o período con el mismo cálculo de la pantalla DRE (los impuestos aparecen como estimación por régimen). Debajo de cada respuesta hay **🔊 Escuchar** (la voz de José), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**; abajo están la **Conversación en vivo** (continúa si cambia de pantalla) y el panel **Memoria de la IA**. Los números vienen de los datos de la Empresa, verificados.' },
+    { h1: 'Informe CFO con PDF' },
+    { p: 'Justo debajo de la conversación está el panel **📑 Informe CFO con PDF**. Arma informes con los números oficiales de Axioma (los mismos que consulta la Inteligencia Axioma) y descarga un PDF con exactamente lo que aparece en pantalla.' },
+    { numerada: ['En **Informe**, elija: Ejecutivo, Estado de Resultados, Flujo de Caja, Cuentas por Cobrar, Cuentas por Pagar, Ingresos, Costos y Gastos, Endeudamiento, Tributos y Obligaciones, PDV o Conciliación.', 'En **Período**, elija un período listo (este mes, mes anterior, trimestre, año, últimos 12 meses…) o **Período elegido** y complete **Desde** y **Hasta** (hasta 24 meses).', 'Marque **Comparar con el período anterior** para ver cuánto cambió en reales y en %.', 'Haga clic en **Generar informe**. Aparece la vista previa: situación de los datos, resumen, indicadores, tablas, riesgos con la evidencia y la recomendación, limitaciones y la metodología.', 'Haga clic en **Descargar PDF** para guardar el documento con la marca Axioma, fecha y hora, páginas numeradas y las fuentes de cada número.'] },
+    { p: 'Cada indicador dice si es **Hecho** (leído en los registros), **Cálculo** (fórmula de Axioma) o **Estimación** (por ejemplo, impuestos por régimen). Cuando no hay base en el período anterior, la pantalla muestra "sin base para %" en lugar de un porcentaje engañoso. Si una consulta falla, el informe sale **Parcial**, el valor queda como "no consultado" (nunca cero) y el motivo aparece en Limitaciones; use **Intentar de nuevo**.' },
+    { p: 'En la conversación (aquí, en la IA Financiera o con José en Nexus) también puede pedir "genere el estado de resultados del mes pasado" o "informe ejecutivo en PDF": la respuesta usa los mismos números y trae el botón **📑 Abrir informe y PDF**, que abre este panel ya completado.' },
+    { nota: 'El informe no gasta saldo de IA y nada se altera en sus registros: duplicidades y divergencias solo se señalan. El PDF se arma en su navegador y no queda guardado en ningún enlace público. El operador de caja no accede a informes financieros.' },
     { h1: 'Cómo usar' },
     { numerada: ['Elija el **Período** (mes y año).', 'Elija la pestaña del informe.', 'Haga clic en **Exportar PDF** o **Compartir** para enviar.'] },
 

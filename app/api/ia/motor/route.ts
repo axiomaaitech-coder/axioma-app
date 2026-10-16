@@ -90,5 +90,5 @@ export async function POST(request: NextRequest) {
       tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
   }))
   // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para a ressalva
-  return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, sugestao_memoria: r.sugestaoMemoria, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
+  return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, sugestao_memoria: r.sugestaoMemoria, relatorio: r.relatorio, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
 }

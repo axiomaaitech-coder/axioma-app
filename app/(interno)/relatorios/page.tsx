@@ -30,6 +30,7 @@ import {
 } from "../../../lib/relatoriosHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import ChatInteligencia from "../../../components/ChatInteligencia";
+import RelatorioCFO from "../../../components/RelatorioCFO";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -460,7 +461,7 @@ export default function Relatorios() {
   // Contexto do chat: os números do período escolhido nesta tela (DRE, custos por categoria, indicadores)
   function contextoRelatorios(): string {
     const f = (n: number) => `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const linhas = [`TELA RELATÓRIOS — período escolhido: ${MESES[mes - 1]}/${ano}. A pessoa pode pedir relatórios sob medida (ex.: "relatório de custos do mês", "resumo executivo do trimestre"): monte o relatório com título, período, resumo, seções com os números e conclusão, usando estes dados e as ferramentas de consulta; nunca invente número.`];
+    const linhas = [`TELA RELATÓRIOS — período escolhido: ${MESES[mes - 1]}/${ano}. A pessoa pode pedir relatórios sob medida (ex.: "relatório de custos do mês", "resumo executivo do trimestre"): use a ferramenta relatorio (os mesmos números do painel Relatório CFO e do PDF; a tela mostra o botão para abrir e baixar), diga o período adotado e explique os achados; nunca invente número. Atenção: o DRE abaixo é o da conta antiga desta tela; para números oficiais use as ferramentas.`];
     if (dre) linhas.push(`DRE do período: receita bruta ${f(dre.receita_bruta)}; deduções ${f(dre.deducoes)}; receita líquida ${f(dre.receita_liquida)}; custos variáveis ${f(dre.custos_variaveis)}; margem de contribuição ${f(dre.margem_contribuicao)} (${dre.pct_margem_contribuicao}%); custos fixos ${f(dre.custos_fixos)}; lucro operacional ${f(dre.lucro_operacional)}; despesas financeiras ${f(dre.despesas_financeiras)}; lucro líquido ${f(dre.lucro_liquido)} (${dre.pct_lucro_liquido}%).`);
     else linhas.push("DRE do período: ainda não carregado nesta tela.");
     if (distribuicao.length) linhas.push(`Custos por categoria: ${distribuicao.map((c) => `${c.name} ${f(c.value)} (${c.pct}%)`).join("; ")}.`);
@@ -490,6 +491,9 @@ export default function Relatorios() {
           sugestoes={idioma === "en" ? ["Executive summary of this month", "Where did costs grow?", "Explain my profit", "Report of overdue bills"] : idioma === "es" ? ["Resumen ejecutivo del mes", "¿Dónde crecieron los costos?", "Explique mi ganancia", "Informe de cuentas vencidas"] : ["Resumo executivo deste mês", "Onde os custos cresceram?", "Explique o meu lucro", "Relatório das contas vencidas"]}
           contexto={contextoRelatorios} />
       </CanvasBox>
+
+      {/* Relatório CFO (Plano 3, Tarefa 2): tipo + período → prévia + PDF, com os números do motor financeiro */}
+      <div className="mt-5"><RelatorioCFO empresaId={empresaId} lang={lang} claro={temaClaro} /></div>
 
       {/* TOPO: período + abas + share */}
       <div className="flex flex-col gap-3 mb-5">

@@ -10,12 +10,13 @@ import OuvirResposta from "./OuvirResposta";
 import AcoesMemoria from "./AcoesMemoria";
 import ConversaAoVivo from "./ConversaAoVivo";
 import PainelMemoriaIA from "./PainelMemoriaIA";
+import { BotaoAbrirRelatorio, type PedidoTela } from "./RelatorioCFO";
 import { perguntarAoAxioma } from "../lib/ia/cliente";
 import { juntarTexto } from "../lib/voz/gravador";
 import type { SugestaoMemoria } from "../lib/ia/memoria";
 
 type L = "pt" | "en" | "es";
-type Msg = { role: "user" | "assistant"; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null };
+type Msg = { role: "user" | "assistant"; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null };
 const MAX_HISTORICO = 8;
 const TX: Record<string, Record<L, string>> = {
   pensando: { pt: "Pensando…", en: "Thinking…", es: "Pensando…" },
@@ -56,7 +57,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
     const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela, lang, historico, contextoTela: contexto(), signal: ctrl.signal });
     if (ctrl.signal.aborted) return;
     const resposta = ia?.resposta ?? (porRegra ? `${porRegra(p)}\n\n(${t("falhaRegra")})` : t("falha"));
-    setMensagens((m) => [...m, { role: "assistant", texto: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva, sugestaoMemoria: ia?.sugestaoMemoria ?? null }]);
+    setMensagens((m) => [...m, { role: "assistant", texto: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva, sugestaoMemoria: ia?.sugestaoMemoria ?? null, relatorio: ia?.relatorio ?? null }]);
     setCarregando(false); pedido.current = null;
   }
 
@@ -84,6 +85,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
                   <div>
                     <OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={claro} />
                     {m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang} claro={claro} />}
+                    <BotaoAbrirRelatorio pedido={m.relatorio} lang={lang} />
                   </div>
                 )}
               </div>
