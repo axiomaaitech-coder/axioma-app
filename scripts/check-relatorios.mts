@@ -147,6 +147,20 @@ ok('21 os 11 relatórios geram em pt/en/es com números idênticos e textos trad
   ok('3 comparação sem base não gera porcentagem')
 }
 
+// ═══ 3b. Período em andamento: compara o MESMO trecho (lançamento com data futura não entra na comparação) ═══
+{
+  const E = P.resolverPeriodo('este_mes', hoje) as { inicio: string; fim: string }
+  if (E.fim > hoje) {
+    const t3 = { ...tab, receitas: [...tab.receitas, { id: 'h1', empresa_id: A, valor: 1000, data: hoje }, { id: 'h2', empresa_id: A, valor: 700, data: E.fim }] }
+    const r = await gerar('executivo', { periodo: 'este_mes', comparar: true }, ctxA([], t3))
+    const f = ind(r, 'Faturamento (competência)')!
+    assert.ok((f.valor ?? 0) >= 1700, 'valor do mês inteiro inclui o lançamento com data futura')
+    assert.ok(f.nota?.startsWith('comparação de') && f.nota.includes(TX.fmtMoeda((f.valor ?? 0) - 700, 'pt')), `3b nota mostra o trecho comparado sem o futuro: ${f.nota}`)
+    assert.ok(r.resumo[0].includes('mesmo trecho do período anterior'))
+    ok('3b mês em andamento: comparação no mesmo trecho dos dois lados, explicada na nota')
+  }
+}
+
 // ═══ 5. Valores negativos e estornos ═══
 {
   const r = await R.gerarRelatorio({ supabase: bancoFalso(tab).db, empresaId: C, fuso: FUSO }, R.validarPedido({ tipo: 'executivo', periodo: 'mes_anterior', lang: 'pt' })!) as Rel

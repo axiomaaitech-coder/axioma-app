@@ -58,6 +58,13 @@ async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedore
   const data = await ler(tabela, supabase.from(tabela).select('id, nome').in('id', unicos))
   return new Map((data as { id: string; nome: string }[]).map((l) => [String(l.id), String(l.nome ?? '')]))
 }
+// Período em andamento: a comparação usa o MESMO trecho dos dois lados (ex.: 01–16/10 × 01–16/09); o valor
+// do período inteiro pode trazer lançamentos com data futura, que não têm par no anterior.
+function compararTrecho(itens: { valor: number; data: string }[], p: Periodo, ant: Periodo, hoje: string) {
+  const ate = p.parcial ? hoje : p.fim
+  const atual = somaFaixa(itens, { inicio: p.inicio, fim: ate }), anterior = somaFaixa(itens, ant)
+  return { periodo_anterior: ant.rotulo, anterior: anterior.valor, atual_comparado: atual.valor, comparado_ate: ate, ...comparar(atual, anterior) }
+}
 const diaVenda = (v: { finalizada_em?: string | null; criado_em?: string | null }, fuso: string) => { const t = v.finalizada_em || v.criado_em; return t ? hojeISO(new Date(t), fuso) : '' }
 
 export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input: Record<string, unknown>): Promise<ResultadoFinanceiro> {
@@ -118,7 +125,7 @@ export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input
           fontes: ['receitas', 'contas_receber', 'venda (PDV)'], registros: atual.registros,
           limitacoes: [...(atual.registros === 0 ? ['não há registros de receita no período'] : []), ...(ant && somaFaixa(base.receitas, ant).registros === 0 ? ['período anterior sem registros: comparação sem base'] : [])],
           detalhes: { serie: serie(base.receitas, p, g), granularidade: g, devolucoes_pdv: devol.valor, receitas_lancadas_tela_receitas: somaFaixa((lanc as { valor: number; data: string }[]), p).valor,
-            comparacao: ant ? { periodo_anterior: ant.rotulo, anterior: somaFaixa(base.receitas, ant).valor, ...comparar(atual, somaFaixa(base.receitas, ant)) } : null } })
+            comparacao: ant ? compararTrecho(base.receitas, p, ant, hoje) : null } })
       }
       case 'despesas': {
         const p = pedirPeriodo(input, hoje); if ('erro' in p) return falhou('despesas', p.erro)
@@ -138,7 +145,7 @@ export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input
         const atual = somaFaixa(base.custos, p)
         return resultado({ indicador: 'despesas_competencia', definicao: definicao('despesas_competencia'), estado: 'verificado', valor: atual.valor, unidade: 'BRL', periodo: p, criterio_data: 'competência (custo: data; conta a pagar: emissão)',
           fontes: ['custos_variaveis', 'contas_pagar'], registros: atual.registros, limitacoes: ['custos fixos não entram aqui (use custos_fixos_mes ou a DRE)', ...(atual.registros === 0 ? ['não há despesas no período'] : [])],
-          detalhes: { agrupado_por: por, ...grupos, comparacao: ant ? { periodo_anterior: ant.rotulo, anterior: somaFaixa(base.custos, ant).valor, ...comparar(atual, somaFaixa(base.custos, ant)) } : null } })
+          detalhes: { agrupado_por: por, ...grupos, comparacao: ant ? compararTrecho(base.custos, p, ant, hoje) : null } })
       }
       case 'receitas_por_cliente': {
         const p = pedirPeriodo(input, hoje); if ('erro' in p) return falhou('receitas_por_cliente', p.erro)

@@ -22,6 +22,8 @@ import { L, fmtData, fmtMoeda, fmtPct, nomeFonte, rotuloPeriodo, tituloRelatorio
 export type CtxRelatorio = { supabase: SupabaseClient; empresaId: string; fuso: string }
 type RF = ResultadoFinanceiro
 type Comp = { anterior: number | null; diferenca: number | null; variacao_pct: number | null }
+// Comparação devolvida por faturamento/despesas (Tarefa 1): no período em andamento compara o mesmo trecho
+type CompFerr = { anterior: number; diferenca: number; variacao_pct: number | null; atual_comparado?: number; comparado_ate?: string }
 type Dre = {
   receita_bruta: number; devolucoes: number; impostos_deducoes: number; receita_liquida: number; custos_variaveis: number; margem_contribuicao: number
   margem_contribuicao_pct: number | null; custos_fixos: number; resultado_operacional: number; juros_pagos: number; juros_estimados_dividas: number
@@ -35,7 +37,7 @@ const MAX_DIAS = 731 // 24 meses: o mesmo teto da DRE
 
 // Números que as regras de achados e o resumo usam (cada relatório preenche o que consultou)
 type Numeros = Partial<{
-  faturamento: number; fatVar: number | null; despesas: number; despVar: number | null; lucro: number; margem: number | null
+  trecho: boolean; faturamento: number; fatVar: number | null; despesas: number; despVar: number | null; lucro: number; margem: number | null
   recebido: number; pago: number; caixa: number | null; receberAberto: number; receberVencido: number; pagarAberto: number; pagarVencido: number
   receber30: number; pagar30: number; topCliente: { nome: string; pct: number }; dividaSaldo: number; jurosMes: number; fatMensal: number
   obrigVencidas: { qtd: number; valor: number }; difCaixa: { qtd: number; valor: number }; canceladas: { qtd: number; valor: number }
@@ -89,8 +91,10 @@ async function dreDe(ctx: CtxRelatorio, faixa: { inicio: string; fim: string }):
 }
 const comp = (atual: number, anterior: number | null, registrosAnt: number): Comp | undefined =>
   anterior == null ? undefined : { anterior, ...((c) => ({ diferenca: c.diferenca, variacao_pct: c.variacao_pct }))(comparar({ valor: atual, registros: 1 }, { valor: anterior, registros: registrosAnt })) }
-const ind = (rotulo: string, valor: number | null | undefined, unidade: Indicador['unidade'], classe: Indicador['classe'], c?: Comp, nota?: string): Indicador =>
-  ({ rotulo, valor: valor ?? null, unidade, classe, ...(c ?? {}), ...(nota ? { nota } : {}) })
+const ind = (rotulo: string, valor: number | null | undefined, unidade: Indicador['unidade'], classe: Indicador['classe'], c?: Comp & { nota?: string }, nota?: string): Indicador => {
+  const notas = [c?.nota, nota].filter(Boolean).join(' · ')
+  return { rotulo, valor: valor ?? null, unidade, classe, ...(c ? { anterior: c.anterior, diferenca: c.diferenca, variacao_pct: c.variacao_pct } : {}), ...(notas ? { nota: notas } : {}) }
+}
 const tabela = (id: string, titulo: string, colunas: [string, TipoColuna][], linhas: (string | number | null)[][], lang: Lang, total?: (string | number | null)[]): Secao =>
   ({ id, titulo, tipo: 'tabela', colunas: colunas.map(([rotulo, tipo]) => ({ rotulo, tipo })), linhas, ...(total ? { total } : {}), vazio: tx(lang, 'sem_dados') })
 
@@ -146,11 +150,11 @@ function achadosPorRegras(n: Numeros, lang: Lang): Achado[] {
     recomendacao: L(lang, 'Reduzir a dependência: perder esse cliente afetaria muito o faturamento.', 'Reduce dependence: losing this client would heavily affect revenue.', 'Reducir la dependencia: perder este cliente afectaría mucho la facturación.') })
   if (n.fatVar != null && n.fatVar <= -10) out.push({ tipo: 'calculo', prioridade: 'media', confianca: 'media',
     titulo: L(lang, 'Faturamento caiu', 'Revenue dropped', 'La facturación bajó'),
-    evidencia: L(lang, `Variação de ${p(n.fatVar)} contra o período anterior equivalente.`, `Change of ${p(n.fatVar)} versus the equivalent previous period.`, `Variación de ${p(n.fatVar)} frente al período anterior equivalente.`),
+    evidencia: L(lang, `Variação de ${p(n.fatVar)} contra ${n.trecho ? 'o mesmo trecho do período anterior' : 'o período anterior equivalente'}.`, `Change of ${p(n.fatVar)} versus ${n.trecho ? 'the same stretch of the previous period' : 'the equivalent previous period'}.`, `Variación de ${p(n.fatVar)} frente ${n.trecho ? 'al mismo tramo del período anterior' : 'al período anterior equivalente'}.`),
     recomendacao: L(lang, 'Ver quais clientes ou produtos reduziram e se há sazonalidade.', 'See which clients or products decreased and whether there is seasonality.', 'Ver qué clientes o productos redujeron y si hay estacionalidad.') })
   if (n.despVar != null && n.despVar >= 15) out.push({ tipo: 'calculo', prioridade: 'media', confianca: 'media',
     titulo: L(lang, 'Despesas subiram', 'Expenses rose', 'Los gastos subieron'),
-    evidencia: L(lang, `Variação de ${p(n.despVar)} contra o período anterior equivalente.`, `Change of ${p(n.despVar)} versus the equivalent previous period.`, `Variación de ${p(n.despVar)} frente al período anterior equivalente.`),
+    evidencia: L(lang, `Variação de ${p(n.despVar)} contra ${n.trecho ? 'o mesmo trecho do período anterior' : 'o período anterior equivalente'}.`, `Change of ${p(n.despVar)} versus ${n.trecho ? 'the same stretch of the previous period' : 'the equivalent previous period'}.`, `Variación de ${p(n.despVar)} frente ${n.trecho ? 'al mismo tramo del período anterior' : 'al período anterior equivalente'}.`),
     recomendacao: L(lang, 'Conferir as categorias que mais cresceram (tabela de despesas).', 'Check the categories that grew the most (expenses table).', 'Verificar las categorías que más crecieron (tabla de gastos).') })
   if (n.dividaSaldo != null && n.dividaSaldo > 0 && n.fatMensal != null && n.fatMensal > 0 && n.dividaSaldo / n.fatMensal >= 6) out.push({ tipo: 'calculo', prioridade: 'media', confianca: 'media',
     titulo: L(lang, 'Endividamento alto em relação ao faturamento', 'High debt relative to revenue', 'Endeudamiento alto respecto a la facturación'),
@@ -183,7 +187,7 @@ function achadosPorRegras(n: Numeros, lang: Lang): Achado[] {
 function resumoDe(n: Numeros, lang: Lang): string[] {
   const m = (v: number) => fmtMoeda(v, lang), p = (v: number) => fmtPct(v, lang)
   const out: string[] = []
-  if (n.faturamento != null) out.push(L(lang, `Faturamento de ${m(n.faturamento)} no período (competência)${n.fatVar != null ? `, ${p(n.fatVar)} contra o período anterior` : ''}.`, `Revenue of ${m(n.faturamento)} in the period (accrual)${n.fatVar != null ? `, ${p(n.fatVar)} versus the previous period` : ''}.`, `Facturación de ${m(n.faturamento)} en el período (devengo)${n.fatVar != null ? `, ${p(n.fatVar)} frente al período anterior` : ''}.`))
+  if (n.faturamento != null) out.push(L(lang, `Faturamento de ${m(n.faturamento)} no período (competência)${n.fatVar != null ? `, ${p(n.fatVar)} contra ${n.trecho ? 'o mesmo trecho do período anterior' : 'o período anterior'}` : ''}.`, `Revenue of ${m(n.faturamento)} in the period (accrual)${n.fatVar != null ? `, ${p(n.fatVar)} versus ${n.trecho ? 'the same stretch of the previous period' : 'the previous period'}` : ''}.`, `Facturación de ${m(n.faturamento)} en el período (devengo)${n.fatVar != null ? `, ${p(n.fatVar)} frente ${n.trecho ? 'al mismo tramo del período anterior' : 'al período anterior'}` : ''}.`))
   if (n.lucro != null) out.push(L(lang, `Lucro líquido de ${m(n.lucro)}${n.margem != null ? ` (margem de ${p(n.margem)})` : ''} pela DRE, com impostos estimados pelo regime.`, `Net profit of ${m(n.lucro)}${n.margem != null ? ` (margin ${p(n.margem)})` : ''} per income statement, with taxes estimated by regime.`, `Utilidad neta de ${m(n.lucro)}${n.margem != null ? ` (margen de ${p(n.margem)})` : ''} según estado de resultados, con impuestos estimados por régimen.`))
   if (n.recebido != null && n.pago != null) out.push(L(lang, `No caixa entraram ${m(n.recebido)} e saíram ${m(n.pago)} no período.`, `Cash in was ${m(n.recebido)} and cash out ${m(n.pago)} in the period.`, `En caja entraron ${m(n.recebido)} y salieron ${m(n.pago)} en el período.`))
   if (n.receberAberto != null) out.push(L(lang, `Há ${m(n.receberAberto)} a receber em aberto, dos quais ${m(n.receberVencido ?? 0)} vencidos.`, `There are ${m(n.receberAberto)} in open receivables, of which ${m(n.receberVencido ?? 0)} overdue.`, `Hay ${m(n.receberAberto)} por cobrar abiertos, de los cuales ${m(n.receberVencido ?? 0)} vencidos.`))
@@ -216,10 +220,17 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
   const C = coletor(lang)
   const args = { periodo: p.nome, inicio: p.nome === 'personalizado' ? p.inicio : null, fim: p.nome === 'personalizado' ? p.fim : null }
   const F = async (nome: string, input: Record<string, unknown>) => C.usar(nome, await executarFerramentaFinanceira(ctx, nome, input))
-  const n: Numeros = {}
+  const n: Numeros = { trecho: !!ant && p.parcial }
   const secoes: Secao[] = []
   const tipo = pedido.tipo as TipoRelatorio
   const mesInteiro = p.inicio.slice(8) === '01' && somarDiasISO(p.fim, 1).slice(8) === '01'
+  // Comparação do período em andamento: diz qual trecho foi comparado e quanto deu nele
+  const compDe = (c?: CompFerr | null): (Comp & { nota?: string }) | undefined => {
+    if (!c) return undefined
+    const trecho = p.parcial && c.comparado_ate && c.atual_comparado != null
+    return { anterior: c.anterior, diferenca: c.diferenca, variacao_pct: c.variacao_pct,
+      ...(trecho ? { nota: L(lang, `comparação de ${fmtData(p.inicio, lang)} a ${fmtData(c.comparado_ate!, lang)}: ${fmtMoeda(c.atual_comparado!, lang)}`, `compared from ${fmtData(p.inicio, lang)} to ${fmtData(c.comparado_ate!, lang)}: ${fmtMoeda(c.atual_comparado!, lang)}`, `comparación de ${fmtData(p.inicio, lang)} a ${fmtData(c.comparado_ate!, lang)}: ${fmtMoeda(c.atual_comparado!, lang)}`) } : {}) }
+  }
   const avisoDreMensal = () => { if (!mesInteiro) C.limitar(L(lang, `A DRE é mensal: lucro e margem usam os meses inteiros de ${p.inicio.slice(0, 7)} a ${p.fim.slice(0, 7)}.`, `The income statement is monthly: profit and margin use the full months from ${p.inicio.slice(0, 7)} to ${p.fim.slice(0, 7)}.`, `El estado de resultados es mensual: utilidad y margen usan los meses completos de ${p.inicio.slice(0, 7)} a ${p.fim.slice(0, 7)}.`)) }
 
   if (tipo === 'executivo') {
@@ -228,8 +239,8 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
       F('despesas', { ...args, agrupar_por: 'categoria', comparar: !!ant }), F('resumo_financeiro', {}), F('receitas_por_cliente', args), dreDe(ctx, p),
     ])
     const dre = C.dre(d, `${p.inicio}..${p.fim}`); avisoDreMensal()
-    const fc = (fat?.detalhes as { comparacao?: { anterior: number; diferenca: number; variacao_pct: number | null } } | undefined)?.comparacao
-    const dc = (desp?.detalhes as { comparacao?: { anterior: number; diferenca: number; variacao_pct: number | null } } | undefined)?.comparacao
+    const fc = (fat?.detalhes as { comparacao?: CompFerr } | undefined)?.comparacao
+    const dc = (desp?.detalhes as { comparacao?: CompFerr } | undefined)?.comparacao
     const md = mov?.detalhes as { recebido_total: number; pago_fornecedores: number } | undefined
     const rd = res?.detalhes as { caixa_realizado: number | null; a_receber: { aberto: number; vencido: number }; a_pagar: { aberto: number; vencido: number }; dividas_saldo: number } | undefined
     if (fat) { n.faturamento = fat.valor as number; n.fatVar = fc?.variacao_pct ?? null }
@@ -241,8 +252,8 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     const comCliente = g.filter((x) => x.nome !== 'Sem cliente informado')
     if (comCliente.length) { const tot = comCliente.reduce((s, x) => s + x.valor, 0); n.topCliente = { nome: comCliente[0].nome, pct: pctDe(comCliente[0].valor, tot) ?? 0 } }
     secoes.push({ id: 'indicadores', titulo: tx(lang, 'indicadores'), tipo: 'indicadores', itens: [
-      ind(tx(lang, 'faturamento'), fat?.valor, 'BRL', 'calculo', fc ? { anterior: fc.anterior, diferenca: fc.diferenca, variacao_pct: fc.variacao_pct } : undefined),
-      ind(tx(lang, 'despesas'), desp?.valor, 'BRL', 'calculo', dc ? { anterior: dc.anterior, diferenca: dc.diferenca, variacao_pct: dc.variacao_pct } : undefined),
+      ind(tx(lang, 'faturamento'), fat?.valor, 'BRL', 'calculo', compDe(fc)),
+      ind(tx(lang, 'despesas'), desp?.valor, 'BRL', 'calculo', compDe(dc)),
       ind(tx(lang, 'lucro'), dre?.lucro_liquido, 'BRL', 'estimativa', undefined, L(lang, 'impostos estimados pelo regime', 'taxes estimated by regime', 'impuestos estimados por régimen')),
       ind(tx(lang, 'margem'), dre?.lucro_liquido_pct, 'PCT', 'estimativa'),
       ind(tx(lang, 'recebido'), md?.recebido_total, 'BRL', 'calculo'), ind(tx(lang, 'pago'), md?.pago_fornecedores, 'BRL', 'calculo'),
@@ -369,13 +380,13 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     const gran = dias <= 31 ? 'dia' : dias <= 92 ? 'semana' : 'mes'
     const [fat, cli, d] = await Promise.all([F('faturamento', { ...args, granularidade: gran, comparar: !!ant }), F('receitas_por_cliente', args), dreDe(ctx, p)])
     const dre = C.dre(d, `${p.inicio}..${p.fim}`); avisoDreMensal()
-    const fd = fat?.detalhes as { serie: { chave: string; valor: number }[]; devolucoes_pdv: number; receitas_lancadas_tela_receitas: number; comparacao: { anterior: number; diferenca: number; variacao_pct: number | null } | null } | undefined
+    const fd = fat?.detalhes as { serie: { chave: string; valor: number }[]; devolucoes_pdv: number; receitas_lancadas_tela_receitas: number; comparacao: CompFerr | null } | undefined
     if (fat) { n.faturamento = fat.valor as number; n.fatVar = fd?.comparacao?.variacao_pct ?? null }
     const g = (cli?.detalhes as { grupos?: { nome: string; valor: number; pct: number; registros: number }[] } | undefined)?.grupos ?? []
     const comCliente = g.filter((x) => x.nome !== 'Sem cliente informado')
     if (comCliente.length) { const tot = comCliente.reduce((s, x) => s + x.valor, 0); n.topCliente = { nome: comCliente[0].nome, pct: pctDe(comCliente[0].valor, tot) ?? 0 } }
     secoes.push({ id: 'indicadores', titulo: tx(lang, 'indicadores'), tipo: 'indicadores', itens: [
-      ind(tx(lang, 'faturamento'), fat?.valor, 'BRL', 'calculo', fd?.comparacao ? { anterior: fd.comparacao.anterior, diferenca: fd.comparacao.diferenca, variacao_pct: fd.comparacao.variacao_pct } : undefined),
+      ind(tx(lang, 'faturamento'), fat?.valor, 'BRL', 'calculo', compDe(fd?.comparacao)),
       ind(L(lang, 'Devoluções e cancelamentos do PDV', 'POS returns and cancellations', 'Devoluciones y cancelaciones del PDV'), fd?.devolucoes_pdv, 'BRL', 'calculo'),
       ind(L(lang, 'Soma da tela Receitas (só lançamentos digitados)', 'Revenue screen total (typed entries only)', 'Suma de la pantalla Ingresos (solo registros digitados)'), fd?.receitas_lancadas_tela_receitas, 'BRL', 'fato', undefined, L(lang, 'não é o faturamento: não inclui contas a receber nem PDV', 'not the revenue: excludes receivables and POS', 'no es la facturación: no incluye cuentas por cobrar ni PDV')),
       ind(L(lang, 'Receita bruta pela DRE (meses inteiros)', 'Gross revenue per income statement (full months)', 'Ingreso bruto según estado de resultados (meses completos)'), dre?.receita_bruta, 'BRL', 'calculo'),
@@ -391,12 +402,12 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     const mesCf = (p.fim > hoje ? hoje : p.fim).slice(0, 7)
     const [cat, forn, cf, d] = await Promise.all([F('despesas', { ...args, agrupar_por: 'categoria', comparar: !!ant }), F('despesas', { ...args, agrupar_por: 'fornecedor', comparar: false }), F('custos_fixos_mes', { mes: mesCf }), dreDe(ctx, p)])
     const dre = C.dre(d, `${p.inicio}..${p.fim}`); avisoDreMensal()
-    const cd = cat?.detalhes as { grupos: { nome: string; valor: number; pct: number; registros: number }[]; comparacao: { anterior: number; diferenca: number; variacao_pct: number | null } | null } | undefined
+    const cd = cat?.detalhes as { grupos: { nome: string; valor: number; pct: number; registros: number }[]; comparacao: CompFerr | null } | undefined
     const fdd = forn?.detalhes as { grupos: { nome: string; valor: number; pct: number; registros: number }[] } | undefined
     const cfd = cf?.detalhes as { total_ativo: number; ativos: number; encerrados: number } | undefined
     if (cat) { n.despesas = cat.valor as number; n.despVar = cd?.comparacao?.variacao_pct ?? null }
     secoes.push({ id: 'indicadores', titulo: tx(lang, 'indicadores'), tipo: 'indicadores', itens: [
-      ind(tx(lang, 'despesas'), cat?.valor, 'BRL', 'calculo', cd?.comparacao ? { anterior: cd.comparacao.anterior, diferenca: cd.comparacao.diferenca, variacao_pct: cd.comparacao.variacao_pct } : undefined, L(lang, 'custos variáveis + contas a pagar', 'variable costs + payables', 'costos variables + cuentas por pagar')),
+      ind(tx(lang, 'despesas'), cat?.valor, 'BRL', 'calculo', compDe(cd?.comparacao), L(lang, 'custos variáveis + contas a pagar', 'variable costs + payables', 'costos variables + cuentas por pagar')),
       ind(L(lang, 'Custos fixos do período (DRE)', 'Fixed costs of the period (income statement)', 'Costos fijos del período (estado de resultados)'), dre?.custos_fixos, 'BRL', 'calculo'),
       ind(L(lang, `Custos fixos ativos em ${mesCf}`, `Active fixed costs in ${mesCf}`, `Costos fijos activos en ${mesCf}`), cfd?.total_ativo, 'BRL', 'calculo', undefined, cfd ? L(lang, `${cfd.ativos} ativo(s); ${cfd.encerrados} encerrado(s) não contam`, `${cfd.ativos} active; ${cfd.encerrados} ended not counted`, `${cfd.ativos} activo(s); ${cfd.encerrados} cerrado(s) no cuentan`) : undefined),
       ind(L(lang, 'Despesas sobre a receita', 'Expenses over revenue', 'Gastos sobre el ingreso'), dre && cat ? pctDe((cat.valor as number) + dre.custos_fixos, dre.receita_bruta) : null, 'PCT', 'calculo'),

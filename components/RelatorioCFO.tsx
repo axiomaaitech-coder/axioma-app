@@ -176,7 +176,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
                             {it.variacao_pct != null ? ` (${it.variacao_pct > 0 ? "+" : ""}${fmtCelula(it.variacao_pct, "pct", lang)})` : ` ${L("(sem base para %)", "(no base for %)", "(sin base para %)")}`}
                           </p>
                         )}
-                        {it.nota && it.anterior === undefined && <p className="text-xs mt-0.5" style={{ color: cSuave }}>{it.nota}</p>}
+                        {it.nota && <p className="text-xs mt-0.5" style={{ color: cSuave }}>{it.nota}</p>}
                       </div>
                     ))}
                   </div>
