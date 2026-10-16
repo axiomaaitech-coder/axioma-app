@@ -116,7 +116,13 @@ for (const t of telas) {
   assert.ok(s.includes('<OuvirResposta') && /assinatura=\{m(sg)?\.assinatura\}/.test(s), `${t}: botão Ouvir com assinatura`)
 }
 const comp = readFileSync('components/OuvirResposta.tsx', 'utf8')
-assert.ok(comp.includes("from \"../lib/voz/reprodutor\"") && readFileSync('lib/voz/reprodutor.ts', 'utf8').includes('return falarNoAparelho(p, sit.nome, minha) // anti-falha'), 'servidor falhou → aparelho lê (reprodutor único)')
+// Voz única (CEO, 2026-10-16): havendo a voz do José, nunca cai na voz robótica do computador
+const rep = readFileSync('lib/voz/reprodutor.ts', 'utf8')
+assert.ok(comp.includes("from \"../lib/voz/reprodutor\"") && rep.includes('if (sit.fornecedor && !p.assinatura) return false') && rep.includes('return false // voz do José indisponível agora'), 'com a voz do José: sem assinatura ou com falha, não usa a voz do computador')
+assert.ok(rep.includes('if (!sit.fornecedor) return falarNoAparelho('), 'voz do aparelho só quando não há a voz do José configurada')
+assert.ok(comp.includes('if (temVozJose && !assinatura) return null'), 'sem assinatura o Ouvir não aparece')
+for (const t of ['app/(interno)/ia-financeira/page.tsx', 'app/(interno)/ia-tributaria/page.tsx']) assert.ok(readFileSync(t, 'utf8').includes('await assinarHistorico('), `${t}: respostas antigas recebem a assinatura (voz do José)`)
+assert.ok(readFileSync('app/api/voz/assinar/route.ts', 'utf8').includes(".eq('empresa_id', empresaId).eq('user_id', user.id).eq('role', 'assistant')"), 'assina só resposta da IA do próprio usuário naquela empresa')
 assert.ok(!/getUserMedia|BotaoVoz/.test(comp), 'o botão Ouvir nunca abre o microfone')
 
 console.log('check-voz-fase2: tudo certo ✔')

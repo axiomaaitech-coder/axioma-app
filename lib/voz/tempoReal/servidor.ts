@@ -19,7 +19,7 @@ export const FORNECEDORES_TR: FornecedorTR[] = ['gemini', 'qwen']
 export const DURACAO_MAX_S = 600 // 10 minutos por sessão
 export const SILENCIO_MAX_S = 60 // encerra sozinha depois de 60 s sem ninguém falar
 // Telas com conversa ao vivo
-export const TELAS_TR = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos'] as const
+export const TELAS_TR = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos', 'relatorios'] as const
 export type TelaTR = (typeof TELAS_TR)[number]
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -42,6 +42,8 @@ function apresentacao(tela: TelaTR, nome: string): { abertura: string; foco: str
     ? 'Foco: impostos, regime tributário, alíquota efetiva, obrigações e Reforma Tributária. Lei, limite, alíquota ou prazo só com a regra oficial que vier da ferramenta, com a data; avise que a lei pode mudar; nunca diga apenas "consulte um contador".'
     : tela === 'contas-pagar'
       ? 'Foco: contas a pagar — o que vence, o que está atrasado, fornecedores, concentração, descontos, duplicidade e se o caixa aguenta. Pagamento só pela tela, com revisão da pessoa.'
+    : tela === 'relatorios'
+      ? 'Foco: relatórios gerenciais da empresa — DRE do período escolhido na tela, receitas, custos, margem, lucro, indicadores e evolução; monte o relatório pedido falando o título, o período e os números principais, e diga que o detalhe completo está na tela.'
     : tela === 'importar-documentos'
       ? 'Foco: tirar dúvidas da nota/documento que a pessoa está importando — o que cada valor significa, para onde vai cada linha (contas a pagar, custo fixo, custo variável, estoque, receita), parcelas e vencimentos; explique em linguagem simples. Nada é gravado pela conversa: a pessoa confere e confirma na tela.'
     : tela === 'mei-ia-advisor'

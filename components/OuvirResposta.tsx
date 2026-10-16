@@ -16,7 +16,7 @@ const TX: Record<string, Record<IdiomaFala, string>> = {
   parar: { pt: "Parar", en: "Stop", es: "Detener" },
   preparando: { pt: "Preparando…", en: "Preparing…", es: "Preparando…" },
   dica: { pt: "Ouvir esta resposta em voz alta", en: "Listen to this answer out loud", es: "Escuchar esta respuesta en voz alta" },
-  semVoz: { pt: "Este aparelho não tem voz disponível. Leia a resposta na tela.", en: "This device has no voice available. Read the answer on screen.", es: "Este dispositivo no tiene voz disponible. Lea la respuesta en pantalla." },
+  semVoz: { pt: "A voz do José está indisponível agora. Tente de novo em instantes.", en: "José's voice is unavailable right now. Try again in a moment.", es: "La voz de José no está disponible ahora. Intente de nuevo en unos instantes." },
 };
 const PARADO = { chave: "", estado: "parado" as const };
 
@@ -32,6 +32,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
   const temaClaro = claro ?? tema === "xms";
   const [empresa, setEmpresa] = useState<string | null>(null);
   const [ativa, setAtiva] = useState(false);
+  const [temVozJose, setTemVozJose] = useState(false);
   const [aviso, setAviso] = useState("");
   const atual = useSyncExternalStore(assinarFala, estadoFala, () => PARADO);
   const aoVivo = useSyncExternalStore(assinarConversaGlobal, estadoConversaGlobal, estadoConversaInicial).ativa;
@@ -43,7 +44,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
       const id = empresaId ?? (await obterEmpresaAtiva().catch(() => null));
       if (!id) return;
       const s = await situacaoVoz(id);
-      if (vivo) { setEmpresa(id); setAtiva(s.ativa); }
+      if (vivo) { setEmpresa(id); setAtiva(s.ativa); setTemVozJose(!!s.fornecedor); }
     })();
     return () => { vivo = false; };
   }, [empresaId]);
@@ -52,6 +53,8 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
 
   // Conversa ao vivo aberta: o Ouvir some (uma voz só, sem interferência)
   if (!ativa || !empresa || !texto.trim() || aoVivo) return null;
+  // Sem assinatura (saudação, fala da conversa ao vivo) não há como usar a voz do José: o botão não aparece
+  if (temVozJose && !assinatura) return null;
 
   const minha = atual.chave === texto ? atual.estado : "parado";
   async function ouvir() {

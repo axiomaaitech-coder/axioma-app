@@ -25,6 +25,7 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
+import { assinarHistorico } from "../../../lib/voz/assinarHistorico";
 import ConversaAoVivo from "../../../components/ConversaAoVivo";
 import AcoesMemoria from "../../../components/AcoesMemoria";
 import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
@@ -260,7 +261,9 @@ export default function IATributariaPage() {
 
       const hist = await carregarHistoricoTrib(uid);
       if (hist.length > 0) {
-        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
+        // Respostas antigas ganham a assinatura do servidor: o Ouvir fala com a voz do José também nelas
+        const assin = await assinarHistorico("ia-tributaria", empId, hist);
+        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem, assinatura: assin[String(h.id)] })));
       } else {
         const msg = lang === "en" ? `Hello! I'm the Tax Specialist of Axioma Intelligence. Your Tax Score is ${sf.score}/100. Ask me anything.`
           : lang === "es" ? `¡Hola! Soy el Especialista Tributario de la Inteligencia Axioma. Su Score Fiscal es ${sf.score}/100. Pregunte lo que quiera.`

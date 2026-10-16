@@ -27,6 +27,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
+import { assinarHistorico } from "../../../lib/voz/assinarHistorico";
 import ConversaAoVivo from "../../../components/ConversaAoVivo";
 import AcoesMemoria from "../../../components/AcoesMemoria";
 import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
@@ -350,7 +351,9 @@ export default function IAFinanceiraPage() {
       // Carregar histórico de chat
       const hist = await carregarHistorico(uid);
       if (hist.length > 0) {
-        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
+        // Respostas antigas ganham a assinatura do servidor: o Ouvir fala com a voz do José também nelas
+        const assin = await assinarHistorico("ia-financeira", empId, hist);
+        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem, assinatura: assin[String(h.id)] })));
       } else {
         const msgInicial = lang === "en"
           ? `Hello! I'm the Digital Finance Director of Axioma Intelligence. Your Business Score is ${score.total}/100. Ask me anything about your finances.`

@@ -17,7 +17,7 @@ export const MAX_BYTES = 2 * 1024 * 1024
 export const MAX_SEGUNDOS = 60
 export const TOLERANCIA_SEGUNDOS = 1.5 // o gravador para em 60 s; contêiner/arredondamento passa um pouco
 // Telas onde o ditado existe (Fase 1). PDV: só a busca de produto — liberada também ao operador.
-export const TELAS_VOZ = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos', 'pdv', 'contas-receber'] as const
+export const TELAS_VOZ = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos', 'pdv', 'contas-receber', 'relatorios'] as const
 export type TelaVoz = (typeof TELAS_VOZ)[number]
 // Formatos que o MediaRecorder grava (Chrome/Edge/Firefox: webm/ogg; Safari/iPhone: mp4) e a OpenAI aceita.
 export const TIPOS_AUDIO = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/mpeg', 'audio/wav']

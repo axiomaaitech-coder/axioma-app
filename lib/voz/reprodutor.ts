@@ -92,7 +92,9 @@ export async function falar(p: PedidoFala): Promise<boolean> {
   if (!sit.ativa || !p.texto.trim()) return false
   const emCache = cacheAudio.get(p.chave)
   if (emCache) { tocar(p, emCache, minha); return true }
-  if (!sit.fornecedor || !p.assinatura) return falarNoAparelho(p, sit.nome, minha)
+  // Voz única do José (CEO, 2026-10-16): havendo a voz do José, nada de voz robótica do computador
+  if (sit.fornecedor && !p.assinatura) return false
+  if (!sit.fornecedor) return falarNoAparelho(p, sit.nome, minha)
   mudar(p.chave, 'carregando')
   ctrl = new AbortController()
   try {
@@ -109,7 +111,8 @@ export async function falar(p: PedidoFala): Promise<boolean> {
     return true
   } catch {
     if (minha !== geracao) return false
-    return falarNoAparelho(p, sit.nome, minha) // anti-falha: o servidor falhou, o aparelho lê
+    mudar('', 'parado')
+    return false // voz do José indisponível agora: o botão avisa (sem cair na voz robótica)
   }
 }
 

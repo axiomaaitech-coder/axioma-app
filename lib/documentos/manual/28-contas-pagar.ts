@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '28 - Comercial - Contas a Pagar.docx',
   titulo: 'Manual 28 — Contas a Pagar',
   subtitulo: 'Central de obrigações com fornecedores',
-  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (outubro de 2026)'],
+  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.4 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne tudo o que a empresa tem para pagar: vencimentos, baixas, anexos, aprovações, pedidos de compra e conferência de notas. Além de organizar, o Axioma **protege o caixa**: detecta duplicidades, multas evitáveis, descontos que ainda dá para aproveitar e aumentos silenciosos de preço.' },
@@ -74,6 +74,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na pergunta ao CFO e na Descrição da conta. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
+    { p: '**Pergunte à Inteligência Axioma (Assistente Financeiro):** No lugar da antiga caixa "Pergunte ao Axioma CFO", há uma conversa com a Inteligência Axioma: pergunte digitando ou pelo botão **Falar** e continue o assunto. Ela responde com os números desta tela; se a inteligência estiver fora do ar, responde pelas regras do Axioma, com aviso. Embaixo de cada resposta há **🔊 Ouvir** (a voz do José), **"Quer que eu lembre disso?"** e **"Está errado?"**; abaixo ficam a **Conversa ao vivo** (continua se você mudar de tela) e o painel **Memória da IA**. Os números vêm dos dados da Empresa, conferidos.' },
   ],
 }
 
@@ -81,7 +82,7 @@ const en: DocumentoAxioma = {
   arquivo: '28 - Commercial - Accounts Payable.docx',
   titulo: 'Manual 28 — Accounts Payable',
   subtitulo: 'Control center for supplier obligations',
-  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.3 (October 2026)'],
+  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.4 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together everything the company has to pay: due dates, payments, attachments, approvals, purchase orders and invoice matching. Beyond organizing, Axioma **protects your cash**: it detects duplicates, avoidable penalties, discounts you can still take and silent price increases.' },
@@ -150,6 +151,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the CFO question and in the bill Description. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
+    { p: '**Ask Axioma Intelligence (Financial Assistant):** Instead of the old "Ask Axioma CFO" box, there is a conversation with Axioma Intelligence: ask by typing or with **Speak** and follow up. It answers with this screen\'s numbers; if the intelligence is down, it answers by Axioma\'s rules, with a notice. Below each answer there is **🔊 Listen** (José\'s voice), **"Should I remember this?"** and **"Is this wrong?"**; below are the **Live conversation** (it continues if you change screens) and the **AI Memory** panel. Numbers come from the Company data, checked.' },
   ],
 }
 
@@ -157,7 +159,7 @@ const es: DocumentoAxioma = {
   arquivo: '28 - Comercial - Cuentas por Pagar.docx',
   titulo: 'Manual 28 — Cuentas por Pagar',
   subtitulo: 'Central de obligaciones con proveedores',
-  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (octubre de 2026)'],
+  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.4 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne todo lo que la empresa tiene que pagar: vencimientos, pagos, adjuntos, aprobaciones, órdenes de compra y conciliación de facturas. Además de organizar, Axioma **protege la caja**: detecta duplicados, multas evitables, descuentos que aún se pueden aprovechar y aumentos silenciosos de precio.' },
@@ -226,6 +228,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la pregunta al CFO y en la Descripción de la cuenta. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
+    { p: '**Pregunte a la Inteligencia Axioma (Asistente Financiero):** En lugar de la antigua caja "Pregunte al Axioma CFO", hay una conversación con la Inteligencia Axioma: pregunte escribiendo o con **Hablar** y continúe el tema. Responde con los números de esta pantalla; si la inteligencia no está disponible, responde por las reglas de Axioma, con aviso. Debajo de cada respuesta hay **🔊 Escuchar** (la voz de José), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**; abajo están la **Conversación en vivo** (continúa si cambia de pantalla) y el panel **Memoria de la IA**. Los números vienen de los datos de la Empresa, verificados.' },
   ],
 }
 

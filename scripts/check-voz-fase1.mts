@@ -112,7 +112,13 @@ const TELAS: [string, string][] = [
   ['app/(interno)/contas-pagar/page.tsx', 'contas-pagar'], ['app/(interno)/importar-documentos/page.tsx', 'importar-documentos'],
   ['app/(interno)/pdv/venda/page.tsx', 'pdv'], ['app/(interno)/contas-receber/page.tsx', 'contas-receber'],
 ]
-assert.deepEqual(TELAS.map(([, t]) => t).sort(), [...TELAS_VOZ].sort())
+// Relatórios usa o ditado de dentro do chat comum (components/ChatInteligencia): também só preenche o campo
+assert.deepEqual([...TELAS.map(([, t]) => t), 'relatorios'].sort(), [...TELAS_VOZ].sort())
+{
+  const chat = readFileSync('components/ChatInteligencia.tsx', 'utf8')
+  assert.ok(chat.includes('onTexto={(x) => setTexto((a) => juntarTexto(a, x))}'), 'chat comum: o ditado só preenche o campo')
+  assert.ok(readFileSync('app/(interno)/relatorios/page.tsx', 'utf8').includes('<ChatInteligencia tela="relatorios"'), 'Relatórios usa o chat comum')
+}
 for (const [arq, tela] of TELAS) {
   const s = readFileSync(arq, 'utf8')
   // Recorta cada <BotaoVoz ... /> inteiro e o corpo do onTexto com chaves balanceadas

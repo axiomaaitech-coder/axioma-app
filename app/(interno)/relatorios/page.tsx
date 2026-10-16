@@ -29,6 +29,7 @@ import {
   type Insight,
 } from "../../../lib/relatoriosHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import ChatInteligencia from "../../../components/ChatInteligencia";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -456,6 +457,17 @@ export default function Relatorios() {
 
   const semDados = !carregando && dre && dre.receita_bruta === 0 && dre.custos_variaveis === 0 && dre.custos_fixos === 0;
 
+  // Contexto do chat: os números do período escolhido nesta tela (DRE, custos por categoria, indicadores)
+  function contextoRelatorios(): string {
+    const f = (n: number) => `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const linhas = [`TELA RELATÓRIOS — período escolhido: ${MESES[mes - 1]}/${ano}. A pessoa pode pedir relatórios sob medida (ex.: "relatório de custos do mês", "resumo executivo do trimestre"): monte o relatório com título, período, resumo, seções com os números e conclusão, usando estes dados e as ferramentas de consulta; nunca invente número.`];
+    if (dre) linhas.push(`DRE do período: receita bruta ${f(dre.receita_bruta)}; deduções ${f(dre.deducoes)}; receita líquida ${f(dre.receita_liquida)}; custos variáveis ${f(dre.custos_variaveis)}; margem de contribuição ${f(dre.margem_contribuicao)} (${dre.pct_margem_contribuicao}%); custos fixos ${f(dre.custos_fixos)}; lucro operacional ${f(dre.lucro_operacional)}; despesas financeiras ${f(dre.despesas_financeiras)}; lucro líquido ${f(dre.lucro_liquido)} (${dre.pct_lucro_liquido}%).`);
+    else linhas.push("DRE do período: ainda não carregado nesta tela.");
+    if (distribuicao.length) linhas.push(`Custos por categoria: ${distribuicao.map((c) => `${c.name} ${f(c.value)} (${c.pct}%)`).join("; ")}.`);
+    if (kpis.length) linhas.push(`Indicadores: ${kpis.map((k) => `${k.nome} ${k.valor} (meta ${k.meta}${k.atingido ? ", atingida" : ", não atingida"})`).join("; ")}.`);
+    return linhas.join("\n");
+  }
+
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
@@ -469,6 +481,15 @@ export default function Relatorios() {
     >
       {/* Toast */}
       <AvisoAxioma aviso={toast} onFechar={() => setToast(null)} />
+
+      {/* Inteligência Axioma em Relatórios: conversa, pedidos de relatório, voz, memória e conversa ao vivo */}
+      <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
+        <ChatInteligencia tela="relatorios" empresaId={empresaId} lang={lang as "pt" | "en" | "es"} claro={temaClaro}
+          titulo={idioma === "en" ? "Ask Axioma Intelligence — Digital Finance Director (reports on demand)" : idioma === "es" ? "Pregunte a la Inteligencia Axioma — Director Financiero Digital (informes a pedido)" : "Pergunte à Inteligência Axioma — Diretor Financeiro Digital (relatórios sob pedido)"}
+          placeholder={idioma === "en" ? "E.g.: make an executive summary of this month" : idioma === "es" ? "Ej.: haga un resumen ejecutivo de este mes" : "Ex.: faça um resumo executivo deste mês"}
+          sugestoes={idioma === "en" ? ["Executive summary of this month", "Where did costs grow?", "Explain my profit", "Report of overdue bills"] : idioma === "es" ? ["Resumen ejecutivo del mes", "¿Dónde crecieron los costos?", "Explique mi ganancia", "Informe de cuentas vencidas"] : ["Resumo executivo deste mês", "Onde os custos cresceram?", "Explique o meu lucro", "Relatório das contas vencidas"]}
+          contexto={contextoRelatorios} />
+      </CanvasBox>
 
       {/* TOPO: período + abas + share */}
       <div className="flex flex-col gap-3 mb-5">

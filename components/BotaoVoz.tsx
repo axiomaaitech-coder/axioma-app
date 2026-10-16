@@ -50,7 +50,7 @@ function ambienteNavegador() {
 
 export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desativado = false }: {
   lang: Lang;
-  tela: "nexus" | "ia-financeira" | "ia-tributaria" | "mei-ia-advisor" | "contas-pagar" | "importar-documentos" | "pdv" | "contas-receber";
+  tela: "nexus" | "ia-financeira" | "ia-tributaria" | "mei-ia-advisor" | "contas-pagar" | "importar-documentos" | "pdv" | "contas-receber" | "relatorios";
   onTexto: (texto: string) => void;
   empresaId?: string | null;
   claro?: boolean;

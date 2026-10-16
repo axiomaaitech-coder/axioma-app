@@ -201,3 +201,12 @@ console.log('check-voz-tempo-real: tudo certo ✔')
   assert.match(S.instrucoesJose('pt', '', 'mei-ia-advisor'), /^Você é o consultor do MEI da Inteligência Axioma/)
   console.log('OK — conversa continua fora da tela: consulta ao motor, barra fixa, falas pendentes entregues ao voltar; MEI com a Consultor do MEI')
 }
+
+// ─── Relatórios e Contas a Pagar: mesmo chat da Inteligência Axioma (voz, memória, conversa ao vivo) ───
+{
+  const rel = readFileSync('app/(interno)/relatorios/page.tsx', 'utf8')
+  assert.ok(rel.includes('<ChatInteligencia tela="relatorios"') && rel.includes('contexto={contextoRelatorios}'), 'Relatórios com a IA conversacional e os números do período')
+  assert.ok(readFileSync('app/(interno)/contas-pagar/page.tsx', 'utf8').includes('<ChatInteligencia tela="contas-pagar"'), 'Contas a Pagar com um chat só (Inteligência Axioma)')
+  assert.ok((S.TELAS_TR as readonly string[]).includes('relatorios') && S.instrucoesJose('pt', '', 'relatorios').startsWith('Você é o diretor financeiro digital da Inteligência Axioma'), 'conversa ao vivo em Relatórios com o Diretor Financeiro Digital')
+  console.log('OK — Relatórios e Contas a Pagar: chat da Inteligência Axioma com voz, memória e conversa ao vivo')
+}

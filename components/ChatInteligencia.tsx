@@ -26,7 +26,7 @@ const TX: Record<string, Record<L, string>> = {
 };
 
 export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo, placeholder, sugestoes, contexto, porRegra }: {
-  tela: "contas-pagar" | "importar-documentos";
+  tela: "contas-pagar" | "importar-documentos" | "relatorios";
   empresaId: string | null | undefined;
   lang: L;
   claro: boolean;
