@@ -5,8 +5,9 @@ import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { perguntarAoMotor, podeUsarIAFinanceira, historicoSeguro, TELAS_ANTHROPIC, type Idioma } from '@/lib/ia/motor'
 import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
+import { processarPerguntaMotor } from '@/lib/ia/rotaMotor'
+import { comRetentativa } from '@/lib/antiFalha'
 import { assinarResposta } from '@/lib/voz/assinatura'
-import { registrarLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang?, contexto_tela? }
 // Porta única do motor de IA (docs/MOTOR-IA.md). A tela manda só a pergunta:
@@ -41,36 +42,53 @@ export async function POST(request: NextRequest) {
   // correlação gerada aqui para cruzar auditoria e Sentry. Nenhum dos dois decide empresa ou permissão.
   const conversaId = typeof corpo?.conversa_id === 'string' && UUID.test(corpo.conversa_id) ? corpo.conversa_id : null
   const correlacao = crypto.randomUUID()
+  const inicio = Date.now()
   const contextoTela = typeof corpo?.contexto_tela === 'string' ? corpo.contexto_tela : undefined
   if (!pergunta || !UUID.test(empresaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
-  // Operador (PDV) não enxerga dado financeiro (RLS empresas_do_usuario_operacional): sem esta
-  // trava a IA leria tudo vazio e responderia "sua empresa não tem receita". Antes de gastar saldo.
-  const membro = await registrarLeitura(() => supabase.from('empresa_usuarios').select('papel').eq('empresa_id', empresaId).eq('user_id', user.id).maybeSingle(), "motor:43")
-  if (!podeUsarIAFinanceira(membro?.papel)) return NextResponse.json({ error: 'sem_acesso_financeiro', mensagem: SEM_ACESSO[lang] }, { status: 403 })
 
-  // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
-  const saldo = await consumirIA(supabase, empresaId, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai')
-  if (!saldo.ok) return NextResponse.json({ error: 'sem_saldo_ia', motivo: saldo.motivo, mensagem: mensagemSemSaldo(saldo.motivo, lang) }, { status: 402 })
+  // Regra testada em lib/ia/rotaMotor.ts (scripts/check-voz-faseD.mts): acesso (RLS) → papel → cobra → motor → devolve se falhar.
+  // Operador (PDV) não enxerga dado financeiro (RLS empresas_do_usuario_operacional): sem a trava de papel
+  // a IA leria tudo vazio e responderia "sua empresa não tem receita". Empresa alheia: 404 sem cobrar.
+  const res = await processarPerguntaMotor({ usuario: user.id, empresaId, pergunta, lang }, {
+    podeUsar: podeUsarIAFinanceira,
+    acesso: async (id) => {
+      const { data, error } = await comRetentativa(() => supabase.rpc('ia_situacao', { p_empresa: id }))
+      if (error) { if (/sem acesso/i.test(error.message)) return null; throw new Error(error.message) }
+      return data ? true : null
+    },
+    papel: async (id) => {
+      const { data, error } = await comRetentativa(() => supabase.from('empresa_usuarios').select('papel').eq('empresa_id', id).eq('user_id', user.id).maybeSingle())
+      if (error) throw new Error(error.message)
+      return (data?.papel as string | undefined) ?? null
+    },
+    // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
+    consumir: (id) => consumirIA(supabase, id, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai'),
+    devolver: (consumoId) => devolverIA(supabase, consumoId),
+    perguntar: () => perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela }),
+  })
 
-  try {
-    const r = await perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela })
-    // Auditoria: quem, qual empresa, qual nível/IA e quanto texto saiu — nunca o conteúdo.
-    after(() => registrarAuditoria({
-      empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
-      parametros: { tela: tela ?? null, conversa_id: conversaId, correlacao, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
-        tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
-        tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
-    }))
-    if (!r.resposta) await devolverIA(supabase, saldo.id) // IA não respondeu: não cobra do saldo
-    // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para falar a ressalva
-    return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
-  } catch (err) {
-    await devolverIA(supabase, saldo.id)
-    const msg = err instanceof Error ? err.message : String(err)
-    if (msg.includes('empresa não encontrada')) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
-    console.error('[ia/motor]', msg)
-    Sentry.captureException(err instanceof Error ? err : new Error(msg), { extra: { rota: 'ia/motor', correlacao } })
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+  if (res.status !== 200) {
+    if (res.status === 403) return NextResponse.json({ error: 'sem_acesso_financeiro', mensagem: SEM_ACESSO[lang] }, { status: 403 })
+    if (res.status === 402) return NextResponse.json({ error: 'sem_saldo_ia', motivo: res.motivo, mensagem: mensagemSemSaldo(res.motivo ?? 'sem_saldo', lang) }, { status: 402 })
+    if (res.status === 404) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
+    if (res.status === 500 || res.status === 503) {
+      console.error('[ia/motor]', res.erro)
+      Sentry.captureException(new Error(`[ia/motor] ${res.erro}`), { extra: { rota: 'ia/motor', correlacao } })
+      return NextResponse.json({ error: res.status === 503 ? 'falha_leitura' : 'Erro interno do servidor' }, { status: res.status })
+    }
+    return NextResponse.json({ error: res.erro }, { status: res.status })
   }
+  const r = res.r
+  // Auditoria: quem, qual empresa, qual nível/IA, o que foi consultado e quanto texto saiu — nunca o conteúdo.
+  after(() => registrarAuditoria({
+    empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
+    parametros: { tela: tela ?? null, conversa_id: conversaId, correlacao, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
+      // Fase D: o que foi consultado (nome, ok/vazio/erro, ms), se a pergunta exigia dado e se respondeu sem consultar
+      exige_consulta: r.exigeConsulta, ferramentas: r.ferramentas, sem_consulta_exigida: r.semConsultaExigida, latencia_ms: Date.now() - inicio, cobrado: res.cobrado,
+      tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
+      tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
+  }))
+  // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para a ressalva
+  return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
 }

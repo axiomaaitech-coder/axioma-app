@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financeira.docx',
   titulo: 'Manual 36 — IA Financeira',
   subtitulo: 'Seu CFO Digital: análise inteligente com dados reais',
-  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (outubro de 2026)'],
+  info: ['Menu: IA Premium → IA Financeira  •  Manual de uso do Axioma AI.Tech  •  Versão 2.4 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Financeira é o **diretor financeiro digital** da empresa. Junta todos os módulos em uma nota geral (Score 360°), aponta anomalias, projeta a receita, simula cenários, monta um plano de ação e conversa com você sobre as finanças, sempre com os dados reais.' },
@@ -49,6 +49,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta do chat. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
     { p: '**Ouvir a resposta:** quando a voz estiver liberada, aparece o botão **🔊 Ouvir** embaixo de cada resposta. Toque para ouvir a resposta em voz alta e em **Parar** para interromper; só uma resposta fala por vez e nada toca sozinho. A voz, masculina e em tom executivo, chama você pelo nome, lê apenas o que a inteligência do Axioma respondeu (sem símbolos nem emojis, com valores em reais por extenso) e, se algum valor não pôde ser conferido nos seus dados, avisa isso no fim. Se a voz do Axioma estiver fora do ar, a voz do próprio aparelho lê no lugar. Ouvir não consome perguntas do saldo e o áudio não é guardado. Para responder falando, toque em **Falar** — o microfone nunca abre sozinho.' },
+    { p: '**Avisos no fim da resposta:** quando a pergunta é sobre dados da empresa (contas, vencidos, devedores, fornecedores, dívidas, estoque, custos, faturamento de um período), a inteligência consulta os registros na hora antes de responder. Se alguma consulta falhar, aparece no fim: "Observação: não foi possível consultar agora…" — esse valor não é zero, só não pôde ser lido. Se a consulta não pôde ser feita, ou se algum valor citado não foi encontrado nos dados, também aparece um aviso para conferir na tela. DRE de um mês, impostos de um período e folha de pagamento ainda não são consultados pela conversa: ela indica a tela certa.' },
   ],
 }
 
@@ -56,7 +57,7 @@ const en: DocumentoAxioma = {
   arquivo: '36 - AI Premium - Financial AI.docx',
   titulo: 'Manual 36 — Financial AI',
   subtitulo: 'Your Digital CFO: smart analysis with real data',
-  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.3 (October 2026)'],
+  info: ['Menu: AI Premium → Financial AI  •  Axioma AI.Tech user manual  •  Version 2.4 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Financial AI is the company’s **digital CFO**. It combines every module into an overall score (360° Score), points out anomalies, projects revenue, simulates scenarios, builds an action plan and talks with you about the finances, always with real data.' },
@@ -100,6 +101,7 @@ const en: DocumentoAxioma = {
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the chat question box. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
     { p: '**Listen to the answer:** when voice is enabled, a **🔊 Listen** button appears below each answer. Tap it to hear the answer out loud and **Stop** to interrupt; only one answer speaks at a time and nothing plays by itself. The voice, male and with an executive tone, addresses you by name and reads only what the Axioma intelligence answered (no symbols or emojis, with amounts spelled out) and, if any amount could not be checked against your data, says so at the end. If the Axioma voice is unavailable, your device voice reads instead. Listening does not use questions from your balance and the audio is not stored. To reply by voice, tap **Speak** — the microphone never opens by itself.' },
+    { p: '**Notes at the end of the answer:** when the question is about company data (bills, overdue items, debtors, suppliers, debts, inventory, costs, revenue for a period), the intelligence looks up the records right then before answering. If a lookup fails, the end shows: "Note: it was not possible to check right now…" — that amount is not zero, it just could not be read. If the lookup could not be done, or an amount quoted was not found in the data, a note also asks you to check the screen. A month\'s income statement, taxes for a period and payroll are not looked up by the conversation yet: it points to the right screen.' },
   ],
 }
 
@@ -107,7 +109,7 @@ const es: DocumentoAxioma = {
   arquivo: '36 - IA Premium - IA Financiera.docx',
   titulo: 'Manual 36 — IA Financiera',
   subtitulo: 'Su CFO Digital: análisis inteligente con datos reales',
-  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (octubre de 2026)'],
+  info: ['Menú: IA Premium → IA Financiera  •  Manual de uso de Axioma AI.Tech  •  Versión 2.4 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Financiera es el **director financiero digital** de la empresa. Junta todos los módulos en una nota general (Score 360°), señala anomalías, proyecta los ingresos, simula escenarios, arma un plan de acción y conversa con usted sobre las finanzas, siempre con los datos reales.' },
@@ -151,6 +153,7 @@ const es: DocumentoAxioma = {
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta del chat. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
     { p: '**Escuchar la respuesta:** cuando la voz esté habilitada, aparece el botón **🔊 Escuchar** debajo de cada respuesta. Tóquelo para oír la respuesta en voz alta y **Detener** para interrumpir; solo una respuesta habla a la vez y nada suena solo. La voz, masculina y de tono ejecutivo, lo llama por su nombre y lee únicamente lo que respondió la inteligencia de Axioma (sin símbolos ni emojis, con los valores en palabras) y, si algún valor no pudo verificarse con sus datos, lo avisa al final. Si la voz de Axioma no está disponible, la voz del propio dispositivo lee en su lugar. Escuchar no consume preguntas del saldo y el audio no se guarda. Para responder hablando, toque **Hablar** — el micrófono nunca se abre solo.' },
+    { p: '**Avisos al final de la respuesta:** cuando la pregunta es sobre datos de la empresa (cuentas, vencidos, deudores, proveedores, deudas, inventario, costos, facturación de un período), la inteligencia consulta los registros en ese momento antes de responder. Si alguna consulta falla, aparece al final: "Observación: no fue posible consultar ahora…" — ese valor no es cero, solo no pudo leerse. Si la consulta no pudo hacerse, o si algún valor citado no se encontró en los datos, también aparece un aviso para revisar la pantalla. El estado de resultados de un mes, los impuestos de un período y la nómina aún no se consultan en la conversación: indica la pantalla correcta.' },
   ],
 }
 

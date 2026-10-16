@@ -137,6 +137,9 @@ Regras invioláveis:
 - Responda primeiro, de forma direta, EXATAMENTE o que foi perguntado e no tema da pergunta; só depois o contexto ligado a ela. Não troque de assunto. Pergunta com palavra estranha (pode ter vindo do ditado por voz): diga em uma frase o que entendeu e responda a isso.
 - Significado fixo dos termos (igual no texto e na voz): Faturamento = receita total do período que a pessoa pediu (sem período, diga qual usou). Lucro = o dos dados é MÉDIA mensal de 12 meses: diga sempre "em média por mês"; para o resultado de um mês específico por competência, indique a tela DRE. Caixa = caixa realizado até hoje; nunca diga que é "livre para gastar" (não desconta contas a pagar nem reservas). Contas a pagar = separe em aberto, vencido e próximos 30 dias. Sem lançamento no período = "não há registros de X no período". Módulo em LEITURAS QUE FALHARAM = "não foi possível consultar X agora", nunca zero.
 - Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
+- Consulta e fonte (Fase D): número sobre a empresa só pode vir do retrato ou de uma ferramenta consultada AGORA. O histórico da conversa serve para entender a pergunta ("isso", "aquele valor", "e se…"), nunca como dado atualizado: em continuação ou correção ("na verdade, setembro"), consulte de novo com o período/assunto corrigido. Ferramenta que devolveu {"erro"} = diga "não foi possível consultar X agora" e não use número dela; lista vazia = "não há registros de X no período" (é diferente de erro). Sempre diga o período usado (ex.: "próximos 7 dias, até 23/10").
+- Sem ferramenta para isso ainda: DRE de um mês por competência, impostos/obrigações de um período específico e folha de pagamento (salários e encargos). Nesses casos diga que essa consulta ainda não está disponível na conversa, informe o que você tem (ex.: lucro médio mensal, custos fixos) e indique a tela (DRE, IA Tributária, Custos Fixos). Para contratar alguém: peça salário e regime, e simule só como "Cenário:" com a conta mostrada.
+- Cálculo seu (soma, diferença, percentual, metade, projeção) = "Estimativa:" ou "Cenário:", com a conta e a fonte de cada número (ex.: "metade de R$ 4.500 de contas_a_receber vencidas = R$ 2.250").
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
 - Lei, limite, alíquota ou prazo: use SOMENTE as REGRAS OFICIAIS VIGENTES enviadas e diga a data da conferência. Manchete não muda lei; projeto de lei não aprovado não vale. Regra marcada REVISAR: avise que pode estar desatualizada. Notícia: só as do período enviado, nunca de memória.
@@ -354,6 +357,79 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
   return null
 }
 
+// ─── CONFIABILIDADE FINANCEIRA (Voice Intelligence, Fase D, 2026-10-16) ───
+// 1) Pergunta que pede dado detalhado da empresa EXIGE consulta: a 1ª rodada obriga o modelo a chamar
+//    uma ferramenta (nenhum provedor pode "pular" e responder de memória/resumo).
+// 2) Cada consulta fica registrada (nome, ok/vazio/erro, ms) — vai para a auditoria, sem conteúdo.
+// 3) Avisos fixos (não dependem do modelo) entram no FIM da resposta quando: a consulta falhou, a
+//    consulta exigida não aconteceu, ou há R$ que não existe em nada que o servidor leu.
+export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'erro'; ms: number }
+export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean }
+
+// Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
+const RE_PEDE_DADO = /receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
+// Continuação curta que herda o assunto da pergunta anterior ("e quanto disso…", "na verdade, setembro")
+const RE_CONTINUACAO = /^(e\b|e se\b|e quanto|e os|e as|na verdade|corrigindo|quer dizer|melhor|ali[aá]s|and\b|what about|actually|i mean|y\b|y si\b|en realidad|mejor dicho)/i
+export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] = []): boolean {
+  const p = pergunta.trim()
+  if (RE_PEDE_DADO.test(p)) return true
+  if (!RE_CONTINUACAO.test(p) && p.length > 60) return false
+  const anterior = [...historico].reverse().find((m) => m.role === 'user')
+  return !!anterior && RE_CONTINUACAO.test(p) && RE_PEDE_DADO.test(anterior.content)
+}
+
+export function statusDaSaida(saida: string): RegistroFerramenta['status'] {
+  if (saida.startsWith('{"erro"')) return 'erro'
+  try {
+    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[] }
+    if (Array.isArray(j.itens) && j.itens.length === 0) return 'vazio'
+    if (Array.isArray(j.meses) && j.meses.every((m) => !m.total)) return 'vazio'
+  } catch { return 'erro' }
+  return 'ok'
+}
+
+async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Record<string, unknown>): Promise<string> {
+  const t0 = Date.now()
+  const saida = await executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso)
+  c.registro?.push({ nome, status: statusDaSaida(saida), ms: Date.now() - t0 })
+  return saida
+}
+
+const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
+  contas_a_pagar: { pt: 'contas a pagar', en: 'accounts payable', es: 'cuentas por pagar' },
+  contas_a_receber: { pt: 'contas a receber', en: 'accounts receivable', es: 'cuentas por cobrar' },
+  custos: { pt: 'custos', en: 'costs', es: 'costos' },
+  receitas_por_mes: { pt: 'faturamento por mês', en: 'monthly revenue', es: 'facturación mensual' },
+  estoque_avisos: { pt: 'estoque', en: 'inventory', es: 'inventario' },
+  dividas: { pt: 'dívidas', en: 'debts', es: 'deudas' },
+  maiores_fornecedores: { pt: 'fornecedores', en: 'suppliers', es: 'proveedores' },
+  maiores_devedores: { pt: 'devedores', en: 'debtors', es: 'deudores' },
+}
+const AVISO_FALHA: Record<Idioma, (o: string) => string> = {
+  pt: (o) => `Observação: não foi possível consultar agora: ${o}. Valores desse assunto podem estar incompletos — não são zero.`,
+  en: (o) => `Note: it was not possible to check right now: ${o}. Amounts on this subject may be incomplete — they are not zero.`,
+  es: (o) => `Observación: no fue posible consultar ahora: ${o}. Los valores de ese tema pueden estar incompletos — no son cero.`,
+}
+const AVISO_SEM_CONSULTA: Record<Idioma, string> = {
+  pt: 'Observação: a consulta detalhada não pôde ser feita agora; esta resposta usou só o resumo da empresa. Confira na tela do módulo antes de decidir.',
+  en: "Note: the detailed lookup could not be done right now; this answer used only the company summary. Check the module screen before deciding.",
+  es: 'Observación: la consulta detallada no pudo hacerse ahora; esta respuesta usó solo el resumen de la empresa. Revise la pantalla del módulo antes de decidir.',
+}
+export const AVISO_NAO_CONFERIDO: Record<Idioma, string> = {
+  pt: 'Atenção: algum valor desta resposta não foi encontrado nos dados consultados. Confira na tela antes de decidir.',
+  en: 'Note: some amount in this answer was not found in the checked data. Check it on screen before deciding.',
+  es: 'Atención: algún valor de esta respuesta no se encontró en los datos consultados. Revíselo en pantalla antes de decidir.',
+}
+// Avisos determinísticos no fim da resposta (o texto do modelo não é alterado)
+export function avisosDaResposta(p: { lang: Idioma; exige: boolean; registro: RegistroFerramenta[]; naoConferidos: number }): string[] {
+  const avisos: string[] = []
+  const falhas = [...new Set(p.registro.filter((r) => r.status === 'erro').map((r) => NOME_FERRAMENTA[r.nome]?.[p.lang] ?? r.nome))]
+  if (falhas.length) avisos.push(AVISO_FALHA[p.lang](falhas.join(', ')))
+  if (p.exige && !p.registro.some((r) => r.status !== 'erro') && !falhas.length) avisos.push(AVISO_SEM_CONSULTA[p.lang])
+  if (p.naoConferidos > 0) avisos.push(AVISO_NAO_CONFERIDO[p.lang])
+  return avisos
+}
+
 // OpenAI com as MESMAS ferramentas de consulta (Voice Intelligence, Fase C, 2026-10-16): quando a
 // Anthropic não responde, a reserva também consulta o detalhe (antes respondia só com o retrato).
 // Mesmas regras do Claude: só leitura, empresa do retrato, cliente do usuário (RLS), até MAX_CONSULTAS
@@ -361,7 +437,7 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
 // não roda de novo: devolve o resultado já lido. Falha aqui → null (quem chama cai na OpenAI sem ferramentas).
 const MAX_CHAMADAS_FERRAMENTA = 8
 type MsgOpenAI = { role: string; content: string | null; tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[]; tool_call_id?: string }
-export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: { supabase: SupabaseClient; empresaId: string; fuso: string }, uso?: Uso): Promise<ConsultaClaude> {
+export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: ConsultaMotor, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return { texto: null, dadosConsultados }
@@ -376,7 +452,8 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(45000),
         headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: modelo, max_completion_tokens: 3000, messages: conversa, tools, tool_choice: ultima ? 'none' : 'auto' }),
+        // Pergunta que exige dado: na 1ª rodada o modelo é OBRIGADO a consultar (required)
+        body: JSON.stringify({ model: modelo, max_completion_tokens: 3000, messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
       })
       if (!res.ok) { console.error('[motor-ia] OpenAI ferramentas', modelo, res.status, (await res.text()).slice(0, 300)); return { texto: null, dadosConsultados } }
       const dados = await res.json()
@@ -395,7 +472,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
           chamadas++
           let entrada: Record<string, unknown> = {}
           try { entrada = JSON.parse(p.function.arguments || '{}') } catch { /* parâmetro inválido: a ferramenta usa o padrão */ }
-          leitura = executarFerramenta(consulta.supabase, consulta.empresaId, p.function.name, entrada, consulta.fuso)
+          leitura = consultarFerramenta(consulta, p.function.name, entrada)
           jaLidos.set(chaveConsulta, leitura)
           leitura.then((s) => dadosConsultados.push(s))
         }
@@ -415,7 +492,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
 // cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
 const MAX_CONSULTAS = 4
 type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
-async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: { supabase: SupabaseClient; empresaId: string; fuso: string }, uso?: Uso): Promise<ConsultaClaude> {
+async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: ConsultaMotor, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   if (!process.env.ANTHROPIC_API_KEY) return { texto: null, dadosConsultados }
   const cfg = MODELOS[nivel]
@@ -428,7 +505,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
         betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', // recusa do modelo → a Anthropic reroda em outro modelo
         output_config: { effort: cfg.esforco ?? 'medium' },
         tools: FERRAMENTAS,
-        tool_choice: { type: rodada === MAX_CONSULTAS ? 'none' : 'auto' },
+        tool_choice: { type: rodada === MAX_CONSULTAS ? 'none' : consulta.exige && rodada === 0 ? 'any' : 'auto' },
         system: [
           { type: 'text', text: sistema.fixo, cache_control: { type: 'ephemeral' } },
           { type: 'text', text: sistema.empresa, cache_control: { type: 'ephemeral' } },
@@ -447,7 +524,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
       conversa.push({ role: 'assistant', content: r.content })
       // Consultas em paralelo; todos os resultados voltam numa mensagem só.
       const resultados = await Promise.all(pedidos.map(async (p) => {
-        const saida = await executarFerramenta(consulta.supabase, consulta.empresaId, p.name, (p.input ?? {}) as Record<string, unknown>, consulta.fuso)
+        const saida = await consultarFerramenta(consulta, p.name, (p.input ?? {}) as Record<string, unknown>)
         dadosConsultados.push(saida)
         return { type: 'tool_result' as const, tool_use_id: p.id, content: saida, is_error: saida.startsWith('{"erro"') }
       }))
@@ -494,6 +571,9 @@ export type RespostaMotor = {
   uso: Uso // tokens e custo desta pergunta (painel de custo)
   setor: string | null
   caracteresEnviados: number
+  exigeConsulta: boolean // a pergunta pedia dado detalhado
+  ferramentas: RegistroFerramenta[] // o que foi consultado (nome, ok/vazio/erro, ms) — sem conteúdo
+  semConsultaExigida: boolean // respondeu pergunta de dado SEM nenhuma consulta bem-sucedida (aviso entra no texto)
 }
 
 export async function perguntarAoMotor(args: {
@@ -523,12 +603,22 @@ export async function perguntarAoMotor(args: {
   // Base da conferência: retrato + economia + o que o próprio usuário citou.
   const textoConferencia = [retrato.texto, mundo ?? '', contextoTela ?? '', ...msgs.map((m) => m.content)].join('\n')
   let escalou = false
+  // Fase D: pergunta (ou continuação) que pede dado detalhado obriga a consultar; tudo que foi consultado fica registrado
+  const exige = exigeConsulta(pergunta, args.historico ?? [])
+  const registro: RegistroFerramenta[] = []
+  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso, registro, exige }
 
   const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number; consultas?: string[] }> => {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
-    if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
-    const consulta = { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso }
+    if (MODELOS[n].provedor === 'openai') {
+      // Rotina que pede dado: o modelo barato consulta as ferramentas (antes respondia só com o resumo)
+      if (exige) {
+        const c = await chamarOpenAIComFerramentas(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, consulta, uso)
+        return { texto: c.texto, provedor: 'openai', modelo: MODELOS[n].modelo, enviados: enviados + c.dadosConsultados.join('').length, consultas: c.dadosConsultados }
+      }
+      return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
+    }
     // OpenAI forte COM as ferramentas de consulta; se falhar, OpenAI forte sem ferramentas (que cai sozinha pra OPENAI_RESERVA).
     const openaiForte = async () => {
       const c = await chamarOpenAIComFerramentas(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, consulta, uso)
@@ -544,7 +634,7 @@ export async function perguntarAoMotor(args: {
 
   let r = await executar(nivel)
   // Rotina que não dá conta (ou inventou número) passa pra cima.
-  if (nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(r.texto, textoConferencia).length > 0)) {
+  if (nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(r.texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`).length > 0)) {
     nivel = 'analise'; escalou = true
     r = await executar(nivel)
   }
@@ -557,5 +647,9 @@ export async function perguntarAoMotor(args: {
   // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
   // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.
   const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
-  return { ...base, resposta: r.texto, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso }
+  // Avisos fixos no fim (consulta que falhou, consulta exigida que não aconteceu, valor não encontrado)
+  const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
+  const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
+  return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
+    exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro') }
 }

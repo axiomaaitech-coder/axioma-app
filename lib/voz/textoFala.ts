@@ -57,7 +57,8 @@ export function textoParaFala(texto: string, lang: IdiomaFala, ressalva = false,
   }
   if (!t) return ''
   if (nome !== undefined) t = `${ABERTURA[lang](primeiroNome(nome))} ${t}` // undefined = sem abertura (testes/uso interno)
-  if (ressalva) t = `${t} ${RESSALVA[lang]}`
+  // O motor já põe o aviso no texto (Fase D): não repetir na fala
+  if (ressalva && !/Confira na tela antes de decidir|Check it on screen before deciding|Revíselo en pantalla antes de decidir/.test(t)) t = `${t} ${RESSALVA[lang]}`
   return nome !== undefined ? `${t} ${FECHAMENTO[lang]}` : t
 }
 

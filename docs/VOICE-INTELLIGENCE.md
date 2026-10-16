@@ -233,3 +233,64 @@ Exige publicar (prévia ou produção) — aguardando o CEO.
 3. Fase D (resumo falado curto + detalhe na tela) e Fase E (comparativo OpenAI Realtime × Gemini Live × Qwen
    Omni × ElevenLabs). O motor atual não é de tempo real; migrar exigiria refazer a conferência de números em
    fluxo, por isso só depois do comparativo.
+
+## 13. Fase D — Validação financeira rigorosa e preparação para tempo real (2026-10-16)
+
+### 13.1 Diagnóstico antes das alterações
+
+| # | Onde | Problema |
+|---|---|---|
+| D1 | `perguntarAoMotor` → nível rotina | O modelo barato **nunca tinha ferramentas**: "quanto recebo esta semana?" era respondido com o resumo (30 dias). |
+| D2 | `chamarClaude` / `chamarOpenAIComFerramentas` | `tool_choice: auto` — o modelo podia responder sem consultar mesmo quando a pergunta pedia dado. |
+| D3 | Cadeia de reserva | Claude (com ferramentas) → OpenAI forte (com, desde a Fase C) → OpenAI forte **sem** → reserva **sem**: as duas últimas respondem só com o resumo, sem aviso. |
+| D4 | Falha de ferramenta | `{"erro"}` ia para o modelo, mas nada garantia que a pessoa soubesse; o aviso de valor não conferido só existia **na voz**, não no texto. |
+| D5 | Conferência de números | Só confere R$; datas, percentuais e quantidades não são conferidos. |
+| D6 | Histórico | Valores de respostas anteriores contam como "conferidos" (vêm do navegador); só a métrica `sem_fonte_servidor` os separa. |
+| D7 | Auditoria | Não registrava quais ferramentas rodaram, se falharam, a latência nem "respondeu sem consultar". |
+| D8 | Rota do motor | Leitura do papel que **falhava virava "dono"** (passava); empresa alheia recebia "o saldo de IA acabou" (402, mensagem errada — conferido no site em 16/10). |
+| D9 | Cobrança | Pergunta abandonada pelo navegador (correção) segue processada e cobrada (limitação da Fase B). |
+
+### 13.2 Correções (local, sem deploy)
+
+- **Consulta obrigatória** (`exigeConsulta`, `lib/ia/motor.ts`): pergunta sobre receber/pagar/vencidos/devedores/fornecedores/dívidas/estoque/custos/faturamento/mês/semana (pt/en/es) — ou continuação curta de uma pergunta assim ("e quanto disso…", "na verdade, setembro") — obriga o modelo a consultar na 1ª rodada (OpenAI `required`, Claude `any`). Pergunta geral ("o que é EBITDA?", "obrigado") não força.
+- **Rotina com ferramentas**: quando a pergunta exige dado, o modelo barato também consulta (antes só o resumo).
+- **Registro de consultas** (`RegistroFerramenta`: nome, ok/vazio/erro, ms) e **avisos fixos no fim do texto**, independentes do modelo: consulta que falhou ("não foi possível consultar agora: contas a receber… não são zero"); pergunta de dado respondida sem nenhuma consulta bem-sucedida; R$ não encontrado no que o servidor leu. A voz não repete o aviso.
+- **Prompt**: número só do retrato ou de consulta feita agora; histórico serve para entender, não como dado; correção = consultar de novo; erro ≠ vazio; dizer o período; DRE mensal, impostos de um período e folha **não têm ferramenta** — dizer isso, mostrar o que há e indicar a tela; cálculo/simulação marcados com conta e fonte.
+- **Rota** (`lib/ia/rotaMotor.ts`, testável): acesso pela RLS (`ia_situacao`) **antes** de cobrar → empresa alheia = 404 sem cobrança; papel ilegível = 503 (não vira dono); devolução do saldo no máximo 1 vez.
+- **Auditoria** (`nexus_audit_log`, sem conteúdo): `exige_consulta`, `ferramentas[]` (nome/status/ms), `sem_consulta_exigida`, `latencia_ms`, `cobrado`, `conversa_id`, `correlacao`.
+
+### 13.3 Testes
+
+`npx tsx scripts/check-voz-faseD.mts` — casos 1–7 (consulta obrigatória pt/en/es, continuação, correção, simulação), consulta forçada só quando exige, 11–12 (erro ≠ vazio ≠ zero, avisos), 7–10 (regras no prompt), 13–15 (outra empresa, operador, falha de leitura, saldo, devolução única), 16 em `check-voz-faseB`. Caso 5 (custos vigentes) em `check-voz-fase0`.
+**Pendente (exige IA real):** o que o modelo efetivamente escreve nos casos 7–10 e a taxa real de consultas — rodar os roteiros na prévia logada (login por e-mail/senha; "Entrar com Google" volta ao site principal). Operador real: precisa de um usuário operador de teste.
+
+### 13.4 Voz em tempo real — comparação (consultado em 16/10/2026; preços de tabela, não garantidos)
+
+Premissas: áudio de entrada ≈ 600 tokens/min (OpenAI) e 25 tokens/s (Google, informado pelo fornecedor); saída ≈ 1.200 tokens/min (OpenAI, estimativa de mercado); conversa equilibrada (metade fala a pessoa, metade a IA). Tempo real **reenvia o contexto a cada turno** (parte com preço de cache), então o custo cresce com a duração da sessão.
+
+| | OpenAI Realtime (`gpt-realtime-2.1-mini`) | Gemini Live (`gemini-3.8-live` / `3.1-flash-live`) | Qwen Omni Realtime (`qwen3.8-omni-flash-realtime`) |
+|---|---|---|---|
+| Preço oficial | áudio US$ 10 entrada / 0,30 cache / 20 saída por 1M tokens | áudio US$ 3 / 12 por 1M (US$ 0,005/min entrada, 0,018/min saída) | áudio US$ 0,93 / 1,87 por 1M (Singapura); saída cobra áudio **e** texto |
+| Estimativa/min de conversa | ~US$ 0,015–0,03 | ~US$ 0,012 | < US$ 0,005 (tokens/s não informado) |
+| Grátis para testar | não | **sim** (dados do plano grátis usados para melhorar o produto — só dado sintético) | 1M tokens por 90 dias |
+| Ferramentas | sim | sim | sim (conferir no teste) |
+| Turnos/interrupção | VAD no servidor, interrupção nativa | VAD automático, interrupção nativa | VAD no servidor |
+| Conexão | WebRTC, WebSocket, SIP; token efêmero | WebSocket; token efêmero | WebSocket |
+| Português BR | bom (conhecido) | a medir | a medir |
+| Privacidade | contrato que já usamos; retenção até 30 dias salvo ZDR | pago: não treina; grátis: treina | dados em Singapura/China — exige análise LGPD |
+| Complexidade | média (mesmo fornecedor) | média | alta (conta e região novas) |
+
+`gpt-realtime-mini` (página oficial sem preço de áudio) aparece como modelo anterior do 2.1-mini.
+
+### 13.5 Prova de conceito proposta (próxima fase, não implementada)
+
+**Ouvido e boca em tempo real; cérebro continua sendo o motor do Axioma.**
+1. Botão "Iniciar conversa" (sem palavra-chave, sem microfone permanente): o servidor confere login, papel, liberação e saldo e entrega um **token efêmero** (a chave nunca vai ao navegador).
+2. A sessão de tempo real recebe **uma única ferramenta**: `perguntar_ao_axioma(pergunta)`. Instrução: qualquer dado da empresa só por essa ferramenta; falar os números exatamente como vieram.
+3. A ferramenta chama `/api/ia/motor` com a sessão do usuário (RLS, consulta obrigatória, avisos, assinatura) e devolve a resposta; o modelo de voz só a fala.
+4. Conferência depois da fala: a transcrição do que a voz disse é comparada com os R$ da resposta do motor; divergência → aviso na tela.
+5. Limites: sessão de até 10 min, encerra após 60 s de silêncio, indicador de microfone sempre visível, auditoria por sessão (minutos, consultas, sem áudio/texto).
+6. Comparar OpenAI 2.1-mini × Gemini Live com os mesmos 4 roteiros: latência até começar a falar, acerto de números/datas falados, interrupção, custo por sessão.
+
+**Critérios de aceitação da PoC:** latência até a 1ª palavra ≤ 1,5 s; 100% dos valores falados iguais aos do motor nos roteiros; interrupção corta a fala em ≤ 300 ms; nenhuma consulta fora do motor; custo medido por sessão; nada ligado para clientes antes de LEGAL-V01.
+**Decisões do CEO antes de começar:** créditos (OpenAI ~US$ 10; Google pode começar no grátis só com dados de teste), cobrança por minuto de conversa (precisa de regra de saldo), fornecedor para a Política de Privacidade.
