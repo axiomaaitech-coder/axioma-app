@@ -47,7 +47,7 @@ const pedido = (id: string, nome: string, args = '{}') => ({ id, type: 'function
 const base = { supabase: {} as never, empresaId: '11111111-1111-4111-8111-111111111111', fuso: 'America/Sao_Paulo' }
 
 respostas = [{ choices: [{ message: { content: null, tool_calls: [pedido('1', 'ferramenta_x')] } }] }, { choices: [{ message: { content: 'ok' } }] }]
-let reg: { nome: string; status: string; ms: number }[] = []
+let reg: import('../lib/ia/motor').RegistroFerramenta[] = []
 await M.chamarOpenAIComFerramentas('s', [u('Quanto temos para receber esta semana?')], 'gpt-4o', { ...base, registro: reg, exige: true })
 assert.equal(corpos[0].tool_choice, 'required', 'exige → 1ª rodada obrigada a consultar')
 assert.equal(corpos[1].tool_choice, 'auto', 'depois da 1ª consulta, livre')
