@@ -439,6 +439,12 @@ export default function ContasReceber() {
     showToast(L('Conta excluída.', 'Bill deleted.', 'Cuenta eliminada.'), 'ok')
   }
 
+  // Dos cards (Vencido, Receita em Risco…) direto para a lista já filtrada, onde se registra o recebimento ou se cobra
+  function irParaLista(status: string) {
+    setDrillKpi(null); setFiltroStatus(status); setBusca('')
+    setTimeout(() => document.getElementById('central-recebimentos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+  }
+
   function abrirReceber(c: Conta) {
     setContaReceber(c)
     const { saldo } = calcularLinha(c)
@@ -573,7 +579,7 @@ export default function ContasReceber() {
     { key: 'dso', label: L('Prazo Médio de Recebimento (DSO)', 'Days Sales Outstanding (DSO)', 'Plazo Promedio de Cobro (DSO)'), valor: kpis.dso != null ? `${kpis.dso} ${L('dias', 'days', 'días')}` : '—', cor: TEAL, vazio: kpis.dso == null, drillable: false },
     { key: 'receitaPrevista', label: L('Receita Prevista', 'Forecast Revenue', 'Ingreso Previsto'), valor: fBRL(kpis.receitaPrevista), cor: AZUL, vazio: semContas, drillable: false },
     { key: 'receitaConfirmada', label: L('Receita Confirmada', 'Confirmed Revenue', 'Ingreso Confirmado'), valor: fBRL(kpis.receitaConfirmada), cor: VERDE, vazio: semContas, drillable: false },
-    { key: 'receitaRisco', label: L('Receita em Risco', 'Revenue at Risk', 'Ingreso en Riesgo'), valor: fBRL(kpis.receitaEmRisco), cor: VERMELHO, vazio: semContas, drillable: false },
+    { key: 'receitaRisco', label: L('Receita em Risco', 'Revenue at Risk', 'Ingreso en Riesgo'), valor: fBRL(kpis.receitaEmRisco), cor: VERMELHO, vazio: semContas, drillable: true },
     { key: 'clientesAtraso', label: L('Clientes em Atraso', 'Overdue Clients', 'Clientes en Atraso'), valor: `${kpis.clientesEmAtraso}`, cor: kpis.clientesEmAtraso > 0 ? VERMELHO : VERDE, vazio: clientes.length === 0, drillable: true },
     { key: 'clientesCriticos', label: L('Clientes Críticos', 'Critical Clients', 'Clientes Críticos'), valor: `${kpis.clientesCriticos}`, cor: kpis.clientesCriticos > 0 ? VERMELHO : VERDE, vazio: clientes.length === 0, drillable: true },
     { key: 'ticketMedio', label: L('Ticket Médio', 'Avg. Ticket', 'Ticket Promedio'), valor: kpis.ticketMedio != null ? fBRL(kpis.ticketMedio) : '—', cor: TEAL, vazio: kpis.ticketMedio == null, drillable: false },
@@ -582,13 +588,13 @@ export default function ContasReceber() {
     { key: 'scoreMedio', label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—', cor: kpis.scoreMedioCarteira == null ? CINZA : OURO, vazio: kpis.scoreMedioCarteira == null, drillable: false },
   ]
 
-  function drillLinhas(key: string): { label: string; valor: string }[] {
-    if (key === 'vencido' || key === 'totalAReceber' || key === 'aVencer') {
-      const filtro = key === 'vencido' ? (c: Conta) => (c.status || '') !== 'recebido' && c.data_vencimento < hoje
+  function drillLinhas(key: string): { label: string; valor: string; conta?: Conta }[] {
+    if (key === 'vencido' || key === 'receitaRisco' || key === 'totalAReceber' || key === 'aVencer') {
+      const filtro = key === 'vencido' || key === 'receitaRisco' ? (c: Conta) => (c.status || '') !== 'recebido' && c.data_vencimento < hoje
         : key === 'aVencer' ? (c: Conta) => (c.status || '') !== 'recebido' && c.data_vencimento >= hoje
         : (c: Conta) => (c.status || '') !== 'recebido'
       return contas.filter(filtro).sort((a, b) => calcularLinha(b).saldo - calcularLinha(a).saldo).slice(0, 10)
-        .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(calcularLinha(c).saldo) }))
+        .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(calcularLinha(c).saldo), conta: c }))
     }
     if (key === 'recebidoMes' || key === 'recebidoAno') {
       const inicio = key === 'recebidoMes' ? isoDia(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) : isoDia(new Date(new Date().getFullYear(), 0, 1))
@@ -1344,7 +1350,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= CENTRAL DE RECEBIMENTOS ================= */}
-        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${ESMERALDA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+        <div id="central-recebimentos" className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${ESMERALDA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: ESMERALDA }}>
             {L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros')}
           </p>
@@ -1742,12 +1748,27 @@ export default function ContasReceber() {
                     {drillLinhas(kpiAtivo.key).length === 0 ? (
                       <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem itens para detalhar.', 'No items to break down.', 'Sin elementos para detallar.')}</p>
                     ) : drillLinhas(kpiAtivo.key).map((l, i) => (
-                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
-                        <span style={{ color: TEXTO }}>{l.label}</span>
-                        <span className="font-bold" style={{ color: kpiAtivo.cor }}>{l.valor}</span>
+                      <div key={i} className="px-3 py-2 rounded-lg text-xs axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
+                        <div className="flex justify-between items-center gap-2">
+                          <span style={{ color: TEXTO }}>{l.label}</span>
+                          <span className="font-bold" style={{ color: kpiAtivo.cor }}>{l.valor}</span>
+                        </div>
+                        {/* Caminho direto para resolver: registrar o recebimento desta conta (pedido do CEO, 2026-10-16) */}
+                        {l.conta && (l.conta.status || '') !== 'recebido' && (
+                          <button type="button" onClick={() => { const c = l.conta!; setDrillKpi(null); abrirReceber(c) }}
+                            className="mt-2 w-full px-3 py-1.5 rounded-lg text-[11px] font-bold text-white" style={{ background: '#0f7a5a', border: '1px solid #2ecc9b' }}>
+                            {L('Registrar recebimento (dar baixa)', 'Record payment received', 'Registrar cobro (dar de baja)')}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
+                  {['vencido', 'receitaRisco', 'aVencer', 'totalAReceber'].includes(kpiAtivo.key) && (
+                    <button type="button" onClick={() => irParaLista(kpiAtivo.key === 'vencido' || kpiAtivo.key === 'receitaRisco' ? 'vencido' : 'todos')}
+                      className="mt-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-white" style={{ background: '#101b3d', border: '1px solid #2ecc9b' }}>
+                      {L('Ver todas na lista e resolver', 'See all in the list and resolve', 'Ver todas en la lista y resolver')}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
