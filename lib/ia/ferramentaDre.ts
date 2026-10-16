@@ -66,6 +66,7 @@ export async function consultarDRE(supabase: SupabaseClient, empresaId: string, 
   const lucroLiquido = r2(resultadoOperacional - jurosPagos - jurosEstimados)
   const pct = (v: number) => (receitaBruta > 0 ? r2((v / receitaBruta) * 100) : null)
   return {
+    indicador: 'lucro_competencia', estado: receitaBruta === 0 && custosVariaveis === 0 && custosFixos === 0 ? 'parcial' : 'verificado', criterio_data: 'competência (mês do fato)', registros: base.receitas.length + base.custos.length,
     fonte: 'DRE gerencial por competência — mesmo cálculo da tela DRE do Axioma',
     periodo: { de: p.inicio, ate: p.fim, meses },
     regime_tributario: regime || 'não informado',

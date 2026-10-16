@@ -12,6 +12,7 @@ import { lerTodas } from '../lerTodas'
 import { soVigentes } from '../custoFixoVigente'
 import { registrarLeitura } from '../erroUiHelpers'
 import { consultarDRE } from './ferramentaDre'
+import { executarFerramentaFinanceira, FERRAMENTAS_FINANCEIRAS, NOMES_FERRAMENTAS_FINANCEIRAS } from '../financeiro/ferramentasFinanceiras'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -19,7 +20,9 @@ export type Ferramenta = { name: string; description: string; input_schema: Esqu
 const limite = { type: 'integer', description: 'Quantos itens devolver (1 a 30).' }
 const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) })
 
+// Plano 3: ferramentas do motor financeiro (contrato padrão, motor temporal, reconciliação) + as originais
 export const FERRAMENTAS: Ferramenta[] = [
+  ...(FERRAMENTAS_FINANCEIRAS as Ferramenta[]),
   { name: 'contas_a_pagar', strict: true, description: 'Contas a pagar em aberto (saldo = valor − já pago), com fornecedor, categoria e vencimento, maiores primeiro. Use para o que vence (esta semana = proximos_7_dias), o que está atrasado ou a quem a empresa deve.',
     input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_7_dias', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
   { name: 'contas_a_receber', strict: true, description: 'Contas a receber em aberto (saldo = valor − já recebido), com cliente e vencimento, maiores primeiro. Use para inadimplência, quem deve e o que entra em breve (esta semana = proximos_7_dias).',
@@ -87,6 +90,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
       const b = supabase.from(t).select(cols).eq('empresa_id', empresaId)
       return (desde ? b.gte('data', desde) : b).order('id')
     }))
+    if (NOMES_FERRAMENTAS_FINANCEIRAS.has(nome)) return JSON.stringify(await executarFerramentaFinanceira({ supabase, empresaId, fuso }, nome, input))
     switch (nome) {
       case 'contas_a_pagar': {
         const { data } = await q('contas_pagar', 'descricao, categoria, fornecedor_id, valor_total, valor_pago, data_vencimento')

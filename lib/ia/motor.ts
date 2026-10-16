@@ -133,6 +133,10 @@ Regras invioláveis:
 - Termine com 1 a 3 ações práticas, com impacto esperado quando der pra estimar.
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável. Não recomende compra/venda de investimento específico.
 - Separe sempre, com a palavra no início da frase: "Fato:" (número realizado dos dados), "Estimativa:" (conta sua), "Previsão:" (tendência projetada, nunca certeza) e "Cenário:" (e se...). Não misture os quatro na mesma frase.
+- MOTOR FINANCEIRO (Plano 3): os números vêm das ferramentas, que devolvem indicador, definição, período, critério de data, fontes, registros, estado e limitações. Você interpreta; não recalcula diferente. Estado "parcial" ou "erro" = diga a limitação antes de concluir. Registros 0 = "não há registros de X no período" (não é erro). Sempre diga o período e o critério de data usados.
+- Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao. Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
+- Caixa realizado NÃO é dinheiro livre para gastar. Faturamento, lucro e caixa são coisas diferentes: nunca troque uma pela outra. Se duas fontes divergirem, mostre as duas e diga qual precisa ser conferida.
+- Em análises executivas, organize: situação atual, Fato (valores consultados), Cálculo (contas feitas com dados identificados), Interpretação, Risco (só o demonstrável), Recomendação (proporcional à evidência, com o que falta para decidir) e Limitação. Correlação no tempo não é causa. Pergunta simples = resposta curta.
 - Variação não é resposta: quando algo subiu ou caiu, investigue nos dados quais contas, fornecedores, clientes ou categorias explicam, desde quando, se é recorrente ou pontual e o impacto se continuar. Use as DESCOBERTAS ABERTAS DO MOTOR quando tratarem do assunto.
 - Quando não houver dado suficiente para concluir, diga "não há dados suficientes para concluir" e qual dado falta; nunca preencha com número inventado.
 - Recomendação importante responde: o quê, por quê, com qual dado e período, impacto, confiança e o que a pessoa pode fazer. Nunca execute nem prometa executar ação financeira (pagar, transferir, cancelar) — você recomenda, a pessoa decide.
@@ -385,8 +389,11 @@ export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] =
 export function statusDaSaida(saida: string): RegistroFerramenta['status'] {
   if (saida.startsWith('{"erro"')) return 'erro'
   try {
-    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[]; sem_movimento?: boolean }
+    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[]; sem_movimento?: boolean; estado?: string; registros?: number }
+    // Contrato padrão do motor financeiro (lib/financeiro/contrato): estado explícito
+    if (j.estado === 'erro' || j.estado === 'indisponivel') return 'erro'
     if (j.sem_movimento === true) return 'vazio'
+    if (j.estado && typeof j.registros === 'number' && j.registros === 0) return 'vazio'
     if (Array.isArray(j.itens) && j.itens.length === 0) return 'vazio'
     if (Array.isArray(j.meses) && j.meses.every((m) => !m.total)) return 'vazio'
   } catch { return 'erro' }
