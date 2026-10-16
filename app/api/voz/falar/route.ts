@@ -8,6 +8,7 @@ import { vozAtivaPara } from '@/lib/voz/servidor'
 import { assinaturaValida } from '@/lib/voz/assinatura'
 import { fornecedorFala, processarFala, type Fornecedor } from '@/lib/voz/fala'
 import { primeiroNome, type IdiomaFala } from '@/lib/voz/textoFala'
+import { sintetizarGemini } from '@/lib/voz/geminiTts'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA VOICE INTELLIGENCE — Fase 2: POST /api/voz/falar { empresa_id, texto, assinatura, lang, ressalva }
@@ -20,7 +21,10 @@ import { primeiroNome, type IdiomaFala } from '@/lib/voz/textoFala'
 export const maxDuration = 60
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ENV_VOZ = () => ({ VOZ_ATIVA: process.env.VOZ_ATIVA, VOZ_EMPRESAS_TESTE: process.env.VOZ_EMPRESAS_TESTE })
-const FORNECEDOR = () => fornecedorFala({ VOZ_FALA: process.env.VOZ_FALA, OPENAI_API_KEY: process.env.OPENAI_API_KEY, ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY })
+const FORNECEDOR = () => fornecedorFala({ VOZ_FALA: process.env.VOZ_FALA, OPENAI_API_KEY: process.env.OPENAI_API_KEY, ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY, GEMINI_API_KEY: process.env.GEMINI_API_KEY })
+// Voz do José (Google): modelo de voz novo e, se o Google recusar, o formato antigo
+const MODELO_GEMINI_TTS = () => process.env.GEMINI_TTS_MODELO || 'gemini-3.8-flash-tts'
+const MODELO_GEMINI_TTS_RESERVA = () => process.env.GEMINI_TTS_MODELO_RESERVA || 'gemini-3.1-flash-tts-preview'
 // Voz padrão MASCULINA da ElevenLabs (George) que funciona no plano gratuito (troque por ELEVENLABS_VOZ_ID após escolher)
 const VOZ_ELEVEN = () => process.env.ELEVENLABS_VOZ_ID || 'JBFqnCBsd6RMkjVDRZzb'
 const MODELO_ELEVEN = () => process.env.ELEVENLABS_MODELO || 'eleven_flash_v2_5'
@@ -45,6 +49,10 @@ async function sessao() {
 const nomeDe = (u: { user_metadata?: Record<string, unknown> } | null) => primeiroNome(u?.user_metadata?.nome || u?.user_metadata?.full_name || '')
 
 async function sintetizar(fala: string, lang: IdiomaFala, f: Fornecedor): Promise<ReadableStream<Uint8Array>> {
+  if (f === 'gemini') {
+    const wav = await sintetizarGemini(fala, lang, process.env.GEMINI_API_KEY!, MODELO_GEMINI_TTS(), MODELO_GEMINI_TTS_RESERVA())
+    return new Response(new Blob([wav as Uint8Array<ArrayBuffer>])).body!
+  }
   const res = f === 'elevenlabs'
     ? await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOZ_ELEVEN())}/stream?output_format=mp3_44100_64`, {
         method: 'POST', signal: AbortSignal.timeout(30000),
@@ -106,7 +114,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (resultado.codigo === 'ok' && resultado.audio) {
-    return new Response(resultado.audio, { headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' } })
+    return new Response(resultado.audio, { headers: { 'Content-Type': resultado.fornecedor === 'gemini' ? 'audio/wav' : 'audio/mpeg', 'Cache-Control': 'no-store' } })
   }
   return NextResponse.json({ error: resultado.codigo }, { status: resultado.status })
 }

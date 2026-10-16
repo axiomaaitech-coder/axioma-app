@@ -120,3 +120,30 @@ assert.ok(comp.includes("from \"../lib/voz/reprodutor\"") && readFileSync('lib/v
 assert.ok(!/getUserMedia|BotaoVoz/.test(comp), 'o botão Ouvir nunca abre o microfone')
 
 console.log('check-voz-fase2: tudo certo ✔')
+
+// ─── Voz única do José no Ouvir (Google Charon) — 2026-10-16 ───
+{
+  const G = await import('../lib/voz/geminiTts')
+  assert.equal(fornecedorFala({ GEMINI_API_KEY: 'g' }), 'gemini', 'sem VOZ_FALA, com a chave do Google: a voz do José')
+  assert.equal(fornecedorFala({ VOZ_FALA: 'openai', OPENAI_API_KEY: 'k', GEMINI_API_KEY: 'g' }), 'openai', 'VOZ_FALA escolhe outro de propósito')
+  const corpo = G.corpoInteracao('Olá', 'pt', 'gemini-3.8-flash-tts')
+  assert.deepEqual(corpo.generation_config.speech_config, [{ voice: 'Charon' }], 'mesma voz da conversa ao vivo')
+  assert.equal(corpo.input[0].content[0].text, 'Olá', 'texto lido literalmente; o tom vai no estilo')
+  assert.match(corpo.input[0].content[0].annotations[0].style, /diretor financeiro/)
+  assert.equal(G.corpoGenerateContent('Olá', 'pt').generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, 'Charon')
+  // Os dois formatos de resposta do Google
+  assert.deepEqual(G.extrairAudio({ steps: [{ type: 'model_output', content: [{ type: 'audio', data: 'QUJD', mime_type: 'audio/wav' }] }] }), { base64: 'QUJD', mime: 'audio/wav' })
+  assert.deepEqual(G.extrairAudio({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: 'QUJD' } }] } }] }), { base64: 'QUJD', mime: 'audio/L16;codec=pcm;rate=24000' })
+  assert.equal(G.extrairAudio({ steps: [] }), null)
+  // PCM cru vira WAV tocável; WAV passa direto
+  const pcm = new Uint8Array([1, 0, 2, 0])
+  const wav = G.audioParaWav({ base64: Buffer.from(pcm).toString('base64'), mime: 'audio/L16;rate=24000' })
+  assert.equal(String.fromCharCode(...wav.slice(0, 4)), 'RIFF'); assert.equal(wav.length, 48)
+  assert.equal(new DataView(wav.buffer).getUint32(24, true), 24000, 'taxa 24 kHz no cabeçalho')
+  assert.deepEqual(G.audioParaWav({ base64: Buffer.from(wav).toString('base64'), mime: 'audio/wav' }), wav, 'WAV não é embrulhado de novo')
+  const rota = readFileSync('app/api/voz/falar/route.ts', 'utf8')
+  assert.ok(rota.includes("if (f === 'gemini')") && rota.includes("'audio/wav'"), 'rota fala com a voz do José')
+  assert.ok(readFileSync('lib/voz/reprodutor.ts', 'utf8').includes('if (estadoConversaGlobal().ativa) return false'), 'com a conversa ao vivo aberta nada fala por cima')
+  assert.ok(readFileSync('components/OuvirResposta.tsx', 'utf8').includes('|| aoVivo) return null'), 'Ouvir some durante a conversa ao vivo')
+  console.log('OK — voz única: Ouvir com a voz do José (Charon), dois formatos do Google, WAV, sem voz dupla')
+}

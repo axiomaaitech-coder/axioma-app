@@ -9,16 +9,19 @@
 // docs/VOICE-INTELLIGENCE.md §11). Texto e áudio nunca vão para log/auditoria.
 import { MAX_CARACTERES_FALA, textoParaFala, type IdiomaFala } from './textoFala'
 
-export type Fornecedor = 'openai' | 'elevenlabs'
-export const FORNECEDORES: Fornecedor[] = ['openai', 'elevenlabs']
+export type Fornecedor = 'gemini' | 'openai' | 'elevenlabs'
+export const FORNECEDORES: Fornecedor[] = ['gemini', 'openai', 'elevenlabs']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // A resposta assinada é o texto CRU do motor (com markdown); o limite é folgado e a fala é cortada em MAX_CARACTERES_FALA
 const MAX_TEXTO_ASSINADO = 20000
 
-export function fornecedorFala(env: { VOZ_FALA?: string; OPENAI_API_KEY?: string; ELEVENLABS_API_KEY?: string }): Fornecedor | null {
+// Voz ÚNICA do José (CEO, 2026-10-16): sem VOZ_FALA, havendo a chave do Google, o Ouvir usa a MESMA voz da
+// conversa ao vivo (Gemini, Charon). VOZ_FALA escolhe outro fornecedor de propósito. Sem nada: voz do aparelho.
+export function fornecedorFala(env: { VOZ_FALA?: string; OPENAI_API_KEY?: string; ELEVENLABS_API_KEY?: string; GEMINI_API_KEY?: string }): Fornecedor | null {
   const f = String(env.VOZ_FALA ?? '').trim().toLowerCase()
   if (f === 'elevenlabs' && env.ELEVENLABS_API_KEY) return 'elevenlabs'
   if (f === 'openai' && env.OPENAI_API_KEY) return 'openai'
+  if ((f === 'gemini' || f === '') && env.GEMINI_API_KEY) return 'gemini'
   return null // sem variável ou sem chave: voz do próprio aparelho (grátis)
 }
 

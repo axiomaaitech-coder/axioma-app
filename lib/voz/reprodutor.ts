@@ -4,6 +4,7 @@
 // descartado (nunca começa a falar sozinho). Voz do servidor só com resposta assinada pelo motor;
 // sem fornecedor ou com falha → voz do aparelho (anti-falha). Usado pelo botão Ouvir e pelo modo conversa.
 import { dividirEmFrases, textoParaFala, type IdiomaFala } from './textoFala'
+import { estadoConversaGlobal } from './tempoReal/sessaoGlobal'
 
 export type EstadoFala = 'parado' | 'carregando' | 'falando'
 export type PedidoFala = { chave: string; texto: string; lang: IdiomaFala; empresaId: string; assinatura?: string | null; ressalva?: boolean }
@@ -82,6 +83,8 @@ function tocar(p: PedidoFala, url: string, minha: number) {
 
 // Fala uma resposta. Devolve false se não houver como falar (voz desligada, aparelho sem voz).
 export async function falar(p: PedidoFala): Promise<boolean> {
+  // Uma voz por vez (CEO, 2026-10-16): com a conversa ao vivo aberta, nada mais fala por cima
+  if (estadoConversaGlobal().ativa) return false
   pararFala()
   const minha = ++geracao
   const sit = await situacaoVoz(p.empresaId)

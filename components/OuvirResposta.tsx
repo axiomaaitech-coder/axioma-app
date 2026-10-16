@@ -8,6 +8,7 @@ import { Loader2, Square, Volume2 } from "lucide-react";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { useThemeAxioma } from "../lib/ThemeContext";
 import { assinarFala, estadoFala, falar, pararFala, situacaoVoz } from "../lib/voz/reprodutor";
+import { assinarConversaGlobal, estadoConversaGlobal, estadoConversaInicial } from "../lib/voz/tempoReal/sessaoGlobal";
 import type { IdiomaFala } from "../lib/voz/textoFala";
 
 const TX: Record<string, Record<IdiomaFala, string>> = {
@@ -33,6 +34,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
   const [ativa, setAtiva] = useState(false);
   const [aviso, setAviso] = useState("");
   const atual = useSyncExternalStore(assinarFala, estadoFala, () => PARADO);
+  const aoVivo = useSyncExternalStore(assinarConversaGlobal, estadoConversaGlobal, estadoConversaInicial).ativa;
   const t = (k: string) => TX[k][lang];
 
   useEffect(() => {
@@ -48,7 +50,8 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
 
   // Trocar de tela NÃO para a leitura (pedido do CEO, 2026-10-16): a barra fixa BarraVozGlobal tem o Parar
 
-  if (!ativa || !empresa || !texto.trim()) return null;
+  // Conversa ao vivo aberta: o Ouvir some (uma voz só, sem interferência)
+  if (!ativa || !empresa || !texto.trim() || aoVivo) return null;
 
   const minha = atual.chave === texto ? atual.estado : "parado";
   async function ouvir() {
