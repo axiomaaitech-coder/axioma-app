@@ -373,7 +373,7 @@ DADOS REAIS DESTE MEI:
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
-                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}{msg.assinatura && <AcoesRelatorio tela="mei-ia-advisor" pergunta={chatMensagens[i - 1]?.role === 'user' ? chatMensagens[i - 1].content : undefined} resposta={msg.content} pedido={msg.relatorio} ressalva={msg.ressalva} empresaId={empresaIdMemoria} lang={lang} />}</div>}
+                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}{(msg.assinatura || msg.relatorio || msg.content.length > 80) && <AcoesRelatorio tela="mei-ia-advisor" pergunta={chatMensagens[i - 1]?.role === 'user' ? chatMensagens[i - 1].content : undefined} resposta={msg.content} pedido={msg.relatorio} ressalva={msg.ressalva} empresaId={empresaIdMemoria} lang={lang} />}</div>}
                 </div>
               </div>
             ))}

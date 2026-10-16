@@ -264,7 +264,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
                 <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
-                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesRelatorio tela="nexus" pergunta={mensagens[i - 1]?.role === 'user' ? mensagens[i - 1].content : undefined} resposta={m.content} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />}</div>}
+                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{(m.assinatura || m.relatorio || m.content.length > 80) && <AcoesRelatorio tela="nexus" pergunta={mensagens[i - 1]?.role === 'user' ? mensagens[i - 1].content : undefined} resposta={m.content} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />}</div>}
                 </div>
               </motion.div>
             ))}
