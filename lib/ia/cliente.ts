@@ -6,6 +6,8 @@
 // respostas por regras que já tem.
 // ═══════════════════════════════════════════════════════════════
 
+import type { SugestaoMemoria } from './memoria'
+
 export type PerguntaAxioma = {
   pergunta: string
   empresaId: string | null | undefined
@@ -18,7 +20,7 @@ export type PerguntaAxioma = {
 }
 
 // assinatura: só respostas do motor podem ser lidas em voz (/api/voz/falar confere)
-export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: string; nivel: string; assinatura?: string; ressalva?: boolean } | null> {
+export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: string; nivel: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null } | null> {
   if (!p.empresaId || !p.pergunta.trim()) return null
   try {
     const res = await fetch('/api/ia/motor', {
@@ -32,7 +34,7 @@ export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: 
     if (res.status === 403 && typeof json?.mensagem === 'string') return { resposta: json.mensagem, nivel: 'sem_acesso' }
     if (!res.ok) return null
     // Sem .trim() na resposta assinada: a assinatura vale para o texto exato do motor
-    return typeof json?.resposta === 'string' && json.resposta.trim() ? { resposta: json.resposta, nivel: String(json.nivel ?? ''), assinatura: typeof json.assinatura === 'string' ? json.assinatura : undefined, ressalva: Number(json?.verificacao?.nao_conferidos ?? 0) > 0 } : null
+    return typeof json?.resposta === 'string' && json.resposta.trim() ? { resposta: json.resposta, nivel: String(json.nivel ?? ''), assinatura: typeof json.assinatura === 'string' ? json.assinatura : undefined, ressalva: Number(json?.verificacao?.nao_conferidos ?? 0) > 0, sugestaoMemoria: json?.sugestao_memoria ?? null } : null
   } catch {
     return null
   }

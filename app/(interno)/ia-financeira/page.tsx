@@ -28,6 +28,9 @@ import AvisoAxioma from "../../../components/AvisoAxioma";
 import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
 import ConversaAoVivo from "../../../components/ConversaAoVivo";
+import AcoesMemoria from "../../../components/AcoesMemoria";
+import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
+import type { SugestaoMemoria } from "../../../lib/ia/memoria";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
@@ -293,7 +296,7 @@ export default function IAFinanceiraPage() {
   const [resumo, setResumo] = useState("");
 
   // Chat
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean }[]>([]);
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null }[]>([]);
   const [inputChat, setInputChat] = useState("");
   const [chatCarregando, setChatCarregando] = useState(false);
 
@@ -384,6 +387,7 @@ export default function IAFinanceiraPage() {
     let resposta = "";
     let modelo = "regras";
     let assinatura: string | undefined, ressalva = false; // voz (Fase 2): só resposta assinada pelo motor vai para a voz do servidor
+    let sugestaoMemoria: SugestaoMemoria | null = null; // memória: a IA sugere lembrar algo (a pessoa confirma)
 
     if (empresaId) {
       try {
@@ -397,7 +401,7 @@ export default function IAFinanceiraPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; assinatura = typeof data.assinatura === "string" ? data.assinatura : undefined; ressalva = Number(data.verificacao?.nao_conferidos ?? 0) > 0; }
+          if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; assinatura = typeof data.assinatura === "string" ? data.assinatura : undefined; ressalva = Number(data.verificacao?.nao_conferidos ?? 0) > 0; sugestaoMemoria = data.sugestao_memoria ?? null; }
         }
         // Saldo de IA acabou (402) ou acesso de operador (403): mostra o aviso, não cai calado nas regras
         else if (res.status === 402 || res.status === 403) { const d = await res.json().catch(() => null); if (typeof d?.mensagem === "string") { resposta = d.mensagem; modelo = "aviso"; } }
@@ -412,7 +416,7 @@ export default function IAFinanceiraPage() {
       resposta = respostaPorRegras(snap, score360, bench, texto, lang);
     }
 
-    setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva }]);
+    setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva, sugestaoMemoria }]);
     await salvarMensagem(userId, empresaId, "assistant", resposta, { score: score360.total }, modelo);
     setChatCarregando(false);
   }
@@ -671,7 +675,7 @@ export default function IAFinanceiraPage() {
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap axi-card-premium3d axi-card-faixa"
                       style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)")}`, color: ct("#c8d8f0") }}>
                       {m.texto}
-                      {m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /></div>}
+                      {m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />}</div>}
                     </div>
                   </div>
                 ))}
@@ -709,6 +713,8 @@ export default function IAFinanceiraPage() {
                   const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "ia-financeira", lang: lang as "pt" | "en" | "es", historico: mensagens.slice(-8).map((m) => ({ role: m.role, content: m.texto })), contextoTela: lang === "en" ? "FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the Fact/Estimate/Scenario labels and the notes." : lang === "es" ? "FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga las etiquetas Hecho/Estimación/Escenario y los avisos." : "FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os rótulos Fato/Estimativa/Cenário e os avisos." });
                   return ia?.resposta ?? (lang === "en" ? "It was not possible to check the data right now." : lang === "es" ? "No fue posible consultar los datos ahora." : "Não foi possível consultar os dados agora.");
                 }} />
+              {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}
+              <PainelMemoriaIA empresaId={empresaId} area="financeira" lang={lang as "pt" | "en" | "es"} claro={temaClaro} />
             </CanvasBox>
           )}
 

@@ -27,6 +27,9 @@ import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
 import OuvirResposta from '../../../../components/OuvirResposta'
 import ConversaAoVivo from '../../../../components/ConversaAoVivo'
+import AcoesMemoria from '../../../../components/AcoesMemoria'
+import PainelMemoriaIA from '../../../../components/PainelMemoriaIA'
+import type { SugestaoMemoria } from '../../../../lib/ia/memoria'
 import { juntarTexto } from '../../../../lib/voz/gravador'
 
 const supabase = createBrowserClient(
@@ -127,7 +130,10 @@ export default function IAMEIAdvisor() {
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
   const [custosFixos, setCustosFixos] = useState<any[]>([])
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
-  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean }[]>([])
+  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null }[]>([])
+  // Memória da IA precisa da empresa ativa (esta tela não guardava o id)
+  const [empresaIdMemoria, setEmpresaIdMemoria] = useState<string | null>(null)
+  useEffect(() => { obterEmpresaAtiva().then((id) => setEmpresaIdMemoria(id ?? null)).catch(() => {}) }, [])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [exportando, setExportando] = useState(false)
@@ -235,9 +241,10 @@ DADOS REAIS DESTE MEI:
 
     let resposta = ''
     let assinatura: string | undefined, ressalva = false // voz (Fase 2): só resposta assinada pelo motor vai para a voz do servidor
+    let sugestaoMemoria: SugestaoMemoria | null = null // memória: a IA sugere lembrar algo (a pessoa confirma)
     // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
     const ia = await perguntarAoAxioma({ pergunta: msg, empresaId: await obterEmpresaAtiva(), tela: 'mei-ia-advisor', lang, historico: historicoAntes.slice(-10).map(m => ({ role: m.role, content: m.content })), contextoTela: montarContextoIA() })
-    if (ia) { resposta = ia.resposta; assinatura = ia.assinatura; ressalva = !!ia.ressalva }
+    if (ia) { resposta = ia.resposta; assinatura = ia.assinatura; ressalva = !!ia.ressalva; sugestaoMemoria = ia.sugestaoMemoria ?? null }
 
     if (!resposta) {
       setToast(mx.iaRespondendoPorRegra)
@@ -253,7 +260,7 @@ DADOS REAIS DESTE MEI:
       })
     }
 
-    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta, assinatura, ressalva }])
+    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta, assinatura, ressalva, sugestaoMemoria }])
     setChatLoading(false)
   }
 
@@ -365,7 +372,7 @@ DADOS REAIS DESTE MEI:
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
-                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} /></div>}
+                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}</div>}
                 </div>
               </div>
             ))}
@@ -407,6 +414,8 @@ DADOS REAIS DESTE MEI:
 ${montarContextoIA()}` })
               return ia?.resposta ?? (lang === 'en' ? 'It was not possible to check the data right now.' : lang === 'es' ? 'No fue posible consultar los datos ahora.' : 'Não foi possível consultar os dados agora.')
             }} />
+          {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}
+          <PainelMemoriaIA empresaId={empresaIdMemoria} area="mei" lang={lang} claro={temaClaro} />
 
           <div className="flex gap-2 flex-wrap mt-3">
             {((txt.sugestoes as any)[lang] as string[]).map((q: string, i: number) => (

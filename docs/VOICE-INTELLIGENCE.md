@@ -337,3 +337,12 @@ pelo navegador chamando `/api/ia/motor` com a sessão do usuário — RLS, consu
   voltar) e pode dar uma consulta mais rica; com a tela fechada a consulta usa o mesmo motor com o histórico da conversa.
 - `components/BarraVozGlobal.tsx` no layout interno: microfone aberto, estado, última fala, Voltar à conversa, Encerrar; também
   aparece quando o botão Ouvir está lendo (Parar). Testes em `scripts/check-voz-tempo-real.mts`.
+
+
+## 15. Memória de aprendizagem e identidade (2026-10-16)
+
+- Tabela `public.ia_memoria_empresa` criada no SQL Editor (15 colunas; RLS select/insert(pendente)/update; sem delete;
+  índice empresa+status+área). Código: `lib/ia/memoria.ts` (puro), `lib/ia/memoriaCliente.ts` (navegador),
+  `components/AcoesMemoria.tsx`, `components/PainelMemoriaIA.tsx`; motor lê com `carregarMemoria`. Testes: `scripts/check-ia-memoria.mts`.
+- Próximas partes aprovadas no plano: base oficial da Reforma Tributária (fonte + data, curada, não aprendida da conversa) e
+  ferramentas de servidor para DRE do mês, impostos do período e folha.

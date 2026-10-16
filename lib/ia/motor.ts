@@ -26,6 +26,7 @@ import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
 import { linhaIdentidade } from './identidade'
+import { areaDaTela, carregarMemoria, extrairSugestao, REGRA_SUGERIR_MEMORIA, type SugestaoMemoria } from './memoria'
 
 export type Nivel = 'rotina' | 'analise' | 'estrategica'
 export type Idioma = 'pt' | 'en' | 'es'
@@ -141,6 +142,7 @@ Regras invioláveis:
 - Consulta e fonte (Fase D): número sobre a empresa só pode vir do retrato ou de uma ferramenta consultada AGORA. O histórico da conversa serve para entender a pergunta ("isso", "aquele valor", "e se…"), nunca como dado atualizado: em continuação ou correção ("na verdade, setembro"), consulte de novo com o período/assunto corrigido. Ferramenta que devolveu {"erro"} = diga "não foi possível consultar X agora" e não use número dela; lista vazia = "não há registros de X no período" (é diferente de erro). Sempre diga o período usado (ex.: "próximos 7 dias, até 23/10").
 - Sem ferramenta para isso ainda: DRE de um mês por competência, impostos/obrigações de um período específico e folha de pagamento (salários e encargos). Nesses casos diga que essa consulta ainda não está disponível na conversa, informe o que você tem (ex.: lucro médio mensal, custos fixos) e indique a tela (DRE, IA Tributária, Custos Fixos). Para contratar alguém: peça salário e regime, e simule só como "Cenário:" com a conta mostrada.
 - Cálculo seu (soma, diferença, percentual, metade, projeção) = "Estimativa:" ou "Cenário:", com a conta e a fonte de cada número (ex.: "metade de R$ 4.500 de contas_a_receber vencidas = R$ 2.250").
+${REGRA_SUGERIR_MEMORIA}
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
 - Reforma Tributária: premissa + data + aviso de que pode mudar; nunca apenas "consulte um contador".
 - Lei, limite, alíquota ou prazo: use SOMENTE as REGRAS OFICIAIS VIGENTES enviadas e diga a data da conferência. Manchete não muda lei; projeto de lei não aprovado não vale. Regra marcada REVISAR: avise que pode estar desatualizada. Notícia: só as do período enviado, nunca de memória.
@@ -149,7 +151,7 @@ Regras invioláveis:
 
 const REGRA_ROTINA = `- Você responde perguntas DIRETAS e rápidas (um número, uma data, uma definição) em até 4 frases. Se a pergunta pedir análise, diagnóstico, comparação, plano ou recomendação que exija raciocínio sobre vários números — ou uma LISTA/detalhe que não aparece nos dados acima (quais contas, quais clientes, quais produtos) —, responda APENAS ${SINAL_ESCALAR} e nada mais.`
 
-type Contexto = { retrato: Retrato; manuais: string; mundo: string | null; tela: string | null; telaId: string | null }
+type Contexto = { retrato: Retrato; manuais: string; mundo: string | null; tela: string | null; telaId: string | null; memoria: string }
 function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: string; empresa: string } {
   // Dados/instruções da tela vêm DEPOIS de tudo que é estável (não quebram o cache
   // da parte da empresa) e nunca derrubam as regras invioláveis.
@@ -159,7 +161,7 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
   const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
   return {
     fixo: `${linhaIdentidade(ctx.telaId)}\n${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
-    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
+    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${ctx.memoria ? `\n\n${ctx.memoria}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
   }
 }
 
@@ -575,6 +577,9 @@ export type RespostaMotor = {
   exigeConsulta: boolean // a pergunta pedia dado detalhado
   ferramentas: RegistroFerramenta[] // o que foi consultado (nome, ok/vazio/erro, ms) — sem conteúdo
   semConsultaExigida: boolean // respondeu pergunta de dado SEM nenhuma consulta bem-sucedida (aviso entra no texto)
+  sugestaoMemoria: SugestaoMemoria | null // a IA sugere lembrar algo (a pessoa confirma na tela)
+  memorias: number // quantas memórias confirmadas foram usadas
+  memoriaFalhou: boolean
 }
 
 export async function perguntarAoMotor(args: {
@@ -597,12 +602,14 @@ export async function perguntarAoMotor(args: {
   // Pergunta tributária leva a comparação de regimes (mesma simulação da tela IA Tributária).
   const fiscal = manuais.some((m) => m.id === 'tributario') ? `\n${textoFiscal(retrato)}` : ''
   const contextoTela = args.contextoTela?.trim().slice(0, 12000) || null
-  const ctx: Contexto = { telaId: args.tela ?? null, retrato, manuais: (manuais.map(textoManual).join('\n') || 'nenhum específico — responda como CFO generalista') + fiscal, mundo, tela: contextoTela }
+  // Memória de aprendizagem: só o que a empresa confirmou, da área desta tela (+ gerais)
+  const memoria = await carregarMemoria(args.supabase, args.empresaId, args.tela, hojeISO(new Date(), retrato.fuso))
+  const ctx: Contexto = { memoria: memoria.texto, telaId: args.tela ?? null, retrato, manuais: (manuais.map(textoManual).join('\n') || 'nenhum específico — responda como CFO generalista') + fiscal, mundo, tela: contextoTela }
   // Histórico: só texto, últimas 8 falas, sem a pergunta atual (vai no fim, uma vez só).
   const msgs: MensagemHistorico[] = [...(args.historico ?? []).filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()).slice(-8), { role: 'user', content: pergunta }]
   const base = { triagem, setor: retrato.setor?.nome.pt ?? null } as const
   // Base da conferência: retrato + economia + o que o próprio usuário citou.
-  const textoConferencia = [retrato.texto, mundo ?? '', contextoTela ?? '', ...msgs.map((m) => m.content)].join('\n')
+  const textoConferencia = [retrato.texto, memoria.texto, mundo ?? '', contextoTela ?? '', ...msgs.map((m) => m.content)].join('\n')
   let escalou = false
   // Fase D: pergunta (ou continuação) que pede dado detalhado obriga a consultar; tudo que foi consultado fica registrado
   const exige = exigeConsulta(pergunta, args.historico ?? [])
@@ -635,22 +642,27 @@ export async function perguntarAoMotor(args: {
 
   let r = await executar(nivel)
   // Rotina que não dá conta (ou inventou número) passa pra cima.
-  if (nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(r.texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`).length > 0)) {
+  // (a sugestão de memória [[LEMBRAR]] traz valor que ainda não está nos dados: não conta como inventado)
+  if (nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(extrairSugestao(r.texto, 'geral').texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`).length > 0)) {
     nivel = 'analise'; escalou = true
     r = await executar(nivel)
   }
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
   // A tela não lê markdown e a voz leria os símbolos: a OpenAI às vezes manda ** e # mesmo proibido no prompt.
   if (r.texto) r.texto = limparFormato(r.texto)
+  // Sugestão de memória ([[LEMBRAR: …]]) sai do texto antes da conferência, dos avisos e da assinatura
+  let sugestaoMemoria: SugestaoMemoria | null = null
+  if (r.texto) { const x = extrairSugestao(r.texto, areaDaTela(args.tela)); r.texto = x.texto || null; sugestaoMemoria = x.sugestao }
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
   const reaisConsultas = reaisDasConsultas(r.consultas ?? [])
   const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`) : []
   // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
   // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.
-  const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
+  const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${memoria.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
   // Avisos fixos no fim (consulta que falhou, consulta exigida que não aconteceu, valor não encontrado)
   const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
   const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
   return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
-    exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro') }
+    exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro'),
+    sugestaoMemoria: resposta ? sugestaoMemoria : null, memorias: memoria.quantidade, memoriaFalhou: memoria.falhou }
 }
