@@ -10,7 +10,7 @@ import OuvirResposta from "./OuvirResposta";
 import AcoesMemoria from "./AcoesMemoria";
 import ConversaAoVivo from "./ConversaAoVivo";
 import PainelMemoriaIA from "./PainelMemoriaIA";
-import { BotaoAbrirRelatorio, type PedidoTela } from "./RelatorioCFO";
+import { AcoesRelatorio, type PedidoTela } from "./RelatorioCFO";
 import { perguntarAoAxioma } from "../lib/ia/cliente";
 import { juntarTexto } from "../lib/voz/gravador";
 import type { SugestaoMemoria } from "../lib/ia/memoria";
@@ -85,7 +85,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
                   <div>
                     <OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={claro} />
                     {m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang} claro={claro} />}
-                    <BotaoAbrirRelatorio pedido={m.relatorio} lang={lang} />
+                    <AcoesRelatorio tela={tela} pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />
                   </div>
                 )}
               </div>

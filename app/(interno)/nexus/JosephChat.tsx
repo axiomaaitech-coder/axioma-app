@@ -22,7 +22,7 @@ import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
-import { BotaoAbrirRelatorio, type PedidoTela } from '../../../components/RelatorioCFO'
+import { AcoesRelatorio, type PedidoTela } from '../../../components/RelatorioCFO'
 import ConversaAoVivo from '../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../lib/voz/gravador'
 import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
@@ -264,7 +264,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
                 <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
-                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /><BotaoAbrirRelatorio pedido={m.relatorio} lang={lang} /></div>}
+                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesRelatorio tela="nexus" pergunta={mensagens[i - 1]?.role === 'user' ? mensagens[i - 1].content : undefined} resposta={m.content} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />}</div>}
                 </div>
               </motion.div>
             ))}

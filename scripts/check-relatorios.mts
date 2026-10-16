@@ -260,7 +260,9 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   assert.equal(M2.statusDaSaida(JSON.stringify(saida)), 'ok')
   const motor = readFileSync('lib/ia/motor.ts', 'utf8')
   assert.ok(motor.includes("nome === 'relatorio' && status !== 'erro'") && motor.includes('relatorio: resposta ? consulta.relatorio'), '16 motor devolve o pedido do relatório à tela')
-  for (const f of ['components/ChatInteligencia.tsx', 'app/(interno)/nexus/JosephChat.tsx', 'app/(interno)/ia-financeira/page.tsx']) assert.ok(readFileSync(f, 'utf8').includes('<BotaoAbrirRelatorio'), `botão "Abrir relatório e PDF" em ${f}`)
+  for (const f of ['components/ChatInteligencia.tsx', 'app/(interno)/nexus/JosephChat.tsx', 'app/(interno)/ia-financeira/page.tsx', 'app/(interno)/ia-tributaria/page.tsx', 'app/(interno)/mei/ia-advisor/page.tsx']) assert.ok(/<AcoesRelatorio[^>]*pedido=/.test(readFileSync(f, 'utf8')), `relatório após a consulta (cartão "gerado com sucesso" + PDF da resposta) em ${f}`)
+  const comp = readFileSync('components/RelatorioCFO.tsx', 'utf8')
+  assert.ok(comp.includes('gerado com sucesso') && comp.includes("fetch(\"/api/relatorios/gerar\"") && comp.includes('Relatório desta resposta (PDF)'), 'cartão baixa o PDF pela mesma rota autorizada; PDF da resposta disponível')
   ok('16 José e chats: ferramenta relatorio com os mesmos números e botão para abrir o PDF')
 }
 

@@ -22,6 +22,7 @@ import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
+import { AcoesRelatorio, type PedidoTela } from '../../../../components/RelatorioCFO'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
@@ -130,7 +131,7 @@ export default function IAMEIAdvisor() {
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
   const [custosFixos, setCustosFixos] = useState<any[]>([])
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
-  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null }[]>([])
+  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([])
   // Memória da IA precisa da empresa ativa (esta tela não guardava o id)
   const [empresaIdMemoria, setEmpresaIdMemoria] = useState<string | null>(null)
   useEffect(() => { obterEmpresaAtiva().then((id) => setEmpresaIdMemoria(id ?? null)).catch(() => {}) }, [])
@@ -260,7 +261,7 @@ DADOS REAIS DESTE MEI:
       })
     }
 
-    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta, assinatura, ressalva, sugestaoMemoria }])
+    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta, assinatura, ressalva, sugestaoMemoria, relatorio: ia?.relatorio ?? null }])
     setChatLoading(false)
   }
 
@@ -372,7 +373,7 @@ DADOS REAIS DESTE MEI:
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
-                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}</div>}
+                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}{msg.assinatura && <AcoesRelatorio tela="mei-ia-advisor" pergunta={chatMensagens[i - 1]?.role === 'user' ? chatMensagens[i - 1].content : undefined} resposta={msg.content} pedido={msg.relatorio} ressalva={msg.ressalva} empresaId={empresaIdMemoria} lang={lang} />}</div>}
                 </div>
               </div>
             ))}

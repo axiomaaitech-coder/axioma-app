@@ -35,6 +35,7 @@ const pt: DocumentoAxioma = {
     { p: 'Mostra uma prévia do **Resumo Executivo** e os canais de envio (WhatsApp, Gmail, Outlook, Telegram ou copiar o resumo / o detalhado). O texto, o PDF, os indicadores e as dicas saem no idioma escolhido no Axioma.' },
     { nota: 'Os números são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa em vez de montar o relatório com zero no lugar do dado que não veio. Sem lançamentos no período, a tela pede para cadastrar receitas e custos primeiro. Os relatórios são calculados por regras sobre os seus dados; para análises em conversa, use a IA Financeira.' },
     { nota: 'O ano inteiro é lido de uma vez, então o relatório abre em poucos segundos. Ao trocar o idioma do Axioma, o relatório é refeito no novo idioma.' },
+    { nota: '**Relatório depois da consulta:** peça "gere um relatório" (ou DRE, fluxo de caixa, contas a receber…) e a resposta mostra o cartão **✅ Relatório gerado com sucesso**, com **⬇ Baixar PDF do relatório** (os mesmos números da tela Relatórios) e **📑 Ver na tela**. Embaixo de qualquer resposta há também **📄 Relatório desta resposta (PDF)**, que salva a pergunta e a resposta com o nome da Empresa e a data.' },
   ],
 }
 
@@ -72,6 +73,7 @@ const en: DocumentoAxioma = {
     { p: 'Shows a preview of the **Executive Summary** and the sending channels (WhatsApp, Gmail, Outlook, Telegram or copy the summary / the detailed version). The text, PDF, indicators and tips come out in the language chosen in Axioma.' },
     { nota: 'Numbers are read with no row limit. If any loading fails, the screen warns you instead of building the report with zero in place of the missing data. With no entries in the period, the screen asks you to register revenue and costs first. Reports are calculated by rules on your data; for conversational analysis, use Financial AI.' },
     { nota: 'The whole year is read at once, so the report opens in a few seconds. When you change Axioma’s language, the report is rebuilt in the new language.' },
+    { nota: '**Report after the consultation:** ask "generate a report" (or income statement, cash flow, receivables…) and the answer shows the **✅ Report generated successfully** card, with **⬇ Download report PDF** (the same numbers as the Reports screen) and **📑 View on screen**. Under any answer there is also **📄 Report of this answer (PDF)**, which saves the question and the answer with the Company name and date.' },
   ],
 }
 
@@ -109,6 +111,7 @@ const es: DocumentoAxioma = {
     { p: 'Muestra una vista previa del **Resumen Ejecutivo** y los canales de envío (WhatsApp, Gmail, Outlook, Telegram o copiar el resumen / el detallado). El texto, el PDF, los indicadores y los consejos salen en el idioma elegido en Axioma.' },
     { nota: 'Los números se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa en lugar de armar el informe con cero en lugar del dato que no llegó. Sin registros en el período, la pantalla pide registrar ingresos y costos primero. Los informes se calculan por reglas sobre sus datos; para análisis en conversación, use la IA Financiera.' },
     { nota: 'Todo el año se lee de una vez, así que el informe abre en pocos segundos. Al cambiar el idioma de Axioma, el informe se rehace en el nuevo idioma.' },
+    { nota: '**Informe después de la consulta:** pida "genere un informe" (o estado de resultados, flujo de caja, cuentas por cobrar…) y la respuesta muestra la tarjeta **✅ Informe generado con éxito**, con **⬇ Descargar PDF del informe** (los mismos números de la pantalla Informes) y **📑 Ver en pantalla**. Debajo de cualquier respuesta también está **📄 Informe de esta respuesta (PDF)**, que guarda la pregunta y la respuesta con el nombre de la Empresa y la fecha.' },
   ],
 }
 

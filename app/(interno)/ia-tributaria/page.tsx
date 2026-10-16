@@ -31,6 +31,7 @@ import AcoesMemoria from "../../../components/AcoesMemoria";
 import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
 import type { SugestaoMemoria } from "../../../lib/ia/memoria";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
+import { AcoesRelatorio, type PedidoTela } from "../../../components/RelatorioCFO";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -206,7 +207,7 @@ export default function IATributariaPage() {
   const [dados, setDados] = useState<DadosFiscais | null>(null);
   const [alertasReforma, setAlertasReforma] = useState<AlertaReforma[]>([]);
 
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null }[]>([]);
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([]);
   const [inputChat, setInputChat] = useState("");
   const [chatCarregando, setChatCarregando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
@@ -287,6 +288,7 @@ export default function IATributariaPage() {
     // Motor de IA do Axioma (docs/MOTOR-IA.md) — manual tributário entra pela tela de origem.
     let resposta = "", modelo = "regras";
     let assinatura: string | undefined, ressalva = false; // voz (Fase 2): só resposta assinada pelo motor vai para a voz do servidor
+    let relatorio: PedidoTela | null = null;
     let sugestaoMemoria: SugestaoMemoria | null = null; // memória: a IA sugere lembrar algo (a pessoa confirma)
     if (empresaId) {
       try {
@@ -294,7 +296,7 @@ export default function IATributariaPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pergunta: texto, empresa_id: empresaId, tela: "ia-tributaria", lang, historico: mensagens.slice(-8).map(m => ({ role: m.role, content: m.texto })) }),
         });
-        if (res.ok) { const data = await res.json(); if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; assinatura = typeof data.assinatura === "string" ? data.assinatura : undefined; ressalva = Number(data.verificacao?.nao_conferidos ?? 0) > 0; sugestaoMemoria = data.sugestao_memoria ?? null; } }
+        if (res.ok) { const data = await res.json(); if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; assinatura = typeof data.assinatura === "string" ? data.assinatura : undefined; ressalva = Number(data.verificacao?.nao_conferidos ?? 0) > 0; sugestaoMemoria = data.sugestao_memoria ?? null; relatorio = data.relatorio ?? null; } }
         // Saldo de IA acabou (402) ou acesso de operador (403): mostra o aviso, não cai calado nas regras
         else if (res.status === 402 || res.status === 403) { const d = await res.json().catch(() => null); if (typeof d?.mensagem === "string") { resposta = d.mensagem; modelo = "aviso"; } }
       } catch (err) {
@@ -304,7 +306,7 @@ export default function IATributariaPage() {
     }
     if (!resposta) resposta = respostaTributariaPorRegras(dados, scoreFiscal, carga, texto, lang);
 
-    setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva, sugestaoMemoria }]);
+    setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva, sugestaoMemoria, relatorio }]);
     await salvarMensagemTrib(userId, empresaId, "assistant", resposta, { score: scoreFiscal.score }, modelo);
     setChatCarregando(false);
   }
@@ -468,7 +470,7 @@ export default function IATributariaPage() {
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap axi-card-premium3d axi-card-faixa"
-                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(46,204,155,0.1)")}`, color: TEXTO }}>{m.texto}{m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesMemoria empresaId={empresaId} area="tributaria" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />}</div>}</div>
+                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(46,204,155,0.1)")}`, color: TEXTO }}>{m.texto}{m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesMemoria empresaId={empresaId} area="tributaria" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />}{m.assinatura && <AcoesRelatorio tela="ia-tributaria" pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang as "pt" | "en" | "es"} />}</div>}</div>
                   </div>
                 ))}
                 {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
