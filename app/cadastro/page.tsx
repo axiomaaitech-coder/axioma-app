@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
+import { origemDoLogin } from '../../lib/origemLogin'
 
 const idiomaAtual = (i: string) => i === 'en' ? 'Could not confirm you are not a robot. Please try again.' : i === 'es' ? 'No se pudo confirmar que no es un robot. Intente de nuevo.' : 'Não foi possível confirmar que você não é um robô. Tente de novo.'
 
@@ -39,7 +40,7 @@ export default function Cadastro() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://axioma-app.vercel.app/auth/callback?next=${encodeURIComponent(next)}`
+        redirectTo: `${origemDoLogin()}/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
   }
