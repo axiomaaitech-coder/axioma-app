@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
-import { perguntarAoMotor, podeUsarIAFinanceira, TELAS_ANTHROPIC, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
+import { perguntarAoMotor, podeUsarIAFinanceira, historicoSeguro, TELAS_ANTHROPIC, type Idioma } from '@/lib/ia/motor'
 import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
 import { assinarResposta } from '@/lib/voz/assinatura'
 import { registrarLeitura } from '@/lib/erroUiHelpers'
@@ -36,7 +36,11 @@ export async function POST(request: NextRequest) {
   const empresaId = typeof corpo?.empresa_id === 'string' ? corpo.empresa_id : ''
   const lang: Idioma = corpo?.lang === 'en' || corpo?.lang === 'es' ? corpo.lang : 'pt'
   const tela = typeof corpo?.tela === 'string' ? corpo.tela.slice(0, 40) : undefined
-  const historico: MensagemHistorico[] = Array.isArray(corpo?.historico) ? corpo.historico : []
+  const historico = historicoSeguro(corpo?.historico)
+  // Conversa (Voice Intelligence, Fase B): id da conversa vindo da tela só para AGRUPAR na auditoria;
+  // correlação gerada aqui para cruzar auditoria e Sentry. Nenhum dos dois decide empresa ou permissão.
+  const conversaId = typeof corpo?.conversa_id === 'string' && UUID.test(corpo.conversa_id) ? corpo.conversa_id : null
+  const correlacao = crypto.randomUUID()
   const contextoTela = typeof corpo?.contexto_tela === 'string' ? corpo.contexto_tela : undefined
   if (!pergunta || !UUID.test(empresaId)) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
@@ -54,19 +58,19 @@ export async function POST(request: NextRequest) {
     // Auditoria: quem, qual empresa, qual nível/IA e quanto texto saiu — nunca o conteúdo.
     after(() => registrarAuditoria({
       empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
-      parametros: { tela: tela ?? null, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
+      parametros: { tela: tela ?? null, conversa_id: conversaId, correlacao, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
         tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
         tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
     }))
     if (!r.resposta) await devolverIA(supabase, saldo.id) // IA não respondeu: não cobra do saldo
     // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para falar a ressalva
-    return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
+    return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
   } catch (err) {
     await devolverIA(supabase, saldo.id)
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('empresa não encontrada')) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
     console.error('[ia/motor]', msg)
-    Sentry.captureException(err instanceof Error ? err : new Error(msg), { extra: { rota: 'ia/motor' } })
+    Sentry.captureException(err instanceof Error ? err : new Error(msg), { extra: { rota: 'ia/motor', correlacao } })
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }

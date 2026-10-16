@@ -19,10 +19,10 @@ const limite = { type: 'integer', description: 'Quantos itens devolver (1 a 30).
 const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) })
 
 export const FERRAMENTAS: Ferramenta[] = [
-  { name: 'contas_a_pagar', strict: true, description: 'Contas a pagar em aberto (saldo = valor − já pago), com fornecedor, categoria e vencimento, maiores primeiro. Use para o que vence, o que está atrasado ou a quem a empresa deve.',
-    input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
-  { name: 'contas_a_receber', strict: true, description: 'Contas a receber em aberto (saldo = valor − já recebido), com cliente e vencimento, maiores primeiro. Use para inadimplência, quem deve e o que entra em breve.',
-    input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
+  { name: 'contas_a_pagar', strict: true, description: 'Contas a pagar em aberto (saldo = valor − já pago), com fornecedor, categoria e vencimento, maiores primeiro. Use para o que vence (esta semana = proximos_7_dias), o que está atrasado ou a quem a empresa deve.',
+    input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_7_dias', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
+  { name: 'contas_a_receber', strict: true, description: 'Contas a receber em aberto (saldo = valor − já recebido), com cliente e vencimento, maiores primeiro. Use para inadimplência, quem deve e o que entra em breve (esta semana = proximos_7_dias).',
+    input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_7_dias', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
   { name: 'custos', strict: true, description: 'Custos fixos (valor mensal cadastrado) ou variáveis (média mensal dos últimos 12 meses), agrupados por descrição, maiores primeiro.',
     input_schema: obj({ tipo: { type: 'string', enum: ['fixos', 'variaveis'] }, limite }) },
   { name: 'receitas_por_mes', strict: true, description: 'Receita total por mês (mês corrente incluso, parcial), do mais antigo ao mais recente.',
@@ -43,7 +43,7 @@ const r2 = (v: number) => Math.round(v * 100) / 100
 // "Hoje" no fuso da empresa da consulta (parâmetro, nunca variável global: no servidor
 // várias empresas consultam ao mesmo tempo).
 const hojeIso = (fuso: string) => hojeISO(new Date(), fuso)
-const em30 = (fuso: string) => hojeISO(new Date(Date.now() + 30 * 86400000), fuso)
+const emDias = (fuso: string, dias: number) => hojeISO(new Date(Date.now() + dias * 86400000), fuso)
 const lim = (v: unknown) => Math.min(30, Math.max(1, Math.floor(n(v)) || 10))
 // Datas como texto AAAA-MM-DD (sem Date/UTC): testadas em scripts/check-ia-motor.mts.
 export function umAnoAntes(dia: string): string {
@@ -62,10 +62,11 @@ async function nomes(supabase: SupabaseClient, tabela: 'clientes' | 'fornecedore
   const data = await registrarLeitura(() => supabase.from(tabela).select('id, nome').in('id', unicos), "ferramentas:61")
   return new Map(((data ?? []) as Linha[]).map((l) => [String(l.id), String(l.nome ?? '')]))
 }
-function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: string): T[] {
-  const h = hojeIso(fuso), f = em30(fuso)
+export function filtrarSituacao<T extends Linha>(ls: T[], situacao: unknown, fuso: string): T[] {
+  const h = hojeIso(fuso)
   if (situacao === 'vencidas') return ls.filter((c) => c.data_vencimento && String(c.data_vencimento) < h)
-  if (situacao === 'proximos_30_dias') return ls.filter((c) => c.data_vencimento && String(c.data_vencimento) >= h && String(c.data_vencimento) <= f)
+  const dias = situacao === 'proximos_7_dias' ? 7 : situacao === 'proximos_30_dias' ? 30 : 0
+  if (dias) { const f = emDias(fuso, dias); return ls.filter((c) => c.data_vencimento && String(c.data_vencimento) >= h && String(c.data_vencimento) <= f) }
   return ls
 }
 
@@ -89,14 +90,14 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         const abertas = ((data ?? []) as unknown as Linha[]).map((c): Linha & { saldo: number } => ({ ...c, saldo: r2(Math.max(0, n(c.valor_total) - n(c.valor_pago))) })).filter((c) => c.saldo > 0)
         const sel = filtrarSituacao(abertas, input.situacao, fuso).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
         const forn = await nomes(supabase, 'fornecedores', sel.map((c) => c.fornecedor_id))
-        return JSON.stringify({ total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ descricao: c.descricao, fornecedor: forn.get(String(c.fornecedor_id)) ?? null, categoria: c.categoria ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
+        return JSON.stringify({ situacao: input.situacao ?? 'todas_abertas', hoje: hojeIso(fuso), total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ descricao: c.descricao, fornecedor: forn.get(String(c.fornecedor_id)) ?? null, categoria: c.categoria ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
       }
       case 'contas_a_receber': {
         const { data } = await q('contas_receber', 'cliente_id, valor, valor_recebido, data_vencimento')
         const abertas = ((data ?? []) as unknown as Linha[]).map((c): Linha & { saldo: number } => ({ ...c, saldo: r2(Math.max(0, n(c.valor) - n(c.valor_recebido))) })).filter((c) => c.saldo > 0)
         const sel = filtrarSituacao(abertas, input.situacao, fuso).sort((a, b) => b.saldo - a.saldo).slice(0, lim(input.limite))
         const cli = await nomes(supabase, 'clientes', sel.map((c) => c.cliente_id))
-        return JSON.stringify({ total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ cliente: cli.get(String(c.cliente_id)) ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
+        return JSON.stringify({ situacao: input.situacao ?? 'todas_abertas', hoje: hojeIso(fuso), total_saldo: r2(sel.reduce((t, c) => t + c.saldo, 0)), itens: sel.map((c) => ({ cliente: cli.get(String(c.cliente_id)) ?? null, saldo: c.saldo, vencimento: c.data_vencimento ?? null })) })
       }
       case 'custos': {
         const fixos = input.tipo === 'fixos'

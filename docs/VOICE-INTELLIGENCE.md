@@ -162,3 +162,74 @@ Objetivo: depois que a IA pesquisa e responde (mesmo motor, mesmas regras e conf
 - Custo de referência (pesquisa 2026-10-15, resposta típica ≈ 800 caracteres ≈ 50 s): voz do aparelho R$ 0; OpenAI gpt-4o-mini-tts ≈ US$ 0,015/min (≈ US$ 0,013 por resposta); ElevenLabs Flash v2.5 US$ 0,04/1.000 caracteres (≈ US$ 0,032 por resposta), plano grátis 10 mil créditos/mês e sem uso comercial; Google Neural2 US$ 16/milhão (1 milhão grátis/mês), Chirp 3 HD US$ 30/milhão (1 milhão grátis/mês).
 - Pendente: comparativo às cegas com o CEO, decisão de cobrança (RNF-V08), LEGAL-V01 com o fornecedor de voz escolhido.
 
+
+## 12. Diretor Financeiro Conversacional — Fases A, B e C (2026-10-16)
+
+### 12.1 Fase A — diagnóstico do que existe (confirmado no código e no site)
+
+| Peça | Situação real |
+|---|---|
+| Ditado | `components/BotaoVoz.tsx` + `lib/voz/gravador.ts` + `POST /api/voz/transcrever` (whisper-1). Grava no navegador, transcreve inteiro (sem streaming), só preenche o campo. |
+| Fala | `POST /api/voz/falar` (OpenAI `gpt-4o-mini-tts` ou ElevenLabs Flash, por `VOZ_FALA`); sem fornecedor → voz do aparelho (`speechSynthesis`). Áudio inteiro (blob), não em fluxo. Hoje em produção: **sem fornecedor** (voz do aparelho). |
+| Conversa | Não existia: ditar → revisar → enviar → tocar em Ouvir. Contexto = histórico de texto (8 falas) mandado pela tela; sem id de conversa. |
+| Motor | Um só (`lib/ia/motor.ts`), com triagem, retrato, conferência de números e assinatura. **Ferramentas de consulta só no caminho Anthropic.** |
+| Interrupção | O botão Parar já cortava o áudio de verdade; não havia como interromper falando nem cancelar pergunta em andamento (o José ficava preso em "pensando"). |
+
+**Teste no site (empresa de teste, 16/10/2026, 9 perguntas em 4 roteiros, sem dado de cliente):** latência
+total de 1,9 s a 6,1 s por resposta. Pergunta complementar ("E quanto disso está atrasado?"), correção ("Na
+verdade, quero setembro") e simulação ("E se metade atrasar mais uma semana?", marcada "Cenário:")
+funcionaram pelo histórico. Contratação: listou os dados que tem e o que falta. **Achado crítico (conferido
+na auditoria): as 9 respostas vieram da OpenAI (gpt-4o / modelo de rotina) com 0 consultas — a Anthropic não
+respondeu e a reserva não tinha ferramentas**; "esta semana" foi respondido com "próximos 30 dias" do
+retrato. A OpenAI também devolvia `**` (markdown proibido no prompt).
+
+### 12.2 Fase B — conversa contínua (implementado, só local)
+
+- `lib/voz/reprodutor.ts`: **um reprodutor para a tela inteira** — uma resposta por vez; `pararFala()` pausa o
+  `<audio>`, aborta o pedido ao servidor e cancela a voz do aparelho; resposta que chega depois de um parar é
+  descartada (não fala sozinha); áudio já gerado é reaproveitado.
+- O microfone **interrompe** a fala (`BotaoVoz` chama `pararFala()` ao começar a gravar).
+- José: **"Conversa por voz"** (liga/desliga, só com voz liberada). Ligado: a fala vai direto como pergunta e o
+  José responde falando; o microfone só reabre no toque. Desligado (padrão): igual à Fase 1.
+- **Correção/cancelamento:** pergunta nova durante a análise abandona a anterior (AbortController); a resposta
+  velha não aparece nem fala; a pergunta abandonada fica no histórico para o José entender a correção.
+  Limitação: o servidor **termina e cobra** a pergunta abandonada (o motor não para no meio) — 1 pergunta a
+  mais por correção feita durante a análise.
+- Servidor: histórico limpo (`historicoSeguro`: só user/assistant, 8 falas, 4.000 caracteres cada);
+  `conversa_id` (só agrupa na auditoria) e `correlacao` (auditoria + Sentry). Empresa e papel continuam vindo
+  do servidor/RLS, nunca da tela. Sem tabela nova: **a conversa não é gravada** (memória só na tela).
+- Já existia e foi conferido: 30 pedidos/min em `/api/ia/*` e 12/min nas rotas de voz (middleware), saldo de IA
+  por empresa, operador bloqueado (403), assinatura da resposta.
+
+### 12.3 Fase C — matriz de ferramentas
+
+| Ferramenta | Responde | Fonte | Permissão | Regra | Limitação |
+|---|---|---|---|---|---|
+| `contas_a_receber` | quanto entra, atrasado, **esta semana** | `contas_receber` + `clientes` | RLS (não operador) | saldo = valor − recebido; vencidas / 7 / 30 dias / todas | sem previsão de atraso por cliente |
+| `contas_a_pagar` | o que vence, atrasado, a quem deve | `contas_pagar` + `fornecedores` | idem | saldo = total − pago | — |
+| `maiores_devedores` | inadimplência por cliente | `contas_receber` | idem | saldo aberto e vencido | — |
+| `maiores_fornecedores` | concentração de compras | `contas_pagar` | idem | total lançado e aberto | — |
+| `receitas_por_mes` | faturamento por mês (até 24) | `receitas` | idem | soma por mês no fuso da empresa | mês corrente parcial |
+| `custos` | fixos vigentes / variáveis (média 12 m) | `custos_fixos`, `custos_variaveis` | idem | `soVigentes` | — |
+| `dividas` | endividamento, ordem de quitação | `dividas` | idem | maior juro primeiro | — |
+| `estoque_avisos` | ruptura, baixo, parado, custo subindo | `vw_estoque_avisos` | idem | flags da view | — |
+| (retrato) | caixa realizado, lucro médio, alertas, risco | `lib/ia/retratoEmpresa.ts` | idem | `lib/caixaSaldo.ts` | caixa não é "livre para gastar" |
+| **Faltam** | DRE de um mês por competência, obrigações fiscais por período, simulação de folha (salário + encargos) | regras ainda **só no navegador** (`dre/page.tsx`, `meiHelpers`) | — | precisam ir para `lib/` antes de virar ferramenta | não inventar resultado |
+
+Entrou nesta fase: **a OpenAI usa as mesmas ferramentas** (`chamarOpenAIComFerramentas`: mesma leitura com
+RLS, até 4 rodadas, a última obrigada a responder, pedido repetido não roda de novo, no máximo 8 consultas).
+Cadeia: Claude (com ferramentas) → OpenAI forte (com ferramentas) → OpenAI forte (sem) → reserva. Situação
+`proximos_7_dias` ("esta semana") e período informado na saída das contas. Markdown removido da resposta
+(`limparFormato`) antes da assinatura.
+
+Testes: `npx tsx scripts/check-voz-faseB.mts` (simulados). **Ainda não provado (precisa do site):** consultas
+reais da OpenAI com os dados da empresa de teste, som e latência da fala no aparelho, captação do microfone.
+Exige publicar (prévia ou produção) — aguardando o CEO.
+
+### 12.4 Próximo passo recomendado
+
+1. Autorizar uma publicação de prévia para repetir os 4 roteiros com as ferramentas (medir consultas e latência).
+2. Ligar a Anthropic (José, IA Financeira e Tributária foram feitas para ela) ou aceitar a OpenAI como principal.
+3. Fase D (resumo falado curto + detalhe na tela) e Fase E (comparativo OpenAI Realtime × Gemini Live × Qwen
+   Omni × ElevenLabs). O motor atual não é de tempo real; migrar exigiria refazer a conferência de números em
+   fluxo, por isso só depois do comparativo.

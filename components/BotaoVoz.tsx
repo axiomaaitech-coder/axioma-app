@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic, Square, X } from "lucide-react";
 import { GravadorVoz, type ErroGravador } from "../lib/voz/gravador";
+import { pararFala } from "../lib/voz/reprodutor";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { useThemeAxioma } from "../lib/ThemeContext";
 
@@ -104,6 +105,7 @@ export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desati
 
   async function comecar() {
     if (desativado) return;
+    pararFala(); // interrupção: a pessoa começou a falar → a resposta que estava sendo lida para na hora
     canceladoRef.current = false;
     const g = new GravadorVoz(ambienteNavegador(), (n, tempo) => { setNivel(n); setMs(tempo); });
     grav.current = g;

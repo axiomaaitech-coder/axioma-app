@@ -126,7 +126,11 @@ for (const [arq, tela] of TELAS) {
   assert.ok(usos.length >= 1, `${arq}: botão de voz ausente`)
   for (const u of usos) {
     assert.equal(u[1], tela, `${arq}: tela errada`)
-    assert.ok(/juntarTexto/.test(u[2]) && !/enviar|perguntar|salvar|submit|insert|criar/i.test(u[2]), `${arq}: onTexto só pode preencher o campo`)
+    // Exceção única (Fase B, 2026-10-16): no José, com o "Conversa por voz" LIGADO pela pessoa, a fala vira a pergunta.
+    // Desligado (padrão), continua só preenchendo o campo. Nunca salva nem grava nada.
+    const corpo = u[2].replace(/modoConversa \? enviar\([^)]*\)\)? : /, '')
+    assert.ok(/juntarTexto/.test(corpo) && !/enviar|perguntar|salvar|submit|insert|criar/i.test(corpo), `${arq}: onTexto só pode preencher o campo`)
+    if (u[2] !== corpo) assert.equal(arq, 'app/(interno)/nexus/JosephChat.tsx', 'envio direto pela voz só no José, com o modo conversa')
   }
 }
 for (const arq of ['components/BotaoVoz.tsx', 'lib/voz/gravador.ts', ...TELAS.map(([a]) => a)]) {

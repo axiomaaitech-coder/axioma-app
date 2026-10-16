@@ -13,6 +13,8 @@ export type PerguntaAxioma = {
   lang?: 'pt' | 'en' | 'es'
   historico?: { role: string; content: string }[] // o motor descarta no servidor qualquer papel que não seja user/assistant
   contextoTela?: string
+  conversaId?: string // só agrupa a conversa na auditoria (o servidor valida empresa e permissão)
+  signal?: AbortSignal // correção/cancelamento: a tela abandona a pergunta anterior
 }
 
 // assinatura: só respostas do motor podem ser lidas em voz (/api/voz/falar confere)
@@ -20,8 +22,8 @@ export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: 
   if (!p.empresaId || !p.pergunta.trim()) return null
   try {
     const res = await fetch('/api/ia/motor', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pergunta: p.pergunta, empresa_id: p.empresaId, tela: p.tela, lang: p.lang ?? 'pt', historico: p.historico ?? [], contexto_tela: p.contextoTela }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: p.signal,
+      body: JSON.stringify({ pergunta: p.pergunta, empresa_id: p.empresaId, tela: p.tela, lang: p.lang ?? 'pt', historico: p.historico ?? [], contexto_tela: p.contextoTela, conversa_id: p.conversaId }),
     })
     const json = await res.json().catch(() => null)
     // Saldo de IA acabou: a tela mostra o aviso (no idioma) no lugar da resposta, em vez de cair calada nas regras.

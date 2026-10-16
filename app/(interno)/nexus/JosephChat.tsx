@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cinzel } from './fonteJose'
-import { Send, RotateCcw } from 'lucide-react'
+import { Send, RotateCcw, Headphones } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, obterResumoPlacar, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
@@ -23,6 +23,7 @@ import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
 import { juntarTexto } from '../../../lib/voz/gravador'
+import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -66,6 +67,21 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
   const [horizontes, setHorizontes] = useState<{ data: string; texto: string } | null>(null)
   const [placar, setPlacar] = useState('')
   const fimRef = useRef<HTMLDivElement>(null)
+  // Conversa (Voice Intelligence, Fase B): id só para agrupar na auditoria; pedido em andamento para
+  // poder ser abandonado quando a pessoa corrige ("na verdade, quero setembro").
+  const conversaId = useRef<string>('')
+  const pedidoRef = useRef<AbortController | null>(null)
+  const [vozLiberada, setVozLiberada] = useState(false)
+  const [modoConversa, setModoConversa] = useState(false)
+  useEffect(() => { if (!conversaId.current) conversaId.current = crypto.randomUUID() }, [])
+  useEffect(() => {
+    if (!empresaId) return
+    let vivo = true
+    situacaoVoz(empresaId).then((s) => { if (vivo) setVozLiberada(s.ativa) })
+    return () => { vivo = false }
+  }, [empresaId])
+  // Saiu da tela: abandona a pergunta pendente e para a voz
+  useEffect(() => () => { pedidoRef.current?.abort(); pararFala() }, [])
 
   useEffect(() => {
     obterLeiturasRecentes(lang).then(setLeituras)
@@ -143,17 +159,27 @@ Hoje: ${hojeISO()}.`
 
   async function enviar(pergunta: string) {
     const p = pergunta.trim()
-    if (!p || pensando) return
+    if (!p) return
+    // Pergunta nova durante a análise = correção: a anterior é abandonada (a resposta dela não aparece nem
+    // é falada) e continua no histórico, para o José entender "na verdade, quero setembro".
+    pedidoRef.current?.abort()
+    pararFala()
+    const ctrl = new AbortController()
+    pedidoRef.current = ctrl
     const historico = mensagens.slice(-MAX_HISTORICO).map(({ role, content }) => ({ role, content }))
     setMensagens((m) => [...m, { role: 'user', content: p }])
     setTexto('')
     setPensando(true)
     // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + tudo que o José vê nesta tela
     // (indicadores, eventos, leituras, manchetes, placar). Pergunta de futuro/plano sobe sozinha pra Anthropic.
-    const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela: 'nexus', lang, historico, contextoTela: montarContexto() })
+    const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela: 'nexus', lang, historico, contextoTela: montarContexto(), conversaId: conversaId.current, signal: ctrl.signal })
+    if (ctrl.signal.aborted) return // corrigida ou saiu da tela: a pergunta mais nova cuida do resto
     const resposta = ia?.resposta ?? L('Não consegui interpretar agora — tente de novo em instantes.', "I couldn't interpret that right now — try again in a moment.", 'No pude interpretar ahora — intente de nuevo en unos instantes.')
     setMensagens((m) => [...m, { role: 'assistant', content: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva }])
     setPensando(false)
+    pedidoRef.current = null
+    // Modo conversa: o José responde falando (a pessoa ligou o modo; o microfone só reabre no toque dela)
+    if (modoConversa && ia?.resposta && empresaId) void falar({ chave: resposta, texto: resposta, lang, empresaId, assinatura: ia.assinatura, ressalva: !!ia.ressalva })
   }
 
   const aoTeclar = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -264,12 +290,28 @@ Hoje: ${hojeISO()}.`
               style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }}
             />
             {/* Ditado (Voice Fase 1): só preenche o campo — a pessoa revisa e envia */}
-            <BotaoVoz lang={lang} tela="nexus" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setTexto((a) => juntarTexto(a, x).slice(0, 600))} />
-            <button onClick={() => enviar(texto)} disabled={!texto.trim() || pensando} aria-label={L('Enviar', 'Send', 'Enviar')}
+            <BotaoVoz lang={lang} tela="nexus" empresaId={empresaId} claro={temaClaro} onTexto={(x) => (modoConversa ? enviar(x.slice(0, 600)) : setTexto((a) => juntarTexto(a, x).slice(0, 600)))} />
+            <button onClick={() => enviar(texto)} disabled={!texto.trim()} aria-label={L('Enviar', 'Send', 'Enviar')}
               className="shrink-0 flex items-center justify-center rounded-xl disabled:opacity-50" style={{ ...VERDE_SOLIDO, width: 44, height: 44 }}>
               <Send size={17} aria-hidden />
             </button>
           </div>
+          {/* Conversa por voz (Voice Intelligence, Fase B): a fala vai direto para o José e ele responde falando */}
+          {vozLiberada && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <button type="button" onClick={() => { if (modoConversa) pararFala(); setModoConversa((v) => !v) }} aria-pressed={modoConversa}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold text-white axi-card-premium3d axi-card-faixa"
+                style={{ background: modoConversa ? '#0f7a5a' : '#101b3d', border: `1px solid ${modoConversa ? '#2ecc9b' : 'rgba(46,204,155,0.35)'}` }}>
+                <Headphones size={14} aria-hidden />
+                {modoConversa ? L('Conversa por voz: ligada', 'Voice conversation: on', 'Conversación por voz: activada') : L('Conversa por voz: desligada', 'Voice conversation: off', 'Conversación por voz: desactivada')}
+              </button>
+              <span className="text-[11px] font-medium" style={{ color: TEXTO }}>
+                {modoConversa
+                  ? L('Toque em Falar e faça a pergunta: ela vai direto ao José e ele responde falando. Tocar em Falar enquanto ele fala interrompe. Para corrigir, é só perguntar de novo.', 'Tap Speak and ask: it goes straight to José and he answers out loud. Tapping Speak while he talks interrupts him. To correct, just ask again.', 'Toque Hablar y pregunte: va directo a José y él responde hablando. Tocar Hablar mientras habla lo interrumpe. Para corregir, solo pregunte de nuevo.')
+                  : L('Ligue para conversar com o José por voz, como numa reunião.', 'Turn on to talk with José by voice, like in a meeting.', 'Actívela para conversar con José por voz, como en una reunión.')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </section>

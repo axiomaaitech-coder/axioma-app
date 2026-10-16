@@ -29,6 +29,14 @@ import { textoRegrasOficiais } from '../regrasOficiais'
 export type Nivel = 'rotina' | 'analise' | 'estrategica'
 export type Idioma = 'pt' | 'en' | 'es'
 export type MensagemHistorico = { role: 'user' | 'assistant'; content: string }
+// Histórico vem do navegador: só papel válido, só texto, últimas 8 falas, cada uma até 4.000 caracteres
+// (limita custo e impede que alguém empurre um "system" ou um texto gigante pela conversa).
+export function historicoSeguro(bruto: unknown): MensagemHistorico[] {
+  if (!Array.isArray(bruto)) return []
+  return bruto
+    .filter((m): m is MensagemHistorico => !!m && typeof m === 'object' && ((m as MensagemHistorico).role === 'user' || (m as MensagemHistorico).role === 'assistant') && typeof (m as MensagemHistorico).content === 'string' && !!(m as MensagemHistorico).content.trim())
+    .slice(-8).map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }))
+}
 
 // Modelos por nível — o ÚNICO lugar do Axioma que decide isso.
 export const MODELOS: Record<Nivel, { provedor: 'openai' | 'anthropic'; modelo: string; esforco?: 'low' | 'medium' | 'high' }> = {
@@ -346,6 +354,62 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
   return null
 }
 
+// OpenAI com as MESMAS ferramentas de consulta (Voice Intelligence, Fase C, 2026-10-16): quando a
+// Anthropic não responde, a reserva também consulta o detalhe (antes respondia só com o retrato).
+// Mesmas regras do Claude: só leitura, empresa do retrato, cliente do usuário (RLS), até MAX_CONSULTAS
+// rodadas e, na última, obrigada a responder. Pedido repetido (mesma ferramenta + mesmos parâmetros)
+// não roda de novo: devolve o resultado já lido. Falha aqui → null (quem chama cai na OpenAI sem ferramentas).
+const MAX_CHAMADAS_FERRAMENTA = 8
+type MsgOpenAI = { role: string; content: string | null; tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[]; tool_call_id?: string }
+export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: { supabase: SupabaseClient; empresaId: string; fuso: string }, uso?: Uso): Promise<ConsultaClaude> {
+  const dadosConsultados: string[] = []
+  const chave = process.env.OPENAI_API_KEY
+  if (!chave) return { texto: null, dadosConsultados }
+  const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, strict: true } }))
+  const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
+  // Promessa guardada ANTES de esperar: dois pedidos iguais na mesma rodada (em paralelo) leem uma vez só
+  const jaLidos = new Map<string, Promise<string>>()
+  let chamadas = 0
+  try {
+    for (let rodada = 0; rodada <= MAX_CONSULTAS; rodada++) {
+      const ultima = rodada === MAX_CONSULTAS || chamadas >= MAX_CHAMADAS_FERRAMENTA
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', signal: AbortSignal.timeout(45000),
+        headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelo, max_completion_tokens: 3000, messages: conversa, tools, tool_choice: ultima ? 'none' : 'auto' }),
+      })
+      if (!res.ok) { console.error('[motor-ia] OpenAI ferramentas', modelo, res.status, (await res.text()).slice(0, 300)); return { texto: null, dadosConsultados } }
+      const dados = await res.json()
+      somarUso(uso, modelo, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
+      const msg = dados?.choices?.[0]?.message as MsgOpenAI | undefined
+      const pedidos = msg?.tool_calls ?? []
+      if (!pedidos.length || ultima) {
+        const texto = typeof msg?.content === 'string' ? msg.content.trim() : ''
+        return { texto: texto || null, dadosConsultados }
+      }
+      conversa.push({ role: 'assistant', content: msg?.content ?? null, tool_calls: pedidos })
+      const resultados = await Promise.all(pedidos.map(async (p) => {
+        const chaveConsulta = `${p.function.name}:${p.function.arguments}`
+        let leitura = jaLidos.get(chaveConsulta)
+        if (!leitura) {
+          chamadas++
+          let entrada: Record<string, unknown> = {}
+          try { entrada = JSON.parse(p.function.arguments || '{}') } catch { /* parâmetro inválido: a ferramenta usa o padrão */ }
+          leitura = executarFerramenta(consulta.supabase, consulta.empresaId, p.function.name, entrada, consulta.fuso)
+          jaLidos.set(chaveConsulta, leitura)
+          leitura.then((s) => dadosConsultados.push(s))
+        }
+        return { role: 'tool', tool_call_id: p.id, content: await leitura }
+      }))
+      conversa.push(...resultados)
+    }
+    return { texto: null, dadosConsultados }
+  } catch (err) {
+    console.error('[motor-ia] OpenAI ferramentas rede', modelo, err instanceof Error ? err.message : err)
+    return { texto: null, dadosConsultados }
+  }
+}
+
 // Claude com as ferramentas de consulta (fase 3): até MAX_CONSULTAS rodadas; na
 // última, tool_choice "none" obriga a responder com o que já tem. O conteúdo de
 // cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
@@ -394,6 +458,11 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
     console.error('[motor-ia] Anthropic', cfg.modelo, err instanceof Error ? err.message : err)
     return { texto: null, dadosConsultados }
   }
+}
+
+// Tira negrito/itálico e títulos de markdown (o texto vai como está para a tela e para a voz)
+export function limparFormato(t: string): string {
+  return t.replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/__([^_\n]+)__/g, '$1').replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, '').replace(/\*\*/g, '').trim()
 }
 
 // Números puros vindos das ferramentas viram "R$ x" conhecidos na conferência.
@@ -459,12 +528,18 @@ export async function perguntarAoMotor(args: {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     if (MODELOS[n].provedor === 'openai') return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, MODELOS[n].modelo, 2000, false, 45000, uso), provedor: 'openai', modelo: MODELOS[n].modelo, enviados }
-    if (!TELAS_ANTHROPIC.has(args.tela ?? '')) return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso), provedor: 'openai', modelo: OPENAI_FORTE, enviados }
-    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso }, uso)
+    const consulta = { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso }
+    // OpenAI forte COM as ferramentas de consulta; se falhar, OpenAI forte sem ferramentas (que cai sozinha pra OPENAI_RESERVA).
+    const openaiForte = async () => {
+      const c = await chamarOpenAIComFerramentas(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, consulta, uso)
+      if (c.texto) return { texto: c.texto, provedor: 'openai' as const, modelo: OPENAI_FORTE, enviados: enviados + c.dadosConsultados.join('').length, consultas: c.dadosConsultados }
+      return { texto: await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso), provedor: 'openai' as const, modelo: OPENAI_FORTE, enviados }
+    }
+    if (!TELAS_ANTHROPIC.has(args.tela ?? '')) return openaiForte()
+    const { texto, dadosConsultados } = await chamarClaude(sistema, msgs, n, consulta, uso)
     if (texto) return { texto, provedor: 'anthropic', modelo: MODELOS[n].modelo, enviados: enviados + dadosConsultados.join('').length, consultas: dadosConsultados }
-    // Anthropic fora do ar: 2ª IA = OpenAI forte; chamarOpenAI cai sozinha pra 3ª (OPENAI_RESERVA).
-    const reserva = await chamarOpenAI(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, OPENAI_FORTE, 3000, false, 45000, uso)
-    return { texto: reserva, provedor: 'openai', modelo: OPENAI_FORTE, enviados }
+    // Anthropic fora do ar: 2ª IA = OpenAI forte (com as mesmas ferramentas); 3ª = OPENAI_RESERVA.
+    return openaiForte()
   }
 
   let r = await executar(nivel)
@@ -474,6 +549,8 @@ export async function perguntarAoMotor(args: {
     r = await executar(nivel)
   }
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
+  // A tela não lê markdown e a voz leria os símbolos: a OpenAI às vezes manda ** e # mesmo proibido no prompt.
+  if (r.texto) r.texto = limparFormato(r.texto)
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
   const reaisConsultas = reaisDasConsultas(r.consultas ?? [])
   const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`) : []
