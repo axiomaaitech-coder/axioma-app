@@ -135,6 +135,7 @@ Regras invioláveis:
 - Separe sempre, com a palavra no início da frase: "Fato:" (número realizado dos dados), "Estimativa:" (conta sua), "Previsão:" (tendência projetada, nunca certeza) e "Cenário:" (e se...). Não misture os quatro na mesma frase. Valor que inclui imposto estimado (lucro, margem e receita líquida da DRE) NÃO é Fato: chame de "Cálculo com imposto estimado". Siga a classe que a ferramenta relatorio devolve em cada indicador (fato, calculo, estimativa).
 - MOTOR FINANCEIRO (Plano 3): os números vêm das ferramentas, que devolvem indicador, definição, período, critério de data, fontes, registros, estado e limitações. Você interpreta; não recalcula diferente. Estado "parcial" ou "erro" = diga a limitação antes de concluir. Registros 0 = "não há registros de X no período" (não é erro). Sempre diga o período e o critério de data usados.
 - Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao. Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
+- RELATÓRIO E PDF: você GERA relatórios em PDF para baixar e imprimir. Pediram relatório, PDF, documento, "para imprimir", "relatório disso" ou "do que você me passou": chame a ferramenta relatorio com o tipo mais próximo do assunto da conversa (na dúvida, executivo) e o período falado (sem período, este_mes). Ao terminar, diga: "Seu relatório está concluído. É só baixar no botão abaixo, em PDF." NUNCA diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
 - Caixa realizado NÃO é dinheiro livre para gastar. Faturamento, lucro e caixa são coisas diferentes: nunca troque uma pela outra. Se duas fontes divergirem, mostre as duas e diga qual precisa ser conferida.
 - Em análises executivas, organize: situação atual, Fato (valores consultados), Cálculo (contas feitas com dados identificados), Interpretação, Risco (só o demonstrável), Recomendação (proporcional à evidência, com o que falta para decidir) e Limitação. Correlação no tempo não é causa. Pergunta simples = resposta curta.
 - Variação não é resposta: quando algo subiu ou caiu, investigue nos dados quais contas, fornecedores, clientes ou categorias explicam, desde quando, se é recorrente ou pontual e o impacto se continuar. Use as DESCOBERTAS ABERTAS DO MOTOR quando tratarem do assunto.
@@ -598,6 +599,38 @@ export type RespostaMotor = {
   relatorio: PedidoRelatorioMotor | null // relatório gerado nesta resposta (a tela oferece abrir/baixar o PDF)
 }
 
+// ── Relatório pedido na conversa (José, IA Financeira, IA Tributária, MEI Advisor, Relatórios, Contas a Pagar) ──
+const RE_PEDE_RELATORIO = /relat[oó]rio|\bpdf\b|imprimir|impress[aã]o|report|informe/i
+export const pediuRelatorio = (p: string) => RE_PEDE_RELATORIO.test(p)
+export function pedidoRelatorioDaPergunta(p: string, tela?: string): Record<string, unknown> {
+  const t = p.toLowerCase()
+  const tipo = /\bdre\b|lucro|resultado|margem|income statement|estado de resultados/.test(t) ? 'dre'
+    : /fluxo|caixa|tesouraria|cash/.test(t) ? 'fluxo_caixa'
+    : /receber|inadimpl|devedor|cobran/.test(t) ? 'contas_receber'
+    : /pagar|fornecedor|vencid/.test(t) ? 'contas_pagar'
+    : /despesa|custo|gasto|expense/.test(t) ? 'despesas'
+    : /receita|faturamento|vend|revenue|ingreso/.test(t) ? 'receitas'
+    : /d[ií]vida|endivid|empr[eé]stimo|debt|deuda/.test(t) ? 'endividamento'
+    : /imposto|tribut|\bdas\b|\btax/.test(t) || tela === 'ia-tributaria' ? 'tributario'
+    : /\bpdv\b|sangria/.test(t) ? 'pdv'
+    : /concilia|duplic|inconsist/.test(t) ? 'conciliacao' : 'executivo'
+  const periodo = /m[eê]s passado|m[eê]s anterior|[uú]ltimo m[eê]s|last month|mes pasado/.test(t) ? 'mes_anterior'
+    : /trimestre (passado|anterior)/.test(t) ? 'trimestre_anterior' : /trimestre|quarter/.test(t) ? 'este_trimestre'
+    : /ano (passado|anterior)|last year|año pasado/.test(t) ? 'ano_anterior' : /12 meses|doze meses/.test(t) ? 'ultimos_12_meses'
+    : /\bano\b|\byear\b|\baño\b/.test(t) ? 'este_ano' : /semana (passada|anterior)/.test(t) ? 'semana_anterior' : /semana|week/.test(t) ? 'esta_semana' : 'este_mes'
+  return { tipo, periodo, inicio: null, fim: null, comparar: true }
+}
+const RE_RECUSA = /[^.!?\n]*(n[aã]o (posso|consigo|tenho como|[eé] poss[ií]vel)|n[aã]o sou capaz|cannot|can't|unable to|no puedo)[^.!?\n]*(pdf|arquivo|relat[oó]rio|documento|imprimir|file|report|informe)[^.!?\n]*[.!?]?/gi
+export const AVISO_RELATORIO_CONCLUIDO: Record<Idioma, string> = {
+  pt: 'Seu relatório está concluído. É só baixar no botão abaixo, em PDF.',
+  en: 'Your report is ready. Just download it with the button below, in PDF.',
+  es: 'Su informe está listo. Solo descárguelo con el botón de abajo, en PDF.',
+}
+export function avisarRelatorioConcluido(texto: string, lang: Idioma): string {
+  const limpo = texto.replace(RE_RECUSA, '').replace(/\n{3,}/g, '\n\n').trim()
+  return limpo.includes(AVISO_RELATORIO_CONCLUIDO[lang]) ? limpo : `${limpo}\n\n${AVISO_RELATORIO_CONCLUIDO[lang]}`.trim()
+}
+
 export async function perguntarAoMotor(args: {
   supabase: SupabaseClient; empresaId: string; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
   contextoTela?: string // números e formato pedidos pela tela de origem (ex.: dados do DAS no MEI)
@@ -677,6 +710,10 @@ export async function perguntarAoMotor(args: {
   const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${memoria.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
   // Avisos fixos no fim (consulta que falhou, consulta exigida que não aconteceu, valor não encontrado)
   const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
+  // Relatório na conversa (todas as IAs): pediu relatório/PDF e a IA não montou → o sistema monta o MESMO relatório
+  // da tela. Montado (pela IA ou pelo sistema) → frase de recusa sai e entra "Seu relatório está concluído…".
+  if (r.texto && !consulta.relatorio && pediuRelatorio(pergunta)) await consultarFerramenta(consulta, 'relatorio', pedidoRelatorioDaPergunta(pergunta, args.tela))
+  if (r.texto && consulta.relatorio) r.texto = avisarRelatorioConcluido(r.texto, lang)
   const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
   return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
     exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro'),
