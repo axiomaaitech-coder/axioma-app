@@ -22,7 +22,7 @@ import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
-import { AcoesRelatorio, type PedidoTela } from '../../../../components/RelatorioCFO'
+import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from '../../../../components/RelatorioCFO'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
@@ -413,6 +413,7 @@ DADOS REAIS DESTE MEI:
               const ia = await perguntarAoAxioma({ pergunta, empresaId: await obterEmpresaAtiva(), tela: 'mei-ia-advisor', lang, historico: chatMensagens.slice(-8).map(m => ({ role: m.role, content: m.content })), contextoTela: `${formato}
 
 ${montarContextoIA()}` })
+              if (ia?.relatorio) setChatMensagens(prev => [...prev, { role: 'assistant', content: avisoRelatorioConcluido(lang), relatorio: ia.relatorio }])
               return ia?.resposta ?? (lang === 'en' ? 'It was not possible to check the data right now.' : lang === 'es' ? 'No fue posible consultar los datos ahora.' : 'Não foi possível consultar os dados agora.')
             }} />
           {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}

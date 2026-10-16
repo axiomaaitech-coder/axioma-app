@@ -256,60 +256,10 @@ export function BotaoAbrirRelatorio({ pedido, lang }: { pedido: PedidoTela | nul
   )
 }
 
-// "Quero um relatório do que você me passou": PDF da pergunta + resposta da IA, com empresa, data e aviso.
-// Mesmo gerador de PDF dos relatórios; se a IA montou o relatório completo, mostra também "Abrir relatório e PDF".
-const NOME_IA: Record<string, [string, string, string]> = {
-  "ia-financeira": ["Análise da IA Financeira", "AI Finance Analysis", "Análisis de la IA Financiera"],
-  "ia-tributaria": ["Análise da IA Tributária", "AI Tax Analysis", "Análisis de la IA Tributaria"],
-  "mei-ia-advisor": ["Consultoria do MEI Advisor", "MEI Advisor Consultation", "Consultoría del MEI Advisor"],
-  nexus: ["Análise do José — Nexus", "José Analysis — Nexus", "Análisis de José — Nexus"],
-}
-export function AcoesRelatorio({ tela, pergunta, resposta, pedido, ressalva, empresaId, lang }: { tela: string; pergunta?: string; resposta: string; pedido?: PedidoTela | null; ressalva?: boolean; empresaId: string | null | undefined; lang: Lang }) {
-  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
-  const [estado, setEstado] = useState<"" | "gerando" | "erro">("");
-  async function baixar() {
-    setEstado("gerando");
-    try {
-      const [{ createBrowserClient }, { montarPdfRelatorio }] = await Promise.all([import("../lib/supabaseBrowser"), import("../lib/financeiro/relatorioPdf")]);
-      let empresa = { nome: "—", documento: null as string | null };
-      if (empresaId) {
-        const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-        const { data } = await sb.from("empresas").select("nome, nome_fantasia, cnpj").eq("id", empresaId).maybeSingle();
-        if (data) empresa = { nome: data.nome_fantasia || data.nome || "—", documento: data.cnpj ?? null };
-      }
-      const n = NOME_IA[tela] ?? ["Análise da Inteligência Axioma", "Axioma Intelligence Analysis", "Análisis de la Inteligencia Axioma"];
-      const titulo = L(...n);
-      const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo";
-      const rel: Relatorio = {
-        tipo: "executivo", titulo, lang, empresa, periodo: null, comparado_com: null, gerado_em: new Date().toISOString(), fuso,
-        estado: ressalva ? "parcial" : "verificado", resumo: [], achados: [], refs: [],
-        secoes: [
-          ...(pergunta ? [{ id: "pergunta", titulo: L("Pergunta", "Question", "Pregunta"), tipo: "texto" as const, paragrafos: [pergunta] }] : []),
-          { id: "resposta", titulo: L("Resposta da Inteligência Axioma", "Axioma Intelligence answer", "Respuesta de la Inteligencia Axioma"), tipo: "texto" as const, paragrafos: resposta.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) },
-        ],
-        limitacoes: [
-          L("Texto escrito pela Inteligência Axioma a partir das consultas aos dados da Empresa no momento da pergunta.", "Text written by Axioma Intelligence from queries to the Company data at the time of the question.", "Texto escrito por la Inteligencia Axioma a partir de las consultas a los datos de la Empresa en el momento de la pregunta."),
-          ...(ressalva ? [L("Algum valor desta resposta não foi encontrado nos dados consultados: confira na tela antes de decidir.", "Some amount in this answer was not found in the checked data: check it on screen before deciding.", "Algún valor de esta respuesta no se encontró en los datos consultados: revíselo en pantalla antes de decidir.")] : []),
-          L("Para números oficiais com fontes e tabelas, use o Relatório CFO da tela Relatórios.", "For official numbers with sources and tables, use the CFO Report on the Reports screen.", "Para números oficiales con fuentes y tablas, use el Informe CFO de la pantalla Informes."),
-        ],
-        fontes: [L("Dados da Empresa no Axioma", "Company data in Axioma", "Datos de la Empresa en Axioma")],
-        metodologia: [],
-      };
-      montarPdfRelatorio(rel).save(`axioma-${tela}-${new Date().toISOString().slice(0, 10)}-${lang}.pdf`);
-      setEstado("");
-    } catch { setEstado("erro"); }
-  }
-  return (
-    <div className="flex flex-col gap-1">
-      <CartaoRelatorioGerado pedido={pedido} empresaId={empresaId} lang={lang} />
-      <div className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={baixar} disabled={estado === "gerando"} className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: estado === "gerando" ? "#4a5470" : "#101b3d" }}>
-        📄 {estado === "gerando" ? L("Montando PDF…", "Building PDF…", "Generando PDF…") : L("Relatório desta resposta (PDF)", "Report of this answer (PDF)", "Informe de esta respuesta (PDF)")}
-      </button>
-      {estado === "erro" && <span className="mt-2 text-xs" style={{ color: "#f87171" }}>{L("Não foi possível montar o PDF. Tente de novo.", "Could not build the PDF. Try again.", "No fue posible generar el PDF. Intente de nuevo.")}</span>}
-      </div>
-    </div>
-  )
+// Depois da consulta (todas as IAs): quando a IA gerou o relatório pedido, aparece o cartão do relatório pronto,
+// com os dados completos (mesma rota autorizada e mesmo PDF da tela Relatórios). Sem relatório, nada aparece.
+export function AcoesRelatorio({ pedido, empresaId, lang }: { tela?: string; pergunta?: string; resposta?: string; pedido?: PedidoTela | null; ressalva?: boolean; empresaId: string | null | undefined; lang: Lang }) {
+  return <CartaoRelatorioGerado pedido={pedido} empresaId={empresaId} lang={lang} />
 }
 
 // Cartão "Relatório gerado com sucesso" na conversa (todas as IAs): a IA montou o relatório pedido com a
@@ -318,6 +268,18 @@ export function AcoesRelatorio({ tela, pergunta, resposta, pedido, ressalva, emp
 function CartaoRelatorioGerado({ pedido, empresaId, lang }: { pedido?: PedidoTela | null; empresaId: string | null | undefined; lang: Lang }) {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [estado, setEstado] = useState<"" | "gerando" | "ok" | "erro">("");
+  const [nome, setNome] = useState("");
+  useEffect(() => {
+    let vivo = true;
+    import("../lib/supabaseBrowser").then(async ({ createBrowserClient }) => {
+      const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+      const { data } = await sb.auth.getUser();
+      const m = (data.user?.user_metadata ?? {}) as { full_name?: string; name?: string };
+      const primeiro = String(m.full_name || m.name || "").trim().split(/\s+/)[0] || "";
+      if (vivo) setNome(primeiro);
+    }).catch(() => {});
+    return () => { vivo = false };
+  }, []);
   if (!pedido || !(TIPOS_RELATORIO as readonly string[]).includes(pedido.tipo)) return null;
   async function baixar() {
     if (!pedido || !empresaId) { setEstado("erro"); return }
@@ -332,19 +294,23 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang }: { pedido?: PedidoTel
     } catch { setEstado("erro") }
   }
   return (
-    <div className="axi-rel-ok mt-3 rounded-xl p-3" style={{ background: "rgba(15,122,90,0.12)", border: "1px solid rgba(46,204,155,0.45)" }} role="status">
-      <style>{`@keyframes axiRelEntra{0%{opacity:0;transform:translateY(6px) scale(.97)}60%{opacity:1;transform:translateY(-1px) scale(1.01)}100%{transform:none}}@keyframes axiRelCheck{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}.axi-rel-ok{animation:axiRelEntra .45s ease-out both}.axi-rel-ok .axi-check{display:inline-block;animation:axiRelCheck .5s .2s ease-out both}.axi-rel-ok button{transition:transform .15s ease,filter .15s ease}.axi-rel-ok button:hover{transform:translateY(-1px);filter:brightness(1.12)}.axi-rel-ok button:active{transform:scale(.97)}`}</style>
-      <p className="text-sm font-semibold" style={{ color: "#2ecc9b" }}>
-        <span className="axi-check">✅</span> {L(`${tituloRelatorio(pedido.tipo, lang)} gerado com sucesso`, `${tituloRelatorio(pedido.tipo, lang)} generated successfully`, `${tituloRelatorio(pedido.tipo, lang)} generado con éxito`)}
+    <div className="axi-rel-ok mt-3 rounded-xl p-4" style={{ background: "rgba(15,122,90,0.14)", border: "1px solid rgba(46,204,155,0.55)" }} role="status">
+      <style>{`@keyframes axiRelEntra{0%{opacity:0;transform:translateY(6px) scale(.97)}60%{opacity:1;transform:translateY(-1px) scale(1.01)}100%{transform:none}}@keyframes axiRelCheck{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}.axi-rel-ok{animation:axiRelEntra .45s ease-out both}.axi-rel-ok .axi-check{display:inline-block;animation:axiRelCheck .5s .2s ease-out both}.axi-rel-ok .axi-rel-bt{transition:transform .15s ease,filter .15s ease}.axi-rel-ok .axi-rel-bt:hover{transform:translateY(-1px);filter:brightness(1.12)}.axi-rel-ok .axi-rel-bt:active{transform:scale(.98)}`}</style>
+      <p className="text-base font-bold" style={{ color: "#2ecc9b" }}>
+        <span className="axi-check">✅</span> {nome ? `${nome}, ` : ""}{L("seu relatório está feito", "your report is done", "su informe está hecho")}
       </p>
-      <p className="text-xs mt-0.5 opacity-90">{L("Pode baixar ou imprimir no botão abaixo — os números são os mesmos da tela Relatórios.", "You can download or print it with the button below — the numbers are the same as on the Reports screen.", "Puede descargarlo o imprimirlo con el botón de abajo — los números son los mismos de la pantalla Informes.")}</p>
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <button type="button" onClick={baixar} disabled={estado === "gerando"} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: estado === "gerando" ? "#5f7f74" : "#0f7a5a" }}>
-          {estado === "gerando" ? L("Montando PDF…", "Building PDF…", "Generando PDF…") : estado === "ok" ? L("✓ PDF baixado — baixar de novo", "✓ PDF downloaded — download again", "✓ PDF descargado — descargar de nuevo") : L("⬇ Baixar PDF do relatório", "⬇ Download report PDF", "⬇ Descargar PDF del informe")}
-        </button>
-        <a href={linkRelatorio(pedido)} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: "#101b3d" }}>📑 {L("Ver na tela", "View on screen", "Ver en pantalla")}</a>
+      <p className="text-sm mt-1 opacity-90">{tituloRelatorio(pedido.tipo, lang)} — {nomePeriodo(pedido.periodo, lang)}. {L("Com os dados reais da Empresa: indicadores, tabelas, riscos e recomendações.", "With the real Company data: indicators, tables, risks and recommendations.", "Con los datos reales de la Empresa: indicadores, tablas, riesgos y recomendaciones.")}</p>
+      <button type="button" onClick={baixar} disabled={estado === "gerando"} className="axi-rel-bt mt-3 w-full sm:w-auto px-6 py-3 rounded-xl text-base font-bold text-white" style={{ background: estado === "gerando" ? "#5f7f74" : "#0f7a5a", boxShadow: "0 6px 18px -6px rgba(15,122,90,0.7)" }}>
+        {estado === "gerando" ? L("Montando o PDF…", "Building the PDF…", "Generando el PDF…") : estado === "ok" ? L("✓ PDF baixado — baixar de novo", "✓ PDF downloaded — download again", "✓ PDF descargado — descargar de nuevo") : L("⬇ Baixar relatório em PDF", "⬇ Download report as PDF", "⬇ Descargar informe en PDF")}
+      </button>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <a href={linkRelatorio(pedido)} className="text-xs font-semibold underline" style={{ color: "#2ecc9b" }}>{L("Ver o relatório na tela Relatórios", "View the report on the Reports screen", "Ver el informe en la pantalla Informes")}</a>
         {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
       </div>
     </div>
   )
 }
+
+// Conversa por voz: o relatório montado pelo motor vira uma mensagem com o cartão no chat (a voz só fala)
+export const avisoRelatorioConcluido = (lang: Lang) =>
+  lang === "en" ? "Your report is done and it is right below, in PDF, with all the information you asked for." : lang === "es" ? "Su informe está hecho y está justo abajo, en PDF, con toda la información que pidió." : "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu."

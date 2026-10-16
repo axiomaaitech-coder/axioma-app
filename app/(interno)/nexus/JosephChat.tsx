@@ -22,7 +22,7 @@ import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
-import { AcoesRelatorio, type PedidoTela } from '../../../components/RelatorioCFO'
+import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from '../../../components/RelatorioCFO'
 import ConversaAoVivo from '../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../lib/voz/gravador'
 import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
@@ -114,7 +114,7 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
 Regras:
 - PRECISÃO NO TEMA: comece respondendo, em 1 ou 2 frases, EXATAMENTE o que foi perguntado e no assunto da pergunta. Depois traga só o contexto que tem ligação direta com ela — não troque o assunto por outro indicador, notícia ou evento que não foi perguntado.
 - Se a pergunta parecer incompleta ou com palavra estranha (pode ter vindo do ditado por voz), diga em uma frase o que você entendeu e responda a isso; se não der para entender, peça para a pessoa repetir.
-- Você GERA relatórios em PDF para baixar e imprimir: o sistema monta o relatório e mostra o botão "Baixar PDF do relatório". Ao terminar, diga "Seu relatório está concluído. É só baixar no botão abaixo, em PDF." Nunca diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
+- Você GERA relatórios em PDF para baixar e imprimir: o sistema monta o relatório e mostra o botão "Baixar PDF do relatório". Ao terminar, resuma os principais números que vieram do relatório (nunca invente) e termine com "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu." Nunca diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
 - Use SOMENTE os dados abaixo. Nunca invente número, data, notícia, lei ou fonte. Se a pergunta pedir algo que não está aqui, diga com clareza que o Axioma ainda não tem esse dado.
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável e no que pode mudar.
 - Não recomende compra ou venda de investimento específico.
@@ -195,6 +195,7 @@ Hoje: ${hojeISO()}.`
     const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: 'nexus', lang, historico, contextoTela: `${formato}
 
 ${montarContexto()}`, conversaId: conversaId.current })
+    if (ia?.relatorio) setMensagens((m) => [...m, { role: 'assistant', content: avisoRelatorioConcluido(lang), relatorio: ia.relatorio }])
     return ia?.resposta ?? L('Não foi possível consultar os dados agora.', 'It was not possible to check the data right now.', 'No fue posible consultar los datos ahora.')
   }
 

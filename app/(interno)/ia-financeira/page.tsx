@@ -33,7 +33,7 @@ import AcoesMemoria from "../../../components/AcoesMemoria";
 import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
 import type { SugestaoMemoria } from "../../../lib/ia/memoria";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
-import { AcoesRelatorio, type PedidoTela } from "../../../components/RelatorioCFO";
+import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from "../../../components/RelatorioCFO";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
@@ -716,6 +716,7 @@ export default function IAFinanceiraPage() {
                 aoFalar={(quem, t) => setMensagens((m) => [...m, { role: quem === "voce" ? "user" : "assistant", texto: t }])}
                 consultar={async (pergunta) => {
                   const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "ia-financeira", lang: lang as "pt" | "en" | "es", historico: mensagens.slice(-8).map((m) => ({ role: m.role, content: m.texto })), contextoTela: lang === "en" ? "FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the Fact/Estimate/Scenario labels and the notes." : lang === "es" ? "FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga las etiquetas Hecho/Estimación/Escenario y los avisos." : "FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os rótulos Fato/Estimativa/Cenário e os avisos." });
+                  if (ia?.relatorio) setMensagens((m) => [...m, { role: "assistant", texto: avisoRelatorioConcluido(lang as "pt" | "en" | "es"), relatorio: ia.relatorio }]);
                   return ia?.resposta ?? (lang === "en" ? "It was not possible to check the data right now." : lang === "es" ? "No fue posible consultar los datos ahora." : "Não foi possível consultar os dados agora.");
                 }} />
               {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}

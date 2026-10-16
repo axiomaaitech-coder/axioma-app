@@ -10,7 +10,7 @@ import OuvirResposta from "./OuvirResposta";
 import AcoesMemoria from "./AcoesMemoria";
 import ConversaAoVivo from "./ConversaAoVivo";
 import PainelMemoriaIA from "./PainelMemoriaIA";
-import { AcoesRelatorio, type PedidoTela } from "./RelatorioCFO";
+import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from "./RelatorioCFO";
 import { perguntarAoAxioma } from "../lib/ia/cliente";
 import { juntarTexto } from "../lib/voz/gravador";
 import type { SugestaoMemoria } from "../lib/ia/memoria";
@@ -64,6 +64,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
   async function consultarAoVivo(pergunta: string): Promise<string> {
     const historico = mensagens.slice(-MAX_HISTORICO).map((m) => ({ role: m.role, content: m.texto }));
     const ia = await perguntarAoAxioma({ pergunta, empresaId, tela, lang, historico, contextoTela: `${t("formato")}\n\n${contexto()}` });
+    if (ia?.relatorio) setMensagens((m) => [...m, { role: "assistant", texto: avisoRelatorioConcluido(lang), relatorio: ia.relatorio }]);
     return ia?.resposta ?? t("falha");
   }
 
