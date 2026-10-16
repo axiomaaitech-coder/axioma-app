@@ -463,7 +463,7 @@ export default function IATributariaPage() {
                 {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
               </div>
               <div className="flex gap-2 mb-3 flex-wrap">
-                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: AZULC }}>{s}</button>))}
+                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : AZULC }}>{s}</button>))}
               </div>
               <div className="flex gap-2">
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}

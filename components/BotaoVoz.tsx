@@ -86,7 +86,7 @@ export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desati
     form.append("audio", audio, "ditado");
     form.append("empresa_id", empresa ?? ""); form.append("tela", tela); form.append("lang", lang);
     try {
-      const res = await fetch("/api/voz/transcrever", { method: "POST", body: form });
+      const res = await fetch(`/api/voz/transcrever?lang=${lang}`, { method: "POST", body: form });
       const j = await res.json().catch(() => null);
       if (res.ok && typeof j?.texto === "string") {
         onTexto(j.texto);

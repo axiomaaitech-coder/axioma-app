@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
   const arquivo = form?.get('audio')
   const empresaId = String(form?.get('empresa_id') ?? '')
   const tela = String(form?.get('tela') ?? '')
-  const lang = String(form?.get('lang') ?? 'pt')
+  // Idioma também no endereço: a recusa de arquivo grande acontece sem ler o corpo (onde o idioma vem)
+  const lang = String(form?.get('lang') ?? request.nextUrl.searchParams.get('lang') ?? 'pt')
 
   const resultado = tamanhoDeclarado > MAX_BYTES + 64 * 1024
     ? { status: 413, codigo: 'audio_grande' as const, cobrado: false }

@@ -681,7 +681,7 @@ export default function IAFinanceiraPage() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviarMensagem(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)", color: ct("#2ecc9b") }}>
+                    className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : ct("#2ecc9b") }}>
                     {s}
                   </button>
                 ))}
