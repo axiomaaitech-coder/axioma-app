@@ -74,7 +74,6 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na pergunta ao CFO e na Descrição da conta. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
-    { p: '**Pergunte à Inteligência Axioma — Assistente Financeiro:** no lugar da antiga caixa "Pergunte ao Axioma CFO", agora há uma conversa: você pergunta (digitando ou pelo botão **Falar**), ela responde com os números desta tela e você pode continuar o assunto. Embaixo de cada resposta há **🔊 Ouvir** (a mesma voz da conversa ao vivo), **"Quer que eu lembre disso?"** e **"Está errado?"**. Abaixo ficam a **Conversa ao vivo** e o painel **Memória da IA**. Se a inteligência estiver fora do ar, a resposta vem pelas regras do Axioma, com aviso.' },
   ],
 }
 
@@ -151,7 +150,6 @@ const en: DocumentoAxioma = {
 
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the CFO question and in the bill Description. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
-    { p: '**Ask Axioma Intelligence — Financial Assistant:** instead of the old "Ask Axioma CFO" box, there is now a conversation: you ask (typing or with **Speak**), it answers with this screen\'s numbers and you can follow up. Below each answer there is **🔊 Listen** (the same voice as the live conversation), **"Should I remember this?"** and **"Is this wrong?"**. Below are the **Live conversation** and the **AI Memory** panel. If the intelligence is down, the answer comes from Axioma\'s rules, with a notice.' },
   ],
 }
 
@@ -228,7 +226,6 @@ const es: DocumentoAxioma = {
 
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la pregunta al CFO y en la Descripción de la cuenta. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
-    { p: '**Pregunte a la Inteligencia Axioma — Asistente Financiero:** en lugar de la antigua caja "Pregunte al Axioma CFO", ahora hay una conversación: usted pregunta (escribiendo o con **Hablar**), responde con los números de esta pantalla y puede continuar el tema. Debajo de cada respuesta hay **🔊 Escuchar** (la misma voz de la conversación en vivo), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**. Abajo están la **Conversación en vivo** y el panel **Memoria de la IA**. Si la inteligencia no está disponible, la respuesta viene por las reglas de Axioma, con aviso.' },
   ],
 }
 
