@@ -22,6 +22,7 @@ import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
+import ConversaAoVivo from '../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../lib/voz/gravador'
 import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
 
@@ -182,6 +183,19 @@ Hoje: ${hojeISO()}.`
     if (modoConversa && ia?.resposta && empresaId) void falar({ chave: resposta, texto: resposta, lang, empresaId, assinatura: ia.assinatura, ressalva: !!ia.ressalva })
   }
 
+  // Conversa ao vivo (PoC): cada pergunta de dado que a voz em tempo real faz passa pelo MESMO motor
+  // (RLS, consulta obrigatória, avisos, saldo). Resposta curta, própria para ser falada.
+  const mensagensRef = useRef(mensagens)
+  useEffect(() => { mensagensRef.current = mensagens }, [mensagens])
+  async function consultarAoVivo(pergunta: string): Promise<string> {
+    const historico = mensagensRef.current.slice(-MAX_HISTORICO).map(({ role, content }) => ({ role, content }))
+    const formato = L('FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os rótulos Fato/Estimativa/Cenário e os avisos.', 'FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the Fact/Estimate/Scenario labels and the notes.', 'FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga las etiquetas Hecho/Estimación/Escenario y los avisos.')
+    const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: 'nexus', lang, historico, contextoTela: `${formato}
+
+${montarContexto()}`, conversaId: conversaId.current })
+    return ia?.resposta ?? L('Não foi possível consultar os dados agora.', 'It was not possible to check the data right now.', 'No fue posible consultar los datos ahora.')
+  }
+
   const aoTeclar = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(texto) }
   }
@@ -296,6 +310,9 @@ Hoje: ${hojeISO()}.`
               <Send size={17} aria-hidden />
             </button>
           </div>
+          {/* Conversa ao vivo (PoC tempo real): só com fornecedor liberado para a empresa */}
+          <ConversaAoVivo empresaId={empresaId} lang={lang} claro={temaClaro} consultar={consultarAoVivo}
+            aoFalar={(quem, t) => setMensagens((m) => [...m, { role: quem === 'voce' ? 'user' : 'assistant', content: t }])} />
           {/* Conversa por voz (Voice Intelligence, Fase B): a fala vai direto para o José e ele responde falando */}
           {vozLiberada && (
             <div className="flex flex-wrap items-center gap-2 mt-2">

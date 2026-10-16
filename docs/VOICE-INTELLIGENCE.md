@@ -294,3 +294,36 @@ Premissas: áudio de entrada ≈ 600 tokens/min (OpenAI) e 25 tokens/s (Google, 
 
 **Critérios de aceitação da PoC:** latência até a 1ª palavra ≤ 1,5 s; 100% dos valores falados iguais aos do motor nos roteiros; interrupção corta a fala em ≤ 300 ms; nenhuma consulta fora do motor; custo medido por sessão; nada ligado para clientes antes de LEGAL-V01.
 **Decisões do CEO antes de começar:** créditos (OpenAI ~US$ 10; Google pode começar no grátis só com dados de teste), cobrança por minuto de conversa (precisa de regra de saldo), fornecedor para a Política de Privacidade.
+
+
+## 14. Prova de conceito — Conversa ao vivo (2026-10-16, local, desligada sem variável)
+
+Ouvido e boca em tempo real; **cérebro = motor do Axioma** (uma única ferramenta `perguntar_ao_axioma`, atendida
+pelo navegador chamando `/api/ia/motor` com a sessão do usuário — RLS, consulta obrigatória, avisos, saldo).
+
+| Peça | Arquivo |
+|---|---|
+| Regras (liberação, início, instruções do José, configuração) | `lib/voz/tempoReal/servidor.ts` |
+| Rotas | `app/api/voz/tempo-real/route.ts` (GET liberados, POST início, PUT métricas do fim), `app/api/voz/tempo-real/sdp/route.ts` (ponte SDP do Qwen) |
+| Navegador | `lib/voz/tempoReal/cliente.ts` (Gemini por WebSocket + PCM; Qwen por WebRTC), `components/ConversaAoVivo.tsx` (painel no José) |
+| Testes | `npx tsx scripts/check-voz-tempo-real.mts` |
+
+- **Gemini Live:** o servidor cria um **token efêmero de 1 uso** (começa em até 60 s, vale 11 min) com a
+  configuração inteira **travada** (modelo, instruções, ferramenta, voz `Charon`) — corrige a falha pública de
+  2026 com tokens sem restrição. Endpoint `v1beta ...BidiGenerateContentConstrained?access_token=` (trocável por
+  `GEMINI_LIVE_WS`). Modelo `GEMINI_LIVE_MODELO` (padrão `gemini-3.1-flash-live-preview`).
+- **Qwen Omni Realtime:** WebRTC; a troca SDP passa por `/api/voz/tempo-real/sdp` (chave só no servidor). Host
+  `QWEN_REALTIME_HOST` (padrão `dashscope-intl.aliyuncs.com`, Singapura — **a confirmar no painel da Alibaba**),
+  modelo `QWEN_REALTIME_MODELO` (padrão `qwen3.8-omni-flash-realtime`), voz `QWEN_VOZ` (se não existir, volta à padrão).
+  Limitação: a configuração da sessão é enviada pelo navegador (a pessoa pode alterar a própria sessão, mas a
+  única ferramenta continua sendo o motor com a permissão dela — sem ganho de acesso).
+- **Ligar (só Preview):** `VOZ_TEMPO_REAL=gemini,qwen` + `GEMINI_API_KEY` e/ou `QWEN_API_KEY` + empresa em
+  `VOZ_EMPRESAS_TESTE`. CSP: `connect-src` passou a aceitar `wss://generativelanguage.googleapis.com`.
+- **Comportamento:** abre só no toque; "microfone aberto" visível; interrupção falando por cima (Gemini:
+  `interrupted` corta a fila; Qwen: `response.cancel`); fim em 60 s de silêncio ou 10 min; falas vão para o chat;
+  a resposta do motor vem curta (até 4 frases) para ser falada; métricas no fim (duração, tokens, consultas,
+  latência da 1ª resposta, motivo) sem áudio/texto.
+- **Cobrança:** abrir a sessão não cobra; cada consulta ao motor cobra 1 pergunta (como no chat). O custo de
+  minutos do fornecedor é do Axioma — decidir regra antes de clientes.
+- **Pendente (precisa de chave e aparelho):** voz e português reais, latência, WebRTC do Qwen de ponta a ponta,
+  conferência automática dos valores falados (transcrição × resposta do motor).
