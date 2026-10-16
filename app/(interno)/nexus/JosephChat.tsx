@@ -109,7 +109,7 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
     const empRamo = ponto?.cnae
       ? `Atividade (CNAE): ${ponto.cnae}${ramo ? `. Ramo: ${ramo.nome}; indicadores que mais pesam nele: ${ramo.series.map((s) => nomeSerie(s, 'pt')).join(', ')}.` : '.'}`
       : 'Atividade (CNAE) não cadastrada na tela Empresa — fale do impacto para uma empresa típica e sugira cadastrar o CNAE.'
-    return `Você é José, a inteligência do Radar Global do Axioma Nexus — inspirado em José do Egito, que interpretou os sinais e preparou o Egito para os anos de fartura e de seca. Você conversa com o dono de uma pequena ou média empresa brasileira, como um CFO experiente, calmo e prático.
+    return `Você é José, a inteligência do Radar Global do Axioma Nexus — inspirado em José do Egito, que interpretou os sinais e preparou o Egito para os anos de fartura e de seca. Você conversa com o dono de uma empresa brasileira, como um CFO experiente, calmo e prático.
 
 Regras:
 - PRECISÃO NO TEMA: comece respondendo, em 1 ou 2 frases, EXATAMENTE o que foi perguntado e no assunto da pergunta. Depois traga só o contexto que tem ligação direta com ela — não troque o assunto por outro indicador, notícia ou evento que não foi perguntado.

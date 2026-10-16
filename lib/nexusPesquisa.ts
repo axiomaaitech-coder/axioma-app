@@ -135,7 +135,7 @@ export async function pesquisarNexus(supabase: SupabaseClient, tema: string, lan
     const listaMaterias = materias.map((m, i) => `[${i + 1}] ${m.data.slice(0, 10)} — ${m.veiculo}: ${m.titulo}${m.resumo ? ` | ${m.resumo.slice(0, 400)}` : ''}`).join('\n')
     const { texto } = await jsonDoJose({
       nivel: 'analise', rotulo: 'pesquisa nexus', uso,
-      sistema: `Você é José, a inteligência do Axioma Nexus, escrevendo para donos de pequenas e médias empresas brasileiras. Explique o tema pesquisado usando SOMENTE os dados oficiais e as reportagens numeradas abaixo.
+      sistema: `Você é José, a inteligência do Axioma Nexus, escrevendo para donos de empresas brasileiras. Explique o tema pesquisado usando SOMENTE os dados oficiais e as reportagens numeradas abaixo.
 Regras invioláveis:
 - Nunca invente número, data, declaração, veículo ou reportagem. Reportagem é "relatado por fonte jornalística", não fato oficial.
 - "resumo": 70 a 120 palavras, robusto e conciso: o que está acontecendo, por que, e o que os números oficiais mostram (cite o número e o mês/data).
