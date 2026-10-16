@@ -21,6 +21,7 @@ import { PlanoJose } from './PlanoJose'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
+import OuvirResposta from '../../../components/OuvirResposta'
 import { juntarTexto } from '../../../lib/voz/gravador'
 
 type Lang = 'pt' | 'en' | 'es'
@@ -40,7 +41,7 @@ function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {
     </motion.span>
   )
 }
-type Msg = { role: 'user' | 'assistant'; content: string }
+type Msg = { role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean }
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
 const MAX_HISTORICO = 10
@@ -143,7 +144,7 @@ Hoje: ${hojeISO()}.`
   async function enviar(pergunta: string) {
     const p = pergunta.trim()
     if (!p || pensando) return
-    const historico = mensagens.slice(-MAX_HISTORICO)
+    const historico = mensagens.slice(-MAX_HISTORICO).map(({ role, content }) => ({ role, content }))
     setMensagens((m) => [...m, { role: 'user', content: p }])
     setTexto('')
     setPensando(true)
@@ -151,7 +152,7 @@ Hoje: ${hojeISO()}.`
     // (indicadores, eventos, leituras, manchetes, placar). Pergunta de futuro/plano sobe sozinha pra Anthropic.
     const ia = await perguntarAoAxioma({ pergunta: p, empresaId, tela: 'nexus', lang, historico, contextoTela: montarContexto() })
     const resposta = ia?.resposta ?? L('Não consegui interpretar agora — tente de novo em instantes.', "I couldn't interpret that right now — try again in a moment.", 'No pude interpretar ahora — intente de nuevo en unos instantes.')
-    setMensagens((m) => [...m, { role: 'assistant', content: resposta }])
+    setMensagens((m) => [...m, { role: 'assistant', content: resposta, assinatura: ia?.assinatura, ressalva: !!ia?.ressalva }])
     setPensando(false)
   }
 
@@ -169,15 +170,16 @@ Hoje: ${hojeISO()}.`
       {BARRA}
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr]">
         {/* Identidade do José + o que ele sabe agora */}
-        <aside className="p-5 flex flex-col items-center text-center lg:border-r" style={{ borderColor: temaClaro ? 'rgba(16,27,61,0.1)' : 'rgba(255,255,255,0.06)' }}>
+        {/* Barra lateral isolada do chat: verde-menta forte + letras azul-marinho (Elias 2026-10-15, provisório até decidir a cor) */}
+        <aside className="p-5 flex flex-col items-center text-center lg:border-r" style={{ background: '#2ecc9b', borderColor: 'rgba(16,27,61,0.18)' }}>
           <JosephAvatar tamanho={104} estado={pensando ? 'pensando' : 'parado'} />
-          <h2 className={`${cinzel.className} text-xl md:text-2xl font-bold mt-3 tracking-wide`} style={{ color: TITULO }}>{L('Converse com o José', 'Talk to José', 'Converse con José')}</h2>
-          <p className={`${cinzel.className} text-sm md:text-[15px] font-semibold mt-2 leading-relaxed tracking-wide`} style={{ color: TEXTO }}>
+          <h2 className={`${cinzel.className} text-xl md:text-2xl font-bold mt-3 tracking-wide`} style={{ color: '#101b3d' }}>{L('Converse com o José', 'Talk to José', 'Converse con José')}</h2>
+          <p className={`${cinzel.className} text-sm md:text-[15px] font-semibold mt-2 leading-relaxed tracking-wide`} style={{ color: '#101b3d' }}>
             {L('Como José no Egito: ler os sinais de hoje para se preparar para as vacas magras.', 'Like José in Egypt: read today’s signs to prepare for the lean years.', 'Como José en Egipto: leer las señales de hoy para prepararse para las vacas flacas.')}
           </p>
-          <div className="w-full mt-4 text-left rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: temaClaro ? '1px solid rgba(16,27,61,0.12)' : '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-[11px] font-bold mb-1.5" style={{ color: CINZA }}>{L('O que o José está vendo agora', 'What José sees right now', 'Lo que José ve ahora')}</p>
-            <ul className="space-y-1 text-[11px]" style={{ color: TEXTO }}>
+          <div className="w-full mt-4 text-left rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(16,27,61,0.15)' }}>
+            <p className="text-[11px] font-bold mb-1.5" style={{ color: '#101b3d' }}>{L('O que o José está vendo agora', 'What José sees right now', 'Lo que José ve ahora')}</p>
+            <ul className="space-y-1 text-[11px] font-medium" style={{ color: '#101b3d' }}>
               <li>📊 {indicadores.filter((i) => i.valor != null).length} {L('indicadores oficiais', 'official indicators', 'indicadores oficiales')}</li>
               <li>🌎 {eventos.length} {L('eventos do Radar Global', 'Global Radar events', 'eventos del Radar Global')}</li>
               <li>🧠 {qtdLeituras} {L('leituras já feitas', 'readings done', 'lecturas hechas')}</li>
@@ -221,6 +223,7 @@ Hoje: ${hojeISO()}.`
                 <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
+                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /></div>}
                 </div>
               </motion.div>
             ))}

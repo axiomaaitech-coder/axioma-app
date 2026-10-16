@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributária.docx',
   titulo: 'Manual 37 — IA Tributária',
   subtitulo: 'Seu Consultor Fiscal Digital: simulação, economia e compliance',
-  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
+  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Tributária mostra **quanto a empresa paga de imposto**, **se está no regime mais barato**, **quanto dá para economizar** e **como a Reforma Tributária vai afetar o negócio**. Tem um chat para tirar dúvidas fiscais com os dados reais da empresa.' },
@@ -48,6 +48,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta do chat. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
+    { p: '**Ouvir a resposta:** quando a voz estiver liberada, aparece o botão **🔊 Ouvir** embaixo de cada resposta. Toque para ouvir a resposta em voz alta e em **Parar** para interromper; só uma resposta fala por vez e nada toca sozinho. A voz lê apenas o que a inteligência do Axioma respondeu (sem símbolos nem emojis) e, se algum valor não pôde ser conferido nos seus dados, avisa isso no fim. Se a voz do Axioma estiver fora do ar, a voz do próprio aparelho lê no lugar. Ouvir não consome perguntas do saldo e o áudio não é guardado. Para responder falando, toque em **Falar** — o microfone nunca abre sozinho.' },
   ],
 }
 
@@ -55,7 +56,7 @@ const en: DocumentoAxioma = {
   arquivo: '37 - AI Premium - Tax AI.docx',
   titulo: 'Manual 37 — Tax AI',
   subtitulo: 'Your Digital Tax Advisor: simulation, savings and compliance',
-  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
+  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.3 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Tax AI shows **how much tax the company pays**, **whether it is in the cheapest regime**, **how much it can save** and **how the Tax Reform will affect the business**. It has a chat to answer tax questions with the company’s real data.' },
@@ -98,6 +99,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the chat question box. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
+    { p: '**Listen to the answer:** when voice is enabled, a **🔊 Listen** button appears below each answer. Tap it to hear the answer out loud and **Stop** to interrupt; only one answer speaks at a time and nothing plays by itself. The voice reads only what the Axioma intelligence answered (no symbols or emojis) and, if any amount could not be checked against your data, says so at the end. If the Axioma voice is unavailable, your device voice reads instead. Listening does not use questions from your balance and the audio is not stored. To reply by voice, tap **Speak** — the microphone never opens by itself.' },
   ],
 }
 
@@ -105,7 +107,7 @@ const es: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributaria.docx',
   titulo: 'Manual 37 — IA Tributaria',
   subtitulo: 'Su Consultor Fiscal Digital: simulación, ahorro y cumplimiento',
-  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
+  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Tributaria muestra **cuánto paga de impuestos la empresa**, **si está en el régimen más barato**, **cuánto se puede ahorrar** y **cómo la Reforma Tributaria afectará al negocio**. Tiene un chat para resolver dudas fiscales con los datos reales de la empresa.' },
@@ -148,6 +150,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta del chat. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
+    { p: '**Escuchar la respuesta:** cuando la voz esté habilitada, aparece el botón **🔊 Escuchar** debajo de cada respuesta. Tóquelo para oír la respuesta en voz alta y **Detener** para interrumpir; solo una respuesta habla a la vez y nada suena solo. La voz lee únicamente lo que respondió la inteligencia de Axioma (sin símbolos ni emojis) y, si algún valor no pudo verificarse con sus datos, lo avisa al final. Si la voz de Axioma no está disponible, la voz del propio dispositivo lee en su lugar. Escuchar no consume preguntas del saldo y el audio no se guarda. Para responder hablando, toque **Hablar** — el micrófono nunca se abre solo.' },
   ],
 }
 

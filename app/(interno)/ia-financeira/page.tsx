@@ -26,6 +26,7 @@ import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import BotaoVoz from "../../../components/BotaoVoz";
+import OuvirResposta from "../../../components/OuvirResposta";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
@@ -290,7 +291,7 @@ export default function IAFinanceiraPage() {
   const [resumo, setResumo] = useState("");
 
   // Chat
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([]);
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean }[]>([]);
   const [inputChat, setInputChat] = useState("");
   const [chatCarregando, setChatCarregando] = useState(false);
 
@@ -380,6 +381,7 @@ export default function IAFinanceiraPage() {
     // A tela só manda a pergunta; histórico sem a pergunta atual (ela vai uma vez só).
     let resposta = "";
     let modelo = "regras";
+    let assinatura: string | undefined, ressalva = false; // voz (Fase 2): só resposta assinada pelo motor vai para a voz do servidor
 
     if (empresaId) {
       try {
@@ -393,7 +395,7 @@ export default function IAFinanceiraPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; }
+          if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; assinatura = typeof data.assinatura === "string" ? data.assinatura : undefined; ressalva = Number(data.verificacao?.nao_conferidos ?? 0) > 0; }
         }
         // Saldo de IA acabou (402) ou acesso de operador (403): mostra o aviso, não cai calado nas regras
         else if (res.status === 402 || res.status === 403) { const d = await res.json().catch(() => null); if (typeof d?.mensagem === "string") { resposta = d.mensagem; modelo = "aviso"; } }
@@ -408,7 +410,7 @@ export default function IAFinanceiraPage() {
       resposta = respostaPorRegras(snap, score360, bench, texto, lang);
     }
 
-    setMensagens([...novas, { role: "assistant", texto: resposta }]);
+    setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva }]);
     await salvarMensagem(userId, empresaId, "assistant", resposta, { score: score360.total }, modelo);
     setChatCarregando(false);
   }
@@ -667,6 +669,7 @@ export default function IAFinanceiraPage() {
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap axi-card-premium3d axi-card-faixa"
                       style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)")}`, color: ct("#c8d8f0") }}>
                       {m.texto}
+                      {m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} /></div>}
                     </div>
                   </div>
                 ))}

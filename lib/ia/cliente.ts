@@ -15,7 +15,8 @@ export type PerguntaAxioma = {
   contextoTela?: string
 }
 
-export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: string; nivel: string } | null> {
+// assinatura: só respostas do motor podem ser lidas em voz (/api/voz/falar confere)
+export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: string; nivel: string; assinatura?: string; ressalva?: boolean } | null> {
   if (!p.empresaId || !p.pergunta.trim()) return null
   try {
     const res = await fetch('/api/ia/motor', {
@@ -28,7 +29,8 @@ export async function perguntarAoAxioma(p: PerguntaAxioma): Promise<{ resposta: 
     // Operador de caixa: aviso de acesso no lugar de uma análise sobre dados que ele não enxerga.
     if (res.status === 403 && typeof json?.mensagem === 'string') return { resposta: json.mensagem, nivel: 'sem_acesso' }
     if (!res.ok) return null
-    return typeof json?.resposta === 'string' && json.resposta.trim() ? { resposta: json.resposta.trim(), nivel: String(json.nivel ?? '') } : null
+    // Sem .trim() na resposta assinada: a assinatura vale para o texto exato do motor
+    return typeof json?.resposta === 'string' && json.resposta.trim() ? { resposta: json.resposta, nivel: String(json.nivel ?? ''), assinatura: typeof json.assinatura === 'string' ? json.assinatura : undefined, ressalva: Number(json?.verificacao?.nao_conferidos ?? 0) > 0 } : null
   } catch {
     return null
   }

@@ -43,3 +43,10 @@ clientes** (`VOZ_ATIVA` sem valor; só `VOZ_EMPRESAS_TESTE` para empresas intern
 
 ## Termos de Uso (verificar na mesma revisão)
 - Item sobre o saldo de IA: deixar explícito que **cada ditado concluído consome 1 pergunta de IA comum** do saldo do plano; falha técnica, áudio vazio ou não entendido **não consome**.
+
+## Acréscimo — Fase 2: a voz responde (2026-10-15, rascunho)
+
+- **PT:** **Ouvir respostas em voz alta, somente quando você toca em Ouvir:** o texto da resposta da inteligência do Axioma é enviado ao fornecedor de síntese de voz (OpenAI ou ElevenLabs, conforme indicado nesta Política) para ser transformado em áudio, que é tocado na hora e não é guardado pelo Axioma. Quando o serviço não está disponível, a voz do próprio aparelho lê a resposta, sem envio a terceiros. Base legal: execução do contrato (art. 7º, V, LGPD).
+- **EN:** **Listening to answers out loud, only when you tap Listen:** the text of the Axioma intelligence answer is sent to the speech synthesis provider (OpenAI or ElevenLabs, as stated in this Policy) to be turned into audio, which is played immediately and is not stored by Axioma. When the service is unavailable, your device's own voice reads the answer, with nothing sent to third parties. Legal basis: performance of contract (LGPD art. 7, V).
+- **ES:** **Escuchar respuestas en voz alta, solo cuando usted toca Escuchar:** el texto de la respuesta de la inteligencia de Axioma se envía al proveedor de síntesis de voz (OpenAI o ElevenLabs, según se indique en esta Política) para convertirlo en audio, que se reproduce en el momento y Axioma no lo guarda. Cuando el servicio no está disponible, la voz del propio dispositivo lee la respuesta, sin envío a terceros. Base legal: ejecución del contrato (art. 7, V, LGPD).
+- **Pendente:** confirmar o fornecedor escolhido e o prazo de retenção dele (OpenAI até 30 dias salvo ZDR; ElevenLabs: conferir "zero retention mode", disponível só em planos empresariais).

@@ -25,6 +25,7 @@ import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
+import OuvirResposta from '../../../../components/OuvirResposta'
 import { juntarTexto } from '../../../../lib/voz/gravador'
 
 const supabase = createBrowserClient(
@@ -125,7 +126,7 @@ export default function IAMEIAdvisor() {
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
   const [custosFixos, setCustosFixos] = useState<any[]>([])
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
-  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string }[]>([])
+  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean }[]>([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [exportando, setExportando] = useState(false)
@@ -232,9 +233,10 @@ DADOS REAIS DESTE MEI:
     setChatLoading(true)
 
     let resposta = ''
+    let assinatura: string | undefined, ressalva = false // voz (Fase 2): só resposta assinada pelo motor vai para a voz do servidor
     // Motor de IA (docs/MOTOR-IA.md): retrato da empresa + dados MEI desta tela.
     const ia = await perguntarAoAxioma({ pergunta: msg, empresaId: await obterEmpresaAtiva(), tela: 'mei-ia-advisor', lang, historico: historicoAntes.slice(-10).map(m => ({ role: m.role, content: m.content })), contextoTela: montarContextoIA() })
-    if (ia) resposta = ia.resposta
+    if (ia) { resposta = ia.resposta; assinatura = ia.assinatura; ressalva = !!ia.ressalva }
 
     if (!resposta) {
       setToast(mx.iaRespondendoPorRegra)
@@ -250,7 +252,7 @@ DADOS REAIS DESTE MEI:
       })
     }
 
-    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
+    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta, assinatura, ressalva }])
     setChatLoading(false)
   }
 
@@ -362,6 +364,7 @@ DADOS REAIS DESTE MEI:
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
+                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} /></div>}
                 </div>
               </div>
             ))}

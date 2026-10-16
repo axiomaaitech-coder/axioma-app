@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { perguntarAoMotor, podeUsarIAFinanceira, TELAS_ANTHROPIC, type Idioma, type MensagemHistorico } from '@/lib/ia/motor'
 import { consumirIA, devolverIA, mensagemSemSaldo } from '@/lib/iaSaldo'
+import { assinarResposta } from '@/lib/voz/assinatura'
 import { registrarLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/ia/motor { pergunta, empresa_id, historico?, tela?, lang?, contexto_tela? }
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     }))
     if (!r.resposta) await devolverIA(supabase, saldo.id) // IA não respondeu: não cobra do saldo
     // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para falar a ressalva
-    return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
+    return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
   } catch (err) {
     await devolverIA(supabase, saldo.id)
     const msg = err instanceof Error ? err.message : String(err)

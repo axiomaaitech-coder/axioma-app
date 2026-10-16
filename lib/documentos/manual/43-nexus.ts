@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '43 - Nexus - Inteligência Econômica.docx',
   titulo: 'Manual 43 — Nexus e o José',
   subtitulo: 'Inteligência econômica que atravessa toda a empresa',
-  info: ['Menu: Nexus (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Nexus (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O Nexus acompanha a economia do Brasil e do mundo (câmbio, juros, inflação, petróleo, emprego, notícias) e traduz o que acontece em **impacto para a sua empresa**. Quem faz essa leitura é o **José**, a inteligência do Nexus.' },
@@ -52,6 +52,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta ao José. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
+    { p: '**Ouvir a resposta:** quando a voz estiver liberada, aparece o botão **🔊 Ouvir** embaixo de cada resposta. Toque para ouvir a resposta em voz alta e em **Parar** para interromper; só uma resposta fala por vez e nada toca sozinho. A voz lê apenas o que a inteligência do Axioma respondeu (sem símbolos nem emojis) e, se algum valor não pôde ser conferido nos seus dados, avisa isso no fim. Se a voz do Axioma estiver fora do ar, a voz do próprio aparelho lê no lugar. Ouvir não consome perguntas do saldo e o áudio não é guardado. Para responder falando, toque em **Falar** — o microfone nunca abre sozinho.' },
   ],
 }
 
@@ -59,7 +60,7 @@ const en: DocumentoAxioma = {
   arquivo: '43 - Nexus - Economic Intelligence.docx',
   titulo: 'Manual 43 — Nexus and José',
   subtitulo: 'Economic intelligence that runs through the whole company',
-  info: ['Menu: Nexus (top bar)  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Nexus (top bar)  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Nexus follows the economy of Brazil and the world (exchange rates, interest, inflation, oil, employment, news) and translates what happens into **impact on your company**. The one who does this reading is **José**, Nexus’s intelligence.' },
@@ -106,6 +107,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the question box for José. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
+    { p: '**Listen to the answer:** when voice is enabled, a **🔊 Listen** button appears below each answer. Tap it to hear the answer out loud and **Stop** to interrupt; only one answer speaks at a time and nothing plays by itself. The voice reads only what the Axioma intelligence answered (no symbols or emojis) and, if any amount could not be checked against your data, says so at the end. If the Axioma voice is unavailable, your device voice reads instead. Listening does not use questions from your balance and the audio is not stored. To reply by voice, tap **Speak** — the microphone never opens by itself.' },
   ],
 }
 
@@ -113,7 +115,7 @@ const es: DocumentoAxioma = {
   arquivo: '43 - Nexus - Inteligencia Económica.docx',
   titulo: 'Manual 43 — Nexus y José',
   subtitulo: 'Inteligencia económica que atraviesa toda la empresa',
-  info: ['Menú: Nexus (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Nexus (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Nexus sigue la economía de Brasil y del mundo (tipo de cambio, intereses, inflación, petróleo, empleo, noticias) y traduce lo que pasa en **impacto para su empresa**. Quien hace esa lectura es **José**, la inteligencia de Nexus.' },
@@ -160,6 +162,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta a José. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
+    { p: '**Escuchar la respuesta:** cuando la voz esté habilitada, aparece el botón **🔊 Escuchar** debajo de cada respuesta. Tóquelo para oír la respuesta en voz alta y **Detener** para interrumpir; solo una respuesta habla a la vez y nada suena solo. La voz lee únicamente lo que respondió la inteligencia de Axioma (sin símbolos ni emojis) y, si algún valor no pudo verificarse con sus datos, lo avisa al final. Si la voz de Axioma no está disponible, la voz del propio dispositivo lee en su lugar. Escuchar no consume preguntas del saldo y el audio no se guarda. Para responder hablando, toque **Hablar** — el micrófono nunca se abre solo.' },
   ],
 }
 
