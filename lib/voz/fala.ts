@@ -22,7 +22,7 @@ export function fornecedorFala(env: { VOZ_FALA?: string; OPENAI_API_KEY?: string
   return null // sem variável ou sem chave: voz do próprio aparelho (grátis)
 }
 
-export type EntradaFala = { usuario: string | null; empresaId: string; lang: string; texto: string; assinatura: string; ressalva: boolean }
+export type EntradaFala = { usuario: string | null; empresaId: string; lang: string; texto: string; assinatura: string; ressalva: boolean; nome?: string | null }
 export type DepsFala = {
   ativa: (empresaId: string) => boolean
   fornecedor: Fornecedor | null
@@ -52,7 +52,7 @@ export async function processarFala(e: EntradaFala, deps: DepsFala): Promise<Res
   try { papel = await deps.papel(e.empresaId) } catch { return r(503, 'falha_leitura') }
   if (papel === 'operador') return r(403, 'sem_acesso_voz')
 
-  const fala = textoParaFala(e.texto, e.lang as IdiomaFala, e.ressalva)
+  const fala = textoParaFala(e.texto, e.lang as IdiomaFala, e.ressalva, e.nome ?? null)
   if (!fala) return r(422, 'texto_vazio')
   try {
     const audio = await deps.sintetizar(fala, e.lang as IdiomaFala, deps.fornecedor)

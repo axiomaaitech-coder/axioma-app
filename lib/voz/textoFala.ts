@@ -1,6 +1,8 @@
 // AXIOMA VOICE INTELLIGENCE — Fase 2: texto da resposta → texto para FALAR (navegador e servidor).
 // Sem dependências: tira markdown, emoji e símbolos que a voz leria em voz alta ("asterisco", "cerquilha"),
 // e junta a ressalva fixa quando o motor avisou que algum valor não foi conferido.
+import { numerosParaFala } from './numerosFala'
+
 export type IdiomaFala = 'pt' | 'en' | 'es'
 export const MAX_CARACTERES_FALA = 3800 // ~4 min de fala (OpenAI aceita até 4096 com a ressalva); resposta maior é cortada no fim de uma frase
 
@@ -10,8 +12,27 @@ const RESSALVA: Record<IdiomaFala, string> = {
   es: 'Atención: algún valor de esta respuesta no pudo verificarse con sus datos. Revíselo en pantalla antes de decidir.',
 }
 
-export function textoParaFala(texto: string, lang: IdiomaFala, ressalva = false): string {
-  let t = String(texto ?? '')
+// Tom de diretor em reunião com o dono (pedido do Elias 2026-10-16): chama pelo nome, diz de onde veio a
+// resposta e fecha se colocando à disposição. Sem "senhor/senhora": o gênero não é deduzido do nome.
+const ABERTURA: Record<IdiomaFala, (nome: string) => string> = {
+  pt: (n) => `${n ? `${n}, conforme` : 'Conforme'} a sua pergunta, analisei os dados da empresa e preparei a seguinte resposta.`,
+  en: (n) => `${n ? `${n}, regarding` : 'Regarding'} your question, I have analyzed the company's data and prepared the following answer.`,
+  es: (n) => `${n ? `${n}, conforme a` : 'Conforme a'} su pregunta, analicé los datos de la empresa y preparé la siguiente respuesta.`,
+}
+const FECHAMENTO: Record<IdiomaFala, string> = {
+  pt: 'Fico à disposição para aprofundar qualquer ponto.',
+  en: 'I remain at your disposal to go deeper into any point.',
+  es: 'Quedo a su disposición para profundizar en cualquier punto.',
+}
+// Primeiro nome limpo (só letras), ou vazio — nunca prefixo de e-mail
+export function primeiroNome(nome: unknown): string {
+  const p = String(nome ?? '').trim().split(/\s+/)[0] ?? ''
+  if (!/^[\p{L}'-]{2,30}$/u.test(p)) return ''
+  return p.charAt(0).toLocaleUpperCase() + p.slice(1).toLocaleLowerCase()
+}
+
+export function textoParaFala(texto: string, lang: IdiomaFala, ressalva = false, nome?: string | null): string {
+  let t = numerosParaFala(String(texto ?? ''), lang)      // dinheiro por extenso ANTES de tudo (o ponto de milhar não pode virar pausa)
     .replace(/```[\s\S]*?```/g, ' ')                      // bloco de código: não se lê
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')                // imagem
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')              // link: lê só o nome
@@ -34,12 +55,16 @@ export function textoParaFala(texto: string, lang: IdiomaFala, ressalva = false)
     const fim = Math.max(corte.lastIndexOf('. '), corte.lastIndexOf('? '), corte.lastIndexOf('! '))
     t = fim > MAX_CARACTERES_FALA / 2 ? corte.slice(0, fim + 1) : corte
   }
-  return ressalva && t ? `${t} ${RESSALVA[lang]}` : t
+  if (!t) return ''
+  if (nome !== undefined) t = `${ABERTURA[lang](primeiroNome(nome))} ${t}` // undefined = sem abertura (testes/uso interno)
+  if (ressalva) t = `${t} ${RESSALVA[lang]}`
+  return nome !== undefined ? `${t} ${FECHAMENTO[lang]}` : t
 }
 
 // Frases curtas (a voz do navegador corta falas longas no Chrome; em frases ela não para no meio)
 export function dividirEmFrases(texto: string, max = 220): string[] {
-  const partes = texto.match(/[^.!?]+[.!?]*\s*/g) ?? [texto]
+  // Só corta em ponto seguido de espaço: "59.000" nunca é fim de frase
+  const partes = texto.split(/(?<=[.!?])\s+/)
   const out: string[] = []
   for (const p of partes) {
     const s = p.trim()

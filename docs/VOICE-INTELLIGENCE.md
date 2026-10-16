@@ -158,7 +158,7 @@ Objetivo: depois que a IA pesquisa e responde (mesmo motor, mesmas regras e conf
 - `lib/voz/fala.ts` + `app/api/voz/falar/route.ts` — login → liberação → fornecedor → assinatura → empresa (RLS) → papel → síntese em fluxo. Sem fornecedor: 409 `fala_no_aparelho`.
 - `lib/voz/textoFala.ts` — tira markdown/emoji, corta em 3.800 caracteres no fim de frase, junta a ressalva trilíngue.
 - `components/OuvirResposta.tsx` — botão Ouvir/Parar nas 4 telas de conversa; voz do servidor quando houver fornecedor e assinatura; senão (ou em falha) voz do aparelho (`speechSynthesis`, melhor voz natural do idioma, em frases curtas).
-- Variáveis: `VOZ_FALA` (`elevenlabs` | `openai`), `ELEVENLABS_API_KEY`, `ELEVENLABS_VOZ_ID` (padrão: voz pré-pronta "George"), `ELEVENLABS_MODELO` (padrão `eleven_flash_v2_5`), `VOZ_FALA_OPENAI_VOZ` (padrão `coral`), `VOZ_FALA_OPENAI_MODELO` (padrão `gpt-4o-mini-tts`).
+- Variáveis: `VOZ_FALA` (`elevenlabs` | `openai`), `ELEVENLABS_API_KEY`, `ELEVENLABS_VOZ_ID` (padrão: voz pré-pronta "George"), `ELEVENLABS_MODELO` (padrão `eleven_flash_v2_5`), `VOZ_FALA_OPENAI_VOZ` (padrão `onyx`, masculina), `VOZ_FALA_OPENAI_MODELO` (padrão `gpt-4o-mini-tts`).
 - Custo de referência (pesquisa 2026-10-15, resposta típica ≈ 800 caracteres ≈ 50 s): voz do aparelho R$ 0; OpenAI gpt-4o-mini-tts ≈ US$ 0,015/min (≈ US$ 0,013 por resposta); ElevenLabs Flash v2.5 US$ 0,04/1.000 caracteres (≈ US$ 0,032 por resposta), plano grátis 10 mil créditos/mês e sem uso comercial; Google Neural2 US$ 16/milhão (1 milhão grátis/mês), Chirp 3 HD US$ 30/milhão (1 milhão grátis/mês).
 - Pendente: comparativo às cegas com o CEO, decisão de cobrança (RNF-V08), LEGAL-V01 com o fornecedor de voz escolhido.
 

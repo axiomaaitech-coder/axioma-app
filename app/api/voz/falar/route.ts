@@ -7,7 +7,7 @@ import { comRetentativa } from '@/lib/antiFalha'
 import { vozAtivaPara } from '@/lib/voz/servidor'
 import { assinaturaValida } from '@/lib/voz/assinatura'
 import { fornecedorFala, processarFala, type Fornecedor } from '@/lib/voz/fala'
-import type { IdiomaFala } from '@/lib/voz/textoFala'
+import { primeiroNome, type IdiomaFala } from '@/lib/voz/textoFala'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA VOICE INTELLIGENCE — Fase 2: POST /api/voz/falar { empresa_id, texto, assinatura, lang, ressalva }
@@ -21,15 +21,16 @@ export const maxDuration = 60
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ENV_VOZ = () => ({ VOZ_ATIVA: process.env.VOZ_ATIVA, VOZ_EMPRESAS_TESTE: process.env.VOZ_EMPRESAS_TESTE })
 const FORNECEDOR = () => fornecedorFala({ VOZ_FALA: process.env.VOZ_FALA, OPENAI_API_KEY: process.env.OPENAI_API_KEY, ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY })
-// Voz padrão da ElevenLabs que funciona no plano gratuito (troque por ELEVENLABS_VOZ_ID após escolher)
+// Voz padrão MASCULINA da ElevenLabs (George) que funciona no plano gratuito (troque por ELEVENLABS_VOZ_ID após escolher)
 const VOZ_ELEVEN = () => process.env.ELEVENLABS_VOZ_ID || 'JBFqnCBsd6RMkjVDRZzb'
 const MODELO_ELEVEN = () => process.env.ELEVENLABS_MODELO || 'eleven_flash_v2_5'
-const VOZ_OPENAI = () => process.env.VOZ_FALA_OPENAI_VOZ || 'coral'
+const VOZ_OPENAI = () => process.env.VOZ_FALA_OPENAI_VOZ || 'onyx' // masculina (pedido do Elias 2026-10-16)
 const MODELO_OPENAI = () => process.env.VOZ_FALA_OPENAI_MODELO || 'gpt-4o-mini-tts'
+// Tom: diretor executivo respondendo ao dono numa reunião de diretoria (pedido do Elias 2026-10-16)
 const JEITO: Record<IdiomaFala, string> = {
-  pt: 'Fale em português do Brasil, com sotaque brasileiro natural, tom calmo e seguro de consultor financeiro. Leia valores em reais por extenso de forma natural.',
-  en: 'Speak in clear English, with the calm and confident tone of a financial advisor.',
-  es: 'Hable en español neutro, con el tono tranquilo y seguro de un asesor financiero.',
+  pt: 'Você é um diretor financeiro experiente respondendo ao dono da empresa numa reunião de diretoria. Voz masculina, grave e segura; português do Brasil com sotaque brasileiro natural; tom formal, educado, executivo e sofisticado; ritmo calmo, com pausas curtas entre as ideias; sem entusiasmo exagerado.',
+  en: 'You are an experienced CFO answering the company owner in a board meeting. Deep, confident male voice; formal, polite, executive and sophisticated tone; calm pace with short pauses between ideas; no exaggerated enthusiasm.',
+  es: 'Usted es un director financiero experimentado respondiendo al dueño de la empresa en una reunión de directorio. Voz masculina, grave y segura; español neutro; tono formal, educado, ejecutivo y sofisticado; ritmo pausado, con pausas breves entre ideas; sin entusiasmo exagerado.',
 }
 
 async function sessao() {
@@ -40,6 +41,8 @@ async function sessao() {
   const { data: { user } } = await supabase.auth.getUser()
   return { supabase, user }
 }
+// Nome de quem pergunta: vem da conta logada (nunca do navegador)
+const nomeDe = (u: { user_metadata?: Record<string, unknown> } | null) => primeiroNome(u?.user_metadata?.nome || u?.user_metadata?.full_name || '')
 
 async function sintetizar(fala: string, lang: IdiomaFala, f: Fornecedor): Promise<ReadableStream<Uint8Array>> {
   const res = f === 'elevenlabs'
@@ -61,7 +64,7 @@ export async function GET(request: NextRequest) {
   const { user } = await sessao()
   const empresaId = request.nextUrl.searchParams.get('empresa_id') ?? ''
   if (!user || !UUID.test(empresaId)) return NextResponse.json({ ativa: false, fornecedor: null })
-  return NextResponse.json({ ativa: vozAtivaPara(empresaId, ENV_VOZ()), fornecedor: FORNECEDOR() })
+  return NextResponse.json({ ativa: vozAtivaPara(empresaId, ENV_VOZ()), fornecedor: FORNECEDOR(), nome: nomeDe(user) })
 }
 
 export async function POST(request: NextRequest) {
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
   const lang = String(body?.lang ?? 'pt')
 
   const resultado = await processarFala(
-    { usuario: user?.id ?? null, empresaId, lang, texto: body?.texto as string, assinatura: body?.assinatura as string, ressalva: body?.ressalva === true },
+    { usuario: user?.id ?? null, empresaId, lang, texto: body?.texto as string, assinatura: body?.assinatura as string, ressalva: body?.ressalva === true, nome: nomeDe(user) },
     {
       ativa: (id) => vozAtivaPara(id, ENV_VOZ()),
       fornecedor: FORNECEDOR(),

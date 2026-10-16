@@ -51,7 +51,7 @@ async function caso(nome: string, e: Parameters<typeof processarFala>[0], c: Cfg
 }
 const ok = await caso('ok', ent(), {}, 200, 'ok', 1)
 assert.ok(ok.r.audio && ok.r.fornecedor === 'openai')
-assert.ok(!/[*#📊]/u.test(ok.cont.falado) && ok.cont.falado.includes('R$ 12.500,00'), 'fala sem markdown/emoji, valor intacto')
+assert.ok(!/[*#📊]/u.test(ok.cont.falado) && ok.cont.falado.includes('doze mil e quinhentos reais'), 'fala sem markdown/emoji, valor por extenso')
 await caso('sem login', ent({ usuario: null }), {}, 401, 'nao_autorizado', 0)
 await caso('empresa inválida', ent({ empresaId: 'x' }), {}, 400, 'parametros_invalidos', 0)
 await caso('idioma inválido', ent({ lang: 'fr' }), {}, 400, 'parametros_invalidos', 0)
@@ -68,7 +68,10 @@ await caso('fornecedor fora', ent(), { sint: 'erro' }, 503, 'fornecedor_indispon
 const vazio = assinarResposta(EMP, '📊 **', K)!
 await caso('só símbolos', ent({ texto: '📊 **', assinatura: vazio }), {}, 422, 'texto_vazio', 0)
 const ress = await caso('com ressalva', ent({ ressalva: true }), {}, 200, 'ok', 1)
-assert.ok(ress.cont.falado.endsWith('Confira na tela antes de decidir.'), 'ressalva falada no fim')
+assert.ok(ress.cont.falado.includes('Confira na tela antes de decidir.'), 'ressalva falada')
+const comNome = await caso('com nome', ent({ nome: 'ELIAS Tavares' }), {}, 200, 'ok', 1)
+assert.ok(comNome.cont.falado.startsWith('Elias, conforme a sua pergunta') && comNome.cont.falado.endsWith('Fico à disposição para aprofundar qualquer ponto.'), 'abertura com nome e fechamento')
+assert.ok(ok.cont.falado.startsWith('Conforme a sua pergunta'), 'sem nome: abertura neutra')
 
 // ─── Texto falado ───
 assert.equal(textoParaFala('## Título\n**negrito** e [link](https://x.com)', 'pt'), 'Título. negrito e link')
@@ -78,6 +81,31 @@ assert.ok(textoParaFala('a', 'es', true).includes('no pudo verificarse'), 'ressa
 assert.equal(textoParaFala('', 'pt', true), '', 'vazio não ganha ressalva')
 const frases = dividirEmFrases(`Primeira frase. ${'palavra, '.repeat(60)}fim. Última?`)
 assert.ok(frases.length >= 3 && frases.every((f) => f.length <= 220), 'frases curtas para a voz do aparelho')
+
+// ─── Números: nunca "59 reais" para R$ 59.000 (erro relatado pelo Elias em 2026-10-16) ───
+const { primeiroNome } = await import('../lib/voz/textoFala')
+const casos: [string, 'pt' | 'en' | 'es', string][] = [
+  ['R$ 59.000,00', 'pt', 'cinquenta e nove mil reais'],
+  ['R$ 59.000', 'pt', 'cinquenta e nove mil reais'],
+  ['R$ 59 mil', 'pt', 'cinquenta e nove mil reais'],
+  ['R$ 1,2 milhão', 'pt', 'um milhão e duzentos mil reais'],
+  ['R$ 2.000.000,00', 'pt', 'dois milhões de reais'],
+  ['R$ 1.234.567,89', 'pt', 'um milhão duzentos e trinta e quatro mil quinhentos e sessenta e sete reais e oitenta e nove centavos'],
+  ['R$ 0,50', 'pt', 'cinquenta centavos'],
+  ['R$ 1,00', 'pt', 'um real'],
+  ['-R$ 3.500,50', 'pt', 'menos três mil e quinhentos reais e cinquenta centavos'],
+  ['12,5%', 'pt', 'doze vírgula cinco por cento'],
+  ['1.500 clientes', 'pt', '1500 clientes'],
+  ['2 notas em 15/10/2026 às 14:30', 'pt', '2 notas em 15/10/2026 às 14:30'],
+  ['R$ 59,000.00', 'en', 'fifty-nine thousand reais'],
+  ['US$ 1,250.75', 'en', 'one thousand two hundred fifty dollars and seventy-five cents'],
+  ['R$ 21.000', 'es', 'veintiún mil reales'],
+  ['R$ 1.500,00', 'es', 'mil quinientos reales'],
+]
+for (const [entradaN, l, esperado] of casos) assert.equal(textoParaFala(entradaN, l), esperado, `número: ${entradaN} (${l})`)
+assert.deepEqual(dividirEmFrases(textoParaFala('Caixa de R$ 59.000,00. Fim.', 'pt')), ['Caixa de cinquenta e nove mil reais.', 'Fim.'], 'ponto de milhar não corta a frase')
+assert.deepEqual(dividirEmFrases('Saldo 59.000 hoje. Fim.'), ['Saldo 59.000 hoje.', 'Fim.'], 'divisão não quebra número')
+assert.equal(primeiroNome('ELIAS Tavares'), 'Elias'); assert.equal(primeiroNome('elias@x.com'), ''); assert.equal(primeiroNome(''), '')
 
 // ─── Integração: motor assina; as 4 telas de conversa têm o botão Ouvir com a assinatura ───
 const motor = readFileSync('app/api/ia/motor/route.ts', 'utf8')

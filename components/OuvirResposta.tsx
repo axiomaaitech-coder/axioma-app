@@ -20,25 +20,29 @@ const TX: Record<string, Record<IdiomaFala, string>> = {
 const LOCALE: Record<IdiomaFala, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
 
 // Uma consulta por empresa (lista com 30 respostas não faz 30 pedidos)
-const situacaoCache = new Map<string, Promise<{ ativa: boolean; fornecedor: string | null }>>();
+const situacaoCache = new Map<string, Promise<{ ativa: boolean; fornecedor: string | null; nome: string }>>();
 function situacaoVoz(id: string) {
   if (!situacaoCache.has(id)) {
     situacaoCache.set(id, fetch(`/api/voz/falar?empresa_id=${encodeURIComponent(id)}`).then((x) => x.json())
-      .then((j) => ({ ativa: !!j?.ativa, fornecedor: typeof j?.fornecedor === "string" ? j.fornecedor : null }))
-      .catch(() => { situacaoCache.delete(id); return { ativa: false, fornecedor: null }; }));
+      .then((j) => ({ ativa: !!j?.ativa, fornecedor: typeof j?.fornecedor === "string" ? j.fornecedor : null, nome: typeof j?.nome === "string" ? j.nome : "" }))
+      .catch(() => { situacaoCache.delete(id); return { ativa: false, fornecedor: null, nome: "" }; }));
   }
   return situacaoCache.get(id)!;
 }
 // Só uma resposta fala por vez na tela inteira
 let pararAtual: (() => void) | null = null;
 
+// Nomes das vozes masculinas/femininas que Windows, Edge, Mac, Android e iPhone instalam (pt/en/es)
+const MASCULINAS = /(antonio|daniel|donato|fabio|f[áa]bio|humberto|julio|j[úu]lio|nicolau|valerio|val[ée]rio|leandro|thiago|felipe|guy|andrew|brian|christopher|eric|roger|steffan|david|mark|ryan|alex|fred|aaron|rishi|tom|alvaro|[áa]lvaro|jorge|pablo|ra[úu]l|gonzalo|dar[íi]o|tom[áa]s|diego|carlos|male|masculin)/i;
+const FEMININAS = /(francisca|thalita|maria|luciana|leila|yara|brenda|elza|giovanna|manuela|helena|joana|catarina|fernanda|raquel|ana|aria|jenny|michelle|emma|ava|zira|hazel|susan|samantha|karen|moira|tessa|elvira|dalia|helena|laura|paulina|monica|m[óo]nica|sabina|female|feminin|google portugu[êe]s|google espa[ñn]ol|google us english)/i;
 // Melhor voz do aparelho para o idioma (as "naturais"/online soam bem melhores que as antigas)
 function melhorVoz(lang: IdiomaFala): SpeechSynthesisVoice | null {
   const vozes = window.speechSynthesis.getVoices();
   const loc = LOCALE[lang].toLowerCase();
   const doIdioma = vozes.filter((v) => v.lang.toLowerCase().replace("_", "-") === loc);
   const lista = doIdioma.length ? doIdioma : vozes.filter((v) => v.lang.toLowerCase().startsWith(lang));
-  const nota = (v: SpeechSynthesisVoice) => (/natural|neural|online/i.test(v.name) ? 3 : 0) + (/google/i.test(v.name) ? 2 : 0) + (/francisca|thalita|antonio|luciana/i.test(v.name) ? 1 : 0);
+  // Voz MASCULINA (pedido do Elias 2026-10-16): homem natural > homem comum > qualquer natural; voz feminina por último
+  const nota = (v: SpeechSynthesisVoice) => (MASCULINAS.test(v.name) ? 10 : 0) + (FEMININAS.test(v.name) ? -10 : 0) + (/natural|neural|online/i.test(v.name) ? 3 : 0);
   return lista.sort((a, b) => nota(b) - nota(a))[0] ?? null;
 }
 
@@ -52,7 +56,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
 }) {
   const { tema } = useThemeAxioma();
   const temaClaro = claro ?? tema === "xms";
-  const [sit, setSit] = useState<{ ativa: boolean; fornecedor: string | null; empresa: string } | null>(null);
+  const [sit, setSit] = useState<{ ativa: boolean; fornecedor: string | null; nome: string; empresa: string } | null>(null);
   const [estado, setEstado] = useState<Estado>("pronto");
   const [aviso, setAviso] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -99,7 +103,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
     if (!("speechSynthesis" in window)) { setAviso(t("semVoz")); setEstado("pronto"); return; }
     const synth = window.speechSynthesis;
     synth.cancel();
-    const frases = dividirEmFrases(textoParaFala(texto, lang, ressalva));
+    const frases = dividirEmFrases(textoParaFala(texto, lang, ressalva, sit?.nome ?? null));
     const voz = melhorVoz(lang);
     if (!frases.length) { setEstado("pronto"); return; }
     frases.forEach((f, i) => {
