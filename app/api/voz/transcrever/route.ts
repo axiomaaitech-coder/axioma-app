@@ -42,7 +42,15 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ativa: vozAtivaPara(empresaId, ENV_VOZ()) })
 }
 
-async function transcreverOpenAI(audio: Blob, tipo: string, lang: Idioma): Promise<{ texto: string; duracao: number }> {
+// Vocabulário da tela (melhora a precisão: no José são termos de economia, nas contas são de cobrança)
+const DICA_TELA: Record<string, Record<Idioma, string>> = {
+  nexus: { pt: 'Economia: José, Selic, IPCA, inflação, juros, câmbio, dólar, euro, yuan, petróleo Brent, PIB, Copom, Banco Central, IBGE, commodities, safra, exportação.', en: 'Economy: José, Selic, IPCA, inflation, interest rates, exchange rate, dollar, yuan, Brent oil, GDP, central bank, commodities.', es: 'Economía: José, Selic, IPCA, inflación, tasas de interés, tipo de cambio, dólar, yuan, petróleo Brent, PIB, banco central, materias primas.' },
+  'ia-tributaria': { pt: 'Tributos: Simples Nacional, Lucro Presumido, Lucro Real, anexo, alíquota efetiva, ICMS, ISS, PIS, Cofins, IRPJ, CSLL, IBS, CBS, Reforma Tributária, DAS.', en: 'Taxes: Simples Nacional, Lucro Presumido, Lucro Real, annex, effective rate, ICMS, ISS, PIS, Cofins, IBS, CBS, tax reform.', es: 'Impuestos: Simples Nacional, Lucro Presumido, Lucro Real, anexo, alícuota efectiva, ICMS, ISS, PIS, Cofins, IBS, CBS, reforma tributaria.' },
+  'mei-ia-advisor': { pt: 'MEI: DAS, DASN-SIMEI, limite de faturamento, CNPJ, nota fiscal, INSS, Imposto de Renda.', en: 'MEI: DAS, DASN-SIMEI, revenue cap, CNPJ, invoice, INSS, income tax.', es: 'MEI: DAS, DASN-SIMEI, tope de facturación, CNPJ, factura, INSS, impuesto a la renta.' },
+  pdv: { pt: 'Produtos de loja: unidade, quilo, litro, mililitros, caixa, pacote, garrafa, lata.', en: 'Store products: unit, kilo, liter, milliliters, box, pack, bottle, can.', es: 'Productos de tienda: unidad, kilo, litro, mililitros, caja, paquete, botella, lata.' },
+}
+
+async function transcreverOpenAI(audio: Blob, tipo: string, lang: Idioma, tela: string): Promise<{ texto: string; duracao: number }> {
   const chave = process.env.OPENAI_API_KEY
   if (!chave) throw new Error('OPENAI_API_KEY ausente')
   const ext = tipo.includes('mp4') || tipo.includes('m4a') ? 'm4a' : tipo.includes('ogg') ? 'ogg' : tipo.includes('mpeg') ? 'mp3' : tipo.includes('wav') ? 'wav' : 'webm'
@@ -52,7 +60,7 @@ async function transcreverOpenAI(audio: Blob, tipo: string, lang: Idioma): Promi
   form.append('response_format', 'verbose_json')
   form.append('language', lang)
   form.append('temperature', '0')
-  form.append('prompt', DICA[lang])
+  form.append('prompt', `${DICA[lang]} ${DICA_TELA[tela]?.[lang] ?? ''}`.trim())
   const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST', headers: { Authorization: `Bearer ${chave}` }, body: form, signal: AbortSignal.timeout(30000),
   })
@@ -90,7 +98,7 @@ export async function POST(request: NextRequest) {
             if (error) throw new Error(error.message)
             return (data?.papel as string | undefined) ?? null
           },
-          transcrever: transcreverOpenAI,
+          transcrever: (a, t, l) => transcreverOpenAI(a, t, l, tela),
           // Gravação: NUNCA repetida (repetir poderia cobrar 2x). ia_consumir é atômico (trava a linha da empresa).
           consumir: async (id) => {
             const { data, error } = await supabase.rpc('ia_consumir', { p_empresa: id, p_tipo: 'openai' })

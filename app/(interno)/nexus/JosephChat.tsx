@@ -93,6 +93,8 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
     return `Você é José, a inteligência do Radar Global do Axioma Nexus — inspirado em José do Egito, que interpretou os sinais e preparou o Egito para os anos de fartura e de seca. Você conversa com o dono de uma pequena ou média empresa brasileira, como um CFO experiente, calmo e prático.
 
 Regras:
+- PRECISÃO NO TEMA: comece respondendo, em 1 ou 2 frases, EXATAMENTE o que foi perguntado e no assunto da pergunta. Depois traga só o contexto que tem ligação direta com ela — não troque o assunto por outro indicador, notícia ou evento que não foi perguntado.
+- Se a pergunta parecer incompleta ou com palavra estranha (pode ter vindo do ditado por voz), diga em uma frase o que você entendeu e responda a isso; se não der para entender, peça para a pessoa repetir.
 - Use SOMENTE os dados abaixo. Nunca invente número, data, notícia, lei ou fonte. Se a pergunta pedir algo que não está aqui, diga com clareza que o Axioma ainda não tem esse dado.
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável e no que pode mudar.
 - Não recomende compra ou venda de investimento específico.
@@ -195,7 +197,7 @@ Hoje: ${hojeISO()}.`
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[380px]" aria-live="polite">
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[260px] max-h-[620px]" aria-live="polite">
             {mensagens.length === 0 && !pensando && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
                 className="relative overflow-hidden rounded-2xl p-4 sm:p-5 flex items-start gap-3 axi-card-premium3d"
@@ -216,7 +218,7 @@ Hoje: ${hojeISO()}.`
               <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
                 className={m.role === 'user' ? 'flex justify-end' : 'flex items-start gap-2.5'}>
                 {m.role === 'assistant' && <JosephAvatar tamanho={32} />}
-                <div className={`px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap max-w-[85%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
+                <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
                 </div>
@@ -252,10 +254,10 @@ Hoje: ${hojeISO()}.`
 
           <div className="flex items-end gap-2 mt-3">
             <textarea
-              value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={aoTeclar} rows={1} maxLength={600}
+              value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={aoTeclar} rows={3} maxLength={600}
               placeholder={L('Pergunte ao José… (Enter envia)', 'Ask José… (Enter sends)', 'Pregunte a José… (Enter envía)')}
               aria-label={L('Mensagem para o José', 'Message to José', 'Mensaje para José')}
-              className="flex-1 resize-none px-3.5 py-2.5 rounded-xl text-sm max-h-32"
+              className="flex-1 resize-y px-4 py-3 rounded-xl text-[15px] leading-relaxed min-h-[92px] max-h-64"
               style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }}
             />
             {/* Ditado (Voice Fase 1): só preenche o campo — a pessoa revisa e envia */}

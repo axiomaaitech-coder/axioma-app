@@ -167,8 +167,10 @@ export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desati
           <span className="axv-rotulo">{rotulo}</span>
         )}
       </button>
-      {msg && estado !== "pronto" && (
-        <span role={estado === "erro" ? "alert" : "status"} aria-live="polite"
+      {/* Estado já aparece na própria cápsula; o balão só abre para ERRO (antes parecia um campo novo) */}
+      <span className="sr-only" role="status" aria-live="polite">{estado !== "erro" && estado !== "pronto" ? msg : ""}</span>
+      {msg && estado === "erro" && (
+        <span role="alert"
           className="absolute right-0 top-full mt-1 z-30 w-64 rounded-lg px-3 py-2 text-xs font-medium shadow-lg"
           style={{ background: temaClaro ? "#ffffff" : "#0a1628", color: corMsg, border: `1px solid ${estado === "erro" ? "rgba(180,35,24,0.35)" : "rgba(46,204,155,0.35)"}` }}>
           {msg}

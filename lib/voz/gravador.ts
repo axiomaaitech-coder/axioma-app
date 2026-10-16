@@ -7,7 +7,8 @@
 
 export const LIMITE_MS = 60_000
 export const LIMITE_BYTES = 2 * 1024 * 1024
-export const SILENCIO_MS = 2_500
+// 3,5 s: quem pausa para pensar no meio da pergunta não tem a frase cortada (Elias 2026-10-15)
+export const SILENCIO_MS = 3_500
 const BITS_POR_SEGUNDO = 32_000 // 60 s ≈ 240 KB: bem abaixo de 2 MB
 
 // Preserva o que a pessoa já digitou: junta com um espaço, sem duplicar espaço nem pontuação colada.
@@ -95,7 +96,7 @@ export class GravadorVoz {
   private vigiar() {
     const agora = (this.amb.agora ?? (() => Date.now()))()
     const nivel = this.nivelAtual()
-    if (nivel > 0.04) { this.falou = true; this.ultimaVoz = agora }
+    if (nivel > 0.02) { this.falou = true; this.ultimaVoz = agora } // 0,02: voz baixa também conta como fala
     this.aoNivel(nivel, agora - this.inicio)
     if (agora - this.inicio >= LIMITE_MS) this.parar()
     else if (this.falou && agora - this.ultimaVoz >= SILENCIO_MS) this.parar()
