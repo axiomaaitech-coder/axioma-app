@@ -274,6 +274,7 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [estado, setEstado] = useState<"" | "gerando" | "ok" | "erro">("");
   const [nome, setNome] = useState("");
+  const [aviso, setAviso] = useState(""); // ex.: limite de relatórios do plano (texto do servidor, no idioma)
   useEffect(() => {
     let vivo = true;
     import("../lib/supabaseBrowser").then(async ({ createBrowserClient }) => {
@@ -292,7 +293,7 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
     try {
       const res = await fetch("/api/relatorios/gerar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ empresa_id: empresaId, ...pedido, lang }) });
       const j = await res.json().catch(() => null);
-      if (!res.ok || !j?.relatorio) { setEstado("erro"); return }
+      if (!res.ok || !j?.relatorio) { setAviso(typeof j?.mensagem === "string" ? j.mensagem : ""); setEstado("erro"); return }
       const { montarPdfRelatorio, nomeArquivoRelatorio } = await import("../lib/financeiro/relatorioPdf");
       montarPdfRelatorio(j.relatorio).save(nomeArquivoRelatorio(j.relatorio));
       setEstado("ok");
@@ -327,7 +328,7 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
               <button type="button" onClick={() => setConfirmar(false)} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#101b3d" }}>{L("Não", "No", "No")}</button></span>
           : <button type="button" onClick={() => setConfirmar(true)} className="text-xs font-semibold" style={{ color: "#f87171" }} title={L("Apagar", "Delete", "Borrar")}>🗑 {L("Apagar", "Delete", "Borrar")}</button>)}
         <a href={linkRelatorio(pedido)} className="text-xs font-semibold underline" style={{ color: "#2ecc9b" }}>{L("Ver o relatório na tela Relatórios", "View the report on the Reports screen", "Ver el informe en la pantalla Informes")}</a>
-        {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
+        {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{aviso || L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
       </div>
     </div>
   )

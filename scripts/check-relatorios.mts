@@ -301,4 +301,22 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   assert.ok(!/delete\(\)[^;]*\.lt\(|setTimeout\([^)]*apagar/.test(motor), 'nada é apagado sozinho: só pela lixeira')
   ok('conversas salvas: relatório e conversa ficam até o cliente apagar; lápis e lixeira; RLS por empresa e por pessoa')
 }
+// Limite de relatórios por plano (Elias 2026-10-16): teste 3, MEI 10, Essencial 40, Empresa 100, Premium 300;
+// conta pedidos DIFERENTES no ciclo — baixar de novo o mesmo não gasta outro; ilimitada não trava.
+{
+  const P = await import('../lib/planos')
+  assert.deepEqual([P.limiteRelatorios({ teste: true, plano: 'enterprise' }), P.limiteRelatorios({ plano: 'starter' }), P.limiteRelatorios({ plano: 'pro' }), P.limiteRelatorios({ plano: 'business' }), P.limiteRelatorios({ plano: 'enterprise' }), P.limiteRelatorios({ plano: null })], [3, 10, 40, 100, 300, 3])
+  assert.equal(P.limiteRelatorios({ plano: 'starter', ilimitada: true }), Infinity)
+  const k1 = P.chaveRelatorio({ tipo: 'dre', periodo: 'mes_anterior', comparar: false }), k2 = P.chaveRelatorio({ tipo: 'dre', periodo: 'mes_anterior', comparar: true })
+  assert.notEqual(k1, k2, 'comparar muda o relatório')
+  const feitas = new Set(['a', 'b', 'c'])
+  assert.ok(P.podeGerarRelatorio(feitas, 'b', 3), 'o mesmo relatório baixa de novo no limite')
+  assert.ok(!P.podeGerarRelatorio(feitas, k1, 3), 'relatório novo acima do limite é barrado')
+  assert.ok(P.podeGerarRelatorio(feitas, k1, Infinity))
+  const rota = readFileSync('app/api/relatorios/gerar/route.ts', 'utf8')
+  assert.ok(rota.includes("'limite_relatorios'") && rota.includes('status: 429') && rota.includes('parametros: { chave,'), 'rota barra com 429 e grava a chave na auditoria')
+  assert.ok(/ia_situacao[\s\S]*falha_leitura[\s\S]*nexus_audit_log[\s\S]*falha_leitura/.test(rota), 'falha de leitura do plano ou da contagem = 503, nunca passa calado')
+  console.log('OK — limite de relatórios por plano: 3/10/40/100/300, pedido repetido não conta, falha de leitura = 503')
+}
+
 console.log('check-relatorios: tudo certo ✔')

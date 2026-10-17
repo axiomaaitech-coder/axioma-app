@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '40 - Configurações - Planos.docx',
   titulo: 'Manual 40 — Planos e Assinatura',
   subtitulo: 'Escolha, assine e gerencie o plano da empresa',
-  info: ['Menu: Config → Planos  •  Manual de uso do Axioma AI.Tech  •  Versão 3.0 (outubro de 2026)'],
+  info: ['Menu: Config → Planos  •  Manual de uso do Axioma AI.Tech  •  Versão 3.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Mostra os planos do Axioma e permite assinar. O plano define os recursos, quantas pessoas podem usar a empresa e quanto de IA a empresa tem por mês.' },
@@ -33,6 +33,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { lista: [
       '**IA avançada** = IA Financeira, IA Tributária, José (Nexus) e relatórios complexos. **IA comum** = as demais perguntas à IA. **Notas** = nota fiscal ou guia do DAS lida pela IA a partir de PDF ou foto.',
+      '**Relatórios executivos em PDF** (tela Relatórios e cartão das IAs), por ciclo: teste grátis 3, MEI 10, Essencial 40, Empresa 100 e Premium 300. Conta só relatório diferente: baixar de novo o mesmo não gasta outro.',
       'O saldo é da **empresa** (a equipe toda usa o mesmo) e **volta cheio todo mês**, no dia da cobrança.',
       'Acabou antes do fim do mês? Compre uma **recarga** com o cartão em **Config → Uso da IA** (manual 41): +100 IA comum por R$ 29,90, +20 IA avançada por R$ 19,90 ou +20 notas por R$ 14,90. A recarga não vence enquanto a assinatura estiver ativa.',
       'Se a IA não responder ou não conseguir ler o documento, a pergunta **não é descontada**.',
@@ -57,7 +58,7 @@ const en: DocumentoAxioma = {
   arquivo: '40 - Settings - Plans.docx',
   titulo: 'Manual 40 — Plans and Subscription',
   subtitulo: 'Choose, subscribe and manage the company plan',
-  info: ['Menu: Settings → Plans  •  Axioma AI.Tech user manual  •  Version 3.0 (October 2026)'],
+  info: ['Menu: Settings → Plans  •  Axioma AI.Tech user manual  •  Version 3.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Shows Axioma’s plans and lets you subscribe. The plan defines the features, how many people can use the company and how much AI the company has per month.' },
@@ -85,6 +86,7 @@ const en: DocumentoAxioma = {
     ] } },
     { lista: [
       '**Advanced AI** = Financial AI, Tax AI, José (Nexus) and complex reports. **Standard AI** = all other AI questions. **Invoices** = an invoice or DAS slip read by AI from a PDF or photo.',
+      '**Executive PDF reports** (Reports screen and AI cards), per cycle: free trial 3, MEI 10, Essential 40, Business 100 and Premium 300. Only different reports count: downloading the same one again does not use another.',
       'The balance belongs to the **company** (the whole team shares it) and **refills every month** on the billing day.',
       'Ran out before the end of the month? Buy a **top-up** with your card in **Settings → AI usage** (manual 41): +100 standard AI for R$ 29.90, +20 advanced AI for R$ 19.90 or +20 invoices for R$ 14.90. Top-ups do not expire while the subscription is active.',
       'If the AI does not answer or cannot read the document, the question is **not deducted**.',
@@ -109,7 +111,7 @@ const es: DocumentoAxioma = {
   arquivo: '40 - Configuración - Planes.docx',
   titulo: 'Manual 40 — Planes y Suscripción',
   subtitulo: 'Elija, suscríbase y gestione el plan de la empresa',
-  info: ['Menú: Config → Planes  •  Manual de uso de Axioma AI.Tech  •  Versión 3.0 (octubre de 2026)'],
+  info: ['Menú: Config → Planes  •  Manual de uso de Axioma AI.Tech  •  Versión 3.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Muestra los planes de Axioma y permite suscribirse. El plan define los recursos, cuántas personas pueden usar la empresa y cuánta IA tiene la empresa por mes.' },
@@ -137,6 +139,7 @@ const es: DocumentoAxioma = {
     ] } },
     { lista: [
       '**IA avanzada** = IA Financiera, IA Tributaria, José (Nexus) e informes complejos. **IA común** = las demás preguntas a la IA. **Facturas** = factura o guía del DAS leída por IA desde PDF o foto.',
+      '**Informes ejecutivos en PDF** (pantalla Informes y tarjeta de las IAs), por ciclo: prueba gratis 3, MEI 10, Esencial 40, Empresa 100 y Premium 300. Solo cuenta un informe diferente: descargar de nuevo el mismo no gasta otro.',
       'El saldo es de la **empresa** (todo el equipo usa el mismo) y **vuelve completo cada mes**, el día del cobro.',
       '¿Se acabó antes de fin de mes? Compre una **recarga** con tarjeta en **Config → Uso de la IA** (manual 41): +100 IA común por R$ 29,90, +20 IA avanzada por R$ 19,90 o +20 facturas por R$ 14,90. La recarga no vence mientras la suscripción esté activa.',
       'Si la IA no responde o no logra leer el documento, la pregunta **no se descuenta**.',

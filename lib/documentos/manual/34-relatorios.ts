@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '34 - Gestão - Relatórios.docx',
   titulo: 'Manual 34 — Relatórios',
   subtitulo: 'Relatórios executivos prontos para compartilhar',
-  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.4 (outubro de 2026)'],
+  info: ['Menu: Gestão → Relatórios  •  Manual de uso do Axioma AI.Tech  •  Versão 2.5 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne em um só lugar os relatórios que sócios, investidores, bancos e o contador costumam pedir, montados automaticamente com os dados do Axioma e prontos para enviar.' },
@@ -20,6 +20,7 @@ const pt: DocumentoAxioma = {
     { p: 'Cada indicador diz se é **Fato** (lido nos registros), **Cálculo** (fórmula do Axioma) ou **Estimativa** (por exemplo, impostos pelo regime). Quando não há base no período anterior, a tela mostra "sem base para %" em vez de um percentual enganoso. Se uma consulta falhar, o relatório sai **Parcial**, o valor fica como "não consultado" (nunca zero) e o motivo aparece em Limitações; use **Tentar de novo**.' },
     { p: 'Pela conversa (aqui, na IA Financeira ou com o José no Nexus) você também pode pedir "gere a DRE do mês passado" ou "relatório executivo em PDF": a resposta usa os mesmos números e traz o botão **📑 Abrir relatório e PDF**, que abre este painel já preenchido.' },
     { nota: 'O relatório não gasta saldo de IA e nada é alterado nos seus lançamentos: duplicidades e divergências só são apontadas. O PDF é montado no seu navegador e não fica salvo em nenhum link público. O operador de caixa não acessa relatórios financeiros.' },
+    { p: '**Limite por plano:** cada ciclo do plano permite gerar relatórios diferentes até o limite: teste grátis 3, MEI 10, Essencial 40, Empresa 100 e Premium 300. Baixar de novo o mesmo relatório (mesmo tipo, período e comparação) não gasta outro. No limite, aparece o aviso com o caminho para mudar de plano (Config → Planos); os relatórios já gerados continuam liberados.' },
     { h1: 'Como usar' },
     { numerada: ['Escolha o **Período** (mês e ano).', 'Escolha a aba do relatório.', 'Clique em **Exportar PDF** ou **Compartilhar** para enviar.'] },
 
@@ -44,7 +45,7 @@ const en: DocumentoAxioma = {
   arquivo: '34 - Management - Reports.docx',
   titulo: 'Manual 34 — Reports',
   subtitulo: 'Executive reports ready to share',
-  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.4 (October 2026)'],
+  info: ['Menu: Management → Reports  •  Axioma AI.Tech user manual  •  Version 2.5 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gathers in one place the reports partners, investors, banks and the accountant usually ask for, built automatically from Axioma’s data and ready to send.' },
@@ -59,6 +60,7 @@ const en: DocumentoAxioma = {
     { p: 'Each indicator says whether it is a **Fact** (read from records), a **Calculation** (Axioma formula) or an **Estimate** (for example, taxes by regime). When the previous period has no base, the screen shows "no base for %" instead of a misleading percentage. If a query fails, the report comes out **Partial**, the value shows "not queried" (never zero) and the reason appears under Limitations; use **Try again**.' },
     { p: 'In the conversation (here, in AI Finance or with José in Nexus) you can also ask "generate the income statement for last month" or "executive report in PDF": the answer uses the same numbers and brings the **📑 Open report and PDF** button, which opens this panel already filled in.' },
     { nota: 'The report does not use AI balance and nothing is changed in your entries: duplicates and divergences are only flagged. The PDF is built in your browser and is not stored at any public link. The cashier operator cannot access financial reports.' },
+    { p: '**Limit per plan:** each plan cycle allows generating different reports up to the limit: free trial 3, MEI 10, Essential 40, Business 100 and Premium 300. Downloading the same report again (same type, period and comparison) does not use another one. At the limit, a notice shows how to upgrade (Config → Plans); reports already generated remain available.' },
     { h1: 'How to use' },
     { numerada: ['Choose the **Period** (month and year).', 'Choose the report tab.', 'Click **Export PDF** or **Share** to send it.'] },
 
@@ -83,7 +85,7 @@ const es: DocumentoAxioma = {
   arquivo: '34 - Gestión - Informes.docx',
   titulo: 'Manual 34 — Informes',
   subtitulo: 'Informes ejecutivos listos para compartir',
-  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.4 (octubre de 2026)'],
+  info: ['Menú: Gestión → Informes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.5 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne en un solo lugar los informes que socios, inversionistas, bancos y el contador suelen pedir, armados automáticamente con los datos de Axioma y listos para enviar.' },
@@ -98,6 +100,7 @@ const es: DocumentoAxioma = {
     { p: 'Cada indicador dice si es **Hecho** (leído en los registros), **Cálculo** (fórmula de Axioma) o **Estimación** (por ejemplo, impuestos por régimen). Cuando no hay base en el período anterior, la pantalla muestra "sin base para %" en lugar de un porcentaje engañoso. Si una consulta falla, el informe sale **Parcial**, el valor queda como "no consultado" (nunca cero) y el motivo aparece en Limitaciones; use **Intentar de nuevo**.' },
     { p: 'En la conversación (aquí, en la IA Financiera o con José en Nexus) también puede pedir "genere el estado de resultados del mes pasado" o "informe ejecutivo en PDF": la respuesta usa los mismos números y trae el botón **📑 Abrir informe y PDF**, que abre este panel ya completado.' },
     { nota: 'El informe no gasta saldo de IA y nada se altera en sus registros: duplicidades y divergencias solo se señalan. El PDF se arma en su navegador y no queda guardado en ningún enlace público. El operador de caja no accede a informes financieros.' },
+    { p: '**Límite por plan:** cada ciclo del plan permite generar informes diferentes hasta el límite: prueba gratis 3, MEI 10, Esencial 40, Empresa 100 y Premium 300. Descargar de nuevo el mismo informe (mismo tipo, período y comparación) no gasta otro. En el límite aparece el aviso con el camino para cambiar de plan (Config → Planes); los informes ya generados siguen disponibles.' },
     { h1: 'Cómo usar' },
     { numerada: ['Elija el **Período** (mes y año).', 'Elija la pestaña del informe.', 'Haga clic en **Exportar PDF** o **Compartir** para enviar.'] },
 

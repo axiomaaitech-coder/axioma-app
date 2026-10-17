@@ -7,15 +7,16 @@ export type PlanoId = 'starter' | 'pro' | 'business' | 'enterprise'
 export type TipoIA = 'openai' | 'anthropic' | 'nota'
 type T3 = { pt: string; en: string; es: string }
 
-export const PLANOS: Record<PlanoId, { nome: T3; mensalCentavos: number; anualPorMesCentavos: number; pessoas: number; ia: Record<TipoIA, number> }> = {
-  starter:    { nome: { pt: 'MEI', en: 'MEI', es: 'MEI' },                 mensalCentavos: 5990,  anualPorMesCentavos: 4990,  pessoas: 1,  ia: { openai: 150,  anthropic: 20,  nota: 20 } },
-  pro:        { nome: { pt: 'Essencial', en: 'Essential', es: 'Esencial' }, mensalCentavos: 14990, anualPorMesCentavos: 12490, pessoas: 2,  ia: { openai: 500,  anthropic: 60,  nota: 60 } },
-  business:   { nome: { pt: 'Empresa', en: 'Business', es: 'Empresa' },    mensalCentavos: 29790, anualPorMesCentavos: 24790, pessoas: 5,  ia: { openai: 1000, anthropic: 120, nota: 120 } },
-  enterprise: { nome: { pt: 'Premium', en: 'Premium', es: 'Premium' },     mensalCentavos: 59790, anualPorMesCentavos: 49790, pessoas: 10, ia: { openai: 2000, anthropic: 300, nota: 250 } },
+export const PLANOS: Record<PlanoId, { nome: T3; mensalCentavos: number; anualPorMesCentavos: number; pessoas: number; ia: Record<TipoIA, number>; relatorios: number }> = {
+  starter:    { nome: { pt: 'MEI', en: 'MEI', es: 'MEI' },                 mensalCentavos: 5990,  anualPorMesCentavos: 4990,  pessoas: 1,  ia: { openai: 150,  anthropic: 20,  nota: 20 }, relatorios: 10 },
+  pro:        { nome: { pt: 'Essencial', en: 'Essential', es: 'Esencial' }, mensalCentavos: 14990, anualPorMesCentavos: 12490, pessoas: 2,  ia: { openai: 500,  anthropic: 60,  nota: 60 }, relatorios: 40 },
+  business:   { nome: { pt: 'Empresa', en: 'Business', es: 'Empresa' },    mensalCentavos: 29790, anualPorMesCentavos: 24790, pessoas: 5,  ia: { openai: 1000, anthropic: 120, nota: 120 }, relatorios: 100 },
+  enterprise: { nome: { pt: 'Premium', en: 'Premium', es: 'Premium' },     mensalCentavos: 59790, anualPorMesCentavos: 49790, pessoas: 10, ia: { openai: 2000, anthropic: 300, nota: 250 }, relatorios: 300 },
 }
 
 // Teste grátis: 7 dias com cartão; IA só nos 3 primeiros dias.
-export const TESTE = { dias: 7, diasIA: 3, ia: { openai: 20, anthropic: 5, nota: 5 } as Record<TipoIA, number> }
+// relatorios: relatórios executivos DIFERENTES por ciclo do plano (Elias 2026-10-16); baixar de novo o mesmo não conta.
+export const TESTE = { dias: 7, diasIA: 3, ia: { openai: 20, anthropic: 5, nota: 5 } as Record<TipoIA, number>, relatorios: 3 }
 
 // Inauguração: 30% nos 3 primeiros meses, só as 100 primeiras empresas (o Stripe conta). Recarga sem desconto.
 export const INAUGURACAO = { cupom: 'INAUGURACAO30', porcento: 30, meses: 3, vagas: 100 }
@@ -61,3 +62,11 @@ export const PLANO_RECURSOS: Record<PlanoId, Record<'pt' | 'en' | 'es', string[]
   },
 }
 export const ORDEM_PLANOS: PlanoId[] = ['starter', 'pro', 'business', 'enterprise']
+
+// Limite de relatórios executivos do ciclo (rota /api/relatorios/gerar). Conta pedidos DIFERENTES: baixar de novo
+// o mesmo relatório (mesmo tipo, período e comparação) não gasta outro. IA ilimitada = sem limite; sem plano = o do teste.
+export const limiteRelatorios = (s: { plano?: unknown; teste?: boolean; ilimitada?: boolean }) =>
+  s.ilimitada ? Infinity : s.teste ? TESTE.relatorios : ehPlano(s.plano) ? PLANOS[s.plano].relatorios : TESTE.relatorios
+export const chaveRelatorio = (p: { tipo: string; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean }) =>
+  `${p.tipo}|${p.periodo}|${p.inicio ?? ''}|${p.fim ?? ''}|${p.comparar ? 1 : 0}`
+export const podeGerarRelatorio = (usadas: Set<string>, chave: string, limite: number) => usadas.has(chave) || usadas.size < limite

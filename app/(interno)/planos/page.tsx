@@ -35,7 +35,7 @@ export default function Planos() {
       popular: 'Mais escolhido', mes: '/mês', trial: `${TESTE.dias} dias grátis`,
       mensal: 'Mensal', anual: 'Anual (2 meses grátis)', anualCobrado: (v: string) => `cobrado ${v} por ano`,
       inauguracao: `Inauguração: ${INAUGURACAO.porcento}% off nos ${INAUGURACAO.meses} primeiros meses — só para as ${INAUGURACAO.vagas} primeiras empresas`,
-      iaMes: 'IA por mês', iaComum: 'perguntas IA comum', iaAvancada: 'perguntas IA avançada', notas: 'notas lidas pela IA',
+      iaMes: 'IA por mês', iaComum: 'perguntas IA comum', iaAvancada: 'perguntas IA avançada', notas: 'notas lidas pela IA', relatorios: 'relatórios executivos em PDF',
       recarga: 'Acabou a IA do mês? Recarregue com o cartão em Config → Uso da IA, em qualquer plano.',
       cancelar: 'Cancele quando quiser. Sem fidelidade.',
       selos: ['Conexão protegida', 'Pagamento seguro via Stripe', 'Ativação imediata', 'Cancele quando quiser'],
@@ -49,7 +49,7 @@ export default function Planos() {
       popular: 'Most chosen', mes: '/mo', trial: `${TESTE.dias}-day free trial`,
       mensal: 'Monthly', anual: 'Yearly (2 months free)', anualCobrado: (v: string) => `billed ${v} per year`,
       inauguracao: `Launch offer: ${INAUGURACAO.porcento}% off for the first ${INAUGURACAO.meses} months — first ${INAUGURACAO.vagas} companies only`,
-      iaMes: 'AI per month', iaComum: 'standard AI questions', iaAvancada: 'advanced AI questions', notas: 'invoices read by AI',
+      iaMes: 'AI per month', iaComum: 'standard AI questions', iaAvancada: 'advanced AI questions', notas: 'invoices read by AI', relatorios: 'executive PDF reports',
       recarga: 'Ran out of AI this month? Top up with your card in Settings → AI usage, on any plan.',
       cancelar: 'Cancel anytime. No commitment.',
       selos: ['Secure connection', 'Secure payment via Stripe', 'Instant activation', 'Cancel anytime'],
@@ -63,7 +63,7 @@ export default function Planos() {
       popular: 'Más elegido', mes: '/mes', trial: `${TESTE.dias} días gratis`,
       mensal: 'Mensual', anual: 'Anual (2 meses gratis)', anualCobrado: (v: string) => `cobrado ${v} por año`,
       inauguracao: `Inauguración: ${INAUGURACAO.porcento}% de descuento los primeros ${INAUGURACAO.meses} meses — solo para las ${INAUGURACAO.vagas} primeras empresas`,
-      iaMes: 'IA por mes', iaComum: 'preguntas IA común', iaAvancada: 'preguntas IA avanzada', notas: 'facturas leídas por IA',
+      iaMes: 'IA por mes', iaComum: 'preguntas IA común', iaAvancada: 'preguntas IA avanzada', notas: 'facturas leídas por IA', relatorios: 'informes ejecutivos en PDF',
       recarga: '¿Se acabó la IA del mes? Recarga con tarjeta en Config → Uso de la IA, en cualquier plan.',
       cancelar: 'Cancela cuando quieras. Sin permanencia.',
       selos: ['Conexión protegida', 'Pago seguro vía Stripe', 'Activación inmediata', 'Cancela cuando quieras'],
@@ -227,6 +227,7 @@ export default function Planos() {
                     <p>{plano.ia.openai.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} {txt.iaComum}</p>
                     <p>{plano.ia.anthropic} {txt.iaAvancada}</p>
                     <p>{plano.ia.nota} {txt.notas}</p>
+                    <p>{plano.relatorios} {txt.relatorios}</p>
                   </div>
 
                   <div className="flex-1 space-y-2.5 mb-6">
