@@ -23,6 +23,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { perguntarAoAxioma } from '../../../../lib/ia/cliente'
 import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from '../../../../components/RelatorioCFO'
+import { BarraConversas, useConversaSalva } from '../../../../components/ConversasIA'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
 import { hojeISO, dataLocal } from '../../../../lib/datas'
 import BotaoVoz from '../../../../components/BotaoVoz'
@@ -131,9 +132,11 @@ export default function IAMEIAdvisor() {
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
   const [custosFixos, setCustosFixos] = useState<any[]>([])
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
-  const [chatMensagens, setChatMensagens] = useState<{ role: string; content: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([])
+  const [chatMensagens, setChatMensagens] = useState<{ id?: string; nota?: string | null; role: string; content: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([])
   // Memória da IA precisa da empresa ativa (esta tela não guardava o id)
   const [empresaIdMemoria, setEmpresaIdMemoria] = useState<string | null>(null)
+  // Conversas salvas: o relatório e a conversa continuam ao sair e voltar (lista, nova, lixeira, lápis)
+  const conversas = useConversaSalva<(typeof chatMensagens)[number]>({ tela: 'mei-ia-advisor', empresaId: empresaIdMemoria, mensagens: chatMensagens, setMensagens: setChatMensagens, textoDe: (m) => m.content, paraTela: (l) => ({ id: l.id, role: l.role, content: l.texto, relatorio: l.relatorio, nota: l.nota, assinatura: l.assinatura }) })
   useEffect(() => { obterEmpresaAtiva().then((id) => setEmpresaIdMemoria(id ?? null)).catch(() => {}) }, [])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -354,6 +357,7 @@ DADOS REAIS DESTE MEI:
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('titulo') as string}</p>
           <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>{t('transparencia') as string}</p>
 
+          <BarraConversas api={conversas} lang={lang} claro={temaClaro} />
           <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3 axi-card-premium3d axi-card-faixa"
             style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
             {chatMensagens.length === 0 && (
@@ -373,7 +377,7 @@ DADOS REAIS DESTE MEI:
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
-                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}{(msg.assinatura || msg.relatorio || msg.content.length > 80) && <AcoesRelatorio tela="mei-ia-advisor" pergunta={chatMensagens[i - 1]?.role === 'user' ? chatMensagens[i - 1].content : undefined} resposta={msg.content} pedido={msg.relatorio} ressalva={msg.ressalva} empresaId={empresaIdMemoria} lang={lang} />}</div>}
+                  {msg.role === 'assistant' && <div><OuvirResposta texto={msg.content} lang={lang} assinatura={msg.assinatura} ressalva={msg.ressalva} claro={temaClaro} />{msg.assinatura && <AcoesMemoria empresaId={empresaIdMemoria} area="mei" sugestao={msg.sugestaoMemoria} resposta={msg.content} lang={lang} claro={temaClaro} />}{(msg.assinatura || msg.relatorio || msg.content.length > 80) && <AcoesRelatorio nota={msg.nota} onNota={msg.id ? (n: string) => conversas.anotar(msg.id!, n) : undefined} onApagar={msg.id ? () => conversas.apagarMensagem(msg.id!) : undefined} tela="mei-ia-advisor" pergunta={chatMensagens[i - 1]?.role === 'user' ? chatMensagens[i - 1].content : undefined} resposta={msg.content} pedido={msg.relatorio} ressalva={msg.ressalva} empresaId={empresaIdMemoria} lang={lang} />}</div>}
                 </div>
               </div>
             ))}

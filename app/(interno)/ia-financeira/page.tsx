@@ -34,6 +34,7 @@ import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
 import type { SugestaoMemoria } from "../../../lib/ia/memoria";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from "../../../components/RelatorioCFO";
+import { BarraConversas, useConversaSalva } from "../../../components/ConversasIA";
 import { juntarTexto } from "../../../lib/voz/gravador";
 
 const supabase = createBrowserClient(
@@ -298,7 +299,7 @@ export default function IAFinanceiraPage() {
   const [resumo, setResumo] = useState("");
 
   // Chat
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([]);
+  const [mensagens, setMensagens] = useState<{ id?: string; nota?: string | null; role: string; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null }[]>([]);
   const [inputChat, setInputChat] = useState("");
   const [chatCarregando, setChatCarregando] = useState(false);
 
@@ -320,6 +321,19 @@ export default function IAFinanceiraPage() {
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [mensagens, chatCarregando]);
+
+  // Conversas salvas (todas as IAs): o relatório e a conversa continuam ao sair e voltar. Sem conversa salva,
+  // o histórico antigo aparece e vira a primeira conversa salva na próxima pergunta.
+  const boasVindas = () => [{ role: "assistant", texto: lang === "en" ? "Hello! I'm the Digital Finance Director of Axioma Intelligence. Ask me anything about your finances." : lang === "es" ? "¡Hola! Soy el Director Financiero Digital de la Inteligencia Axioma. Pregunte lo que quiera sobre sus finanzas." : "Olá! Sou o Diretor Financeiro Digital da Inteligência Axioma. Pergunte o que quiser sobre suas finanças." }];
+  const conversas = useConversaSalva<(typeof mensagens)[number]>({ tela: "ia-financeira", empresaId, mensagens, setMensagens, textoDe: (m) => m.texto,
+    paraTela: (l) => ({ id: l.id, role: l.role, texto: l.texto, relatorio: l.relatorio, nota: l.nota, assinatura: l.assinatura }), inicio: boasVindas,
+    semConversa: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const hist = u.user ? await carregarHistorico(u.user.id) : [];
+      if (!hist.length) { setMensagens((m) => (m.length ? m : boasVindas())); return; }
+      const assin = await assinarHistorico("ia-financeira", empresaId, hist);
+      setMensagens(() => hist.map((h: { id: string; role: string; mensagem: string }) => ({ role: h.role, texto: h.mensagem, assinatura: assin[String(h.id)] })));
+    } });
 
   async function inicializar() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -350,19 +364,7 @@ export default function IAFinanceiraPage() {
       setResumo(res);
 
       // Carregar histórico de chat
-      const hist = await carregarHistorico(uid);
-      if (hist.length > 0) {
-        // Respostas antigas ganham a assinatura do servidor: o Ouvir fala com a voz do José também nelas
-        const assin = await assinarHistorico("ia-financeira", empId, hist);
-        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem, assinatura: assin[String(h.id)] })));
-      } else {
-        const msgInicial = lang === "en"
-          ? `Hello! I'm the Digital Finance Director of Axioma Intelligence. Your Business Score is ${score.total}/100. Ask me anything about your finances.`
-          : lang === "es"
-          ? `¡Hola! Soy el Director Financiero Digital de la Inteligencia Axioma. Su Score Empresarial es ${score.total}/100. Pregunte lo que quiera sobre sus finanzas.`
-          : `Olá! Sou o Diretor Financeiro Digital da Inteligência Axioma. Seu Score Empresarial é ${score.total}/100. Pergunte o que quiser sobre suas finanças.`;
-        setMensagens([{ role: "assistant", texto: msgInicial }]);
-      }
+      // Histórico/boas-vindas: decide o motor de conversas (conversa salva > histórico antigo > boas-vindas)
     } catch (err) {
       showToast(tratarFalhaCarregamento("ia-financeira.carregar", err, lang), "erro");
     }
@@ -382,8 +384,6 @@ export default function IAFinanceiraPage() {
     setMensagens(novas);
     setInputChat("");
     setChatCarregando(true);
-
-    await salvarMensagem(userId, empresaId, "user", texto);
 
     // Motor de IA do Axioma (docs/MOTOR-IA.md): lê o retrato completo da empresa no
     // servidor e escolhe sozinho o nível (rotina → OpenAI; análise/estratégia → Anthropic).
@@ -422,17 +422,11 @@ export default function IAFinanceiraPage() {
     }
 
     setMensagens([...novas, { role: "assistant", texto: resposta, assinatura, ressalva, sugestaoMemoria, relatorio }]);
-    await salvarMensagem(userId, empresaId, "assistant", resposta, { score: score360.total }, modelo);
     setChatCarregando(false);
   }
 
-  async function onLimparHistorico() {
-    if (!userId) return;
-    if (!window.confirm(tt.chatLimparConfirm)) return;
-    const { erro } = await limparHistorico(userId);
-    if (erro) { showToast(tt.chatErroLimpar, "erro"); return; } // não diz "limpo" se não limpou
-    setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared. How can I help?" : lang === "es" ? "Historial limpio. ¿Cómo puedo ayudar?" : "Histórico limpo. Como posso ajudar?" }]);
-  }
+  // "Limpar" agora começa uma conversa nova: as anteriores ficam salvas (lixeira na lista de conversas)
+  function onLimparHistorico() { conversas.nova(); }
 
   // =========================================================================
   // WHAT-IF
@@ -674,13 +668,14 @@ export default function IAFinanceiraPage() {
                 <p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{tt.chatTitulo}</p>
                 <button onClick={onLimparHistorico} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>{tt.chatLimpar}</button>
               </div>
+              <BarraConversas api={conversas} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />
               <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap axi-card-premium3d axi-card-faixa"
                       style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)")}`, color: ct("#c8d8f0") }}>
                       {m.texto}
-                      {m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />}{(m.assinatura || m.relatorio || m.texto.length > 80) && <AcoesRelatorio tela="ia-financeira" pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang as "pt" | "en" | "es"} />}</div>}
+                      {m.role === "assistant" && <div><OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />}{(m.assinatura || m.relatorio || m.texto.length > 80) && <AcoesRelatorio nota={m.nota} onNota={m.id ? (n: string) => conversas.anotar(m.id!, n) : undefined} onApagar={m.id ? () => conversas.apagarMensagem(m.id!) : undefined} tela="ia-financeira" pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang as "pt" | "en" | "es"} />}</div>}
                     </div>
                   </div>
                 ))}

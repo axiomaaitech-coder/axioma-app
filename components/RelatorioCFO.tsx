@@ -258,14 +258,19 @@ export function BotaoAbrirRelatorio({ pedido, lang }: { pedido: PedidoTela | nul
 
 // Depois da consulta (todas as IAs): quando a IA gerou o relatório pedido, aparece o cartão do relatório pronto,
 // com os dados completos (mesma rota autorizada e mesmo PDF da tela Relatórios). Sem relatório, nada aparece.
-export function AcoesRelatorio({ pedido, empresaId, lang }: { tela?: string; pergunta?: string; resposta?: string; pedido?: PedidoTela | null; ressalva?: boolean; empresaId: string | null | undefined; lang: Lang }) {
-  return <CartaoRelatorioGerado pedido={pedido} empresaId={empresaId} lang={lang} />
+// nota/onNota/onApagar: conversa salva (lápis = anotação; lixeira = tira o relatório da conversa)
+type AcoesConversa = { nota?: string | null; onNota?: (nota: string) => Promise<boolean>; onApagar?: () => Promise<boolean> }
+export function AcoesRelatorio({ pedido, empresaId, lang, nota, onNota, onApagar }: { tela?: string; pergunta?: string; resposta?: string; pedido?: PedidoTela | null; ressalva?: boolean; empresaId: string | null | undefined; lang: Lang } & AcoesConversa) {
+  return <CartaoRelatorioGerado pedido={pedido} empresaId={empresaId} lang={lang} nota={nota} onNota={onNota} onApagar={onApagar} />
 }
 
 // Cartão "Relatório gerado com sucesso" na conversa (todas as IAs): a IA montou o relatório pedido com a
 // ferramenta relatorio; o botão baixa o PDF ali mesmo (mesma rota autorizada e mesmo PDF da tela Relatórios).
 // Microinterações: o cartão entra com um leve salto, o ✓ pulsa uma vez e o botão mostra Montando… → ✓ Baixado.
-function CartaoRelatorioGerado({ pedido, empresaId, lang }: { pedido?: PedidoTela | null; empresaId: string | null | undefined; lang: Lang }) {
+function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar }: { pedido?: PedidoTela | null; empresaId: string | null | undefined; lang: Lang } & AcoesConversa) {
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState(nota ?? "");
+  const [confirmar, setConfirmar] = useState(false);
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [estado, setEstado] = useState<"" | "gerando" | "ok" | "erro">("");
   const [nome, setNome] = useState("");
@@ -303,7 +308,24 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang }: { pedido?: PedidoTel
       <button type="button" onClick={baixar} disabled={estado === "gerando"} className="axi-rel-bt mt-3 w-full sm:w-auto px-6 py-3 rounded-xl text-base font-bold text-white" style={{ background: estado === "gerando" ? "#5f7f74" : "#0f7a5a", boxShadow: "0 6px 18px -6px rgba(15,122,90,0.7)" }}>
         {estado === "gerando" ? L("Montando o PDF…", "Building the PDF…", "Generando el PDF…") : estado === "ok" ? L("✓ PDF baixado — baixar de novo", "✓ PDF downloaded — download again", "✓ PDF descargado — descargar de nuevo") : L("⬇ Baixar relatório em PDF", "⬇ Download report as PDF", "⬇ Descargar informe en PDF")}
       </button>
+      {nota && !editando && <p className="mt-3 text-sm rounded-lg px-3 py-2 whitespace-pre-wrap" style={{ background: "rgba(255,255,255,0.06)", border: "1px dashed rgba(46,204,155,0.5)" }}>✏️ {nota}</p>}
+      {editando && (
+        <div className="mt-3">
+          <label className="text-xs opacity-90" htmlFor={`nota-${pedido.tipo}`}>{L("Sua anotação neste relatório", "Your note on this report", "Su nota en este informe")}</label>
+          <textarea id={`nota-${pedido.tipo}`} value={rascunho} onChange={(e) => setRascunho(e.target.value.slice(0, 2000))} rows={3} className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={{ background: "#ffffff", color: "#101b3d", border: "1px solid rgba(16,27,61,0.25)" }} />
+          <div className="flex gap-2 mt-1">
+            <button type="button" onClick={async () => { if (await onNota?.(rascunho)) setEditando(false) }} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: "#0f7a5a" }}>{L("Salvar anotação", "Save note", "Guardar nota")}</button>
+            <button type="button" onClick={() => { setRascunho(nota ?? ""); setEditando(false) }} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style={{ background: "#101b3d" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+          </div>
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-3">
+        {onNota && !editando && <button type="button" onClick={() => { setRascunho(nota ?? ""); setEditando(true) }} className="text-xs font-semibold" style={{ color: "#2ecc9b" }} title={L("Anotar", "Add note", "Anotar")}>✏️ {nota ? L("Editar anotação", "Edit note", "Editar nota") : L("Anotar", "Add note", "Anotar")}</button>}
+        {onApagar && (confirmar
+          ? <span className="flex items-center gap-1 text-xs"><span>{L("Tirar este relatório da conversa?", "Remove this report from the conversation?", "¿Quitar este informe de la conversación?")}</span>
+              <button type="button" onClick={async () => { await onApagar(); setConfirmar(false) }} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#b02a2a" }}>{L("Sim", "Yes", "Sí")}</button>
+              <button type="button" onClick={() => setConfirmar(false)} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#101b3d" }}>{L("Não", "No", "No")}</button></span>
+          : <button type="button" onClick={() => setConfirmar(true)} className="text-xs font-semibold" style={{ color: "#f87171" }} title={L("Apagar", "Delete", "Borrar")}>🗑 {L("Apagar", "Delete", "Borrar")}</button>)}
         <a href={linkRelatorio(pedido)} className="text-xs font-semibold underline" style={{ color: "#2ecc9b" }}>{L("Ver o relatório na tela Relatórios", "View the report on the Reports screen", "Ver el informe en la pantalla Informes")}</a>
         {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
       </div>

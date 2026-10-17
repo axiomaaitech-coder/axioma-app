@@ -2,7 +2,7 @@
 // botão Ouvir usar a voz do José também nelas. O servidor confere no banco (RLS) — ver app/api/voz/assinar.
 // Falha = sem assinatura (o Ouvir simplesmente não aparece naquela resposta; nunca voz robótica).
 type Linha = { id?: unknown; role?: unknown; mensagem?: unknown }
-export async function assinarHistorico(tela: 'ia-financeira' | 'ia-tributaria', empresaId: string | null | undefined, hist: Linha[]): Promise<Record<string, string>> {
+export async function assinarHistorico(tela: 'ia-financeira' | 'ia-tributaria' | 'conversa', empresaId: string | null | undefined, hist: Linha[]): Promise<Record<string, string>> {
   const ids = hist.filter((h) => h.role === 'assistant' && h.id != null).map((h) => String(h.id)).slice(-100)
   if (!empresaId || !ids.length) return {}
   try {

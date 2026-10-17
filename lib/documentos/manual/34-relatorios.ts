@@ -36,6 +36,7 @@ const pt: DocumentoAxioma = {
     { nota: 'Os números são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa em vez de montar o relatório com zero no lugar do dado que não veio. Sem lançamentos no período, a tela pede para cadastrar receitas e custos primeiro. Os relatórios são calculados por regras sobre os seus dados; para análises em conversa, use a IA Financeira.' },
     { nota: 'O ano inteiro é lido de uma vez, então o relatório abre em poucos segundos. Ao trocar o idioma do Axioma, o relatório é refeito no novo idioma.' },
     { nota: '**Relatório depois da consulta:** peça "gere um relatório" (ou DRE, fluxo de caixa, contas a receber…) e a IA monta o relatório completo com os dados reais, avisa "seu relatório está feito e está aí embaixo, em PDF" e mostra o cartão com o botão grande **⬇ Baixar relatório em PDF** (os mesmos números da tela Relatórios). Vale também na conversa por voz.' },
+    { nota: '**Conversas salvas:** a conversa e os relatórios gerados ficam guardados mesmo se você sair do módulo. Use **＋ Nova conversa** para começar outra e **🗂 Conversas salvas** para reabrir as anteriores ou apagar (🗑, com confirmação). No cartão do relatório há **✏️ Anotar** para escrever uma observação e **🗑 Apagar** para tirá-lo da conversa. Cada conversa é só sua: outras pessoas da Empresa não a veem, e nenhuma outra Empresa tem acesso. Nada é apagado sozinho.' },
   ],
 }
 
@@ -74,6 +75,7 @@ const en: DocumentoAxioma = {
     { nota: 'Numbers are read with no row limit. If any loading fails, the screen warns you instead of building the report with zero in place of the missing data. With no entries in the period, the screen asks you to register revenue and costs first. Reports are calculated by rules on your data; for conversational analysis, use Financial AI.' },
     { nota: 'The whole year is read at once, so the report opens in a few seconds. When you change Axioma’s language, the report is rebuilt in the new language.' },
     { nota: '**Report after the consultation:** ask "generate a report" (or income statement, cash flow, receivables…) and the AI builds the full report with the real data, says "your report is done and it is right below, in PDF" and shows the card with the big **⬇ Download report as PDF** button (the same numbers as the Reports screen). It also works in the voice conversation.' },
+    { nota: '**Saved conversations:** the conversation and the generated reports stay saved even if you leave the module. Use **＋ New conversation** to start another one and **🗂 Saved conversations** to reopen previous ones or delete them (🗑, with confirmation). On the report card there is **✏️ Add note** to write a remark and **🗑 Delete** to remove it from the conversation. Each conversation is yours only: other people in the Company cannot see it, and no other Company has access. Nothing is deleted automatically.' },
   ],
 }
 
@@ -112,6 +114,7 @@ const es: DocumentoAxioma = {
     { nota: 'Los números se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa en lugar de armar el informe con cero en lugar del dato que no llegó. Sin registros en el período, la pantalla pide registrar ingresos y costos primero. Los informes se calculan por reglas sobre sus datos; para análisis en conversación, use la IA Financiera.' },
     { nota: 'Todo el año se lee de una vez, así que el informe abre en pocos segundos. Al cambiar el idioma de Axioma, el informe se rehace en el nuevo idioma.' },
     { nota: '**Informe después de la consulta:** pida "genere un informe" (o estado de resultados, flujo de caja, cuentas por cobrar…) y la IA arma el informe completo con los datos reales, avisa "su informe está hecho y está justo abajo, en PDF" y muestra la tarjeta con el botón grande **⬇ Descargar informe en PDF** (los mismos números de la pantalla Informes). También funciona en la conversación por voz.' },
+    { nota: '**Conversaciones guardadas:** la conversación y los informes generados quedan guardados aunque salga del módulo. Use **＋ Nueva conversación** para empezar otra y **🗂 Conversaciones guardadas** para reabrir las anteriores o borrarlas (🗑, con confirmación). En la tarjeta del informe está **✏️ Anotar** para escribir una observación y **🗑 Borrar** para quitarlo de la conversación. Cada conversación es solo suya: otras personas de la Empresa no la ven y ninguna otra Empresa tiene acceso. Nada se borra solo.' },
   ],
 }
 

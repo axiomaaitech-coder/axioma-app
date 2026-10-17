@@ -11,12 +11,13 @@ import AcoesMemoria from "./AcoesMemoria";
 import ConversaAoVivo from "./ConversaAoVivo";
 import PainelMemoriaIA from "./PainelMemoriaIA";
 import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from "./RelatorioCFO";
+import { BarraConversas, useConversaSalva } from "./ConversasIA";
 import { perguntarAoAxioma } from "../lib/ia/cliente";
 import { juntarTexto } from "../lib/voz/gravador";
 import type { SugestaoMemoria } from "../lib/ia/memoria";
 
 type L = "pt" | "en" | "es";
-type Msg = { role: "user" | "assistant"; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null };
+type Msg = { id?: string; role: "user" | "assistant"; texto: string; assinatura?: string; ressalva?: boolean; sugestaoMemoria?: SugestaoMemoria | null; relatorio?: PedidoTela | null; nota?: string | null };
 const MAX_HISTORICO = 8;
 const TX: Record<string, Record<L, string>> = {
   pensando: { pt: "Pensando…", en: "Thinking…", es: "Pensando…" },
@@ -38,6 +39,8 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
   porRegra?: (pergunta: string) => string; // resposta por regras quando a IA está fora (Contas a Pagar já tinha)
 }) {
   const [mensagens, setMensagens] = useState<Msg[]>([]);
+  // Conversas salvas por tela (Relatórios, Contas a Pagar…): continuam ao sair e voltar
+  const conversas = useConversaSalva<Msg>({ tela, empresaId, mensagens, setMensagens, textoDe: (m) => m.texto, paraTela: (l) => ({ id: l.id, role: l.role, texto: l.texto, relatorio: l.relatorio, nota: l.nota, assinatura: l.assinatura }) });
   const [texto, setTexto] = useState("");
   const [carregando, setCarregando] = useState(false);
   const pedido = useRef<AbortController | null>(null);
@@ -76,6 +79,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
       <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: cor }}>
         <MessageCircleQuestion size={14} aria-hidden /> {titulo}
       </p>
+      <BarraConversas api={conversas} lang={lang} claro={claro} />
       {mensagens.length > 0 && (
         <div className="max-h-96 overflow-y-auto space-y-2 mb-2 pr-1">
           {mensagens.map((m, i) => (
@@ -86,7 +90,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
                   <div>
                     <OuvirResposta texto={m.texto} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={claro} />
                     {m.assinatura && <AcoesMemoria empresaId={empresaId} area="financeira" sugestao={m.sugestaoMemoria} resposta={m.texto} lang={lang} claro={claro} />}
-                    <AcoesRelatorio tela={tela} pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />
+                    <AcoesRelatorio nota={m.nota} onNota={m.id ? (n: string) => conversas.anotar(m.id!, n) : undefined} onApagar={m.id ? () => conversas.apagarMensagem(m.id!) : undefined} tela={tela} pergunta={mensagens[i - 1]?.role === "user" ? mensagens[i - 1].texto : undefined} resposta={m.texto} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />
                   </div>
                 )}
               </div>

@@ -260,7 +260,7 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   assert.equal(M2.statusDaSaida(JSON.stringify(saida)), 'ok')
   const motor = readFileSync('lib/ia/motor.ts', 'utf8')
   assert.ok(motor.includes("nome === 'relatorio' && status !== 'erro'") && motor.includes('relatorio: resposta ? consulta.relatorio'), '16 motor devolve o pedido do relatório à tela')
-  for (const f of ['components/ChatInteligencia.tsx', 'app/(interno)/nexus/JosephChat.tsx', 'app/(interno)/ia-financeira/page.tsx', 'app/(interno)/ia-tributaria/page.tsx', 'app/(interno)/mei/ia-advisor/page.tsx']) assert.ok(/<AcoesRelatorio[^>]*pedido=/.test(readFileSync(f, 'utf8')), `relatório após a consulta (cartão "gerado com sucesso" + PDF da resposta) em ${f}`)
+  for (const f of ['components/ChatInteligencia.tsx', 'app/(interno)/nexus/JosephChat.tsx', 'app/(interno)/ia-financeira/page.tsx', 'app/(interno)/ia-tributaria/page.tsx', 'app/(interno)/mei/ia-advisor/page.tsx']) assert.ok(/<AcoesRelatorio[\s\S]{0,600}?pedido=/.test(readFileSync(f, 'utf8')), `relatório após a consulta (cartão "gerado com sucesso" + PDF da resposta) em ${f}`)
   const comp = readFileSync('components/RelatorioCFO.tsx', 'utf8')
   assert.ok(comp.includes('seu relatório está feito') && comp.includes('Baixar relatório em PDF') && comp.includes('fetch("/api/relatorios/gerar"') && !comp.includes('Relatório desta resposta'), 'cartão grande baixa o PDF completo pela mesma rota autorizada; sem PDF de texto solto')
   assert.ok(M2.pediuRelatorio('José, gere um relatório disso pra eu imprimir') && !M2.pediuRelatorio('quanto faturei este mês?'))
@@ -287,5 +287,18 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   const usados = [...aud.slice(0, aud.indexOf('}))')).matchAll(/rel\.(\w+)(\.\w+)?/g)].map((m) => m[1] + (m[2] ?? ''))
   assert.ok(usados.length && usados.every((u) => /^(tipo|estado|comparado_com|periodo(\.inicio|\.fim)?|\w+\.length)$/.test(u)), `auditoria guarda só contagens e metadados: ${usados}`)
   ok('13/14/20 rota protegida, operador barrado, sem cobrança duplicada, auditoria minimizada')
+}
+// ═══ Conversas salvas: o relatório não some ao sair do módulo; isolamento por empresa E por pessoa ═══
+{
+  for (const f of ['components/ChatInteligencia.tsx', 'app/(interno)/nexus/JosephChat.tsx', 'app/(interno)/ia-financeira/page.tsx', 'app/(interno)/ia-tributaria/page.tsx', 'app/(interno)/mei/ia-advisor/page.tsx']) {
+    const t = readFileSync(f, 'utf8')
+    assert.ok(t.includes('useConversaSalva') && t.includes('<BarraConversas') && /onNota=\{\w+\.id \?/.test(t) && /onApagar=\{\w+\.id \?/.test(t), `conversa salva + lápis + lixeira em ${f}`)
+  }
+  const sql = readFileSync('docs/sql/IA-CONVERSAS-SQL.sql', 'utf8')
+  assert.ok((sql.match(/user_id = \(select auth\.uid\(\)\) and empresa_id in \(select public\.empresas_do_usuario_operacional\(\)\)/g) ?? []).length >= 4, 'RLS: só a própria pessoa, só nas empresas dela (leitura e escrita)')
+  const motor = readFileSync('components/ConversasIA.tsx', 'utf8')
+  assert.ok(motor.includes('relatorio: m.relatorio ?? null') && motor.includes('select("id, role, texto, relatorio, nota")'), 'o pedido do relatório é guardado e o cartão volta ao reabrir')
+  assert.ok(!/delete\(\)[^;]*\.lt\(|setTimeout\([^)]*apagar/.test(motor), 'nada é apagado sozinho: só pela lixeira')
+  ok('conversas salvas: relatório e conversa ficam até o cliente apagar; lápis e lixeira; RLS por empresa e por pessoa')
 }
 console.log('check-relatorios: tudo certo ✔')

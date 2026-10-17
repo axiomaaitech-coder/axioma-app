@@ -23,6 +23,7 @@ import { hojeISO } from '../../../lib/datas'
 import BotaoVoz from '../../../components/BotaoVoz'
 import OuvirResposta from '../../../components/OuvirResposta'
 import { AcoesRelatorio, avisoRelatorioConcluido, type PedidoTela } from '../../../components/RelatorioCFO'
+import { BarraConversas, useConversaSalva } from '../../../components/ConversasIA'
 import ConversaAoVivo from '../../../components/ConversaAoVivo'
 import { juntarTexto } from '../../../lib/voz/gravador'
 import { falar, pararFala, situacaoVoz } from '../../../lib/voz/reprodutor'
@@ -44,7 +45,7 @@ function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {
     </motion.span>
   )
 }
-type Msg = { role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean; relatorio?: PedidoTela | null }
+type Msg = { id?: string; role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean; relatorio?: PedidoTela | null; nota?: string | null }
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
 const MAX_HISTORICO = 10
@@ -65,6 +66,8 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
   const [leituras, setLeituras] = useState<{ titulo: string; data: string | null; leitura: string | null }[]>([])
   const [ponto, setPonto] = useState<PontoPartida | null>(null)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
+  // Conversas salvas: o relatório e a conversa continuam ao sair e voltar (lista, nova, lixeira, lápis)
+  const conversas = useConversaSalva<Msg>({ tela: 'nexus', empresaId, mensagens, setMensagens, textoDe: (m) => m.content, paraTela: (l) => ({ id: l.id, role: l.role, content: l.texto, relatorio: l.relatorio, nota: l.nota, assinatura: l.assinatura }) })
   const [manchetes, setManchetes] = useState<{ titulo: string; canal: string | null; data: string | null }[]>([])
   const [horizontes, setHorizontes] = useState<{ data: string; texto: string } | null>(null)
   const [placar, setPlacar] = useState('')
@@ -233,10 +236,11 @@ ${montarContexto()}`, conversaId: conversaId.current })
 
         {/* Conversa */}
         <div className="flex flex-col p-4 sm:p-5 min-h-[420px]">
+          <BarraConversas api={conversas} lang={lang} claro={temaClaro} />
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-xs" style={{ color: CINZA }}>{L('Ele só usa os dados do Axioma — nada inventado. Não é recomendação de investimento.', 'He only uses Axioma data — nothing made up. Not investment advice.', 'Solo usa datos de Axioma — nada inventado. No es recomendación de inversión.')}</p>
             {mensagens.length > 0 && (
-              <button onClick={() => setMensagens([])} className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg" style={chip}>
+              <button onClick={() => conversas.nova()} className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg" style={chip}>
                 <RotateCcw size={11} aria-hidden />{L('Nova conversa', 'New chat', 'Nueva conversación')}
               </button>
             )}
@@ -266,7 +270,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
                 <div className={`px-4 py-3 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap max-w-[92%] rounded-2xl ${m.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                   style={m.role === 'user' ? bolhaUser : bolhaJoseph}>
                   {m.content}
-                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{(m.assinatura || m.relatorio || m.content.length > 80) && <AcoesRelatorio tela="nexus" pergunta={mensagens[i - 1]?.role === 'user' ? mensagens[i - 1].content : undefined} resposta={m.content} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />}</div>}
+                  {m.role === 'assistant' && <div><OuvirResposta texto={m.content} lang={lang} assinatura={m.assinatura} ressalva={m.ressalva} empresaId={empresaId} claro={temaClaro} />{(m.assinatura || m.relatorio || m.content.length > 80) && <AcoesRelatorio nota={m.nota} onNota={m.id ? (n: string) => conversas.anotar(m.id!, n) : undefined} onApagar={m.id ? () => conversas.apagarMensagem(m.id!) : undefined} tela="nexus" pergunta={mensagens[i - 1]?.role === 'user' ? mensagens[i - 1].content : undefined} resposta={m.content} pedido={m.relatorio} ressalva={m.ressalva} empresaId={empresaId} lang={lang} />}</div>}
                 </div>
               </motion.div>
             ))}
