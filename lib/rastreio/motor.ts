@@ -283,7 +283,7 @@ async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
 
 async function executarDreGerencial(r: Rastreio): Promise<Resultado> {
   if (r.tipo === "ap_estorno") return apagarDaOrigem("custos_variaveis", r);
-  if (r.tipo === "ar_estorno") return apagarDaOrigem("receitas", r);
+  if (r.tipo === "ar_estorno") { const v = await devolverReceitaAssumida(r); return v.status === "falhou" ? v : apagarDaOrigem("receitas", r); }
   // Manual: Receitas/Custos JÁ são a DRE gerencial. Do Fluxo de Caixa, só entra o que é
   // receita ou custo de verdade (aporte, empréstimo, retirada e transferência não são resultado).
   if (r.tipo === "manual_estorno") {
@@ -330,6 +330,23 @@ async function executarDreGerencial(r: Rastreio): Promise<Resultado> {
     return { status: "ok" };
   }
   // ar_recebimento → receita do mês (o que entrou de verdade, juros inclusos).
+  // Receita "pendente" já ligada a esta conta (D7 da Conferência): a quitação ASSUME essa linha em vez de
+  // criar outra — antes ficavam pendente + recebido e Receitas, o retrato da IA e o teto do MEI somavam a
+  // mesma venda 2 vezes (Farma Vida R$ 110.000, 2026-10-16). Refazer é seguro: a linha assumida já tem o
+  // rastro e o insert abaixo cai no índice único.
+  // ponytail: só na quitação; recebimento parcial ainda convive com a pendente até quitar.
+  if (r.payload.quitou && r.origem_tabela === "contas_receber") {
+    const { data: pend, error: e1 } = await supabase.from("receitas").select("id").eq("empresa_id", r.empresa_id)
+      .eq("origem_tabela", "contas_receber").eq("origem_id", r.origem_id).eq("status", "pendente").is("rastreio_id", null).limit(1);
+    if (e1) return { status: "falhou", erro: e1.message };
+    if (pend?.length) {
+      const { data: up, error: e2 } = await supabase.from("receitas").update({ status: "recebido", data: r.data_movimento, valor: r2(r.valor), rastreio_id: r.id })
+        .eq("id", pend[0].id).eq("empresa_id", r.empresa_id).select("id");
+      if (e2 && !ehDuplicado(e2)) return { status: "falhou", erro: e2.message };
+      if (!e2 && !up?.length) return { status: "falhou", erro: "receita pendente não atualizada (0 linhas, RLS?)" };
+      if (!e2) return { status: "ok" };
+    }
+  }
   const { error } = await supabase.from("receitas").insert({
     empresa_id: r.empresa_id, user_id: r.usuario_id, rastreio_id: r.id,
     origem_tabela: r.origem_tabela, origem_id: r.origem_id,
@@ -371,6 +388,27 @@ async function custoJaLancadoPelaNota(r: Rastreio): Promise<boolean | null> {
     .eq("origem_tabela", "contas_pagar").in("origem_id", irmas).is("rastreio_id", null).limit(1);
   if (e3) return null;
   return !!custo?.length;
+}
+
+// Estorno de recebimento que ASSUMIU a receita pendente (linha mais antiga que o rastro): ela volta a ser
+// a pendente da conta (valor líquido e vencimento da conta) em vez de ser apagada junto.
+async function devolverReceitaAssumida(r: Rastreio): Promise<Resultado> {
+  const { data: rastros, error: e1 } = await supabase.from("rastreio_movimentacao").select("id, criado_em")
+    .eq("empresa_id", r.empresa_id).eq("origem_tabela", r.origem_tabela).eq("origem_id", r.origem_id)
+    .eq("tipo", "ar_recebimento").lt("criado_em", r.criado_em);
+  if (e1) return { status: "falhou", erro: e1.message };
+  if (!rastros?.length) return { status: "ok" };
+  const { data: linhas, error: e2 } = await supabase.from("receitas").select("id, rastreio_id, created_at")
+    .eq("empresa_id", r.empresa_id).in("rastreio_id", rastros.map((x) => x.id as string));
+  if (e2) return { status: "falhou", erro: e2.message };
+  const quando = (s: string) => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`).getTime(); // created_at sem fuso = UTC
+  const assumidas = (linhas || []).filter((l) => quando(String(l.created_at)) < quando(String(rastros.find((x) => x.id === l.rastreio_id)!.criado_em)));
+  if (!assumidas.length) return { status: "ok" };
+  const { data: conta, error: e3 } = await supabase.from("contas_receber").select("valor, valor_desconto, data_vencimento").eq("id", r.origem_id).eq("empresa_id", r.empresa_id).maybeSingle();
+  if (e3 || !conta) return { status: "falhou", erro: e3?.message || "conta a receber não encontrada" };
+  const { error: e4 } = await supabase.from("receitas").update({ status: "pendente", rastreio_id: null, valor: r2(Number(conta.valor) - Number(conta.valor_desconto || 0)), data: conta.data_vencimento })
+    .in("id", assumidas.map((l) => l.id as string)).eq("empresa_id", r.empresa_id);
+  return e4 ? { status: "falhou", erro: e4.message } : { status: "ok" };
 }
 
 async function apagarDoRastro(tabela: "fluxo_caixa" | "receitas" | "custos_variaveis", r: Rastreio): Promise<Resultado> {

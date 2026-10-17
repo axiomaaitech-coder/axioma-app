@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '45 - Conferência entre módulos.docx',
   titulo: 'Manual 45 — Conferência entre módulos',
   subtitulo: 'Os números batem? DRE × Contabilidade e contas × Fluxo de Caixa, mês a mês — e a correção dos casos antigos',
-  info: ['Menu: Contabilidade → Conferência  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (outubro de 2026)'],
+  info: ['Menu: Contabilidade → Conferência  •  Manual de uso do Axioma AI.Tech  •  Versão 1.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Confere se o mesmo dinheiro aparece igual em todos os lugares. Compara, mês a mês, pares que usam o **mesmo critério** — senão a diferença seria do critério, não um erro. Também lista os **casos antigos** (de antes do motor de rastreabilidade) e deixa corrigir cada um.' },
@@ -30,7 +30,7 @@ const pt: DocumentoAxioma = {
     { tabela: { colunas: ['Caso', 'O que é', 'Botão'], larguras: [2600, 3600, 2826], linhas: [
       ['D3 / D4 — Pagamento sem rastro', 'Conta paga (toda ou em parte) que não chegou ao Fluxo e à Contabilidade.', '**Corrigir este caso**'],
       ['D5 — Receita fora da Contabilidade', 'Receita recebida sem lançamento contábil.', '**Corrigir este caso**'],
-      ['D7 — Receita pendente sem conta a receber', 'Receita "pendente" que o caixa nunca espera.', 'Escolha o **Vencimento** e clique **Criar a conta a receber**. A receita fica ligada à conta — a DRE não conta duas vezes e nada é apagado.'],
+      ['D7 — Receita pendente sem conta a receber', 'Receita "pendente" que o caixa nunca espera.', 'Escolha o **Vencimento** e clique **Criar a conta a receber**. A receita fica ligada à conta — a DRE não conta duas vezes e nada é apagado. Quando a conta é quitada, essa mesma receita passa a "recebido" (não nasce uma segunda); se o recebimento for estornado, ela volta a "pendente".'],
     ] } },
     { p: 'Quando a prévia aponta **risco de duplicar** (já existe um lançamento igual no Fluxo), aparecem dois botões: **Corrigir sem mexer no Fluxo (já está lá)** — lança só nas outras portas — e **Corrigir tudo (é outro dinheiro)**. Depois de corrigir, a conferência recalcula sozinha.' },
     { nota: 'A correção passa pelo mesmo motor de um lançamento normal: o resultado é igual a ter sido lançado certo desde o começo. Se o caso já foi resolvido por outro caminho, a tela avisa e não faz nada.' },
@@ -42,7 +42,7 @@ const en: DocumentoAxioma = {
   arquivo: '45 - Cross-module reconciliation.docx',
   titulo: 'Manual 45 — Cross-module reconciliation',
   subtitulo: 'Do the numbers match? P&L × Accounting and bills × Cash Flow, month by month — and fixing old cases',
-  info: ['Menu: Accounting → Reconciliation  •  Axioma AI.Tech user manual  •  Version 1.0 (October 2026)'],
+  info: ['Menu: Accounting → Reconciliation  •  Axioma AI.Tech user manual  •  Version 1.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Checks that the same money shows the same everywhere. It compares, month by month, pairs that use the **same criterion** — otherwise the difference would be the criterion, not an error. It also lists **old cases** (from before the traceability engine) and lets you fix each one.' },
@@ -67,7 +67,7 @@ const en: DocumentoAxioma = {
     { tabela: { colunas: ['Case', 'What it is', 'Button'], larguras: [2600, 3600, 2826], linhas: [
       ['D3 / D4 — Payment without a trace', 'A paid bill (fully or partly) that never reached Cash Flow and Accounting.', '**Fix this case**'],
       ['D5 — Revenue missing from Accounting', 'Received revenue with no accounting entry.', '**Fix this case**'],
-      ['D7 — Pending revenue with no receivable', '"Pending" revenue that cash never expects.', 'Pick the **Due date** and click **Create the receivable**. The revenue is linked to the bill — the P&L does not count it twice and nothing is deleted.'],
+      ['D7 — Pending revenue with no receivable', '"Pending" revenue that cash never expects.', 'Pick the **Due date** and click **Create the receivable**. The revenue is linked to the bill — the P&L does not count it twice and nothing is deleted. When the bill is fully received, this same revenue becomes "received" (no second one is created); if the receipt is reversed, it goes back to "pending".'],
     ] } },
     { p: 'When the preview points to **duplication risk** (a matching entry already exists in Cash Flow), two buttons appear: **Fix without touching Cash Flow (already there)** — posts only to the other modules — and **Fix everything (different money)**. After fixing, the check recalculates on its own.' },
     { nota: 'The fix goes through the same engine as a normal entry: the result is the same as if it had been entered correctly from the start. If the case was already resolved another way, the screen says so and does nothing.' },
@@ -79,7 +79,7 @@ const es: DocumentoAxioma = {
   arquivo: '45 - Conciliación entre módulos.docx',
   titulo: 'Manual 45 — Conciliación entre módulos',
   subtitulo: '¿Cuadran los números? Estado de Resultados × Contabilidad y cuentas × Flujo de Caja, mes a mes — y la corrección de casos antiguos',
-  info: ['Menú: Contabilidad → Conciliación  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (octubre de 2026)'],
+  info: ['Menú: Contabilidad → Conciliación  •  Manual de uso de Axioma AI.Tech  •  Versión 1.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Verifica que el mismo dinero aparezca igual en todos lados. Compara, mes a mes, pares que usan el **mismo criterio** — si no, la diferencia sería del criterio, no un error. También lista los **casos antiguos** (de antes del motor de trazabilidad) y permite corregir cada uno.' },
@@ -104,7 +104,7 @@ const es: DocumentoAxioma = {
     { tabela: { colunas: ['Caso', 'Qué es', 'Botón'], larguras: [2600, 3600, 2826], linhas: [
       ['D3 / D4 — Pago sin rastro', 'Cuenta pagada (toda o en parte) que no llegó al Flujo ni a la Contabilidad.', '**Corregir este caso**'],
       ['D5 — Ingreso fuera de la Contabilidad', 'Ingreso cobrado sin asiento contable.', '**Corregir este caso**'],
-      ['D7 — Ingreso pendiente sin cuenta por cobrar', 'Ingreso "pendiente" que la caja nunca espera.', 'Elija el **Vencimiento** y haga clic en **Crear la cuenta por cobrar**. El ingreso queda vinculado a la cuenta — el Estado de Resultados no lo cuenta dos veces y nada se borra.'],
+      ['D7 — Ingreso pendiente sin cuenta por cobrar', 'Ingreso "pendiente" que la caja nunca espera.', 'Elija el **Vencimiento** y haga clic en **Crear la cuenta por cobrar**. El ingreso queda vinculado a la cuenta — el Estado de Resultados no lo cuenta dos veces y nada se borra. Cuando la cuenta se cobra por completo, este mismo ingreso pasa a "cobrado" (no se crea un segundo); si el cobro se revierte, vuelve a "pendiente".'],
     ] } },
     { p: 'Cuando la vista previa señala **riesgo de duplicar** (ya existe un registro igual en el Flujo), aparecen dos botones: **Corregir sin tocar el Flujo (ya está)** — registra solo en los otros módulos — y **Corregir todo (es otro dinero)**. Después de corregir, la conciliación se recalcula sola.' },
     { nota: 'La corrección pasa por el mismo motor que un registro normal: el resultado es igual a haberlo registrado bien desde el inicio. Si el caso ya se resolvió por otro camino, la pantalla avisa y no hace nada.' },
