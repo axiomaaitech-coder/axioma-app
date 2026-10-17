@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
@@ -117,7 +118,9 @@ export default function AceitarConvite() {
     if (r.erro || !r.aguardando) { setErro(MSG[r.erro] || erroPadrao); return false }
     // CPF não fica guardado na conta depois do aceite (já está no termo); o token
     // fica até a aprovação pra trazer a pessoa de volta pra cá se ela sair.
-    await supabase.auth.updateUser({ data: { cpf: null, convite_token: token, convite_aceita: null } }).catch(() => {})
+    // O aceite já foi gravado no servidor; isto só traz a pessoa de volta para esta tela se ela sair — falha vai ao Sentry
+    const { error: eMeta } = await supabase.auth.updateUser({ data: { cpf: null, convite_token: token, convite_aceita: null } }).catch((e) => ({ error: e }))
+    if (eMeta) Sentry.captureException(eMeta instanceof Error ? eMeta : new Error(String((eMeta as { message?: string }).message ?? eMeta)), { extra: { etapa: 'convite:guardar token' } })
     setEstado('aguardando')
     return true
   }

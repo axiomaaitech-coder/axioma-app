@@ -646,7 +646,11 @@ export async function perguntarAoMotor(args: {
   const precisaMundo = nivel === 'estrategica' || manuais.some((m) => m.id === 'economia')
   const [retrato, mundo] = await Promise.all([
     montarRetrato(args.supabase, args.empresaId),
-    precisaMundo ? montarContextoMundo(args.supabase).catch(() => null) : Promise.resolve(null),
+    // Falha na leitura da economia: a IA é AVISADA (senão responderia sem base e poderia inventar juro/inflação)
+    precisaMundo ? montarContextoMundo(args.supabase).catch((e) => {
+      Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { extra: { etapa: 'motor:contextoMundo' } })
+      return 'INDISPONÍVEL AGORA (falha ao ler os dados do Nexus). Não cite nenhum número de economia (Selic, inflação, câmbio etc.): diga que esses dados não puderam ser consultados neste momento.'
+    }) : Promise.resolve(null),
   ])
   // Pergunta tributária leva a comparação de regimes (mesma simulação da tela IA Tributária).
   const fiscal = manuais.some((m) => m.id === 'tributario') ? `\n${textoFiscal(retrato)}` : ''
