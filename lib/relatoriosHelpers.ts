@@ -3,6 +3,8 @@
 // Implementa 12+ indicadores brasileiros, Score CFO 0-100, insights automáticos.
 
 import { saldoCaixaRealizado } from "./caixaSaldo";
+import { carregarBaseDRE, custoFixoDoMes } from "./dreCompetencia";
+import { calcularDre, inicio12, type DividaDre, type EmpresaDre } from "./ia/ferramentaDre";
 import { soVigentes } from "./custoFixoVigente";
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
@@ -39,6 +41,9 @@ export type DRE = {
   pct_custos_fixos: number;
   pct_margem_contribuicao: number;
   pct_lucro_liquido: number;
+  // base do Crescimento MoM e do Ticket Médio (mesma DRE por competência)
+  receita_mes_anterior: number;
+  qtd_receitas: number;
 };
 
 export type PontoEvolucao = {
@@ -102,67 +107,47 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, con
   return r.data;
 }
 
-export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
-  // 1) Receitas do período
-  // Todas as leituras em paralelo (antes uma depois da outra).
-  const inicio12m = isoDia(new Date(periodo.ano, periodo.mes - 12, 1));
-  const [rRecs, rCvs, rCfs, rDivs, rEmp, rRec12] = await Promise.all([
-    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
-    lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")),
-    soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)),
+// Base da DRE por competência + empresa + dívidas: a MESMA conta da IA, do Relatório CFO e da tela DRE
+// (lib/ia/ferramentaDre.calcularDre). Antes esta tela somava toda receita digitada (pendente, repetida,
+// pela data do dinheiro) e só custos variáveis — números diferentes do resto do Axioma.
+async function lerBaseDre(empresaId: string, inicio: string, fim: string) {
+  const [base, emp, divs] = await Promise.all([
+    carregarBaseDRE(empresaId, inicio, fim, supabase as never),
+    supabase.from("empresas").select("regime_tributario, atividade_fiscal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
     supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
-    supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
-    lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim).order("id")),
   ]);
-  const receitas = exigir(rRecs, "receitas");
-  const receita_bruta = (receitas || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+  if (base.falhou) throw new Error("[relatorios] base da DRE: leitura falhou");
+  if (emp.error) throw new Error(`[relatorios] empresa: ${emp.error.message}`);
+  if (divs.error) throw new Error(`[relatorios] dividas: ${divs.error.message}`);
+  return { base, emp: emp.data as EmpresaDre | null, divs: (divs.data ?? []) as DividaDre[] };
+}
 
-  // 2) Custos variáveis
-  const custosVar = exigir(rCvs, "custos_variaveis");
-  const custos_variaveis = (custosVar || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-
-  // 3) Custos fixos (mensais — só os vigentes; encerrado não pesa mais)
-  const custosFix = exigir(rCfs, "custos_fixos");
-  const custos_fixos = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
-
-  // 4) Despesas financeiras (juros de endividamento — estimativa simples)
-  // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
-  // uma tabela órfã com schema diferente, nunca alimentada pela UI.
-  const dividas = exigir(rDivs, "dividas");
-  const despesas_financeiras = (dividas || []).reduce((s: number, d: any) => {
-    const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
-    return s + (saldoDevedor * Number(d.taxa_juros || 0) / 100);
-  }, 0);
-
-  // 5) Deduções: imposto real da empresa pelo regime tributário (mesmo cálculo do
-  // módulo IA Tributária), em vez de um percentual fixo chutado.
-  const empresa = exigir(rEmp, "empresa");
-  const rec12m = exigir(rRec12, "receitas_12m");
-  const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-  const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta, undefined, undefined, categoriaMeiDaEmpresa(empresa)));
-
-  const receita_liquida = receita_bruta - deducoes;
-  const margem_contribuicao = receita_liquida - custos_variaveis;
-  const lucro_operacional = margem_contribuicao - custos_fixos;
-  const lucro_liquido = lucro_operacional - despesas_financeiras;
-
+export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
+  const mesAnterior = montarPeriodo(periodo.mes === 1 ? periodo.ano - 1 : periodo.ano, periodo.mes === 1 ? 12 : periodo.mes - 1);
+  const { base, emp, divs } = await lerBaseDre(empresaId, inicio12(periodo.inicio.slice(0, 7)) < mesAnterior.inicio ? inicio12(mesAnterior.inicio.slice(0, 7)) : mesAnterior.inicio, periodo.fim);
+  const d = calcularDre(base, emp, divs, periodo.inicio, periodo.fim);
+  const ant = calcularDre(base, emp, divs, mesAnterior.inicio, mesAnterior.fim);
+  const receita_bruta = d.receitaBruta;
+  const deducoes = Math.round((d.devolucoes + d.deducoes) * 100) / 100;
+  const despesas_financeiras = Math.round((d.jurosPagos + d.jurosEstimados) * 100) / 100;
   const pct = (v: number) => (receita_bruta > 0 ? (v / receita_bruta) * 100 : 0);
-
   return {
     receita_bruta,
     deducoes,
-    receita_liquida,
-    custos_variaveis,
-    margem_contribuicao,
-    custos_fixos,
-    lucro_operacional,
+    receita_liquida: d.receitaLiquida,
+    custos_variaveis: d.custosVariaveis,
+    margem_contribuicao: d.margem,
+    custos_fixos: d.custosFixos,
+    lucro_operacional: d.resultadoOperacional,
     despesas_financeiras,
-    lucro_liquido,
+    lucro_liquido: d.lucroLiquido,
     pct_deducoes: pct(deducoes),
-    pct_custos_variaveis: pct(custos_variaveis),
-    pct_custos_fixos: pct(custos_fixos),
-    pct_margem_contribuicao: pct(margem_contribuicao),
-    pct_lucro_liquido: pct(lucro_liquido),
+    pct_custos_variaveis: pct(d.custosVariaveis),
+    pct_custos_fixos: pct(d.custosFixos),
+    pct_margem_contribuicao: pct(d.margem),
+    pct_lucro_liquido: pct(d.lucroLiquido),
+    receita_mes_anterior: ant.receitaBruta,
+    qtd_receitas: base.receitas.filter((r) => r.data >= periodo.inicio && r.data <= periodo.fim).length,
   };
 }
 
@@ -178,33 +163,20 @@ export async function carregarEvolucao12Meses(
 ): Promise<PontoEvolucao[]> {
   const pontos: PontoEvolucao[] = [];
 
-  // 3 leituras em paralelo (o ano inteiro de uma vez) em vez de 24 em fila — a tela levava 25s+.
+  // Uma leitura da base (12 meses + 12 antes, para o imposto do Simples) e a MESMA DRE de cada mês.
   const primeiro = montarPeriodo(new Date(referenciaAno, referenciaMes - 12, 1).getFullYear(), new Date(referenciaAno, referenciaMes - 12, 1).getMonth() + 1);
   const ultimo = montarPeriodo(referenciaAno, referenciaMes);
-  const [rCf, rRec, rCv] = await Promise.all([
-    soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)),
-    lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", primeiro.inicio).lte("data", ultimo.fim).order("id")),
-    lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", primeiro.inicio).lte("data", ultimo.fim).order("id")),
-  ]);
-  const custosFix = exigir(rCf, "custos_fixos");
-  const rec = exigir(rRec, "receitas_12m") || [];
-  const cv = exigir(rCv, "custos_variaveis_12m") || [];
-  const custos_fixos_mes = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
-  const somaPorMes = (linhas: any[]) => linhas.reduce((m: Map<string, number>, r: any) => {
-    const k = String(r.data || "").slice(0, 7);
-    return m.set(k, (m.get(k) || 0) + Number(r.valor || 0));
-  }, new Map<string, number>());
-  const recMes = somaPorMes(rec);
-  const cvMes = somaPorMes(cv);
+  const { base, emp, divs } = await lerBaseDre(empresaId, inicio12(primeiro.inicio.slice(0, 7)), ultimo.fim);
 
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(referenciaAno, referenciaMes - 1 - i, 1);
-    const ano = d.getFullYear();
-    const mes = d.getMonth() + 1;
-    const chave = `${ano}-${String(mes).padStart(2, "0")}`;
-    const receita = recMes.get(chave) || 0;
-    const custos = (cvMes.get(chave) || 0) + custos_fixos_mes;
-    const lucro = receita - custos;
+    const dia1 = new Date(referenciaAno, referenciaMes - 1 - i, 1);
+    const ano = dia1.getFullYear();
+    const mes = dia1.getMonth() + 1;
+    const p = montarPeriodo(ano, mes);
+    const d = calcularDre(base, emp, divs, p.inicio, p.fim);
+    const receita = d.receitaBruta;
+    const custos = d.custosVariaveis + d.custosFixos;
+    const lucro = d.lucroLiquido;
     const margem = receita > 0 ? (lucro / receita) * 100 : 0;
 
     pontos.push({
@@ -232,22 +204,12 @@ export async function carregarDistribuicaoCustos(
 ): Promise<CategoriaCusto[]> {
   const agregado = new Map<string, number>();
 
-  // Mesma base da DRE: custos variáveis do período + custos fixos vigentes.
-  // (Contas a pagar NÃO entram: conta paga já vira custo variável pelo motor e conta
-  // de custo fixo já está no fixo — somar as duas contava o mesmo gasto 2 vezes.)
-  // 1) Custos variáveis por categoria
-  const cv = exigir(await lerTodas(() => supabase.from("custos_variaveis").select("valor, categoria").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")), "custos_variaveis");
-  (cv || []).forEach((r: any) => {
-    const cat = r.categoria || "Outros";
-    agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor || 0));
-  });
-
-  // 2) Custos fixos (mensal, só vigentes)
-  const cf = exigir(await soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)), "custos_fixos");
-  (cf || []).forEach((r: any) => {
-    const cat = r.categoria || "Custos Fixos";
-    agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor_mensal || 0));
-  });
+  // Mesma base da DRE por competência: custos variáveis + contas a pagar do período (sem contar 2 vezes,
+  // regra de lib/dreCompetencia.itensCusto) + custos fixos vigentes no mês.
+  const { base } = await lerBaseDre(empresaId, periodo.inicio, periodo.fim);
+  for (const c of base.custos) if (c.data >= periodo.inicio && c.data <= periodo.fim) agregado.set(c.categoria || "Outros", (agregado.get(c.categoria || "Outros") || 0) + Number(c.valor || 0));
+  const mes = periodo.inicio.slice(0, 7);
+  for (const c of base.custosFixos) if (custoFixoDoMes([c], mes) > 0) agregado.set(c.categoria || "Custos Fixos", (agregado.get(c.categoria || "Custos Fixos") || 0) + Number(c.valor_mensal || 0));
 
   const total = Array.from(agregado.values()).reduce((s, v) => s + v, 0);
 
@@ -437,8 +399,7 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
     periodo.mes === 1 ? periodo.ano - 1 : periodo.ano,
     periodo.mes === 1 ? 12 : periodo.mes - 1
   );
-  const recAnt = exigir(await lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mesAnterior.inicio).lte("data", mesAnterior.fim).order("id")), "receitas_mes_anterior");
-  const receitaAnt = (recAnt || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+  const receitaAnt = dre.receita_mes_anterior;
   const crescimentoMoM = receitaAnt > 0 ? ((dre.receita_bruta - receitaAnt) / receitaAnt) * 100 : 0;
   kpis.push({
     chave: "crescimento_mom", nome: tr(lang, "Crescimento MoM", "MoM Growth", "Crecimiento MoM"),
@@ -467,10 +428,8 @@ export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE
   });
 
   // ---- 12. TICKET MÉDIO ----
-  // Só a contagem (head): a lista vinha cortada em 1000 e o ticket médio saía errado.
-  const { count: qtdRec, error: erroCount } = await supabase.from("receitas").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim);
-  if (erroCount) throw new Error(`[relatorios] contagem de receitas: ${erroCount.message}`);
-  const qtdLanc = qtdRec || 0;
+  // Lançamentos de receita da DRE do mês (mesma base do faturamento: sem repetir receita ligada a conta)
+  const qtdLanc = dre.qtd_receitas;
   const ticketMedio = qtdLanc > 0 ? dre.receita_bruta / qtdLanc : 0;
   kpis.push({
     chave: "ticket_medio", nome: tr(lang, "Ticket Médio", "Average Ticket", "Ticket Promedio"),
