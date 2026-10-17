@@ -59,10 +59,12 @@ export async function POST(request: NextRequest) {
     }) })
     if (!req.ok) throw new Error(`payment request HTTP ${req.status}: ${(await req.text()).slice(0, 200)}`)
     const pr = await req.json() as { id: string; paymentUrl: string; status: string }
-    const { error } = await supabase.from('guias_arrecadacao').update({
+    // Sem este registro a tela não acompanha o status do PIX (o pedido já existe na Pluggy: o link segue,
+    // a pessoa ainda pode marcar "Já paguei"); erro ou 0 linhas vão ao Sentry com o id do pedido para conferir.
+    const { data: gravou, error } = await supabase.from('guias_arrecadacao').update({
       pagamento_externo_id: pr.id, pagamento_externo_url: pr.paymentUrl, pagamento_externo_status: pr.status, pagamento_externo_em: new Date().toISOString(),
-    }).eq('id', guia.id)
-    if (error) Sentry.captureException(new Error(`[pix] gravar pedido na guia: ${error.message}`))
+    }).eq('id', guia.id).select('id')
+    if (error || !gravou?.length) Sentry.captureException(new Error(`[pix] gravar pedido na guia: ${error?.message || '0 linhas (RLS?)'}`), { extra: { guiaId: guia.id, pedido: pr.id } })
     return NextResponse.json({ url: pr.paymentUrl })
   } catch (err) {
     Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: 'pagamentos/pix', guiaId } })
@@ -84,7 +86,10 @@ export async function GET(request: NextRequest) {
     const r = await fetch(`${API}/payments/requests/${encodeURIComponent(guia.pagamento_externo_id)}`, { headers: { 'X-API-KEY': apiKey } })
     if (!r.ok) throw new Error(`consulta payment request HTTP ${r.status}`)
     const status = String((await r.json()).status ?? '')
-    if (status && status !== guia.pagamento_externo_status) await supabase.from('guias_arrecadacao').update({ pagamento_externo_status: status }).eq('id', guia.id)
+    if (status && status !== guia.pagamento_externo_status) {
+      const { data: gravou, error } = await supabase.from('guias_arrecadacao').update({ pagamento_externo_status: status }).eq('id', guia.id).select('id')
+      if (error || !gravou?.length) Sentry.captureException(new Error(`[pix] gravar status na guia: ${error?.message || '0 linhas (RLS?)'}`), { extra: { guiaId: guia.id, status } })
+    }
     return NextResponse.json({ status })
   } catch (err) {
     Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: 'pagamentos/pix GET', guiaId } })

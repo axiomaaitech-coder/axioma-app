@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       const pr = await fetch(`https://api.pluggy.ai/payments/requests/${pedidoId}`, { headers: { 'X-API-KEY': chave } })
       if (!pr.ok) throw new Error(`consulta payment request HTTP ${pr.status}`)
       const status = String((await pr.json()).status ?? '')
-      const { error: eG } = await supabase.from('guias_arrecadacao').update({ pagamento_externo_status: status }).eq('id', guia.id)
-      if (eG) logFalhaWebhook('guias_arrecadacao', 'update status pagamento', eG.message, { pedidoId })
+      const { data: gravou, error: eG } = await supabase.from('guias_arrecadacao').update({ pagamento_externo_status: status }).eq('id', guia.id).select('id')
+      if (eG || !gravou?.length) logFalhaWebhook('guias_arrecadacao', 'update status pagamento', eG?.message || '0 linhas', { pedidoId })
       return NextResponse.json({ ok: true })
     }
     if (!UUID.test(itemId) || !event.startsWith('item/')) return NextResponse.json({ ok: true })

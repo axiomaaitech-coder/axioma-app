@@ -98,7 +98,9 @@ export function useConversaSalva<T extends MsgBase>(p: {
         if (error || !data) { reportarFalhaEscrita("ia_conversa_mensagem", "insert", error?.message ?? "sem id"); continue; }
         setMensagens((ms) => ms.map((x) => { if (x !== m) return x; const y = { ...x, id: data.id as string }; salvando.current.add(y); return y; }));
       }
-      await cliente().from("ia_conversa").update({ atualizado_em: new Date().toISOString() }).eq("id", id);
+      // Só a ordem da lista (trilha): falha vai para o Sentry, a mensagem já está salva
+      const { data: tocou, error: eTocou } = await cliente().from("ia_conversa").update({ atualizado_em: new Date().toISOString() }).eq("id", id).select("id");
+      if (eTocou || !tocou?.length) reportarFalhaEscrita("ia_conversa", "update", eTocou?.message ?? "0 linhas (RLS?)");
       listar();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,23 +114,23 @@ export function useConversaSalva<T extends MsgBase>(p: {
   }, []);
 
   const apagarConversa = useCallback(async (id: string) => {
-    const { error } = await cliente().from("ia_conversa").delete().eq("id", id);
-    if (error) { reportarFalhaEscrita("ia_conversa", "delete", error.message); return false; }
+    const { data, error } = await cliente().from("ia_conversa").delete().eq("id", id).select("id");
+    if (error || !data?.length) { reportarFalhaEscrita("ia_conversa", "delete", error?.message ?? "0 linhas (RLS?)"); return false; }
     if (conv.current === id) nova();
     await listar();
     return true;
   }, [listar, nova]);
 
   const anotar = useCallback(async (msgId: string, nota: string) => {
-    const { error } = await cliente().from("ia_conversa_mensagem").update({ nota: nota.trim() || null }).eq("id", msgId);
-    if (error) { reportarFalhaEscrita("ia_conversa_mensagem", "update", error.message); return false; }
+    const { data, error } = await cliente().from("ia_conversa_mensagem").update({ nota: nota.trim() || null }).eq("id", msgId).select("id");
+    if (error || !data?.length) { reportarFalhaEscrita("ia_conversa_mensagem", "update", error?.message ?? "0 linhas (RLS?)"); return false; }
     ref.current.setMensagens((ms) => ms.map((m) => (m.id === msgId ? { ...m, nota: nota.trim() || null } : m)));
     return true;
   }, []);
 
   const apagarMensagem = useCallback(async (msgId: string) => {
-    const { error } = await cliente().from("ia_conversa_mensagem").delete().eq("id", msgId);
-    if (error) { reportarFalhaEscrita("ia_conversa_mensagem", "delete", error.message); return false; }
+    const { data, error } = await cliente().from("ia_conversa_mensagem").delete().eq("id", msgId).select("id");
+    if (error || !data?.length) { reportarFalhaEscrita("ia_conversa_mensagem", "delete", error?.message ?? "0 linhas (RLS?)"); return false; }
     ref.current.setMensagens((ms) => ms.filter((m) => m.id !== msgId));
     return true;
   }, []);
@@ -143,6 +145,7 @@ export function BarraConversas({ api, lang, claro }: { api: ConversaSalvaApi; la
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [aberta, setAberta] = useState(false);
   const [confirmar, setConfirmar] = useState<string | null>(null);
+  const [falhou, setFalhou] = useState(false);
   const cTexto = claro ? "#101b3d" : "#c8d8f0", cSuave = claro ? "#4a5a74" : "#8ea3bf";
   const caixa = claro ? { background: "rgba(255,255,255,0.5)", border: "1px solid rgba(16,27,61,0.12)" } : { background: "rgba(2,8,16,0.6)", border: "1px solid rgba(46,204,155,0.18)" };
   const atual = api.lista.find((c) => c.id === api.conversaId);
@@ -160,6 +163,7 @@ export function BarraConversas({ api, lang, claro }: { api: ConversaSalvaApi; la
           {api.abrindo ? L("Abrindo…", "Opening…", "Abriendo…") : atual ? `${L("Conversa", "Conversation", "Conversación")}: ${atual.titulo}` : L("Conversa nova (salva quando você perguntar)", "New conversation (saved when you ask)", "Conversación nueva (se guarda al preguntar)")}
         </span>
       </div>
+      {falhou && <p className="mt-2 text-xs" role="alert" style={{ color: "#f87171" }}>{L("Não foi possível apagar a conversa agora. Ela continua salva; tente de novo.", "Could not delete the conversation now. It is still saved; try again.", "No fue posible borrar la conversación ahora. Sigue guardada; intente de nuevo.")}</p>}
       {aberta && (
         <div className="mt-2 rounded-lg p-2 max-h-64 overflow-y-auto" style={caixa}>
           {api.lista.length === 0 && <p className="text-xs p-2" style={{ color: cSuave }}>{L("Nenhuma conversa salva ainda. Pergunte algo e ela fica guardada aqui.", "No saved conversations yet. Ask something and it will be kept here.", "Aún no hay conversaciones guardadas. Pregunte algo y quedará guardada aquí.")}</p>}
@@ -172,7 +176,7 @@ export function BarraConversas({ api, lang, claro }: { api: ConversaSalvaApi; la
               {confirmar === c.id ? (
                 <span className="flex items-center gap-1 text-xs">
                   <span style={{ color: cSuave }}>{L("Apagar?", "Delete?", "¿Borrar?")}</span>
-                  <button type="button" onClick={async () => { await api.apagarConversa(c.id); setConfirmar(null); }} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#b02a2a" }}>{L("Sim", "Yes", "Sí")}</button>
+                  <button type="button" onClick={async () => { setFalhou(!(await api.apagarConversa(c.id))); setConfirmar(null); }} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#b02a2a" }}>{L("Sim", "Yes", "Sí")}</button>
                   <button type="button" onClick={() => setConfirmar(null)} className="px-2 py-1 rounded text-white font-semibold" style={{ background: "#101b3d" }}>{L("Não", "No", "No")}</button>
                 </span>
               ) : (

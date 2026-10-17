@@ -260,6 +260,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
     const p = duplicarDe?.parametros ?? { modulo: 'mei_das', ano: anoCenario, cenario, pct, regras: [...new Set(meses.map((m) => m.premissa ?? ''))].filter(Boolean) }
     const res = duplicarDe?.resultado_projetado ?? { base: baseProj, cenario: cenarioProj, diferenca: difCenario }
     const nome = duplicarDe ? `${duplicarDe.nome} (${L('cópia', 'copy', 'copia')})` : (nomeSim.trim() || `${L('Cenário', 'Scenario', 'Escenario')} ${ano} ${pct >= 0 ? '+' : ''}${pct}%`)
+    // varredura:ok o resultado de q é conferido logo abaixo (erro e 0 linhas)
     const q = editSim && !duplicarDe
       ? supabase.from('simulacoes').update({ nome, parametros: p, resultado_projetado: res }).eq('id', editSim).eq('empresa_id', empresaId).select('id')
       : supabase.from('simulacoes').insert({ empresa_id: empresaId, user_id: user.id, nome, descricao: L('Planejamento do DAS (hipotético — não altera dado real)', 'DAS planning (hypothetical — does not change real data)', 'Planificación del DAS (hipotético — no altera datos reales)'), parametros: p, resultado_projetado: res }).select('id')

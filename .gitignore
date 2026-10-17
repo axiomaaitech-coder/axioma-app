@@ -47,3 +47,6 @@ next-env.d.ts
 # Sentry Config File
 .env.sentry-build-plugin
 .env.local
+
+# Capturas de referência do Elias: nunca publicar (public/ vira endereço aberto no site)
+public/referencias/

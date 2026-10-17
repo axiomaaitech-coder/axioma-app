@@ -99,8 +99,9 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
       const id = await garantirGuia()
       const ok = id ? await simples.registrar(Number(guia.valor_total), dataPg, metodo) : false
       if (ok && id) {
-        const { error } = await supabase.from('guias_arrecadacao').update({ status: 'paga' }).eq('id', id).eq('empresa_id', empresaId)
-        if (error) Sentry.captureException(new Error(`[pagar DAS Simples] marcar guia paga: ${error.message}`))
+        // Trilha: o pagamento já está em Contas a Pagar; a guia só muda o selo (falha vai ao Sentry, 0 linhas também)
+        const { data: marcou, error } = await supabase.from('guias_arrecadacao').update({ status: 'paga' }).eq('id', id).eq('empresa_id', empresaId).select('id')
+        if (error || !marcou?.length) Sentry.captureException(new Error(`[pagar DAS Simples] marcar guia paga: ${error?.message || '0 linhas (RLS?)'}`))
       }
       setSalvando(false)
       if (!ok) return // a Contas a Pagar já mostrou o motivo

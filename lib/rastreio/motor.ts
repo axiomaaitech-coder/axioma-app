@@ -406,9 +406,11 @@ async function devolverReceitaAssumida(r: Rastreio): Promise<Resultado> {
   if (!assumidas.length) return { status: "ok" };
   const { data: conta, error: e3 } = await supabase.from("contas_receber").select("valor, valor_desconto, data_vencimento").eq("id", r.origem_id).eq("empresa_id", r.empresa_id).maybeSingle();
   if (e3 || !conta) return { status: "falhou", erro: e3?.message || "conta a receber não encontrada" };
-  const { error: e4 } = await supabase.from("receitas").update({ status: "pendente", rastreio_id: null, valor: r2(Number(conta.valor) - Number(conta.valor_desconto || 0)), data: conta.data_vencimento })
-    .in("id", assumidas.map((l) => l.id as string)).eq("empresa_id", r.empresa_id);
-  return e4 ? { status: "falhou", erro: e4.message } : { status: "ok" };
+  const { data: volta, error: e4 } = await supabase.from("receitas").update({ status: "pendente", rastreio_id: null, valor: r2(Number(conta.valor) - Number(conta.valor_desconto || 0)), data: conta.data_vencimento })
+    .in("id", assumidas.map((l) => l.id as string)).eq("empresa_id", r.empresa_id).select("id");
+  if (e4) return { status: "falhou", erro: e4.message };
+  // 0 linhas = RLS barrou: o apagarDaOrigem seguinte apagaria a pendente em vez de devolvê-la
+  return volta?.length ? { status: "ok" } : { status: "falhou", erro: "receita assumida não voltou a pendente (0 linhas, RLS?)" };
 }
 
 async function apagarDoRastro(tabela: "fluxo_caixa" | "receitas" | "custos_variaveis", r: Rastreio): Promise<Resultado> {
