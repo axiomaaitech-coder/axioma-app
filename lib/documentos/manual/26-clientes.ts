@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '26 - Comercial - Clientes.docx',
   titulo: 'Manual 26 — Clientes',
   subtitulo: 'Cada cliente como ativo financeiro: valor, risco e oportunidade',
-  info: ['Menu: Comercial → Clientes  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Comercial → Clientes  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Clientes vai além de uma agenda de contatos: trata cada cliente como um **ativo financeiro**. Mostra quanto cada um vale, quanto paga em dia, o risco de inadimplência e as oportunidades de vender mais. A tela tem três abas: **📊 Carteira**, **🧬 Cliente** e **💳 Cobranças**.' },
@@ -63,6 +63,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador).'],
     ] } },
     { nota: 'Se a leitura de clientes ou cobranças falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "carteira vazia" por engano. Toda gravação que falha também avisa.' },
+    { nota: '**Se a lista de Centros de Custo vier vazia com o aviso "Alguns dados não puderam ser carregados"**, o Axioma já tentou de novo sozinho e a leitura falhou: atualize a página antes de escolher o centro. Lista vazia com o aviso não quer dizer que a Empresa não tem centros.' },
   ],
 }
 
@@ -70,7 +71,7 @@ const en: DocumentoAxioma = {
   arquivo: '26 - Commercial - Clients.docx',
   titulo: 'Manual 26 — Clients',
   subtitulo: 'Each client as a financial asset: value, risk and opportunity',
-  info: ['Menu: Commercial → Clients  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Commercial → Clients  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Clients goes beyond a contact book: it treats each client as a **financial asset**. It shows how much each one is worth, how often they pay on time, the default risk and the opportunities to sell more. The screen has three tabs: **📊 Portfolio**, **🧬 Client** and **💳 Receivables**.' },
@@ -128,6 +129,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator).'],
     ] } },
     { nota: 'If loading clients or charges fails, the screen warns that data may be incomplete — it never shows an "empty portfolio" by mistake. Every failed save also warns you.' },
+    { nota: '**If the Cost Center list comes empty with the notice "Some data could not be loaded"**, Axioma has already retried on its own and the read failed: refresh the page before choosing the center. An empty list with the notice does not mean the Company has no centers.' },
   ],
 }
 
@@ -135,7 +137,7 @@ const es: DocumentoAxioma = {
   arquivo: '26 - Comercial - Clientes.docx',
   titulo: 'Manual 26 — Clientes',
   subtitulo: 'Cada cliente como activo financiero: valor, riesgo y oportunidad',
-  info: ['Menú: Comercial → Clientes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Comercial → Clientes  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Clientes va más allá de una agenda de contactos: trata a cada cliente como un **activo financiero**. Muestra cuánto vale cada uno, cuánto paga a tiempo, el riesgo de impago y las oportunidades de vender más. La pantalla tiene tres pestañas: **📊 Cartera**, **🧬 Cliente** y **💳 Cobros**.' },
@@ -193,6 +195,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador).'],
     ] } },
     { nota: 'Si la lectura de clientes o cobros falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "cartera vacía" por error. Toda grabación que falla también avisa.' },
+    { nota: '**Si la lista de Centros de Costo viene vacía con el aviso "Algunos datos no se pudieron cargar"**, Axioma ya intentó de nuevo solo y la lectura falló: actualice la página antes de elegir el centro. Una lista vacía con el aviso no significa que la Empresa no tenga centros.' },
   ],
 }
 

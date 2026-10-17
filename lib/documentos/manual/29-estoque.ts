@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '29 - Comercial - Estoque.docx',
   titulo: 'Manual 29 — Estoque',
   subtitulo: 'Saldo, custo médio, validade e centro de avisos',
-  info: ['Menu: Comercial → Estoque  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Comercial → Estoque  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Controla os produtos, as entradas e saídas, o custo médio e a validade dos lotes. Avisa sobre ruptura, estoque baixo, capital parado e produtos vencendo, e sugere o que repor e o que promover. É integrado ao PDV e às notas fiscais de compra.' },
@@ -54,6 +54,7 @@ const pt: DocumentoAxioma = {
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Produto com movimentação não é apagado: vira inativo, para manter o histórico. Produto com venda registrada não pode ser excluído.'],
     ] } },
     { nota: 'Avisos, inteligência e listas são lidos sem limite de linhas. Se alguma leitura falhar, a tela avisa que os dados podem estar incompletos — nunca mostra "estoque vazio" por engano.' },
+    { nota: '**Excluir produto:** antes de apagar, o Axioma confere se há venda ou movimentação do produto. Se essa conferência não puder ser feita (falha de conexão), nada é apagado e aparece a mensagem de erro — tente de novo. **Editar movimentação:** se o produto não carregar, aparece o aviso "Alguns dados não puderam ser carregados"; atualize a página.' },
   ],
 }
 
@@ -61,7 +62,7 @@ const en: DocumentoAxioma = {
   arquivo: '29 - Commercial - Inventory.docx',
   titulo: 'Manual 29 — Inventory',
   subtitulo: 'Balance, average cost, expiration and alerts center',
-  info: ['Menu: Commercial → Inventory  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Commercial → Inventory  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Controls products, stock in and out, average cost and batch expiration. Warns about stockouts, low stock, idle capital and expiring products, and suggests what to restock and what to promote. It is integrated with the POS and purchase invoices.' },
@@ -110,6 +111,7 @@ const en: DocumentoAxioma = {
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A product with movements is not deleted: it becomes inactive, to keep the history. A product with a recorded sale cannot be deleted.'],
     ] } },
     { nota: 'Alerts, intelligence and lists are read with no row limit. If any loading fails, the screen warns that the data may be incomplete — it never shows an "empty inventory" by mistake.' },
+    { nota: '**Delete product:** before deleting, Axioma checks whether the product has sales or movements. If that check cannot be done (connection failure), nothing is deleted and an error message appears — try again. **Edit movement:** if the product does not load, the notice "Some data could not be loaded" appears; refresh the page.' },
   ],
 }
 
@@ -117,7 +119,7 @@ const es: DocumentoAxioma = {
   arquivo: '29 - Comercial - Inventario.docx',
   titulo: 'Manual 29 — Inventario',
   subtitulo: 'Saldo, costo promedio, vencimiento y centro de avisos',
-  info: ['Menú: Comercial → Inventario  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Comercial → Inventario  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Controla los productos, las entradas y salidas, el costo promedio y el vencimiento de los lotes. Avisa sobre quiebre de stock, stock bajo, capital inmovilizado y productos por vencer, y sugiere qué reponer y qué promocionar. Está integrado al PDV y a las facturas de compra.' },
@@ -166,6 +168,7 @@ const es: DocumentoAxioma = {
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Un producto con movimientos no se borra: pasa a inactivo, para mantener el historial. Un producto con venta registrada no se puede eliminar.'],
     ] } },
     { nota: 'Avisos, inteligencia y listas se leen sin límite de filas. Si alguna lectura falla, la pantalla avisa que los datos pueden estar incompletos — nunca muestra "inventario vacío" por error.' },
+    { nota: '**Eliminar producto:** antes de borrar, Axioma verifica si el producto tiene ventas o movimientos. Si esa verificación no se puede hacer (falla de conexión), no se borra nada y aparece el mensaje de error — intente de nuevo. **Editar movimiento:** si el producto no carga, aparece el aviso "Algunos datos no se pudieron cargar"; actualice la página.' },
   ],
 }
 

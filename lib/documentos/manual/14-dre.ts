@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '14 - DRE.docx',
   titulo: 'Manual 14 — DRE (Demonstração do Resultado)',
   subtitulo: 'Lucro ou prejuízo, por quê, e o que fazer — montada sozinha, por competência',
-  info: ['Menu: Financeiro → DRE  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Financeiro → DRE  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A DRE mostra se a empresa **dá lucro ou prejuízo** e explica a **causa**. Não precisa lançar nada aqui: ela é montada com Receitas, Contas a Receber, vendas do PDV, Custos Variáveis, Contas a Pagar, Custos Fixos, impostos pelo regime tributário e juros.' },
@@ -70,6 +70,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Datas e dados confiáveis' },
     { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. Ao fechar um período, se o Axioma não conseguir conferir se ele já foi fechado antes, o fechamento é cancelado com aviso (nunca grava o mesmo período duas vezes).' },
+    { nota: '**MEI:** a categoria do MEI (comércio, serviços, os dois) decide o DAS que a DRE desconta. Se ela não puder ser lida, aparece o aviso "Alguns dados não puderam ser carregados": atualize a página antes de usar o resultado do mês.' },
   ],
 }
 
@@ -77,7 +78,7 @@ const en: DocumentoAxioma = {
   arquivo: '14 - Income Statement.docx',
   titulo: 'Manual 14 — Income Statement (P&L)',
   subtitulo: 'Profit or loss, why, and what to do — built automatically, on an accrual basis',
-  info: ['Menu: Financial → Income Statement  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Financial → Income Statement  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'The P&L shows whether the company **makes a profit or a loss** and explains **why**. You do not enter anything here: it is built from Revenue, Receivables, POS sales, Variable Costs, Payables, Fixed Costs, taxes by tax regime and interest.' },
@@ -142,6 +143,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Reliable dates and data' },
     { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. When closing a period, if Axioma cannot check whether it was already closed, the closing is cancelled with a notice (the same period is never saved twice).' },
+    { nota: '**MEI:** the MEI category (trade, services, both) decides the DAS the Income Statement deducts. If it cannot be read, the notice "Some data could not be loaded" appears: refresh the page before using the month’s result.' },
   ],
 }
 
@@ -149,7 +151,7 @@ const es: DocumentoAxioma = {
   arquivo: '14 - Estado de Resultados.docx',
   titulo: 'Manual 14 — Estado de Resultados',
   subtitulo: 'Ganancia o pérdida, por qué y qué hacer — armado solo, por devengo',
-  info: ['Menú: Financiero → Estado de Resultados  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Financiero → Estado de Resultados  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'El Estado de Resultados muestra si la empresa **gana o pierde** y explica **por qué**. No hay que registrar nada aquí: se arma con Ingresos, Cuentas por Cobrar, ventas del PDV, Costos Variables, Cuentas por Pagar, Costos Fijos, impuestos por régimen tributario e intereses.' },
@@ -214,6 +216,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Fechas y datos confiables' },
     { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. Al cerrar un período, si Axioma no logra verificar si ya fue cerrado, el cierre se cancela con aviso (nunca guarda el mismo período dos veces).' },
+    { nota: '**MEI:** la categoría del MEI (comercio, servicios, ambos) decide el DAS que el Estado de Resultados descuenta. Si no se puede leer, aparece el aviso "Algunos datos no se pudieron cargar": actualice la página antes de usar el resultado del mes.' },
   ],
 }
 

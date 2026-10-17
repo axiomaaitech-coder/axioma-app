@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '11 - Custos Fixos.docx',
   titulo: 'Manual 11 — Custos Fixos',
   subtitulo: 'Os gastos que existem todo mês, vendendo ou não — com vigência, radar de renovações e economia',
-  info: ['Menu: Financeiro → Custos Fixos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Custos Fixos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Custos fixos são os gastos de todo mês: aluguel, salários, contador, internet, sistemas, seguros. Aqui você cadastra cada um **uma vez**, com o período em que vale, e o Axioma usa isso na **DRE** (mês a mês), na **previsão do Fluxo de Caixa** e para **gerar a conta do mês em Contas a Pagar** sozinho.' },
@@ -52,6 +52,7 @@ const pt: DocumentoAxioma = {
       'Clique em **Salvar Custo Fixo**.',
     ] },
     { nota: 'Todo dia o Axioma cria sozinho, em Contas a Pagar, a conta do mês de cada custo fixo vigente, e avisa 7 dias antes do vencimento. A DRE soma o custo só nos meses entre "Vale desde" e "Até", sem contar duas vezes a conta gerada.' },
+    { nota: '**Se a lista de Centros de Custo vier vazia com o aviso "Alguns dados não puderam ser carregados"**, o Axioma já tentou de novo sozinho e a leitura falhou: atualize a página antes de escolher o centro. Lista vazia com o aviso não quer dizer que a Empresa não tem centros.' },
   ],
 }
 
@@ -59,7 +60,7 @@ const en: DocumentoAxioma = {
   arquivo: '11 - Fixed Costs.docx',
   titulo: 'Manual 11 — Fixed Costs',
   subtitulo: 'Expenses that exist every month, selling or not — with validity dates, renewal radar and savings',
-  info: ['Menu: Financial → Fixed Costs  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Financial → Fixed Costs  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Fixed costs are the monthly expenses: rent, payroll, accountant, internet, software, insurance. Here you register each one **once**, with the period it is valid, and Axioma uses it in the **P&L** (month by month), the **Cash Flow forecast** and to **create the month\'s bill in Payables** automatically.' },
@@ -106,6 +107,7 @@ const en: DocumentoAxioma = {
       'Click **Save Fixed Cost**.',
     ] },
     { nota: 'Every day Axioma creates in Payables the month\'s bill for each valid fixed cost, and warns 7 days before the due date. The P&L counts the cost only in the months between "Valid from" and "Until", without counting the generated bill twice.' },
+    { nota: '**If the Cost Center list comes empty with the notice "Some data could not be loaded"**, Axioma has already retried on its own and the read failed: refresh the page before choosing the center. An empty list with the notice does not mean the Company has no centers.' },
   ],
 }
 
@@ -113,7 +115,7 @@ const es: DocumentoAxioma = {
   arquivo: '11 - Costos Fijos.docx',
   titulo: 'Manual 11 — Costos Fijos',
   subtitulo: 'Los gastos de todos los meses, venda o no — con vigencia, radar de renovaciones y ahorro',
-  info: ['Menú: Financiero → Costos Fijos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Financiero → Costos Fijos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Los costos fijos son los gastos de todos los meses: alquiler, sueldos, contador, internet, sistemas, seguros. Aquí registra cada uno **una sola vez**, con el período en que vale, y Axioma lo usa en el **Estado de Resultados** (mes a mes), en la **previsión del Flujo de Caja** y para **generar la cuenta del mes en Cuentas por Pagar** solo.' },
@@ -160,6 +162,7 @@ const es: DocumentoAxioma = {
       'Haga clic en **Guardar Costo Fijo**.',
     ] },
     { nota: 'Todos los días Axioma crea en Cuentas por Pagar la cuenta del mes de cada costo fijo vigente y avisa 7 días antes del vencimiento. El Estado de Resultados suma el costo solo en los meses entre "Vigente desde" y "Hasta", sin contar dos veces la cuenta generada.' },
+    { nota: '**Si la lista de Centros de Costo viene vacía con el aviso "Algunos datos no se pudieron cargar"**, Axioma ya intentó de nuevo solo y la lectura falló: actualice la página antes de elegir el centro. Una lista vacía con el aviso no significa que la Empresa no tenga centros.' },
   ],
 }
 

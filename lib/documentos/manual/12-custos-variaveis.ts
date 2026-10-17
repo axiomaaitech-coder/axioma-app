@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '12 - Custos Variáveis.docx',
   titulo: 'Manual 12 — Custos Variáveis',
   subtitulo: 'Os gastos que sobem e descem com as vendas — margem de contribuição, ponto de equilíbrio e alerta de aumento silencioso',
-  info: ['Menu: Financeiro → Custos Variáveis  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Custos Variáveis  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Custos variáveis acompanham as vendas: mercadoria, matéria-prima, comissões, fretes, embalagens, marketing. A tela mostra **quanto sobra de cada venda** (margem de contribuição), **quanto precisa vender para empatar** e avisa quando um custo está subindo sem ninguém perceber. Todo custo lançado aqui vai sozinho para a **Contabilidade** e para o **Fluxo de Caixa** (como pago).' },
@@ -65,6 +65,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Datas e dados confiáveis' },
     { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
+    { nota: '**Se a lista de Centros de Custo vier vazia com o aviso "Alguns dados não puderam ser carregados"**, o Axioma já tentou de novo sozinho e a leitura falhou: atualize a página antes de escolher o centro. Lista vazia com o aviso não quer dizer que a Empresa não tem centros.' },
   ],
 }
 
@@ -72,7 +73,7 @@ const en: DocumentoAxioma = {
   arquivo: '12 - Variable Costs.docx',
   titulo: 'Manual 12 — Variable Costs',
   subtitulo: 'Expenses that rise and fall with sales — contribution margin, break-even and silent price-increase alerts',
-  info: ['Menu: Financial → Variable Costs  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Financial → Variable Costs  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Variable costs follow sales: merchandise, raw materials, commissions, freight, packaging, marketing. The screen shows **how much is left from each sale** (contribution margin), **how much you must sell to break even** and warns when a cost is rising unnoticed. Every cost entered here goes automatically to **Accounting** and **Cash Flow** (as paid).' },
@@ -132,6 +133,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Reliable dates and data' },
     { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
+    { nota: '**If the Cost Center list comes empty with the notice "Some data could not be loaded"**, Axioma has already retried on its own and the read failed: refresh the page before choosing the center. An empty list with the notice does not mean the Company has no centers.' },
   ],
 }
 
@@ -139,7 +141,7 @@ const es: DocumentoAxioma = {
   arquivo: '12 - Costos Variables.docx',
   titulo: 'Manual 12 — Costos Variables',
   subtitulo: 'Los gastos que suben y bajan con las ventas — margen de contribución, punto de equilibrio y alerta de aumento silencioso',
-  info: ['Menú: Financiero → Costos Variables  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Financiero → Costos Variables  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Los costos variables acompañan las ventas: mercadería, materia prima, comisiones, fletes, embalajes, marketing. La pantalla muestra **cuánto queda de cada venta** (margen de contribución), **cuánto hay que vender para empatar** y avisa cuando un costo sube sin que nadie lo note. Todo costo registrado aquí va solo a **Contabilidad** y al **Flujo de Caja** (como pagado).' },
@@ -199,6 +201,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Fechas y datos confiables' },
     { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
+    { nota: '**Si la lista de Centros de Costo viene vacía con el aviso "Algunos datos no se pudieron cargar"**, Axioma ya intentó de nuevo solo y la lectura falló: actualice la página antes de elegir el centro. Una lista vacía con el aviso no significa que la Empresa no tenga centros.' },
   ],
 }
 

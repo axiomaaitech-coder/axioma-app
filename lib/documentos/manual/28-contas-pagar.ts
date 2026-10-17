@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '28 - Comercial - Contas a Pagar.docx',
   titulo: 'Manual 28 — Contas a Pagar',
   subtitulo: 'Central de obrigações com fornecedores',
-  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.4 (outubro de 2026)'],
+  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.5 (outubro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne tudo o que a empresa tem para pagar: vencimentos, baixas, anexos, aprovações, pedidos de compra e conferência de notas. Além de organizar, o Axioma **protege o caixa**: detecta duplicidades, multas evitáveis, descontos que ainda dá para aproveitar e aumentos silenciosos de preço.' },
@@ -77,6 +77,7 @@ const pt: DocumentoAxioma = {
     { p: '**Pergunte à Inteligência Axioma (Assistente Financeiro):** No lugar da antiga caixa "Pergunte ao Axioma CFO", há uma conversa com a Inteligência Axioma: pergunte digitando ou pelo botão **Falar** e continue o assunto. Ela responde com os números desta tela; se a inteligência estiver fora do ar, responde pelas regras do Axioma, com aviso. Embaixo de cada resposta há **🔊 Ouvir** (a voz do José), **"Quer que eu lembre disso?"** e **"Está errado?"**; abaixo ficam a **Conversa ao vivo** (continua se você mudar de tela) e o painel **Memória da IA**. Os números vêm dos dados da Empresa, conferidos.' },
     { nota: '**Relatório depois da consulta:** peça "gere um relatório" (ou DRE, fluxo de caixa, contas a receber…) e a IA monta o relatório completo com os dados reais, avisa "seu relatório está feito e está aí embaixo, em PDF" e mostra o cartão com o botão grande **⬇ Baixar relatório em PDF** (os mesmos números da tela Relatórios). Vale também na conversa por voz.' },
     { nota: '**Conversas salvas:** a conversa e os relatórios gerados ficam guardados mesmo se você sair do módulo. Use **＋ Nova conversa** para começar outra e **🗂 Conversas salvas** para reabrir as anteriores ou apagar (🗑, com confirmação). No cartão do relatório há **✏️ Anotar** para escrever uma observação e **🗑 Apagar** para tirá-lo da conversa. Cada conversa é só sua: outras pessoas da Empresa não a veem, e nenhuma outra Empresa tem acesso. Nada é apagado sozinho.' },
+    { nota: '**Previsão de caixa, multas evitáveis, antecipação de descontos e score de fornecedores** usam várias leituras ao mesmo tempo. Se alguma falhar, aparece o aviso "Alguns dados não puderam ser carregados" e esses números ficam incompletos: atualize a página antes de decidir antecipar um pagamento.' },
   ],
 }
 
@@ -84,7 +85,7 @@ const en: DocumentoAxioma = {
   arquivo: '28 - Commercial - Accounts Payable.docx',
   titulo: 'Manual 28 — Accounts Payable',
   subtitulo: 'Control center for supplier obligations',
-  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.4 (October 2026)'],
+  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.5 (October 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together everything the company has to pay: due dates, payments, attachments, approvals, purchase orders and invoice matching. Beyond organizing, Axioma **protects your cash**: it detects duplicates, avoidable penalties, discounts you can still take and silent price increases.' },
@@ -156,6 +157,7 @@ const en: DocumentoAxioma = {
     { p: '**Ask Axioma Intelligence (Financial Assistant):** Instead of the old "Ask Axioma CFO" box, there is a conversation with Axioma Intelligence: ask by typing or with **Speak** and follow up. It answers with this screen\'s numbers; if the intelligence is down, it answers by Axioma\'s rules, with a notice. Below each answer there is **🔊 Listen** (José\'s voice), **"Should I remember this?"** and **"Is this wrong?"**; below are the **Live conversation** (it continues if you change screens) and the **AI Memory** panel. Numbers come from the Company data, checked.' },
     { nota: '**Report after the consultation:** ask "generate a report" (or income statement, cash flow, receivables…) and the AI builds the full report with the real data, says "your report is done and it is right below, in PDF" and shows the card with the big **⬇ Download report as PDF** button (the same numbers as the Reports screen). It also works in the voice conversation.' },
     { nota: '**Saved conversations:** the conversation and the generated reports stay saved even if you leave the module. Use **＋ New conversation** to start another one and **🗂 Saved conversations** to reopen previous ones or delete them (🗑, with confirmation). On the report card there is **✏️ Add note** to write a remark and **🗑 Delete** to remove it from the conversation. Each conversation is yours only: other people in the Company cannot see it, and no other Company has access. Nothing is deleted automatically.' },
+    { nota: '**Cash forecast, avoidable fines, early-payment discounts and supplier score** use several reads at once. If any fails, the notice "Some data could not be loaded" appears and those numbers are incomplete: refresh the page before deciding to pay early.' },
   ],
 }
 
@@ -163,7 +165,7 @@ const es: DocumentoAxioma = {
   arquivo: '28 - Comercial - Cuentas por Pagar.docx',
   titulo: 'Manual 28 — Cuentas por Pagar',
   subtitulo: 'Central de obligaciones con proveedores',
-  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.4 (octubre de 2026)'],
+  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.5 (octubre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne todo lo que la empresa tiene que pagar: vencimientos, pagos, adjuntos, aprobaciones, órdenes de compra y conciliación de facturas. Además de organizar, Axioma **protege la caja**: detecta duplicados, multas evitables, descuentos que aún se pueden aprovechar y aumentos silenciosos de precio.' },
@@ -235,6 +237,7 @@ const es: DocumentoAxioma = {
     { p: '**Pregunte a la Inteligencia Axioma (Asistente Financiero):** En lugar de la antigua caja "Pregunte al Axioma CFO", hay una conversación con la Inteligencia Axioma: pregunte escribiendo o con **Hablar** y continúe el tema. Responde con los números de esta pantalla; si la inteligencia no está disponible, responde por las reglas de Axioma, con aviso. Debajo de cada respuesta hay **🔊 Escuchar** (la voz de José), **"¿Quiere que recuerde esto?"** y **"¿Está mal?"**; abajo están la **Conversación en vivo** (continúa si cambia de pantalla) y el panel **Memoria de la IA**. Los números vienen de los datos de la Empresa, verificados.' },
     { nota: '**Informe después de la consulta:** pida "genere un informe" (o estado de resultados, flujo de caja, cuentas por cobrar…) y la IA arma el informe completo con los datos reales, avisa "su informe está hecho y está justo abajo, en PDF" y muestra la tarjeta con el botón grande **⬇ Descargar informe en PDF** (los mismos números de la pantalla Informes). También funciona en la conversación por voz.' },
     { nota: '**Conversaciones guardadas:** la conversación y los informes generados quedan guardados aunque salga del módulo. Use **＋ Nueva conversación** para empezar otra y **🗂 Conversaciones guardadas** para reabrir las anteriores o borrarlas (🗑, con confirmación). En la tarjeta del informe está **✏️ Anotar** para escribir una observación y **🗑 Borrar** para quitarlo de la conversación. Cada conversación es solo suya: otras personas de la Empresa no la ven y ninguna otra Empresa tiene acceso. Nada se borra solo.' },
+    { nota: '**Previsión de caja, multas evitables, anticipo de descuentos y puntaje de proveedores** usan varias lecturas a la vez. Si alguna falla, aparece el aviso "Algunos datos no se pudieron cargar" y esos números quedan incompletos: actualice la página antes de decidir anticipar un pago.' },
   ],
 }
 
