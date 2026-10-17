@@ -115,6 +115,7 @@ const doc: DocumentoAxioma = {
     { h1: '9. How we protect it' },
     { lista: [
       'Encryption of data in transit (HTTPS/TLS) and passwords stored irreversibly.',
+      'Passwords of at least 8 characters, with letters and numbers, checked against the public leaked-password database (Have I Been Pwned) anonymously: only a 5-character fragment of a code of the password leaves the device — the password is never sent.',
       '**Isolation per company:** rules in the database itself prevent one company from seeing another\'s data.',
       'Access control by role and hierarchy (Owner, CEO, Partner, Administrator and others), with the cashier limited to the POS and unable to see costs.',
       'Invitations tied to an e-mail, confirmed by code, with a duration and a responsibility term.',

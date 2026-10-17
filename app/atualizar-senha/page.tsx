@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { createBrowserClient } from '../../lib/supabaseBrowser'
+import { conferirSenha, dicaSenha, mensagemSenha } from '../../lib/senhaSegura'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -67,9 +68,7 @@ export default function AtualizarSenha() {
              'Sesión expirada. Solicite un nuevo enlace de recuperación de contraseña.'
     }
     if (mensagem.includes('Password should be at least')) {
-      return idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' :
-             idioma === 'en' ? 'Password must be at least 6 characters.' :
-             'La contraseña debe tener al menos 6 caracteres.'
+      return mensagemSenha('curta', idioma as 'pt' | 'en' | 'es')
     }
     return idioma === 'pt' ? 'Ocorreu um erro. Tente novamente.' :
            idioma === 'en' ? 'An error occurred. Please try again.' :
@@ -93,13 +92,12 @@ export default function AtualizarSenha() {
       setErro(idioma === 'pt' ? 'As senhas não coincidem.' : idioma === 'en' ? 'Passwords do not match.' : 'Las contraseñas no coinciden.')
       return
     }
-    if (senha.length < 6) {
-      setErro(idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' : idioma === 'en' ? 'Password must be at least 6 characters.' : 'La contraseña debe tener al menos 6 caracteres.')
-      return
-    }
-
     setCarregando(true)
     setErro('')
+    // Senha profissional: 8+ com letra e número, sem o e-mail, fora das senhas vazadas (lib/senhaSegura)
+    const { data: { user: quem } } = await supabase.auth.getUser()
+    const problema = await conferirSenha(senha, quem?.email ?? '')
+    if (problema) { setErro(mensagemSenha(problema, idioma as 'pt' | 'en' | 'es')); setCarregando(false); return }
 
     const { error } = await supabase.auth.updateUser({ password: senha })
 
@@ -192,6 +190,7 @@ export default function AtualizarSenha() {
                 {verSenha ? '🙈' : '👁️'}
               </button>
             </div>
+            <p className="text-xs mt-1.5" style={{ color: '#5a7a9a' }}>{dicaSenha(idioma as 'pt' | 'en' | 'es')}</p>
           </div>
 
           <div>

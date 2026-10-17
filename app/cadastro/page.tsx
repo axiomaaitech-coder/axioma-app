@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
 import { origemDoLogin } from '../../lib/origemLogin'
+import { conferirSenha, dicaSenha, mensagemSenha } from '../../lib/senhaSegura'
 
 const idiomaAtual = (i: string) => i === 'en' ? 'Could not confirm you are not a robot. Please try again.' : i === 'es' ? 'No se pudo confirmar que no es un robot. Intente de nuevo.' : 'Não foi possível confirmar que você não é um robô. Tente de novo.'
 
@@ -54,11 +55,10 @@ export default function Cadastro() {
       setErro(idioma === 'pt' ? 'As senhas nao coincidem.' : idioma === 'en' ? 'Passwords do not match.' : 'Las contrasenas no coinciden.')
       return
     }
-    if (senha.length < 6) {
-      setErro(idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' : idioma === 'en' ? 'Password must be at least 6 characters.' : 'La contrasena debe tener al menos 6 caracteres.')
-      return
-    }
     setCarregando(true)
+    // Senha profissional: 8+ com letra e número, sem o e-mail, fora das senhas vazadas (lib/senhaSegura)
+    const problema = await conferirSenha(senha, email)
+    if (problema) { setErro(mensagemSenha(problema, idioma as 'pt' | 'en' | 'es')); setCarregando(false); return }
     const captcha = await turnstile.pegarToken() // só aqui a Cloudflare roda
     if (TURNSTILE_ATIVO && !captcha) { setErro(idiomaAtual(idioma)); setCarregando(false); return }
     setErro('')
@@ -193,6 +193,7 @@ export default function Cadastro() {
                 {verSenha ? '🙈' : '👁️'}
               </button>
             </div>
+            <p className="text-xs mt-1.5" style={{ color: '#5a7a9a' }}>{dicaSenha(idioma as 'pt' | 'en' | 'es')}</p>
           </div>
 
           <div>

@@ -1,5 +1,6 @@
 'use client'
 import * as Sentry from '@sentry/nextjs'
+import { dicaSenha, mensagemSenha, regraSenha, senhaVazada } from '@/lib/senhaSegura'
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
@@ -138,7 +139,7 @@ export default function AceitarConvite() {
   const pedeCpf = !!convite
   const nomeOk = nome.trim().split(/\s+/).length >= 2
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const senhaOk = senha.length >= 6
+  const senhaOk = !regraSenha(senha, email)
   const cpfOk = !pedeCpf || cpfValido(cpf)
   const podeEnviar = nomeOk && emailOk && senhaOk && cpfOk && aceitaTermos && estado === 'pronto'
 
@@ -146,7 +147,7 @@ export default function AceitarConvite() {
     nome: L('Digite seu nome completo (nome e sobrenome).', 'Enter your full name (first and last).', 'Escriba su nombre completo (nombre y apellido).'),
     email: L('E-mail inválido.', 'Invalid e-mail.', 'Correo inválido.'),
     email_outro: L('Este convite foi enviado para outro e-mail.', 'This invite was sent to another e-mail.', 'Esta invitación fue enviada a otro correo.'),
-    senha_curta: L('A senha precisa de pelo menos 6 caracteres.', 'Password needs at least 6 characters.', 'La contraseña necesita al menos 6 caracteres.'),
+    senha_curta: mensagemSenha(regraSenha(senha, email) ?? 'curta', lang),
     senha_fraca: L('Escolha uma senha mais forte.', 'Choose a stronger password.', 'Elija una contraseña más fuerte.'),
     senha_conta: L('Este e-mail já tem conta no Axioma. Digite a senha dessa conta.', 'This e-mail already has an Axioma account. Type that account\'s password.', 'Este correo ya tiene cuenta en Axioma. Escriba la contraseña de esa cuenta.'),
     cpf: L('CPF inválido. Confira os números.', 'Invalid CPF. Check the numbers.', 'CPF inválido. Revise los números.'),
@@ -183,6 +184,8 @@ export default function AceitarConvite() {
         if (!(await aceitarConvite(logado.id, nome.trim(), cpf))) setEstado('pronto')
         return
       }
+      // 3) conta nova: a senha não pode estar entre as vazadas na internet (lib/senhaSegura)
+      if ((await senhaVazada(senha)) === true) { setErro(mensagemSenha('vazada', lang)); setEstado('pronto'); return }
       // 3) conta nova: cria com a senha escolhida e manda o link de confirmação.
       // O link volta pra esta página, que aceita sozinha (dados vão na conta).
       const { data: cad, error } = await supabase.auth.signUp({
@@ -318,7 +321,7 @@ export default function AceitarConvite() {
                   </button>
                 </div>
                 <p className="text-xs mt-1.5 leading-relaxed" style={{ color: COR.sec }}>
-                  {L('Mínimo de 6 caracteres. Se este e-mail já tem conta no Axioma, a senha dela continua a mesma.', 'At least 6 characters. If this e-mail already has an Axioma account, its password stays the same.', 'Mínimo 6 caracteres. Si este correo ya tiene cuenta en Axioma, su contraseña sigue igual.')}
+                  {dicaSenha(lang)} {L('Se este e-mail já tem conta no Axioma, a senha dela continua a mesma.', 'If this e-mail already has an Axioma account, its password stays the same.', 'Si este correo ya tiene cuenta en Axioma, su contraseña sigue igual.')}
                 </p>
               </div>
 

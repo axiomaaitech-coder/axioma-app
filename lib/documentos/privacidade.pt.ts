@@ -114,6 +114,7 @@ const doc: DocumentoAxioma = {
     { h1: '9. Como protegemos' },
     { lista: [
       'Criptografia na transmissão dos dados (HTTPS/TLS) e senhas guardadas de forma irreversível.',
+      'Senha com no mínimo 8 caracteres, letras e números, conferida contra a base pública de senhas vazadas (Have I Been Pwned) por anonimato: só um fragmento de 5 caracteres de um código da senha sai do aparelho — a senha nunca é enviada.',
       '**Isolamento por empresa:** regras no próprio banco de dados impedem que uma empresa veja dados de outra.',
       'Controle de acesso por papel e hierarquia (Proprietário, CEO, Sócio, Administrador e demais), com operador de caixa limitado ao PDV e sem ver custos.',
       'Convites presos a um e-mail, confirmados por código, com prazo e com termo de responsabilidade.',
