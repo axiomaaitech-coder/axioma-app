@@ -26,6 +26,20 @@ function avisarTela() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_FALHA_LEITURA));
 }
 
+// Para leitura já feita por outro caminho (ex.: lerTodas) que voltou com erro: registra e avisa a tela.
+export function avisarFalhaLeitura(contexto: string, err: unknown): void {
+  reportarFalhaLeitura(contexto, err);
+  avisarTela();
+}
+
+// Leituras em grupo (Promise.all) que seguem mesmo com falha: se alguma voltou com erro, registra e avisa a
+// tela uma vez — o resultado incompleto nunca passa por "zero/vazio de verdade". Devolve as mesmas respostas.
+export function avisarSeFalhou<T extends readonly { error?: unknown }[]>(respostas: T, contexto: string): T {
+  const falha = respostas.find((r) => r?.error)?.error;
+  if (falha) avisarFalhaLeitura(contexto, falha instanceof Error ? falha : new Error(String((falha as { message?: string })?.message ?? falha)));
+  return respostas;
+}
+
 // Leitura que NÃO pode virar "vazio" calado (lista, soma, checagem "já existe?" antes de gravar).
 // Antes, falha virava "não existe" e a checagem deixava gravar em dobro.
 export async function exigirLeitura<T>(executar: () => PromiseLike<RespostaBanco<T>>, contexto: string): Promise<T> {

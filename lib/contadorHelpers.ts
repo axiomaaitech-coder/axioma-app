@@ -646,9 +646,10 @@ async function regraMargemCaindo(empresaId: string, d: DadosProativos, lang: Idi
 async function regraCentroEstourando(empresaId: string, d: DadosProativos, lang: Idioma3): Promise<number> {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const periodo = d.hoje.slice(0, 7);
-  const [{ data: centros }, { data: orcs }] = await Promise.all([
-    supabase.from("centros_custo").select("id, nome, orcamento_mensal").eq("empresa_id", empresaId),
-    supabase.from("centro_custo_orcamento").select("centro_custo_id, valor_orcado").eq("empresa_id", empresaId).eq("periodo", periodo),
+  // Sem ler centros/orçamentos o alerta "centro estourando" some calado: tenta de novo, registra e avisa a tela
+  const [centros, orcs] = await Promise.all([
+    registrarLeitura(() => supabase.from("centros_custo").select("id, nome, orcamento_mensal").eq("empresa_id", empresaId), "contador:centrosCusto"),
+    registrarLeitura(() => supabase.from("centro_custo_orcamento").select("centro_custo_id, valor_orcado").eq("empresa_id", empresaId).eq("periodo", periodo), "contador:orcamentos"),
   ]);
   const orcDe = new Map(((orcs || []) as { centro_custo_id: string; valor_orcado: number }[]).map((o) => [o.centro_custo_id, Number(o.valor_orcado)]));
   const dia = Number(d.hoje.slice(8, 10));

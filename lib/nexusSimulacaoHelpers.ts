@@ -184,8 +184,9 @@ export async function autoArquivarAntigas(empresaId: string): Promise<void> {
 
 // Quantas simulações ativas a empresa tem — pro card "Minhas Simulações" em /nexus.
 export async function contarSimulacoes(empresaId: string): Promise<number> {
-  const { count } = await supabase.from("nexus_simulation").select("id", { count: "exact", head: true })
+  const { count, error } = await supabase.from("nexus_simulation").select("id", { count: "exact", head: true })
     .eq("empresa_id", empresaId).eq("status", "completed");
+  if (error) reportarFalhaEscrita("nexus.contarSimulacoes", error); // só o número do cartão; a lista lê de novo
   return count ?? 0;
 }
 

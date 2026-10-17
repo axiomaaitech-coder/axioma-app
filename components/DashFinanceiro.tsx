@@ -7,7 +7,7 @@ import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { lerTodas } from "../lib/lerTodas";
 import { hojeISO } from "../lib/datas";
-import { reportarFalhaLeitura } from "../lib/erroUiHelpers";
+import { avisarFalhaLeitura, reportarFalhaLeitura } from "../lib/erroUiHelpers";
 import { fBRL, fK, tip, tipClaro, EIXO, barrasV, rosca } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 
@@ -168,7 +168,8 @@ export default function DashFinanceiro() {
       ]);
       if (!ativo) return;
       const falha = res.find((r) => r.error)?.error;
-      if (falha) reportarFalhaLeitura("dashFinanceiro", falha);
+      // Falha não pode parecer "R$ 0,00 de verdade": registra e mostra o aviso de dado incompleto na tela
+      if (falha) avisarFalhaLeitura("dashFinanceiro", falha);
       const [{ data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: dividas }, { data: fluxo }] = res;
       const doMes = (r: any) => r.data >= inicioMes && r.data <= fimMes;
 

@@ -557,11 +557,12 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
 // do BCE na última data em comum. Melhor-esforço.
 async function atualizarNotasFontes(supabase: SupabaseClient): Promise<string> {
   try {
-    const [{ data: fontes }, { data: bcb }, { data: bce }] = await Promise.all([
+    const [{ data: fontes, error: eFontes }, { data: bcb }, { data: bce }] = await Promise.all([
       supabase.from('nexus_source').select('source_id, source_name, source_type, last_success, last_failure'),
       supabase.from('nexus_economic_series').select('data_referencia, valor').eq('serie_codigo', '1').order('data_referencia', { ascending: false }).limit(10),
       supabase.from('nexus_economic_series').select('data_referencia, valor').eq('serie_codigo', RESERVA_BCE['1']).order('data_referencia', { ascending: false }).limit(10),
     ])
+    if (eFontes) return `notas das fontes: leitura falhou (${eFontes.message})` // não grava nota sem ter lido as fontes
     const comum = (bcb ?? []).find((l) => (bce ?? []).some((r) => r.data_referencia === l.data_referencia))
     const par = comum ? (bce ?? []).find((r) => r.data_referencia === comum.data_referencia) : undefined
     const concordancia = comum && par ? concordanciaPct(Number(comum.valor), Number(par.valor)) : null

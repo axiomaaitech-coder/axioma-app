@@ -684,7 +684,8 @@ export async function limparHistoricoTrib(userId: string): Promise<{ erro?: stri
     return { erro: error.message };
   }
   // 0 linhas apagadas pode ser histórico vazio (ok) ou RLS negando: confere se sobrou algo.
-  const { count } = await supabase.from("ia_tributaria_historico").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  const { count, error: eConf } = await supabase.from("ia_tributaria_historico").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  if (eConf) { reportarFalhaEscrita("ia_tributaria_historico", "conferir limpeza", eConf.message); return { erro: eConf.message }; }
   if (count && count > 0) {
     reportarFalhaEscrita("ia_tributaria_historico", "delete", `${count} linha(s) continuam após limpar (RLS?)`);
     return { erro: "historico_nao_apagado" };

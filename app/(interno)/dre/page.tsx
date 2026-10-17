@@ -10,7 +10,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao, exigirLeitura } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, exigirLeitura, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -205,9 +205,10 @@ export default function DREPage() {
     setRegimeTributario(emp?.regime_tributario || "");
     setAtividadeFiscal((emp as { atividade_fiscal?: string | null } | null)?.atividade_fiscal ?? null);
     if (empId && (emp?.regime_tributario || "").toLowerCase() === "mei") {
-      const [das, { data: mei }] = await Promise.all([
+      const [das, mei] = await Promise.all([
         lerDASParaDRE(empId, inicioHist, periodo.fim),
-        supabase.from("mei_dados").select("categoria_mei").eq("empresa_id", empId).maybeSingle(),
+        // Categoria do MEI decide o DAS padrão: falha não pode cair calada no DAS de outra categoria
+        registrarLeitura(() => supabase.from("mei_dados").select("categoria_mei").eq("empresa_id", empId).maybeSingle(), "dre:categoriaMei"),
       ]);
       if (das.erro) showToast(lang === "en" ? "Could not read the actual DAS — the P&L uses the estimate for now." : lang === "es" ? "No se pudo leer el DAS real — el estado de resultados usa la estimación por ahora." : "Não foi possível ler o DAS real — a DRE usa a estimativa por enquanto.", "erro");
       setDasMei(das.erro ? null : { obrigacoes: das.obrigacoes, encargos: das.encargos, padrao: dasMensalPorCategoria(mei?.categoria_mei) });

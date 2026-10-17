@@ -16,7 +16,7 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
@@ -865,7 +865,7 @@ export default function Fornecedores() {
       if (!user) return;
       obterEmpresaAtiva().then((empId) => {
         if (!empId) return;
-        supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).then(({ data }) => setCentrosCusto(data || []));
+        registrarLeitura(() => supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId), "fornecedores:centrosCusto").then((data) => setCentrosCusto(data || [])); // falha: tenta de novo e avisa (lista vazia não é "sem centro")
       });
     });
   }, []);

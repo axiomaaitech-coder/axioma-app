@@ -9,7 +9,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -120,7 +120,7 @@ export default function CustosFixos() {
     // Leitura falhou ≠ "não há custos": avisa em vez de mostrar a lista vazia calada.
     if (error) { showToast(L("Não foi possível carregar os custos fixos agora. Recarregue a página.", "Could not load fixed costs now. Reload the page.", "No se pudieron cargar los costos fijos ahora. Recargue la página."), "erro"); reportarFalhaEscrita("custos_fixos", "leitura", error.message); }
     setCustos(data || []);
-    supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
+    registrarLeitura(() => supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId), "custos-fixos:centrosCusto").then((data) => setCentrosCusto(data || [])); // falha: tenta de novo e avisa (lista vazia não é "sem centro")
     setCarregando(false);
   };
 

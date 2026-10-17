@@ -18,6 +18,7 @@ import { fBRL, fBRL2, fData, optBarrasComparativo, optRosca, optBarrasH, corTema
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
+import { registrarLeitura } from "../../../lib/erroUiHelpers";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
   type Produto, type MovimentacaoComProduto, type EstoqueLote, type AvisoEstoque, type AvisoValidade,
@@ -814,7 +815,8 @@ export default function EstoquePage() {
     setProdutoSelecionadoMov(null);
     setLotesProdutoMov([]);
     if (mov) {
-      supabase.from("produtos").select("*").eq("id", mov.produto_id).maybeSingle().then(({ data }) => {
+      // Editar movimentação sem o produto carregado: tenta de novo e avisa (campo vazio não é "sem produto")
+      registrarLeitura(() => supabase.from("produtos").select("*").eq("id", mov.produto_id).maybeSingle(), "estoque:produtoDaMovimentacao").then((data) => {
         if (data) { setProdutoSelecionadoMov(data); listarLotesProduto(data.id).then(setLotesProdutoMov); }
       });
     }

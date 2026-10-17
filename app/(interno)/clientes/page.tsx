@@ -9,7 +9,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import {
   Pencil, Trash2, X, Phone, Mail, MapPin, FileText, ChevronRight, ChevronLeft,
   Award, Users, AlertTriangle, Clock, MessageCircle, Send, HeartPulse, Layers,
@@ -460,7 +460,7 @@ export default function ClientesPage() {
       if (!user) return;
       obterEmpresaAtiva().then((empId) => {
         if (!empId) return;
-        supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).then(({ data }) => setCentrosCusto(data || []));
+        registrarLeitura(() => supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId), "clientes:centrosCusto").then((data) => setCentrosCusto(data || [])); // falha: tenta de novo e avisa (lista vazia não é "sem centro")
       });
     });
   }, []);

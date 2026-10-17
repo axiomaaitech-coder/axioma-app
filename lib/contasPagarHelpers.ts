@@ -6,7 +6,7 @@
 import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
-import { reportarFalhaLeitura, exigirLeitura, registrarLeitura } from "./erroUiHelpers";
+import { reportarFalhaLeitura, exigirLeitura, registrarLeitura, avisarSeFalhou } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
@@ -696,13 +696,13 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
   const hoje = hojeISO();
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
 
-  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
+  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = avisarSeFalhou(await Promise.all([
     lerTodas(() => supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId).order("id")),
     lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
     soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
-  ]);
+  ]), "contasPagar:forecast");
 
   const saldoAtual = (fc || []).filter((l: any) => l.status === "realizado")
     .reduce((s: number, l: any) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
@@ -1090,12 +1090,12 @@ export type MultaEvitavel = {
 };
 
 export async function detectarMultasEvitaveis(empresaId: string): Promise<{ multas: MultaEvitavel[]; totalRecuperavel: number }> {
-  const [{ data: cp }, { data: fc }] = await Promise.all([
+  const [{ data: cp }, { data: fc }] = avisarSeFalhou(await Promise.all([
     supabase.from("contas_pagar")
       .select("id, descricao, fornecedor_id, valor_total, valor_pago, data_vencimento, data_pagamento, taxa_multa_mensal")
       .eq("empresa_id", empresaId).eq("status", "pago"),
     lerTodas(() => supabase.from("fluxo_caixa").select("data, valor, tipo").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
-  ]);
+  ]), "contasPagar:multasEvitaveis");
 
   const linhasCaixa = ((fc as { data: string; valor: number; tipo: string }[]) || [])
     .filter((l) => l.data)
@@ -1481,13 +1481,13 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
   const selecionadas = new Set(contaIds);
 
-  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
+  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = avisarSeFalhou(await Promise.all([
     lerTodas(() => supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId).order("id")),
     lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
     lerTodas(() => supabase.from("contas_pagar").select("id, valor_total, valor_pago, status, data_vencimento, custo_fixo_id, desconto_disponivel_pct, desconto_data_limite").eq("empresa_id", empresaId).order("id")),
     soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
-  ]);
+  ]), "contasPagar:forecast");
 
   type ContaPagarParaAntecipacao = {
     id: string; valor_total: number; valor_pago: number; status: string | null; data_vencimento: string | null;

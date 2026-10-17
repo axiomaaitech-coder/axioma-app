@@ -10,7 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto } from "./cfoCore";
 import { carregarKpisEstoque } from "./estoqueHelpers";
-import { registrarLeitura } from "./erroUiHelpers";
+import { registrarLeitura, avisarSeFalhou } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -216,12 +216,14 @@ export function montarBlendFluxoProjetado(
 }
 
 export async function obterFluxoProjetado(empresaId: string, reservaMinima: number): Promise<FluxoProjetadoResultado> {
-  const [rpcResultados, { data: cpPagas }, { data: crRecebidas }] = await Promise.all([
+  const [rpcResultados, rCpPagas, rCrRecebidas] = await Promise.all([
     Promise.all(HORIZONTES_TESOURARIA.map((dias) => supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias }))),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
     lerTodas(() => supabase.from("contas_receber").select("valor, data_vencimento, data_recebimento").eq("empresa_id", empresaId).eq("status", "recebido").order("id")),
   ]);
 
+  // Histórico de atraso sem leitura não é "sem atraso": registra e avisa a tela (o fator cai no padrão)
+  const [{ data: cpPagas }, { data: crRecebidas }] = avisarSeFalhou([rCpPagas, rCrRecebidas] as const, "tesouraria:historicoAtraso");
   rpcResultados.forEach((r, i) => {
     if (r.error) reportarFalhaEscrita("tesouraria_fluxo_projetado", `rpc select (${HORIZONTES_TESOURARIA[i]}d)`, r.error.message);
   });

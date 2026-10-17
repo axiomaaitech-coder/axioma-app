@@ -53,8 +53,9 @@ export async function GET(req: NextRequest) {
   // Pedidos de entrada (convite com e-mail confirmado) pra quem pode aprovar
   let pendentes: { id: string; nome: string; email: string; cpf: string; papel: string; relacao: string | null }[] = []
   if (papel) {
-    const { data: cvs } = await db.from('empresa_equipe').select('id, papel, relacao, convidado_nome_termo')
+    const { data: cvs, error: eCvs } = await db.from('empresa_equipe').select('id, papel, relacao, convidado_nome_termo')
       .eq('empresa_id', empresaId).eq('situacao', 'aguardando_aprovacao').limit(20)
+    if (eCvs) { falhaServidor('ler pedidos de entrada', eCvs.message, { empresaId }); return erro('generico', 500) }
     if (cvs?.length) {
       const { data: tms } = await db.from('empresa_convite_termo').select('convite_id, nome, email, cpf')
         .in('convite_id', cvs.map((c) => c.id)).is('apagado_em', null)
@@ -125,8 +126,10 @@ async function criar(corpo: any) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('email')
   // Mesmo e-mail com convite ainda valendo: reenvia o mesmo link
   if (email) {
-    const { data: pend } = await db.from('empresa_equipe').select('id, token_convite, expira_em')
+    const { data: pend, error: ePend } = await db.from('empresa_equipe').select('id, token_convite, expira_em')
       .eq('empresa_id', empresaId).eq('convite_aceito', false).ilike('email_convidado', email).limit(1)
+    // Sem saber se já há convite para o e-mail, não cria outro (ficariam dois links valendo)
+    if (ePend) { falhaServidor('ler convite pendente', ePend.message, { empresaId }); return erro('generico', 500) }
     const p = pend?.[0]
     if (p && (!p.expira_em || new Date(p.expira_em) > new Date())) return NextResponse.json({ id: p.id, token: p.token_convite })
     if (p) {
@@ -340,7 +343,9 @@ async function membroLixeira(corpo: any) {
   if (!emp || emp.user_id === alvo) return erro('proprietario', 403)
   const { data: v } = await db.from('empresa_usuarios').select('id, papel, convite_id').eq('empresa_id', empresaId).eq('user_id', alvo).maybeSingle()
   if (!v || v.papel === 'dono') return erro('invalido', 404)
-  const { data: cv } = v.convite_id ? await db.from('empresa_equipe').select('id, relacao').eq('id', v.convite_id).maybeSingle() : { data: null }
+  // Leitura que falha não pode "rebaixar" o alvo: sem saber se é Sócio/CEO, um admin o suspenderia
+  const { data: cv, error: eCv } = v.convite_id ? await db.from('empresa_equipe').select('id, relacao').eq('id', v.convite_id).maybeSingle() : { data: null, error: null }
+  if (eCv) { falhaServidor('ler convite do alvo', eCv.message, { empresaId }); return erro('generico', 500) }
   const lider = v.papel === 'admin' || cv?.relacao === 'ceo' || cv?.relacao === 'socio'
   if (lider && emp.user_id !== user.id) return erro('sem_permissao', 403)
   const agora = new Date().toISOString()

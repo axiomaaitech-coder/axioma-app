@@ -285,9 +285,13 @@ export async function atualizarProduto(id: string, dados: Partial<Produto>): Pro
 // movimentação nenhuma (senão perde a base do CMV histórico); com
 // movimentação mas sem venda, inativa em vez de apagar.
 export async function excluirProduto(id: string): Promise<{ erro?: string; inativadoEmVezDeExcluir?: boolean; temVenda?: boolean }> {
-  const { count: countVenda } = await supabase.from("item_venda").select("id", { count: "exact", head: true }).eq("produto_id", id);
+  // Contagem que falha NÃO vira zero: sem saber se há venda/movimentação, não apaga nada (antes uma falha de
+  // leitura deixava apagar de vez um produto com histórico de estoque, perdendo a base do CMV).
+  const { count: countVenda, error: eVenda } = await supabase.from("item_venda").select("id", { count: "exact", head: true }).eq("produto_id", id);
+  if (eVenda) { reportarFalhaEscrita("item_venda", "contar antes de excluir", eVenda.message); return { erro: eVenda.message }; }
   if ((countVenda || 0) > 0) return { temVenda: true };
-  const { count } = await supabase.from("estoque_movimentacoes").select("id", { count: "exact", head: true }).eq("produto_id", id);
+  const { count, error: eMov } = await supabase.from("estoque_movimentacoes").select("id", { count: "exact", head: true }).eq("produto_id", id);
+  if (eMov) { reportarFalhaEscrita("estoque_movimentacoes", "contar antes de excluir", eMov.message); return { erro: eMov.message }; }
   if ((count || 0) > 0) {
     const { data, error } = await supabase.from("produtos").update({ status: "inativo" }).eq("id", id).select("id");
     if (error || !data || data.length === 0) {

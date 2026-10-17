@@ -112,7 +112,7 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
   const desde30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const desde3 = new Date(Date.now() - 3 * 86400000).toISOString()
 
-  const [{ data: series }, { data: eventos }, { data: noticias }, { data: bm }, { data: geo }] = await Promise.all([
+  const lidas = await Promise.all([
     supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').gte('data_referencia', new Date(Date.now() - 140 * 86400000).toISOString().slice(0, 10)).order('data_referencia', { ascending: true }).limit(2000),
     supabase.from('nexus_global_event').select('title, description, natureza, published_at, joseph_analise').gte('published_at', desde30).order('published_at', { ascending: false }).limit(15),
     supabase.from('nexus_news').select('title, publication_date, canal, nexus_source(source_name)').gte('publication_date', desde3).or(`canal.is.null,canal.neq.${CANAL_GEOPOLITICA}`).order('publication_date', { ascending: false }).limit(14),
@@ -121,6 +121,12 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
     supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').like('serie_codigo', 'WB:%').order('data_referencia', { ascending: false }).limit(200),
     supabase.from('nexus_news').select('title, publication_date').eq('canal', CANAL_GEOPOLITICA).gte('publication_date', desde3).order('publication_date', { ascending: false }).limit(10),
   ])
+  // Sem indicadores ou manchetes por FALHA de leitura o José escreveria o painel do dia sem base (e ele fica
+  // gravado para todos): para aqui — quem chama devolve o último painel bom. Eventos/Banco Mundial/GDELT são
+  // complemento: a falha fica registrada e o painel segue sem eles.
+  const [{ data: series, error: eSeries }, { data: eventos, error: eEventos }, { data: noticias, error: eNoticias }, { data: bm, error: eBm }, { data: geo, error: eGeo }] = lidas
+  if (eSeries || eNoticias) throw new FalhaBriefing(`leitura do mundo: ${(eSeries ?? eNoticias)!.message}`)
+  for (const [nome, e] of [['eventos', eEventos], ['banco mundial', eBm], ['geopolítica', eGeo]] as const) if (e) console.error(`[nexusBriefing] ${nome} não lido:`, e.message)
 
   // Indicador: valor mais recente e o de ~30 dias antes (mesma série).
   const porSerie = new Map<string, { nome: string; pontos: { data: string; valor: number }[] }>()

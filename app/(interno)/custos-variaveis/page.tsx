@@ -11,7 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -160,7 +160,7 @@ export default function CustosVariaveis() {
     const hojeStr = hojeISO();
     setCustoFixoTotal((cf || []).filter((c: any) => (!c.data_inicio || c.data_inicio <= hojeStr) && (!c.data_fim || c.data_fim >= hojeStr)).reduce((s, c: any) => s + Number(c.valor_mensal || 0), 0));
     setReceitas((rec || []).map((r: any) => ({ valor: Number(r.valor || 0), data: r.data })));
-    supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
+    registrarLeitura(() => supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId), "custos-variaveis:centrosCusto").then((data) => setCentrosCusto(data || [])); // falha: tenta de novo e avisa (lista vazia não é "sem centro")
     setCarregando(false);
   };
 

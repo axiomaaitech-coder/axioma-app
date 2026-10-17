@@ -310,9 +310,10 @@ export default function ContasPagarPage() {
     if (!empresaId || fornecedores.length === 0 || scoreCarregado) return;
     const empId = empresaId;
     (async () => {
-      const [{ data: docs }, { data: interacoes }] = await Promise.all([
-        supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId),
-        supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId),
+      // Score do fornecedor sem documentos/interações por FALHA não é score real: tenta de novo e avisa a tela
+      const [docs, interacoes] = await Promise.all([
+        registrarLeitura(() => supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId), "contasPagar:docsFornecedor"),
+        registrarLeitura(() => supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId), "contasPagar:interacoesFornecedor"),
       ]);
       setScoreFornecedores(rankingScoreAxioma(fornecedores, contas, docs || [], interacoes || []));
       setScoreCarregado(true);

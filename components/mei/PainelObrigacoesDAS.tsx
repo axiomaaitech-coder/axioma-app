@@ -89,7 +89,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
   const [cnpjMei, setCnpjMei] = useState<string | null>(null)
   useEffect(() => {
     if (!empresaId) return
-    void supabase.from('mei_dados').select('cnpj').eq('empresa_id', empresaId).maybeSingle().then(({ data }) => setCnpjMei((data?.cnpj as string) ?? null))
+    void registrarLeitura(() => supabase.from('mei_dados').select('cnpj').eq('empresa_id', empresaId).maybeSingle(), 'das:cnpjMei').then((data) => setCnpjMei((data?.cnpj as string) ?? null))
   }, [empresaId])
   // Pix pelo Axioma concluído na Pluggy → baixa sozinha (chave "pluggy:<id>": repetir não duplica).
   useEffect(() => {

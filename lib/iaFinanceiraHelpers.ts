@@ -788,7 +788,8 @@ export async function limparHistorico(userId: string): Promise<{ erro?: string }
     return { erro: error.message };
   }
   // 0 linhas apagadas pode ser histórico vazio (ok) ou RLS negando: confere se sobrou algo.
-  const { count } = await supabase.from("ia_financeira_historico").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  const { count, error: eConf } = await supabase.from("ia_financeira_historico").select("id", { count: "exact", head: true }).eq("user_id", userId);
+  if (eConf) { reportarFalhaEscrita("ia_financeira_historico", "conferir limpeza", eConf.message); return { erro: eConf.message }; }
   if (count && count > 0) {
     reportarFalhaEscrita("ia_financeira_historico", "delete", `${count} linha(s) continuam após limpar (RLS?)`);
     return { erro: "historico_nao_apagado" };
