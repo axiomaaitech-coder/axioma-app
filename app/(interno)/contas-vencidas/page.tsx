@@ -140,14 +140,18 @@ export default function ContasVencidasPage() {
     const o = optBarrasV(valoresAging, rotulosAging, P.VERMELHO, temaClaro ? '#ff5a6b' : '#fca5a5',
       [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? P.AMBAR : P.VERMELHO))], temaClaro)
     const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
+    // celular: tela estreita = rótulos mais inclinados e menores; valores sempre abreviados (21,6 mil)
+    const estreito = typeof window !== 'undefined' && window.innerWidth < 640
+    const curto = (v: number) => v.toLocaleString(local, { notation: 'compact', maximumFractionDigits: 1 })
     return {
       ...o,
-      grid: { ...o.grid, left: 64, bottom: 36 },
-      xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, interval: 0, hideOverlap: true, rotate: rotulosAging.length > 8 ? 30 : 0, formatter: (v: string, i: number) => (i === 0 ? v : `${v} ${dias}`) } },
-      yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, formatter: (v: number) => fmt(v).replace(/,00$/, '') } },
+      grid: { ...o.grid, left: estreito ? 40 : 56, right: 8, bottom: estreito ? 54 : 40 },
+      xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, interval: 0, hideOverlap: true, fontSize: estreito ? 9 : 11, rotate: estreito ? 50 : 30, formatter: (v: string, i: number) => (i === 0 || estreito ? v : `${v} ${dias}`) } },
+      yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, formatter: (v: number) => curto(v) } },
+      labelLayout: { hideOverlap: true },
       tooltip: { ...o.tooltip, formatter: (p: { dataIndex: number; name: string; value: number }) =>
         `<b>${p.name}${p.dataIndex === 0 ? '' : ' ' + dias}</b><br/><b style="font-size:15px">${fmt(p.value)}</b><br/>${qtdAging[p.dataIndex]} ${contas} · ${baseAging ? ((p.value / baseAging) * 100).toLocaleString(local, { maximumFractionDigits: 1 }) : 0}% ${doTotal}` },
-      series: [{ ...o.series[0], barWidth: '62%', label: { ...o.series[0].label, fontSize: 10, formatter: (p: { value: number }) => (p.value > 0 ? fmt(p.value).replace(/,\d\d$/, '') : '') } }],
+      series: [{ ...o.series[0], barWidth: '62%', label: { ...o.series[0].label, fontSize: estreito ? 8 : 10, formatter: (p: { value: number }) => (p.value > 0 ? curto(p.value) : '') } }],
     }
   })() : null
 
@@ -242,7 +246,7 @@ export default function ContasVencidasPage() {
                   </div>
                 </div>
                 {ag.aVencer.saldo + ag.total > 0 ? (
-                  <ReactECharts option={opcaoAging} style={{ height: 280 }} notMerge lazyUpdate />
+                  <ReactECharts option={opcaoAging} style={{ height: 290 }} notMerge lazyUpdate />
                 ) : (
                   <p className="text-xs text-center py-10" style={{ color: P.VERDE }}>{L('Nada em aberto neste lado.', 'Nothing open on this side.', 'Nada abierto en este lado.')}</p>
                 )}
