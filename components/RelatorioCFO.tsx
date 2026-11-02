@@ -4,6 +4,7 @@
 // nada é recalculado aqui, só formatado. O PDF é montado no navegador, sem arquivo guardado nem link público.
 import { useEffect, useState } from "react";
 import { CanvasBox } from "./CanvasBox";
+import AvisoAxioma from "./AvisoAxioma";
 import { TIPOS_RELATORIO, type Relatorio, type TipoRelatorio } from "../lib/financeiro/relatorioTipos";
 import { dataHoraNoFuso, fmtCelula, formatarIndicador, nomePeriodo, rotuloClasse, rotuloConfianca, rotuloEstado, rotuloPrioridade, tituloRelatorio, tx } from "../lib/financeiro/relatorioTextos";
 
@@ -24,6 +25,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
   const [comparar, setComparar] = useState(true);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [popup, setPopup] = useState("");
   const [rel, setRel] = useState<Relatorio | null>(null);
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [pedidoUrl, setPedidoUrl] = useState<PedidoTela | null>(null);
@@ -57,6 +59,8 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
       const j = await res.json().catch(() => null)
       if (res.ok && j?.relatorio) { setRel(j.relatorio as Relatorio); return }
       setRel(null)
+      // Limite de relatórios do plano: pop-up que some sozinho (pedido do Elias), não caixa fixa
+      if (res.status === 429 && typeof j?.mensagem === "string") { setPopup(j.mensagem); setTimeout(() => setPopup(""), 6000); return }
       setErro(typeof j?.mensagem === "string" ? j.mensagem
         : res.status === 401 ? L("Sua sessão terminou. Entre de novo para gerar o relatório.", "Your session ended. Sign in again to generate the report.", "Su sesión terminó. Ingrese de nuevo para generar el informe.")
         : res.status === 404 ? L("Empresa não encontrada para o seu acesso.", "Company not found for your access.", "Empresa no encontrada para su acceso.")
@@ -81,6 +85,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
 
   return (
     <div id="relatorio-cfo" className="mb-5">
+      <AvisoAxioma aviso={popup ? { msg: popup, tipo: "aviso" } : null} onFechar={() => setPopup("")} duracao={6000} />
       <CanvasBox premium3d fundo={claro ? "#f6f7c4" : undefined} cor="#2ecc9b">
         <h2 className="text-base font-bold" style={{ color: cTexto }}>📑 {L("Relatório CFO com PDF", "CFO Report with PDF", "Informe CFO con PDF")}</h2>
         <p className="text-xs mt-1 mb-4" style={{ color: cSuave }}>
@@ -274,7 +279,8 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [estado, setEstado] = useState<"" | "gerando" | "ok" | "erro">("");
   const [nome, setNome] = useState("");
-  const [aviso, setAviso] = useState(""); // ex.: limite de relatórios do plano (texto do servidor, no idioma)
+  const [aviso, setAviso] = useState(""); // falha ao salvar anotação/apagar
+  const [popup, setPopup] = useState(""); // limite de relatórios do plano (texto do servidor, no idioma)
   useEffect(() => {
     let vivo = true;
     import("../lib/supabaseBrowser").then(async ({ createBrowserClient }) => {
@@ -293,7 +299,11 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
     try {
       const res = await fetch("/api/relatorios/gerar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ empresa_id: empresaId, ...pedido, lang }) });
       const j = await res.json().catch(() => null);
-      if (!res.ok || !j?.relatorio) { setAviso(typeof j?.mensagem === "string" ? j.mensagem : ""); setEstado("erro"); return }
+      // Limite do plano/saldo (mensagem do servidor): pop-up que some sozinho; o cartão volta ao normal
+      if (!res.ok || !j?.relatorio) {
+        if (typeof j?.mensagem === "string" && j.mensagem) { setPopup(j.mensagem); setTimeout(() => setPopup(""), 6000); setEstado(""); return }
+        setEstado("erro"); return
+      }
       const { montarPdfRelatorio, nomeArquivoRelatorio } = await import("../lib/financeiro/relatorioPdf");
       montarPdfRelatorio(j.relatorio).save(nomeArquivoRelatorio(j.relatorio));
       setEstado("ok");
@@ -329,7 +339,8 @@ function CartaoRelatorioGerado({ pedido, empresaId, lang, nota, onNota, onApagar
           : <button type="button" onClick={() => setConfirmar(true)} className="text-xs font-semibold" style={{ color: "#f87171" }} title={L("Apagar", "Delete", "Borrar")}>🗑 {L("Apagar", "Delete", "Borrar")}</button>)}
         <a href={linkRelatorio(pedido)} className="text-xs font-semibold underline" style={{ color: "#2ecc9b" }}>{L("Ver o relatório na tela Relatórios", "View the report on the Reports screen", "Ver el informe en la pantalla Informes")}</a>
         {estado !== "erro" && aviso && <span className="text-xs" role="alert" style={{ color: "#f87171" }}>{aviso}</span>}
-        {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{aviso || L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
+        <AvisoAxioma aviso={popup ? { msg: popup, tipo: "aviso" } : null} onFechar={() => setPopup("")} duracao={6000} />
+        {estado === "erro" && <span className="text-xs" style={{ color: "#f87171" }}>{L("Não foi possível gerar agora. Tente de novo.", "Could not generate now. Try again.", "No fue posible generar ahora. Intente de nuevo.")}</span>}
       </div>
     </div>
   )
