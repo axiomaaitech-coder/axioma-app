@@ -8,7 +8,8 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
-import { scoreRecebimento } from "./clienteIntelHelpers";
+import { scoreRecebimento, contaParaTitulo } from "./clienteIntelHelpers";
+import { dnaFinanceiro } from "./vencidos/motor";
 import { hojeISO, isoDia } from "./datas";
 import { registrarLeitura } from "./erroUiHelpers";
 
@@ -229,27 +230,12 @@ export function probabilidadeRecebimentoConta(conta: ContaRow, s: ClienteSnapsho
 
 export type SinalComportamento = { tipo: "piora" | "melhora"; atrasoRecente: number; atrasoAnterior: number };
 
+// Mesma leitura do DNA financeiro (lib/vencidos/motor): últimos 6 meses x antes, mínimo de 2 pagamentos em
+// cada janela. Antes daqui saía só piora "leve" (atraso recente abaixo de 25 dias) — piora grave não avisava.
 export function detectarMudancaComportamento(s: ClienteSnapshot): SinalComportamento | null {
-  const recebidas = s.contas
-    .filter((c) => c.status === "recebido" && c.data_recebimento)
-    .sort((a, b) => (a.data_recebimento as string).localeCompare(b.data_recebimento as string));
-  if (recebidas.length < 4) return null;
-
-  const atrasoDe = (c: ContaRow) => Math.max(0, diffDias(new Date(c.data_recebimento! + "T00:00:00"), new Date(c.data_vencimento + "T00:00:00")));
-  const janela = Math.min(3, Math.floor(recebidas.length / 2));
-  const recentes = recebidas.slice(-janela).map(atrasoDe);
-  const anteriores = recebidas.slice(0, recebidas.length - janela).map(atrasoDe);
-
-  const mediaRecente = recentes.reduce((a, b) => a + b, 0) / recentes.length;
-  const mediaAnterior = anteriores.reduce((a, b) => a + b, 0) / anteriores.length;
-
-  if (mediaAnterior <= 3 && mediaRecente >= mediaAnterior + 5 && mediaRecente < 25) {
-    return { tipo: "piora", atrasoRecente: Math.round(mediaRecente), atrasoAnterior: Math.round(mediaAnterior) };
-  }
-  if (mediaAnterior >= 8 && mediaRecente <= Math.max(0, mediaAnterior - 5)) {
-    return { tipo: "melhora", atrasoRecente: Math.round(mediaRecente), atrasoAnterior: Math.round(mediaAnterior) };
-  }
-  return null;
+  const dna = dnaFinanceiro(s.contas.map(contaParaTitulo), [], hojeISO());
+  if (dna.tendencia !== "piora" && dna.tendencia !== "melhora") return null;
+  return { tipo: dna.tendencia, atrasoRecente: Math.round(dna.recenteAtraso ?? 0), atrasoAnterior: Math.round(dna.anteriorAtraso ?? 0) };
 }
 
 // ============================================================================

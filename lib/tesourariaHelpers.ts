@@ -4,6 +4,7 @@
 // aplicadas no banco) — nenhuma escrita nova de schema aqui. Determinístico
 // 100%: nada de IA nesta rodada (ZIA é Rodada 3).
 
+import { comRetentativa } from "./antiFalha";
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
@@ -109,10 +110,11 @@ export type PosicaoCaixa = {
   totalGeral: number;
   reservaMinima: number;
   totalLivre: number; // disponível − reserva mínima, nunca negativo
+  falhou: boolean; // leitura falhou mesmo com retentativa: os totais acima NÃO são o caixa real
 };
 
 export async function obterPosicaoCaixa(empresaId: string, data: string, reservaMinima: number): Promise<PosicaoCaixa> {
-  const { data: linhas, error } = await supabase.rpc("tesouraria_posicao", { p_empresa_id: empresaId, p_data: data });
+  const { data: linhas, error } = await comRetentativa(() => supabase.rpc("tesouraria_posicao", { p_empresa_id: empresaId, p_data: data }));
   if (error) reportarFalhaEscrita("tesouraria_posicao", "rpc select", error.message);
   const l = (linhas as LinhaPosicao[]) || [];
   const somaTipo = (t: string) => l.filter((x) => x.tipo_liquidez === t).reduce((s, x) => s + Number(x.saldo), 0);
@@ -125,6 +127,7 @@ export async function obterPosicaoCaixa(empresaId: string, data: string, reserva
     totalGeral: totalDisponivel + totalAplicado + totalRestrito,
     reservaMinima,
     totalLivre: Math.max(0, totalDisponivel - reservaMinima),
+    falhou: !!error,
   };
 }
 

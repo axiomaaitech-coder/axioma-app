@@ -9,6 +9,15 @@ import type { CorSaude } from "./cfoCore";
 import { perguntarAoAxioma } from "./ia/cliente";
 import { obterEmpresaAtiva } from "./empresaHelpers";
 import { hojeISO, isoDia } from "./datas";
+import { aging as agingMotor, type Titulo } from "./vencidos/motor";
+
+// Conta a receber no formato do motor de vencidos (lib/vencidos/motor.ts)
+export const contaParaTitulo = (c: ContaRow): Titulo => ({
+  id: c.id, empresaId: c.empresa_id ?? "", dominio: "receber", contraparteId: c.cliente_id ?? null, contraparteNome: "",
+  valor: Number(c.valor) || 0, quitado: Number(c.valor_recebido ?? (c.status === "recebido" ? c.valor : 0)) || 0,
+  desconto: Number(c.valor_desconto) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao ?? null,
+  quitacao: c.data_recebimento ?? null, status: c.status ?? null, taxaMultaPct: c.taxa_multa ?? null, taxaJurosMesPct: c.taxa_juros ?? null,
+});
 
 // ============================================================================
 // TIPOS — LINHAS DO SUPABASE
@@ -955,19 +964,10 @@ export function calcularKpisRecebimento(
 
 export type FaixaAging = { chave: "d30" | "d60" | "d90" | "d90mais"; label: string; valor: number; qtdContas: number };
 
+// Calculado pelo motor de vencidos (regra única: cancelada não conta; saldo = valor − desconto − recebido).
 export function agingCarteiraRecebiveis(contas: ContaRow[]): FaixaAging[] {
-  const hojeStr = hojeISO();
-  const faixas: FaixaAging[] = [
-    { chave: "d30", label: "0-30", valor: 0, qtdContas: 0 },
-    { chave: "d60", label: "31-60", valor: 0, qtdContas: 0 },
-    { chave: "d90", label: "61-90", valor: 0, qtdContas: 0 },
-    { chave: "d90mais", label: "90+", valor: 0, qtdContas: 0 },
-  ];
-  contas.filter((c) => c.status !== "recebido" && c.data_vencimento < hojeStr).forEach((c) => {
-    const dias = diffDias(new Date(), new Date(c.data_vencimento + "T00:00:00"));
-    const saldo = Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0));
-    const faixa = dias <= 30 ? faixas[0] : dias <= 60 ? faixas[1] : dias <= 90 ? faixas[2] : faixas[3];
-    faixa.valor += saldo; faixa.qtdContas += 1;
-  });
-  return faixas;
+  const a = agingMotor(contas.map(contaParaTitulo), hojeISO(), [30, 60, 90]).faixas;
+  const chaves: FaixaAging["chave"][] = ["d30", "d60", "d90", "d90mais"];
+  const rotulos = ["0-30", "31-60", "61-90", "90+"];
+  return chaves.map((chave, i) => ({ chave, label: rotulos[i], valor: a[i].saldo, qtdContas: a[i].qtd }));
 }

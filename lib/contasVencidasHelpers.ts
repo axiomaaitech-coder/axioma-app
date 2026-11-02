@@ -10,7 +10,7 @@ export type ContaVencida = { id: string; tipo: 'pagar' | 'receber'; descricao: s
 export type ResumoVencidas = { pagar: ContaVencida[]; receber: ContaVencida[]; totalPagar: number; totalReceber: number; falhou: boolean }
 
 type Linha = { id: string; descricao: string | null; status: string | null; data_vencimento: string | null; total: number; quitado: number; nome: string | null }
-const FECHADOS = new Set(['pago', 'recebido', 'cancelado', 'cancelada'])
+import { FECHADOS } from './vencidos/motor' // regra única de "em aberto" (Overdue Intelligence)
 
 const diasEntre = (de: string, ate: string) => Math.floor((new Date(`${ate}T00:00:00`).getTime() - new Date(`${de}T00:00:00`).getTime()) / 86400000)
 
