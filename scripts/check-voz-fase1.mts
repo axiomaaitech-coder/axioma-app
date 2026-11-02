@@ -56,9 +56,10 @@ assert.equal(ok.r.texto, 'conta de luz da Enel, 320 reais'); assert.equal(ok.con
 console.log('OK — servidor: login, empresa, papel, saldo, formato, tamanho, duração, fornecedor, vazio; cobra 1x só no sucesso')
 
 // Liberação e mensagens (3 idiomas, sem detalhe técnico)
-assert.equal(vozAtivaPara(EMP, {}), false)
+assert.equal(vozAtivaPara(EMP, {}), true, 'ligada para todas por padrão (2026-11-02)')
 assert.equal(vozAtivaPara(EMP, { VOZ_ATIVA: 'on' }), true)
-assert.equal(vozAtivaPara(EMP, { VOZ_EMPRESAS_TESTE: ` x , ${EMP.toUpperCase()} ` }), true)
+assert.equal(vozAtivaPara(EMP, { VOZ_ATIVA: 'off' }), false, 'chave de emergência desliga')
+assert.equal(vozAtivaPara(EMP, { VOZ_ATIVA: 'off', VOZ_EMPRESAS_TESTE: ` x , ${EMP.toUpperCase()} ` }), true)
 for (const c of ['nao_autorizado', 'voz_desativada', 'sem_saldo', 'fornecedor_indisponivel', 'transcricao_vazia', 'audio_longo', 'sem_acesso_voz'] as const)
   for (const l of ['pt', 'en', 'es']) { const m = mensagemVoz(c, l); assert.ok(m.length > 10 && !/openai|whisper|api key|http/i.test(m), `${c}/${l}`) }
 console.log('OK — liberação desligada por padrão; mensagens nos 3 idiomas sem expor fornecedor')

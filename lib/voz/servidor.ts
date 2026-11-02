@@ -78,10 +78,10 @@ export async function processarDitado(e: EntradaVoz, deps: DepsVoz): Promise<Res
   return { status: 200, codigo: 'ok', texto, cobrado: true, duracao: res.duracao }
 }
 
-// Liberação (Fase 1 desligada para clientes até a Política de Privacidade ser aprovada — LEGAL-V01):
-// VOZ_ATIVA=on liga para todas; VOZ_EMPRESAS_TESTE=uuid,uuid liga só para empresas de teste internas.
+// Liberação: ligada para todas as empresas (Elias 2026-11-02; Política de Privacidade com a seção de voz — LEGAL-V01).
+// Chave de emergência: VOZ_ATIVA=off volta a liberar só as empresas de VOZ_EMPRESAS_TESTE=uuid,uuid.
 export function vozAtivaPara(empresaId: string, env: { VOZ_ATIVA?: string; VOZ_EMPRESAS_TESTE?: string }): boolean {
-  if (env.VOZ_ATIVA === 'on') return true
+  if (env.VOZ_ATIVA !== 'off') return true
   return (env.VOZ_EMPRESAS_TESTE ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).includes(empresaId.toLowerCase())
 }
 
