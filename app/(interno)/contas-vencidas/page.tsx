@@ -13,7 +13,7 @@ import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { optBarrasV, serieCores, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
+import { optBarrasH, optBarrasV, serieCores, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
 import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos, type ItemVencido } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
@@ -43,6 +43,14 @@ export default function ContasVencidasPage() {
   const periodo = useMemo(() => resolverPeriodo(preset, personalizado), [preset, personalizado])
   const [f, setF] = useState<Filtros>(() => filtrosIniciais(periodo.inicio, periodo.fim))
   const [lado, setLado] = useState<'receber' | 'pagar'>('receber')
+  // tela de celular (acompanha girar o aparelho)
+  const [estreito, setEstreito] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const ver = () => setEstreito(mq.matches)
+    ver(); mq.addEventListener('change', ver)
+    return () => mq.removeEventListener('change', ver)
+  }, [])
 
   useEffect(() => {
     const ler = () => {
@@ -138,22 +146,24 @@ export default function ContasVencidasPage() {
   const qtdAging = ag ? [ag.aVencer.qtd, ...ag.faixas.map((x) => x.qtd)] : []
   const baseAging = valoresAging.reduce((s, v) => s + v, 0)
   const ate30 = ag && baseAging > 0 ? Math.round(((ag.aVencer.saldo + ag.faixas.filter((x) => x.ate != null && x.ate <= 30).reduce((s, x) => s + x.saldo, 0)) / baseAging) * 1000) / 10 : null
+  // Celular: barras DEITADAS (faixa na lateral, todas legíveis); computador: colunas. Mesmo dado, mesmas cores.
   const opcaoAging = ag ? (() => {
-    const o = optBarrasV(valoresAging, rotulosAging, CORES_AGING.acima60, CORES_AGING.ate60,
-      [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? CORES_AGING.ate60 : CORES_AGING.acima60))], temaClaro)
+    const cores = [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? CORES_AGING.ate60 : CORES_AGING.acima60))]
+    const o = (estreito ? optBarrasH : optBarrasV)(valoresAging, rotulosAging, CORES_AGING.acima60, CORES_AGING.ate60, cores, temaClaro)
     const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
-    // celular: tela estreita = rótulos mais inclinados e menores; valores sempre abreviados (21,6 mil)
-    const estreito = typeof window !== 'undefined' && window.innerWidth < 640
     const curto = (v: number) => v.toLocaleString(local, { notation: 'compact', maximumFractionDigits: 1 })
+    const nomeFaixa = (v: string, i: number) => (i === 0 ? v : `${v} ${dias}`)
+    const eixoCategoria = { interval: 0, fontSize: estreito ? 10 : 11, formatter: nomeFaixa, ...(estreito ? {} : { rotate: 30 }) }
+    const eixoValor = { formatter: (v: number) => curto(v) }
     return {
       ...o,
-      grid: { ...o.grid, left: estreito ? 40 : 56, right: 8, bottom: estreito ? 54 : 40 },
-      xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, interval: 0, hideOverlap: true, fontSize: estreito ? 9 : 11, rotate: estreito ? 50 : 30, formatter: (v: string, i: number) => (i === 0 || estreito ? v : `${v} ${dias}`) } },
-      yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, formatter: (v: number) => curto(v) } },
-      labelLayout: { hideOverlap: true },
-      tooltip: { ...o.tooltip, formatter: (p: { dataIndex: number; name: string; value: number }) =>
-        `<b>${p.name}${p.dataIndex === 0 ? '' : ' ' + dias}</b><br/><b style="font-size:15px">${fmt(p.value)}</b><br/>${qtdAging[p.dataIndex]} ${contas} · ${baseAging ? ((p.value / baseAging) * 100).toLocaleString(local, { maximumFractionDigits: 1 }) : 0}% ${doTotal}` },
-      series: [{ ...o.series[0], barWidth: '62%', label: { ...o.series[0].label, fontSize: estreito ? 8 : 10, formatter: (p: { value: number }) => (p.value > 0 ? curto(p.value) : '') } }],
+      grid: estreito ? { ...o.grid, right: 52 } : { ...o.grid, left: 56, right: 8, bottom: 40 },
+      ...(estreito
+        ? { yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, ...eixoCategoria } }, xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, ...eixoValor } } }
+        : { xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, ...eixoCategoria } }, yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, ...eixoValor } } }),
+      tooltip: { ...o.tooltip, confine: true, formatter: (p: { dataIndex: number; name: string; value: number }) =>
+        `<b>${nomeFaixa(p.name, p.dataIndex)}</b><br/><b style="font-size:15px">${fmt(p.value)}</b><br/>${qtdAging[p.dataIndex]} ${contas} · ${baseAging ? ((p.value / baseAging) * 100).toLocaleString(local, { maximumFractionDigits: 1 }) : 0}% ${doTotal}` },
+      series: [{ ...o.series[0], barWidth: estreito ? '64%' : '62%', label: { ...o.series[0].label, fontSize: 10, formatter: (p: { value: number }) => (p.value > 0 ? curto(p.value) : '') } }],
     }
   })() : null
 
@@ -248,7 +258,7 @@ export default function ContasVencidasPage() {
                   </div>
                 </div>
                 {ag.aVencer.saldo + ag.total > 0 ? (
-                  <ReactECharts option={opcaoAging} style={{ height: 290 }} notMerge lazyUpdate />
+                  <ReactECharts option={opcaoAging} style={{ height: estreito ? rotulosAging.length * 30 + 30 : 290 }} notMerge lazyUpdate />
                 ) : (
                   <p className="text-xs text-center py-10" style={{ color: P.VERDE }}>{L('Nada em aberto neste lado.', 'Nothing open on this side.', 'Nada abierto en este lado.')}</p>
                 )}
