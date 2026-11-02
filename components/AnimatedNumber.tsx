@@ -34,8 +34,11 @@ export function AnimatedNumber({
     const core = match[0];
     const prefix = value.slice(0, match.index);
     const suffix = value.slice(match.index + core.length);
-    const casasDecimais = core.includes(",") ? core.split(",")[1].length : 0;
-    const numericTarget = parseFloat(core.replace(/\./g, "").replace(",", "."));
+    // "89.2%" (fPct usa ponto decimal) NÃO é milhar: sem vírgula e com 1–2 casas depois de um ponto só
+    // = decimal com ponto. Antes virava 892% (Índice de Recuperação na Inadimplência). "1.500" segue milhar.
+    const pontoDecimal = !core.includes(",") && /^-?\d+\.\d{1,2}$/.test(core);
+    const casasDecimais = pontoDecimal ? core.split(".")[1].length : core.includes(",") ? core.split(",")[1].length : 0;
+    const numericTarget = pontoDecimal ? parseFloat(core) : parseFloat(core.replace(/\./g, "").replace(",", "."));
 
     if (!Number.isFinite(numericTarget) || numericTarget === 0) {
       ref.current.textContent = value;
@@ -54,6 +57,8 @@ export function AnimatedNumber({
           maximumFractionDigits: casasDecimais,
         }).format(counter.current)}${suffix}`;
       },
+      // termina exatamente no texto original (mesmo separador decimal que a tela mandou)
+      onComplete: () => { if (ref.current) ref.current.textContent = value; },
     });
 
     return () => { tween.kill(); };
