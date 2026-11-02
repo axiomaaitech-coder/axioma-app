@@ -137,10 +137,10 @@ export default function ContasVencidasPage() {
     ['sem_acompanhamento', L('Sem acompanhamento', 'Not followed up', 'Sin seguimiento')],
   ]
   const ag = r ? (lado === 'receber' ? r.agingReceber : r.agingPagar) : null
-  // Sequência oficial de gráficos (serieCores / tema-tokens chart-1, chart-5, chart-2): a vencer verde-menta,
-  // até 60 dias azul-marinho claro, acima de 60 azul-marinho (mais escuro = mais antigo); nada de dourado/âmbar
+  // Sequência oficial de gráficos (serieCores / tema-tokens): a vencer cinza (chart-4, ainda não atrasou),
+  // até 60 dias verde-menta (chart-1), acima de 60 azul-marinho (chart-2) — três cores bem distintas; nada de dourado
   const sc = serieCores(temaClaro)
-  const CORES_AGING = { aVencer: sc[0], ate60: sc[4], acima60: sc[1] }
+  const CORES_AGING = { aVencer: sc[3], ate60: sc[0], acima60: sc[1] }
   const rotulosAging = ag ? [L('A vencer', 'Not due', 'Por vencer'), ...ag.faixas.map((x) => x.rotulo)] : []
   const valoresAging = ag ? [ag.aVencer.saldo, ...ag.faixas.map((x) => x.saldo)] : []
   const qtdAging = ag ? [ag.aVencer.qtd, ...ag.faixas.map((x) => x.qtd)] : []
