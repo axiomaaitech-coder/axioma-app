@@ -287,6 +287,14 @@ export default function ContasPagarPage() {
   const [horizonteSelecionado, setHorizonteSelecionado] = useState<HorizonteForecastDias>(30);
   const [proximasAPagar, setProximasAPagar] = useState<Set<string>>(new Set());
 
+  // Vindo de Contas Vencidas (?filtro=vencido): abre a lista já filtrada, uma vez, depois de carregar
+  useEffect(() => {
+    if (loading || new URLSearchParams(window.location.search).get("filtro") !== "vencido") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    setAba("central"); setFiltroStatus("vencido"); setFiltroVencDe(""); setFiltroVencAte("");
+    setTimeout(() => document.getElementById("lista-contas-pagar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }, [loading]);
+
   useEffect(() => {
     if (aba !== "inteligencia" || !empresaId || forecastAp) return;
     (async () => {

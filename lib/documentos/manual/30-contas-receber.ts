@@ -11,7 +11,7 @@ const pt: DocumentoAxioma = {
     { p: 'Controla tudo o que os clientes devem à empresa e ajuda a **receber mais e mais rápido**: mostra quem paga em dia, quem atrasa, a fila de cobrança, a previsão de entrada de dinheiro e o efeito de antecipar recebíveis.' },
 
     { h1: 'Como chegar' },
-    { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Receber**.'] },
+    { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Receber**.', 'Tela **Contas Vencidas** → uma conta a receber ou **Receber em Contas a Receber**: abre esta tela na Central de Recebimentos já filtrada em **Vencido**.'] },
 
     { h1: 'Botões do cabeçalho' },
     { p: '**+ Nova Conta**, **Compartilhar**, seletor de período, busca (cliente, documento, responsável) e filtro de status.' },
@@ -82,7 +82,7 @@ const en: DocumentoAxioma = {
     { p: 'Controls everything clients owe the company and helps you **collect more and faster**: it shows who pays on time, who is late, the collection queue, the cash inflow forecast and the effect of anticipating receivables.' },
 
     { h1: 'How to get there' },
-    { lista: ['Top menu → **👥 Commercial ▼** → **Receivables**.'] },
+    { lista: ['Top menu → **👥 Commercial ▼** → **Receivables**.', '**Overdue Bills** screen → a receivable or **Receive in Receivables**: opens this screen at the Receivables Center already filtered on **Overdue**.'] },
 
     { h1: 'Header buttons' },
     { p: '**+ New Bill**, **Share**, period selector, search (client, document, person in charge) and status filter.' },
@@ -153,7 +153,7 @@ const es: DocumentoAxioma = {
     { p: 'Controla todo lo que los clientes deben a la empresa y ayuda a **cobrar más y más rápido**: muestra quién paga a tiempo, quién se atrasa, la cola de cobro, la previsión de entrada de dinero y el efecto de anticipar cobros.' },
 
     { h1: 'Cómo llegar' },
-    { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Cobrar**.'] },
+    { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Cobrar**.', 'Pantalla **Cuentas Vencidas** → una cuenta por cobrar o **Cobrar en Cuentas por Cobrar**: abre esta pantalla en el Centro de Cobros ya filtrado en **Vencido**.'] },
 
     { h1: 'Botones del encabezado' },
     { p: '**+ Nueva Cuenta**, **Compartir**, selector de período, búsqueda (cliente, documento, responsable) y filtro de estado.' },

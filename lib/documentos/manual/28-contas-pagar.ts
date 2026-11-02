@@ -11,7 +11,7 @@ const pt: DocumentoAxioma = {
     { p: 'Reúne tudo o que a empresa tem para pagar: vencimentos, baixas, anexos, aprovações, pedidos de compra e conferência de notas. Além de organizar, o Axioma **protege o caixa**: detecta duplicidades, multas evitáveis, descontos que ainda dá para aproveitar e aumentos silenciosos de preço.' },
 
     { h1: 'Como chegar' },
-    { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Pagar**.'] },
+    { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Pagar**.', 'Tela **Contas Vencidas** → uma conta a pagar ou **Pagar em Contas a Pagar**: abre esta tela com a lista já filtrada em **Vencido**.'] },
 
     { h1: 'Botões do cabeçalho' },
     { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
@@ -91,7 +91,7 @@ const en: DocumentoAxioma = {
     { p: 'Brings together everything the company has to pay: due dates, payments, attachments, approvals, purchase orders and invoice matching. Beyond organizing, Axioma **protects your cash**: it detects duplicates, avoidable penalties, discounts you can still take and silent price increases.' },
 
     { h1: 'How to get there' },
-    { lista: ['Top menu → **👥 Commercial ▼** → **Accounts Payable**.'] },
+    { lista: ['Top menu → **👥 Commercial ▼** → **Accounts Payable**.', '**Overdue Bills** screen → a payable or **Pay in Payables**: opens this screen with the list already filtered on **Overdue**.'] },
 
     { h1: 'Header buttons' },
     { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
@@ -171,7 +171,7 @@ const es: DocumentoAxioma = {
     { p: 'Reúne todo lo que la empresa tiene que pagar: vencimientos, pagos, adjuntos, aprobaciones, órdenes de compra y conciliación de facturas. Además de organizar, Axioma **protege la caja**: detecta duplicados, multas evitables, descuentos que aún se pueden aprovechar y aumentos silenciosos de precio.' },
 
     { h1: 'Cómo llegar' },
-    { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Pagar**.'] },
+    { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Pagar**.', 'Pantalla **Cuentas Vencidas** → una cuenta por pagar o **Pagar en Cuentas por Pagar**: abre esta pantalla con la lista ya filtrada en **Vencido**.'] },
 
     { h1: 'Botones del encabezado' },
     { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [

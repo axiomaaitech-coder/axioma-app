@@ -82,6 +82,7 @@ const grupos = [
       { label: { pt: "Contas a Pagar", en: "Accounts Payable", es: "Cuentas por Pagar" }, path: "/contas-pagar", emoji: "📤" },
       { label: { pt: "Estoque", en: "Inventory", es: "Inventario" }, path: "/estoque", emoji: "📦" },
       { label: { pt: "Contas a Receber", en: "Receivables", es: "Cuentas por Cobrar" }, path: "/contas-receber", emoji: "📥" },
+      { label: { pt: "Contas Vencidas", en: "Overdue Bills", es: "Cuentas Vencidas" }, path: "/contas-vencidas", emoji: "⏰" },
       { label: { pt: "Inadimplência", en: "Default", es: "Morosidad" }, path: "/inadimplencia", emoji: "⚠️" },
     ]
   },

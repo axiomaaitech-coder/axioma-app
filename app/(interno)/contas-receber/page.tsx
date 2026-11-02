@@ -444,6 +444,13 @@ export default function ContasReceber() {
     setDrillKpi(null); setFiltroStatus(status); setBusca('')
     setTimeout(() => document.getElementById('central-recebimentos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
   }
+  // Vindo de Contas Vencidas (?filtro=vencido): abre a lista já filtrada, uma vez, depois de carregar
+  useEffect(() => {
+    if (loading || new URLSearchParams(window.location.search).get('filtro') !== 'vencido') return
+    window.history.replaceState(null, '', window.location.pathname)
+    irParaLista('vencido')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
 
   function abrirReceber(c: Conta) {
     setContaReceber(c)
