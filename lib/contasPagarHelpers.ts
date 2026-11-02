@@ -9,7 +9,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import { reportarFalhaLeitura, exigirLeitura, registrarLeitura, avisarSeFalhou } from "./erroUiHelpers";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
-import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
+import { sugerirClassificacoes, normalizarPadraoChave } from "./memoriaClassificacao";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
