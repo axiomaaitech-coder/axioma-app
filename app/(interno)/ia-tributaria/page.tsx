@@ -27,6 +27,7 @@ import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
 import { assinarHistorico } from "../../../lib/voz/assinarHistorico";
 import ConversaAoVivo from "../../../components/ConversaAoVivo";
+import AtalhoConversaVoz from "../../../components/AtalhoConversaVoz";
 import AcoesMemoria from "../../../components/AcoesMemoria";
 import PainelMemoriaIA from "../../../components/PainelMemoriaIA";
 import type { SugestaoMemoria } from "../../../lib/ia/memoria";
@@ -418,6 +419,7 @@ export default function IATributariaPage() {
             style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{tt.compartilhar}</button>
 
           {/* ABAS */}
+          <AtalhoConversaVoz lang={lang as "pt" | "en" | "es"} claro={temaClaro} abrir={() => setAba("chat")} />
           <div className="flex gap-2 overflow-x-auto pb-1">
             {[
               { key: "score", label: tt.abaScore }, { key: "chat", label: tt.abaChat },
@@ -479,19 +481,19 @@ export default function IATributariaPage() {
               </div>
               <div className="flex gap-2">
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
-                  placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: campoBorda, color: TEXTO }} />
+                  placeholder={tt.chatPlaceholder} className="flex-1 min-w-0 px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: campoBorda, color: TEXTO }} />
                 <BotaoVoz lang={lang} tela="ia-tributaria" empresaId={empresaId} claro={temaClaro} onTexto={(x) => setInputChat((a) => juntarTexto(a, x))} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>➤</button>
-              </div>
-              {/* Conversa ao vivo (tempo real): a voz consulta o MESMO motor desta tela; só aparece se liberada para a empresa */}
-              <ConversaAoVivo empresaId={empresaId} lang={lang as "pt" | "en" | "es"} claro={temaClaro} tela="ia-tributaria"
+                {/* Conversa por voz (igual ao ChatGPT/Claude): botão na barra de digitação; andamento na barra do rodapé */}
+                <ConversaAoVivo modo="botao" empresaId={empresaId} lang={lang as "pt" | "en" | "es"} claro={temaClaro} tela="ia-tributaria"
                 aoFalar={(quem, t) => setMensagens((m) => [...m, { role: quem === "voce" ? "user" : "assistant", texto: t }])}
                 consultar={async (pergunta) => {
                   const ia = await perguntarAoAxioma({ pergunta, empresaId, tela: "ia-tributaria", lang: lang as "pt" | "en" | "es", historico: mensagens.slice(-8).map((m) => ({ role: m.role, content: m.texto })), contextoTela: lang === "en" ? "FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the Fact/Estimate/Scenario labels and the notes." : lang === "es" ? "FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga las etiquetas Hecho/Estimación/Escenario y los avisos." : "FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os rótulos Fato/Estimativa/Cenário e os avisos." });
                   if (ia?.relatorio) setMensagens((m) => [...m, { role: "assistant", texto: avisoRelatorioConcluido(lang as "pt" | "en" | "es"), relatorio: ia.relatorio }]);
                   return ia?.resposta ?? (lang === "en" ? "It was not possible to check the data right now." : lang === "es" ? "No fue posible consultar los datos ahora." : "Não foi possível consultar os dados agora.");
                 }} />
+              </div>
               {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}
               <PainelMemoriaIA empresaId={empresaId} area="tributaria" lang={lang as "pt" | "en" | "es"} claro={temaClaro} />
             </CanvasBox>

@@ -103,20 +103,21 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
       <div className="flex gap-2 mb-2">
         <input value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void enviar(texto); }}
           placeholder={placeholder} aria-label={titulo}
-          className="flex-1 px-3 py-2.5 rounded-xl text-sm" style={{ background: claro ? "#ffffff" : "rgba(10,22,40,0.95)", border: claro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)", color: cor }} />
+          className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-sm" style={{ background: claro ? "#ffffff" : "rgba(10,22,40,0.95)", border: claro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)", color: cor }} />
         <BotaoVoz lang={lang} tela={tela} empresaId={empresaId} claro={claro} onTexto={(x) => setTexto((a) => juntarTexto(a, x))} />
         <button type="button" onClick={() => void enviar(texto)} disabled={!texto.trim()} aria-label={t("enviar")}
           className="px-3 py-2.5 rounded-xl flex items-center justify-center text-white" style={{ background: "#0f7a5a", border: "1px solid #2ecc9b" }}>
           <Send size={16} aria-hidden />
         </button>
+        {/* Conversa por voz (igual ao ChatGPT/Claude): botão na barra de digitação; andamento na barra do rodapé */}
+        <ConversaAoVivo modo="botao" empresaId={empresaId} lang={lang} claro={claro} tela={tela} consultar={consultarAoVivo}
+        aoFalar={(quem, txt) => setMensagens((m) => [...m, { role: quem === "voce" ? "user" : "assistant", texto: txt }])} />
       </div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {sugestoes.map((s) => (
           <button key={s} type="button" onClick={() => void enviar(s)} className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-white" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.35)" }}>{s}</button>
         ))}
       </div>
-      <ConversaAoVivo empresaId={empresaId} lang={lang} claro={claro} tela={tela} consultar={consultarAoVivo}
-        aoFalar={(quem, txt) => setMensagens((m) => [...m, { role: quem === "voce" ? "user" : "assistant", texto: txt }])} />
       <PainelMemoriaIA empresaId={empresaId} area="financeira" lang={lang} claro={claro} />
     </div>
   );

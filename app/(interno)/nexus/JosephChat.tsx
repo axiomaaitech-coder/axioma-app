@@ -307,7 +307,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
               value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={aoTeclar} rows={3} maxLength={600}
               placeholder={L('Pergunte ao José… (Enter envia)', 'Ask José… (Enter sends)', 'Pregunte a José… (Enter envía)')}
               aria-label={L('Mensagem para o José', 'Message to José', 'Mensaje para José')}
-              className="flex-1 resize-y px-4 py-3 rounded-xl text-[15px] leading-relaxed min-h-[92px] max-h-64"
+              className="flex-1 min-w-0 resize-y px-4 py-3 rounded-xl text-[15px] leading-relaxed min-h-[92px] max-h-64"
               style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.18)', color: '#101b3d' } : { background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(46,204,155,0.2)', color: '#e2ecf7' }}
             />
             {/* Ditado (Voice Fase 1): só preenche o campo — a pessoa revisa e envia */}
@@ -316,10 +316,10 @@ ${montarContexto()}`, conversaId: conversaId.current })
               className="shrink-0 flex items-center justify-center rounded-xl disabled:opacity-50" style={{ ...VERDE_SOLIDO, width: 44, height: 44 }}>
               <Send size={17} aria-hidden />
             </button>
-          </div>
-          {/* Conversa ao vivo (PoC tempo real): só com fornecedor liberado para a empresa */}
-          <ConversaAoVivo empresaId={empresaId} lang={lang} claro={temaClaro} consultar={consultarAoVivo}
+            {/* Conversa por voz (igual ao ChatGPT/Claude): botão na barra de digitação; andamento na barra do rodapé */}
+            <ConversaAoVivo modo="botao" empresaId={empresaId} lang={lang} claro={temaClaro} consultar={consultarAoVivo}
             aoFalar={(quem, t) => setMensagens((m) => [...m, { role: quem === 'voce' ? 'user' : 'assistant', content: t }])} />
+          </div>
           {/* Conversa por voz (Voice Intelligence, Fase B): a fala vai direto para o José e ele responde falando */}
           {vozLiberada && (
             <div className="flex flex-wrap items-center gap-2 mt-2">

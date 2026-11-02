@@ -6,7 +6,7 @@
 // encerra no botão, em 60 s de silêncio ou em 10 min. As falas entram no chat desta tela quando ela
 // está aberta (as que aconteceram enquanto a pessoa estava em outra página chegam ao voltar).
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Loader2, PhoneOff, Radio } from "lucide-react";
+import { AudioLines, Loader2, PhoneOff, Radio } from "lucide-react";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { pararFala } from "../lib/voz/reprodutor";
 import { assinarConversaGlobal, encerrarConversaGlobal, estadoConversaGlobal, estadoConversaInicial, iniciarConversaGlobal, registrarTela, type TelaConversa } from "../lib/voz/tempoReal/sessaoGlobal";
@@ -32,10 +32,15 @@ const TX: Record<string, Record<IdiomaFala, string>> = {
   silencio: { pt: "Conversa encerrada por silêncio.", en: "Conversation ended due to silence.", es: "Conversación terminada por silencio." },
   tempo_esgotado: { pt: "Conversa encerrada: limite de 10 minutos.", en: "Conversation ended: 10-minute limit.", es: "Conversación terminada: límite de 10 minutos." },
   voz: { pt: "Voz", en: "Voice", es: "Voz" },
+  botao: { pt: "Conversar por voz", en: "Talk by voice", es: "Conversar por voz" },
+  encerrarBotao: { pt: "Encerrar conversa por voz", en: "End voice conversation", es: "Terminar conversación por voz" },
 };
 const NOME_FORNECEDOR: Record<FornecedorTR, string> = { gemini: "Google Gemini Live", qwen: "Alibaba Qwen Omni" };
 
-export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consultar, tela = "nexus" }: {
+// modo "botao" (Elias 2026-11-02, "igual ao ChatGPT e ao Claude"): botão redondo na barra de digitação, ao lado do
+// enviar; o andamento aparece na barra fixa do rodapé (BarraVozGlobal). "painel" = cartão com título e dica.
+export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consultar, tela = "nexus", modo = "painel" }: {
+  modo?: "painel" | "botao";
   empresaId?: string | null;
   tela?: TelaConversa;
   lang: IdiomaFala;
@@ -77,8 +82,22 @@ export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consul
 
   const corTexto = claro ? "#101b3d" : "#e2ecf7";
   const aviso = !g.ativa && g.tela === tela && g.aviso ? (g.aviso === "silencio" || g.aviso === "tempo_esgotado" ? t(g.aviso) : g.aviso) : "";
+  if (modo === "botao") {
+    const ocupado = minha && (g.estado === "conectando" || g.estado === "consultando");
+    return (
+      <span className="relative shrink-0">
+        <button id="conversa-ao-vivo" type="button" onClick={minha ? encerrarConversaGlobal : iniciar} disabled={!escolhido || outraTela}
+          aria-label={minha ? t("encerrarBotao") : t("botao")} title={outraTela ? t("outra") : minha ? t("encerrarBotao") : t("botao")}
+          className="scroll-mt-28 flex items-center justify-center rounded-xl text-white disabled:cursor-not-allowed"
+          style={{ width: 44, height: 44, background: minha ? "#b42318" : "#101b3d", border: "1px solid #2ecc9b" }}>
+          {ocupado ? <Loader2 size={18} className="animate-spin" aria-hidden /> : minha ? <PhoneOff size={18} aria-hidden /> : <AudioLines size={20} aria-hidden />}
+        </button>
+        {aviso && <span role="alert" className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg px-2 py-1 text-[11px] font-semibold" style={{ background: claro ? "#ffffff" : "#0a1628", color: claro ? "#b42318" : "#fca5a5", border: "1px solid rgba(229,72,77,0.5)" }}>{aviso}</span>}
+      </span>
+    );
+  }
   return (
-    <div className="mt-3 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: claro ? "rgba(46,204,155,0.10)" : "rgba(46,204,155,0.06)", border: `1px solid ${minha ? "#2ecc9b" : "rgba(46,204,155,0.3)"}` }}>
+    <div id="conversa-ao-vivo" className="mt-3 rounded-xl p-3 scroll-mt-28 axi-card-premium3d axi-card-faixa" style={{ background: claro ? "rgba(46,204,155,0.10)" : "rgba(46,204,155,0.06)", border: `1px solid ${minha ? "#2ecc9b" : "rgba(46,204,155,0.3)"}` }}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold" style={{ color: corTexto }}>{t(`titulo-${tela}`)}</span>
         {fornecedores.length > 1 && !g.ativa && (

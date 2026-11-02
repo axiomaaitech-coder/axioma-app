@@ -400,7 +400,7 @@ DADOS REAIS DESTE MEI:
             <input value={chatInput} onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
               placeholder={t('placeholder') as string}
-              className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
+              className="flex-1 min-w-0 px-4 py-3 rounded-xl focus:outline-none text-sm"
               style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
             <BotaoVoz lang={lang} tela="mei-ia-advisor" claro={temaClaro} onTexto={(x) => setChatInput((a) => juntarTexto(a, x))} />
             <button onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
@@ -408,9 +408,8 @@ DADOS REAIS DESTE MEI:
               style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {t('enviar')}
             </button>
-          </div>
-          {/* Conversa ao vivo: Inteligência Axioma — Consultor do MEI; consulta o MESMO motor desta tela */}
-          <ConversaAoVivo lang={lang} claro={temaClaro} tela="mei-ia-advisor"
+            {/* Conversa por voz (igual ao ChatGPT/Claude): botão na barra de digitação; andamento na barra do rodapé */}
+            <ConversaAoVivo modo="botao" lang={lang} claro={temaClaro} tela="mei-ia-advisor"
             aoFalar={(quem, texto) => setChatMensagens(prev => [...prev, { role: quem === 'voce' ? 'user' : 'assistant', content: texto }])}
             consultar={async (pergunta) => {
               const formato = lang === 'en' ? 'FORMAT: answer to be SPOKEN in a live conversation — at most 4 short sentences, no lists, clear amounts and period; keep the notes.' : lang === 'es' ? 'FORMATO: respuesta para ser HABLADA en una conversación en vivo — máximo 4 frases cortas, sin listas, valores y período claros; mantenga los avisos.' : 'FORMATO: resposta para ser FALADA numa conversa ao vivo — no máximo 4 frases curtas, sem listas, valores e período claros; mantenha os avisos.'
@@ -420,6 +419,7 @@ ${montarContextoIA()}` })
               if (ia?.relatorio) setChatMensagens(prev => [...prev, { role: 'assistant', content: avisoRelatorioConcluido(lang), relatorio: ia.relatorio }])
               return ia?.resposta ?? (lang === 'en' ? 'It was not possible to check the data right now.' : lang === 'es' ? 'No fue posible consultar los datos ahora.' : 'Não foi possível consultar os dados agora.')
             }} />
+          </div>
           {/* Memória da IA: o que a Inteligência Axioma aprendeu desta Empresa (só o confirmado) */}
           <PainelMemoriaIA empresaId={empresaIdMemoria} area="mei" lang={lang} claro={temaClaro} />
 
