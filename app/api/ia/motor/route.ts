@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
     consumir: (id) => consumirIA(supabase, id, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai'),
     devolver: (consumoId) => devolverIA(supabase, consumoId),
-    perguntar: () => perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela }),
+    perguntar: (soGratuito) => perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela, soGratuito }),
   })
 
   if (res.status !== 200) {

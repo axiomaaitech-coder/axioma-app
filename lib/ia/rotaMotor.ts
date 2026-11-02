@@ -5,6 +5,7 @@
 // Ordem (nada é cobrado antes de saber que a pessoa pode perguntar sobre ESTA empresa):
 //   login → parâmetros → acesso à empresa (RLS; alheia = 404, sem cobrar) → papel (operador = 403)
 //   → cobra 1 do saldo (atômico) → motor → sem resposta ou erro = DEVOLVE (1 vez só).
+//   Sem saldo (Elias 2026-11-02): NÃO recusa — responde pelo Gemini gratuito, sem cobrar.
 // Falha ao ler acesso/papel = 503 (antes, a leitura que falhava virava "dono" e passava).
 // ═══════════════════════════════════════════════════════════════
 import type { Idioma, RespostaMotor } from './motor'
@@ -16,7 +17,7 @@ export type DepsRotaMotor = {
   papel: (empresaId: string) => Promise<string | null>
   consumir: (empresaId: string) => Promise<{ ok: true; id: string } | { ok: false; motivo: string }>
   devolver: (consumoId: string) => Promise<void>
-  perguntar: () => Promise<RespostaMotor>
+  perguntar: (soGratuito?: boolean) => Promise<RespostaMotor>
 }
 export type ResultadoRotaMotor =
   | { status: 200; r: RespostaMotor; cobrado: boolean }
@@ -31,7 +32,14 @@ export async function processarPerguntaMotor(e: { usuario: string | null; empres
   } catch { return { status: 503, erro: 'falha_leitura', cobrado: false } }
 
   const saldo = await deps.consumir(e.empresaId)
-  if (!saldo.ok) return { status: 402, erro: 'sem_saldo_ia', motivo: saldo.motivo, cobrado: false }
+  if (!saldo.ok) {
+    try { return { status: 200, r: await deps.perguntar(true), cobrado: false } }
+    catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('empresa não encontrada')) return { status: 404, erro: 'empresa_nao_encontrada', cobrado: false }
+      return { status: 500, erro: msg.slice(0, 200), cobrado: false }
+    }
+  }
   try {
     const r = await deps.perguntar()
     if (!r.resposta) { await deps.devolver(saldo.id); return { status: 200, r, cobrado: false } } // IA não respondeu: não cobra

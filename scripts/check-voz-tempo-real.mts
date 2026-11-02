@@ -33,7 +33,7 @@ const casos: [string, ReturnType<typeof ent>, Cfg, number, string][] = [
   ['fornecedor sem chave', ent({ fornecedor: 'qwen' }), { disp: ['gemini'] }, 409, 'fornecedor_indisponivel'],
   ['outra empresa (RLS)', ent(), { acesso: null }, 404, 'sem_acesso'],
   ['operador', ent(), { papel: 'operador' }, 403, 'sem_acesso_voz'],
-  ['sem saldo', ent(), { acesso: { restante: 0, ilimitada: false } }, 402, 'sem_saldo'],
+  ['sem saldo não bloqueia (voz gratuita)', ent(), { acesso: { restante: 0, ilimitada: false } }, 200, 'ok'],
   ['ilimitada', ent(), { acesso: { restante: 0, ilimitada: true } }, 200, 'ok'],
   ['leitura falhou', ent(), { acesso: 'erro' }, 503, 'falha_leitura'],
   ['papel ilegível', ent(), { papel: 'erro' }, 503, 'falha_leitura'],

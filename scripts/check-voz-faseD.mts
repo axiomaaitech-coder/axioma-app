@@ -115,15 +115,15 @@ console.log('OK — casos 7–10: regras no prompt (comportamento real do modelo
 // ─── Casos 13–15: isolamento, papel, saldo e cobrança ───
 type Cfg = Partial<{ acesso: true | null | 'erro'; papel: string | null | 'erro'; saldo: boolean; resposta: string | null | 'erro' | 'alheia' }>
 function cenario(c: Cfg = {}) {
-  const cont = { consumos: 0, devolucoes: 0, perguntas: 0 }
+  const cont = { consumos: 0, devolucoes: 0, perguntas: 0, gratuitas: 0 }
   const deps = {
     podeUsar: M.podeUsarIAFinanceira,
     acesso: async () => { if (c.acesso === 'erro') throw new Error('timeout'); return c.acesso === undefined ? true as const : c.acesso },
     papel: async () => { if (c.papel === 'erro') throw new Error('timeout'); return c.papel === undefined ? 'dono' : c.papel },
     consumir: async () => { cont.consumos++; return c.saldo === false ? { ok: false as const, motivo: 'sem_saldo' } : { ok: true as const, id: 'c1' } },
     devolver: async () => { cont.devolucoes++ },
-    perguntar: async () => {
-      cont.perguntas++
+    perguntar: async (soGratuito?: boolean) => {
+      cont.perguntas++; if (soGratuito) cont.gratuitas++
       if (c.resposta === 'erro') throw new Error('rede')
       if (c.resposta === 'alheia') throw new Error('empresa não encontrada')
       return { resposta: c.resposta === undefined ? 'Fato: ok.' : c.resposta } as Awaited<ReturnType<typeof M.perguntarAoMotor>>
@@ -144,7 +144,8 @@ await caso('13b empresa some no meio', { resposta: 'alheia' }, 404, 1, 1, 1)
 await caso('14 operador', { papel: 'operador' }, 403, 0, 0, 0)
 await caso('papel ilegível não vira dono', { papel: 'erro' }, 503, 0, 0, 0)
 await caso('acesso ilegível', { acesso: 'erro' }, 503, 0, 0, 0)
-await caso('15 saldo insuficiente', { saldo: false }, 402, 1, 0, 0)
+const gratis = await caso('15 sem saldo: responde pelo Gemini gratuito, sem cobrar', { saldo: false }, 200, 1, 0, 1)
+assert.equal(gratis.cobrado, false)
 const ok = await caso('sucesso cobra 1', {}, 200, 1, 0, 1)
 assert.equal(ok.cobrado, true)
 const semResp = await caso('IA não respondeu: devolve 1 vez', { resposta: null }, 200, 1, 1, 1)
@@ -153,7 +154,7 @@ await caso('erro no motor: devolve 1 vez', { resposta: 'erro' }, 500, 1, 1, 1)
 await caso('sem login', {}, 401, 0, 0, 0, { ...E, usuario: null as unknown as string })
 await caso('empresa inválida', {}, 400, 0, 0, 0, { ...E, empresaId: 'x' })
 for (const papel of ['dono', 'admin', 'financeiro', 'contabil', 'leitor', null]) await caso(`papel ${papel} usa`, { papel }, 200, 1, 0, 1)
-console.log('OK — casos 13–15: outra empresa 404 sem cobrar, operador 403, leitura falha 503, saldo 402, devolução no máximo 1 vez')
+console.log('OK — casos 13–15: outra empresa 404 sem cobrar, operador 403, leitura falha 503, sem saldo = gratuito (200, não cobra), devolução no máximo 1 vez')
 
 // ─── Caso 16 e integração ───
 const rota = readFileSync('app/api/ia/motor/route.ts', 'utf8')

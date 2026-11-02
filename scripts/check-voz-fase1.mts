@@ -25,7 +25,7 @@ async function caso(nome: string, e: Parameters<typeof processarDitado>[0], c: C
   const { deps, cont } = cenario(c)
   const r = await processarDitado(e, deps)
   assert.equal(r.status, status, `${nome}: status`); assert.equal(r.codigo, codigo, `${nome}: código`)
-  assert.equal(cont.cobrancas, cobrancas, `${nome}: cobranças`); assert.equal(r.cobrado, codigo === 'ok', `${nome}: cobrado`)
+  assert.equal(cont.cobrancas, cobrancas, `${nome}: cobranças`); assert.equal(r.cobrado, false, `${nome}: ditado gratuito nunca cobra`)
   if (codigo !== 'ok') assert.equal(r.texto, undefined, `${nome}: não pode devolver texto`)
   return { r, cont }
 }
@@ -41,19 +41,17 @@ await caso('acima de 2 MB', entrada({ arquivo: audio(MAX_BYTES + 1) }), {}, 413,
 await caso('sem acesso à empresa (RLS)', entrada(), { sit: null }, 404, 'sem_acesso', 0)
 await caso('falha ao ler o acesso', entrada(), { sit: 'erro' }, 503, 'falha_leitura', 0)
 await caso('operador fora do PDV', entrada(), { papel: 'operador' }, 403, 'sem_acesso_voz', 0)
-await caso('operador na busca do PDV', entrada({ tela: 'pdv' }), { papel: 'operador' }, 200, 'ok', 1)
-await caso('saldo zerado (antes de transcrever)', entrada(), { sit: { restante: 0, ilimitada: false } }, 402, 'sem_saldo', 0)
-await caso('saldo ilimitado (empresa de teste)', entrada(), { sit: { restante: 0, ilimitada: true } }, 200, 'ok', 1)
+await caso('operador na busca do PDV', entrada({ tela: 'pdv' }), { papel: 'operador' }, 200, 'ok', 0)
+await caso('saldo zerado: ditado é gratuito', entrada(), { sit: { restante: 0, ilimitada: false } }, 200, 'ok', 0)
+await caso('saldo ilimitado (empresa de teste)', entrada(), { sit: { restante: 0, ilimitada: true } }, 200, 'ok', 0)
 const forn = await caso('fornecedor indisponível', entrada(), { transc: 'erro' }, 503, 'fornecedor_indisponivel', 0)
 assert.equal(forn.cont.transcricoes, 1)
 await caso('áudio acima de 60 s (duração do fornecedor)', entrada(), { transc: { texto: 'longo', duracao: 75 } }, 413, 'audio_longo', 0)
 await caso('duração ausente não passa', entrada(), { transc: { texto: 'x', duracao: Number.NaN } }, 413, 'audio_longo', 0)
 await caso('transcrição vazia', entrada(), { transc: { texto: '   ', duracao: 3 } }, 422, 'transcricao_vazia', 0)
-await caso('saldo acabou no meio (corrida)', entrada(), { consumo: 'sem_saldo' }, 402, 'sem_saldo', 1) // tentou cobrar 1x, NÃO entrega o texto
-await caso('falha ao cobrar', entrada(), { consumo: 'erro' }, 503, 'falha_leitura', 1)
-const ok = await caso('sucesso', entrada(), {}, 200, 'ok', 1)
+const ok = await caso('sucesso (gratuito: não cobra)', entrada(), {}, 200, 'ok', 0)
 assert.equal(ok.r.texto, 'conta de luz da Enel, 320 reais'); assert.equal(ok.cont.transcricoes, 1)
-console.log('OK — servidor: login, empresa, papel, saldo, formato, tamanho, duração, fornecedor, vazio; cobra 1x só no sucesso')
+console.log('OK — servidor: login, empresa, papel, saldo, formato, tamanho, duração, fornecedor, vazio; ditado gratuito (Groq), nunca cobra')
 
 // Liberação e mensagens (3 idiomas, sem detalhe técnico)
 assert.equal(vozAtivaPara(EMP, {}), true, 'ligada para todas por padrão (2026-11-02)')
@@ -62,7 +60,7 @@ assert.equal(vozAtivaPara(EMP, { VOZ_ATIVA: 'off' }), false, 'chave de emergênc
 assert.equal(vozAtivaPara(EMP, { VOZ_ATIVA: 'off', VOZ_EMPRESAS_TESTE: ` x , ${EMP.toUpperCase()} ` }), true)
 for (const c of ['nao_autorizado', 'voz_desativada', 'sem_saldo', 'fornecedor_indisponivel', 'transcricao_vazia', 'audio_longo', 'sem_acesso_voz'] as const)
   for (const l of ['pt', 'en', 'es']) { const m = mensagemVoz(c, l); assert.ok(m.length > 10 && !/openai|whisper|api key|http/i.test(m), `${c}/${l}`) }
-console.log('OK — liberação desligada por padrão; mensagens nos 3 idiomas sem expor fornecedor')
+console.log('OK — liberação ligada por padrão (VOZ_ATIVA=off desliga); mensagens nos 3 idiomas sem expor fornecedor')
 
 // ─── Gravador (navegador simulado) ───
 assert.equal(juntarTexto('Quanto vou pagar', 'em 30 dias?'), 'Quanto vou pagar em 30 dias?')

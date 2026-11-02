@@ -50,21 +50,30 @@ const DICA_TELA: Record<string, Record<Idioma, string>> = {
   pdv: { pt: 'Produtos de loja: unidade, quilo, litro, mililitros, caixa, pacote, garrafa, lata.', en: 'Store products: unit, kilo, liter, milliliters, box, pack, bottle, can.', es: 'Productos de tienda: unidad, kilo, litro, mililitros, caja, paquete, botella, lata.' },
 }
 
-async function transcreverOpenAI(audio: Blob, tipo: string, lang: Idioma, tela: string): Promise<{ texto: string; duracao: number }> {
+// Ditado gratuito (Elias 2026-11-02): Groq (Whisper, sem custo) primeiro; OpenAI só de reserva.
+async function transcrever(audio: Blob, tipo: string, lang: Idioma, tela: string): Promise<{ texto: string; duracao: number }> {
+  if (process.env.GROQ_API_KEY) {
+    try { return await transcreverWhisper('https://api.groq.com/openai/v1/audio/transcriptions', process.env.GROQ_API_KEY, process.env.VOZ_MODELO_GROQ || 'whisper-large-v3-turbo', audio, tipo, lang, tela) }
+    catch (err) { console.error('[voz] Groq falhou, tentando OpenAI', err instanceof Error ? err.message : err) }
+  }
   const chave = process.env.OPENAI_API_KEY
-  if (!chave) throw new Error('OPENAI_API_KEY ausente')
+  if (!chave) throw new Error('sem fornecedor de transcrição')
+  return transcreverWhisper('https://api.openai.com/v1/audio/transcriptions', chave, MODELO(), audio, tipo, lang, tela)
+}
+
+async function transcreverWhisper(url: string, chave: string, modelo: string, audio: Blob, tipo: string, lang: Idioma, tela: string): Promise<{ texto: string; duracao: number }> {
   const ext = tipo.includes('mp4') || tipo.includes('m4a') ? 'm4a' : tipo.includes('ogg') ? 'ogg' : tipo.includes('mpeg') ? 'mp3' : tipo.includes('wav') ? 'wav' : 'webm'
   const form = new FormData()
   form.append('file', new File([audio], `ditado.${ext}`, { type: tipo }))
-  form.append('model', MODELO())
+  form.append('model', modelo)
   form.append('response_format', 'verbose_json')
   form.append('language', lang)
   form.append('temperature', '0')
   form.append('prompt', `${DICA[lang]} ${DICA_TELA[tela]?.[lang] ?? ''}`.trim())
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const res = await fetch(url, {
     method: 'POST', headers: { Authorization: `Bearer ${chave}` }, body: form, signal: AbortSignal.timeout(30000),
   })
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`) // corpo da resposta não é lido nem registrado
+  if (!res.ok) throw new Error(`transcrição ${res.status}`) // corpo da resposta não é lido nem registrado
   const j = await res.json() as { text?: string; duration?: number }
   return { texto: String(j.text ?? ''), duracao: Number(j.duration ?? Number.NaN) }
 }
@@ -98,13 +107,7 @@ export async function POST(request: NextRequest) {
             if (error) throw new Error(error.message)
             return (data?.papel as string | undefined) ?? null
           },
-          transcrever: (a, t, l) => transcreverOpenAI(a, t, l, tela),
-          // Gravação: NUNCA repetida (repetir poderia cobrar 2x). ia_consumir é atômico (trava a linha da empresa).
-          consumir: async (id) => {
-            const { data, error } = await supabase.rpc('ia_consumir', { p_empresa: id, p_tipo: 'openai' })
-            if (error) throw new Error(error.message)
-            return data?.ok ? { ok: true as const } : { ok: false as const, motivo: String(data?.motivo ?? 'sem_saldo') }
-          },
+          transcrever: (a, t, l) => transcrever(a, t, l, tela),
         },
       )
 

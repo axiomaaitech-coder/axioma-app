@@ -126,8 +126,7 @@ export async function processarInicio(e: EntradaInicio, deps: DepsInicio): Promi
     const sit = await deps.acesso(e.empresaId)
     if (!sit) return { status: 404, codigo: 'sem_acesso' }
     if ((await deps.papel(e.empresaId)) === 'operador') return { status: 403, codigo: 'sem_acesso_voz' }
-    // Sem saldo para nenhuma pergunta: nem abre a conversa (cada consulta ao motor cobra 1)
-    if (!sit.ilimitada && sit.restante <= 0) return { status: 402, codigo: 'sem_saldo' }
+    // Sem saldo não bloqueia (Elias 2026-11-02): a voz ao vivo é gratuita e o motor responde pelo Gemini gratuito
   } catch { return { status: 503, codigo: 'falha_leitura' } }
   return { status: 200, codigo: 'ok' }
 }

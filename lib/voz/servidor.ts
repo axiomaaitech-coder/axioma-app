@@ -36,7 +36,6 @@ export type DepsVoz = {
   situacao: (empresaId: string) => Promise<{ restante: number; ilimitada: boolean } | null>
   papel: (empresaId: string) => Promise<string | null>
   transcrever: (audio: Blob, tipo: string, lang: Idioma) => Promise<{ texto: string; duracao: number }>
-  consumir: (empresaId: string) => Promise<{ ok: true } | { ok: false; motivo: string }>
 }
 export type Codigo =
   | 'ok' | 'nao_autorizado' | 'parametros_invalidos' | 'voz_desativada' | 'formato_invalido' | 'audio_vazio'
@@ -63,7 +62,7 @@ export async function processarDitado(e: EntradaVoz, deps: DepsVoz): Promise<Res
   try { papel = await deps.papel(e.empresaId) } catch { return r(503, 'falha_leitura') }
   // Operador de caixa: ditado só na busca de produto do PDV (não dá inteligência financeira).
   if (papel === 'operador' && e.tela !== 'pdv') return r(403, 'sem_acesso_voz')
-  if (!sit.ilimitada && sit.restante <= 0) return r(402, 'sem_saldo', { motivoSaldo: 'sem_saldo' })
+  // Ditado é GRATUITO (Elias 2026-11-02): transcrição pela Groq sem custo; não consulta nem desconta o saldo de IA.
 
   let res: { texto: string; duracao: number }
   try { res = await deps.transcrever(e.arquivo.bytes, tipoBase(e.arquivo.tipo), e.lang as Idioma) }
@@ -72,10 +71,7 @@ export async function processarDitado(e: EntradaVoz, deps: DepsVoz): Promise<Res
   const texto = (res.texto ?? '').replace(/\s+/g, ' ').trim()
   if (!texto) return r(422, 'transcricao_vazia', { duracao: res.duracao })
 
-  let c: Awaited<ReturnType<DepsVoz['consumir']>>
-  try { c = await deps.consumir(e.empresaId) } catch { return r(503, 'falha_leitura', { duracao: res.duracao }) }
-  if (!c.ok) return r(402, 'sem_saldo', { duracao: res.duracao, motivoSaldo: c.motivo })
-  return { status: 200, codigo: 'ok', texto, cobrado: true, duracao: res.duracao }
+  return { status: 200, codigo: 'ok', texto, cobrado: false, duracao: res.duracao }
 }
 
 // Liberação: ligada para todas as empresas (Elias 2026-11-02; Política de Privacidade com a seção de voz — LEGAL-V01).

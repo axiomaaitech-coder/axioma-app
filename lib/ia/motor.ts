@@ -59,6 +59,13 @@ export const podeUsarIAFinanceira = (papel: string | null | undefined) => papel 
 
 export const TELAS_ANTHROPIC =new Set(['ia-financeira', 'ia-tributaria', 'nexus', 'nexus-simulacoes', 'relatorios'])
 const OPENAI_FORTE = 'gpt-4o'
+// 3ª IA, GRATUITA (Elias 2026-11-02): Google Gemini pelo formato compatível com a OpenAI, com as MESMAS
+// ferramentas de consulta. Entra quando OpenAI e Anthropic falham (sem crédito, fora do ar) e quando a
+// empresa está sem saldo de IA no plano (não desconta nada). Chave: GEMINI_API_KEY (a mesma da voz).
+type ProvedorCompat = { nome: 'openai' | 'gemini'; url: string; chave: string }
+const GEMINI_MODELO = () => process.env.GEMINI_MOTOR_MODELO || 'gemini-3-flash-preview'
+const provedorGemini = (): ProvedorCompat | null => process.env.GEMINI_API_KEY
+  ? { nome: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave: process.env.GEMINI_API_KEY } : null
 
 // ─── Medição de consumo (B2 — painel de custo) ───
 // Preço de tabela da Anthropic (US$ por milhão de tokens, consultado 2026-09-28;
@@ -456,11 +463,12 @@ export function avisosDaResposta(p: { lang: Idioma; exige: boolean; registro: Re
 // não roda de novo: devolve o resultado já lido. Falha aqui → null (quem chama cai na OpenAI sem ferramentas).
 const MAX_CHAMADAS_FERRAMENTA = 8
 type MsgOpenAI = { role: string; content: string | null; tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[]; tool_call_id?: string }
-export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: ConsultaMotor, uso?: Uso): Promise<ConsultaClaude> {
+export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: ConsultaMotor, uso?: Uso, prov?: ProvedorCompat | null): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
-  const chave = process.env.OPENAI_API_KEY
-  if (!chave) return { texto: null, dadosConsultados }
-  const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, strict: true } }))
+  const p = prov ?? (process.env.OPENAI_API_KEY ? { nome: 'openai' as const, url: 'https://api.openai.com/v1/chat/completions', chave: process.env.OPENAI_API_KEY } : null)
+  if (!p) return { texto: null, dadosConsultados }
+  const gemini = p.nome === 'gemini'
+  const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
   const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
   // Promessa guardada ANTES de esperar: dois pedidos iguais na mesma rodada (em paralelo) leem uma vez só
   const jaLidos = new Map<string, Promise<string>>()
@@ -468,13 +476,13 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
   try {
     for (let rodada = 0; rodada <= MAX_CONSULTAS; rodada++) {
       const ultima = rodada === MAX_CONSULTAS || chamadas >= MAX_CHAMADAS_FERRAMENTA
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch(p.url, {
         method: 'POST', signal: AbortSignal.timeout(45000),
-        headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${p.chave}`, 'Content-Type': 'application/json' },
         // Pergunta que exige dado: na 1ª rodada o modelo é OBRIGADO a consultar (required)
-        body: JSON.stringify({ model: modelo, max_completion_tokens: 3000, messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
+        body: JSON.stringify({ model: modelo, ...(gemini ? { max_tokens: 3000 } : { max_completion_tokens: 3000 }), messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
       })
-      if (!res.ok) { console.error('[motor-ia] OpenAI ferramentas', modelo, res.status, (await res.text()).slice(0, 300)); return { texto: null, dadosConsultados } }
+      if (!res.ok) { console.error(`[motor-ia] ${p.nome} ferramentas`, modelo, res.status, (await res.text()).slice(0, 300)); return { texto: null, dadosConsultados } }
       const dados = await res.json()
       somarUso(uso, modelo, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const msg = dados?.choices?.[0]?.message as MsgOpenAI | undefined
@@ -501,7 +509,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
     }
     return { texto: null, dadosConsultados }
   } catch (err) {
-    console.error('[motor-ia] OpenAI ferramentas rede', modelo, err instanceof Error ? err.message : err)
+    console.error(`[motor-ia] ${p.nome} ferramentas rede`, modelo, err instanceof Error ? err.message : err)
     return { texto: null, dadosConsultados }
   }
 }
@@ -580,7 +588,7 @@ async function triagemPorIA(pergunta: string, uso?: Uso): Promise<Nivel> {
 export type RespostaMotor = {
   resposta: string | null // null = motor inteiro falhou → quem chamou usa as regras
   nivel: Nivel
-  provedor: 'openai' | 'anthropic' | null
+  provedor: 'openai' | 'anthropic' | 'gemini' | null
   modelo: string | null
   escalou: boolean
   triagem: 'regra' | 'ia'
@@ -634,13 +642,14 @@ export function avisarRelatorioConcluido(texto: string, lang: Idioma): string {
 export async function perguntarAoMotor(args: {
   supabase: SupabaseClient; empresaId: string; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
   contextoTela?: string // números e formato pedidos pela tela de origem (ex.: dados do DAS no MEI)
+  soGratuito?: boolean // empresa sem saldo de IA: responde só pelo Gemini gratuito (nada é descontado)
 }): Promise<RespostaMotor> {
   const lang = args.lang ?? 'pt'
   const pergunta = args.pergunta.trim().slice(0, 4000)
   const manuais = escolherManuais(pergunta, args.tela)
   const porRegra = triagemPorRegra(pergunta, manuais.length)
   const uso = usoZerado()
-  let nivel = subir(porRegra ?? await triagemPorIA(pergunta, uso), args.nivelMinimo ?? 'rotina')
+  let nivel = subir(porRegra ?? (args.soGratuito ? 'analise' : await triagemPorIA(pergunta, uso)), args.nivelMinimo ?? 'rotina')
   const triagem = porRegra ? 'regra' : 'ia'
 
   const precisaMundo = nivel === 'estrategica' || manuais.some((m) => m.id === 'economia')
@@ -669,7 +678,14 @@ export async function perguntarAoMotor(args: {
   const registro: RegistroFerramenta[] = []
   const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso, registro, exige }
 
-  const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic'; modelo: string; enviados: number; consultas?: string[] }> => {
+  // Gemini gratuito com as mesmas ferramentas (3ª IA / modo sem saldo)
+  const executarGemini = async (n: Nivel) => {
+    const sistema = montarSistema(ctx, n, lang)
+    const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
+    const c = await chamarOpenAIComFerramentas(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, GEMINI_MODELO(), consulta, uso, provedorGemini())
+    return { texto: c.texto, provedor: 'gemini' as const, modelo: GEMINI_MODELO(), enviados: enviados + c.dadosConsultados.join('').length, consultas: c.dadosConsultados }
+  }
+  const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic' | 'gemini'; modelo: string; enviados: number; consultas?: string[] }> => {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     if (MODELOS[n].provedor === 'openai') {
@@ -693,13 +709,15 @@ export async function perguntarAoMotor(args: {
     return openaiForte()
   }
 
-  let r = await executar(nivel)
+  let r = args.soGratuito ? await executarGemini(nivel) : await executar(nivel)
   // Rotina que não dá conta (ou inventou número) passa pra cima.
   // (a sugestão de memória [[LEMBRAR]] traz valor que ainda não está nos dados: não conta como inventado)
-  if (nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(extrairSugestao(r.texto, 'geral').texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`).length > 0)) {
+  if (!args.soGratuito && nivel === 'rotina' && (!r.texto || r.texto.includes(SINAL_ESCALAR) || conferirNumeros(extrairSugestao(r.texto, 'geral').texto, `${textoConferencia}\n${reaisDasConsultas(r.consultas ?? [])}`).length > 0)) {
     nivel = 'analise'; escalou = true
     r = await executar(nivel)
   }
+  // OpenAI e Anthropic sem resposta (sem crédito, fora do ar): 3ª IA = Gemini gratuito
+  if (!r.texto && !args.soGratuito && provedorGemini()) r = await executarGemini(nivel)
   if (r.texto?.includes(SINAL_ESCALAR)) r.texto = null
   // A tela não lê markdown e a voz leria os símbolos: a OpenAI às vezes manda ** e # mesmo proibido no prompt.
   if (r.texto) r.texto = limparFormato(r.texto)
