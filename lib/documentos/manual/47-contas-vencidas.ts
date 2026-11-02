@@ -37,7 +37,7 @@ const pt: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por faixa' },
-    { p: 'Barras com o saldo vencido em cada faixa de dias (1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360) e a linha **A vencer**. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do total.' },
+    { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (verde), até 60 dias (âmbar) e acima de 60 dias (vermelho) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
 
     { h1: 'Previsão e evolução' },
     { p: 'Quanto deve ser recuperado em 7, 15, 30, 60 e 90 dias, com o nível de confiança. A **evolução** mostra o total vencido a receber dia a dia — ela começa a ser registrada no primeiro dia em que a tela é aberta.' },
@@ -86,7 +86,7 @@ const en: DocumentoAxioma = {
     ] } },
 
     { h1: 'Overdue by range' },
-    { p: 'Bars with the overdue balance in each day range (1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360) and the **Not due** line. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents.' },
+    { p: 'Column chart with the balance in each range: **Not due** (green), up to 60 days (amber) and over 60 days (red) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
 
     { h1: 'Forecast and history' },
     { p: 'How much should be recovered in 7, 15, 30, 60 and 90 days, with the confidence level. The **history** shows the overdue receivable total day by day — it starts on the first day the screen is opened.' },
@@ -135,7 +135,7 @@ const es: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por rango' },
-    { p: 'Barras con el saldo vencido en cada rango de días (1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360) y la línea **Por vencer**. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor.' },
+    { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (verde), hasta 60 días (ámbar) y más de 60 días (rojo) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
 
     { h1: 'Previsión y evolución' },
     { p: 'Cuánto debe recuperarse en 7, 15, 30, 60 y 90 días, con el nivel de confianza. La **evolución** muestra el total vencido por cobrar día a día — empieza a registrarse el primer día que se abre la pantalla.' },

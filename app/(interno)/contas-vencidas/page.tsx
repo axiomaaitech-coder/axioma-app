@@ -9,10 +9,11 @@ import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Search } from 'lucide-react
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
+import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
+import { optBarrasV, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
 import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos, type ItemVencido } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
@@ -20,8 +21,8 @@ type Idioma3 = 'pt' | 'en' | 'es'
 const PALETA = {
   // Escuro: paleta aprovada 2026-10-03 (alerta amarelo, nada de laranja). Claro: card creme, caixa
   // aninhada bege, texto menta escuro/navy (mesmas cores de Inadimplência e Contas a Receber).
-  dark: { VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)', CAMPO: 'rgba(10,22,40,0.9)', BARRA_REC: '#34d399', BARRA_PAG: '#f87171' },
-  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)', CAMPO: '#ffffff', BARRA_REC: '#2ecc9b', BARRA_PAG: '#101b3d' },
+  dark: { VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)', CAMPO: 'rgba(10,22,40,0.9)', BARRA_REC: '#34d399' },
+  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)', CAMPO: '#ffffff', BARRA_REC: '#2ecc9b' },
 } as const
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
@@ -69,7 +70,7 @@ export default function ContasVencidasPage() {
 
   // Indicador com "de onde vem": toque abre a origem do número (nada escondido em modal)
   const Indicador = ({ titulo, valor, cor, sub, origem }: { titulo: string; valor: string; cor: string; sub?: string; origem: string }) => (
-    <details className="rounded-xl p-3 min-w-0 group" style={aninhada}>
+    <details className="rounded-xl p-3 min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
       <summary className="cursor-pointer list-none">
         <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
         <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
@@ -128,7 +129,27 @@ export default function ContasVencidasPage() {
     ['sem_acompanhamento', L('Sem acompanhamento', 'Not followed up', 'Sin seguimiento')],
   ]
   const ag = r ? (lado === 'receber' ? r.agingReceber : r.agingPagar) : null
-  const maiorFaixa = ag ? Math.max(1, ...ag.faixas.map((x) => x.saldo)) : 1
+  // Severidade igual à de Contas a Receber: âmbar até 60 dias, vermelho acima; a vencer em verde-menta (saldo saudável)
+  const CORES_AGING = { aVencer: temaClaro ? '#2ecc9b' : '#34d399' }
+  const rotulosAging = ag ? [L('A vencer', 'Not due', 'Por vencer'), ...ag.faixas.map((x) => x.rotulo)] : []
+  const valoresAging = ag ? [ag.aVencer.saldo, ...ag.faixas.map((x) => x.saldo)] : []
+  const qtdAging = ag ? [ag.aVencer.qtd, ...ag.faixas.map((x) => x.qtd)] : []
+  const baseAging = valoresAging.reduce((s, v) => s + v, 0)
+  const ate30 = ag && baseAging > 0 ? Math.round(((ag.aVencer.saldo + ag.faixas.filter((x) => x.ate != null && x.ate <= 30).reduce((s, x) => s + x.saldo, 0)) / baseAging) * 1000) / 10 : null
+  const opcaoAging = ag ? (() => {
+    const o = optBarrasV(valoresAging, rotulosAging, P.VERMELHO, temaClaro ? '#ff5a6b' : '#fca5a5',
+      [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? P.AMBAR : P.VERMELHO))], temaClaro)
+    const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
+    return {
+      ...o,
+      grid: { ...o.grid, left: 64, bottom: 36 },
+      xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, interval: 0, hideOverlap: true, rotate: rotulosAging.length > 8 ? 30 : 0, formatter: (v: string, i: number) => (i === 0 ? v : `${v} ${dias}`) } },
+      yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, formatter: (v: number) => fmt(v).replace(/,00$/, '') } },
+      tooltip: { ...o.tooltip, formatter: (p: { dataIndex: number; name: string; value: number }) =>
+        `<b>${p.name}${p.dataIndex === 0 ? '' : ' ' + dias}</b><br/><b style="font-size:15px">${fmt(p.value)}</b><br/>${qtdAging[p.dataIndex]} ${contas} · ${baseAging ? ((p.value / baseAging) * 100).toLocaleString(local, { maximumFractionDigits: 1 }) : 0}% ${doTotal}` },
+      series: [{ ...o.series[0], barWidth: '62%', label: { ...o.series[0].label, fontSize: 10, formatter: (p: { value: number }) => (p.value > 0 ? fmt(p.value).replace(/,\d\d$/, '') : '') } }],
+    }
+  })() : null
 
   return (
     <div data-theme={tema}>
@@ -199,52 +220,52 @@ export default function ContasVencidasPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Atraso por faixa */}
-              {ag && (
-                <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            {/* Atraso por faixa — colunas no padrão dos ERPs/relatórios de CFO (mesmo gráfico de Contas a Receber) */}
+            {ag && (
+              <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                  <div>
                     <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</p>
-                    <div className="flex gap-1" role="group">
-                      {(['receber', 'pagar'] as const).map((x) => (
-                        <button key={x} type="button" aria-pressed={lado === x} onClick={() => setLado(x)} className="px-2.5 py-1 rounded-lg text-xs font-bold text-white"
-                          style={{ background: lado === x ? (x === 'receber' ? BOTAO_ACAO : BOTAO_SECUNDARIO) : temaClaro ? '#6b7280' : 'rgba(255,255,255,0.12)' }}>
-                          {x === 'receber' ? L('A receber', 'Receivable', 'Por cobrar') : L('A pagar', 'Payable', 'Por pagar')}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>
+                      {L('Até 30 dias (com a vencer): ', 'Up to 30 days (incl. not due): ', 'Hasta 30 días (con por vencer): ')}
+                      <b style={{ color: ate30 == null ? P.CINZA : ate30 >= 75 ? P.VERDE : P.AMBAR }}>{pct(ate30)}</b>
+                      {L(' · referência de mercado: 75–80%', ' · market reference: 75–80%', ' · referencia de mercado: 75–80%')}
+                    </p>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs" style={{ color: P.CINZA }}>
-                      <span className="w-16 shrink-0">{L('A vencer', 'Not due', 'Por vencer')}</span>
-                      <span className="flex-1" />
-                      <span className="w-24 text-right" style={{ color: P.TEXTO }}>{fmt(ag.aVencer.saldo)}</span>
-                    </div>
-                    {ag.faixas.map((x) => (
-                      <div key={x.rotulo} className="flex items-center gap-2 text-xs">
-                        <span className="w-16 shrink-0" style={{ color: P.CINZA }}>{x.rotulo}</span>
-                        <span className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: P.ANINHADA }} aria-hidden>
-                          <span className="block h-full rounded-full" style={{ width: `${(x.saldo / maiorFaixa) * 100}%`, background: lado === 'receber' ? P.BARRA_REC : P.BARRA_PAG }} />
-                        </span>
-                        <span className="w-24 text-right font-semibold" style={{ color: x.saldo ? P.TEXTO : P.CINZA }}>{fmt(x.saldo)}</span>
-                        <span className="w-10 text-right hidden sm:inline" style={{ color: P.CINZA }}>{x.qtd}</span>
-                      </div>
+                  <div className="flex gap-1" role="group">
+                    {(['receber', 'pagar'] as const).map((x) => (
+                      <button key={x} type="button" aria-pressed={lado === x} onClick={() => setLado(x)} className="px-2.5 py-1 rounded-lg text-xs font-bold text-white"
+                        style={{ background: lado === x ? (x === 'receber' ? BOTAO_ACAO : BOTAO_SECUNDARIO) : temaClaro ? '#6b7280' : 'rgba(255,255,255,0.12)' }}>
+                        {x === 'receber' ? L('A receber', 'Receivable', 'Por cobrar') : L('A pagar', 'Payable', 'Por pagar')}
+                      </button>
                     ))}
                   </div>
-                  <p className="text-[11px] mt-3" style={{ color: P.CINZA }}>
-                    {L(`Dias de atraso, saldo e quantidade. Juros e multa estimados no total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Maior devedor: ${pct(ag.maiorPct)} do vencido.`,
-                      `Days overdue, balance and count. Estimated interest and fines in total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Largest debtor: ${pct(ag.maiorPct)} of the overdue amount.`,
-                      `Días de atraso, saldo y cantidad. Intereses y multas estimados en total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Mayor deudor: ${pct(ag.maiorPct)} de lo vencido.`)}
-                  </p>
                 </div>
-              )}
+                {ag.aVencer.saldo + ag.total > 0 ? (
+                  <ReactECharts option={opcaoAging} style={{ height: 280 }} notMerge lazyUpdate />
+                ) : (
+                  <p className="text-xs text-center py-10" style={{ color: P.VERDE }}>{L('Nada em aberto neste lado.', 'Nothing open on this side.', 'Nada abierto en este lado.')}</p>
+                )}
+                {/* mesma informação em tabela, para leitor de tela */}
+                <table className="sr-only">
+                  <caption>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</caption>
+                  <tbody>{rotulosAging.map((rot, i) => <tr key={rot}><th>{rot}</th><td>{fmt(valoresAging[i])}</td><td>{qtdAging[i]}</td></tr>)}</tbody>
+                </table>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] mt-1" style={{ color: P.CINZA }}>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.aVencer }} />{L('A vencer', 'Not due', 'Por vencer')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: P.AMBAR }} />{L('Até 60 dias', 'Up to 60 days', 'Hasta 60 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: P.VERMELHO }} />{L('Acima de 60 dias', 'Over 60 days', 'Más de 60 días')}</span>
+                  <span className="ml-auto">{L(`Juros e multa estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Maior devedor: ${pct(ag.maiorPct)} do vencido`, `Estimated interest and fines: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Largest debtor: ${pct(ag.maiorPct)} of overdue`, `Intereses y multas estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Mayor deudor: ${pct(ag.maiorPct)} de lo vencido`)}</span>
+                </div>
+              </div>
+            )}
 
               {/* Previsão de recuperação e evolução */}
               <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
                 <p className="text-sm font-bold mb-3" style={{ color: P.TEXTO }}>{L('Previsão de recuperação', 'Recovery forecast', 'Previsión de recuperación')}</p>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
                   {r.previsao.horizontes.map((h) => (
-                    <div key={h.horizonteDias} className="rounded-lg p-2 text-center min-w-0" style={aninhada}>
+                    <div key={h.horizonteDias} className="rounded-lg p-2 text-center min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
                       <p className="text-[11px]" style={{ color: P.CINZA }}>{h.horizonteDias} {L('dias', 'days', 'días')}</p>
                       <p className="text-xs font-bold truncate" style={{ color: P.VERDE }}>{fmt(h.valor)}</p>
                     </div>
@@ -271,7 +292,6 @@ export default function ContasVencidasPage() {
                   )
                 })()}
               </div>
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {lista(true, r.pagar, r.totalPagar)}
