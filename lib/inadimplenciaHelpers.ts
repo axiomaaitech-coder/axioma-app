@@ -12,6 +12,8 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { hojeISO, isoDia } from "./datas";
 import { exigirLeitura } from "./erroUiHelpers";
+import { contaParaTitulo } from "./clienteIntelHelpers";
+import { recuperadoNoPeriodo } from "./vencidos/motor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -235,10 +237,9 @@ export function calcularKpisInadimplencia(
 // módulos recentes) sem duplicar as métricas fixas de mês/ano acima.
 // ============================================================================
 
+// Regra única do motor de vencidos (lib/vencidos/motor.ts) — mesma conta da tela Contas Vencidas.
 export function valorRecuperadoNoPeriodo(contas: ContaRow[], inicio: string, fim: string): number {
-  return contas
-    .filter((c) => c.status === "recebido" && c.data_recebimento && c.data_recebimento > c.data_vencimento && c.data_recebimento >= inicio && c.data_recebimento <= fim)
-    .reduce((s, c) => s + (Number(c.valor_recebido ?? c.valor) || 0), 0);
+  return recuperadoNoPeriodo(contas.map(contaParaTitulo), inicio, fim);
 }
 
 // ============================================================================

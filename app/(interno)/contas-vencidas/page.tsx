@@ -1,22 +1,27 @@
 'use client'
-// Contas Vencidas — a pagar e a receber atrasadas numa tela só (Elias 2026-11-02). Só leitura:
-// cada conta leva à tela de origem já filtrada em "vencido", onde se paga/recebe ou cobra.
-import { useEffect, useState } from 'react'
+// Contas Vencidas — painel geral (Overdue Command Center, Fase 2 etapa 1) + listas a pagar/a receber.
+// Números do motor de vencidos (lib/vencidos): mesma regra de saldo das telas de origem; cada lista leva à
+// tela de origem já filtrada em "vencido", onde se paga/recebe. Esta tela só lê (e guarda a foto diária da
+// previsão para comparar previsto x realizado e montar a evolução).
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Search } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { carregarContasVencidas, type ContaVencida, type ResumoVencidas } from '../../../lib/contasVencidasHelpers'
+import { resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
+import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos, type ItemVencido } from '../../../lib/vencidos/dados'
+import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 const PALETA = {
   // Escuro: paleta aprovada 2026-10-03 (alerta amarelo, nada de laranja). Claro: card creme, caixa
   // aninhada bege, texto menta escuro/navy (mesmas cores de Inadimplência e Contas a Receber).
-  dark: { VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)' },
-  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)' },
+  dark: { VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)', CAMPO: 'rgba(10,22,40,0.9)', BARRA_REC: '#34d399', BARRA_PAG: '#f87171' },
+  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)', CAMPO: '#ffffff', BARRA_REC: '#2ecc9b', BARRA_PAG: '#101b3d' },
 } as const
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
@@ -30,24 +35,52 @@ export default function ContasVencidasPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const P = PALETA[tema]
-  const [r, setR] = useState<ResumoVencidas | null>(null)
+  const [a, setA] = useState<AnaliseVencidos | null>(null)
   const [carregando, setCarregando] = useState(true)
+  const [preset, setPreset] = useState<PeriodoPreset>('mes_atual')
+  const [personalizado, setPersonalizado] = useState<Periodo>(() => resolverPeriodo('mes_atual'))
+  const periodo = useMemo(() => resolverPeriodo(preset, personalizado), [preset, personalizado])
+  const [f, setF] = useState<Filtros>(() => filtrosIniciais(periodo.inicio, periodo.fim))
+  const [lado, setLado] = useState<'receber' | 'pagar'>('receber')
 
   useEffect(() => {
-    const ler = () => { void obterEmpresaAtiva().then(async (id) => { setR(id ? await carregarContasVencidas(id) : null); setCarregando(false) }) }
+    const ler = () => {
+      void obterEmpresaAtiva().then(async (id) => {
+        if (!id) { setA(null); setCarregando(false); return }
+        const analise = await carregarAnaliseVencidos(id)
+        setA(analise); setCarregando(false)
+        if (!analise.falhou) void registrarPrevisaoDoDia(id, analise) // foto do dia: precisão e evolução
+      })
+    }
     ler()
     window.addEventListener('axioma:dados-atualizados', ler)
     return () => window.removeEventListener('axioma:dados-atualizados', ler)
   }, [])
 
+  const filtros = { ...f, inicio: periodo.inicio, fim: periodo.fim }
+  const r = useMemo(() => (a ? resumoPainel(a, filtros) : null), [a, filtros.busca, filtros.faixa, filtros.situacao, filtros.inicio, filtros.fim]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const painel = { background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
-  const liquido = (r?.totalReceber ?? 0) - (r?.totalPagar ?? 0)
+  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
   const dataTxt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(local)
   const diasTxt = (n: number) => L(`${n} dia${n > 1 ? 's' : ''} de atraso`, `${n} day${n > 1 ? 's' : ''} overdue`, `${n} día${n > 1 ? 's' : ''} de atraso`)
+  const pct = (v: number | null) => (v == null ? '—' : `${v.toLocaleString(local, { maximumFractionDigits: 1 })}%`)
 
-  const lista = (tipo: ContaVencida['tipo'], itens: ContaVencida[], total: number) => {
-    const pagar = tipo === 'pagar'
+  // Indicador com "de onde vem": toque abre a origem do número (nada escondido em modal)
+  const Indicador = ({ titulo, valor, cor, sub, origem }: { titulo: string; valor: string; cor: string; sub?: string; origem: string }) => (
+    <details className="rounded-xl p-3 min-w-0 group" style={aninhada}>
+      <summary className="cursor-pointer list-none">
+        <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
+        <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
+        {sub && <p className="text-[11px]" style={{ color: P.CINZA }}>{sub}</p>}
+        <p className="text-[11px] mt-1 underline" style={{ color: P.CINZA }}>{L('De onde vem', 'Where it comes from', 'De dónde viene')}</p>
+      </summary>
+      <p className="text-[11px] mt-2 leading-snug" style={{ color: P.TEXTO }}>{origem}</p>
+    </details>
+  )
+
+  const lista = (pagar: boolean, itens: ItemVencido[], total: number) => {
     const href = pagar ? '/contas-pagar?filtro=vencido' : '/contas-receber?filtro=vencido'
     return (
       <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
@@ -64,17 +97,17 @@ export default function ContasVencidasPage() {
           <p className="text-xs py-4 text-center" style={{ color: P.VERDE }}>{pagar ? L('Nenhuma conta a pagar vencida.', 'No overdue payables.', 'Ninguna cuenta por pagar vencida.') : L('Nenhuma conta a receber vencida.', 'No overdue receivables.', 'Ninguna cuenta por cobrar vencida.')}</p>
         ) : (
           <div className="space-y-2">
-            {itens.slice(0, 100).map((c) => (
-              <Link key={c.id} href={href} className="block rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
+            {[...itens].sort((x, y) => y.encargos.dias - x.encargos.dias || y.saldo - x.saldo).slice(0, 100).map((i) => (
+              <Link key={i.titulo.id} href={href} className="block rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: P.TEXTO }}>{c.descricao}</p>
-                    {c.nome && <p className="text-xs truncate" style={{ color: P.CINZA }}>{c.nome}</p>}
-                    <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>{L('Venceu em', 'Due on', 'Venció el')} {dataTxt(c.vencimento)}</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: P.TEXTO }}>{i.titulo.descricao || '—'}</p>
+                    <p className="text-xs truncate" style={{ color: P.CINZA }}>{i.titulo.contraparteNome}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>{L('Venceu em', 'Due on', 'Venció el')} {dataTxt(i.titulo.vencimento)}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold" style={{ color: pagar ? P.VERMELHO : P.VERDE }}>{fmt(c.saldo)}</p>
-                    <p className="text-[11px] font-semibold" style={{ color: c.dias > 30 ? P.VERMELHO : P.AMBAR }}>{diasTxt(c.dias)}</p>
+                    <p className="text-sm font-bold" style={{ color: pagar ? P.VERMELHO : P.VERDE }}>{fmt(i.saldo)}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.AMBAR }}>{diasTxt(i.encargos.dias)}</p>
                   </div>
                 </div>
               </Link>
@@ -87,20 +120,51 @@ export default function ContasVencidasPage() {
     )
   }
 
+  const situacoes: [Situacao, string][] = [
+    ['todas', L('Todas as situações', 'All statuses', 'Todas las situaciones')],
+    ['promessa', L('Com promessa de pagamento', 'With payment promise', 'Con promesa de pago')],
+    ['negociacao', L('Em negociação', 'In negotiation', 'En negociación')],
+    ['disputa', L('Com divergência', 'In dispute', 'Con divergencia')],
+    ['sem_acompanhamento', L('Sem acompanhamento', 'Not followed up', 'Sin seguimiento')],
+  ]
+  const ag = r ? (lado === 'receber' ? r.agingReceber : r.agingPagar) : null
+  const maiorFaixa = ag ? Math.max(1, ...ag.faixas.map((x) => x.saldo)) : 1
+
   return (
     <div data-theme={tema}>
       <ModuloLayout titulo={L('Contas Vencidas', 'Overdue Bills', 'Cuentas Vencidas')}
         subtitulo={L('O que está atrasado, a pagar e a receber, numa tela só — e o caminho para resolver', 'What is late, payable and receivable, on one screen — and the way to solve it', 'Lo que está atrasado, por pagar y por cobrar, en una sola pantalla — y el camino para resolverlo')}
         headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
         botaoExtra={<ThemeToggle />}>
-        {carregando ? <p className="text-xs py-10 text-center" style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : (
+        {carregando ? <p className="text-xs py-10 text-center" style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : !a || !r ? (
+          <p className="text-xs py-10 text-center" style={{ color: P.CINZA }}>{L('Escolha a Empresa ativa no topo da tela.', 'Choose the active Company at the top of the screen.', 'Elija la Empresa activa en la parte superior.')}</p>
+        ) : (
           <div className="space-y-4">
-            {r?.falhou && <p role="alert" className="text-xs font-semibold flex items-center gap-1" style={{ color: P.VERMELHO }}><AlertTriangle size={14} />{L('Alguns dados não carregaram — a lista pode estar incompleta. Atualize a página.', 'Some data did not load — the list may be incomplete. Refresh the page.', 'Algunos datos no cargaron — la lista puede estar incompleta. Actualice la página.')}</p>}
+            {a.falhou && <p role="alert" className="text-xs font-semibold flex items-center gap-1" style={{ color: P.VERMELHO }}><AlertTriangle size={14} />{L('Alguns dados não carregaram — os números podem estar incompletos. Atualize a página.', 'Some data did not load — the numbers may be incomplete. Refresh the page.', 'Algunos datos no cargaron — los números pueden estar incompletos. Actualice la página.')}</p>}
+
+            {/* Filtros: valem para os números, as faixas e as listas */}
+            <div className="rounded-2xl p-3 axi-card-premium3d axi-card-faixa flex flex-wrap items-center gap-2" style={painel}>
+              <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={P.VERDE} lang={lang} temaClaro={temaClaro} />
+              <label className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs min-w-[12rem] flex-1 sm:flex-none" style={campo}>
+                <Search size={14} aria-hidden />
+                <span className="sr-only">{L('Buscar cliente ou fornecedor', 'Search customer or supplier', 'Buscar cliente o proveedor')}</span>
+                <input value={f.busca} onChange={(e) => setF({ ...f, busca: e.target.value })} placeholder={L('Cliente, fornecedor ou descrição', 'Customer, supplier or description', 'Cliente, proveedor o descripción')} className="bg-transparent outline-none w-full" style={{ color: P.TEXTO }} />
+              </label>
+              <select aria-label={L('Faixa de atraso', 'Overdue range', 'Rango de atraso')} value={f.faixa} onChange={(e) => setF({ ...f, faixa: Number(e.target.value) })} className="rounded-lg px-2 py-1.5 text-xs" style={campo}>
+                <option value={-1}>{L('Todas as faixas', 'All ranges', 'Todos los rangos')}</option>
+                {r.agingReceber.faixas.map((x, i) => <option key={x.rotulo} value={i}>{x.rotulo} {L('dias', 'days', 'días')}</option>)}
+              </select>
+              <select aria-label={L('Situação', 'Status', 'Situación')} value={f.situacao} onChange={(e) => setF({ ...f, situacao: e.target.value as Situacao })} className="rounded-lg px-2 py-1.5 text-xs" style={campo}>
+                {situacoes.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              </select>
+            </div>
+
+            {/* Totais (os mesmos três de antes) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { t: L('A pagar vencido', 'Overdue payable', 'Por pagar vencido'), v: r?.totalPagar ?? 0, n: r?.pagar.length ?? 0, cor: P.VERMELHO },
-                { t: L('A receber vencido', 'Overdue receivable', 'Por cobrar vencido'), v: r?.totalReceber ?? 0, n: r?.receber.length ?? 0, cor: P.VERDE },
-                { t: L('Diferença (receber − pagar)', 'Difference (receive − pay)', 'Diferencia (cobrar − pagar)'), v: liquido, n: null, cor: liquido >= 0 ? P.VERDE : P.VERMELHO },
+                { t: L('A receber vencido', 'Overdue receivable', 'Por cobrar vencido'), v: r.totalReceber, n: r.receber.length, cor: P.VERDE },
+                { t: L('A pagar vencido', 'Overdue payable', 'Por pagar vencido'), v: r.totalPagar, n: r.pagar.length, cor: P.VERMELHO },
+                { t: L('Diferença (receber − pagar)', 'Difference (receive − pay)', 'Diferencia (cobrar − pagar)'), v: r.diferenca, n: null, cor: r.diferenca >= 0 ? P.VERDE : P.VERMELHO },
               ].map((k) => (
                 <div key={k.t} className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
                   <p className="text-xs" style={{ color: P.CINZA }}>{k.t}</p>
@@ -109,9 +173,109 @@ export default function ContasVencidasPage() {
                 </div>
               ))}
             </div>
+
+            {/* Recuperação e acompanhamento: um bloco, com a origem de cada número */}
+            <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
+              <p className="text-sm font-bold mb-3" style={{ color: P.TEXTO }}>{L('Recuperação e acompanhamento', 'Recovery and follow-up', 'Recuperación y seguimiento')}</p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                <Indicador titulo={L('Recuperado no período', 'Recovered in period', 'Recuperado en el período')} valor={fmt(r.recuperado)} cor={P.VERDE}
+                  origem={L('Soma do que clientes pagaram DEPOIS do vencimento, com a data de recebimento dentro do período escolhido (Contas a Receber). Pagamento em dia não conta.', 'Sum of what customers paid AFTER the due date, with the receipt date inside the chosen period (Receivables). On-time payments do not count.', 'Suma de lo que los clientes pagaron DESPUÉS del vencimiento, con la fecha de cobro dentro del período elegido (Cuentas por Cobrar). El pago a tiempo no cuenta.')} />
+                <Indicador titulo={L('Taxa de recuperação', 'Recovery rate', 'Tasa de recuperación')} valor={pct(r.taxaRecuperacao)} cor={P.VERDE}
+                  origem={L('Recuperado no período ÷ (recuperado + o que continua vencido hoje).', 'Recovered in period ÷ (recovered + what is still overdue today).', 'Recuperado en el período ÷ (recuperado + lo que sigue vencido hoy).')} />
+                <Indicador titulo={L('Valor em risco', 'Value at risk', 'Valor en riesgo')} valor={fmt(r.valorEmRisco)} cor={P.VERMELHO}
+                  sub={r.qtdSemScore ? L(`+ ${fmt(r.semScore)} sem histórico para medir`, `+ ${fmt(r.semScore)} without history to measure`, `+ ${fmt(r.semScore)} sin historial para medir`) : undefined}
+                  origem={L(`Para cada conta vencida de cliente com histórico (4 ou mais pagamentos), saldo não contestado × nota de risco (0 a 1000). Clientes sem histórico suficiente não recebem nota e aparecem à parte. Metodologia ${a.versao}.`, `For each overdue bill of a customer with history (4 or more payments), undisputed balance × risk score (0 to 1000). Customers without enough history get no score and are shown apart. Methodology ${a.versao}.`, `Para cada cuenta vencida de cliente con historial (4 o más pagos), saldo no disputado × nota de riesgo (0 a 1000). Clientes sin historial suficiente no reciben nota y aparecen aparte. Metodología ${a.versao}.`)} />
+                <Indicador titulo={L('Previsão em 30 dias', 'Forecast in 30 days', 'Previsión en 30 días')} valor={fmt(r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)} cor={P.TEXTO}
+                  sub={L('estimativa, não é caixa', 'estimate, not cash', 'estimación, no es caja')}
+                  origem={L('Quanto do vencido deve entrar em 30 dias, pela nota de risco e pelos dias de atraso de cada conta. Valor contestado e cliente sem histórico ficam fora. Promessa não conta como dinheiro.', 'How much of the overdue amount should come in within 30 days, by each bill’s risk score and days overdue. Disputed amounts and customers without history are left out. A promise does not count as money.', 'Cuánto de lo vencido debe entrar en 30 días, según la nota de riesgo y los días de atraso de cada cuenta. Lo disputado y los clientes sin historial quedan fuera. La promesa no cuenta como dinero.')} />
+                <Indicador titulo={L('Promessas em aberto', 'Open promises', 'Promesas abiertas')} valor={String(r.promessasPendentes)} cor={P.TEXTO} sub={r.promessasPendentes ? fmt(r.valorPrometido) : undefined}
+                  origem={L('Promessas de pagamento registradas na cobrança (pendentes, confirmadas ou pagas em parte) que ainda não venceram.', 'Payment promises recorded in collection (pending, confirmed or partly paid) that are not due yet.', 'Promesas de pago registradas en la cobranza (pendientes, confirmadas o pagadas en parte) que aún no vencieron.')} />
+                <Indicador titulo={L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')} valor={String(r.promessasDescumpridas)} cor={r.promessasDescumpridas ? P.VERMELHO : P.TEXTO}
+                  origem={L('Promessas cuja data passou sem nenhum pagamento depois delas.', 'Promises whose date passed with no payment after them.', 'Promesas cuya fecha pasó sin ningún pago después de ellas.')} />
+                <Indicador titulo={L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')} valor={String(r.disputasAbertas)} cor={r.disputasAbertas ? P.AMBAR : P.TEXTO} sub={r.disputasAbertas ? fmt(r.valorContestado) : undefined}
+                  origem={L('Contas com divergência aberta ou em análise (a receber e a pagar). O valor é a parte contestada; o restante continua sendo cobrado ou pago.', 'Bills with an open or under-review dispute (receivable and payable). The amount is the disputed part; the rest is still collected or paid.', 'Cuentas con divergencia abierta o en análisis (por cobrar y por pagar). El valor es la parte disputada; el resto se sigue cobrando o pagando.')} />
+                <Indicador titulo={L('Sem previsão confiável', 'No reliable forecast', 'Sin previsión confiable')} valor={fmt(r.previsao.composicao.semPrevisaoConfiavel)} cor={P.CINZA}
+                  origem={L('Saldo de clientes com menos de 4 pagamentos no histórico: o Axioma não inventa previsão para eles.', 'Balance of customers with fewer than 4 payments in history: Axioma does not make up a forecast for them.', 'Saldo de clientes con menos de 4 pagos en el historial: Axioma no inventa una previsión para ellos.')} />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {lista('pagar', r?.pagar ?? [], r?.totalPagar ?? 0)}
-              {lista('receber', r?.receber ?? [], r?.totalReceber ?? 0)}
+              {/* Atraso por faixa */}
+              {ag && (
+                <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</p>
+                    <div className="flex gap-1" role="group">
+                      {(['receber', 'pagar'] as const).map((x) => (
+                        <button key={x} type="button" aria-pressed={lado === x} onClick={() => setLado(x)} className="px-2.5 py-1 rounded-lg text-xs font-bold text-white"
+                          style={{ background: lado === x ? (x === 'receber' ? BOTAO_ACAO : BOTAO_SECUNDARIO) : temaClaro ? '#6b7280' : 'rgba(255,255,255,0.12)' }}>
+                          {x === 'receber' ? L('A receber', 'Receivable', 'Por cobrar') : L('A pagar', 'Payable', 'Por pagar')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs" style={{ color: P.CINZA }}>
+                      <span className="w-16 shrink-0">{L('A vencer', 'Not due', 'Por vencer')}</span>
+                      <span className="flex-1" />
+                      <span className="w-24 text-right" style={{ color: P.TEXTO }}>{fmt(ag.aVencer.saldo)}</span>
+                    </div>
+                    {ag.faixas.map((x) => (
+                      <div key={x.rotulo} className="flex items-center gap-2 text-xs">
+                        <span className="w-16 shrink-0" style={{ color: P.CINZA }}>{x.rotulo}</span>
+                        <span className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: P.ANINHADA }} aria-hidden>
+                          <span className="block h-full rounded-full" style={{ width: `${(x.saldo / maiorFaixa) * 100}%`, background: lado === 'receber' ? P.BARRA_REC : P.BARRA_PAG }} />
+                        </span>
+                        <span className="w-24 text-right font-semibold" style={{ color: x.saldo ? P.TEXTO : P.CINZA }}>{fmt(x.saldo)}</span>
+                        <span className="w-10 text-right hidden sm:inline" style={{ color: P.CINZA }}>{x.qtd}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] mt-3" style={{ color: P.CINZA }}>
+                    {L(`Dias de atraso, saldo e quantidade. Juros e multa estimados no total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Maior devedor: ${pct(ag.maiorPct)} do vencido.`,
+                      `Days overdue, balance and count. Estimated interest and fines in total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Largest debtor: ${pct(ag.maiorPct)} of the overdue amount.`,
+                      `Días de atraso, saldo y cantidad. Intereses y multas estimados en total: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))}. Mayor deudor: ${pct(ag.maiorPct)} de lo vencido.`)}
+                  </p>
+                </div>
+              )}
+
+              {/* Previsão de recuperação e evolução */}
+              <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
+                <p className="text-sm font-bold mb-3" style={{ color: P.TEXTO }}>{L('Previsão de recuperação', 'Recovery forecast', 'Previsión de recuperación')}</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {r.previsao.horizontes.map((h) => (
+                    <div key={h.horizonteDias} className="rounded-lg p-2 text-center min-w-0" style={aninhada}>
+                      <p className="text-[11px]" style={{ color: P.CINZA }}>{h.horizonteDias} {L('dias', 'days', 'días')}</p>
+                      <p className="text-xs font-bold truncate" style={{ color: P.VERDE }}>{fmt(h.valor)}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] mt-2" style={{ color: P.CINZA }}>
+                  {r.previsao.confianca === 'sem_dados'
+                    ? L('Ainda não há clientes com histórico suficiente para prever.', 'There are no customers with enough history to forecast yet.', 'Aún no hay clientes con historial suficiente para prever.')
+                    : L(`Confiança ${r.previsao.confianca === 'media' ? 'média' : 'baixa'}. Estimativa, não é caixa disponível.`, `${r.previsao.confianca === 'media' ? 'Medium' : 'Low'} confidence. Estimate, not available cash.`, `Confianza ${r.previsao.confianca === 'media' ? 'media' : 'baja'}. Estimación, no es caja disponible.`)}
+                </p>
+                <p className="text-sm font-bold mt-4 mb-2" style={{ color: P.TEXTO }}>{L('Evolução do vencido a receber', 'Overdue receivable over time', 'Evolución de lo vencido por cobrar')}</p>
+                {a.evolucao.length < 2 ? (
+                  <p className="text-[11px]" style={{ color: P.CINZA }}>{L('A evolução começa a ser registrada hoje: a cada dia em que esta tela é aberta, o Axioma guarda o total vencido daquele dia.', 'The history starts today: each day this screen is opened, Axioma saves that day’s overdue total.', 'La evolución empieza hoy: cada día que se abre esta pantalla, Axioma guarda el total vencido de ese día.')}</p>
+                ) : (() => {
+                  const pts = a.evolucao, max = Math.max(1, ...pts.map((p) => p.saldo))
+                  const xy = pts.map((p, i) => `${(i / (pts.length - 1)) * 100},${40 - (p.saldo / max) * 36}`).join(' ')
+                  return (
+                    <div>
+                      <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="w-full h-16" role="img" aria-label={L('Evolução do vencido a receber', 'Overdue receivable over time', 'Evolución de lo vencido por cobrar')}>
+                        <polyline points={xy} fill="none" stroke={P.BARRA_REC} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                      </svg>
+                      <p className="text-[11px] flex justify-between" style={{ color: P.CINZA }}><span>{dataTxt(pts[0].data)}: {fmt(pts[0].saldo)}</span><span>{dataTxt(pts[pts.length - 1].data)}: {fmt(pts[pts.length - 1].saldo)}</span></p>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {lista(true, r.pagar, r.totalPagar)}
+              {lista(false, r.receber, r.totalReceber)}
             </div>
           </div>
         )}

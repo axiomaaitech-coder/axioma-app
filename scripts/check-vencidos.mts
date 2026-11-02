@@ -187,4 +187,20 @@ const contasSnap = [
 const sinal = detectarMudancaComportamento({ contas: contasSnap } as never)
 assert.equal(sinal?.tipo, 'piora', 'piora grave agora é detectada')
 
+assert.equal(M.estaVencido(t('sd', '', 100), hoje), false, 'conta sem data de vencimento não é vencida')
+assert.equal(M.recuperadoNoPeriodo([t('rp1', '2026-10-01', 100, 100, { quitacao: '2026-10-10' }), t('rp2', '2026-10-20', 50, 50, { quitacao: '2026-10-15' }), t('rp3', '2026-09-01', 70, 70, { quitacao: '2026-09-20' })], '2026-10-01', '2026-10-31'), 100, 'só o pago depois do vencimento, dentro do período')
+
+// ── painel geral (filtros e números) ──
+const P = await import('../lib/vencidos/painel')
+const item = (tt: T, extra: Record<string, unknown> = {}) => ({ titulo: tt, saldo: M.saldoDoTitulo(tt, hoje), disputa: M.separarDisputa(M.saldoDoTitulo(tt, hoje), null), encargos: M.encargos(tt, hoje), dna: curto, risco: { score: 500, fatores: [], dadosSuficientes: true, aviso: null, versao: 'x' }, prioridade: { score: 1, fatores: [], dadosSuficientes: true, aviso: null, versao: 'x' }, acao: { acao: 'acompanhar', justificativa: '', consideracoes: [] }, promessa: null, promessaFalta: 0, emNegociacao: false, causaSugerida: { causa: 'desconhecido', tipo: 'inferencia', motivo: '' }, caso: null, ...extra }) as never
+const ta = t('pa', '2026-10-20', 1000, 0, { contraparteNome: 'Mercado Alfa', descricao: 'NF 10' }), tb = t('pb', '2026-07-01', 400, 0, { contraparteNome: 'Loja Beta' })
+const analise = { hoje, limites: M.FAIXAS_PADRAO, receber: [item(ta, { promessa: 'pendente', promessaFalta: 300 }), item(tb, { risco: { score: null } })], pagar: [], titulosReceber: [ta, tb, t('pc', '2026-09-01', 200, 200, { quitacao: '2026-11-01', contraparteNome: 'Mercado Alfa' })], titulosPagar: [], legais: {} } as never
+const todos = P.resumoPainel(analise, P.filtrosIniciais('2026-11-01', '2026-11-30'))
+assert.equal(todos.totalReceber, 1400); assert.equal(todos.recuperado, 200); assert.equal(todos.taxaRecuperacao, 12.5)
+assert.equal(todos.valorEmRisco, 500, 'risco 500/1000 sobre 1000'); assert.equal(todos.semScore, 400); assert.equal(todos.promessasPendentes, 1)
+const alfa = P.resumoPainel(analise, { ...P.filtrosIniciais('2026-11-01', '2026-11-30'), busca: 'mercado alfa' })
+assert.equal(alfa.totalReceber, 1000, 'busca por cliente, sem acento/maiúscula'); assert.equal(alfa.recuperado, 200)
+assert.equal(P.resumoPainel(analise, { ...P.filtrosIniciais('2026-11-01', '2026-11-30'), situacao: 'promessa' }).receber.length, 1)
+assert.equal(P.resumoPainel(analise, { ...P.filtrosIniciais('2026-11-01', '2026-11-30'), faixa: M.faixaDe(124, M.FAIXAS_PADRAO) }).totalReceber, 400, 'filtro de faixa')
+
 console.log('check-vencidos: tudo certo ✔')

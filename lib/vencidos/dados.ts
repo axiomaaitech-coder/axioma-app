@@ -66,6 +66,7 @@ export type AnaliseVencidos = {
   migracao30: ReturnType<typeof M.migracaoAging>; previsao: ReturnType<typeof M.previsaoRecuperacao>
   tesouraria: M.BaseTesouraria; impacto: ReturnType<typeof M.impactoFinanceiro>; alertas: M.AlertaVencido[]
   evolucao: { data: string; saldo: number }[]; versao: string
+  titulosReceber: M.Titulo[]; titulosPagar: M.Titulo[]; legais: M.ParametrosLegais
   fonteTaxaLegal: string | null; falhou: boolean; avisos: string[]
 }
 
@@ -73,7 +74,7 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
   const sb = createClient()
   const hoje = hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
   const [cr, cp, casos, prom, cfg, legal, hist, negoc] = await Promise.all([
-    comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
+    comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).limit(5000)),
     comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).limit(5000)),
@@ -94,14 +95,14 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
 
   const receberT: M.Titulo[] = (cr.data ?? []).map((c) => {
     const cli = um(c.clientes as Rel | Rel[] | null)
-    return { id: c.id, empresaId, dominio: 'receber', contraparteId: c.cliente_id, contraparteNome: nomeDe(cli), documento: cli?.documento ?? null, valor: Number(c.valor) || 0, quitado: Number(c.valor_recebido) || 0, desconto: Number(c.valor_desconto) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_recebimento, status: c.status, taxaMultaPct: c.taxa_multa, taxaJurosMesPct: c.taxa_juros }
+    return { id: c.id, empresaId, dominio: 'receber', contraparteId: c.cliente_id, contraparteNome: nomeDe(cli), documento: cli?.documento ?? null, valor: Number(c.valor) || 0, quitado: Number(c.valor_recebido) || 0, desconto: Number(c.valor_desconto) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_recebimento, status: c.status, taxaMultaPct: c.taxa_multa, taxaJurosMesPct: c.taxa_juros, descricao: c.descricao, responsavel: c.responsavel }
   })
   const dependenciaDe = new Map<string, string>()
   type RelF = Rel & { nivel_dependencia?: string | null }
   const pagarT: M.Titulo[] = (cp.data ?? []).map((c) => {
     const f = um(c.fornecedores as RelF | RelF[] | null) as RelF | null
     if (f?.nivel_dependencia) dependenciaDe.set(c.id, f.nivel_dependencia)
-    return { id: c.id, empresaId, dominio: 'pagar', contraparteId: c.fornecedor_id, contraparteNome: nomeDe(f), documento: f?.documento ?? null, valor: Number(c.valor_total) || 0, quitado: Number(c.valor_pago) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_pagamento, status: c.status, taxaJurosMesPct: c.taxa_multa_mensal }
+    return { id: c.id, empresaId, dominio: 'pagar', contraparteId: c.fornecedor_id, contraparteNome: nomeDe(f), documento: f?.documento ?? null, valor: Number(c.valor_total) || 0, quitado: Number(c.valor_pago) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_pagamento, status: c.status, taxaJurosMesPct: c.taxa_multa_mensal, descricao: c.descricao }
   })
   const textoDe = new Map([...(cr.data ?? []), ...(cp.data ?? [])].map((c) => [c.id, `${c.descricao ?? ''} ${c.observacoes ?? ''}`]))
   const casoDe = new Map(((casos.data ?? []) as CasoBanco[]).map((c) => [(c.conta_receber_id ?? c.conta_pagar_id)!, c]))
@@ -163,7 +164,7 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
   const alertas = M.alertasVencidos({ hoje, migracao: migracao30, impacto, itens: [...receber, ...pagar].map((i) => ({ titulo: i.titulo, dna: i.dna, promessa: i.promessa, caso: casoMotor(i.caso), disputaPrazo: i.caso?.disputa_prazo ?? null })) })
   return {
     hoje, limites, receber, pagar, agingReceber: M.aging(receberT, hoje, limites, legaisBase), agingPagar: M.aging(pagarT, hoje, limites, legaisBase),
-    migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA,
+    migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA, titulosReceber: receberT, titulosPagar: pagarT, legais: legaisBase,
     evolucao: (hist.data ?? []).map((x) => ({ data: x.data_base as string, saldo: Number(x.saldo_base) })).reverse(),
     fonteTaxaLegal: legal.fonte, falhou: !!(cr.error || cp.error), avisos,
   }

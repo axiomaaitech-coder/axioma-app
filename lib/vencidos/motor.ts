@@ -30,6 +30,7 @@ export type Titulo = {
   valor: number; quitado: number; desconto?: number | null
   vencimento: string; emissao?: string | null; quitacao?: string | null; status?: string | null
   taxaMultaPct?: number | null; taxaJurosMesPct?: number | null
+  descricao?: string | null; responsavel?: string | null
 }
 export type Caso = {
   tituloId: string; causa?: string | null; causaConfirmada?: boolean | null; causaOrigem?: string | null
@@ -73,6 +74,14 @@ export function separarDisputa(saldo: number, caso?: Caso | null) {
   const aberta = !!caso?.disputaStatus && ['aberta', 'em_analise'].includes(caso.disputaStatus)
   const contestado = aberta ? Math.min(saldo, Math.max(0, Number(caso?.disputaValor) || 0)) : 0
   return { contestado: r2(contestado), incontroverso: r2(saldo - contestado), aberta }
+}
+
+// Recuperado no período = o que foi pago DEPOIS de vencer, com a quitação dentro do período (regra única,
+// também usada pela Inadimplência). Pagamento em dia não é "recuperação".
+export function recuperadoNoPeriodo(titulos: Titulo[], inicio: string, fim: string): number {
+  return reais(conferirEntrada(titulos)
+    .filter((t) => !/cancel/i.test(String(t.status ?? '')) && t.quitacao && t.quitacao > t.vencimento && t.quitacao >= inicio && t.quitacao <= fim)
+    .reduce((s, t) => s + centavos(t.quitado), 0))
 }
 
 // ─── ENCARGOS (juros, multa, atualização) — Lei 14.905/2024 e CDC, conferidos no planalto.gov.br em 2026-11-02 ───
