@@ -86,6 +86,10 @@ const volta = C.pcm16Base64ParaFloat(C.floatParaPcm16Base64(amostras))
 const esperado = [0, 0.5, -0.5, 1, -1, 1, -1]
 volta.forEach((v, i) => assert.ok(Math.abs(v - esperado[i]) < 0.001, `pcm ${i}`))
 console.log('OK — áudio PCM 16 bits ida e volta (com corte de pico)')
+const r48 = C.reamostrar(new Float32Array(4800).fill(0.5), 48000)
+assert.equal(r48.length, 1600, 'celular: 48 kHz do aparelho viram 16 kHz para o Gemini'); assert.ok(Math.abs(r48[0] - 0.5) < 1e-6)
+assert.equal(C.reamostrar(new Float32Array(10), 16000).length, 10, '16 kHz passa direto')
+console.log('OK — celular: reamostragem para 16 kHz')
 
 // ─── Fluxo Gemini simulado: ferramenta → motor, interrupção, fim e métricas ───
 const g = globalThis as unknown as Record<string, unknown>
@@ -95,7 +99,9 @@ g.WebSocket = class { readyState = 1; url: string; onopen?: () => void; onmessag
   constructor(u: string) { this.url = u; wsAtual = this as never; setTimeout(() => this.onopen?.(), 0) }
   send(s: string) { enviados.push(JSON.parse(s)) } close() { this.readyState = 3 } }
 let fontesParadas = 0, fontesTocando = 0
-class Ctx { currentTime = 0; destination = {}; constructor(_o?: unknown) {}
+let contextosCriados = 0, retomados = 0
+class Ctx { currentTime = 0; destination = {}; sampleRate = 48000; constructor(_o?: unknown) { contextosCriados++ }
+  resume() { retomados++; return Promise.resolve() }
   createMediaStreamSource() { return { connect() {} } }
   createScriptProcessor() { return { connect() {}, disconnect() {}, onaudioprocess: null } }
   createGain() { return { gain: { value: 1 }, connect() {} } }
@@ -119,6 +125,7 @@ const s = await C.iniciarConversaAoVivo({
   eventos: { estado: (e) => estados.push(e), fala: (q, t) => falas.push([q, t]), erro: () => {} },
 })
 await new Promise((ok) => setTimeout(ok, 5))
+assert.equal(contextosCriados, 1, 'celular: UM contexto de áudio, criado no toque (antes das esperas de rede)'); assert.ok(retomados >= 1, 'celular: contexto retomado no toque')
 assert.ok(wsAtual!.url.endsWith('?access_token=auth_tokens%2Fabc'), 'conecta com o token efêmero (nunca a chave)')
 assert.deepEqual(enviados[0], { setup: { model: 'models/x' } }, 'setup mínimo: o resto está travado no token')
 const msg = (m: unknown) => wsAtual!.onmessage!({ data: JSON.stringify(m) })

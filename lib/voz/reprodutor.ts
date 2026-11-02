@@ -74,6 +74,15 @@ function falarNoAparelho(p: PedidoFala, nome: string, minha: number): boolean {
   return true
 }
 
+// Celular (iPhone): play() depois de esperar a rede é bloqueado, a não ser que o MESMO elemento de áudio
+// já tenha tocado dentro de um toque. Aqui, ainda no clique do Ouvir, toca um silêncio de 0 s nele.
+const SILENCIO = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+function desbloquearNoToque() {
+  if (typeof window === 'undefined' || audio) return
+  audio = new Audio(SILENCIO)
+  void audio.play().catch(() => {})
+}
+
 function tocar(p: PedidoFala, url: string, minha: number) {
   audio = audio ?? new Audio()
   audio.src = url
@@ -86,6 +95,7 @@ export async function falar(p: PedidoFala): Promise<boolean> {
   // Uma voz por vez (CEO, 2026-10-16): com a conversa ao vivo aberta, nada mais fala por cima
   if (estadoConversaGlobal().ativa) return false
   pararFala()
+  desbloquearNoToque()
   const minha = ++geracao
   const sit = await situacaoVoz(p.empresaId)
   if (minha !== geracao) return false

@@ -52,6 +52,31 @@ export function floatParaPcm16Base64(amostras: Float32Array): string {
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   return btoa(bin)
 }
+// Celular: o microfone vem na taxa do aparelho (44,1/48 kHz); o Gemini espera 16 kHz. Média simples por janela.
+export function reamostrar(amostras: Float32Array, de: number, para = 16000): Float32Array {
+  if (de === para) return amostras
+  const razao = de / para
+  const saida = new Float32Array(Math.floor(amostras.length / razao))
+  for (let i = 0; i < saida.length; i++) {
+    const ini = Math.floor(i * razao), fim = Math.min(amostras.length, Math.floor((i + 1) * razao))
+    let soma = 0
+    for (let j = ini; j < fim; j++) soma += amostras[j]
+    saida[i] = fim > ini ? soma / (fim - ini) : 0
+  }
+  return saida
+}
+
+// Celular (iPhone principalmente): o som só liga se o AudioContext nascer DENTRO do toque. Antes ele nascia
+// depois de duas esperas de rede e o aparelho o deixava mudo (não captava nem tocava). Criado aqui, no início
+// de iniciarConversaAoVivo (ainda dentro do clique), e usado pela sessão — um contexto só, na taxa do aparelho.
+let ctxPreparado: AudioContext | null = null
+function prepararAudio() {
+  if (typeof window === 'undefined' || !window.AudioContext) return
+  void ctxPreparado?.close().catch(() => {})
+  ctxPreparado = new AudioContext()
+  void ctxPreparado.resume().catch(() => {})
+}
+
 export function pcm16Base64ParaFloat(b64: string): Float32Array<ArrayBuffer> {
   const bin = atob(b64)
   const n = Math.floor(bin.length / 2)
@@ -111,8 +136,9 @@ async function iniciarGemini(o: OpcoesConversa, ini: Inicio & { ws: string; toke
   const mic = await microfone(o.lang, o)
   if (!mic) return { encerrar: () => {} }
   const ws = new WebSocket(`${ini.ws}?access_token=${encodeURIComponent(ini.token)}`)
-  const ctxIn = new AudioContext({ sampleRate: 16000 })
-  const ctxOut = new AudioContext({ sampleRate: 24000 })
+  const ctx = ctxPreparado ?? new AudioContext()
+  ctxPreparado = null
+  void ctx.resume().catch(() => {})
   let fontes: AudioBufferSourceNode[] = []
   let proximo = 0
   let processador: ScriptProcessorNode | null = null
@@ -124,7 +150,7 @@ async function iniciarGemini(o: OpcoesConversa, ini: Inicio & { ws: string; toke
     processador?.disconnect()
     mic.getTracks().forEach((t) => t.stop())
     if (ws.readyState <= 1) ws.close()
-    void ctxIn.close(); void ctxOut.close()
+    void ctx.close().catch(() => {})
   })
   const enviar = (m: unknown) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)) }
   const fecharTurno = () => {
@@ -141,11 +167,11 @@ async function iniciarGemini(o: OpcoesConversa, ini: Inicio & { ws: string; toke
     try { m = JSON.parse(typeof ev.data === 'string' ? ev.data : await (ev.data as Blob).text()) } catch { return }
     if (m.setupComplete) {
       // Microfone só começa a subir depois que a sessão está pronta
-      const fonte = ctxIn.createMediaStreamSource(mic)
-      processador = ctxIn.createScriptProcessor(4096, 1, 1)
-      const mudo = ctxIn.createGain(); mudo.gain.value = 0
-      processador.onaudioprocess = (e) => enviar({ realtimeInput: { audio: { data: floatParaPcm16Base64(e.inputBuffer.getChannelData(0)), mimeType: 'audio/pcm;rate=16000' } } })
-      fonte.connect(processador); processador.connect(mudo); mudo.connect(ctxIn.destination)
+      const fonte = ctx.createMediaStreamSource(mic)
+      processador = ctx.createScriptProcessor(4096, 1, 1)
+      const mudo = ctx.createGain(); mudo.gain.value = 0
+      processador.onaudioprocess = (e) => enviar({ realtimeInput: { audio: { data: floatParaPcm16Base64(reamostrar(e.inputBuffer.getChannelData(0), ctx.sampleRate)), mimeType: 'audio/pcm;rate=16000' } } })
+      fonte.connect(processador); processador.connect(mudo); mudo.connect(ctx.destination)
       o.eventos.estado('ouvindo'); c.atividade()
       return
     }
@@ -160,10 +186,10 @@ async function iniciarGemini(o: OpcoesConversa, ini: Inicio & { ws: string; toke
         const dados = parte?.inlineData
         if (!dados?.data || !String(dados.mimeType ?? '').startsWith('audio/pcm')) continue
         const amostras = pcm16Base64ParaFloat(dados.data)
-        const buf = ctxOut.createBuffer(1, amostras.length, 24000)
+        const buf = ctx.createBuffer(1, amostras.length, 24000) // o contexto converte para a taxa do aparelho
         buf.copyToChannel(amostras, 0)
-        const f = ctxOut.createBufferSource(); f.buffer = buf; f.connect(ctxOut.destination)
-        proximo = Math.max(proximo, ctxOut.currentTime); f.start(proximo); proximo += buf.duration
+        const f = ctx.createBufferSource(); f.buffer = buf; f.connect(ctx.destination)
+        proximo = Math.max(proximo, ctx.currentTime); f.start(proximo); proximo += buf.duration
         fontes.push(f); f.onended = () => { fontes = fontes.filter((x) => x !== f) }
         c.joseComecou(); c.atividade(); o.eventos.estado('falando')
       }
@@ -267,6 +293,7 @@ async function iniciarQwen(o: OpcoesConversa, ini: Inicio & { sessao: Record<str
 
 // ─── Ponto de entrada: pede a sessão ao servidor (regras de acesso lá) e conecta ───
 export async function iniciarConversaAoVivo(o: OpcoesConversa): Promise<SessaoAoVivo | null> {
+  if (o.fornecedor === 'gemini') prepararAudio() // antes de qualquer await: ainda é o toque da pessoa
   o.eventos.estado('conectando')
   let ini: Record<string, unknown>
   try {

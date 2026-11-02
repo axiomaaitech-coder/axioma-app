@@ -80,8 +80,9 @@ const synth = { getVoices: () => [{ name: 'Microsoft Maria', lang: 'pt-BR' }, { 
 const g = globalThis as unknown as Record<string, unknown>
 g.window = { speechSynthesis: synth }
 g.SpeechSynthesisUtterance = Utter
-let tocando = 0, pausas = 0
-g.Audio = class { src = ''; onended: null | (() => void) = null; play() { tocando++; return Promise.resolve() } pause() { pausas++ } }
+let tocando = 0, pausas = 0, destravado = 0
+// O silêncio de 0 s (data:) só destrava o som do celular no toque — não conta como resposta tocando
+g.Audio = class { src = ''; onended: null | (() => void) = null; constructor(src?: string) { this.src = src ?? '' } play() { if (this.src.startsWith('data:')) destravado++; else tocando++; return Promise.resolve() } pause() { pausas++ } }
 const fila: (() => void)[] = []
 const liberarFala = () => fila.shift()?.()
 globalThis.fetch = (async (url: unknown) => {
@@ -110,6 +111,7 @@ R.pararFala()
 liberarFala()
 assert.equal(await p1, false)
 assert.equal(tocando, 0, 'resposta obsoleta não começa a falar sozinha')
+assert.equal(destravado, 1, 'celular: o som é destravado no toque, uma vez')
 
 // duas respostas: a segunda substitui a primeira (nunca as duas juntas)
 const a = R.falar({ chave: 's2', texto: 'Primeira.', lang: 'pt', empresaId: EMP2, assinatura: 'x' })
