@@ -65,6 +65,37 @@ Pedido do Elias em 2026-11-02 (modelo "AXIOMA OVERDUE INTELLIGENCE"). A Fase 1 �
 - **Simulador de recuperação (pct, prazo):** usa caixa, reserva, vencidos e a vencer da Tesouraria. Sempre vem marcado `simulacao: true` e não grava nada.
 - **Orquestrador:** escolhe uma próxima ação e explica por quê, levando em conta disputa, causa, promessa, risco, DNA, régua e caixa. Nunca executa nada.
 
+## Complemento — versão recuperada do pedido (2026-11-02)
+
+- **Metodologia versionada:** `VERSAO_METODOLOGIA = overdue-v1.1-2026-11-02`. Mudar pesos ou regra = nova versão.
+- **Histórico insuficiente** (menos de 4 títulos quitados): o score de risco é `null`, com aviso, e o título vai para "sem previsão confiável". Nada de número inventado.
+- **Aging:** faixa "A vencer", valor original, saldo, encargos por faixa, quantidade, % e evolução da carteira (foto diária em `vencido_previsao`).
+- **Causas novas:** esquecimento, insolvência informada e problema documental. A causa muda a ação recomendada:
+  - documental/fiscal → documentação;
+  - entrega/qualidade → operação;
+  - falta de caixa → negociação;
+  - insolvência → análise especializada;
+  - falha de pagamento → reenviar boleto/Pix.
+- **Promessa:** pendente, confirmada, parcialmente cumprida, cumprida, descumprida, renegociada, cancelada. O monitor (`monitorarPromessas`) registra a descumprida no histórico uma vez só.
+- **Previsão separada em:** vencido, prometido, em negociação, em disputa, esperado e sem previsão confiável.
+- **Negociação:** pagamento parcial; encargos (dispensar = concessão); custo de oportunidade; valor líquido recuperável; impacto em 30/60/90 dias.
+- **Fornecedor:** essencialidade, risco operacional, impacto na produção e nas vendas, relação comercial (reuso de `fornecedores.nivel_dependencia`), juros, multa e caixa.
+- **Alertas:** promessa descumprida, deterioração, carteira envelhecendo, disputa parada, fornecedor essencial vencido e ruptura de caixa.
+- **Governança:** toda alteração de caso grava antes/depois/motivo; usuário, empresa e data são carimbados pelo banco.
+
+**Permissões** (SQL `docs/sql/VENCIDOS-FASE1B-SQL.sql`, testadas no banco com 12 cenários e desfeitas no fim):
+
+| Papel | Pode |
+|---|---|
+| operador | não acessa |
+| leitor, contábil | só leem |
+| financeiro (analista) | grava caso, evento e promessa |
+| dono, sócio, admin | tudo + configuração + aprovar negociação |
+
+O histórico não se apaga, e outra empresa não enxerga nada.
+
+**Achado de segurança (não alterado, para não travar telas):** em `contas_receber` e `contas_pagar`, qualquer papel diferente de operador consegue **gravar** pelo banco, inclusive o leitor. A tela não oferece isso, mas a regra do banco deixa. Recomendo tratar numa etapa própria, com teste de todas as telas.
+
 ## Testes
 
 - `npx tsx scripts/check-vencidos.mts` cobre: integral, parcial, estorno, desconto, duplicidade, empresas diferentes, limites de faixa (incluindo 29/02), disputa, juros, multa B2C/B2B, taxa legal negativa, IPCA, promessas (cumprida, parcial, vencida, renegociada), DNA (30 → 48 dias), scores, negociação (centavos), previsão, precisão, simulador, impacto, orquestrador, determinismo e as funções unificadas.

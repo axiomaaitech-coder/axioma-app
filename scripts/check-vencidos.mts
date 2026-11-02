@@ -59,10 +59,13 @@ assert.ok(M.encargos(t('j4', '2026-10-03', 1000), hoje).avisos.some((a) => a.inc
 const tp = t('pr', '2026-10-01', 1000, 600)
 assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-11-10', recebidoNaPromessa: 200 }, tp, hoje).situacao, 'cumprida')
 assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-11-10', recebidoNaPromessa: 600 }, tp, hoje).situacao, 'pendente', 'pagamento antigo não cumpre promessa nova')
-assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600 }, tp, hoje).situacao, 'vencida_sem_pagamento')
-assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 500 }, tp, hoje).situacao, 'parcial')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600 }, tp, hoje).situacao, 'descumprida')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 500 }, tp, hoje).situacao, 'parcialmente_cumprida')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 500 }, tp, hoje).falta, 300)
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-11-20', recebidoNaPromessa: 600, status: 'confirmado' }, tp, hoje).situacao, 'confirmada')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600, status: 'cancelado' }, tp, hoje).situacao, 'cancelada', 'cancelada não vira descumprida')
 const pl = M.placarPromessas([{ id: 'a', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600 }, { id: 'b', tituloId: 'pr', valor: 400, data: '2026-11-20', recebidoNaPromessa: 600, renegociadaDe: 'a' }], [tp], hoje)
-assert.equal(pl.quebradas, 0, 'promessa renegociada não conta como quebrada'); assert.equal(pl.pendentes, 1)
+assert.equal(pl.descumpridas, 0, 'promessa renegociada não conta como descumprida'); assert.equal(pl.pendentes, 1); assert.equal(pl.renegociadas, 1)
 
 // ── DNA: cliente que pagava em 30 dias e passou a pagar em 48 ──
 const { somarDiasISO } = await import('../lib/datas')
@@ -75,18 +78,26 @@ assert.equal(dna.suficiente, true); assert.equal(dna.tendencia, 'piora', 'prazo 
 assert.ok(dna.conclusoes.some((c) => c.tipo === 'inferencia'), 'tendência é inferência, não fato')
 const curto = M.dnaFinanceiro(hist.slice(0, 2), [], hoje)
 assert.equal(curto.suficiente, false); assert.equal(curto.tendencia, 'indefinida', 'sem base, sem conclusão categórica')
+const semHist = M.riscoRecuperacao(t('sh', '2026-10-01', 100), curto, hoje)
+assert.equal(semHist.score, null, 'histórico insuficiente: sem score inventado'); assert.ok(semHist.aviso?.includes('insuficiente')); assert.equal(semHist.versao, M.VERSAO_METODOLOGIA)
+assert.equal(M.dnaFinanceiro([t('pp', '2026-10-01', 1000, 300)], [], hoje).pagamentosParciais, 1, 'pagamento parcial entra no DNA')
 
 // ── scores 0–1000 com fatores; risco ≠ prioridade ──
 const venc = t('v1', '2026-07-01', 5000)
 const r1 = M.riscoRecuperacao(venc, dna, hoje)
-assert.ok(r1.score >= 0 && r1.score <= 1000 && r1.fatores.length >= 3)
+assert.ok(r1.score! >= 0 && r1.score! <= 1000 && r1.fatores.length >= 3)
 const rDisp = M.riscoRecuperacao(venc, dna, hoje, { tituloId: 'v1', disputaStatus: 'aberta', disputaValor: 100 })
-assert.ok(rDisp.score > r1.score, 'disputa aumenta risco')
-const pA = M.prioridadeCobranca(venc, 450, hoje, { maiorSaldo: 5000 }).score, pB = M.prioridadeCobranca(venc, 950, hoje, { maiorSaldo: 5000 }).score
+assert.ok(rDisp.score! > r1.score!, 'disputa aumenta risco')
+assert.ok(M.riscoRecuperacao(venc, dna, hoje, { tituloId: 'v1', causa: 'insolvencia' }).score! > r1.score!, 'insolvência informada aumenta risco')
+const pA = M.prioridadeCobranca(venc, 450, hoje, { maiorSaldo: 5000 }).score!, pB = M.prioridadeCobranca(venc, 950, hoje, { maiorSaldo: 5000 }).score!
 assert.ok(pA > pB, 'risco extremo não é a maior prioridade de cobrança')
+assert.ok(M.prioridadeCobranca(venc, 450, hoje, { maiorSaldo: 5000, promessaDescumprida: true }).score! > pA, 'promessa descumprida sobe a prioridade')
 const fornCrit = M.prioridadeFornecedor({ ...pagar, valor: 100, quitado: 0 }, hoje, { caixaDisponivel: 1e6, totalVencidoPagar: 1 }, { tituloId: 'p1', criticidade: 'critica', riscoInterrupcao: true })
 const fornGrande = M.prioridadeFornecedor({ ...pagar, valor: 90000, quitado: 0, vencimento: '2026-06-01' }, hoje, { caixaDisponivel: 1e6, totalVencidoPagar: 1 }, { tituloId: 'p1', criticidade: 'baixa' })
-assert.ok(fornCrit.score > fornGrande.score, 'fornecedor crítico vem antes do maior/mais antigo')
+assert.ok(fornCrit.score! > fornGrande.score!, 'fornecedor crítico vem antes do maior/mais antigo')
+const fornProd = M.prioridadeFornecedor({ ...pagar, valor: 100, quitado: 0 }, hoje, { caixaDisponivel: 1e6, totalVencidoPagar: 1 }, { tituloId: 'p1', impactoProducao: true, impactoVendas: true, dependencia: 'alto' })
+const fornComum = M.prioridadeFornecedor({ ...pagar, valor: 100, quitado: 0 }, hoje, { caixaDisponivel: 1e6, totalVencidoPagar: 1 }, { tituloId: 'p1' })
+assert.ok(fornProd.score! > fornComum.score!, 'impacto em produção/vendas e dependência pesam')
 
 // ── negociação: concessão exige aprovação; números fecham ──
 const n1 = M.simularNegociacao(1000, { tipo: 'entrada_parcelas', entradaPct: 20, parcelas: 3, intervaloDias: 30 }, { custoCapitalMesPct: 2, probabilidadeBase: 0.5 })
@@ -94,7 +105,14 @@ assert.equal(n1.parcelas.reduce((s, p) => s + p.valor, 0), 1000, 'parcelas somam
 assert.equal(n1.precisaAprovacao, true); assert.ok(n1.valorPresente < 1000); assert.equal(n1.simulacao, true)
 const n2 = M.simularNegociacao(1000, { tipo: 'integral' }, { custoCapitalMesPct: 2, probabilidadeBase: 0.5 })
 assert.equal(n2.precisaAprovacao, false); assert.equal(n2.totalNegociado, 1000)
-assert.equal(M.simularNegociacao(1000, { tipo: 'desconto', descontoPct: 10 }, { custoCapitalMesPct: 0, probabilidadeBase: 0.5 }).custoDesconto, 100)
+assert.equal(M.simularNegociacao(1000, { tipo: 'desconto', descontoPct: 10 }, { custoCapitalMesPct: 0, probabilidadeBase: 0.5 }).desconto, 100)
+const nEnc = M.simularNegociacao(1000, { tipo: 'integral' }, { custoCapitalMesPct: 0, probabilidadeBase: 1, encargos: 50 })
+assert.equal(nEnc.devido, 1050, 'encargos entram no devido'); assert.equal(nEnc.precisaAprovacao, false)
+const nDisp = M.simularNegociacao(1000, { tipo: 'integral', dispensarEncargos: true }, { custoCapitalMesPct: 0, probabilidadeBase: 1, encargos: 50 })
+assert.equal(nDisp.devido, 1000); assert.equal(nDisp.precisaAprovacao, true, 'dispensar encargos é concessão: exige aprovação')
+const nParc = M.simularNegociacao(1000, { tipo: 'parcial', valorParcial: 400 }, { custoCapitalMesPct: 0, probabilidadeBase: 1 })
+assert.equal(nParc.totalNegociado, 400); assert.equal(nParc.restanteEmAberto, 600, 'parcial deixa o resto em aberto')
+assert.ok(n1.custoOportunidade > 0 && n1.valorLiquidoRecuperavel < n1.valorPresente)
 assert.equal(M.simularNegociacao(1000, { tipo: 'entrada_parcelas', parcelas: 3 }, { custoCapitalMesPct: 0, probabilidadeBase: 0 }).parcelas.reduce((s, p) => s + p.valor, 0), 1000, '1000/3 sem sobra de centavo')
 
 // ── previsão e precisão ──
@@ -103,6 +121,10 @@ const vs = prev.horizontes.map((h) => h.valor)
 assert.ok(vs.every((v, i) => i === 0 || v >= vs[i - 1]), 'previsão cresce com o horizonte')
 assert.ok(vs[4] <= 800, 'contestado fica fora e nada passa da probabilidade')
 assert.equal(prev.ehCaixa, false); assert.equal(prev.saldoBase, 2000)
+const prev2 = M.previsaoRecuperacao([{ titulo: t('s1', '2026-10-01', 500), risco: null }, { titulo: t('s2', '2026-10-01', 300), risco: 100, prometido: 200, emNegociacao: true }], hoje)
+assert.equal(prev2.composicao.semPrevisaoConfiavel, 500, 'sem histórico fica fora da previsão'); assert.equal(prev2.composicao.prometido, 200)
+assert.equal(prev2.composicao.emNegociacao, 300); assert.ok(prev2.horizontes[4].valor <= 300)
+assert.equal(M.previsaoRecuperacao([{ titulo: t('s3', '2026-10-01', 500), risco: null }], hoje).confianca, 'sem_dados')
 const pr = M.precisaoPrevisao(500, { q1: 1000, q2: 1000, sumiu: 300 }, new Map([['q1', 600], ['q2', 1000]]))
 assert.equal(pr.realizado, 400, 'realizado = queda do saldo; título que sumiu não conta'); assert.equal(pr.acertoPct, 80)
 
@@ -121,7 +143,26 @@ assert.equal(acao({ tituloId: 'v1', disputaStatus: 'aberta', disputaValor: 10 })
 assert.equal(acao({ tituloId: 'v1', causa: 'nota_fiscal' }), 'solicitar_documentacao')
 assert.equal(acao(undefined, { promessa: 'pendente' }), 'acompanhar')
 assert.equal(acao(undefined, { risco: 900 }), 'analise_especializada')
+assert.equal(acao({ tituloId: 'v1', causa: 'entrega' }), 'encaminhar_operacao', 'problema de entrega → operação')
+assert.equal(acao({ tituloId: 'v1', causa: 'liquidez' }), 'propor_negociacao', 'falta de caixa → negociação')
+assert.equal(acao({ tituloId: 'v1', causa: 'documental' }), 'solicitar_documentacao')
+assert.equal(acao({ tituloId: 'v1', causa: 'insolvencia' }), 'analise_especializada')
+assert.equal(acao(undefined, { promessa: 'descumprida', risco: 800 }), 'escalonar_cobranca')
+assert.equal(acao(undefined, { risco: null }), 'criar_promessa', 'sem score segue pelas demais regras (pagador piorando)')
 assert.equal(M.proximaAcao({ titulo: { ...pagar }, hoje, risco: 0, dna, caixaDisponivel: 10, caso: { tituloId: 'p1', criticidade: 'critica' } }).acao, 'negociar_prazo_fornecedor')
+
+// ── a vencer, cancelamento, liquidação, jurisdição ──
+const agv = M.aging([t('av', '2026-12-01', 700), t('lq', '2026-10-01', 100, 100), t('cc', '2026-10-01', 100, 0, { status: 'cancelado' }), t('ve', '2026-10-01', 250, 0, { taxaMultaPct: 2 })], hoje)
+assert.equal(agv.aVencer.saldo, 700, 'faixa a vencer'); assert.equal(agv.total, 250, 'liquidado e cancelado nunca aparecem como vencidos')
+assert.equal(agv.qtdVencidos, 1); assert.equal(agv.faixas[3].encargos, 5, 'encargos por faixa')
+assert.throws(() => M.encargos(t('jj', '2026-10-01', 10), hoje, { jurisdicao: 'US' as 'BR' }), /jurisdição/)
+assert.equal(M.sugerirCausa('cliente esqueceu de pagar').causa, 'esquecimento')
+assert.equal(M.sugerirCausa('empresa entrou em recuperação judicial').causa, 'insolvencia')
+
+// ── alertas ──
+const al = M.alertasVencidos({ hoje, migracao: { entraramNoVencido: 0, mudaramParaFaixaPior: 0, qtdMudaramParaFaixaPior: 0, indiceDeterioracaoPct: 40 }, impacto: M.impactoFinanceiro(base, 0),
+  itens: [{ titulo: venc, dna, promessa: 'descumprida' }, { titulo: { ...pagar }, dna: curto, promessa: null, caso: { tituloId: 'p1', criticidade: 'critica' } }, { titulo: t('dp', '2026-10-01', 10), dna: curto, promessa: null, caso: { tituloId: 'dp', disputaStatus: 'aberta' }, disputaPrazo: '2026-10-15' }] })
+for (const tipo of ['promessa_descumprida', 'deterioracao', 'fornecedor_essencial', 'disputa_prazo', 'migracao_faixa', 'ruptura_caixa']) assert.ok(al.some((x) => x.tipo === tipo), `alerta ${tipo}`)
 
 // ── determinismo (concorrência: duas leituras iguais dão o mesmo resultado) ──
 assert.deepEqual(M.aging([venc, ...hist], hoje), M.aging([...hist, venc], hoje))

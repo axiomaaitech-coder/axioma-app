@@ -27,10 +27,14 @@ export type CasoBanco = {
   causa: string; causa_origem: string; causa_confirmada: boolean; causa_nota: string | null
   disputa_tipo: string | null; disputa_status: string | null; disputa_valor: number; disputa_prazo: string | null; disputa_responsavel: string | null
   relacao: M.Relacao | null; estrategia: string | null; criticidade: M.Caso['criticidade']; risco_interrupcao: boolean
+  impacto_producao: boolean; impacto_vendas: boolean
 }
-const casoMotor = (c: CasoBanco): M.Caso => ({
-  tituloId: (c.conta_receber_id ?? c.conta_pagar_id)!, causa: c.causa, causaConfirmada: c.causa_confirmada, causaOrigem: c.causa_origem,
-  disputaStatus: c.disputa_status, disputaValor: Number(c.disputa_valor) || 0, relacao: c.relacao, criticidade: c.criticidade, riscoInterrupcao: c.risco_interrupcao,
+export const casoMotor = (c: CasoBanco | null, dependencia?: string | null): M.Caso | null => (!c && !dependencia ? null : {
+  tituloId: c ? (c.conta_receber_id ?? c.conta_pagar_id)! : '', causa: c?.causa, causaConfirmada: c?.causa_confirmada, causaOrigem: c?.causa_origem,
+  disputaStatus: c?.disputa_status, disputaValor: Number(c?.disputa_valor) || 0, relacao: c?.relacao, criticidade: c?.criticidade, riscoInterrupcao: c?.risco_interrupcao,
+  impactoProducao: c?.impacto_producao, impactoVendas: c?.impacto_vendas,
+  // relação comercial: reusa fornecedores.nivel_dependencia (cadastro de Fornecedores), sem campo novo
+  dependencia: dependencia === 'alto' || dependencia === 'medio' || dependencia === 'baixo' ? dependencia : null,
 })
 
 // Taxa legal (CC art. 406, Lei 14.905/2024) ≈ Selic meta Copom (série 432, ao mês) − IPCA do último mês (série 433).
@@ -54,26 +58,31 @@ export type ItemVencido = {
   titulo: M.Titulo; caso: CasoBanco | null; saldo: number; disputa: ReturnType<typeof M.separarDisputa>
   encargos: ReturnType<typeof M.encargos>; dna: M.DNA; risco: ReturnType<typeof M.riscoRecuperacao>
   prioridade: ReturnType<typeof M.prioridadeCobranca>; acao: ReturnType<typeof M.proximaAcao>
-  promessa: M.SituacaoPromessa | null; causaSugerida: ReturnType<typeof M.sugerirCausa>
+  promessa: M.SituacaoPromessa | null; promessaFalta: number; emNegociacao: boolean; causaSugerida: ReturnType<typeof M.sugerirCausa>
 }
 export type AnaliseVencidos = {
   hoje: string; limites: number[]; receber: ItemVencido[]; pagar: ItemVencido[]
   agingReceber: ReturnType<typeof M.aging>; agingPagar: ReturnType<typeof M.aging>
   migracao30: ReturnType<typeof M.migracaoAging>; previsao: ReturnType<typeof M.previsaoRecuperacao>
-  tesouraria: M.BaseTesouraria; impacto: ReturnType<typeof M.impactoFinanceiro>
+  tesouraria: M.BaseTesouraria; impacto: ReturnType<typeof M.impactoFinanceiro>; alertas: M.AlertaVencido[]
+  evolucao: { data: string; saldo: number }[]; versao: string
   fonteTaxaLegal: string | null; falhou: boolean; avisos: string[]
 }
 
 export async function carregarAnaliseVencidos(empresaId: string): Promise<AnaliseVencidos> {
   const sb = createClient()
   const hoje = hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
-  const [cr, cp, casos, prom, cfg, legal] = await Promise.all([
+  const [cr, cp, casos, prom, cfg, legal, hist, negoc] = await Promise.all([
     comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
-    comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
+    comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).limit(5000)),
-    comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).limit(5000)),
+    comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).limit(5000)),
     comRetentativa(() => sb.from('vencido_config').select('faixas, parametros').eq('empresa_id', empresaId).maybeSingle()),
     parametrosLegais(sb),
+    // evolução da carteira vencida: foto diária já gravada pela previsão (horizonte 7 = uma linha por dia)
+    comRetentativa(() => sb.from('vencido_previsao').select('data_base, saldo_base').eq('empresa_id', empresaId).eq('horizonte_dias', 7).order('data_base', { ascending: false }).limit(180)),
+    // negociação em andamento = proposta sem decisão
+    comRetentativa(() => sb.from('vencido_evento').select('caso_id, tipo, id, dados').eq('empresa_id', empresaId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).limit(5000)),
   ])
   const avisos: string[] = []
   for (const [nome, r] of [['contas a receber', cr], ['contas a pagar', cp]] as const) if (r.error) reportarFalhaLeitura(`vencidos:${nome}`, new Error(r.error.message))
@@ -87,14 +96,19 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
     const cli = um(c.clientes as Rel | Rel[] | null)
     return { id: c.id, empresaId, dominio: 'receber', contraparteId: c.cliente_id, contraparteNome: nomeDe(cli), documento: cli?.documento ?? null, valor: Number(c.valor) || 0, quitado: Number(c.valor_recebido) || 0, desconto: Number(c.valor_desconto) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_recebimento, status: c.status, taxaMultaPct: c.taxa_multa, taxaJurosMesPct: c.taxa_juros }
   })
+  const dependenciaDe = new Map<string, string>()
+  type RelF = Rel & { nivel_dependencia?: string | null }
   const pagarT: M.Titulo[] = (cp.data ?? []).map((c) => {
-    const f = um(c.fornecedores as Rel | Rel[] | null)
+    const f = um(c.fornecedores as RelF | RelF[] | null) as RelF | null
+    if (f?.nivel_dependencia) dependenciaDe.set(c.id, f.nivel_dependencia)
     return { id: c.id, empresaId, dominio: 'pagar', contraparteId: c.fornecedor_id, contraparteNome: nomeDe(f), documento: f?.documento ?? null, valor: Number(c.valor_total) || 0, quitado: Number(c.valor_pago) || 0, vencimento: c.data_vencimento, emissao: c.data_emissao, quitacao: c.data_pagamento, status: c.status, taxaJurosMesPct: c.taxa_multa_mensal }
   })
   const textoDe = new Map([...(cr.data ?? []), ...(cp.data ?? [])].map((c) => [c.id, `${c.descricao ?? ''} ${c.observacoes ?? ''}`]))
   const casoDe = new Map(((casos.data ?? []) as CasoBanco[]).map((c) => [(c.conta_receber_id ?? c.conta_pagar_id)!, c]))
-  const promessas: M.Promessa[] = (prom.data ?? []).map((p) => ({ id: p.id, tituloId: p.conta_id, valor: Number(p.valor_compromissado) || 0, data: p.data_compromissada, status: p.status, recebidoNaPromessa: p.recebido_na_promessa, renegociadaDe: p.renegociada_de }))
+  const promessas: M.Promessa[] = (prom.data ?? []).map((p) => ({ id: p.id, tituloId: p.conta_id, valor: Number(p.valor_compromissado) || 0, data: p.data_compromissada, status: p.status, tipo: p.tipo, recebidoNaPromessa: p.recebido_na_promessa, renegociadaDe: p.renegociada_de }))
   const reneg = new Set(promessas.map((p) => p.renegociadaDe).filter(Boolean) as string[])
+  const decididas = new Set((negoc.data ?? []).filter((e) => e.tipo !== 'negociacao_proposta').map((e) => String((e.dados as { proposta_id?: string })?.proposta_id)))
+  const casosEmNegociacao = new Set((negoc.data ?? []).filter((e) => e.tipo === 'negociacao_proposta' && !decididas.has(e.id)).map((e) => e.caso_id as string))
 
   // Tesouraria (origem única do caixa): posição, reserva mínima e capital de giro já calculados lá
   const cfgT = await obterConfigTesouraria(empresaId).catch(() => null)
@@ -108,40 +122,49 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
     const dnaCache = new Map<string, M.DNA>()
     const vencidos = lista.filter((t) => M.estaVencido(t, hoje))
     const maiorSaldo = Math.max(0, ...vencidos.map((t) => M.saldoDoTitulo(t, hoje)))
+    const exposicao = new Map<string, number>()
+    for (const t of vencidos) { const k = t.contraparteId ?? `sem:${t.contraparteNome}`; exposicao.set(k, (exposicao.get(k) ?? 0) + M.saldoDoTitulo(t, hoje)) }
+    const maiorExposicao = Math.max(0, ...exposicao.values())
     return vencidos.map((t) => {
       const k = t.contraparteId ?? `sem:${t.contraparteNome}`
       const hist = porContraparte.get(k) ?? []
       if (!dnaCache.has(k)) { const ids = new Set(hist.map((h) => h.id)); dnaCache.set(k, M.dnaFinanceiro(hist, promessas.filter((p) => ids.has(p.tituloId)), hoje)) }
-      const dna = dnaCache.get(k)!, banco = casoDe.get(t.id) ?? null, caso = banco ? casoMotor(banco) : null
+      const dna = dnaCache.get(k)!, banco = casoDe.get(t.id) ?? null, caso = casoMotor(banco, dependenciaDe.get(t.id))
       const saldo = M.saldoDoTitulo(t, hoje)
       const ultimaPromessa = promessas.filter((p) => p.tituloId === t.id).sort((a, b) => b.data.localeCompare(a.data))[0]
-      const promessa = ultimaPromessa ? M.situacaoPromessa(ultimaPromessa, t, hoje, reneg).situacao : null
+      const sp = ultimaPromessa ? M.situacaoPromessa(ultimaPromessa, t, hoje, reneg) : null
+      const promessa = sp?.situacao ?? null
       const risco = M.riscoRecuperacao(t, dna, hoje, caso)
       const prioridade = t.dominio === 'receber'
-        ? M.prioridadeCobranca(t, risco.score, hoje, { maiorSaldo, promessaVencida: promessa === 'vencida_sem_pagamento', caixaPressionado: posicao.totalDisponivel < reservaMinima, limites }, caso)
-        : M.prioridadeFornecedor(t, hoje, { caixaDisponivel: posicao.totalDisponivel, totalVencidoPagar }, caso)
+        ? M.prioridadeCobranca(t, risco.score, hoje, { maiorSaldo, exposicaoContraparte: exposicao.get(k), maiorExposicao, promessaDescumprida: promessa === 'descumprida', caixaPressionado: !posicao.falhou && posicao.totalDisponivel < reservaMinima, historicoAtraso: dna.suficiente && (dna.frequenciaAtrasoPct ?? 0) >= 50, limites }, caso)
+        : M.prioridadeFornecedor(t, hoje, { caixaDisponivel: posicao.totalDisponivel, totalVencidoPagar, maiorSaldo }, caso)
       return {
         titulo: t, caso: banco, saldo, disputa: M.separarDisputa(saldo, caso),
         encargos: M.encargos(t, hoje, { ...legal, ipcaMesesPct: ipcaDesde(legal.ipcaSerie, t.vencimento) }, caso),
-        dna, risco, prioridade, promessa, causaSugerida: M.sugerirCausa(textoDe.get(t.id) ?? '', caso),
+        dna, risco, prioridade, promessa, promessaFalta: sp && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(sp.situacao) ? sp.falta : 0,
+        emNegociacao: !!banco && casosEmNegociacao.has(banco.id), causaSugerida: M.sugerirCausa(textoDe.get(t.id) ?? '', caso),
         acao: M.proximaAcao({ titulo: t, hoje, risco: risco.score, dna, caso, promessa, caixaDisponivel: posicao.totalDisponivel }),
       }
-    }).sort((a, b) => b.prioridade.score - a.prioridade.score)
+    }).sort((a, b) => (b.prioridade.score ?? 0) - (a.prioridade.score ?? 0))
   }
   const totalVencidoPagar = pagarT.filter((t) => M.estaVencido(t, hoje)).reduce((s, t) => s + M.saldoDoTitulo(t, hoje), 0)
   const receber = montar(receberT), pagar = montar(pagarT, totalVencidoPagar)
-  const previsao = M.previsaoRecuperacao(receber.map((i) => ({ titulo: i.titulo, risco: i.risco.score, caso: i.caso ? casoMotor(i.caso) : null })), hoje)
+  const previsao = M.previsaoRecuperacao(receber.map((i) => ({ titulo: i.titulo, risco: i.risco.score, caso: casoMotor(i.caso), prometido: i.promessaFalta, emNegociacao: i.emNegociacao })), hoje)
   const soma = (l: M.Titulo[], ate: string) => l.filter((t) => !M.FECHADOS.has(String(t.status ?? '').toLowerCase()) && t.vencimento >= hoje && t.vencimento <= ate).reduce((s, t) => s + M.saldoDoTitulo(t, hoje), 0)
   const em30 = somarDiasISO(hoje, 30)
   const tesouraria: M.BaseTesouraria = {
     caixaDisponivel: posicao.totalDisponivel, reservaMinima, vencidoReceber: previsao.saldoBase, vencidoPagar: totalVencidoPagar,
-    pagarCritico: pagar.filter((i) => i.caso?.criticidade === 'critica' || i.caso?.risco_interrupcao).reduce((s, i) => s + i.saldo, 0),
+    pagarCritico: pagar.filter((i) => i.caso?.criticidade === 'critica' || i.caso?.risco_interrupcao || i.caso?.impacto_producao).reduce((s, i) => s + i.saldo, 0),
     aPagarNoPrazo: soma(pagarT, em30), aReceberNoPrazo: soma(receberT, em30), capitalDeGiro: giro?.capitalDeGiro ?? null,
   }
+  const legaisBase = { taxaLegalMesPct: legal.taxaLegalMesPct }
+  const migracao30 = M.migracaoAging(receberT, somarDiasISO(hoje, -30), hoje, limites)
+  const impacto = M.impactoFinanceiro(tesouraria, previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)
+  const alertas = M.alertasVencidos({ hoje, migracao: migracao30, impacto, itens: [...receber, ...pagar].map((i) => ({ titulo: i.titulo, dna: i.dna, promessa: i.promessa, caso: casoMotor(i.caso), disputaPrazo: i.caso?.disputa_prazo ?? null })) })
   return {
-    hoje, limites, receber, pagar, agingReceber: M.aging(receberT, hoje, limites), agingPagar: M.aging(pagarT, hoje, limites),
-    migracao30: M.migracaoAging(receberT, somarDiasISO(hoje, -30), hoje, limites), previsao, tesouraria,
-    impacto: M.impactoFinanceiro(tesouraria, previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0),
+    hoje, limites, receber, pagar, agingReceber: M.aging(receberT, hoje, limites, legaisBase), agingPagar: M.aging(pagarT, hoje, limites, legaisBase),
+    migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA,
+    evolucao: (hist.data ?? []).map((x) => ({ data: x.data_base as string, saldo: Number(x.saldo_base) })).reverse(),
     fonteTaxaLegal: legal.fonte, falhou: !!(cr.error || cp.error), avisos,
   }
 }
@@ -160,7 +183,7 @@ export async function registrarEvento(empresaId: string, casoId: string, tipo: s
 export async function salvarCaso(empresaId: string, dominio: M.Dominio, tituloId: string, campos: Partial<Omit<CasoBanco, 'id' | 'dominio' | 'conta_receber_id' | 'conta_pagar_id'>>, motivo?: string): Promise<Resultado<string>> {
   const sb = createClient(), col = dominio === 'receber' ? 'conta_receber_id' : 'conta_pagar_id'
   if (campos.disputa_valor != null && (!(Number(campos.disputa_valor) >= 0))) return { ok: false, erro: 'valor contestado inválido' }
-  const achar = () => sb.from('vencido_caso').select('id').eq('empresa_id', empresaId).eq(col, tituloId).maybeSingle()
+  const achar = () => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).eq(col, tituloId).maybeSingle()
   let { data: atual, error } = await comRetentativa(achar)
   if (error) return { ok: false, erro: error.message }
   let id = atual?.id as string | undefined
@@ -179,7 +202,10 @@ export async function salvarCaso(empresaId: string, dominio: M.Dominio, tituloId
   const up = await sb.from('vencido_caso').update(campos).eq('id', id!).eq('empresa_id', empresaId).select('id')
   if (up.error || !up.data?.length) { const m = up.error?.message ?? '0 linhas (RLS?)'; reportarFalhaEscrita('vencido_caso', 'update', m); return { ok: false, erro: m } }
   const tipo = 'causa' in campos ? 'causa' : 'disputa_status' in campos || 'disputa_valor' in campos ? 'disputa' : 'criticidade' in campos ? 'estrategia' : 'nota'
-  await registrarEvento(empresaId, id!, tipo, { campos, motivo: motivo ?? null })
+  // Governança: valor anterior x posterior + motivo (usuário, empresa e data vêm do próprio banco no evento)
+  const anterior = (atual ?? {}) as Record<string, unknown>
+  const antes = Object.fromEntries(Object.keys(campos).map((k) => [k, anterior[k] ?? null]))
+  await registrarEvento(empresaId, id!, tipo, { antes, depois: campos, motivo: motivo ?? null })
   return { ok: true, valor: id! }
 }
 
@@ -229,4 +255,18 @@ export async function salvarConfigVencidos(empresaId: string, faixas: number[], 
   const { error } = await createClient().from('vencido_config').upsert({ empresa_id: empresaId, faixas: [...new Set(faixas)].sort((a, b) => a - b), parametros, atualizado_em: new Date().toISOString() })
   if (error) { reportarFalhaEscrita('vencido_config', 'upsert', error.message); return { ok: false, erro: error.message } }
   return { ok: true }
+}
+
+// Promessa descumprida: registra no histórico uma vez só (chave por promessa) e devolve quantas foram registradas.
+// Os indicadores e alertas se recalculam na próxima leitura (o motor lê a situação real da promessa).
+export async function monitorarPromessas(empresaId: string, a: Pick<AnaliseVencidos, 'receber'>): Promise<number> {
+  let n = 0
+  for (const i of a.receber.filter((x) => x.promessa === 'descumprida')) {
+    let caso = i.caso?.id
+    if (!caso) { const r = await salvarCaso(empresaId, 'receber', i.titulo.id, {}, 'aberto pelo monitor de promessas'); caso = r.ok ? r.valor : undefined }
+    if (!caso) continue
+    const r = await registrarEvento(empresaId, caso, 'promessa', { situacao: 'descumprida', acao_sugerida: i.acao.acao, saldo: i.saldo }, 'sistema', `promessa-descumprida:${i.titulo.id}:${i.titulo.quitado}`)
+    if (r.ok) n++
+  }
+  return n
 }
