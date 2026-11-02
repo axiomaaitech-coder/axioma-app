@@ -37,13 +37,13 @@ const pt: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por faixa' },
-    { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (verde), até 60 dias (âmbar) e acima de 60 dias (vermelho) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
+    { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (verde-menta), até 60 dias (azul-marinho claro) e acima de 60 dias (azul-marinho) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
 
     { h1: 'Previsão e evolução' },
     { p: 'Quanto deve ser recuperado em 7, 15, 30, 60 e 90 dias, com o nível de confiança. A **evolução** mostra o total vencido a receber dia a dia — ela começa a ser registrada no primeiro dia em que a tela é aberta.' },
 
     { h1: 'Listas' },
-    { p: 'Duas listas, **A pagar vencidas** e **A receber vencidas**, com a descrição, o fornecedor ou cliente, a data em que venceu, o **saldo em aberto** e os **dias de atraso** (amarelo até 30 dias, vermelho acima). As mais antigas aparecem primeiro.' },
+    { p: 'Duas listas, **A pagar vencidas** e **A receber vencidas**, com a descrição, o fornecedor ou cliente, a data em que venceu, o **saldo em aberto** e os **dias de atraso** (destacados em vermelho acima de 30 dias). As mais antigas aparecem primeiro.' },
     { p: 'Clique em uma conta, ou nos botões **Pagar em Contas a Pagar** / **Receber em Contas a Receber**, para abrir a tela de origem já com a lista filtrada em **Vencido** — ali você registra o pagamento, o recebimento ou a cobrança.' },
     { nota: 'Conta paga ou recebida em parte aparece com o que ainda falta. Conta paga, recebida ou cancelada não aparece.' },
     { nota: 'Se algum dado não carregar, a tela avisa que a lista pode estar incompleta — atualize a página.' },
@@ -86,13 +86,13 @@ const en: DocumentoAxioma = {
     ] } },
 
     { h1: 'Overdue by range' },
-    { p: 'Column chart with the balance in each range: **Not due** (green), up to 60 days (amber) and over 60 days (red) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
+    { p: 'Column chart with the balance in each range: **Not due** (mint green), up to 60 days (light navy) and over 60 days (navy) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
 
     { h1: 'Forecast and history' },
     { p: 'How much should be recovered in 7, 15, 30, 60 and 90 days, with the confidence level. The **history** shows the overdue receivable total day by day — it starts on the first day the screen is opened.' },
 
     { h1: 'Lists' },
-    { p: 'Two lists, **Overdue payables** and **Overdue receivables**, with the description, the supplier or client, the due date, the **open balance** and the **days overdue** (yellow up to 30 days, red above). The oldest come first.' },
+    { p: 'Two lists, **Overdue payables** and **Overdue receivables**, with the description, the supplier or client, the due date, the **open balance** and the **days overdue** (highlighted in red above 30 days). The oldest come first.' },
     { p: 'Click a bill, or the **Pay in Payables** / **Receive in Receivables** buttons, to open the source screen with the list already filtered on **Overdue** — there you record the payment, the receipt or the collection.' },
     { nota: 'A partly paid or received bill shows what is still missing. Paid, received or cancelled bills do not appear.' },
     { nota: 'If some data does not load, the screen warns that the list may be incomplete — refresh the page.' },
@@ -135,13 +135,13 @@ const es: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por rango' },
-    { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (verde), hasta 60 días (ámbar) y más de 60 días (rojo) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
+    { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (verde menta), hasta 60 días (azul marino claro) y más de 60 días (azul marino) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
 
     { h1: 'Previsión y evolución' },
     { p: 'Cuánto debe recuperarse en 7, 15, 30, 60 y 90 días, con el nivel de confianza. La **evolución** muestra el total vencido por cobrar día a día — empieza a registrarse el primer día que se abre la pantalla.' },
 
     { h1: 'Listas' },
-    { p: 'Dos listas, **Por pagar vencidas** y **Por cobrar vencidas**, con la descripción, el proveedor o cliente, la fecha de vencimiento, el **saldo pendiente** y los **días de atraso** (amarillo hasta 30 días, rojo por encima). Las más antiguas aparecen primero.' },
+    { p: 'Dos listas, **Por pagar vencidas** y **Por cobrar vencidas**, con la descripción, el proveedor o cliente, la fecha de vencimiento, el **saldo pendiente** y los **días de atraso** (destacados en rojo por encima de 30 días). Las más antiguas aparecen primero.' },
     { p: 'Haga clic en una cuenta, o en los botones **Pagar en Cuentas por Pagar** / **Cobrar en Cuentas por Cobrar**, para abrir la pantalla de origen con la lista ya filtrada en **Vencido** — allí registra el pago, el cobro o la gestión de cobranza.' },
     { nota: 'Una cuenta pagada o cobrada en parte aparece con lo que aún falta. Las cuentas pagadas, cobradas o canceladas no aparecen.' },
     { nota: 'Si algún dato no carga, la pantalla avisa que la lista puede estar incompleta — actualice la página.' },

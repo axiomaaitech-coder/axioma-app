@@ -13,7 +13,7 @@ import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { optBarrasV, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
+import { optBarrasV, serieCores, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
 import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos, type ItemVencido } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
@@ -21,8 +21,8 @@ type Idioma3 = 'pt' | 'en' | 'es'
 const PALETA = {
   // Escuro: paleta aprovada 2026-10-03 (alerta amarelo, nada de laranja). Claro: card creme, caixa
   // aninhada bege, texto menta escuro/navy (mesmas cores de Inadimplência e Contas a Receber).
-  dark: { VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#facc15', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)', CAMPO: 'rgba(10,22,40,0.9)', BARRA_REC: '#34d399' },
-  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)', CAMPO: '#ffffff', BARRA_REC: '#2ecc9b' },
+  dark: { VERDE: '#34d399', VERMELHO: '#f87171', ALERTA: '#2ecc9b', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'linear-gradient(180deg, rgba(16,32,58,0.92), rgba(10,22,40,0.92))', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(46,204,155,0.15)', CAMPO: 'rgba(10,22,40,0.9)', BARRA_REC: '#34d399' },
+  xms: { VERDE: '#0f7a5a', VERMELHO: '#d93848', ALERTA: '#101b3d', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)', CAMPO: '#ffffff', BARRA_REC: '#2ecc9b' },
 } as const
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
@@ -108,7 +108,7 @@ export default function ContasVencidasPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold" style={{ color: pagar ? P.VERMELHO : P.VERDE }}>{fmt(i.saldo)}</p>
-                    <p className="text-[11px] font-semibold" style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.AMBAR }}>{diasTxt(i.encargos.dias)}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.ALERTA }}>{diasTxt(i.encargos.dias)}</p>
                   </div>
                 </div>
               </Link>
@@ -129,16 +129,18 @@ export default function ContasVencidasPage() {
     ['sem_acompanhamento', L('Sem acompanhamento', 'Not followed up', 'Sin seguimiento')],
   ]
   const ag = r ? (lado === 'receber' ? r.agingReceber : r.agingPagar) : null
-  // Severidade igual à de Contas a Receber: âmbar até 60 dias, vermelho acima; a vencer em verde-menta (saldo saudável)
-  const CORES_AGING = { aVencer: temaClaro ? '#2ecc9b' : '#34d399' }
+  // Sequência oficial de gráficos (serieCores / tema-tokens chart-1, chart-5, chart-2): a vencer verde-menta,
+  // até 60 dias azul-marinho claro, acima de 60 azul-marinho (mais escuro = mais antigo); nada de dourado/âmbar
+  const sc = serieCores(temaClaro)
+  const CORES_AGING = { aVencer: sc[0], ate60: sc[4], acima60: sc[1] }
   const rotulosAging = ag ? [L('A vencer', 'Not due', 'Por vencer'), ...ag.faixas.map((x) => x.rotulo)] : []
   const valoresAging = ag ? [ag.aVencer.saldo, ...ag.faixas.map((x) => x.saldo)] : []
   const qtdAging = ag ? [ag.aVencer.qtd, ...ag.faixas.map((x) => x.qtd)] : []
   const baseAging = valoresAging.reduce((s, v) => s + v, 0)
   const ate30 = ag && baseAging > 0 ? Math.round(((ag.aVencer.saldo + ag.faixas.filter((x) => x.ate != null && x.ate <= 30).reduce((s, x) => s + x.saldo, 0)) / baseAging) * 1000) / 10 : null
   const opcaoAging = ag ? (() => {
-    const o = optBarrasV(valoresAging, rotulosAging, P.VERMELHO, temaClaro ? '#ff5a6b' : '#fca5a5',
-      [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? P.AMBAR : P.VERMELHO))], temaClaro)
+    const o = optBarrasV(valoresAging, rotulosAging, CORES_AGING.acima60, CORES_AGING.ate60,
+      [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? CORES_AGING.ate60 : CORES_AGING.acima60))], temaClaro)
     const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
     // celular: tela estreita = rótulos mais inclinados e menores; valores sempre abreviados (21,6 mil)
     const estreito = typeof window !== 'undefined' && window.innerWidth < 640
@@ -217,7 +219,7 @@ export default function ContasVencidasPage() {
                   origem={L('Promessas de pagamento registradas na cobrança (pendentes, confirmadas ou pagas em parte) que ainda não venceram.', 'Payment promises recorded in collection (pending, confirmed or partly paid) that are not due yet.', 'Promesas de pago registradas en la cobranza (pendientes, confirmadas o pagadas en parte) que aún no vencieron.')} />
                 <Indicador titulo={L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')} valor={String(r.promessasDescumpridas)} cor={r.promessasDescumpridas ? P.VERMELHO : P.TEXTO}
                   origem={L('Promessas cuja data passou sem nenhum pagamento depois delas.', 'Promises whose date passed with no payment after them.', 'Promesas cuya fecha pasó sin ningún pago después de ellas.')} />
-                <Indicador titulo={L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')} valor={String(r.disputasAbertas)} cor={r.disputasAbertas ? P.AMBAR : P.TEXTO} sub={r.disputasAbertas ? fmt(r.valorContestado) : undefined}
+                <Indicador titulo={L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')} valor={String(r.disputasAbertas)} cor={r.disputasAbertas ? P.ALERTA : P.TEXTO} sub={r.disputasAbertas ? fmt(r.valorContestado) : undefined}
                   origem={L('Contas com divergência aberta ou em análise (a receber e a pagar). O valor é a parte contestada; o restante continua sendo cobrado ou pago.', 'Bills with an open or under-review dispute (receivable and payable). The amount is the disputed part; the rest is still collected or paid.', 'Cuentas con divergencia abierta o en análisis (por cobrar y por pagar). El valor es la parte disputada; el resto se sigue cobrando o pagando.')} />
                 <Indicador titulo={L('Sem previsão confiável', 'No reliable forecast', 'Sin previsión confiable')} valor={fmt(r.previsao.composicao.semPrevisaoConfiavel)} cor={P.CINZA}
                   origem={L('Saldo de clientes com menos de 4 pagamentos no histórico: o Axioma não inventa previsão para eles.', 'Balance of customers with fewer than 4 payments in history: Axioma does not make up a forecast for them.', 'Saldo de clientes con menos de 4 pagos en el historial: Axioma no inventa una previsión para ellos.')} />
@@ -232,7 +234,7 @@ export default function ContasVencidasPage() {
                     <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</p>
                     <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>
                       {L('Até 30 dias (com a vencer): ', 'Up to 30 days (incl. not due): ', 'Hasta 30 días (con por vencer): ')}
-                      <b style={{ color: ate30 == null ? P.CINZA : ate30 >= 75 ? P.VERDE : P.AMBAR }}>{pct(ate30)}</b>
+                      <b style={{ color: ate30 == null ? P.CINZA : ate30 >= 75 ? P.VERDE : P.TEXTO }}>{pct(ate30)}</b>
                       {L(' · referência de mercado: 75–80%', ' · market reference: 75–80%', ' · referencia de mercado: 75–80%')}
                     </p>
                   </div>
@@ -257,8 +259,8 @@ export default function ContasVencidasPage() {
                 </table>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] mt-1" style={{ color: P.CINZA }}>
                   <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.aVencer }} />{L('A vencer', 'Not due', 'Por vencer')}</span>
-                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: P.AMBAR }} />{L('Até 60 dias', 'Up to 60 days', 'Hasta 60 días')}</span>
-                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: P.VERMELHO }} />{L('Acima de 60 dias', 'Over 60 days', 'Más de 60 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate60 }} />{L('Até 60 dias', 'Up to 60 days', 'Hasta 60 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.acima60 }} />{L('Acima de 60 dias', 'Over 60 days', 'Más de 60 días')}</span>
                   <span className="ml-auto">{L(`Juros e multa estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Maior devedor: ${pct(ag.maiorPct)} do vencido`, `Estimated interest and fines: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Largest debtor: ${pct(ag.maiorPct)} of overdue`, `Intereses y multas estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Mayor deudor: ${pct(ag.maiorPct)} de lo vencido`)}</span>
                 </div>
               </div>
