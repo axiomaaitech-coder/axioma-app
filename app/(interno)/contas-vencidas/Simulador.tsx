@@ -55,8 +55,23 @@ export default function Simulador({ a, prometido, emNegociacao, lang, P, fmt, te
         </div>
         <div className="space-y-1.5">
           <p className="font-semibold">{L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')}: {descumpre}% <span style={{ color: P.CINZA }}>({L('prometido', 'promised', 'prometido')} {fmt(prometido)})</span></p>
-          <input type="range" min={0} max={100} step={5} value={descumpre} onChange={(e) => setDescumpre(Number(e.target.value))} disabled={!prometido} aria-label={L('Percentual de promessas descumpridas', 'Share of broken promises', 'Porcentaje de promesas incumplidas')} className="w-full" style={{ accentColor: '#2ecc9b' }} />
-          <label className="flex items-center gap-2 pt-1"><input type="checkbox" checked={antecipar} disabled={!emNegociacao} onChange={(e) => setAntecipar(e.target.checked)} />{L(`Antecipar as negociações (${fmt(emNegociacao)} em negociação entram inteiras)`, `Bring negotiations forward (${fmt(emNegociacao)} in negotiation counted in full)`, `Anticipar las negociaciones (${fmt(emNegociacao)} en negociación entran completas)`)}</label>
+          {prometido > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-1">{[0, 10, 20, 30, 50, 100].map((x) => <button key={x} type="button" onClick={() => setDescumpre(x)} className="px-2.5 py-1 rounded-lg font-bold axi-card-premium3d axi-card-faixa" style={pill(descumpre === x)}>{x}%</button>)}</div>
+              <input type="range" min={0} max={100} step={5} value={descumpre} onChange={(e) => setDescumpre(Number(e.target.value))} aria-label={L('Percentual de promessas descumpridas', 'Share of broken promises', 'Porcentaje de promesas incumplidas')} className="w-full h-8" style={{ accentColor: '#2ecc9b' }} />
+              <p style={{ color: corTextoSituacao('bom', temaClaro) }}>{L(`Entram das promessas: ${fmt(s.composicao.dasPromessas)}`, `From promises: ${fmt(s.composicao.dasPromessas)}`, `Entran de las promesas: ${fmt(s.composicao.dasPromessas)}`)}</p>
+            </>
+          ) : <p style={{ color: P.CINZA }}>{L('Nenhuma promessa de pagamento em aberto agora — registre na conta, na central abaixo.', 'No open payment promise right now — record one on the bill, in the center below.', 'Ninguna promesa de pago abierta ahora — regístrela en la cuenta, en la central de abajo.')}</p>}
+          <p className="font-semibold pt-1">{L('Negociações', 'Negotiations', 'Negociaciones')}</p>
+          {emNegociacao > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-1">
+                <button type="button" onClick={() => setAntecipar(false)} className="px-2.5 py-1.5 rounded-lg font-bold axi-card-premium3d axi-card-faixa" style={pill(!antecipar)}>{L('No ritmo normal', 'At normal pace', 'Al ritmo normal')}</button>
+                <button type="button" onClick={() => setAntecipar(true)} className="px-2.5 py-1.5 rounded-lg font-bold axi-card-premium3d axi-card-faixa" style={pill(antecipar)}>{L('Antecipar (entram inteiras)', 'Bring forward (in full)', 'Anticipar (entran completas)')}</button>
+              </div>
+              <p style={{ color: corTextoSituacao('bom', temaClaro) }}>{L(`Entram das negociações: ${fmt(s.composicao.dasNegociacoes)} de ${fmt(emNegociacao)}`, `From negotiations: ${fmt(s.composicao.dasNegociacoes)} of ${fmt(emNegociacao)}`, `Entran de las negociaciones: ${fmt(s.composicao.dasNegociacoes)} de ${fmt(emNegociacao)}`)}</p>
+            </>
+          ) : <p style={{ color: P.CINZA }}>{L('Nenhuma negociação em andamento agora (as aprovadas viram acordo e entram nas promessas). Proponha na conta, na central abaixo.', 'No negotiation in progress right now (approved ones become agreements and count as promises). Propose one on the bill, in the center below.', 'Ninguna negociación en curso ahora (las aprobadas se vuelven acuerdo y cuentan como promesas). Propóngala en la cuenta, en la central de abajo.')}</p>}
           <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Recuperado = restante × % + promessas que forem cumpridas + negociações. O mesmo dinheiro nunca conta duas vezes.', 'Recovered = remainder × % + promises kept + negotiations. The same money is never counted twice.', 'Recuperado = resto × % + promesas cumplidas + negociaciones. El mismo dinero nunca cuenta dos veces.')}</p>
         </div>
       </div>
