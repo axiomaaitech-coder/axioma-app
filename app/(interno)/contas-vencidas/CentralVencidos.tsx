@@ -124,7 +124,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
           {!pagar && <button type="button" onClick={() => setVerLixeira((v) => !v)} aria-pressed={verLixeira} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Trash2 size={13} />{L('Lixeira', 'Trash', 'Papelera')}</button>}
         </div>
       </div>
-      {selecionados.size > 0 && <p className="text-[11px] mb-2" style={{ color: P.CINZA }}>{L(`${selecionados.size} marcada(s): PDF e Excel levam só elas.`, `${selecionados.size} selected: PDF and Excel export only those.`, `${selecionados.size} marcada(s): PDF y Excel llevan solo esas.`)} <button type="button" className="underline" onClick={() => setSelecionados(new Set())}>{L('Desmarcar', 'Clear', 'Desmarcar')}</button></p>}
+      {selecionados.size > 0 && <p className="text-xs mb-2" style={{ color: P.CINZA }}>{L(`${selecionados.size} marcada(s): PDF e Excel levam só elas.`, `${selecionados.size} selected: PDF and Excel export only those.`, `${selecionados.size} marcada(s): PDF y Excel llevan solo esas.`)} <button type="button" className="underline" onClick={() => setSelecionados(new Set())}>{L('Desmarcar', 'Clear', 'Desmarcar')}</button></p>}
       {aviso && <p role="status" className="text-xs font-semibold mb-2" style={{ color: P.TEXTO }}>{aviso}</p>}
       {pagar && selecionados.size > 0 && <SimulacaoPagamento itens={ordenados.filter((i) => selecionados.has(i.titulo.id))} tesouraria={tesouraria} lang={lang} P={P} fmt={fmt} />}
       {dossie && <Dossie i={dossie} dominio={dominio} itens={itens} historico={titulos} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} onFechar={() => setDossie(null)} onAbrirConta={(id) => { setAberto(id); setDossie(null) }} />}
@@ -172,11 +172,11 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                       <p className="text-sm font-semibold truncate" style={{ color: P.TEXTO }}>{i.titulo.contraparteNome}</p>
                       <p className="text-sm font-bold shrink-0" style={{ color: corSaldo }}>{fmt(i.saldo)}</p>
                     </div>
-                    <p className="text-[11px] truncate" style={{ color: P.CINZA }}>{i.titulo.descricao || '—'}</p>
-                    <p className="text-[11px] mt-1" style={{ color: P.CINZA }}>{dataTxt(i.titulo.vencimento)} · <b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{L(`${i.encargos.dias} dias`, `${i.encargos.dias} days`, `${i.encargos.dias} días`)}</b> · {pagar ? L('importância', 'importance', 'importancia') : L('risco', 'risk', 'riesgo')} {colRisco(i)}</p>
-                    <p className="text-[11px] mt-0.5 font-semibold" style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</p>
+                    <p className="text-xs truncate" style={{ color: P.CINZA }}>{i.titulo.descricao || '—'}</p>
+                    <p className="text-xs mt-1" style={{ color: P.CINZA }}>{dataTxt(i.titulo.vencimento)} · <b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{L(`${i.encargos.dias} dias`, `${i.encargos.dias} days`, `${i.encargos.dias} días`)}</b> · {pagar ? L('importância', 'importance', 'importancia') : L('risco', 'risk', 'riesgo')} {colRisco(i)}</p>
+                    <p className="text-xs mt-0.5 font-semibold" style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</p>
                   </button>
-                  <button type="button" onClick={() => setDossie(i)} className="px-2 py-1 rounded-lg text-[11px] font-bold text-white shrink-0" style={{ background: BOTAO_SECUNDARIO }}>{L('Dossiê', 'Dossier', 'Expediente')}</button>
+                  <button type="button" onClick={() => setDossie(i)} className="px-2 py-1 rounded-lg text-xs font-bold text-white shrink-0" style={{ background: BOTAO_SECUNDARIO }}>{L('Dossiê', 'Dossier', 'Expediente')}</button>
                 </div>
                 {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />}</div>}
               </div>
@@ -291,7 +291,7 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
         {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
           .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
         {i.disputa.aberta && <p style={{ color: P.CINZA }}>{L(`Contestado: ${fmt(i.disputa.contestado)}`, `Disputed: ${fmt(i.disputa.contestado)}`, `Disputado: ${fmt(i.disputa.contestado)}`)}</p>}
-        <p className="text-[11px] pt-1" style={{ color: P.CINZA }}>{baseLegal} {L('Juros: os do contrato; sem contrato, Selic − IPCA (Lei 14.905/2024). Cálculo para conferência — o Axioma não cobra nada sozinho.', 'Interest: the contract rate; without it, Selic − IPCA (Law 14.905/2024). For checking only — Axioma never charges anything on its own.', 'Intereses: los del contrato; sin contrato, Selic − IPCA (Ley 14.905/2024). Cálculo para verificación — Axioma no cobra nada solo.')}</p>
+        <p className="text-xs pt-1" style={{ color: P.CINZA }}>{baseLegal} {L('Juros: os do contrato; sem contrato, Selic − IPCA (Lei 14.905/2024). Cálculo para conferência — o Axioma não cobra nada sozinho.', 'Interest: the contract rate; without it, Selic − IPCA (Law 14.905/2024). For checking only — Axioma never charges anything on its own.', 'Intereses: los del contrato; sin contrato, Selic − IPCA (Ley 14.905/2024). Cálculo para verificación — Axioma no cobra nada solo.')}</p>
       </div>
       <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
@@ -481,7 +481,7 @@ function DnaCliente({ i, historico, itens, lang, P, fmt, dataTxt, temaClaro }: {
         <div className="lg:col-span-2 min-w-0">
           <p style={{ color: P.CINZA }}>{L('Dias de atraso em cada pagamento (mais antigo à esquerda)', 'Days late on each payment (oldest on the left)', 'Días de atraso en cada pago (más antiguo a la izquierda)')}</p>
           {opcao ? <ReactECharts option={opcao} style={{ height: 170 }} notMerge lazyUpdate /> : <p className="py-6 text-center" style={{ color: P.CINZA }}>{L('Este cliente ainda não tem pagamentos registrados.', 'This customer has no recorded payments yet.', 'Este cliente aún no tiene pagos registrados.')}</p>}
-          <div className="flex flex-wrap gap-x-3 text-[11px]" style={{ color: P.CINZA }}>
+          <div className="flex flex-wrap gap-x-3 text-xs" style={{ color: P.CINZA }}>
             {(['bom', 'atencao', 'critico'] as const).map((k) => <span key={k}><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: cs[k] }} />{k === 'bom' ? L('Em dia', 'On time', 'A tiempo') : k === 'atencao' ? L('Até 30 dias', 'Up to 30 days', 'Hasta 30 días') : L('Mais de 30 dias', 'Over 30 days', 'Más de 30 días')}</span>)}
           </div>
           <p className="mt-1"><b>{L('Tendência', 'Trend', 'Tendencia')}: <span style={{ color: corTextoSituacao(nivelTendencia(d.tendencia), temaClaro) }}>{nomeTendencia(lang, d.tendencia)}</span></b> <span style={{ color: P.CINZA }}>({d.tendencia === 'indefinida' ? L('fato', 'fact', 'hecho') : L('conclusão a partir dos números', 'conclusion drawn from the numbers', 'conclusión a partir de los números')})</span></p>
@@ -543,7 +543,7 @@ function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: Item
         <Titulo P={P} texto={L('Valores', 'Amounts', 'Valores')} href="/contas-pagar?filtro=vencido" ir={L('Contas a Pagar', 'Payables', 'Cuentas por Pagar')} />
         {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
           .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
-        <p className="text-[11px] pt-1" style={{ color: P.CINZA }}>{L('Estimativa pelo contrato; sem taxa no contrato, juros pela taxa legal (Selic − IPCA). Confira com o fornecedor.', 'Estimate by contract; without a contract rate, interest by the legal rate (Selic − IPCA). Check with the supplier.', 'Estimación por contrato; sin tasa en el contrato, intereses por la tasa legal (Selic − IPCA). Confirme con el proveedor.')}</p>
+        <p className="text-xs pt-1" style={{ color: P.CINZA }}>{L('Estimativa pelo contrato; sem taxa no contrato, juros pela taxa legal (Selic − IPCA). Confira com o fornecedor.', 'Estimate by contract; without a contract rate, interest by the legal rate (Selic − IPCA). Check with the supplier.', 'Estimación por contrato; sin tasa en el contrato, intereses por la tasa legal (Selic − IPCA). Confirme con el proveedor.')}</p>
       </div>
       <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
@@ -561,7 +561,7 @@ function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: Item
           <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={ed[k]} onChange={(e) => setEd({ ...ed, [k]: e.target.checked })} />{t}</label>
         ))}
         <button type="button" disabled={salvando} onClick={() => void salvar()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Salvar importância', 'Save importance', 'Guardar importancia')}</button>
-        <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Um fornecedor essencial pode vir antes de uma conta maior ou mais antiga.', 'An essential supplier may come before a larger or older bill.', 'Un proveedor esencial puede ir antes que una cuenta mayor o más antigua.')}</p>
+        <p className="text-xs" style={{ color: P.CINZA }}>{L('Um fornecedor essencial pode vir antes de uma conta maior ou mais antiga.', 'An essential supplier may come before a larger or older bill.', 'Un proveedor esencial puede ir antes que una cuenta mayor o más antigua.')}</p>
       </div>
       <DisputaBloco i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={aoMudar} avisar={avisar} />
     </div>
@@ -672,7 +672,7 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
           {contatos === null ? <p style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : contatos.length === 0
             ? <p style={{ color: P.CINZA }}>{L('Nenhum contato registrado com este cliente.', 'No contacts recorded with this customer.', 'Ningún contacto registrado con este cliente.')}</p>
             : <ul className="space-y-1 max-h-40 overflow-y-auto">{contatos.map((c) => <li key={c.id}><span style={{ color: P.CINZA }}>{dataTxt(c.data)} · {nomeCanal(lang, c.canal)}</span> — {c.descricao}</li>)}</ul>}
-          <p className="text-[11px] mt-1" style={{ color: P.CINZA }}>{L('Para registrar contato ou promessa, abra a conta acima.', 'To record a contact or promise, open the bill above.', 'Para registrar contacto o promesa, abra la cuenta arriba.')}</p>
+          <p className="text-xs mt-1" style={{ color: P.CINZA }}>{L('Para registrar contato ou promessa, abra a conta acima.', 'To record a contact or promise, open the bill above.', 'Para registrar contacto o promesa, abra la cuenta arriba.')}</p>
         </div>
       )}
     </div>
@@ -684,7 +684,7 @@ function Titulo({ texto, href, ir, P }: { texto: ReactNode; href?: string; ir?: 
   return (
     <p className="font-bold mb-1 flex items-center justify-between gap-2">
       <span>{texto}</span>
-      {href && <Link href={href} className="text-[11px] font-semibold underline shrink-0" style={{ color: P.VERDE }}>{ir} ›</Link>}
+      {href && <Link href={href} className="text-xs font-semibold underline shrink-0" style={{ color: P.VERDE }}>{ir} ›</Link>}
     </p>
   )
 }
@@ -737,12 +737,12 @@ function NegociacaoCliente({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisa
   return (
     <div className="lg:col-span-3 rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
       <Titulo P={P} texto={L('Negociação', 'Negotiation', 'Negociación')} href="/inadimplencia" ir={L('Central de Negociação (Inadimplência)', 'Negotiation center (Delinquency)', 'Central de Negociación (Morosidad)')} />
-      <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`Saldo ${fmt(i.saldo)} + juros e multa ${fmt(encargos)}. Chance base de pagar: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sem histórico: 50%' : `nota de risco ${i.risco.score}`}). Custo do dinheiro: ${CUSTO_CAPITAL_MES}% ao mês (premissa). Simulação — nada é alterado até a aprovação.`, `Balance ${fmt(i.saldo)} + interest and fines ${fmt(encargos)}. Base chance of payment: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'no history: 50%' : `risk score ${i.risco.score}`}). Cost of money: ${CUSTO_CAPITAL_MES}% a month (premise). Simulation — nothing changes until approval.`, `Saldo ${fmt(i.saldo)} + intereses y multas ${fmt(encargos)}. Probabilidad base de pago: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sin historial: 50%' : `nota de riesgo ${i.risco.score}`}). Costo del dinero: ${CUSTO_CAPITAL_MES}% al mes (premisa). Simulación — nada cambia hasta la aprobación.`)}</p>
+      <p className="text-xs" style={{ color: P.CINZA }}>{L(`Saldo ${fmt(i.saldo)} + juros e multa ${fmt(encargos)}. Chance base de pagar: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sem histórico: 50%' : `nota de risco ${i.risco.score}`}). Custo do dinheiro: ${CUSTO_CAPITAL_MES}% ao mês (premissa). Simulação — nada é alterado até a aprovação.`, `Balance ${fmt(i.saldo)} + interest and fines ${fmt(encargos)}. Base chance of payment: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'no history: 50%' : `risk score ${i.risco.score}`}). Cost of money: ${CUSTO_CAPITAL_MES}% a month (premise). Simulation — nothing changes until approval.`, `Saldo ${fmt(i.saldo)} + intereses y multas ${fmt(encargos)}. Probabilidad base de pago: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sin historial: 50%' : `nota de riesgo ${i.risco.score}`}). Costo del dinero: ${CUSTO_CAPITAL_MES}% al mes (premisa). Simulación — nada cambia hasta la aprobación.`)}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
         {alts.map((a, k) => (
           <div key={k} className="rounded-lg p-2 space-y-0.5 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${rec?.indice === k ? P.VERDE : P.BORDA}` }}>
             <p className="font-bold">{opcoes[k].nome}</p>
-            {rec?.indice === k && <p className="text-[11px] font-bold" style={{ color: P.VERDE }}>{rec.motivo === 'sem_concessao' ? L('Recomendada: mesma recuperação sem conceder nada', 'Recommended: same recovery with no concession', 'Recomendada: misma recuperación sin conceder nada') : L('Recomendada: maior recuperação esperada', 'Recommended: highest expected recovery', 'Recomendada: mayor recuperación esperada')}</p>}
+            {rec?.indice === k && <p className="text-xs font-bold" style={{ color: P.VERDE }}>{rec.motivo === 'sem_concessao' ? L('Recomendada: mesma recuperação sem conceder nada', 'Recommended: same recovery with no concession', 'Recomendada: misma recuperación sin conceder nada') : L('Recomendada: maior recuperação esperada', 'Recommended: highest expected recovery', 'Recomendada: mayor recuperación esperada')}</p>}
             {k === opcoes.length - 1 && (
               <div className="grid grid-cols-2 gap-1 py-1">
                 <select aria-label={L('Tipo', 'Type', 'Tipo')} value={livre.tipo} onChange={(e) => setLivre({ ...livre, tipo: e.target.value as OpcaoNegociacao['tipo'] })} className="col-span-2 rounded px-1 py-0.5" style={campo}>
@@ -753,13 +753,13 @@ function NegociacaoCliente({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisa
                   <option value="renegociacao">{L('Renegociação (parcelas)', 'Rescheduling (installments)', 'Renegociación (cuotas)')}</option>
                 </select>
                 {(livre.tipo === 'entrada_parcelas' || livre.tipo === 'renegociacao') && <>
-                  <label className="text-[11px]">{L('Entrada %', 'Down %', 'Entrada %')}<input type="number" min={0} max={100} value={livre.entradaPct ?? 0} onChange={(e) => setLivre({ ...livre, entradaPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
-                  <label className="text-[11px]">{L('Parcelas', 'Installments', 'Cuotas')}<input type="number" min={1} max={36} value={livre.parcelas ?? 1} onChange={(e) => setLivre({ ...livre, parcelas: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
+                  <label className="text-xs">{L('Entrada %', 'Down %', 'Entrada %')}<input type="number" min={0} max={100} value={livre.entradaPct ?? 0} onChange={(e) => setLivre({ ...livre, entradaPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
+                  <label className="text-xs">{L('Parcelas', 'Installments', 'Cuotas')}<input type="number" min={1} max={36} value={livre.parcelas ?? 1} onChange={(e) => setLivre({ ...livre, parcelas: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
                 </>}
-                {livre.tipo !== 'parcial' && <label className="text-[11px]">{L('Desconto %', 'Discount %', 'Descuento %')}<input type="number" min={0} max={100} value={livre.descontoPct ?? 0} onChange={(e) => setLivre({ ...livre, descontoPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
-                {livre.tipo === 'novo_vencimento' && <label className="text-[11px]">{L('Prazo (dias)', 'Term (days)', 'Plazo (días)')}<input type="number" min={1} value={livre.prazoDias ?? 30} onChange={(e) => setLivre({ ...livre, prazoDias: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
-                {livre.tipo === 'parcial' && <label className="text-[11px] col-span-2">{L('Valor pago agora', 'Amount paid now', 'Valor pagado ahora')}<input type="number" min={0} value={livre.valorParcial ?? 0} onChange={(e) => setLivre({ ...livre, valorParcial: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
-                <label className="text-[11px] col-span-2 flex items-center gap-1"><input type="checkbox" checked={!!livre.dispensarEncargos} onChange={(e) => setLivre({ ...livre, dispensarEncargos: e.target.checked })} />{L('Dispensar juros e multa', 'Waive interest and fines', 'Dispensar intereses y multas')}</label>
+                {livre.tipo !== 'parcial' && <label className="text-xs">{L('Desconto %', 'Discount %', 'Descuento %')}<input type="number" min={0} max={100} value={livre.descontoPct ?? 0} onChange={(e) => setLivre({ ...livre, descontoPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                {livre.tipo === 'novo_vencimento' && <label className="text-xs">{L('Prazo (dias)', 'Term (days)', 'Plazo (días)')}<input type="number" min={1} value={livre.prazoDias ?? 30} onChange={(e) => setLivre({ ...livre, prazoDias: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                {livre.tipo === 'parcial' && <label className="text-xs col-span-2">{L('Valor pago agora', 'Amount paid now', 'Valor pagado ahora')}<input type="number" min={0} value={livre.valorParcial ?? 0} onChange={(e) => setLivre({ ...livre, valorParcial: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                <label className="text-xs col-span-2 flex items-center gap-1"><input type="checkbox" checked={!!livre.dispensarEncargos} onChange={(e) => setLivre({ ...livre, dispensarEncargos: e.target.checked })} />{L('Dispensar juros e multa', 'Waive interest and fines', 'Dispensar intereses y multas')}</label>
               </div>
             )}
             {linhaV(L('Devido (com encargos)', 'Owed (with charges)', 'Adeudado (con cargos)'), fmt(a.devido))}
@@ -770,7 +770,7 @@ function NegociacaoCliente({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisa
             {linhaV(L('Caixa em 30 / 60 / 90 dias', 'Cash in 30 / 60 / 90 days', 'Caja en 30 / 60 / 90 días'), `${fmt(a.impactoLiquidez.d30)} / ${fmt(a.impactoLiquidez.d60)} / ${fmt(a.impactoLiquidez.d90)}`)}
             {linhaV(L('Custo do tempo', 'Cost of time', 'Costo del tiempo'), fmt(a.custoOportunidade))}
             {linhaV(L('Recuperação esperada', 'Expected recovery', 'Recuperación esperada'), fmt(a.valorLiquidoRecuperavel), true)}
-            <p className="text-[11px]" style={{ color: a.precisaAprovacao ? P.ALERTA : P.CINZA }}>{a.precisaAprovacao ? L('Exige aprovação (dono, sócio ou admin)', 'Needs approval (owner, partner or admin)', 'Requiere aprobación (dueño, socio o admin)') : L('Sem concessão', 'No concession', 'Sin concesión')}</p>
+            <p className="text-xs" style={{ color: a.precisaAprovacao ? P.ALERTA : P.CINZA }}>{a.precisaAprovacao ? L('Exige aprovação (dono, sócio ou admin)', 'Needs approval (owner, partner or admin)', 'Requiere aprobación (dueño, socio o admin)') : L('Sem concessão', 'No concession', 'Sin concesión')}</p>
             <button type="button" disabled={ocupado} onClick={() => void propor(k)} className="w-full mt-1 px-2 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Propor esta', 'Propose this', 'Proponer esta')}</button>
           </div>
         ))}
@@ -873,7 +873,7 @@ export function CentralDisputas({ itens, lang, P, fmt, dataTxt }: { itens: ItemV
   return (
     <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
       <p className="text-sm font-bold mb-1">{L('Central de divergências', 'Dispute center', 'Central de divergencias')} ({abertas.length}) · {fmt(total)} {L('contestado', 'disputed', 'disputado')}</p>
-      <p className="text-[11px] mb-2" style={{ color: P.CINZA }}>{L('O valor contestado fica fora da cobrança e da previsão até a solução; o restante segue normal. Paradas = prazo vencido ou 15 dias sem atualização.', 'The disputed amount stays out of collection and forecast until solved; the rest goes on normally. Stalled = deadline passed or 15 days without update.', 'El valor disputado queda fuera de la cobranza y la previsión hasta la solución; el resto sigue normal. Detenidas = plazo vencido o 15 días sin actualización.')}</p>
+      <p className="text-xs mb-2" style={{ color: P.CINZA }}>{L('O valor contestado fica fora da cobrança e da previsão até a solução; o restante segue normal. Paradas = prazo vencido ou 15 dias sem atualização.', 'The disputed amount stays out of collection and forecast until solved; the rest goes on normally. Stalled = deadline passed or 15 days without update.', 'El valor disputado queda fuera de la cobranza y la previsión hasta la solución; el resto sigue normal. Detenidas = plazo vencido o 15 días sin actualización.')}</p>
       <div className="space-y-1.5">
         {abertas.map(({ i, p }) => (
           <div key={i.titulo.id} className="rounded-xl p-2.5 text-xs flex flex-wrap items-center justify-between gap-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${p.parada ? P.VERMELHO : P.BORDA}` }}>

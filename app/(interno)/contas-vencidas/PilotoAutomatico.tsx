@@ -34,7 +34,7 @@ export default function PilotoAutomatico({ a, empresaId, lang, P, fmt }: { a: An
       <div className="flex flex-wrap items-start gap-2">
         <div className="flex-1 min-w-[14rem]">
           <p className="text-sm font-bold">{L('Piloto automático — ações de hoje', 'Autopilot — today’s actions', 'Piloto automático — acciones de hoy')} ({a.piloto.length})</p>
-          <p className="text-[11px]" style={{ color: P.CINZA }}>{L('O Axioma separa o que precisa ser feito hoje. Nada é enviado sozinho: “Abrir” leva até a conta com a mensagem sugerida já escolhida, e a ação sai daqui quando o contato é registrado.', 'Axioma picks what needs doing today. Nothing is sent on its own: “Open” takes you to the bill with the suggested message already chosen, and the action leaves this list once the contact is recorded.', 'Axioma separa lo que hay que hacer hoy. Nada se envía solo: “Abrir” lleva a la cuenta con el mensaje sugerido ya elegido, y la acción sale de aquí cuando se registra el contacto.')}</p>
+          <p className="text-xs" style={{ color: P.CINZA }}>{L('O Axioma separa o que precisa ser feito hoje. Nada é enviado sozinho: “Abrir” leva até a conta com a mensagem sugerida já escolhida, e a ação sai daqui quando o contato é registrado.', 'Axioma picks what needs doing today. Nothing is sent on its own: “Open” takes you to the bill with the suggested message already chosen, and the action leaves this list once the contact is recorded.', 'Axioma separa lo que hay que hacer hoy. Nada se envía solo: “Abrir” lleva a la cuenta con el mensaje sugerido ya elegido, y la acción sale de aquí cuando se registra el contacto.')}</p>
         </div>
         <button type="button" onClick={() => setRegras(!regras)} className="px-2.5 py-1 rounded-lg text-xs font-bold text-white axi-card-premium3d axi-card-faixa" style={{ background: BOTAO_SECUNDARIO }}>{regras ? L('Fechar regras', 'Close rules', 'Cerrar reglas') : L('Regras do piloto', 'Autopilot rules', 'Reglas del piloto')} ({REGRAS_PILOTO.length - desligadas.length}/{REGRAS_PILOTO.length})</button>
       </div>
@@ -60,7 +60,7 @@ export default function PilotoAutomatico({ a, empresaId, lang, P, fmt }: { a: An
         <ul className="space-y-1.5 text-xs">
           {a.piloto.map((x) => (
             <li key={x.chave} className="rounded-xl p-2.5 flex flex-wrap items-center gap-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${x.regra === 'fornecedor_essencial' ? P.VERMELHO : P.BORDA}` }}>
-              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold text-white shrink-0" style={{ background: BOTAO_SECUNDARIO }}>{nomeRegraPiloto(lang, x.regra)}</span>
+              <span className="inline-block px-2 py-0.5 rounded-md text-xs font-bold text-white shrink-0" style={{ background: BOTAO_SECUNDARIO }}>{nomeRegraPiloto(lang, x.regra)}</span>
               <span className="flex-1 min-w-[12rem]"><b>{x.nome || '—'}</b> · {fmt(x.saldo)} · {L(`${x.dias} dias de atraso`, `${x.dias} days overdue`, `${x.dias} días de atraso`)} · {x.dominio === 'pagar' ? L('a pagar', 'payable', 'por pagar') : L('a receber', 'receivable', 'por cobrar')}<br /><span style={{ color: P.CINZA }}>{facaRegraPiloto(lang, x.regra)}</span></span>
               <button type="button" onClick={() => abrir(x.tituloId, x.dominio)} className="px-2.5 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Abrir', 'Open', 'Abrir')} ›</button>
             </li>

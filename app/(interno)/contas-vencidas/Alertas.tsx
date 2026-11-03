@@ -37,7 +37,7 @@ export default function CentralAlertas({ alertas, empresaId, lang, P, temaClaro,
   const abrir = (a: AlertaVencido) => window.dispatchEvent(new CustomEvent('axioma:abrir-conta', { detail: { id: a.tituloId, dominio: a.dominio } }))
   const pill = (ativo: boolean) => ({ background: ativo ? BOTAO_ACAO : BOTAO_SECUNDARIO, color: '#ffffff' })
   const selo = (n: NivelAlerta) => (
-    <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold shrink-0" style={n === 'alto' ? { border: `1.5px solid ${corNivel[n]}`, color: corNivel[n] } : { background: corNivel[n], color: n === 'atencao' && !temaClaro ? '#101b3d' : '#ffffff' }}>{nomeNivel(lang, n)}</span>
+    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-bold shrink-0" style={n === 'alto' ? { border: `1.5px solid ${corNivel[n]}`, color: corNivel[n] } : { background: corNivel[n], color: n === 'atencao' && !temaClaro ? '#101b3d' : '#ffffff' }}>{nomeNivel(lang, n)}</span>
   )
 
   async function salvar(a: AlertaVencido) {
@@ -52,7 +52,7 @@ export default function CentralAlertas({ alertas, empresaId, lang, P, temaClaro,
     <div className="rounded-2xl p-4 space-y-3 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
       <div>
         <p className="text-sm font-bold">{L('Central de alertas', 'Alert center', 'Central de alertas')} ({abertos.length})</p>
-        <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`Mais grave primeiro. Alerta de conta marcado como tratado sai daqui por ${DIAS_TRATADO} dias e volta se a situação continuar; alerta geral some sozinho quando a situação muda.`, `Most serious first. A bill alert marked as handled leaves for ${DIAS_TRATADO} days and comes back if the situation continues; general alerts disappear on their own when things change.`, `Lo más grave primero. Una alerta de cuenta marcada como tratada sale por ${DIAS_TRATADO} días y vuelve si la situación continúa; la alerta general desaparece sola cuando la situación cambia.`)}</p>
+        <p className="text-xs" style={{ color: P.CINZA }}>{L(`Mais grave primeiro. Alerta de conta marcado como tratado sai daqui por ${DIAS_TRATADO} dias e volta se a situação continuar; alerta geral some sozinho quando a situação muda.`, `Most serious first. A bill alert marked as handled leaves for ${DIAS_TRATADO} days and comes back if the situation continues; general alerts disappear on their own when things change.`, `Lo más grave primero. Una alerta de cuenta marcada como tratada sale por ${DIAS_TRATADO} días y vuelve si la situación continúa; la alerta general desaparece sola cuando la situación cambia.`)}</p>
       </div>
       <div className="flex flex-wrap gap-1 text-xs">
         <button type="button" onClick={() => setNivel('todos')} className="px-2.5 py-1 rounded-lg font-bold axi-card-premium3d axi-card-faixa" style={pill(nivel === 'todos')}>{L('Todos', 'All', 'Todos')} ({abertos.length})</button>
@@ -80,7 +80,7 @@ export default function CentralAlertas({ alertas, empresaId, lang, P, temaClaro,
                       <button type="button" onClick={() => abrir(a)} className="px-2.5 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Abrir', 'Open', 'Abrir')} ›</button>
                       <button type="button" onClick={() => { setTratando(tratando === a.chave ? null : a.chave); setNota(''); setErro('') }} className="px-2.5 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Marcar como tratado', 'Mark as handled', 'Marcar como tratada')}</button>
                     </span>
-                  ) : <span className="text-[11px]" style={{ color: P.CINZA }}>{L('Some sozinho quando a situação mudar', 'Disappears when things change', 'Desaparece sola cuando la situación cambie')}</span>}
+                  ) : <span className="text-xs" style={{ color: P.CINZA }}>{L('Some sozinho quando a situação mudar', 'Disappears when things change', 'Desaparece sola cuando la situación cambie')}</span>}
                 </div>
                 {tratando === a.chave && (
                   <div className="mt-2 space-y-1.5">

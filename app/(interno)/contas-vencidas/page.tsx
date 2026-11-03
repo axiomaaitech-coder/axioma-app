@@ -115,7 +115,7 @@ export default function ContasVencidasPage() {
     const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
     const curto = (v: number) => v.toLocaleString(local, { notation: 'compact', maximumFractionDigits: 1 })
     const nomeFaixa = (v: string, i: number) => (i === 0 ? v : `${v} ${dias}`)
-    const eixoCategoria = { interval: 0, fontSize: estreito ? 10 : 11, formatter: nomeFaixa, ...(estreito ? {} : { rotate: 30 }) }
+    const eixoCategoria = { interval: 0, fontSize: 12, formatter: nomeFaixa, ...(estreito ? {} : { rotate: 30 }) }
     const eixoValor = { formatter: (v: number) => curto(v) }
     return {
       ...o,
@@ -125,7 +125,7 @@ export default function ContasVencidasPage() {
         : { xAxis: { ...o.xAxis, axisLabel: { ...o.xAxis.axisLabel, ...eixoCategoria } }, yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, ...eixoValor } } }),
       tooltip: { ...o.tooltip, confine: true, formatter: (p: { dataIndex: number; name: string; value: number }) =>
         `<b>${nomeFaixa(p.name, p.dataIndex)}</b><br/><b style="font-size:15px">${fmt(p.value)}</b><br/>${qtdAging[p.dataIndex]} ${contas} · ${baseAging ? ((p.value / baseAging) * 100).toLocaleString(local, { maximumFractionDigits: 1 }) : 0}% ${doTotal}` },
-      series: [{ ...o.series[0], barWidth: estreito ? '64%' : '62%', label: { ...o.series[0].label, fontSize: 10, formatter: (p: { value: number }) => (p.value > 0 ? curto(p.value) : '') } }],
+      series: [{ ...o.series[0], barWidth: estreito ? '64%' : '62%', label: { ...o.series[0].label, fontSize: 12, formatter: (p: { value: number }) => (p.value > 0 ? curto(p.value) : '') } }],
     }
   })() : null
 
@@ -192,7 +192,7 @@ export default function ContasVencidasPage() {
                 <div key={k.t} className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
                   <p className="text-xs" style={{ color: P.CINZA }}>{k.t}</p>
                   <p className="text-xl font-bold mt-1" style={{ color: k.cor }}>{fmt(k.v)}</p>
-                  {k.n !== null && <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>{k.n} {L(k.n === 1 ? 'conta' : 'contas', k.n === 1 ? 'bill' : 'bills', k.n === 1 ? 'cuenta' : 'cuentas')}</p>}
+                  {k.n !== null && <p className="text-xs mt-0.5" style={{ color: P.CINZA }}>{k.n} {L(k.n === 1 ? 'conta' : 'contas', k.n === 1 ? 'bill' : 'bills', k.n === 1 ? 'cuenta' : 'cuentas')}</p>}
                 </div>
               ))}
             </div>
@@ -228,7 +228,7 @@ export default function ContasVencidasPage() {
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
                   <div>
                     <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>
+                    <p className="text-xs mt-0.5" style={{ color: P.CINZA }}>
                       {L('Até 30 dias (com a vencer): ', 'Up to 30 days (incl. not due): ', 'Hasta 30 días (con por vencer): ')}
                       <b style={{ color: ate30 == null ? P.CINZA : ate30 >= 75 ? P.VERDE : P.TEXTO }}>{pct(ate30)}</b>
                       {L(' · referência de mercado: 75–80%', ' · market reference: 75–80%', ' · referencia de mercado: 75–80%')}
@@ -253,7 +253,7 @@ export default function ContasVencidasPage() {
                   <caption>{L('Atraso por faixa', 'Overdue by range', 'Atraso por rango')}</caption>
                   <tbody>{rotulosAging.map((rot, i) => <tr key={rot}><th>{rot}</th><td>{fmt(valoresAging[i])}</td><td>{qtdAging[i]}</td></tr>)}</tbody>
                 </table>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] mt-1" style={{ color: P.CINZA }}>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-1" style={{ color: P.CINZA }}>
                   <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.aVencer }} />{L('A vencer', 'Not due', 'Por vencer')}</span>
                   <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate30 }} />{L('Até 30 dias', 'Up to 30 days', 'Hasta 30 días')}</span>
                   <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate90 }} />{L('31 a 90 dias', '31 to 90 days', '31 a 90 días')}</span>
@@ -269,19 +269,19 @@ export default function ContasVencidasPage() {
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
                   {r.previsao.horizontes.map((h) => (
                     <div key={h.horizonteDias} className="rounded-lg p-2 text-center min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
-                      <p className="text-[11px]" style={{ color: P.CINZA }}>{h.horizonteDias} {L('dias', 'days', 'días')}</p>
+                      <p className="text-xs" style={{ color: P.CINZA }}>{h.horizonteDias} {L('dias', 'days', 'días')}</p>
                       <p className="text-xs font-bold truncate" style={{ color: P.VERDE }}>{fmt(h.valor)}</p>
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] mt-2" style={{ color: P.CINZA }}>
+                <p className="text-xs mt-2" style={{ color: P.CINZA }}>
                   {r.previsao.confianca === 'sem_dados'
                     ? L('Ainda não há clientes com histórico suficiente para prever.', 'There are no customers with enough history to forecast yet.', 'Aún no hay clientes con historial suficiente para prever.')
                     : L(`Confiança ${r.previsao.confianca === 'media' ? 'média' : 'baixa'}. Estimativa, não é caixa disponível.`, `${r.previsao.confianca === 'media' ? 'Medium' : 'Low'} confidence. Estimate, not available cash.`, `Confianza ${r.previsao.confianca === 'media' ? 'media' : 'baja'}. Estimación, no es caja disponible.`)}
                 </p>
                 <p className="text-sm font-bold mt-4 mb-2" style={{ color: P.TEXTO }}>{L('Evolução do vencido a receber', 'Overdue receivable over time', 'Evolución de lo vencido por cobrar')}</p>
                 {a.evolucao.length < 2 ? (
-                  <p className="text-[11px]" style={{ color: P.CINZA }}>{L('A evolução começa a ser registrada hoje: a cada dia em que esta tela é aberta, o Axioma guarda o total vencido daquele dia.', 'The history starts today: each day this screen is opened, Axioma saves that day’s overdue total.', 'La evolución empieza hoy: cada día que se abre esta pantalla, Axioma guarda el total vencido de ese día.')}</p>
+                  <p className="text-xs" style={{ color: P.CINZA }}>{L('A evolução começa a ser registrada hoje: a cada dia em que esta tela é aberta, o Axioma guarda o total vencido daquele dia.', 'The history starts today: each day this screen is opened, Axioma saves that day’s overdue total.', 'La evolución empieza hoy: cada día que se abre esta pantalla, Axioma guarda el total vencido de ese día.')}</p>
                 ) : (() => {
                   const pts = a.evolucao, max = Math.max(1, ...pts.map((p) => p.saldo))
                   const xy = pts.map((p, i) => `${(i / (pts.length - 1)) * 100},${40 - (p.saldo / max) * 36}`).join(' ')
@@ -290,7 +290,7 @@ export default function ContasVencidasPage() {
                       <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="w-full h-16" role="img" aria-label={L('Evolução do vencido a receber', 'Overdue receivable over time', 'Evolución de lo vencido por cobrar')}>
                         <polyline points={xy} fill="none" stroke={P.BARRA_REC} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                       </svg>
-                      <p className="text-[11px] flex justify-between" style={{ color: P.CINZA }}><span>{dataTxt(pts[0].data)}: {fmt(pts[0].saldo)}</span><span>{dataTxt(pts[pts.length - 1].data)}: {fmt(pts[pts.length - 1].saldo)}</span></p>
+                      <p className="text-xs flex justify-between" style={{ color: P.CINZA }}><span>{dataTxt(pts[0].data)}: {fmt(pts[0].saldo)}</span><span>{dataTxt(pts[pts.length - 1].data)}: {fmt(pts[pts.length - 1].saldo)}</span></p>
                     </div>
                   )
                 })()}
@@ -328,8 +328,8 @@ export default function ContasVencidasPage() {
                 <div className="rounded-2xl p-4 flex flex-wrap items-center gap-3 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
                   <div className="flex-1 min-w-[14rem]">
                     <p className="text-sm font-bold">{titulo}</p>
-                    <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Tudo desta tela num arquivo, com os filtros de agora: resumo, atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas. No Excel, cada parte vem numa aba.', 'Everything on this screen in one file, with the current filters: summary, overdue by range, today’s actions, alerts and overdue receivables and payables. In Excel, each part comes in its own tab.', 'Todo lo de esta pantalla en un archivo, con los filtros actuales: resumen, atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas. En Excel, cada parte viene en una pestaña.')}</p>
-                    {avisoRel && <p className="text-[11px] mt-1" style={{ color: P.VERMELHO }}>{avisoRel}</p>}
+                    <p className="text-xs" style={{ color: P.CINZA }}>{L('Tudo desta tela num arquivo, com os filtros de agora: resumo, atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas. No Excel, cada parte vem numa aba.', 'Everything on this screen in one file, with the current filters: summary, overdue by range, today’s actions, alerts and overdue receivables and payables. In Excel, each part comes in its own tab.', 'Todo lo de esta pantalla en un archivo, con los filtros actuales: resumen, atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas. En Excel, cada parte viene en una pestaña.')}</p>
+                    {avisoRel && <p className="text-xs mt-1" style={{ color: P.VERMELHO }}>{avisoRel}</p>}
                   </div>
                   <button type="button" onClick={pdf} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_ACAO }}><FileDown size={13} />{L('Relatório PDF', 'PDF report', 'Informe PDF')}</button>
                   <button type="button" onClick={excel} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Sheet size={13} />{L('Relatório Excel', 'Excel report', 'Informe Excel')}</button>
@@ -373,10 +373,10 @@ function Indicador({ titulo, valor, cor, sub, origem, P, aninhada, deOnde }: { t
       <summary className="cursor-pointer list-none">
         <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
         <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
-        {sub && <p className="text-[11px]" style={{ color: P.CINZA }}>{sub}</p>}
-        <p className="text-[11px] mt-1 underline" style={{ color: P.CINZA }}>{deOnde}</p>
+        {sub && <p className="text-xs" style={{ color: P.CINZA }}>{sub}</p>}
+        <p className="text-xs mt-1 underline" style={{ color: P.CINZA }}>{deOnde}</p>
       </summary>
-      <p className="text-[11px] mt-2 leading-snug" style={{ color: P.TEXTO }}>{origem}</p>
+      <p className="text-xs mt-2 leading-snug" style={{ color: P.TEXTO }}>{origem}</p>
     </details>
   )
 }

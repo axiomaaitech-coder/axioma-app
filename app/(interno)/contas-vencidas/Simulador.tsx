@@ -33,7 +33,7 @@ export default function Simulador({ a, prometido, emNegociacao, lang, P, fmt, te
     <div className="rounded-xl p-3 min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
       <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
       <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
-      {sub && <p className="text-[11px]" style={{ color: P.CINZA }}>{sub}</p>}
+      {sub && <p className="text-xs" style={{ color: P.CINZA }}>{sub}</p>}
     </div>
   )
   return (
@@ -41,9 +41,9 @@ export default function Simulador({ a, prometido, emNegociacao, lang, P, fmt, te
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-sm font-bold">{L('Simulador de recuperação', 'Recovery simulator', 'Simulador de recuperación')}</p>
-          <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`Sobre ${fmt(a.tesouraria.vencidoReceber)} vencidos a receber e o caixa da Tesouraria (${fmt(a.tesouraria.caixaDisponivel)}). Simulação — nada é gravado.`, `On ${fmt(a.tesouraria.vencidoReceber)} overdue receivables and Treasury cash (${fmt(a.tesouraria.caixaDisponivel)}). Simulation — nothing is saved.`, `Sobre ${fmt(a.tesouraria.vencidoReceber)} vencidos por cobrar y la caja de Tesorería (${fmt(a.tesouraria.caixaDisponivel)}). Simulación — nada se guarda.`)}</p>
+          <p className="text-xs" style={{ color: P.CINZA }}>{L(`Sobre ${fmt(a.tesouraria.vencidoReceber)} vencidos a receber e o caixa da Tesouraria (${fmt(a.tesouraria.caixaDisponivel)}). Simulação — nada é gravado.`, `On ${fmt(a.tesouraria.vencidoReceber)} overdue receivables and Treasury cash (${fmt(a.tesouraria.caixaDisponivel)}). Simulation — nothing is saved.`, `Sobre ${fmt(a.tesouraria.vencidoReceber)} vencidos por cobrar y la caja de Tesorería (${fmt(a.tesouraria.caixaDisponivel)}). Simulación — nada se guarda.`)}</p>
         </div>
-        <Link href="/tesouraria" className="text-[11px] font-semibold underline" style={{ color: P.VERDE }}>{L('Tesouraria', 'Treasury', 'Tesorería')} ›</Link>
+        <Link href="/tesouraria" className="text-xs font-semibold underline" style={{ color: P.VERDE }}>{L('Tesouraria', 'Treasury', 'Tesorería')} ›</Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1.5">
@@ -66,7 +66,7 @@ export default function Simulador({ a, prometido, emNegociacao, lang, P, fmt, te
           </div>
           {emNegociacao > 0 ? <p style={{ color: corTextoSituacao('bom', temaClaro) }}>{L(`Entram das negociações: ${fmt(s.composicao.dasNegociacoes)} de ${fmt(emNegociacao)}`, `From negotiations: ${fmt(s.composicao.dasNegociacoes)} of ${fmt(emNegociacao)}`, `Entran de las negociaciones: ${fmt(s.composicao.dasNegociacoes)} de ${fmt(emNegociacao)}`)}</p>
            : <p style={{ color: P.CINZA }}>{L('Nenhuma negociação em andamento agora (as aprovadas viram acordo e entram nas promessas). Proponha na conta, na central abaixo.', 'No negotiation in progress right now (approved ones become agreements and count as promises). Propose one on the bill, in the center below.', 'Ninguna negociación en curso ahora (las aprobadas se vuelven acuerdo y cuentan como promesas). Propóngala en la cuenta, en la central de abajo.')}</p>}
-          <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Recuperado = restante × % + promessas que forem cumpridas + negociações. O mesmo dinheiro nunca conta duas vezes.', 'Recovered = remainder × % + promises kept + negotiations. The same money is never counted twice.', 'Recuperado = resto × % + promesas cumplidas + negociaciones. El mismo dinero nunca cuenta dos veces.')}</p>
+          <p className="text-xs" style={{ color: P.CINZA }}>{L('Recuperado = restante × % + promessas que forem cumpridas + negociações. O mesmo dinheiro nunca conta duas vezes.', 'Recovered = remainder × % + promises kept + negotiations. The same money is never counted twice.', 'Recuperado = resto × % + promesas cumplidas + negociaciones. El mismo dinero nunca cuenta dos veces.')}</p>
         </div>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
