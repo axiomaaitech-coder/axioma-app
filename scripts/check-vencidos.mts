@@ -173,6 +173,12 @@ assert.throws(() => M.encargos(t('jj', '2026-10-01', 10), hoje, { jurisdicao: 'U
 assert.equal(M.sugerirCausa('cliente esqueceu de pagar').causa, 'esquecimento')
 assert.equal(M.sugerirCausa('empresa entrou em recuperação judicial').causa, 'insolvencia')
 
+// ── divergência parada ──
+assert.equal(M.disputaParada({ status: 'aberta', prazo: '2026-10-30', atualizadoEm: '2026-11-01T10:00:00Z' }, hoje).parada, true, 'prazo vencido')
+assert.equal(M.disputaParada({ status: 'aberta', prazo: '2026-12-30', atualizadoEm: '2026-10-10T10:00:00Z' }, hoje).parada, true, '15+ dias sem atualizar')
+assert.equal(M.disputaParada({ status: 'em_analise', prazo: '2026-12-30', atualizadoEm: '2026-10-25T10:00:00Z' }, hoje).parada, false, 'em dia')
+assert.equal(M.disputaParada({ status: 'resolvida_favor', prazo: '2026-01-01', atualizadoEm: '2026-01-01' }, hoje).parada, false, 'resolvida não fica parada')
+
 // ── alertas ──
 const al = M.alertasVencidos({ hoje, migracao: { entraramNoVencido: 0, mudaramParaFaixaPior: 0, qtdMudaramParaFaixaPior: 0, indiceDeterioracaoPct: 40 }, impacto: M.impactoFinanceiro(base, 0),
   itens: [{ titulo: venc, dna, promessa: 'descumprida' }, { titulo: { ...pagar }, dna: curto, promessa: null, caso: { tituloId: 'p1', criticidade: 'critica' } }, { titulo: t('dp', '2026-10-01', 10), dna: curto, promessa: null, caso: { tituloId: 'dp', disputaStatus: 'aberta' }, disputaPrazo: '2026-10-15' }] })

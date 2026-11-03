@@ -9,7 +9,7 @@ import { AlertTriangle, Search } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
-import CentralVencidos from './CentralVencidos'
+import CentralVencidos, { CentralDisputas } from './CentralVencidos'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
@@ -287,6 +287,7 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            <CentralDisputas itens={[...a.receber, ...a.pagar]} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />
             {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
             {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosPagar} temaClaro={temaClaro} />}
           </div>

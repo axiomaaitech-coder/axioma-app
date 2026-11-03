@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, FileDown, Pencil, RotateCcw, Sheet, Trash2, X } from 'lucide-react'
 import type { ItemVencido } from '../../../lib/vencidos/dados'
 import { registrarPromessa, salvarCaso, listarNegociacoes, proporNegociacao, decidirNegociacao, type PropostaNegociacao } from '../../../lib/vencidos/dados'
-import { simularPagamentos, linhaDoTempo, emAberto, saldoDoTitulo, previsaoRecuperacao, simularNegociacao, recomendarNegociacao, type BaseTesouraria, type Titulo, type OpcaoNegociacao } from '../../../lib/vencidos/motor'
+import { simularPagamentos, linhaDoTempo, emAberto, saldoDoTitulo, previsaoRecuperacao, simularNegociacao, recomendarNegociacao, disputaParada, type BaseTesouraria, type Titulo, type OpcaoNegociacao } from '../../../lib/vencidos/motor'
 import ReactECharts from 'echarts-for-react'
 import { optBarrasV, coresSituacao, corTextoSituacao } from '../../../lib/cfoCore'
 import { criarInteracao, listarInteracoes, listarInteracoesCliente, excluirInteracao, restaurarInteracao, atualizarInteracao, listarLixeiraCobranca, restaurarCompromisso, DIAS_LIXEIRA, type CobrancaInteracao, type CobrancaCompromisso } from '../../../lib/cobrancaHelpers'
@@ -56,6 +56,19 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
       : ordem === 'saldo' ? b.saldo - a.saldo
         : ordem === 'cliente' ? a.titulo.contraparteNome.localeCompare(b.titulo.contraparteNome)
           : (b.prioridade.score ?? 0) - (a.prioridade.score ?? 0)), [itens, ordem])
+  // "Abrir" na Central de divergências: abre a conta aqui, na página certa, e rola até ela
+  useEffect(() => {
+    const abrir = (e: Event) => {
+      const d = (e as CustomEvent<{ id: string; dominio: string }>).detail
+      if (d?.dominio !== dominio) return
+      const pos = ordenados.findIndex((x) => x.titulo.id === d.id)
+      if (pos < 0) return
+      setPagina(Math.floor(pos / POR_PAGINA)); setAberto(d.id)
+      setTimeout(() => document.getElementById(`conta-${d.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    }
+    window.addEventListener('axioma:abrir-conta', abrir)
+    return () => window.removeEventListener('axioma:abrir-conta', abrir)
+  }, [dominio, ordenados])
   const paginas = Math.max(1, Math.ceil(ordenados.length / POR_PAGINA))
   const pg = Math.min(pagina, paginas - 1) // filtro que encolhe a lista nunca deixa uma página vazia
   const visiveis = ordenados.slice(pg * POR_PAGINA, (pg + 1) * POR_PAGINA)
@@ -150,7 +163,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
           {/* Celular: cartões */}
           {estreito && <div className="space-y-2">
             {visiveis.map((i) => (
-              <div key={i.titulo.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
+              <div key={i.titulo.id} id={`conta-${i.titulo.id}`} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
                 <div className="flex items-start gap-2">
                   <input type="checkbox" className="mt-1" aria-label={L('Marcar', 'Select', 'Marcar')} checked={selecionados.has(i.titulo.id)} onChange={() => marcar(i.titulo.id)} />
                   <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setAberto(aberto === i.titulo.id ? null : i.titulo.id)} aria-expanded={aberto === i.titulo.id}>
@@ -186,7 +199,7 @@ function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, d
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   return (
     <>
-      <tr className="cursor-pointer" style={{ borderTop: `1px solid ${P.BORDA}` }} onClick={onAbrir}>
+      <tr id={`conta-${i.titulo.id}`} className="cursor-pointer" style={{ borderTop: `1px solid ${P.BORDA}` }} onClick={onAbrir}>
         <td className="p-1.5" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={L('Marcar', 'Select', 'Marcar')} checked={marcado} onChange={onMarcar} /></td>
         <td className="p-1.5 max-w-[14rem]"><button type="button" className="font-semibold truncate underline decoration-dotted text-left max-w-full" title={L('Abrir dossiê', 'Open dossier', 'Abrir expediente')} onClick={(e) => { e.stopPropagation(); onDossie() }}>{i.titulo.contraparteNome}</button><p className="truncate" style={{ color: P.CINZA }}>{i.titulo.descricao || '—'}</p></td>
         <td className="p-1.5 whitespace-nowrap">{dataTxt(i.titulo.vencimento)}<br /><b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{dias}</b></td>
@@ -311,6 +324,7 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
           <button type="button" disabled={salvando} onClick={() => void salvarPromessa()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Registrar promessa', 'Save promise', 'Registrar promesa')}</button>
         </div>
       </div>
+      <DisputaBloco i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={aoMudar} avisar={avisar} />
       <NegociacaoCliente i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={aoMudar} avisar={avisar} />
       <MensagemCliente i={i} empresaId={empresaId} lang={lang} P={P} aoEnviar={() => { void ler(); aoMudar() }} avisar={avisar} />
       <DnaCliente i={i} historico={historico} itens={itens} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} />
@@ -320,9 +334,8 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
 
 // Central de comunicação (etapa 6): modelo de mensagem com o dado real da conta; a PESSOA envia (copiar,
 // WhatsApp ou e-mail dela) e marca como enviada — aí o contato entra no histórico. Nada sai do Axioma sozinho.
-function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; aoEnviar: () => void; avisar: (m: string) => void }) {
+function MensagemCliente({ i, empresaId, lang, aoEnviar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; aoEnviar: () => void; avisar: (m: string) => void }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
-  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
   const promessaAberta = !!i.promessa && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(i.promessa)
   const [tipo, setTipo] = useState<TipoMensagem>(() => modeloSugerido(i.encargos.dias, promessaAberta))
   const [idioma, setIdioma] = useState<'pt' | 'en' | 'es'>('pt')
@@ -362,16 +375,18 @@ function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemV
     catch { avisar(L('Não foi possível copiar — selecione o texto e copie.', 'Could not copy — select the text and copy it.', 'No fue posible copiar — seleccione el texto y cópielo.')) }
   }
   const sugerido = modeloSugerido(i.encargos.dias, promessaAberta)
+  // Cores do Axioma nos 2 temas: cartão azul-marinho, letra branca, modelo escolhido verde-menta escuro
+  const MSG = { fundo: 'linear-gradient(160deg, #101b3d 0%, #0a1628 100%)', borda: 'rgba(46,204,155,0.35)', botao: '#122b54', texto: 'rgba(10,22,40,0.65)', suave: '#c8d3e0' }
   const botao = 'px-4 py-2.5 rounded-xl text-sm font-bold text-white'
   return (
-    <div className="lg:col-span-3 rounded-2xl p-4 md:p-5 space-y-4 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+    <div className="lg:col-span-3 rounded-2xl p-4 md:p-5 space-y-4 axi-card-premium3d axi-card-faixa" style={{ background: MSG.fundo, border: `1px solid ${MSG.borda}` }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-base md:text-lg font-bold" style={{ color: P.TEXTO }}>{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
-          <p className="text-sm mt-0.5" style={{ color: P.CINZA }}>{L('Escolha o modelo — o texto já vem com os dados reais da conta e pode ser ajustado antes de enviar.', 'Pick a template — the text comes with the real bill data and can be adjusted before sending.', 'Elija el modelo — el texto viene con los datos reales de la cuenta y se puede ajustar antes de enviar.')}</p>
+          <p className="text-base md:text-lg font-bold" style={{ color: '#ffffff' }}>{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
+          <p className="text-sm mt-0.5" style={{ color: MSG.suave }}>{L('Escolha o modelo — o texto já vem com os dados reais da conta e pode ser ajustado antes de enviar.', 'Pick a template — the text comes with the real bill data and can be adjusted before sending.', 'Elija el modelo — el texto viene con los datos reales de la cuenta y se puede ajustar antes de enviar.')}</p>
         </div>
-        <label className="text-sm flex items-center gap-2" style={{ color: P.TEXTO }}>{L('Idioma', 'Language', 'Idioma')}
-          <select aria-label={L('Idioma da mensagem', 'Message language', 'Idioma del mensaje')} value={idioma} onChange={(e) => { setIdioma(e.target.value as 'pt' | 'en' | 'es'); setEditado(null) }} className="rounded-xl px-3 py-2 text-sm" style={campo}>
+        <label className="text-sm flex items-center gap-2" style={{ color: '#ffffff' }}>{L('Idioma', 'Language', 'Idioma')}
+          <select aria-label={L('Idioma da mensagem', 'Message language', 'Idioma del mensaje')} value={idioma} onChange={(e) => { setIdioma(e.target.value as 'pt' | 'en' | 'es'); setEditado(null) }} className="rounded-xl px-3 py-2 text-sm" style={{ background: MSG.botao, color: '#ffffff', border: `1px solid ${MSG.borda}` }}>
             <option value="pt">Português</option><option value="en">English</option><option value="es">Español</option>
           </select>
         </label>
@@ -380,24 +395,24 @@ function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemV
         {TIPOS_MENSAGEM.map((t) => (
           <button key={t} type="button" aria-pressed={tipo === t} onClick={() => { setTipo(t); setEditado(null) }}
             className="px-3.5 py-2 rounded-xl text-sm font-semibold axi-card-premium3d axi-card-faixa"
-            style={tipo === t ? { background: BOTAO_ACAO, color: '#ffffff', border: '1px solid transparent' } : { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }}>
+            style={tipo === t ? { background: BOTAO_ACAO, color: '#ffffff', border: '1px solid #2ecc9b' } : { background: MSG.botao, color: '#ffffff', border: `1px solid ${MSG.borda}` }}>
             {nomeMensagem(lang, t)}{t === sugerido ? ` · ${L('sugerido', 'suggested', 'sugerido')}` : ''}
           </button>
         ))}
       </div>
-      <div className="rounded-2xl p-1 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, background: P.CAMPO }}>
+      <div className="rounded-2xl p-1 axi-card-premium3d axi-card-faixa" style={{ border: '1px solid rgba(46,204,155,0.55)', background: MSG.texto }}>
         <textarea aria-label={L('Texto da mensagem', 'Message text', 'Texto del mensaje')} value={texto} onChange={(e) => setEditado(e.target.value)} rows={13}
-          className="w-full rounded-xl p-4 text-[15px] md:text-base leading-relaxed outline-none resize-y" style={{ background: 'transparent', color: P.TEXTO }} />
+          className="w-full rounded-xl p-4 text-[15px] md:text-base leading-relaxed outline-none resize-y" style={{ background: 'transparent', color: '#ffffff' }} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => void copiar()} className={botao} style={{ background: BOTAO_SECUNDARIO }}>{L('Copiar texto', 'Copy text', 'Copiar texto')}</button>
+        <button type="button" onClick={() => void copiar()} className={botao} style={{ background: MSG.botao, border: `1px solid ${MSG.borda}` }}>{L('Copiar texto', 'Copy text', 'Copiar texto')}</button>
         {wa ? <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => setAberto('whatsapp')} className={botao} style={{ background: BOTAO_ACAO }}>{L('Abrir no WhatsApp', 'Open in WhatsApp', 'Abrir en WhatsApp')}</a>
-          : <span className="px-2 py-2.5 text-sm" style={{ color: P.CINZA }}>{L('WhatsApp: cliente sem telefone no cadastro', 'WhatsApp: no phone on file', 'WhatsApp: cliente sin teléfono registrado')}</span>}
+          : <span className="px-2 py-2.5 text-sm" style={{ color: MSG.suave }}>{L('WhatsApp: cliente sem telefone no cadastro', 'WhatsApp: no phone on file', 'WhatsApp: cliente sin teléfono registrado')}</span>}
         {mail ? <a href={mail} onClick={() => setAberto('email')} className={botao} style={{ background: BOTAO_ACAO }}>{L('Abrir no e-mail', 'Open in email', 'Abrir en correo')}</a>
-          : <span className="px-2 py-2.5 text-sm" style={{ color: P.CINZA }}>{L('E-mail: cliente sem e-mail no cadastro', 'Email: no address on file', 'Correo: cliente sin correo registrado')}</span>}
+          : <span className="px-2 py-2.5 text-sm" style={{ color: MSG.suave }}>{L('E-mail: cliente sem e-mail no cadastro', 'Email: no address on file', 'Correo: cliente sin correo registrado')}</span>}
         {aberto && <button type="button" onClick={() => void marcarEnviada()} className={botao} style={{ background: BOTAO_ACAO }}>{L('Marcar como enviada', 'Mark as sent', 'Marcar como enviada')}</button>}
       </div>
-      <p className="text-sm" style={{ color: P.CINZA }}>{L('Quem envia é você, pelo seu WhatsApp ou e-mail — o Axioma não manda nada sozinho. Os textos são cordiais e firmes, sem ameaça nem constrangimento (Código de Defesa do Consumidor, art. 42). Envio automático (WhatsApp Business, e-mail, SMS): não configurado.', 'You send it, from your own WhatsApp or email — Axioma never sends anything on its own. Texts are friendly and firm, with no threats or embarrassment (Consumer Code, art. 42). Automatic sending (WhatsApp Business, email, SMS): not configured.', 'Usted lo envía, desde su WhatsApp o correo — Axioma no envía nada solo. Los textos son cordiales y firmes, sin amenazas ni vergüenza (Código de Defensa del Consumidor, art. 42). Envío automático (WhatsApp Business, correo, SMS): no configurado.')}</p>
+      <p className="text-sm" style={{ color: MSG.suave }}>{L('Quem envia é você, pelo seu WhatsApp ou e-mail — o Axioma não manda nada sozinho. Os textos são cordiais e firmes, sem ameaça nem constrangimento (Código de Defesa do Consumidor, art. 42). Envio automático (WhatsApp Business, e-mail, SMS): não configurado.', 'You send it, from your own WhatsApp or email — Axioma never sends anything on its own. Texts are friendly and firm, with no threats or embarrassment (Consumer Code, art. 42). Automatic sending (WhatsApp Business, email, SMS): not configured.', 'Usted lo envía, desde su WhatsApp o correo — Axioma no envía nada solo. Los textos son cordiales y firmes, sin amenazas ni vergüenza (Código de Defensa del Consumidor, art. 42). Envío automático (WhatsApp Business, correo, SMS): no configurado.')}</p>
     </div>
   )
 }
@@ -529,6 +544,7 @@ function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: Item
         <button type="button" disabled={salvando} onClick={() => void salvar()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Salvar importância', 'Save importance', 'Guardar importancia')}</button>
         <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Um fornecedor essencial pode vir antes de uma conta maior ou mais antiga.', 'An essential supplier may come before a larger or older bill.', 'Un proveedor esencial puede ir antes que una cuenta mayor o más antigua.')}</p>
       </div>
+      <DisputaBloco i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={aoMudar} avisar={avisar} />
     </div>
   )
 }
@@ -757,6 +773,101 @@ function NegociacaoCliente({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisa
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// Divergência da conta (etapa 8): registrar, acompanhar e resolver. O contestado sai da cobrança e da previsão
+// (motor); o título nunca é apagado nem liquidado aqui. Lápis = corrigir; cancelar fica no histórico (antes/depois).
+const TIPOS_DISPUTA = ['valor', 'nota_fiscal', 'entrega', 'qualidade', 'devolucao', 'duplicidade', 'contrato', 'desconto', 'outros'] as const
+const STATUS_DISPUTA = ['aberta', 'em_analise', 'resolvida_favor', 'resolvida_contra', 'cancelada'] as const
+function DisputaBloco({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; aoMudar: () => void; avisar: (m: string) => void }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
+  const c = i.caso
+  const [f, setF] = useState({ tipo: c?.disputa_tipo ?? 'valor', status: c?.disputa_status ?? 'aberta', valor: String(c?.disputa_valor ?? ''), prazo: c?.disputa_prazo ?? '', responsavel: c?.disputa_responsavel ?? '', motivo: '' })
+  const [evid, setEvid] = useState<{ nome: string; link?: string | null }[]>(c?.disputa_evidencias ?? [])
+  const [nova, setNova] = useState({ nome: '', link: '' })
+  const [aberto, setAberto] = useState(!!c?.disputa_status)
+  const [salvando, setSalvando] = useState(false)
+  const temDisputa = !!c?.disputa_status
+  const parada = disputaParada({ status: c?.disputa_status, prazo: c?.disputa_prazo, atualizadoEm: c?.atualizado_em }, hojeISO())
+  const resolvendo = ['resolvida_favor', 'resolvida_contra', 'cancelada'].includes(f.status)
+  const salvar = async () => {
+    const valor = Number(String(f.valor).replace(/\./g, '').replace(',', '.')) || 0
+    if (valor < 0 || valor > i.saldo + 0.004) return avisar(L('O valor contestado deve ficar entre zero e o saldo da conta.', 'The disputed amount must be between zero and the bill balance.', 'El valor disputado debe estar entre cero y el saldo de la cuenta.'))
+    if (resolvendo && !f.motivo.trim()) return avisar(L('Escreva como a divergência foi resolvida.', 'Write how the dispute was resolved.', 'Escriba cómo se resolvió la divergencia.'))
+    setSalvando(true)
+    const r = await salvarCaso(empresaId, i.titulo.dominio, i.titulo.id, { disputa_tipo: f.tipo, disputa_status: f.status, disputa_valor: valor, disputa_prazo: f.prazo || null, disputa_responsavel: f.responsavel.trim() || null, disputa_evidencias: evid }, f.motivo.trim() || (temDisputa ? 'divergência atualizada' : 'divergência aberta'))
+    setSalvando(false)
+    if (!r.ok) return avisar(L('Não foi possível salvar a divergência. Só dono, sócio, admin e financeiro podem alterar.', 'Could not save the dispute. Only owner, partner, admin and finance can change it.', 'No fue posible guardar la divergencia. Solo dueño, socio, admin y finanzas pueden cambiarla.'))
+    setF({ ...f, motivo: '' }); aoMudar()
+    avisar(resolvendo ? L('Divergência encerrada — o valor volta a ser cobrado normalmente.', 'Dispute closed — the amount is collected normally again.', 'Divergencia cerrada — el valor vuelve a cobrarse normalmente.') : L('Divergência salva — o valor contestado saiu da cobrança e da previsão.', 'Dispute saved — the disputed amount left collection and forecast.', 'Divergencia guardada — el valor disputado salió de la cobranza y la previsión.'))
+  }
+  const nomeTipo = (t: string) => ({ valor: L('Valor incorreto', 'Wrong amount', 'Valor incorrecto'), nota_fiscal: L('Nota fiscal', 'Invoice', 'Factura'), entrega: L('Entrega', 'Delivery', 'Entrega'), qualidade: L('Qualidade', 'Quality', 'Calidad'), devolucao: L('Devolução', 'Return', 'Devolución'), duplicidade: L('Cobrança em duplicidade', 'Duplicate charge', 'Cobro duplicado'), contrato: L('Contrato', 'Contract', 'Contrato'), desconto: L('Desconto', 'Discount', 'Descuento'), outros: L('Outros', 'Other', 'Otros') } as Record<string, string>)[t] ?? t
+  const nomeStatus = (t: string) => ({ aberta: L('Aberta', 'Open', 'Abierta'), em_analise: L('Em análise', 'Under review', 'En análisis'), resolvida_favor: L('Resolvida a nosso favor', 'Resolved in our favor', 'Resuelta a nuestro favor'), resolvida_contra: L('Resolvida a favor da outra parte', 'Resolved for the other party', 'Resuelta a favor de la otra parte'), cancelada: L('Cancelada', 'Cancelled', 'Cancelada') } as Record<string, string>)[t] ?? t
+  return (
+    <div className="lg:col-span-3 rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${parada.parada ? P.VERMELHO : P.BORDA}` }}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-bold">{L('Divergência', 'Dispute', 'Divergencia')}{temDisputa ? `: ${nomeStatus(c!.disputa_status!)} · ${fmt(i.disputa.contestado)} ${L('contestado', 'disputed', 'disputado')}` : ''}</p>
+        {parada.parada && <span className="font-bold" style={{ color: P.VERMELHO }}>{parada.prazoVencido ? L('Prazo vencido', 'Deadline passed', 'Plazo vencido') : L(`Parada há ${parada.diasSemAtualizar} dias`, `Stalled for ${parada.diasSemAtualizar} days`, `Detenida hace ${parada.diasSemAtualizar} días`)}</span>}
+        <button type="button" onClick={() => setAberto((v) => !v)} className="px-2.5 py-1 rounded-lg font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Pencil size={12} />{temDisputa ? L('Editar divergência', 'Edit dispute', 'Editar divergencia') : L('Registrar divergência', 'Record dispute', 'Registrar divergencia')}</button>
+      </div>
+      {!temDisputa && !aberto && <p style={{ color: P.CINZA }}>{L('Use quando a cobrança é contestada (valor, nota, entrega, qualidade…): a parte contestada sai da cobrança e o restante continua sendo cobrado.', 'Use it when the bill is contested (amount, invoice, delivery, quality…): the disputed part leaves collection and the rest is still collected.', 'Úselo cuando el cobro es impugnado (valor, factura, entrega, calidad…): la parte disputada sale de la cobranza y el resto se sigue cobrando.')}</p>}
+      {aberto && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <label>{L('Motivo', 'Reason', 'Motivo')}<select value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo}>{TIPOS_DISPUTA.map((t) => <option key={t} value={t}>{nomeTipo(t)}</option>)}</select></label>
+          <label>{L('Situação', 'Status', 'Situación')}<select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo}>{STATUS_DISPUTA.map((t) => <option key={t} value={t}>{nomeStatus(t)}</option>)}</select></label>
+          <label>{L(`Valor contestado (até ${fmt(i.saldo)})`, `Disputed amount (up to ${fmt(i.saldo)})`, `Valor disputado (hasta ${fmt(i.saldo)})`)}<input inputMode="decimal" value={f.valor} onChange={(e) => setF({ ...f, valor: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo} /></label>
+          <label>{L('Prazo para resolver', 'Deadline to resolve', 'Plazo para resolver')}<input type="date" value={f.prazo} onChange={(e) => setF({ ...f, prazo: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo} /></label>
+          <label>{L('Responsável', 'Person in charge', 'Responsable')}<input value={f.responsavel} maxLength={120} onChange={(e) => setF({ ...f, responsavel: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo} /></label>
+          <label>{resolvendo ? L('Como foi resolvida (obrigatório)', 'How it was resolved (required)', 'Cómo se resolvió (obligatorio)') : L('Observação', 'Note', 'Observación')}<input value={f.motivo} maxLength={500} onChange={(e) => setF({ ...f, motivo: e.target.value })} className="w-full rounded-lg px-1.5 py-1" style={campo} /></label>
+          <div className="md:col-span-3 space-y-1">
+            <p className="font-semibold">{L('Evidências', 'Evidence', 'Evidencias')}</p>
+            {evid.length === 0 && <p style={{ color: P.CINZA }}>{L('Nenhuma evidência. Descreva e, se tiver, cole o link do arquivo (Drive, e-mail, foto).', 'No evidence yet. Describe it and, if you have one, paste the file link (Drive, email, photo).', 'Ninguna evidencia. Descríbala y, si tiene, pegue el enlace del archivo (Drive, correo, foto).')}</p>}
+            {evid.map((e, k) => (
+              <p key={k} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">{e.nome}{e.link ? <> — <a href={e.link} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: P.VERDE }}>{L('abrir', 'open', 'abrir')}</a></> : null}</span>
+                <button type="button" aria-label={L('Tirar evidência', 'Remove evidence', 'Quitar evidencia')} onClick={() => setEvid(evid.filter((_, x) => x !== k))}><Trash2 size={13} style={{ color: P.VERMELHO }} /></button></p>
+            ))}
+            <div className="flex flex-wrap gap-1">
+              <input placeholder={L('Descrição (ex.: foto da avaria)', 'Description (e.g. damage photo)', 'Descripción (ej.: foto del daño)')} value={nova.nome} maxLength={200} onChange={(e) => setNova({ ...nova, nome: e.target.value })} className="flex-1 min-w-[10rem] rounded-lg px-1.5 py-1" style={campo} />
+              <input placeholder={L('Link (opcional)', 'Link (optional)', 'Enlace (opcional)')} value={nova.link} onChange={(e) => setNova({ ...nova, link: e.target.value })} className="flex-1 min-w-[10rem] rounded-lg px-1.5 py-1" style={campo} />
+              <button type="button" onClick={() => { if (!nova.nome.trim()) return; setEvid([...evid, { nome: nova.nome.trim(), link: /^https?:\/\//.test(nova.link.trim()) ? nova.link.trim() : null }]); setNova({ nome: '', link: '' }) }} className="px-2.5 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Adicionar', 'Add', 'Agregar')}</button>
+            </div>
+          </div>
+          <div className="md:col-span-3"><button type="button" disabled={salvando} onClick={() => void salvar()} className="px-3 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Salvar divergência', 'Save dispute', 'Guardar divergencia')}</button></div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Central de divergências (etapa 8): todas as abertas dos dois lados, com valores, prazos e as paradas; "Abrir" leva à conta
+export function CentralDisputas({ itens, lang, P, fmt, dataTxt }: { itens: ItemVencido[]; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const hoje = hojeISO()
+  const abertas = itens.filter((i) => i.disputa.aberta).map((i) => ({ i, p: disputaParada({ status: i.caso?.disputa_status, prazo: i.caso?.disputa_prazo, atualizadoEm: i.caso?.atualizado_em }, hoje) }))
+    .sort((a, b) => Number(b.p.parada) - Number(a.p.parada) || b.i.disputa.contestado - a.i.disputa.contestado)
+  if (!abertas.length) return null
+  const total = abertas.reduce((s2, x) => s2 + x.i.disputa.contestado, 0)
+  const abrir = (i: ItemVencido) => window.dispatchEvent(new CustomEvent('axioma:abrir-conta', { detail: { id: i.titulo.id, dominio: i.titulo.dominio } }))
+  return (
+    <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+      <p className="text-sm font-bold mb-1">{L('Central de divergências', 'Dispute center', 'Central de divergencias')} ({abertas.length}) · {fmt(total)} {L('contestado', 'disputed', 'disputado')}</p>
+      <p className="text-[11px] mb-2" style={{ color: P.CINZA }}>{L('O valor contestado fica fora da cobrança e da previsão até a solução; o restante segue normal. Paradas = prazo vencido ou 15 dias sem atualização.', 'The disputed amount stays out of collection and forecast until solved; the rest goes on normally. Stalled = deadline passed or 15 days without update.', 'El valor disputado queda fuera de la cobranza y la previsión hasta la solución; el resto sigue normal. Detenidas = plazo vencido o 15 días sin actualización.')}</p>
+      <div className="space-y-1.5">
+        {abertas.map(({ i, p }) => (
+          <div key={i.titulo.id} className="rounded-xl p-2.5 text-xs flex flex-wrap items-center justify-between gap-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${p.parada ? P.VERMELHO : P.BORDA}` }}>
+            <span className="min-w-0">
+              <b>{i.titulo.contraparteNome}</b> · {i.titulo.dominio === 'pagar' ? L('a pagar', 'payable', 'por pagar') : L('a receber', 'receivable', 'por cobrar')} · {i.titulo.descricao || '—'}
+              <br /><span style={{ color: P.CINZA }}>{L('Responsável', 'In charge', 'Responsable')}: {i.caso?.disputa_responsavel || '—'} · {L('Prazo', 'Deadline', 'Plazo')}: {i.caso?.disputa_prazo ? dataTxt(i.caso.disputa_prazo) : '—'} · {L('Evidências', 'Evidence', 'Evidencias')}: {i.caso?.disputa_evidencias?.length ?? 0}</span>
+              {p.parada && <><br /><b style={{ color: P.VERMELHO }}>{p.prazoVencido ? L('Pendência: prazo vencido', 'Pending: deadline passed', 'Pendiente: plazo vencido') : L(`Pendência: parada há ${p.diasSemAtualizar} dias`, `Pending: stalled for ${p.diasSemAtualizar} days`, `Pendiente: detenida hace ${p.diasSemAtualizar} días`)}</b></>}
+            </span>
+            <span className="flex items-center gap-2 shrink-0"><b>{fmt(i.disputa.contestado)}</b>
+              <button type="button" onClick={() => abrir(i)} className="px-2.5 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Abrir', 'Open', 'Abrir')}</button></span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

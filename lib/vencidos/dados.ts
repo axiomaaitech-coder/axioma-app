@@ -27,6 +27,7 @@ export type CasoBanco = {
   disputa_tipo: string | null; disputa_status: string | null; disputa_valor: number; disputa_prazo: string | null; disputa_responsavel: string | null
   relacao: M.Relacao | null; estrategia: string | null; criticidade: M.Caso['criticidade']; risco_interrupcao: boolean
   impacto_producao: boolean; impacto_vendas: boolean
+  disputa_evidencias?: { nome: string; link?: string | null }[]; atualizado_em?: string
 }
 export const casoMotor = (c: CasoBanco | null, dependencia?: string | null): M.Caso | null => (!c && !dependencia ? null : {
   tituloId: c ? (c.conta_receber_id ?? c.conta_pagar_id)! : '', causa: c?.causa, causaConfirmada: c?.causa_confirmada, causaOrigem: c?.causa_origem,

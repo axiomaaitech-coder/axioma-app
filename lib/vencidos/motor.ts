@@ -483,6 +483,14 @@ export function proximaAcao(e: { titulo: Titulo; hoje: string; risco: number | n
 }
 
 // ─── ALERTAS (só avisam; nada é disparado para fora) ───
+// Divergência parada: aberta com prazo vencido ou sem nenhuma atualização há `dias` dias (padrão 15)
+export function disputaParada(d: { status?: string | null; prazo?: string | null; atualizadoEm?: string | null }, hoje: string, dias = 15): { parada: boolean; prazoVencido: boolean; diasSemAtualizar: number | null } {
+  const aberta = !!d.status && ['aberta', 'em_analise'].includes(d.status)
+  const prazoVencido = aberta && !!d.prazo && d.prazo < hoje
+  const sem = d.atualizadoEm ? Math.max(0, diasEntre(d.atualizadoEm.slice(0, 10), hoje) - 1) : null
+  return { parada: aberta && (prazoVencido || (sem != null && sem >= dias)), prazoVencido, diasSemAtualizar: sem }
+}
+
 export type AlertaVencido = { tipo: 'promessa_descumprida' | 'deterioracao' | 'migracao_faixa' | 'disputa_prazo' | 'fornecedor_essencial' | 'ruptura_caixa'; severidade: 'atencao' | 'critico'; tituloId?: string; texto: string }
 export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa: SituacaoPromessa | null; caso?: Caso | null; disputaPrazo?: string | null }[]; hoje: string; migracao: ReturnType<typeof migracaoAging>; impacto: ReturnType<typeof impactoFinanceiro> }): AlertaVencido[] {
   const a: AlertaVencido[] = []
