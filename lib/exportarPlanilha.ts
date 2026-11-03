@@ -16,3 +16,16 @@ export function exportarPlanilha(linhas: Record<string, string | number>[], nome
   a.href = url; a.download = `${nomeArquivo}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
+
+// Várias abas num arquivo só (relatórios completos). Abas vazias ganham uma linha "—" para o Excel não reclamar.
+export function exportarPlanilhaAbas(abas: { nome: string; linhas: Record<string, string | number>[] }[], nomeArquivo: string) {
+  const wb = XLSX.utils.book_new();
+  const usados = new Set<string>();
+  for (const a of abas) {
+    let nome = a.nome.replace(/[\/?*[\]:]/g, " ").slice(0, 31) || "Aba";
+    while (usados.has(nome)) nome = `${nome.slice(0, 28)} ${usados.size}`;
+    usados.add(nome);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.linhas.length ? a.linhas : [{ "": "—" }]), nome);
+  }
+  XLSX.writeFile(wb, `${nomeArquivo}.xlsx`);
+}

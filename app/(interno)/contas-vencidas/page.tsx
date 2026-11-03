@@ -5,7 +5,7 @@
 // previsão para comparar previsto x realizado e montar a evolução).
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Search } from 'lucide-react'
+import { AlertTriangle, Search, FileDown, Sheet } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
@@ -23,6 +23,9 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { optBarrasH, optBarrasV, coresSituacao, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
 import { carregarAnaliseVencidos, registrarPrevisaoDoDia, monitorarPromessas, type AnaliseVencidos } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
+import { montarRelatorio, linhasPdf } from '../../../lib/vencidos/relatorio'
+import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { exportarPlanilhaAbas } from '../../../lib/exportarPlanilha'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 const PALETA = {
@@ -52,6 +55,7 @@ export default function ContasVencidasPage() {
   const [f, setF] = useState<Filtros>(() => filtrosIniciais(periodo.inicio, periodo.fim))
   const [lado, setLado] = useState<'receber' | 'pagar'>('receber')
   const [shareAberto, setShareAberto] = useState(false)
+  const [avisoRel, setAvisoRel] = useState('')
   // tela de celular (acompanha girar o aparelho)
   const [estreito, setEstreito] = useState(false)
   useEffect(() => {
@@ -307,6 +311,31 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            {r && (() => {
+              // Relatório completo (etapa 14): mesmos números e filtros desta tela
+              const nomeArq = `${L('relatorio-contas-vencidas', 'overdue-bills-report', 'informe-cuentas-vencidas')}-${a.hoje}`
+              const titulo = L('Relatório de Contas Vencidas', 'Overdue Bills Report', 'Informe de Cuentas Vencidas')
+              const sub = `${L('Período', 'Period', 'Período')} ${dataTxt(periodo.inicio)} – ${dataTxt(periodo.fim)} · ${L('gerado em', 'generated on', 'generado el')} ${dataTxt(a.hoje)}`
+              const pdf = () => {
+                setAvisoRel('')
+                gerarPdfTabela({ titulo, subtitulo: sub, nomeArquivo: nomeArq,
+                  colunas: [{ header: L('Seção', 'Section', 'Sección'), key: L('Seção', 'Section', 'Sección'), width: 1.6 }, { header: L('Item', 'Item', 'Ítem'), key: 'a', width: 3.4 }, { header: L('Valor', 'Value', 'Valor'), key: 'b', width: 1.6, align: 'right' }, { header: L('Detalhe', 'Detail', 'Detalle'), key: 'c', width: 3.4 }],
+                  linhas: linhasPdf(montarRelatorio(a, r, lang, fmt, dataTxt), lang),
+                }, (m) => setAvisoRel(m), lang)
+              }
+              const excel = () => exportarPlanilhaAbas(montarRelatorio(a, r, lang, fmt, dataTxt), nomeArq)
+              return (
+                <div className="rounded-2xl p-4 flex flex-wrap items-center gap-3 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+                  <div className="flex-1 min-w-[14rem]">
+                    <p className="text-sm font-bold">{titulo}</p>
+                    <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Tudo desta tela num arquivo, com os filtros de agora: resumo, atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas. No Excel, cada parte vem numa aba.', 'Everything on this screen in one file, with the current filters: summary, overdue by range, today’s actions, alerts and overdue receivables and payables. In Excel, each part comes in its own tab.', 'Todo lo de esta pantalla en un archivo, con los filtros actuales: resumen, atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas. En Excel, cada parte viene en una pestaña.')}</p>
+                    {avisoRel && <p className="text-[11px] mt-1" style={{ color: P.VERMELHO }}>{avisoRel}</p>}
+                  </div>
+                  <button type="button" onClick={pdf} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_ACAO }}><FileDown size={13} />{L('Relatório PDF', 'PDF report', 'Informe PDF')}</button>
+                  <button type="button" onClick={excel} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Sheet size={13} />{L('Relatório Excel', 'Excel report', 'Informe Excel')}</button>
+                </div>
+              )
+            })()}
             {empresaId && <PilotoAutomatico a={a} empresaId={empresaId} lang={lang} P={P} fmt={fmt} />}
             {empresaId && <CentralAlertas alertas={a.alertas} empresaId={empresaId} lang={lang} P={P} temaClaro={temaClaro} dataTxt={dataTxt} />}
             {empresaId && (

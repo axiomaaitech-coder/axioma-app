@@ -274,4 +274,11 @@ assert.equal(MSG.linkWhatsapp('(15) 99876-5432', 'oi'), 'https://wa.me/551599876
 assert.equal(MSG.linkWhatsapp('123', 'oi'), null, 'telefone incompleto não gera link')
 assert.equal(MSG.linkEmail('sem-arroba', 'a', 'b'), null)
 
+// ── relatório (etapa 14): PDF junta seções de 3 colunas e de contas (7 colunas) na mesma tabela ──
+const REL = await import('../lib/vencidos/relatorio')
+const pdfL = REL.linhasPdf([{ nome: 'Resumo', linhas: [{ Item: 'A receber', Valor: 'R$ 10', Detalhe: '2 contas' }] },
+  { nome: 'Contas', linhas: [{ Nome: 'Padaria', Venc: '30/10', Dias: 3, Saldo: 'R$ 5', Total: 'R$ 6', Nota: 400, Acao: 'Pedir' }] }], 'pt')
+assert.deepEqual(pdfL[0], { 'Seção': 'Resumo', a: 'A receber', b: 'R$ 10', c: '2 contas' })
+assert.deepEqual(pdfL[1], { 'Seção': 'Contas', a: 'Padaria · 30/10', b: 'R$ 5', c: '3 d · R$ 6 · 400 · Pedir' })
+
 console.log('check-vencidos: tudo certo ✔')
