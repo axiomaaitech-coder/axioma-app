@@ -115,7 +115,7 @@ async function criar(corpo: any) {
     const chave = `criar:${user.id}`
     if (bloqueado(chave)) return erro('muitas_tentativas', 429)
     const emailAut = String(corpo.autorizador?.email || '').trim().toLowerCase()
-    const idAut = emailAut ? await conferirSenha(emailAut, String(corpo.autorizador?.senha || '')) : null
+    const idAut = emailAut ? await conferirSenha(emailAut, String(corpo.autorizador?.senha || ''), corpo.captchaToken ? String(corpo.captchaToken) : undefined) : null
     if (!idAut || !(await podeLiberar(db, empresaId, idAut))) { registrarFalha(chave); return erro('autorizador', 403) }
     autorizadoPor = emailAut
   }

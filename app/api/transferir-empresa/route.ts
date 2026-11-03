@@ -154,7 +154,7 @@ async function criar(corpo: any) {
   // Senha do Proprietário (sessão esquecida aberta não transfere nada)
   const chave = `transferir:${user.id}`
   if (bloqueado(chave)) return erro('muitas_tentativas', 429)
-  const idSenha = await conferirSenha(user.email, String(corpo.senha || ''))
+  const idSenha = await conferirSenha(user.email, String(corpo.senha || ''), corpo.captchaToken ? String(corpo.captchaToken) : undefined)
   if (idSenha !== user.id) { registrarFalha(chave); return erro('senha', 403) }
 
   await expirarVencidas(db, { empresaId })

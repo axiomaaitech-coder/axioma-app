@@ -10,6 +10,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createBrowserClient } from '../lib/supabaseBrowser'
 import { ShieldAlert } from 'lucide-react'
+import { useTurnstile } from './Turnstile'
 import Modal from './Modal'
 import { CanvasBox } from './CanvasBox'
 import { useLanguage } from '../lib/LanguageContext'
@@ -65,6 +66,7 @@ export function useConfirmarExclusao(temaClaro: boolean): { confirmar: (p: Pedid
   const [erro, setErro] = useState('')
   const [conferindo, setConferindo] = useState(false)
   const [meuPapel, setMeuPapel] = useState<string | null>(null)
+  const turnstile = useTurnstile() // selo anti-robô: a senha do supervisor só é conferida com ele
   const { idioma } = useLanguage()
   const lang = idioma === 'en' ? 'en' : idioma === 'es' ? 'es' : 'pt'
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -84,10 +86,10 @@ export function useConfirmarExclusao(temaClaro: boolean): { confirmar: (p: Pedid
     if (motivo.trim().length < 5) { setErro(L('Escreva o motivo (pelo menos 5 letras).', 'Write the reason (at least 5 letters).', 'Escriba el motivo (al menos 5 letras).')); return }
     if (!email.trim() || !senha) { setErro(L('Informe o e-mail e a senha do supervisor.', 'Enter the supervisor e-mail and password.', 'Informe el correo y la contraseña del supervisor.')); return }
     setConferindo(true); setErro('')
-    const empresaId = await obterEmpresaAtiva()
+    const [empresaId, captchaToken] = await Promise.all([obterEmpresaAtiva(), turnstile.pegarToken()])
     const r = await fetch('/api/autorizar-exclusao', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ empresaId, motivo, oQue: typeof pedido?.oQue === 'object' ? pedido.oQue.pt : pedido?.oQue, tabela: pedido?.tabela, registroId: pedido?.registroId, autorizador: { email, senha } }),
+      body: JSON.stringify({ empresaId, motivo, oQue: typeof pedido?.oQue === 'object' ? pedido.oQue.pt : pedido?.oQue, tabela: pedido?.tabela, registroId: pedido?.registroId, autorizador: { email, senha }, captchaToken }),
     }).then((x) => x.json()).catch(() => ({ erro: 'rede' }))
     if (r?.ok) { fechar(true); return }
     setConferindo(false); setSenha('')
@@ -141,6 +143,7 @@ export function useConfirmarExclusao(temaClaro: boolean): { confirmar: (p: Pedid
                 onKeyDown={(e) => { if (e.key === 'Enter') void autorizar() }}
                 className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none" style={campo} />
             </div>
+            {turnstile.elemento}
           </>
         ))}
         {bloco(4, L('Impacto', 'Impact', 'Impacto'), (

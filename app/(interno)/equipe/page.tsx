@@ -20,6 +20,7 @@ import { CentroCompartilhamento } from '../../../components/CentroCompartilhamen
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import Modal from '../../../components/Modal'
 import TransferirEmpresa from '../../../components/TransferirEmpresa'
+import { useTurnstile } from '../../../components/Turnstile'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
@@ -286,6 +287,7 @@ export default function EquipePage() {
   const [podeLiberar, setPodeLiberar] = useState(false)
   const [autEmail, setAutEmail] = useState('')
   const [autSenha, setAutSenha] = useState('')
+  const turnstileAut = useTurnstile() // selo anti-robô junto da senha do supervisor
   // CEO/Sócio/Admin convidam direto; os demais precisam da senha de um deles + motivo
   const precisaAutorizacao = !podeLiberar
   const [papelLiberador, setPapelLiberador] = useState('')
@@ -444,9 +446,10 @@ export default function EquipePage() {
       // Link vale até 7 dias, nunca mais que o próprio prazo de acesso (convite de 24h = link de 24h).
       const diasLink = Math.min(form.acesso_dias ?? 7, 7)
       const dadosForm = { ...form, motivo_convite: form.motivo_convite.trim() || null, remetente_nome: nomeRemetente, remetente_termo_em: new Date().toISOString(), expira_em: new Date(Date.now() + diasLink * 86400000).toISOString() }
+      const captchaToken = precisaAutorizacao ? await turnstileAut.pegarToken() : undefined
       const resp = await fetch('/api/convite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acao: 'criar', empresaId, form: dadosForm, termoRemetente, meuPapel: meuPapelConvite,
+        body: JSON.stringify({ acao: 'criar', captchaToken, empresaId, form: dadosForm, termoRemetente, meuPapel: meuPapelConvite,
           autorizador: precisaAutorizacao ? { email: autEmail, senha: autSenha } : null }),
       })
       const r = await resp.json().catch(() => ({ erro: 'generico' }))
@@ -707,6 +710,7 @@ export default function EquipePage() {
                       <input value={autSenha} onChange={(e) => { setAutSenha(e.target.value); setErroModal('') }} placeholder={t.autSenha} type="password" autoComplete="new-password"
                         className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                     </div>
+                    {turnstileAut.elemento}
                   </div>
                 )}
                 <label className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${termoRemetente ? '#16a97d' : (temaClaro ? 'rgba(16,27,61,0.15)' : 'rgba(255,255,255,0.08)')}` }}>

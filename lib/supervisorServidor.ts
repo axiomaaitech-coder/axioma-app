@@ -21,10 +21,11 @@ export function admin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } })
 }
 
-// Confere e-mail + senha sem mexer na sessão de ninguém.
-export async function conferirSenha(email: string, senha: string): Promise<string | null> {
+// Confere e-mail + senha sem mexer na sessão de ninguém. O selo anti-robô (Turnstile) vem da tela que pediu a
+// senha e segue para o Supabase: com o Captcha ligado no Supabase, senha sem selo válido é recusada.
+export async function conferirSenha(email: string, senha: string, captchaToken?: string): Promise<string | null> {
   const c = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } })
-  const { data, error } = await c.auth.signInWithPassword({ email, password: senha })
+  const { data, error } = await c.auth.signInWithPassword({ email, password: senha, options: { captchaToken } })
   return error ? null : data.user?.id ?? null
 }
 

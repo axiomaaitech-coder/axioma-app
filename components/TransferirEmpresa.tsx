@@ -6,6 +6,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowRightLeft, Copy, FileText, ShieldCheck, XCircle } from 'lucide-react'
 import { CanvasBox } from './CanvasBox'
+import { useTurnstile } from './Turnstile'
 import { copiarTexto } from '../lib/copiar'
 import { gerarPdfTabela } from '../lib/gerarPdfTabela'
 import { uploadDocumento, criarDocumento } from '../lib/empresaHelpers'
@@ -50,6 +51,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  const turnstile = useTurnstile() // selo anti-robô junto da senha do Proprietário
   const [cancelandoId, setCancelandoId] = useState<string | null>(null)
   const [motivoCancelar, setMotivoCancelar] = useState('')
 
@@ -111,8 +113,9 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
       storage_path: up.path, mime_type: arquivo.type, tamanho_bytes: arquivo.size,
     })
     if (doc.erro || !doc.id) { setEnviando(false); setErro(L('O PDF subiu, mas não entrou no Cofre. Tente de novo.', 'The PDF uploaded but did not reach the Vault. Try again.', 'El PDF subió, pero no entró en la Bóveda. Intente de nuevo.')); return }
+    const captchaToken = await turnstile.pegarToken()
     const r = await pedirTransferencia({
-      empresaId: empresa.id, tipoSocietario: form.tipo, tipoOperacao: form.operacao,
+      captchaToken, empresaId: empresa.id, tipoSocietario: form.tipo, tipoOperacao: form.operacao,
       cedenteNome: form.cedenteNome, cedenteDoc: form.cedenteDoc, cessionarioNome: form.nome, cessionarioDoc: form.doc, cessionarioEmail: form.email,
       juntaProtocolo: form.protocolo, juntaData: form.juntaData, documentoId: doc.id, checklist: marcados,
       motivo: form.motivo, cedenteFicaAdmin: form.ficaAdmin, senha: form.senha,
@@ -323,6 +326,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                       'Declaro que la información es verdadera y que la transferencia se formalizó como pide la ley. Sé que, tras la aceptación, quien recibe pasa a ser el Propietario y solo él puede deshacerlo.')}</span>
                   </label>
                   {campo(L('Sua senha do Axioma', 'Your Axioma password', 'Su contraseña de Axioma'), entrada(form.senha, (v) => setForm({ ...form, senha: v }), { type: 'password', autoComplete: 'new-password' }))}
+                  {turnstile.elemento}
                   {faltando.length > 0 && (
                     <p className="text-xs" style={{ color: CINZA }}>{L('Falta: ', 'Missing: ', 'Falta: ')}{faltando.join(', ')}.</p>
                   )}

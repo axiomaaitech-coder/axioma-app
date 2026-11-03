@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const chave = `excluir:${user.id}`
   if (bloqueado(chave)) return erro('muitas_tentativas', 429)
   const email = String(corpo.autorizador?.email || '').trim().toLowerCase()
-  const idAut = email ? await conferirSenha(email, String(corpo.autorizador?.senha || '')) : null
+  const idAut = email ? await conferirSenha(email, String(corpo.autorizador?.senha || ''), corpo.captchaToken ? String(corpo.captchaToken) : undefined) : null
   if (!idAut || !(await podeLiberar(db, empresaId, idAut))) { registrarFalha(chave); return erro('autorizador', 403) }
 
   after(() => registrarAuditoria({

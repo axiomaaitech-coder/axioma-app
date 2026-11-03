@@ -9,6 +9,7 @@ import { CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterConvitePorToken } from '../../../lib/empresaHelpers'
+import { useTurnstile } from '../../../components/Turnstile'
 
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
 // pela tela de login. Abre o link → preenche o formulário (nome, senha nova,
@@ -52,6 +53,7 @@ export default function AceitarConvite() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as 'pt' | 'en' | 'es'
   const token = String(params.token || '')
   const supabase = createClient()
+  const turnstile = useTurnstile() // selo anti-robô: cadastro, entrada e reenvio do link só com ele
 
   const [estado, setEstado] = useState<Estado>('carregando')
   const [convite, setConvite] = useState<Convite | null>(null)
@@ -191,6 +193,7 @@ export default function AceitarConvite() {
       const { data: cad, error } = await supabase.auth.signUp({
         email: emailLimpo, password: senha,
         options: {
+          captchaToken: await turnstile.pegarToken(),
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/convite/${token}`)}`,
           data: { nome: nome.trim(), cpf, convite_token: token, convite_aceita: true },
         },
@@ -200,7 +203,7 @@ export default function AceitarConvite() {
       if (cad.session && cad.user) { if (!(await aceitarConvite(cad.user.id, nome.trim(), cpf))) setEstado('pronto'); return }
       // 4) e-mail já tem conta no Axioma: a senha dela prova que o e-mail é dela
       if (cad.user && (cad.user.identities?.length ?? 0) === 0) {
-        const { data: ent, error: eEnt } = await supabase.auth.signInWithPassword({ email: emailLimpo, password: senha })
+        const { data: ent, error: eEnt } = await supabase.auth.signInWithPassword({ email: emailLimpo, password: senha, options: { captchaToken: await turnstile.pegarToken() } })
         if (eEnt || !ent.user) { setErro(MSG.senha_conta); setEstado('pronto'); return }
         if (!(await aceitarConvite(ent.user.id, nome.trim(), cpf))) setEstado('pronto')
         return
@@ -346,6 +349,7 @@ export default function AceitarConvite() {
                 )}
               </AnimatePresence>
 
+              {turnstile.elemento}
               <motion.button type="submit" disabled={estado === 'enviando'} whileTap={{ scale: 0.98 }}
                 className="w-full py-3.5 rounded-xl font-bold text-[15px] transition-[filter,opacity] hover:brightness-110 disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2ecc9b]"
                 style={{ background: COR.menta, color: COR.tinta, opacity: podeEnviar || estado === 'enviando' ? 1 : 0.55 }}>
@@ -367,9 +371,10 @@ export default function AceitarConvite() {
               {L(`Mandamos um link para ${email.trim()}. Clique nele e você entra direto no Axioma.`, `We sent a link to ${email.trim()}. Click it and you go straight into Axioma.`, `Enviamos un link a ${email.trim()}. Haga clic y entra directo en Axioma.`)}
             </p>
             {erro && <p role="alert" className="mt-3 text-[13px] font-medium" style={{ color: COR.erro }}>{erro}</p>}
+            {turnstile.elemento}
             <button type="button" onClick={async () => {
               const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase(),
-                options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/convite/${token}`)}` } })
+                options: { captchaToken: await turnstile.pegarToken(), emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/convite/${token}`)}` } })
               setErro(error ? MSG.envio : '')
             }} className="mt-4 text-xs font-semibold underline underline-offset-2" style={{ color: COR.sec }}>
               {L('Não chegou? Enviar o link de novo', 'Did not arrive? Send the link again', '¿No llegó? Enviar el link de nuevo')}
