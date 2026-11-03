@@ -190,7 +190,8 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar }: { i: 
   const [prom, setProm] = useState({ valor: '', data: '', canal: 'telefone' })
   const [salvando, setSalvando] = useState(false)
   const ler = () => listarInteracoes(empresaId, i.titulo.id).then(setContatos)
-  useEffect(() => { void ler() }, [i.titulo.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // relê quando a conta muda ou quando um contato entra/sai (ex.: recuperado da lixeira)
+  useEffect(() => { void ler() }, [i.titulo.id, i.ultimoContato?.data]) // eslint-disable-line react-hooks/exhaustive-deps
   const usuario = async () => (await createClient().auth.getUser()).data.user?.id ?? ''
 
   const salvarContato = async () => {

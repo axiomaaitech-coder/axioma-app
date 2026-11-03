@@ -40,9 +40,11 @@ export const casoMotor = (c: CasoBanco | null, dependencia?: string | null): M.C
 // Taxa legal (CC art. 406, Lei 14.905/2024) ≈ Selic meta Copom (série 432, ao mês) − IPCA do último mês (série 433).
 // Aproximação declarada: a taxa oficial usa a Selic efetiva do mês; a tela mostra a fonte.
 async function parametrosLegais(sb: ReturnType<typeof createClient>): Promise<M.ParametrosLegais & { fonte: string | null; ipcaSerie: { data: string; valor: number }[] }> {
-  const r = await comRetentativa(() => sb.from('nexus_economic_series').select('serie_codigo, valor, data_referencia').in('serie_codigo', ['432', '433']).order('data_referencia', { ascending: false }).limit(40))
-  if (r.error || !r.data?.length) return { taxaLegalMesPct: null, fonte: null, ipcaSerie: [] }
-  const selic = r.data.find((x) => x.serie_codigo === '432'), ipca = r.data.filter((x) => x.serie_codigo === '433')
+  // uma consulta por série: a Selic tem um registro por dia e, junta, empurrava o IPCA (mensal) para fora do limite
+  const serie = (codigo: string, n: number) => comRetentativa(() => sb.from('nexus_economic_series').select('valor, data_referencia').eq('serie_codigo', codigo).order('data_referencia', { ascending: false }).limit(n))
+  const [rs, ri] = await Promise.all([serie('432', 1), serie('433', 24)])
+  if (rs.error || ri.error) return { taxaLegalMesPct: null, fonte: null, ipcaSerie: [] }
+  const selic = rs.data?.[0], ipca = ri.data ?? []
   if (!selic || !ipca.length) return { taxaLegalMesPct: null, fonte: null, ipcaSerie: [] }
   const selicMes = ((1 + Number(selic.valor) / 100) ** (1 / 12) - 1) * 100
   return {
