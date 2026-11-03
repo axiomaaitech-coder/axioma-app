@@ -33,7 +33,7 @@ export const MANUAIS: Manual[] = [
 // Manual padrão por tela (a tela de origem já diz muito do assunto).
 export const MANUAIS_DA_TELA: Record<string, string[]> = {
   'ia-financeira': ['caixa', 'custos'], 'ia-tributaria': ['tributario'], 'nexus': ['economia'],
-  'contas-pagar': ['caixa', 'divida'], 'contas-receber': ['cobranca', 'caixa'], 'inadimplencia': ['cobranca'],
+  'contas-pagar': ['caixa', 'divida'], 'contas-receber': ['cobranca', 'caixa'], 'inadimplencia': ['cobranca'], 'contas-vencidas': ['cobranca', 'caixa'],
   'fornecedores': ['custos'], 'centros-custo': ['custos'], 'tesouraria': ['caixa'], 'estoque': ['estoque'],
   'precificacao': ['precificacao'], 'endividamento': ['divida'], 'mei': ['tributario', 'caixa'],
   'mei-das': ['tributario'], 'mei-reforma': ['tributario'], 'mei-imposto-renda': ['tributario'], 'mei-faturamento': ['vendas', 'tributario'],

@@ -27,6 +27,7 @@ const TX: Record<string, Record<L, string>> = {
   "ia-tributaria": { pt: "Inteligência Axioma — Tributária", en: "Axioma Intelligence — Tax", es: "Inteligencia Axioma — Tributaria" },
   "mei-ia-advisor": { pt: "Inteligência Axioma — MEI", en: "Axioma Intelligence — MEI", es: "Inteligencia Axioma — MEI" },
   "contas-pagar": { pt: "Inteligência Axioma — Contas a Pagar", en: "Axioma Intelligence — Payables", es: "Inteligencia Axioma — Cuentas por Pagar" },
+  "contas-vencidas": { pt: "Inteligência Axioma — Contas Vencidas", en: "Axioma Intelligence — Overdue Bills", es: "Inteligencia Axioma — Cuentas Vencidas" },
   "relatorios": { pt: "Inteligência Axioma — Relatórios", en: "Axioma Intelligence — Reports", es: "Inteligencia Axioma — Informes" },
   "importar-documentos": { pt: "Inteligência Axioma — Importar", en: "Axioma Intelligence — Import", es: "Inteligencia Axioma — Importar" },
 };

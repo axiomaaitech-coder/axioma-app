@@ -11,6 +11,7 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos, { CentralDisputas } from './CentralVencidos'
 import Simulador from './Simulador'
+import ChatInteligencia from '../../../components/ChatInteligencia'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import ReactECharts from 'echarts-for-react'
@@ -303,6 +304,22 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            {empresaId && (
+              <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }}>
+                <ChatInteligencia tela="contas-vencidas" empresaId={empresaId} lang={lang} claro={temaClaro}
+                  titulo={L('Pergunte à Inteligência Axioma — Contas Vencidas', 'Ask Axioma Intelligence — Overdue Bills', 'Pregunte a la Inteligencia Axioma — Cuentas Vencidas')}
+                  placeholder={L('Ex.: quem devo cobrar primeiro hoje?', 'E.g.: who should I collect from first today?', 'Ej.: ¿a quién debo cobrar primero hoy?')}
+                  sugestoes={[
+                    L('Quem devo cobrar primeiro hoje e por quê?', 'Who should I collect from first today and why?', '¿A quién debo cobrar primero hoy y por qué?'),
+                    L('Quanto devo recuperar nos próximos 30 dias?', 'How much should I recover in the next 30 days?', '¿Cuánto debo recuperar en los próximos 30 días?'),
+                    L('Quais promessas de pagamento estão em risco?', 'Which payment promises are at risk?', '¿Qué promesas de pago están en riesgo?'),
+                    L('Se eu recuperar 50% em 30 dias, como fica o caixa?', 'If I recover 50% in 30 days, how does cash look?', 'Si recupero 50% en 30 días, ¿cómo queda la caja?'),
+                    L('Quais contas a pagar vencidas pagar primeiro?', 'Which overdue payables should I pay first?', '¿Qué cuentas por pagar vencidas pagar primero?'),
+                  ]}
+                  contexto={() => `Tela: Contas Vencidas (a receber e a pagar). Para números, use a ferramenta contas_vencidas (resumo, receber, pagar, promessas, simular). Resumo da tela agora:
+${textoShare}`} />
+              </div>
+            )}
             <Simulador a={a} prometido={a.previsao.composicao.prometido} emNegociacao={a.previsao.composicao.emNegociacao} lang={lang} P={P} fmt={fmt} temaClaro={temaClaro} />
             <CentralDisputas itens={[...a.receber, ...a.pagar]} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />
             {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
