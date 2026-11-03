@@ -11,6 +11,7 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos, { CentralDisputas } from './CentralVencidos'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -46,6 +47,7 @@ export default function ContasVencidasPage() {
   const periodo = useMemo(() => resolverPeriodo(preset, personalizado), [preset, personalizado])
   const [f, setF] = useState<Filtros>(() => filtrosIniciais(periodo.inicio, periodo.fim))
   const [lado, setLado] = useState<'receber' | 'pagar'>('receber')
+  const [shareAberto, setShareAberto] = useState(false)
   // tela de celular (acompanha girar o aparelho)
   const [estreito, setEstreito] = useState(false)
   useEffect(() => {
@@ -118,12 +120,25 @@ export default function ContasVencidasPage() {
     }
   })() : null
 
+  const textoShare = r ? [
+    `📌 ${L('Contas Vencidas', 'Overdue Bills', 'Cuentas Vencidas')} — Axioma (${new Date(`${a!.hoje}T00:00:00`).toLocaleDateString(local)})`,
+    `• ${L('A receber vencido', 'Overdue receivable', 'Por cobrar vencido')}: ${fmt(r.totalReceber)} (${r.receber.length})`,
+    `• ${L('A pagar vencido', 'Overdue payable', 'Por pagar vencido')}: ${fmt(r.totalPagar)} (${r.pagar.length})`,
+    `• ${L('Recuperado no período', 'Recovered in period', 'Recuperado en el período')}: ${fmt(r.recuperado)} · ${L('taxa', 'rate', 'tasa')} ${pct(r.taxaRecuperacao)}`,
+    `• ${L('Promessas em aberto / descumpridas', 'Open / broken promises', 'Promesas abiertas / incumplidas')}: ${r.promessasPendentes} / ${r.promessasDescumpridas}`,
+    `• ${L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')}: ${r.disputasAbertas} (${fmt(r.valorContestado)})`,
+    ...(r.receber.slice(0, 3).length ? [`${L('Maiores prioridades de cobrança', 'Top collection priorities', 'Mayores prioridades de cobranza')}:`, ...r.receber.slice(0, 3).map((i) => `  - ${i.titulo.contraparteNome}: ${fmt(i.saldo)} (${i.encargos.dias} ${L('dias', 'days', 'días')})`)] : []),
+  ].join('\n') : ''
+
   return (
     <div data-theme={tema}>
       <ModuloLayout titulo={L('Contas Vencidas', 'Overdue Bills', 'Cuentas Vencidas')}
         subtitulo={L('O que está atrasado, a pagar e a receber, numa tela só — e o caminho para resolver', 'What is late, payable and receivable, on one screen — and the way to solve it', 'Lo que está atrasado, por pagar y por cobrar, en una sola pantalla — y el camino para resolverlo')}
         headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
-        botaoExtra={<ThemeToggle />}>
+        botaoExtra={<>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} solido={temaClaro} />
+          <ThemeToggle />
+        </>}>
         {carregando ? <p className="text-xs py-10 text-center" style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : !a || !r ? (
           <p className="text-xs py-10 text-center" style={{ color: P.CINZA }}>{L('Escolha a Empresa ativa no topo da tela.', 'Choose the active Company at the top of the screen.', 'Elija la Empresa activa en la parte superior.')}</p>
         ) : (
@@ -293,6 +308,7 @@ export default function ContasVencidasPage() {
           </div>
         )}
       </ModuloLayout>
+      <CentroCompartilhamento aberto={shareAberto} onFechar={() => setShareAberto(false)} lang={lang} textoResumo={textoShare} assunto={`${L('Contas Vencidas', 'Overdue Bills', 'Cuentas Vencidas')} — Axioma`} />
     </div>
   )
 }

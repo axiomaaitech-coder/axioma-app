@@ -13,6 +13,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **Comercial ▼** → **Contas Vencidas**.'] },
 
+    { h1: 'Compartilhar' },
+    { p: 'O botão **Compartilhar**, no topo, abre a mesma central de compartilhamento dos outros módulos (WhatsApp, Gmail, Outlook, Telegram, copiar e outros) com um resumo pronto: vencido a receber e a pagar, recuperado e taxa, promessas, divergências e as três maiores prioridades de cobrança.' },
+
     { h1: 'Letreiro' },
     { p: 'A faixa azul-marinho no alto passa os números do momento: vencido a receber e a pagar, recuperado no período, taxa de recuperação, promessas descumpridas, divergências abertas e quanto está em até 30 dias (referência de mercado 75–80%). Passe o mouse para pausar.' },
 
@@ -96,6 +99,9 @@ const en: DocumentoAxioma = {
     { h1: 'How to get there' },
     { lista: ['Top menu → **Commercial ▼** → **Overdue Bills**.'] },
 
+    { h1: 'Share' },
+    { p: 'The **Share** button at the top opens the same sharing center as the other modules (WhatsApp, Gmail, Outlook, Telegram, copy and more) with a ready summary: overdue receivable and payable, recovered and rate, promises, disputes and the three top collection priorities.' },
+
     { h1: 'Ticker' },
     { p: 'The navy strip at the top scrolls the current numbers: overdue receivable and payable, recovered in period, recovery rate, broken promises, open disputes and how much is within 30 days (market reference 75–80%). Hover to pause.' },
 
@@ -178,6 +184,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **Comercial ▼** → **Cuentas Vencidas**.'] },
+
+    { h1: 'Compartir' },
+    { p: 'El botón **Compartir**, arriba, abre la misma central de compartir de los demás módulos (WhatsApp, Gmail, Outlook, Telegram, copiar y otros) con un resumen listo: vencido por cobrar y por pagar, recuperado y tasa, promesas, divergencias y las tres mayores prioridades de cobranza.' },
 
     { h1: 'Marquesina' },
     { p: 'La franja azul marino de arriba muestra los números del momento: vencido por cobrar y por pagar, recuperado en el período, tasa de recuperación, promesas incumplidas, divergencias abiertas y cuánto está en hasta 30 días (referencia de mercado 75–80%). Pase el mouse para pausar.' },
