@@ -16,7 +16,8 @@ import { montarMensagem, modeloSugerido, nomeMensagem, linkWhatsapp, linkEmail, 
 import { exportarPlanilha } from '../../../lib/exportarPlanilha'
 import { createClient } from '../../../lib/supabase/client'
 import { hojeISO, somarDiasISO } from '../../../lib/datas'
-import { nomeAcao, porqueAcao, nomeFator, nomePromessa, nomeCanal, nomeCausa, nomeTendencia, nomeCriticidade, CANAIS_CONTATO, type Lang } from '../../../lib/vencidos/textos'
+import { explicarAcao } from '../../../lib/vencidos/explicacao'
+import { nomeAcao, nomeFator, nomePromessa, nomeCanal, nomeCausa, nomeTendencia, nomeCriticidade, CANAIS_CONTATO, type Lang } from '../../../lib/vencidos/textos'
 
 type Paleta = { VERDE: string; VERMELHO: string; ALERTA: string; CINZA: string; TEXTO: string; PAINEL_BG: string; ANINHADA: string; BORDA: string; CAMPO: string }
 type Ordem = 'prioridade' | 'atraso' | 'saldo' | 'cliente'
@@ -218,6 +219,24 @@ function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, d
 }
 
 // Detalhe de uma conta: valores, base legal, por que a nota/ação, comportamento do cliente, contatos e promessa
+// Explicação completa da próxima ação (etapa 10): por quê, dados usados, benefício, risco e próximo passo
+function ExplicacaoAcao({ i, lang, P, fmt }: { i: ItemVencido; lang: Lang; P: Paleta; fmt: (v: number) => string }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const x = explicarAcao(lang, i, hojeISO(), fmt)
+  const bloco = (t: string, txt: string, cor?: string) => <p><b style={{ color: cor ?? P.TEXTO }}>{t}:</b> <span style={{ color: P.TEXTO }}>{txt}</span></p>
+  return (
+    <div className="space-y-1 rounded-lg p-2" style={{ border: `1px solid ${P.BORDA}` }}>
+      {bloco(L('Por quê', 'Why', 'Por qué'), x.porque)}
+      <div><b>{L('Dados usados', 'Data used', 'Datos usados')}:</b>
+        <ul className="list-disc pl-4" style={{ color: P.CINZA }}>{x.dados.map((d) => <li key={d}>{d}</li>)}</ul>
+      </div>
+      {bloco(L('Benefício', 'Benefit', 'Beneficio'), x.beneficio, P.VERDE)}
+      {bloco(L('Risco de não fazer', 'Risk of not doing it', 'Riesgo de no hacerlo'), x.risco, P.VERMELHO)}
+      {bloco(L('Próximo passo', 'Next step', 'Próximo paso'), x.passo, P.VERDE)}
+    </div>
+  )
+}
+
 function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, historico, itens, temaClaro }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void; historico: Titulo[]; itens: ItemVencido[]; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
@@ -276,7 +295,7 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
       </div>
       <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
-        <p style={{ color: P.CINZA }}>{porqueAcao(lang, i.acao.acao)}</p>
+        <ExplicacaoAcao i={i} lang={lang} P={P} fmt={fmt} />
         <p className="pt-1"><b>{L('Causa provável', 'Likely cause', 'Causa probable')}:</b> {nomeCausa(lang, i.causaSugerida.causa)} <span style={{ color: P.CINZA }}>({i.causaSugerida.tipo === 'fato' ? L('confirmada', 'confirmed', 'confirmada') : L('a confirmar', 'to be confirmed', 'por confirmar')})</span></p>
         {i.promessa && <p><b>{nomePromessa(lang, i.promessa)}</b></p>}
         <p className="font-bold pt-1">{L('Nota de risco', 'Risk score', 'Nota de riesgo')}: {i.risco.score ?? L('sem histórico suficiente', 'not enough history', 'sin historial suficiente')}</p>
@@ -528,7 +547,7 @@ function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: Item
       </div>
       <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
-        <p style={{ color: P.CINZA }}>{porqueAcao(lang, i.acao.acao)}</p>
+        <ExplicacaoAcao i={i} lang={lang} P={P} fmt={fmt} />
         <p className="font-bold pt-1">{L('Prioridade de pagamento', 'Payment priority', 'Prioridad de pago')}: {i.prioridade.score}</p>
         {i.prioridade.fatores.map((f) => <p key={f.chave} className="flex justify-between"><span style={{ color: P.CINZA }}>{nomeFator(lang, f.chave)}</span><span>{f.pontos > 0 ? '+' : ''}{f.pontos}</span></p>)}
         <Link href="/contas-pagar?filtro=vencido" className="inline-block mt-2 px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Pagar em Contas a Pagar', 'Pay in Payables', 'Pagar en Cuentas por Pagar')}</Link>
