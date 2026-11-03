@@ -12,6 +12,7 @@ import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos, { CentralDisputas } from './CentralVencidos'
 import Simulador from './Simulador'
 import CentralAlertas from './Alertas'
+import PilotoAutomatico from './PilotoAutomatico'
 import ChatInteligencia from '../../../components/ChatInteligencia'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
@@ -20,7 +21,7 @@ import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { optBarrasH, optBarrasV, coresSituacao, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
-import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos } from '../../../lib/vencidos/dados'
+import { carregarAnaliseVencidos, registrarPrevisaoDoDia, monitorarPromessas, type AnaliseVencidos } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
 type Idioma3 = 'pt' | 'en' | 'es'
@@ -68,6 +69,7 @@ export default function ContasVencidasPage() {
         const analise = await carregarAnaliseVencidos(id)
         setA(analise); setCarregando(false)
         if (!analise.falhou) void registrarPrevisaoDoDia(id, analise) // foto do dia: precisão e evolução
+        if (!analise.falhou) void monitorarPromessas(id, analise) // promessa descumprida entra no histórico (uma vez só)
       })
     }
     ler()
@@ -305,6 +307,7 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            {empresaId && <PilotoAutomatico a={a} empresaId={empresaId} lang={lang} P={P} fmt={fmt} />}
             {empresaId && <CentralAlertas alertas={a.alertas} empresaId={empresaId} lang={lang} P={P} temaClaro={temaClaro} dataTxt={dataTxt} />}
             {empresaId && (
               <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }}>

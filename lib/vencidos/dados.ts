@@ -68,6 +68,7 @@ export type AnaliseVencidos = {
   agingReceber: ReturnType<typeof M.aging>; agingPagar: ReturnType<typeof M.aging>
   migracao30: ReturnType<typeof M.migracaoAging>; previsao: ReturnType<typeof M.previsaoRecuperacao>
   tesouraria: M.BaseTesouraria; impacto: ReturnType<typeof M.impactoFinanceiro>; alertas: M.AlertaVencido[]
+  piloto: M.AcaoPiloto[]; pilotoDesligadas: M.RegraPiloto[]; parametros: Record<string, unknown>
   evolucao: { data: string; saldo: number }[]; versao: string
   titulosReceber: M.Titulo[]; titulosPagar: M.Titulo[]; legais: M.ParametrosLegais
   fonteTaxaLegal: string | null; falhou: boolean; avisos: string[]
@@ -181,7 +182,15 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
   const migracao30 = M.migracaoAging(receberT, somarDiasISO(hoje, -30), hoje, limites)
   const impacto = M.impactoFinanceiro(tesouraria, previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)
   const alertas = M.alertasVencidos({ hoje, migracao: migracao30, impacto, itens: [...receber, ...pagar].map((i) => ({ titulo: i.titulo, dna: i.dna, promessa: i.promessa, caso: casoMotor(i.caso), disputaPrazo: i.caso?.disputa_prazo ?? null, risco: i.risco.score, ultimoContato: i.ultimoContato?.data ?? null })) })
+  // Piloto automático (etapa 13): regras desligadas ficam em vencido_config.parametros.piloto_desligadas
+  const parametros = (cfg.data?.parametros as Record<string, unknown> | undefined) ?? {}
+  const pilotoDesligadas = (Array.isArray(parametros.piloto_desligadas) ? parametros.piloto_desligadas : []).filter((x): x is M.RegraPiloto => M.REGRAS_PILOTO.includes(x as M.RegraPiloto))
+  const piloto = M.filaDoDia([...receber, ...pagar].map((i) => ({
+    titulo: i.titulo, saldo: i.saldo, promessa: i.promessa, caso: casoMotor(i.caso), ultimoContato: i.ultimoContato?.data ?? null,
+    disputaParada: M.disputaParada({ status: i.caso?.disputa_status, prazo: i.caso?.disputa_prazo, atualizadoEm: i.caso?.atualizado_em }, hoje).parada,
+  })), hoje, M.REGRAS_PILOTO.filter((r) => !pilotoDesligadas.includes(r)))
   return {
+    piloto, pilotoDesligadas, parametros,
     hoje, limites, receber, pagar, agingReceber: M.aging(receberT, hoje, limites, legaisBase), agingPagar: M.aging(pagarT, hoje, limites, legaisBase),
     migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA, titulosReceber: receberT, titulosPagar: pagarT, legais: legaisBase,
     evolucao: (hist.data ?? []).map((x) => ({ data: x.data_base as string, saldo: Number(x.saldo_base) })).reverse(),
@@ -308,9 +317,15 @@ export async function historicoPrecisao(empresaId: string, a: Pick<AnaliseVencid
 
 export async function salvarConfigVencidos(empresaId: string, faixas: number[], parametros: Record<string, unknown> = {}): Promise<Resultado> {
   try { M.rotulosFaixas(faixas) } catch (e) { return { ok: false, erro: (e as Error).message } }
-  const { error } = await createClient().from('vencido_config').upsert({ empresa_id: empresaId, faixas: [...new Set(faixas)].sort((a, b) => a - b), parametros, atualizado_em: new Date().toISOString() })
+  const { data, error } = await createClient().from('vencido_config').upsert({ empresa_id: empresaId, faixas: [...new Set(faixas)].sort((a, b) => a - b), parametros, atualizado_em: new Date().toISOString() }).select('empresa_id')
   if (error) { reportarFalhaEscrita('vencido_config', 'upsert', error.message); return { ok: false, erro: error.message } }
+  if (!data?.length) return { ok: false, erro: 'sem permissão' } // RLS barrou em silêncio (só gestor grava)
   return { ok: true }
+}
+
+// Liga/desliga uma regra do piloto (só gestor grava: RLS do vencido_config); mantém faixas e demais parâmetros
+export async function salvarRegrasPiloto(empresaId: string, a: Pick<AnaliseVencidos, 'limites' | 'parametros'>, desligadas: M.RegraPiloto[]): Promise<Resultado> {
+  return salvarConfigVencidos(empresaId, a.limites, { ...a.parametros, piloto_desligadas: desligadas })
 }
 
 // Promessa descumprida: registra no histórico uma vez só (chave por promessa) e devolve quantas foram registradas.

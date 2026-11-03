@@ -1,6 +1,6 @@
 // Textos da Overdue Intelligence nos 3 idiomas (regra trilíngue): o motor devolve CÓDIGOS (ação, fator, causa,
 // situação) e a tela mostra por aqui — nada de texto só em português aparecendo em inglês/espanhol.
-import type { Acao, Causa, SituacaoPromessa, AlertaVencido, NivelAlerta } from './motor'
+import type { Acao, Causa, SituacaoPromessa, AlertaVencido, NivelAlerta, RegraPiloto } from './motor'
 
 export type Lang = 'pt' | 'en' | 'es'
 type T3 = [string, string, string]
@@ -93,3 +93,15 @@ export function textoAlerta(lang: Lang, a: AlertaVencido): string {
   }
   return em(lang, T[a.tipo])
 }
+
+// Piloto automático (etapa 13): nome e o que fazer de cada regra nos 3 idiomas
+const REGRAS: Record<RegraPiloto, { nome: T3; faca: T3 }> = {
+  fornecedor_essencial: { nome: ['Fornecedor essencial vencido', 'Essential supplier overdue', 'Proveedor esencial vencido'], faca: ['Pagar ou combinar novo prazo hoje para não parar a operação.', 'Pay or agree on a new date today so operations do not stop.', 'Pagar o acordar nuevo plazo hoy para no detener la operación.'] },
+  promessa_descumprida: { nome: ['Promessa descumprida', 'Broken promise', 'Promesa incumplida'], faca: ['Falar com o cliente e decidir: nova promessa, negociação ou subir o nível.', 'Talk to the customer and decide: new promise, negotiation or escalation.', 'Hablar con el cliente y decidir: nueva promesa, negociación o escalar.'] },
+  divergencia_parada: { nome: ['Divergência parada', 'Stalled dispute', 'Divergencia detenida'], faca: ['Prazo vencido ou 15 dias sem atualização: cobrar uma resposta de quem cuida.', 'Deadline passed or 15 days without update: ask the owner for an answer.', 'Plazo vencido o 15 días sin actualización: pedir respuesta al responsable.'] },
+  sem_contato: { nome: ['Sem contato há 15 dias', 'No contact for 15 days', 'Sin contacto hace 15 días'], faca: ['Mais de 30 dias de atraso e ninguém falou com o cliente: retomar o contato.', 'Over 30 days overdue and nobody talked to the customer: get back in touch.', 'Más de 30 días de atraso y nadie habló con el cliente: retomar el contacto.'] },
+  confirmar_promessa: { nome: ['Confirmar promessa', 'Confirm promise', 'Confirmar promesa'], faca: ['Promessa no prazo sem contato há 3 dias: confirmar que o pagamento sai na data.', 'Promise on time with no contact for 3 days: confirm the payment will happen on the date.', 'Promesa en plazo sin contacto hace 3 días: confirmar que el pago sale en la fecha.'] },
+  lembrete_inicio: { nome: ['Lembrete de início', 'Early reminder', 'Recordatorio inicial'], faca: ['Venceu há até 7 dias e ainda não houve lembrete: mandar mensagem cordial.', 'Overdue up to 7 days with no reminder yet: send a friendly message.', 'Venció hace hasta 7 días y aún no hubo recordatorio: enviar mensaje cordial.'] },
+}
+export const nomeRegraPiloto = (lang: Lang, r: RegraPiloto) => em(lang, REGRAS[r].nome)
+export const facaRegraPiloto = (lang: Lang, r: RegraPiloto) => em(lang, REGRAS[r].faca)
