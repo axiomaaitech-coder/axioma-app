@@ -43,3 +43,6 @@
 - 75 pontos de data em UTC trocados (o dia virava às 21h); parcela de cartão no fim do mês corrigida;
   receita de 1º de janeiro não cai mais no ano anterior (Contas a Receber, Inadimplência).
 - 4 rotas com conexão criada na montagem do site passaram a conectar sob demanda.
+
+## Disjuntor de saldo das IAs (2026-11-03)
+Quando a OpenAI ou a Anthropic responde "sem crédito" (insufficient_quota / no credits / credit balance), o motor (`lib/ia/motor.ts`, `marcarSemCredito`/`semCredito`) deixa aquele provedor de lado por 10 minutos e vai direto para a reserva (Gemini gratuito, com as mesmas ferramentas). Antes ele tentava cada modelo de novo a cada pergunta — no teste do Elias (Contas Vencidas, 03/11 15:04) foram 4 tentativas na OpenAI sem crédito antes da resposta. Erro comum e limite por minuto não desligam; passados 10 minutos ele testa de novo sozinho. Teste: `npx tsx scripts/check-ia-motor.mts`.

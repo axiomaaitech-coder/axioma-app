@@ -5,7 +5,7 @@ import type { NumerosRetrato } from '../lib/ia/retratoEmpresa'
 // O cálculo de imposto cria o cliente do Supabase ao carregar: valores falsos bastam (nada aqui acessa a rede).
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { triagemPorRegra, conferirNumeros } = await import('../lib/ia/motor')
+const { triagemPorRegra, conferirNumeros, semCredito, marcarSemCredito } = await import('../lib/ia/motor')
 const { setorDaEmpresa, SETORES } = await import('../lib/ia/setores')
 const { escolherManuais } = await import('../lib/ia/manuais')
 const { detectarAlertas } = await import('../lib/ia/retratoEmpresa')
@@ -86,3 +86,15 @@ const zero: NumerosRetrato = { receitaMensal: 10000, receitas6m: [10000, 9000, 9
 const al = detectarAlertas(zero)
 assert.ok(al[0].includes('2 meses') && al.includes('empresa dando prejuízo') && al.some((a) => a.includes('20%')))
 console.log('OK — alertas da situação')
+
+// ── disjuntor de saldo: "sem crédito" tira o provedor por 10 min; outros erros não ──
+assert.equal(semCredito('openai'), false)
+assert.equal(marcarSemCredito('openai', 500, 'internal error'), false, 'erro comum não desliga')
+assert.equal(marcarSemCredito('openai', 429, 'Rate limit reached for requests'), false, 'limite por minuto não é falta de crédito')
+assert.equal(semCredito('openai'), false)
+assert.equal(marcarSemCredito('openai', 429, '{"error":{"message":"You have no credits remaining. Add credits"}}'), true)
+assert.equal(semCredito('openai'), true, 'OpenAI fica de lado')
+assert.equal(semCredito('anthropic'), false, 'um provedor não derruba o outro')
+assert.equal(marcarSemCredito('anthropic', 400, 'Your credit balance is too low to access the Anthropic API'), true)
+assert.equal(semCredito('anthropic'), true)
+console.log('OK — disjuntor de saldo das IAs')

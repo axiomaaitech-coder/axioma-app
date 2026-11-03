@@ -67,6 +67,19 @@ const GEMINI_MODELO = () => process.env.GEMINI_MOTOR_MODELO || 'gemini-3-flash-p
 const provedorGemini = (): ProvedorCompat | null => process.env.GEMINI_API_KEY
   ? { nome: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave: process.env.GEMINI_API_KEY } : null
 
+// Disjuntor de saldo (anti-falha, 2026-11-03): provedor que respondeu "sem crédito" fica de lado por 10 minutos
+// e o motor vai direto para a reserva — antes tentava cada modelo de novo a cada pergunta e a resposta demorava.
+// Depois dos 10 minutos testa de novo sozinho (crédito recarregado volta sem mexer em nada).
+// ponytail: memória por instância do servidor; se houver muitas instâncias, cada uma descobre na 1ª chamada.
+const SEM_CREDITO_MS = 10 * 60_000
+const semCreditoAte: Record<'openai' | 'anthropic', number> = { openai: 0, anthropic: 0 }
+export const semCredito = (p: 'openai' | 'anthropic') => Date.now() < semCreditoAte[p]
+export function marcarSemCredito(p: 'openai' | 'anthropic', status: number | undefined, texto: string): boolean {
+  const acabou = (status === 429 || status === 400 || status === 402 || status === 403) && /insufficient_quota|no credits|credit balance|billing|exceeded your current quota/i.test(texto)
+  if (acabou) { semCreditoAte[p] = Date.now() + SEM_CREDITO_MS; console.error(`[motor-ia] ${p} sem crédito: fora por 10 min, usando a reserva`) }
+  return acabou
+}
+
 // ─── Medição de consumo (B2 — painel de custo) ───
 // Preço de tabela da Anthropic (US$ por milhão de tokens, consultado 2026-09-28;
 // gravar cache = 1,25× a entrada). OpenAI sem preço aqui de propósito: não
@@ -206,6 +219,7 @@ async function jsonPelaOpenAI(sistema: string, mensagem: string, esquema: Esquem
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return null
   for (const m of [OPENAI_FORTE, OPENAI_RESERVA]) {
+    if (semCredito('openai')) break
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(90000),
@@ -217,7 +231,7 @@ async function jsonPelaOpenAI(sistema: string, mensagem: string, esquema: Esquem
           messages: [{ role: 'system', content: `${sistema}\n${AVISO_IDENTIDADE}\nResponda SOMENTE com o JSON pedido.` }, { role: 'user', content: mensagem }],
         }),
       })
-      if (!res.ok) { console.error('[motor-ia] José via OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
+      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error('[motor-ia] José via OpenAI', m, res.status, corpo); if (marcarSemCredito('openai', res.status, corpo)) break; continue }
       const dados = await res.json()
       somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const texto = dados?.choices?.[0]?.message?.content
@@ -231,7 +245,7 @@ async function jsonPelaOpenAI(sistema: string, mensagem: string, esquema: Esquem
 export async function jsonDoJose(p: { sistema: string; mensagem: string; esquema: EsquemaJson; rotulo: string; uso?: Uso; nivel?: 'analise' | 'estrategica' }): Promise<{ texto: string; modelo: string }> {
   const modeloClaude = p.nivel === 'analise' ? MODELOS.analise.modelo : MODELO_JOSE
   const motivos: string[] = []
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.ANTHROPIC_API_KEY && !semCredito('anthropic')) {
     try {
       const client = new Anthropic()
       const params = {
@@ -257,8 +271,8 @@ export async function jsonDoJose(p: { sistema: string; mensagem: string; esquema
         try { JSON.parse(bloco.text); return { texto: bloco.text, modelo: r.model ?? modeloClaude } }
         catch { motivos.push('Claude: JSON inválido') }
       }
-    } catch (err) { motivos.push(`Claude: ${err instanceof Error ? err.message : String(err)}`) }
-  } else motivos.push('Claude: sem chave')
+    } catch (err) { motivos.push(`Claude: ${err instanceof Error ? err.message : String(err)}`); if (err instanceof Anthropic.APIError) marcarSemCredito('anthropic', err.status, err.message) }
+  } else motivos.push(semCredito('anthropic') ? 'Claude: sem crédito (pausado 10 min)' : 'Claude: sem chave')
 
   const reserva = await jsonPelaOpenAI(p.sistema, p.mensagem, p.esquema, p.uso)
   if (reserva) {
@@ -301,6 +315,7 @@ async function lerDocumentoComOpenAI(arquivo: ArquivoVisao, instrucao: string, e
     ? { type: 'file', file: { filename: 'documento.pdf', file_data: dataUrl } }
     : { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } }
   for (const m of OPENAI_VISAO) {
+    if (semCredito('openai')) break
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(50000), // 2 tentativas cabem nos 120s da rota
@@ -315,7 +330,7 @@ ${AVISO_IDENTIDADE}` },
           ],
         }),
       })
-      if (!res.ok) { console.error('[motor-ia] visão OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
+      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error('[motor-ia] visão OpenAI', m, res.status, corpo); if (marcarSemCredito('openai', res.status, corpo)) break; continue }
       const dados = await res.json()
       somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const texto = dados?.choices?.[0]?.message?.content
@@ -327,6 +342,7 @@ ${AVISO_IDENTIDADE}` },
 
 async function lerDocumentoComClaude(arquivo: ArquivoVisao, instrucao: string, esquema: Record<string, unknown>, uso?: Uso, diag?: { motivo?: string }): Promise<{ dados: unknown; modelo: string } | null> {
   if (!process.env.ANTHROPIC_API_KEY) { if (diag) diag.motivo = 'sem_chave'; return null }
+  if (semCredito('anthropic')) { if (diag) diag.motivo = 'sem_credito'; return null }
   const cfg = MODELOS.analise
   const bloco = arquivo.mediaType === 'application/pdf'
     ? { type: 'document', source: { type: 'base64', media_type: arquivo.mediaType, data: arquivo.base64 } }
@@ -348,6 +364,7 @@ async function lerDocumentoComClaude(arquivo: ArquivoVisao, instrucao: string, e
     return texto ? { dados: JSON.parse(texto), modelo: cfg.modelo } : null
   } catch (err) {
     console.error('[motor-ia] visão', cfg.modelo, err instanceof Error ? err.message : err)
+    if (err instanceof Anthropic.APIError) marcarSemCredito('anthropic', err.status, err.message)
     if (diag) diag.motivo = err instanceof Anthropic.APIError ? `api_${err.status}: ${err.message.slice(0, 300)}` : `erro: ${err instanceof Error ? err.message.slice(0, 300) : 'desconhecido'}`
     return null
   }
@@ -357,13 +374,14 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
   const chave = process.env.OPENAI_API_KEY
   if (!chave) return null
   for (const m of [modelo, OPENAI_RESERVA]) {
+    if (semCredito('openai')) break
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(timeoutMs),
         headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: m, max_completion_tokens: maxTokens, messages: [{ role: 'system', content: sistema }, ...msgs], ...(json ? { response_format: { type: 'json_object' } } : {}) }),
       })
-      if (!res.ok) { console.error('[motor-ia] OpenAI', m, res.status, (await res.text()).slice(0, 300)); continue }
+      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error('[motor-ia] OpenAI', m, res.status, corpo); if (marcarSemCredito('openai', res.status, corpo)) break; continue }
       const dados = await res.json()
       somarUso(uso, m, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const texto = dados?.choices?.[0]?.message?.content
@@ -466,7 +484,7 @@ type MsgOpenAI = { role: string; content: string | null; tool_calls?: { id: stri
 export async function chamarOpenAIComFerramentas(sistema: string, msgs: MensagemHistorico[], modelo: string, consulta: ConsultaMotor, uso?: Uso, prov?: ProvedorCompat | null): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   const p = prov ?? (process.env.OPENAI_API_KEY ? { nome: 'openai' as const, url: 'https://api.openai.com/v1/chat/completions', chave: process.env.OPENAI_API_KEY } : null)
-  if (!p) return { texto: null, dadosConsultados }
+  if (!p || (p.nome === 'openai' && semCredito('openai'))) return { texto: null, dadosConsultados }
   const gemini = p.nome === 'gemini'
   const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
   const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
@@ -482,7 +500,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
         // Pergunta que exige dado: na 1ª rodada o modelo é OBRIGADO a consultar (required)
         body: JSON.stringify({ model: modelo, ...(gemini ? { max_tokens: 3000 } : { max_completion_tokens: 3000 }), messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
       })
-      if (!res.ok) { console.error(`[motor-ia] ${p.nome} ferramentas`, modelo, res.status, (await res.text()).slice(0, 300)); return { texto: null, dadosConsultados } }
+      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error(`[motor-ia] ${p.nome} ferramentas`, modelo, res.status, corpo); if (p.nome === 'openai') marcarSemCredito('openai', res.status, corpo); return { texto: null, dadosConsultados } }
       const dados = await res.json()
       somarUso(uso, modelo, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const msg = dados?.choices?.[0]?.message as MsgOpenAI | undefined
@@ -521,7 +539,7 @@ const MAX_CONSULTAS = 4
 type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
 async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: ConsultaMotor, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
-  if (!process.env.ANTHROPIC_API_KEY) return { texto: null, dadosConsultados }
+  if (!process.env.ANTHROPIC_API_KEY || semCredito('anthropic')) return { texto: null, dadosConsultados }
   const cfg = MODELOS[nivel]
   const client = new Anthropic()
   const conversa: Anthropic.Beta.BetaMessageParam[] = msgs.map((m) => ({ role: m.role, content: m.content }))
@@ -560,6 +578,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
     return { texto: null, dadosConsultados }
   } catch (err) {
     console.error('[motor-ia] Anthropic', cfg.modelo, err instanceof Error ? err.message : err)
+    if (err instanceof Anthropic.APIError) marcarSemCredito('anthropic', err.status, err.message)
     return { texto: null, dadosConsultados }
   }
 }
