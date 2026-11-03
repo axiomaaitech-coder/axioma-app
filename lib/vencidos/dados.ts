@@ -11,8 +11,7 @@ import { comRetentativa } from '../antiFalha'
 import * as Sentry from '@sentry/nextjs'
 import { reportarFalhaLeitura } from '../erroUiHelpers'
 import { hojeISO, somarDiasISO } from '../datas'
-import { criarCompromisso } from '../cobrancaHelpers'
-import { obterConfigTesouraria, obterPosicaoCaixa, obterCapitalDeGiro } from '../tesourariaHelpers'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import * as M from './motor'
 
 type Rel = { nome?: string | null; nome_fantasia?: string | null; razao_social?: string | null; documento?: string | null }
@@ -73,9 +72,20 @@ export type AnaliseVencidos = {
   fonteTaxaLegal: string | null; falhou: boolean; avisos: string[]
 }
 
-export async function carregarAnaliseVencidos(empresaId: string): Promise<AnaliseVencidos> {
-  const sb = createClient()
-  const hoje = hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
+// Caixa da Tesouraria (origem única do caixa). No navegador usa as funções da Tesouraria (carregadas só aqui,
+// sob demanda); no servidor (IA) quem chama entrega a leitura com o cliente do usuário (RLS).
+export type LerTesouraria = (empresaId: string, hoje: string) => Promise<{ caixa: number; reserva: number; giro: number | null; falhou: boolean }>
+const tesourariaNavegador: LerTesouraria = async (empresaId, hoje) => {
+  const t = await import('../tesourariaHelpers')
+  const cfgT = await t.obterConfigTesouraria(empresaId).catch(() => null)
+  const reserva = Number(cfgT?.reserva_minima ?? 0)
+  const [posicao, giro] = await Promise.all([t.obterPosicaoCaixa(empresaId, hoje, reserva), t.obterCapitalDeGiro(empresaId).catch(() => null)])
+  return { caixa: posicao.totalDisponivel, reserva, giro: giro?.capitalDeGiro ?? null, falhou: posicao.falhou }
+}
+
+export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: SupabaseClient; hoje?: string; tesouraria?: LerTesouraria } = {}): Promise<AnaliseVencidos> {
+  const sb = opcoes.sb ?? createClient()
+  const hoje = opcoes.hoje ?? hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
   const [cr, cp, casos, prom, cfg, legal, hist, negoc, contatos] = await Promise.all([
     comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
@@ -119,9 +129,10 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
   const casosEmNegociacao = new Set((negoc.data ?? []).filter((e) => e.tipo === 'negociacao_proposta' && !decididas.has(e.id)).map((e) => e.caso_id as string))
 
   // Tesouraria (origem única do caixa): posição, reserva mínima e capital de giro já calculados lá
-  const cfgT = await obterConfigTesouraria(empresaId).catch(() => null)
-  const reservaMinima = Number(cfgT?.reserva_minima ?? 0)
-  const [posicao, giro] = await Promise.all([obterPosicaoCaixa(empresaId, hoje, reservaMinima), obterCapitalDeGiro(empresaId).catch(() => null)])
+  const tes = await (opcoes.tesouraria ?? tesourariaNavegador)(empresaId, hoje).catch(() => ({ caixa: 0, reserva: 0, giro: null, falhou: true }))
+  const reservaMinima = tes.reserva
+  const posicao = { totalDisponivel: tes.caixa, falhou: tes.falhou }
+  const giro = tes.giro == null ? null : { capitalDeGiro: tes.giro }
   if (posicao.falhou) avisos.push('posição de caixa indisponível: simulações usam caixa zero')
 
   const montar = (lista: M.Titulo[], totalVencidoPagar = 0): ItemVencido[] => {
@@ -222,6 +233,7 @@ export async function salvarCaso(empresaId: string, dominio: M.Dominio, tituloId
 export async function registrarPromessa(userId: string, empresaId: string, titulo: M.Titulo, p: { valor: number; data: string; canal?: string; responsavel?: string; renegociaDe?: string }): Promise<Resultado> {
   if (titulo.dominio !== 'receber') return { ok: false, erro: 'promessa é de cliente (a receber)' }
   if (!(p.valor > 0) || p.valor > M.saldoDoTitulo(titulo, hojeISO()) + 0.004) return { ok: false, erro: 'valor prometido deve ser maior que zero e até o saldo' }
+  const { criarCompromisso } = await import('../cobrancaHelpers')
   const r = await criarCompromisso(userId, empresaId, { conta_id: titulo.id, cliente_id: titulo.contraparteId, tipo: 'promessa', valor_original: M.saldoDoTitulo(titulo, hojeISO()), valor_compromissado: p.valor, data_compromissada: p.data, responsavel: p.responsavel ?? null, ...({ canal: p.canal ?? null, recebido_na_promessa: titulo.quitado, renegociada_de: p.renegociaDe ?? null } as object) })
   return r.erro ? { ok: false, erro: r.erro } : { ok: true }
 }

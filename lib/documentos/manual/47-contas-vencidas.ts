@@ -45,6 +45,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Ligações com outros módulos' },
     { p: 'Botões no topo levam a **Contas a Receber**, **Contas a Pagar**, **Inadimplência** (régua e negociação), **Clientes**, **Fornecedores**, **Tesouraria** e **Fluxo de Caixa**. No caminho de volta, o Dashboard, Contas a Receber, Contas a Pagar, Inadimplência e Tesouraria mostram um cartão com o total vencido e o botão **Abrir Contas Vencidas**.' },
 
+    { h1: 'Perguntar às IAs' },
+    { p: 'As IAs do Axioma (IA Financeira, Relatórios, José e as demais) consultam esta mesma análise. Exemplos: "Quanto temos vencido?", "Quem são os maiores inadimplentes?", "Quais promessas foram descumpridas?", "Qual fornecedor pagar primeiro?", "Se recuperarmos 70% em 30 dias, como fica o caixa?". Os números vêm calculados pelo Axioma; a IA explica e nunca cobra, negocia ou apaga nada.' },
+
     { h1: 'Contas a receber vencidas' },
     { p: 'Tabela com cliente, descrição, vencimento e dias de atraso, valor original, **saldo**, **juros e multa**, **risco** (0 a 1000, ou "sem histórico"), **prioridade**, **último contato** e **próxima ação**. No celular cada conta vira um cartão.' },
     { lista: [
@@ -108,6 +111,9 @@ const en: DocumentoAxioma = {
     { h1: 'Links to other modules' },
     { p: 'Buttons at the top lead to **Receivables**, **Payables**, **Delinquency** (schedule and negotiation), **Customers**, **Suppliers**, **Treasury** and **Cash Flow**. On the way back, the Dashboard, Receivables, Payables, Delinquency and Treasury show a card with the overdue total and the **Open Overdue Bills** button.' },
 
+    { h1: 'Asking the AIs' },
+    { p: 'Axioma AIs (Financial AI, Reports, José and the others) read this same analysis. Examples: "How much is overdue?", "Who are the biggest late payers?", "Which promises were broken?", "Which supplier should we pay first?", "If we recover 70% in 30 days, how does cash look?". The numbers are calculated by Axioma; the AI explains and never collects, negotiates or deletes anything.' },
+
     { h1: 'Overdue receivables' },
     { p: 'Table with customer, description, due date and days overdue, original amount, **balance**, **interest and fines**, **risk** (0 to 1000, or "no history"), **priority**, **last contact** and **next action**. On a phone each bill becomes a card.' },
     { lista: [
@@ -170,6 +176,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Vínculos con otros módulos' },
     { p: 'Los botones de arriba llevan a **Cuentas por Cobrar**, **Cuentas por Pagar**, **Morosidad** (regla y negociación), **Clientes**, **Proveedores**, **Tesorería** y **Flujo de Caja**. De vuelta, el Dashboard, Cuentas por Cobrar, Cuentas por Pagar, Morosidad y Tesorería muestran una tarjeta con el total vencido y el botón **Abrir Cuentas Vencidas**.' },
+
+    { h1: 'Preguntar a las IAs' },
+    { p: 'Las IAs de Axioma (IA Financiera, Informes, José y las demás) consultan este mismo análisis. Ejemplos: "¿Cuánto tenemos vencido?", "¿Quiénes son los mayores morosos?", "¿Qué promesas se incumplieron?", "¿A qué proveedor pagar primero?", "Si recuperamos 70% en 30 días, ¿cómo queda la caja?". Los números los calcula Axioma; la IA explica y nunca cobra, negocia ni borra nada.' },
 
     { h1: 'Cuentas por cobrar vencidas' },
     { p: 'Tabla con cliente, descripción, vencimiento y días de atraso, valor original, **saldo**, **intereses y multas**, **riesgo** (0 a 1000, o "sin historial"), **prioridad**, **último contacto** y **próxima acción**. En el celular cada cuenta es una tarjeta.' },
