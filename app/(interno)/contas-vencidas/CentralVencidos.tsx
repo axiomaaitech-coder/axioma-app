@@ -361,27 +361,43 @@ function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemV
     try { await navigator.clipboard.writeText(texto); setAberto('outro'); avisar(L('Texto copiado.', 'Text copied.', 'Texto copiado.')) }
     catch { avisar(L('Não foi possível copiar — selecione o texto e copie.', 'Could not copy — select the text and copy it.', 'No fue posible copiar — seleccione el texto y cópielo.')) }
   }
+  const sugerido = modeloSugerido(i.encargos.dias, promessaAberta)
+  const botao = 'px-4 py-2.5 rounded-xl text-sm font-bold text-white'
   return (
-    <div className="lg:col-span-3 rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="font-bold mr-auto">{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
-        <select aria-label={L('Modelo', 'Template', 'Modelo')} value={tipo} onChange={(e) => { setTipo(e.target.value as TipoMensagem); setEditado(null) }} className="rounded-lg px-1.5 py-1" style={campo}>
-          {TIPOS_MENSAGEM.map((t) => <option key={t} value={t}>{nomeMensagem(lang, t)}</option>)}
-        </select>
-        <select aria-label={L('Idioma da mensagem', 'Message language', 'Idioma del mensaje')} value={idioma} onChange={(e) => { setIdioma(e.target.value as 'pt' | 'en' | 'es'); setEditado(null) }} className="rounded-lg px-1.5 py-1" style={campo}>
-          <option value="pt">Português</option><option value="en">English</option><option value="es">Español</option>
-        </select>
+    <div className="lg:col-span-3 rounded-2xl p-4 md:p-5 space-y-4 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-base md:text-lg font-bold" style={{ color: P.TEXTO }}>{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
+          <p className="text-sm mt-0.5" style={{ color: P.CINZA }}>{L('Escolha o modelo — o texto já vem com os dados reais da conta e pode ser ajustado antes de enviar.', 'Pick a template — the text comes with the real bill data and can be adjusted before sending.', 'Elija el modelo — el texto viene con los datos reales de la cuenta y se puede ajustar antes de enviar.')}</p>
+        </div>
+        <label className="text-sm flex items-center gap-2" style={{ color: P.TEXTO }}>{L('Idioma', 'Language', 'Idioma')}
+          <select aria-label={L('Idioma da mensagem', 'Message language', 'Idioma del mensaje')} value={idioma} onChange={(e) => { setIdioma(e.target.value as 'pt' | 'en' | 'es'); setEditado(null) }} className="rounded-xl px-3 py-2 text-sm" style={campo}>
+            <option value="pt">Português</option><option value="en">English</option><option value="es">Español</option>
+          </select>
+        </label>
       </div>
-      <textarea aria-label={L('Texto da mensagem', 'Message text', 'Texto del mensaje')} value={texto} onChange={(e) => setEditado(e.target.value)} rows={6} className="w-full rounded-lg p-2" style={campo} />
-      <div className="flex flex-wrap gap-1.5">
-        <button type="button" onClick={() => void copiar()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Copiar texto', 'Copy text', 'Copiar texto')}</button>
-        {wa ? <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => setAberto('whatsapp')} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Abrir no WhatsApp', 'Open in WhatsApp', 'Abrir en WhatsApp')}</a>
-          : <span className="px-2.5 py-1.5" style={{ color: P.CINZA }}>{L('WhatsApp: cliente sem telefone no cadastro', 'WhatsApp: no phone on file', 'WhatsApp: cliente sin teléfono registrado')}</span>}
-        {mail ? <a href={mail} onClick={() => setAberto('email')} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Abrir no e-mail', 'Open in email', 'Abrir en correo')}</a>
-          : <span className="px-2.5 py-1.5" style={{ color: P.CINZA }}>{L('E-mail: cliente sem e-mail no cadastro', 'Email: no address on file', 'Correo: cliente sin correo registrado')}</span>}
-        {aberto && <button type="button" onClick={() => void marcarEnviada()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Marcar como enviada', 'Mark as sent', 'Marcar como enviada')}</button>}
+      <div className="flex flex-wrap gap-2" role="group" aria-label={L('Modelos de mensagem', 'Message templates', 'Modelos de mensaje')}>
+        {TIPOS_MENSAGEM.map((t) => (
+          <button key={t} type="button" aria-pressed={tipo === t} onClick={() => { setTipo(t); setEditado(null) }}
+            className="px-3.5 py-2 rounded-xl text-sm font-semibold axi-card-premium3d axi-card-faixa"
+            style={tipo === t ? { background: BOTAO_ACAO, color: '#ffffff', border: '1px solid transparent' } : { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }}>
+            {nomeMensagem(lang, t)}{t === sugerido ? ` · ${L('sugerido', 'suggested', 'sugerido')}` : ''}
+          </button>
+        ))}
       </div>
-      <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Quem envia é você, pelo seu WhatsApp ou e-mail — o Axioma não manda nada sozinho. Envio automático (WhatsApp Business, e-mail, SMS): não configurado.', 'You send it, from your own WhatsApp or email — Axioma never sends anything on its own. Automatic sending (WhatsApp Business, email, SMS): not configured.', 'Usted lo envía, desde su WhatsApp o correo — Axioma no envía nada solo. Envío automático (WhatsApp Business, correo, SMS): no configurado.')}</p>
+      <div className="rounded-2xl p-1 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, background: P.CAMPO }}>
+        <textarea aria-label={L('Texto da mensagem', 'Message text', 'Texto del mensaje')} value={texto} onChange={(e) => setEditado(e.target.value)} rows={13}
+          className="w-full rounded-xl p-4 text-[15px] md:text-base leading-relaxed outline-none resize-y" style={{ background: 'transparent', color: P.TEXTO }} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => void copiar()} className={botao} style={{ background: BOTAO_SECUNDARIO }}>{L('Copiar texto', 'Copy text', 'Copiar texto')}</button>
+        {wa ? <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => setAberto('whatsapp')} className={botao} style={{ background: BOTAO_ACAO }}>{L('Abrir no WhatsApp', 'Open in WhatsApp', 'Abrir en WhatsApp')}</a>
+          : <span className="px-2 py-2.5 text-sm" style={{ color: P.CINZA }}>{L('WhatsApp: cliente sem telefone no cadastro', 'WhatsApp: no phone on file', 'WhatsApp: cliente sin teléfono registrado')}</span>}
+        {mail ? <a href={mail} onClick={() => setAberto('email')} className={botao} style={{ background: BOTAO_ACAO }}>{L('Abrir no e-mail', 'Open in email', 'Abrir en correo')}</a>
+          : <span className="px-2 py-2.5 text-sm" style={{ color: P.CINZA }}>{L('E-mail: cliente sem e-mail no cadastro', 'Email: no address on file', 'Correo: cliente sin correo registrado')}</span>}
+        {aberto && <button type="button" onClick={() => void marcarEnviada()} className={botao} style={{ background: BOTAO_ACAO }}>{L('Marcar como enviada', 'Mark as sent', 'Marcar como enviada')}</button>}
+      </div>
+      <p className="text-sm" style={{ color: P.CINZA }}>{L('Quem envia é você, pelo seu WhatsApp ou e-mail — o Axioma não manda nada sozinho. Os textos são cordiais e firmes, sem ameaça nem constrangimento (Código de Defesa do Consumidor, art. 42). Envio automático (WhatsApp Business, e-mail, SMS): não configurado.', 'You send it, from your own WhatsApp or email — Axioma never sends anything on its own. Texts are friendly and firm, with no threats or embarrassment (Consumer Code, art. 42). Automatic sending (WhatsApp Business, email, SMS): not configured.', 'Usted lo envía, desde su WhatsApp o correo — Axioma no envía nada solo. Los textos son cordiales y firmes, sin amenazas ni vergüenza (Código de Defensa del Consumidor, art. 42). Envío automático (WhatsApp Business, correo, SMS): no configurado.')}</p>
     </div>
   )
 }
