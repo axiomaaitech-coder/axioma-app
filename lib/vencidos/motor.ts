@@ -549,3 +549,28 @@ export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa
   if (e.impacto.riscoRuptura !== 'baixo') add({ tipo: 'ruptura_caixa', severidade: e.impacto.riscoRuptura === 'alto' ? 'critico' : 'alto', texto: e.impacto.riscoRuptura === 'alto' ? 'caixa projetado em 30 dias negativo' : 'caixa projetado em 30 dias abaixo da reserva mínima', dados: {} })
   return a.sort((x, y) => NIVEIS_ALERTA.indexOf(x.severidade) - NIVEIS_ALERTA.indexOf(y.severidade))
 }
+
+// ─── PILOTO AUTOMÁTICO SUPERVISIONADO (etapa 13) ───
+// Monta a fila de ações do dia a partir das regras; NADA sai sozinho: cada ação abre a conta para a pessoa enviar/decidir.
+// Some da fila quando a pessoa registra o contato (o último contato passa a ser recente).
+export type RegraPiloto = 'lembrete_inicio' | 'confirmar_promessa' | 'promessa_descumprida' | 'sem_contato' | 'fornecedor_essencial' | 'divergencia_parada'
+export const REGRAS_PILOTO: RegraPiloto[] = ['fornecedor_essencial', 'promessa_descumprida', 'divergencia_parada', 'sem_contato', 'confirmar_promessa', 'lembrete_inicio']
+export type AcaoPiloto = { chave: string; regra: RegraPiloto; tituloId: string; dominio: Dominio; nome: string; saldo: number; dias: number }
+export function filaDoDia(itens: { titulo: Titulo; saldo: number; promessa: SituacaoPromessa | null; caso?: Caso | null; ultimoContato?: string | null; disputaParada?: boolean }[], hoje: string, ligadas: RegraPiloto[] = REGRAS_PILOTO): AcaoPiloto[] {
+  const on = new Set(ligadas), fila: AcaoPiloto[] = []
+  const semContato = (u: string | null | undefined, d: number) => !u || diasEntre(u.slice(0, 10), hoje) - 1 > d
+  for (const i of itens) {
+    const t = i.titulo, dias = diasAtraso(t.vencimento, hoje)
+    if (dias <= 0 || i.saldo <= 0) continue
+    const disputa = separarDisputa(i.saldo, i.caso).aberta
+    let regra: RegraPiloto | null = null
+    if (t.dominio === 'pagar') { if (i.caso?.criticidade === 'critica' || i.caso?.riscoInterrupcao) regra = 'fornecedor_essencial' }
+    else if (disputa) { if (i.disputaParada) regra = 'divergencia_parada' }
+    else if (i.promessa === 'descumprida') regra = 'promessa_descumprida'
+    else if (i.promessa && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(i.promessa)) { if (semContato(i.ultimoContato, 3)) regra = 'confirmar_promessa' }
+    else if (dias > 30 && semContato(i.ultimoContato, 15)) regra = 'sem_contato'
+    else if (dias <= 7 && (!i.ultimoContato || i.ultimoContato.slice(0, 10) < t.vencimento)) regra = 'lembrete_inicio'
+    if (regra && on.has(regra)) fila.push({ chave: `${regra}:${t.id}`, regra, tituloId: t.id, dominio: t.dominio, nome: t.contraparteNome ?? '', saldo: i.saldo, dias })
+  }
+  return fila.sort((a, b) => REGRAS_PILOTO.indexOf(a.regra) - REGRAS_PILOTO.indexOf(b.regra) || b.saldo - a.saldo)
+}

@@ -209,6 +209,17 @@ assert.ok(al2.some((x) => x.tipo === 'sem_acompanhamento' && x.tituloId === 'r1'
 assert.ok(!al2.some((x) => x.tipo === 'sem_acompanhamento' && x.tituloId === 'r2'), 'com promessa não cobra acompanhamento')
 assert.ok(al2.some((x) => x.tipo === 'promessa_no_prazo' && x.severidade === 'normal'))
 
+// piloto automático (etapa 13): fila do dia
+const fila = M.filaDoDia([
+  { titulo: t('l1', somarDiasISO(hoje, -3), 100), saldo: 100, promessa: null, ultimoContato: null },
+  { titulo: t('l2', somarDiasISO(hoje, -3), 100), saldo: 100, promessa: null, ultimoContato: hoje },
+  { titulo: t('s1', somarDiasISO(hoje, -40), 500), saldo: 500, promessa: null, ultimoContato: somarDiasISO(hoje, -20) },
+  { titulo: t('d1', somarDiasISO(hoje, -40), 500), saldo: 500, promessa: 'descumprida', ultimoContato: hoje },
+  { titulo: t('c1', somarDiasISO(hoje, -40), 500), saldo: 500, promessa: null, ultimoContato: null, caso: { tituloId: 'c1', disputaStatus: 'aberta' } },
+], hoje)
+assert.deepEqual(fila.map((x) => x.chave), ['promessa_descumprida:d1', 'sem_contato:s1', 'lembrete_inicio:l1'], 'contato registrado tira da fila; divergência não é cobrada')
+assert.equal(M.filaDoDia([{ titulo: t('l1', somarDiasISO(hoje, -3), 100), saldo: 100, promessa: null }], hoje, ['sem_contato']).length, 0, 'regra desligada não entra')
+
 // ── determinismo (concorrência: duas leituras iguais dão o mesmo resultado) ──
 assert.deepEqual(M.aging([venc, ...hist], hoje), M.aging([...hist, venc], hoje))
 assert.equal(M.sugerirCausa('cliente diz que a NF-e veio errada').causa, 'nota_fiscal')
