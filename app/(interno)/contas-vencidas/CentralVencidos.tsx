@@ -7,7 +7,9 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, FileDown, Pencil, RotateCcw, Sheet, Trash2 } from 'lucide-react'
 import type { ItemVencido } from '../../../lib/vencidos/dados'
 import { registrarPromessa, salvarCaso } from '../../../lib/vencidos/dados'
-import { simularPagamentos, type BaseTesouraria } from '../../../lib/vencidos/motor'
+import { simularPagamentos, linhaDoTempo, emAberto, saldoDoTitulo, type BaseTesouraria, type Titulo } from '../../../lib/vencidos/motor'
+import ReactECharts from 'echarts-for-react'
+import { optBarrasV, serieCores } from '../../../lib/cfoCore'
 import { criarInteracao, listarInteracoes, excluirInteracao, restaurarInteracao, atualizarInteracao, listarLixeiraCobranca, restaurarCompromisso, DIAS_LIXEIRA, type CobrancaInteracao, type CobrancaCompromisso } from '../../../lib/cobrancaHelpers'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { exportarPlanilha } from '../../../lib/exportarPlanilha'
@@ -21,7 +23,7 @@ const POR_PAGINA = 20
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
 
-export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fmt, dataTxt, tesouraria }: { dominio: 'receber' | 'pagar'; itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; tesouraria: BaseTesouraria }) {
+export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fmt, dataTxt, tesouraria, titulos, temaClaro }: { dominio: 'receber' | 'pagar'; itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; tesouraria: BaseTesouraria; titulos: Titulo[]; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const pagar = dominio === 'pagar'
   const corSaldo = pagar ? P.VERMELHO : P.VERDE
@@ -133,7 +135,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                 {visiveis.map((i) => (
                   <FragmentoLinha key={i.titulo.id} i={i} aberto={aberto === i.titulo.id} onAbrir={() => setAberto(aberto === i.titulo.id ? null : i.titulo.id)}
                     marcado={selecionados.has(i.titulo.id)} onMarcar={() => marcar(i.titulo.id)} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} risco={colRisco(i)} contato={colContato(i)} corSaldo={corSaldo} dias={dias(i.encargos.dias)}
-                    detalhe={pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />} />
+                    detalhe={pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />} />
                 ))}
               </tbody>
             </table>
@@ -154,7 +156,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                     <p className="text-[11px] mt-0.5 font-semibold" style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</p>
                   </button>
                 </div>
-                {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />}</div>}
+                {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />}</div>}
               </div>
             ))}
           </div>}
@@ -195,7 +197,7 @@ function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, d
 }
 
 // Detalhe de uma conta: valores, base legal, por que a nota/ação, comportamento do cliente, contatos e promessa
-function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void }) {
+function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, historico, itens, temaClaro }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void; historico: Titulo[]; itens: ItemVencido[]; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
   const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
@@ -299,6 +301,61 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar }: { i: 
             <input type="date" aria-label={L('Data prometida', 'Promised date', 'Fecha prometida')} value={prom.data} min={hojeISO()} onChange={(e) => setProm({ ...prom, data: e.target.value })} className="rounded-lg px-1.5 py-1 flex-1" style={campo} />
           </div>
           <button type="button" disabled={salvando} onClick={() => void salvarPromessa()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Registrar promessa', 'Save promise', 'Registrar promesa')}</button>
+        </div>
+      </div>
+      <DnaCliente i={i} historico={historico} itens={itens} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} />
+    </div>
+  )
+}
+
+// DNA de pagamento do cliente (etapa 4): perfil, linha do tempo dos atrasos, tendência com os números que a
+// sustentam, promessas, acordos e exposição. Tudo do motor (dnaFinanceiro/linhaDoTempo) — nada calculado aqui.
+function DnaCliente({ i, historico, itens, lang, P, fmt, dataTxt, temaClaro }: { i: ItemVencido; historico: Titulo[]; itens: ItemVencido[]; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; temaClaro: boolean }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const d = i.dna
+  const doCliente = historico.filter((t) => (t.contraparteId ?? t.contraparteNome) === (i.titulo.contraparteId ?? i.titulo.contraparteNome))
+  const pontos = linhaDoTempo(doCliente)
+  const hoje = hojeISO()
+  const vencidoCliente = itens.filter((x) => (x.titulo.contraparteId ?? x.titulo.contraparteNome) === (i.titulo.contraparteId ?? i.titulo.contraparteNome)).reduce((s, x) => s + x.saldo, 0)
+  const abertoCliente = doCliente.filter((t) => emAberto(t, hoje)).reduce((s, t) => s + saldoDoTitulo(t, hoje), 0)
+  const sc = serieCores(temaClaro)
+  const opcao = pontos.length ? (() => {
+    const o = optBarrasV(pontos.map((p) => p.dias), pontos.map((p) => dataTxt(p.data)), sc[1], sc[1], pontos.map((p) => (p.dias > 0 ? sc[1] : sc[0])), temaClaro)
+    const diasTxt = L('dias de atraso', 'days late', 'días de atraso'), emDia = L('pago em dia', 'paid on time', 'pagado a tiempo')
+    return {
+      ...o, grid: { ...o.grid, left: 36, right: 8, top: 24, bottom: 28 },
+      yAxis: { ...o.yAxis, axisLabel: { ...o.yAxis.axisLabel, formatter: (v: number) => String(v) } },
+      tooltip: { ...o.tooltip, formatter: (p: { dataIndex: number }) => { const x = pontos[p.dataIndex]; return `<b>${dataTxt(x.data)}</b><br/>${x.dias ? `${x.dias} ${diasTxt}` : emDia}<br/>${fmt(x.valor)}` } },
+      series: [{ ...o.series[0], label: { ...o.series[0].label, formatter: (p: { value: number }) => (p.value > 0 ? String(p.value) : '') } }],
+    }
+  })() : null
+  const n = (v: number | null, suf = '') => (v == null ? '—' : `${v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}${suf}`)
+  const dias = L(' dias', ' days', ' días')
+  // por que a tendência: os números das duas janelas (fato), e a conclusão (inferência)
+  const base = d.amostraRecente >= 2 && d.amostraAnterior >= 2
+    ? L(`Antes: atraso médio ${n(d.anteriorAtraso, dias)}${d.anteriorPrazo != null ? `, prazo ${n(d.anteriorPrazo, dias)}` : ''} em ${d.amostraAnterior} pagamentos. Últimos 6 meses: atraso médio ${n(d.recenteAtraso, dias)}${d.recentePrazo != null ? `, prazo ${n(d.recentePrazo, dias)}` : ''} em ${d.amostraRecente} pagamentos.`,
+      `Before: average delay ${n(d.anteriorAtraso, dias)}${d.anteriorPrazo != null ? `, term ${n(d.anteriorPrazo, dias)}` : ''} over ${d.amostraAnterior} payments. Last 6 months: average delay ${n(d.recenteAtraso, dias)}${d.recentePrazo != null ? `, term ${n(d.recentePrazo, dias)}` : ''} over ${d.amostraRecente} payments.`,
+      `Antes: atraso promedio ${n(d.anteriorAtraso, dias)}${d.anteriorPrazo != null ? `, plazo ${n(d.anteriorPrazo, dias)}` : ''} en ${d.amostraAnterior} pagos. Últimos 6 meses: atraso promedio ${n(d.recenteAtraso, dias)}${d.recentePrazo != null ? `, plazo ${n(d.recentePrazo, dias)}` : ''} en ${d.amostraRecente} pagos.`)
+    : L('Para comparar, são precisos ao menos 2 pagamentos nos últimos 6 meses e 2 antes disso.', 'To compare, at least 2 payments in the last 6 months and 2 before are needed.', 'Para comparar, se necesitan al menos 2 pagos en los últimos 6 meses y 2 antes.')
+  const regra = L('Piora = atraso ou prazo subiu 5 dias e 30%; melhora = caiu 5 dias e 30%.', 'Worse = delay or term rose 5 days and 30%; better = fell 5 days and 30%.', 'Empeora = atraso o plazo subió 5 días y 30%; mejora = bajó 5 días y 30%.')
+  return (
+    <div className="lg:col-span-3 rounded-xl p-3" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+      <p className="font-bold mb-2">{L('DNA de pagamento de', 'Payment DNA of', 'ADN de pago de')} {i.titulo.contraparteNome}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="space-y-1">
+          {[[L('Atraso médio', 'Average delay', 'Atraso promedio'), n(d.atrasoMedio, dias)], [L('Pagamentos com atraso', 'Late payments', 'Pagos con atraso'), n(d.frequenciaAtrasoPct, '%')],
+            [L('Regularidade (variação)', 'Regularity (variation)', 'Regularidad (variación)'), d.regularidadeDesvio == null ? '—' : `± ${n(d.regularidadeDesvio, dias)}`], [L('Prazo médio de pagamento', 'Average payment term', 'Plazo promedio de pago'), n(d.prazoMedioPagamento, dias)],
+            [L('Valor médio pago', 'Average amount paid', 'Valor promedio pagado'), d.valorMedioRecebido == null ? '—' : fmt(d.valorMedioRecebido)], [L('Pagamentos parciais em aberto', 'Open partial payments', 'Pagos parciales abiertos'), String(d.pagamentosParciais)],
+            [L('Promessas cumpridas / descumpridas', 'Promises kept / broken', 'Promesas cumplidas / incumplidas'), `${d.promessas.cumpridas} / ${d.promessas.descumpridas}`], [L('Acordos', 'Agreements', 'Acuerdos'), String(d.acordos)],
+            [L('Exposição: vencido / em aberto', 'Exposure: overdue / open', 'Exposición: vencido / abierto'), `${fmt(vencidoCliente)} / ${fmt(abertoCliente)}`], [L('Nota de risco', 'Risk score', 'Nota de riesgo'), i.risco.score == null ? L('sem histórico', 'no history', 'sin historial') : String(i.risco.score)]]
+            .map(([t, v]) => <p key={t} className="flex justify-between gap-2"><span style={{ color: P.CINZA }}>{t}</span><b className="text-right">{v}</b></p>)}
+        </div>
+        <div className="lg:col-span-2 min-w-0">
+          <p style={{ color: P.CINZA }}>{L('Dias de atraso em cada pagamento (mais antigo à esquerda)', 'Days late on each payment (oldest on the left)', 'Días de atraso en cada pago (más antiguo a la izquierda)')}</p>
+          {opcao ? <ReactECharts option={opcao} style={{ height: 170 }} notMerge lazyUpdate /> : <p className="py-6 text-center" style={{ color: P.CINZA }}>{L('Este cliente ainda não tem pagamentos registrados.', 'This customer has no recorded payments yet.', 'Este cliente aún no tiene pagos registrados.')}</p>}
+          <p className="mt-1"><b>{L('Tendência', 'Trend', 'Tendencia')}: {nomeTendencia(lang, d.tendencia)}</b> <span style={{ color: P.CINZA }}>({d.tendencia === 'indefinida' ? L('fato', 'fact', 'hecho') : L('conclusão a partir dos números', 'conclusion drawn from the numbers', 'conclusión a partir de los números')})</span></p>
+          <p style={{ color: P.CINZA }}>{base} {regra}</p>
+          {!d.suficiente && <p style={{ color: P.CINZA }}>{L(`Histórico curto (${d.amostra} pagamento(s); mínimo 4): o Axioma não classifica o cliente nem dá nota de risco.`, `Short history (${d.amostra} payment(s); minimum 4): Axioma does not classify the customer or give a risk score.`, `Historial corto (${d.amostra} pago(s); mínimo 4): Axioma no clasifica al cliente ni da nota de riesgo.`)}</p>}
         </div>
       </div>
     </div>

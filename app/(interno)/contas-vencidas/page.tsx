@@ -273,8 +273,8 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
-            {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} />}
-            {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} />}
+            {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
+            {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosPagar} temaClaro={temaClaro} />}
           </div>
         )}
       </ModuloLayout>

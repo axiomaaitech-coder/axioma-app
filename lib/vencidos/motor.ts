@@ -197,6 +197,7 @@ export type DNA = {
   regularidadeDesvio: number | null; prazoMedioPagamento: number | null; valorMedioRecebido: number | null
   pagamentosParciais: number; acordos: number
   recenteAtraso: number | null; anteriorAtraso: number | null; recentePrazo: number | null; anteriorPrazo: number | null
+  amostraRecente: number; amostraAnterior: number
   tendencia: 'piora' | 'melhora' | 'estavel' | 'indefinida'; recuperacaoAnteriorPct: number | null
   promessas: ReturnType<typeof placarPromessas>; conclusoes: { texto: string; tipo: 'fato' | 'inferencia' }[]
 }
@@ -237,9 +238,20 @@ export function dnaFinanceiro(historico: Titulo[], promessas: Promessa[], hoje: 
     valorMedioRecebido: quitados.length ? r2(media(quitados.map((t) => t.quitado))!) : null,
     pagamentosParciais: parciais, acordos: minhas.filter((p) => p.tipo === 'acordo').length,
     recenteAtraso: rd(recA), anteriorAtraso: rd(antA), recentePrazo: rd(recP), anteriorPrazo: rd(antP), tendencia,
+    amostraRecente: rec.length, amostraAnterior: ant.length,
     recuperacaoAnteriorPct: venceramAntes.length >= 2 ? r2((recuperados.length / venceramAntes.length) * 100) : null,
     promessas: placarPromessas(minhas, lista, hoje), conclusoes,
   }
+}
+
+// Linha do tempo do DNA: cada título quitado da contraparte, na ordem da quitação, com os dias de atraso
+// (0 = pago em dia) — os pontos que sustentam a tendência. Só os últimos `max` para caber na tela.
+export function linhaDoTempo(historico: Titulo[], max = 24) {
+  return conferirEntrada(historico)
+    .filter((t) => t.quitacao && centavos(t.quitado) > 0)
+    .sort((a, b) => a.quitacao!.localeCompare(b.quitacao!))
+    .slice(-max)
+    .map((t) => ({ data: t.quitacao!, dias: Math.max(0, diasEntre(t.vencimento, t.quitacao!) - 1), valor: t.quitado }))
 }
 
 // ─── ROOT CAUSE — sugestão por regra (inferência até a pessoa confirmar); a IA entra pela mesma porta (origem 'ia') ───
