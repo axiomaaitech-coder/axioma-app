@@ -56,6 +56,9 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Configurar (Proprietário ou Administrador)' },
     { lista: ['**Reserva mínima (R$)**: o caixa que deve ficar sempre intocado — usado no Liquidity Score e no Radar.', '**Dias de alerta de ruptura**: com quantos dias de antecedência avisar.', '**Contas de Tesouraria**: dê um **Nome amigável** a cada conta (ex.: Itaú CC).', 'Clique em **Salvar**. Outras pessoas veem em modo leitura.'] },
+
+    { h1: 'Contas vencidas' },
+    { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a receber e a pagar vencido (lembrando: vencido a receber não é caixa disponível) e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
 
@@ -114,6 +117,9 @@ const en: DocumentoAxioma = {
 
     { h1: 'Configure (Owner or Administrator)' },
     { lista: ['**Minimum reserve (R$)**: cash that must always stay untouched — used in the Liquidity Score and the Radar.', '**Shortfall alert days**: how many days in advance to warn.', '**Treasury Accounts**: give each account a **Friendly name** (e.g., Itaú CC).', 'Click **Save**. Other people see it in read-only mode.'] },
+
+    { h1: 'Overdue bills' },
+    { p: 'When there are late bills, a card at the top shows the total overdue receivable and payable (remember: overdue receivables are not available cash) and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
 
@@ -172,6 +178,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Configurar (Propietario o Administrador)' },
     { lista: ['**Reserva mínima (R$)**: la caja que debe quedar siempre intocada — usada en el Liquidity Score y en el Radar.', '**Días de alerta de ruptura**: con cuántos días de anticipación avisar.', '**Cuentas de Tesorería**: dé un **Nombre amigable** a cada cuenta (ej.: Itaú CC).', 'Haga clic en **Guardar**. Otras personas lo ven en modo lectura.'] },
+
+    { h1: 'Cuentas vencidas' },
+    { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por cobrar y por pagar vencido (recuerde: lo vencido por cobrar no es caja disponible) y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
 

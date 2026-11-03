@@ -69,6 +69,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na Descrição da conta e na anotação da cobrança. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
     { p: '**Do card à solução:** os cards **Vencido** e **Receita em Risco** abrem a lista das contas atrasadas. Cada uma tem o botão **Registrar recebimento (dar baixa)**, que abre a janela de recebimento já com o valor; use só quando o cliente realmente pagou. O botão **Ver todas na lista e resolver** filtra a Central de Recebimentos em **Vencido** e leva você até ela.' },
+
+    { h1: 'Contas vencidas' },
+    { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a receber vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
 
@@ -140,6 +143,9 @@ const en: DocumentoAxioma = {
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the bill Description and in the collection note. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
     { p: '**From card to solution:** the **Overdue** and **Revenue at Risk** cards open the list of late bills. Each one has **Record payment received**, which opens the receipt window with the amount filled in; use it only when the client actually paid. **See all in the list and resolve** filters the Receivables Center to **Overdue** and takes you there.' },
+
+    { h1: 'Overdue bills' },
+    { p: 'When there are late bills, a card at the top shows the total overdue receivable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
 
@@ -211,6 +217,9 @@ const es: DocumentoAxioma = {
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la Descripción de la cuenta y en la nota de cobranza. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
     { p: '**Del indicador a la solución:** los indicadores **Vencido** e **Ingreso en Riesgo** abren la lista de cuentas atrasadas. Cada una tiene **Registrar cobro (dar de baja)**, que abre la ventana de cobro con el valor ya completado; úselo solo cuando el cliente realmente pagó. **Ver todas en la lista y resolver** filtra el Centro de Cobros en **Vencido** y lo lleva hasta allí.' },
+
+    { h1: 'Cuentas vencidas' },
+    { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por cobrar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
 

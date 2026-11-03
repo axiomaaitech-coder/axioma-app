@@ -4,6 +4,10 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
 import { useLanguage } from "../lib/LanguageContext";
+import dynamic from "next/dynamic";
+import type { FocoVencidos } from "./CartaoContasVencidas";
+// carregado sob demanda: só as telas que pedem o cartão baixam o código dele
+const CartaoContasVencidas = dynamic(() => import("./CartaoContasVencidas"), { ssr: false });
 
 interface ModuloLayoutProps {
   titulo: string;
@@ -25,11 +29,13 @@ interface ModuloLayoutProps {
   corExportar?: string;
   /** Opt-in — sobrescreve o fundo do botão onNovo/labelBotao (padrão: degradê azul de sempre). */
   corNovo?: string;
+  /** Opt-in — cartão de contas vencidas no topo, ligando o módulo à central de Contas Vencidas. */
+  vencidos?: FocoVencidos;
 }
 
 export default function ModuloLayout({
   titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra, aurora,
-  headerFundo, corExportar, corNovo
+  headerFundo, corExportar, corNovo, vencidos
 }: ModuloLayoutProps) {
   // Cabeçalho = cartão azul com o nome do módulo em TODOS os módulos e nos 2
   // temas (padronização 2026-09-27): no Claro vem o degradê do módulo
@@ -113,6 +119,7 @@ export default function ModuloLayout({
 
         {/* Conteúdo */}
         <div className="relative p-4 md:p-6">
+          {vencidos && <CartaoContasVencidas foco={vencidos} />}
           {children}
         </div>
       </motion.div>

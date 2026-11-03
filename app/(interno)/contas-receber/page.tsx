@@ -861,7 +861,7 @@ export default function ContasReceber() {
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <HistoricoConta tipo="receber" contaId={historicoContaId} onFechar={() => setHistoricoContaId(null)} />
     <ModuloLayout
-      titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')}
+      titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')} vencidos='receber'
       subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
       onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo}
       labelBotao={L('Nova Conta', 'New Account', 'Nueva Cuenta')}

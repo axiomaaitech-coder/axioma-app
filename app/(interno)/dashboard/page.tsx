@@ -16,6 +16,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import CartaoContasVencidas from "../../../components/CartaoContasVencidas";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -257,6 +258,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* ══════ CONTAS VENCIDAS — ligação com a central (some quando não há nada vencido) ══════ */}
+          <CartaoContasVencidas foco="ambos" />
 
           {/* ══════ LETREIRO — DASHBOARD FINANCEIRO ══════ */}
           <div className={"relative rounded-2xl overflow-hidden mt-2" + " axi-card-premium3d"}

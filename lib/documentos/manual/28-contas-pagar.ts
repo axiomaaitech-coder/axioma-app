@@ -78,6 +78,9 @@ const pt: DocumentoAxioma = {
     { nota: '**Relatório depois da consulta:** peça "gere um relatório" (ou DRE, fluxo de caixa, contas a receber…) e a IA monta o relatório completo com os dados reais, avisa "seu relatório está feito e está aí embaixo, em PDF" e mostra o cartão com o botão grande **⬇ Baixar relatório em PDF** (os mesmos números da tela Relatórios). Vale também na conversa por voz.' },
     { nota: '**Conversas salvas:** a conversa e os relatórios gerados ficam guardados mesmo se você sair do módulo. Use **＋ Nova conversa** para começar outra e **🗂 Conversas salvas** para reabrir as anteriores ou apagar (🗑, com confirmação). No cartão do relatório há **✏️ Anotar** para escrever uma observação e **🗑 Apagar** para tirá-lo da conversa. Cada conversa é só sua: outras pessoas da Empresa não a veem, e nenhuma outra Empresa tem acesso. Nada é apagado sozinho.' },
     { nota: '**Previsão de caixa, multas evitáveis, antecipação de descontos e score de fornecedores** usam várias leituras ao mesmo tempo. Se alguma falhar, aparece o aviso "Alguns dados não puderam ser carregados" e esses números ficam incompletos: atualize a página antes de decidir antecipar um pagamento.' },
+
+    { h1: 'Contas vencidas' },
+    { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a pagar vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
 
@@ -158,6 +161,9 @@ const en: DocumentoAxioma = {
     { nota: '**Report after the consultation:** ask "generate a report" (or income statement, cash flow, receivables…) and the AI builds the full report with the real data, says "your report is done and it is right below, in PDF" and shows the card with the big **⬇ Download report as PDF** button (the same numbers as the Reports screen). It also works in the voice conversation.' },
     { nota: '**Saved conversations:** the conversation and the generated reports stay saved even if you leave the module. Use **＋ New conversation** to start another one and **🗂 Saved conversations** to reopen previous ones or delete them (🗑, with confirmation). On the report card there is **✏️ Add note** to write a remark and **🗑 Delete** to remove it from the conversation. Each conversation is yours only: other people in the Company cannot see it, and no other Company has access. Nothing is deleted automatically.' },
     { nota: '**Cash forecast, avoidable fines, early-payment discounts and supplier score** use several reads at once. If any fails, the notice "Some data could not be loaded" appears and those numbers are incomplete: refresh the page before deciding to pay early.' },
+
+    { h1: 'Overdue bills' },
+    { p: 'When there are late bills, a card at the top shows the total overdue payable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
 
@@ -238,6 +244,9 @@ const es: DocumentoAxioma = {
     { nota: '**Informe después de la consulta:** pida "genere un informe" (o estado de resultados, flujo de caja, cuentas por cobrar…) y la IA arma el informe completo con los datos reales, avisa "su informe está hecho y está justo abajo, en PDF" y muestra la tarjeta con el botón grande **⬇ Descargar informe en PDF** (los mismos números de la pantalla Informes). También funciona en la conversación por voz.' },
     { nota: '**Conversaciones guardadas:** la conversación y los informes generados quedan guardados aunque salga del módulo. Use **＋ Nueva conversación** para empezar otra y **🗂 Conversaciones guardadas** para reabrir las anteriores o borrarlas (🗑, con confirmación). En la tarjeta del informe está **✏️ Anotar** para escribir una observación y **🗑 Borrar** para quitarlo de la conversación. Cada conversación es solo suya: otras personas de la Empresa no la ven y ninguna otra Empresa tiene acceso. Nada se borra solo.' },
     { nota: '**Previsión de caja, multas evitables, anticipo de descuentos y puntaje de proveedores** usan varias lecturas a la vez. Si alguna falla, aparece el aviso "Algunos datos no se pudieron cargar" y esos números quedan incompletos: actualice la página antes de decidir anticipar un pago.' },
+
+    { h1: 'Cuentas vencidas' },
+    { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por pagar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
 

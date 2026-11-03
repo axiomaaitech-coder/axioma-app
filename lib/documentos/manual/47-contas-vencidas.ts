@@ -42,6 +42,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Previsão e evolução' },
     { p: 'Quanto deve ser recuperado em 7, 15, 30, 60 e 90 dias, com o nível de confiança. A **evolução** mostra o total vencido a receber dia a dia — ela começa a ser registrada no primeiro dia em que a tela é aberta.' },
 
+    { h1: 'Ligações com outros módulos' },
+    { p: 'Botões no topo levam a **Contas a Receber**, **Contas a Pagar**, **Inadimplência** (régua e negociação), **Clientes**, **Fornecedores**, **Tesouraria** e **Fluxo de Caixa**. No caminho de volta, o Dashboard, Contas a Receber, Contas a Pagar, Inadimplência e Tesouraria mostram um cartão com o total vencido e o botão **Abrir Contas Vencidas**.' },
+
     { h1: 'Contas a receber vencidas' },
     { p: 'Tabela com cliente, descrição, vencimento e dias de atraso, valor original, **saldo**, **juros e multa**, **risco** (0 a 1000, ou "sem histórico"), **prioridade**, **último contato** e **próxima ação**. No celular cada conta vira um cartão.' },
     { lista: [
@@ -102,6 +105,9 @@ const en: DocumentoAxioma = {
     { h1: 'Forecast and history' },
     { p: 'How much should be recovered in 7, 15, 30, 60 and 90 days, with the confidence level. The **history** shows the overdue receivable total day by day — it starts on the first day the screen is opened.' },
 
+    { h1: 'Links to other modules' },
+    { p: 'Buttons at the top lead to **Receivables**, **Payables**, **Delinquency** (schedule and negotiation), **Customers**, **Suppliers**, **Treasury** and **Cash Flow**. On the way back, the Dashboard, Receivables, Payables, Delinquency and Treasury show a card with the overdue total and the **Open Overdue Bills** button.' },
+
     { h1: 'Overdue receivables' },
     { p: 'Table with customer, description, due date and days overdue, original amount, **balance**, **interest and fines**, **risk** (0 to 1000, or "no history"), **priority**, **last contact** and **next action**. On a phone each bill becomes a card.' },
     { lista: [
@@ -161,6 +167,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Previsión y evolución' },
     { p: 'Cuánto debe recuperarse en 7, 15, 30, 60 y 90 días, con el nivel de confianza. La **evolución** muestra el total vencido por cobrar día a día — empieza a registrarse el primer día que se abre la pantalla.' },
+
+    { h1: 'Vínculos con otros módulos' },
+    { p: 'Los botones de arriba llevan a **Cuentas por Cobrar**, **Cuentas por Pagar**, **Morosidad** (regla y negociación), **Clientes**, **Proveedores**, **Tesorería** y **Flujo de Caja**. De vuelta, el Dashboard, Cuentas por Cobrar, Cuentas por Pagar, Morosidad y Tesorería muestran una tarjeta con el total vencido y el botón **Abrir Cuentas Vencidas**.' },
 
     { h1: 'Cuentas por cobrar vencidas' },
     { p: 'Tabla con cliente, descripción, vencimiento y días de atraso, valor original, **saldo**, **intereses y multas**, **riesgo** (0 a 1000, o "sin historial"), **prioridad**, **último contacto** y **próxima acción**. En el celular cada cuenta es una tarjeta.' },

@@ -299,6 +299,21 @@ export default function ContasVencidasPage() {
                 })()}
               </div>
 
+            {/* Ligações com os módulos vizinhos: cada assunto resolvido no lugar certo, sem duplicar */}
+            <nav aria-label={L('Módulos ligados', 'Linked modules', 'Módulos vinculados')} className="flex flex-wrap gap-1.5">
+              {([
+                ['/contas-receber?filtro=vencido', L('Contas a Receber', 'Receivables', 'Cuentas por Cobrar')],
+                ['/contas-pagar?filtro=vencido', L('Contas a Pagar', 'Payables', 'Cuentas por Pagar')],
+                ['/inadimplencia', L('Inadimplência (régua e negociação)', 'Delinquency (schedule and negotiation)', 'Morosidad (regla y negociación)')],
+                ['/clientes', L('Clientes', 'Customers', 'Clientes')],
+                ['/fornecedores', L('Fornecedores', 'Suppliers', 'Proveedores')],
+                ['/tesouraria', L('Tesouraria', 'Treasury', 'Tesorería')],
+                ['/fluxo-caixa', L('Fluxo de Caixa', 'Cash Flow', 'Flujo de Caja')],
+              ] as const).map(([href, nome]) => (
+                <Link key={href} href={href} className="px-2.5 py-1 rounded-lg text-xs font-bold text-white axi-card-premium3d axi-card-faixa" style={{ background: BOTAO_SECUNDARIO }}>{nome}</Link>
+              ))}
+            </nav>
+
             {empresaId && <CentralReceber itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />}
             {lista(true, r.pagar, r.totalPagar)}
           </div>

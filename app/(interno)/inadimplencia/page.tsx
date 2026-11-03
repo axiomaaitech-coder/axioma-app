@@ -660,7 +660,7 @@ export default function Inadimplencia() {
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
-      titulo={L('Inadimplência', 'Delinquency', 'Morosidad')}
+      titulo={L('Inadimplência', 'Delinquency', 'Morosidad')} vencidos='receber'
       subtitulo={L('Centro de Inteligência de Recuperação Financeira — lê o Contas a Receber, não duplica dado', 'Financial Recovery Intelligence Center — reads Accounts Receivable, never duplicates data', 'Centro de Inteligencia de Recuperación Financiera — lee Cuentas por Cobrar, no duplica datos')}
       onExportarPDF={exportarPDF}
       exportando={exportando}

@@ -200,7 +200,7 @@ export default function TesourariaPage() {
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
-      titulo={L('Tesouraria', 'Treasury', 'Tesorería')}
+      titulo={L('Tesouraria', 'Treasury', 'Tesorería')} vencidos='tesouraria'
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={

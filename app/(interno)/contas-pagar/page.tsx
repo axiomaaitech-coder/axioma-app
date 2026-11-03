@@ -1877,7 +1877,7 @@ export default function ContasPagarPage() {
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <HistoricoConta tipo="pagar" contaId={historicoContaId} onFechar={() => setHistoricoContaId(null)} />
     <ModuloLayout
-      titulo={L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")}
+      titulo={L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")} vencidos="pagar"
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
       onNovo={podeEditar ? abrirNovaConta : undefined}
       labelBotao={L("Nova Conta", "New Bill", "Nueva Cuenta")}

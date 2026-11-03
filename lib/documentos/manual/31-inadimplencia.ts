@@ -54,6 +54,9 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Datas e dados confiáveis' },
     { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero. A receita bruta do ano conta pelo ano da própria data: uma receita de 1º de janeiro entra no ano certo.' },
+
+    { h1: 'Contas vencidas' },
+    { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a receber vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
 
@@ -110,6 +113,9 @@ const en: DocumentoAxioma = {
 
     { h1: 'Reliable dates and data' },
     { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero. Gross revenue for the year counts by the date’s own year: revenue from January 1 falls in the right year.' },
+
+    { h1: 'Overdue bills' },
+    { p: 'When there are late bills, a card at the top shows the total overdue receivable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
 
@@ -166,6 +172,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Fechas y datos confiables' },
     { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero. El ingreso bruto del año cuenta por el año de la propia fecha: un ingreso del 1 de enero entra en el año correcto.' },
+
+    { h1: 'Cuentas vencidas' },
+    { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por cobrar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
 

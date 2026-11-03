@@ -126,6 +126,9 @@ const pt: DocumentoAxioma = {
       ['A tela fica girando e não carrega.', 'Recarregue a página. Se persistir, confira a conexão com a internet; na primeira abertura do dia o servidor pode levar alguns segundos.'],
       ['Os dados da demonstração foram para a minha empresa?', 'Não. A demonstração é só visual e nunca grava nada.'],
     ] } },
+
+    { h1: 'Contas vencidas' },
+    { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a receber e a pagar vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
 
@@ -254,6 +257,9 @@ const en: DocumentoAxioma = {
       ['The screen keeps loading.', 'Reload the page. If it persists, check your internet connection; on the first opening of the day the server may take a few seconds.'],
       ['Did the demo data go into my company?', 'No. The demo is visual only and never saves anything.'],
     ] } },
+
+    { h1: 'Overdue bills' },
+    { p: 'When there are late bills, a card at the top shows the total overdue receivable and payable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
 
@@ -382,6 +388,9 @@ const es: DocumentoAxioma = {
       ['La pantalla sigue cargando.', 'Recargue la página. Si persiste, revise la conexión a internet; en la primera apertura del día el servidor puede tardar unos segundos.'],
       ['¿Los datos de la demostración fueron a mi empresa?', 'No. La demostración es solo visual y nunca guarda nada.'],
     ] } },
+
+    { h1: 'Cuentas vencidas' },
+    { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por cobrar y por pagar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
 
