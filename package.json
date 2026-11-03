@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/check-ciclos.mjs",
+    "prebuild": "node scripts/check-ciclos.mjs && node scripts/check-seguranca.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
