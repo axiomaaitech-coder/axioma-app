@@ -15,6 +15,7 @@ alter default privileges in schema public revoke all on sequences from anon;
 -- ═══ BLOCO B — funções com poder de dono (security definer): fora de quem não fez login ═══
 -- Fica aberta só obter_convite_por_token (a página do convite abre antes do login).
 -- Funções de gatilho saem também do usuário logado: só o banco chama (gatilho dispara sem precisar dessa permissão).
+-- ATENÇÃO (lição de 2026-11-03): o laço só pode DAR permissão ao usuário logado para quem já tinha; as exclusivas do servidor ficam na lista abaixo.
 do $$
 declare f record;
 begin
@@ -23,7 +24,8 @@ begin
            where n.nspname = 'public' and p.prosecdef loop
     if f.proname = 'obter_convite_por_token' then continue; end if;
     execute format('revoke execute on function %s from public, anon', f.fn);
-    if f.typname = 'trigger' then
+    -- gatilhos e funções exclusivas do servidor (recarga de IA pelo pagamento, suspensão pela rotina da Equipe) nunca ficam com o usuário
+    if f.typname = 'trigger' or f.proname in ('ia_creditar_recarga', 'equipe_suspender') then
       execute format('revoke execute on function %s from authenticated', f.fn);
     else
       execute format('grant execute on function %s to authenticated', f.fn);
