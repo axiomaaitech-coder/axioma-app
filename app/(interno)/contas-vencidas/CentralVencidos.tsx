@@ -12,6 +12,7 @@ import ReactECharts from 'echarts-for-react'
 import { optBarrasV, coresSituacao, corTextoSituacao } from '../../../lib/cfoCore'
 import { criarInteracao, listarInteracoes, listarInteracoesCliente, excluirInteracao, restaurarInteracao, atualizarInteracao, listarLixeiraCobranca, restaurarCompromisso, DIAS_LIXEIRA, type CobrancaInteracao, type CobrancaCompromisso } from '../../../lib/cobrancaHelpers'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { montarMensagem, modeloSugerido, nomeMensagem, linkWhatsapp, linkEmail, TIPOS_MENSAGEM, type TipoMensagem } from '../../../lib/vencidos/mensagens'
 import { exportarPlanilha } from '../../../lib/exportarPlanilha'
 import { createClient } from '../../../lib/supabase/client'
 import { hojeISO } from '../../../lib/datas'
@@ -310,7 +311,76 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
           <button type="button" disabled={salvando} onClick={() => void salvarPromessa()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Registrar promessa', 'Save promise', 'Registrar promesa')}</button>
         </div>
       </div>
+      <MensagemCliente i={i} empresaId={empresaId} lang={lang} P={P} aoEnviar={() => { void ler(); aoMudar() }} avisar={avisar} />
       <DnaCliente i={i} historico={historico} itens={itens} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} />
+    </div>
+  )
+}
+
+// Central de comunicação (etapa 6): modelo de mensagem com o dado real da conta; a PESSOA envia (copiar,
+// WhatsApp ou e-mail dela) e marca como enviada — aí o contato entra no histórico. Nada sai do Axioma sozinho.
+function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; aoEnviar: () => void; avisar: (m: string) => void }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
+  const promessaAberta = !!i.promessa && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(i.promessa)
+  const [tipo, setTipo] = useState<TipoMensagem>(() => modeloSugerido(i.encargos.dias, promessaAberta))
+  const [idioma, setIdioma] = useState<'pt' | 'en' | 'es'>('pt')
+  const [ctx, setCtx] = useState<{ empresa: string; telefone: string | null; email: string | null } | null>(null)
+  const [editado, setEditado] = useState<string | null>(null)
+  const [aberto, setAberto] = useState<string | null>(null) // canal aberto, aguardando "marcar como enviada"
+  useEffect(() => {
+    let vivo = true
+    const sb = createClient()
+    void Promise.all([
+      sb.from('empresas').select('nome').eq('id', empresaId).maybeSingle(),
+      i.titulo.contraparteId ? sb.from('clientes').select('whatsapp, telefone, email').eq('id', i.titulo.contraparteId).maybeSingle() : Promise.resolve({ data: null }),
+    ]).then(([e, c]) => {
+      const cli = c.data as { whatsapp?: string | null; telefone?: string | null; email?: string | null } | null
+      if (vivo) setCtx({ empresa: (e.data as { nome?: string } | null)?.nome ?? '', telefone: cli?.whatsapp || cli?.telefone || null, email: cli?.email ?? null })
+    })
+    return () => { vivo = false }
+  }, [empresaId, i.titulo.contraparteId])
+  const loc = idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR'
+  const dataMsg = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(loc)
+  const valorMsg = (v: number) => v.toLocaleString(loc, { style: 'currency', currency: 'BRL' })
+  const m = montarMensagem(tipo, idioma, {
+    cliente: i.titulo.contraparteNome, empresa: ctx?.empresa ?? '', descricao: i.titulo.descricao || '—', valor: valorMsg(i.saldo),
+    vencimento: dataMsg(i.titulo.vencimento), dias: i.encargos.dias,
+    promessaValor: promessaAberta && i.promessaFalta ? valorMsg(i.promessaFalta) : null, promessaData: null,
+  })
+  const texto = editado ?? m.texto
+  const wa = linkWhatsapp(ctx?.telefone, texto), mail = linkEmail(ctx?.email, m.assunto, texto)
+  const marcarEnviada = async () => {
+    const { data: u } = await createClient().auth.getUser()
+    const r = await criarInteracao(u.user?.id ?? '', empresaId, { conta_id: i.titulo.id, cliente_id: i.titulo.contraparteId, tipo: 'contato', canal: aberto ?? 'whatsapp', descricao: `${nomeMensagem(idioma, tipo)}: ${texto}`.slice(0, 2000), data: hojeISO() })
+    if (r.erro) return avisar(L('Não foi possível registrar o envio.', 'Could not record the message.', 'No fue posible registrar el envío.'))
+    setAberto(null); aoEnviar(); avisar(L('Mensagem registrada no histórico de contatos.', 'Message recorded in the contact history.', 'Mensaje registrado en el historial de contactos.'))
+  }
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(texto); setAberto('outro'); avisar(L('Texto copiado.', 'Text copied.', 'Texto copiado.')) }
+    catch { avisar(L('Não foi possível copiar — selecione o texto e copie.', 'Could not copy — select the text and copy it.', 'No fue posible copiar — seleccione el texto y cópielo.')) }
+  }
+  return (
+    <div className="lg:col-span-3 rounded-xl p-3 space-y-2" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-bold mr-auto">{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
+        <select aria-label={L('Modelo', 'Template', 'Modelo')} value={tipo} onChange={(e) => { setTipo(e.target.value as TipoMensagem); setEditado(null) }} className="rounded-lg px-1.5 py-1" style={campo}>
+          {TIPOS_MENSAGEM.map((t) => <option key={t} value={t}>{nomeMensagem(lang, t)}</option>)}
+        </select>
+        <select aria-label={L('Idioma da mensagem', 'Message language', 'Idioma del mensaje')} value={idioma} onChange={(e) => { setIdioma(e.target.value as 'pt' | 'en' | 'es'); setEditado(null) }} className="rounded-lg px-1.5 py-1" style={campo}>
+          <option value="pt">Português</option><option value="en">English</option><option value="es">Español</option>
+        </select>
+      </div>
+      <textarea aria-label={L('Texto da mensagem', 'Message text', 'Texto del mensaje')} value={texto} onChange={(e) => setEditado(e.target.value)} rows={6} className="w-full rounded-lg p-2" style={campo} />
+      <div className="flex flex-wrap gap-1.5">
+        <button type="button" onClick={() => void copiar()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Copiar texto', 'Copy text', 'Copiar texto')}</button>
+        {wa ? <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => setAberto('whatsapp')} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Abrir no WhatsApp', 'Open in WhatsApp', 'Abrir en WhatsApp')}</a>
+          : <span className="px-2.5 py-1.5" style={{ color: P.CINZA }}>{L('WhatsApp: cliente sem telefone no cadastro', 'WhatsApp: no phone on file', 'WhatsApp: cliente sin teléfono registrado')}</span>}
+        {mail ? <a href={mail} onClick={() => setAberto('email')} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Abrir no e-mail', 'Open in email', 'Abrir en correo')}</a>
+          : <span className="px-2.5 py-1.5" style={{ color: P.CINZA }}>{L('E-mail: cliente sem e-mail no cadastro', 'Email: no address on file', 'Correo: cliente sin correo registrado')}</span>}
+        {aberto && <button type="button" onClick={() => void marcarEnviada()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Marcar como enviada', 'Mark as sent', 'Marcar como enviada')}</button>}
+      </div>
+      <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Quem envia é você, pelo seu WhatsApp ou e-mail — o Axioma não manda nada sozinho. Envio automático (WhatsApp Business, e-mail, SMS): não configurado.', 'You send it, from your own WhatsApp or email — Axioma never sends anything on its own. Automatic sending (WhatsApp Business, email, SMS): not configured.', 'Usted lo envía, desde su WhatsApp o correo — Axioma no envía nada solo. Envío automático (WhatsApp Business, correo, SMS): no configurado.')}</p>
     </div>
   )
 }

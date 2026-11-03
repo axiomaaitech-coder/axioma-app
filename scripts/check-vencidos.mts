@@ -208,4 +208,19 @@ assert.equal(alfa.totalReceber, 1000, 'busca por cliente, sem acento/maiúscula'
 assert.equal(P.resumoPainel(analise, { ...P.filtrosIniciais('2026-11-01', '2026-11-30'), situacao: 'promessa' }).receber.length, 1)
 assert.equal(P.resumoPainel(analise, { ...P.filtrosIniciais('2026-11-01', '2026-11-30'), faixa: M.faixaDe(124, M.FAIXAS_PADRAO) }).totalReceber, 400, 'filtro de faixa')
 
+// ── mensagens de cobrança (dado real, nada inventado; envio sempre pela pessoa) ──
+const MSG = await import('../lib/vencidos/mensagens')
+const dm = { cliente: 'Loja Beta', empresa: 'Distribuidora Horizonte', descricao: 'NF 10', valor: 'R$ 400,00', vencimento: '01/07/2026', dias: 124 }
+for (const tipo of MSG.TIPOS_MENSAGEM) for (const lg of ['pt', 'en', 'es'] as const) {
+  const m = MSG.montarMensagem(tipo, lg, dm)
+  assert.ok(m.texto.includes('Loja Beta') && m.texto.includes('Distribuidora Horizonte'), `${tipo}/${lg} usa nomes reais`)
+  assert.ok(!/undefined|null|NaN/.test(m.texto + m.assunto), `${tipo}/${lg} sem buraco`)
+}
+assert.ok(MSG.montarMensagem('cobranca_cordial', 'pt', dm).texto.includes('124 dias'))
+assert.ok(!MSG.montarMensagem('confirmacao_promessa', 'pt', dm).texto.includes(' até '), 'sem data de promessa, não inventa')
+assert.equal(MSG.modeloSugerido(0, false), 'lembrete'); assert.equal(MSG.modeloSugerido(45, false), 'negociacao'); assert.equal(MSG.modeloSugerido(45, true), 'confirmacao_promessa')
+assert.equal(MSG.linkWhatsapp('(15) 99876-5432', 'oi'), 'https://wa.me/5515998765432?text=oi')
+assert.equal(MSG.linkWhatsapp('123', 'oi'), null, 'telefone incompleto não gera link')
+assert.equal(MSG.linkEmail('sem-arroba', 'a', 'b'), null)
+
 console.log('check-vencidos: tudo certo ✔')
