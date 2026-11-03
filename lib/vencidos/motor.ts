@@ -407,6 +407,11 @@ export function simularRecuperacao(base: BaseTesouraria, pct: number, prazoDias:
     folgaSobreReserva: reais(caixaFinal - centavos(base.reservaMinima)), abaixoDaReserva: caixaFinal < centavos(base.reservaMinima),
   }
 }
+// Regularização de contas a pagar: caixa antes/depois de pagar as escolhidas (simulação, não grava)
+export function simularPagamentos(base: BaseTesouraria, valores: number[]) {
+  const pag = valores.reduce((t, v) => t + centavos(v), 0), antes = centavos(base.caixaDisponivel), depois = antes - pag
+  return { simulacao: true as const, pagamento: reais(pag), caixaAntes: reais(antes), caixaDepois: reais(depois), folgaSobreReserva: reais(depois - centavos(base.reservaMinima)), abaixoDaReserva: depois < centavos(base.reservaMinima) }
+}
 export function impactoFinanceiro(base: BaseTesouraria, esperado30: number) {
   const caixa30 = centavos(base.caixaDisponivel) + centavos(esperado30) + centavos(base.aReceberNoPrazo) - centavos(base.aPagarNoPrazo) - centavos(base.vencidoPagar)
   const obrig = centavos(base.vencidoPagar) + centavos(base.aPagarNoPrazo)

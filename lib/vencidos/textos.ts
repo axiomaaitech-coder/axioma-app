@@ -69,3 +69,6 @@ export const nomeCanal = (lang: Lang, c: string | null | undefined) => (c && CAN
 
 export const nomeTendencia = (lang: Lang, t: 'piora' | 'melhora' | 'estavel' | 'indefinida') =>
   em(lang, { piora: ['Piorando', 'Getting worse', 'Empeorando'], melhora: ['Melhorando', 'Improving', 'Mejorando'], estavel: ['Estável', 'Stable', 'Estable'], indefinida: ['Histórico insuficiente', 'Not enough history', 'Historial insuficiente'] }[t] as T3)
+
+export const nomeCriticidade = (lang: Lang, c: string | null | undefined) =>
+  em(lang, ({ critica: ['Crítica', 'Critical', 'Crítica'], alta: ['Alta', 'High', 'Alta'], media: ['Média', 'Medium', 'Media'], baixa: ['Baixa', 'Low', 'Baja'] } as Record<string, T3>)[c ?? 'media'] ?? ['Média', 'Medium', 'Media'])

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '47 - Contas Vencidas.docx',
   titulo: 'Manual 47 — Contas Vencidas',
   subtitulo: 'O que está atrasado, a pagar e a receber, numa tela só — e o caminho para resolver',
-  info: ['Menu: Comercial → Contas Vencidas  •  Manual de uso do Axioma AI.Tech  •  Versão 1.2 (novembro de 2026)'],
+  info: ['Menu: Comercial → Contas Vencidas  •  Manual de uso do Axioma AI.Tech  •  Versão 1.3 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Junta numa tela só tudo o que **passou do vencimento e ainda tem saldo**: as contas que a Empresa deve pagar e as que tem a receber. Serve para decidir rápido o que pagar primeiro e quem cobrar. A tela só mostra — o pagamento, o recebimento e a cobrança continuam nas telas de origem.' },
@@ -62,6 +62,12 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Contas a pagar vencidas' },
     { p: 'Lista com a descrição, o fornecedor, a data em que venceu, o **saldo em aberto** e os **dias de atraso** (destacados em vermelho acima de 30 dias). Clique numa conta, ou em **Pagar em Contas a Pagar**, para abrir a tela de origem já filtrada em **Vencido** — ali você registra o pagamento.' },
+    { lista: [
+      'A lista tem a mesma forma da central a receber: **ordenar**, 20 por página, **marcar**, **PDF** e **Excel**. As colunas próprias deste lado são **Importância** do fornecedor e **Negociação**.',
+      '**Detalhes** (toque na linha): valores com juros e multa estimados, a próxima ação e os motivos da **prioridade de pagamento**.',
+      '**Importância do fornecedor** (lápis): escolha Crítica, Alta, Média ou Baixa e marque se o atraso pode parar o fornecimento, afetar a produção ou as vendas; toque em **Salvar importância**. A prioridade é recalculada — um fornecedor essencial pode vir antes de uma conta maior ou mais antiga.',
+      '**Simulação de pagamento**: marque contas e veja o caixa de hoje, o caixa depois de pagá-las (com juros e multa) e a folga sobre a reserva mínima da Tesouraria. É só simulação; o pagamento é lançado em Contas a Pagar.',
+    ] },
     { nota: 'Conta paga ou recebida em parte aparece com o que ainda falta. Conta paga, recebida ou cancelada não aparece.' },
     { nota: 'Se algum dado não carregar, a tela avisa que a lista pode estar incompleta — atualize a página.' },
   ],
@@ -71,7 +77,7 @@ const en: DocumentoAxioma = {
   arquivo: '47 - Overdue Bills.docx',
   titulo: 'Manual 47 — Overdue Bills',
   subtitulo: 'What is late, payable and receivable, on one screen — and the way to solve it',
-  info: ['Menu: Commercial → Overdue Bills  •  Axioma AI.Tech user manual  •  Version 1.2 (November 2026)'],
+  info: ['Menu: Commercial → Overdue Bills  •  Axioma AI.Tech user manual  •  Version 1.3 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together on one screen everything that is **past due and still has a balance**: the bills the Company must pay and the ones it has to receive. It helps decide quickly what to pay first and whom to collect from. The screen only shows — paying, receiving and collecting stay on the source screens.' },
@@ -128,6 +134,12 @@ const en: DocumentoAxioma = {
 
     { h1: 'Overdue payables' },
     { p: 'List with the description, the supplier, the due date, the **open balance** and the **days overdue** (highlighted in red above 30 days). Click a bill, or **Pay in Payables**, to open the source screen filtered on **Overdue** — there you record the payment.' },
+    { lista: [
+      'The list works like the receivables center: **sort**, 20 per page, **select**, **PDF** and **Excel**. The columns specific to this side are supplier **Importance** and **Negotiation**.',
+      '**Details** (tap the row): amounts with estimated interest and fines, the next action and the reasons for the **payment priority**.',
+      '**Supplier importance** (pencil): choose Critical, High, Medium or Low and tick whether the delay may stop supply, affect production or sales; tap **Save importance**. Priority is recalculated — an essential supplier may come before a larger or older bill.',
+      '**Payment simulation**: select bills to see cash today, cash after paying them (with interest and fines) and the margin over the Treasury minimum reserve. Simulation only; payments are recorded in Payables.',
+    ] },
     { nota: 'A partly paid or received bill shows what is still missing. Paid, received or cancelled bills do not appear.' },
     { nota: 'If some data does not load, the screen warns that the list may be incomplete — refresh the page.' },
   ],
@@ -137,7 +149,7 @@ const es: DocumentoAxioma = {
   arquivo: '47 - Cuentas Vencidas.docx',
   titulo: 'Manual 47 — Cuentas Vencidas',
   subtitulo: 'Lo que está atrasado, por pagar y por cobrar, en una sola pantalla — y el camino para resolverlo',
-  info: ['Menú: Comercial → Cuentas Vencidas  •  Manual de uso de Axioma AI.Tech  •  Versión 1.2 (noviembre de 2026)'],
+  info: ['Menú: Comercial → Cuentas Vencidas  •  Manual de uso de Axioma AI.Tech  •  Versión 1.3 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne en una sola pantalla todo lo que **pasó del vencimiento y aún tiene saldo**: las cuentas que la Empresa debe pagar y las que tiene por cobrar. Sirve para decidir rápido qué pagar primero y a quién cobrar. La pantalla solo muestra — el pago, el cobro y la gestión de cobranza siguen en las pantallas de origen.' },
@@ -194,6 +206,12 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cuentas por pagar vencidas' },
     { p: 'Lista con la descripción, el proveedor, la fecha de vencimiento, el **saldo pendiente** y los **días de atraso** (destacados en rojo por encima de 30 días). Haga clic en una cuenta, o en **Pagar en Cuentas por Pagar**, para abrir la pantalla de origen filtrada en **Vencido** — allí registra el pago.' },
+    { lista: [
+      'La lista funciona como la central por cobrar: **ordenar**, 20 por página, **marcar**, **PDF** y **Excel**. Las columnas propias de este lado son la **Importancia** del proveedor y la **Negociación**.',
+      '**Detalles** (toque la fila): valores con intereses y multas estimados, la próxima acción y los motivos de la **prioridad de pago**.',
+      '**Importancia del proveedor** (lápiz): elija Crítica, Alta, Media o Baja y marque si el atraso puede cortar el suministro, afectar la producción o las ventas; toque **Guardar importancia**. La prioridad se recalcula — un proveedor esencial puede ir antes que una cuenta mayor o más antigua.',
+      '**Simulación de pago**: marque cuentas y vea la caja de hoy, la caja después de pagarlas (con intereses y multas) y el margen sobre la reserva mínima de Tesorería. Solo simulación; el pago se registra en Cuentas por Pagar.',
+    ] },
     { nota: 'Una cuenta pagada o cobrada en parte aparece con lo que aún falta. Las cuentas pagadas, cobradas o canceladas no aparecen.' },
     { nota: 'Si algún dato no carga, la pantalla avisa que la lista puede estar incompleta — actualice la página.' },
   ],

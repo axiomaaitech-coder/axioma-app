@@ -5,17 +5,17 @@
 // previsão para comparar previsto x realizado e montar a evolução).
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Search } from 'lucide-react'
+import { AlertTriangle, Search } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
-import CentralReceber from './CentralReceber'
+import CentralVencidos from './CentralVencidos'
 import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { optBarrasH, optBarrasV, serieCores, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
-import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos, type ItemVencido } from '../../../lib/vencidos/dados'
+import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
 type Idioma3 = 'pt' | 'en' | 'es'
@@ -76,48 +76,7 @@ export default function ContasVencidasPage() {
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
   const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
   const dataTxt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(local)
-  const diasTxt = (n: number) => L(`${n} dia${n > 1 ? 's' : ''} de atraso`, `${n} day${n > 1 ? 's' : ''} overdue`, `${n} día${n > 1 ? 's' : ''} de atraso`)
   const pct = (v: number | null) => (v == null ? '—' : `${v.toLocaleString(local, { maximumFractionDigits: 1 })}%`)
-
-  const lista = (pagar: boolean, itens: ItemVencido[], total: number) => {
-    const href = pagar ? '/contas-pagar?filtro=vencido' : '/contas-receber?filtro=vencido'
-    return (
-      <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <p className="text-sm font-bold flex items-center gap-2" style={{ color: P.TEXTO }}>
-            {pagar ? <ArrowUpRight size={16} style={{ color: P.VERMELHO }} /> : <ArrowDownLeft size={16} style={{ color: P.VERDE }} />}
-            {pagar ? L('A pagar vencidas', 'Overdue payables', 'Por pagar vencidas') : L('A receber vencidas', 'Overdue receivables', 'Por cobrar vencidas')} ({itens.length})
-          </p>
-          <Link href={href} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: pagar ? BOTAO_SECUNDARIO : BOTAO_ACAO, color: '#ffffff' }}>
-            {pagar ? L('Pagar em Contas a Pagar', 'Pay in Payables', 'Pagar en Cuentas por Pagar') : L('Receber em Contas a Receber', 'Receive in Receivables', 'Cobrar en Cuentas por Cobrar')}
-          </Link>
-        </div>
-        {itens.length === 0 ? (
-          <p className="text-xs py-4 text-center" style={{ color: P.VERDE }}>{pagar ? L('Nenhuma conta a pagar vencida.', 'No overdue payables.', 'Ninguna cuenta por pagar vencida.') : L('Nenhuma conta a receber vencida.', 'No overdue receivables.', 'Ninguna cuenta por cobrar vencida.')}</p>
-        ) : (
-          <div className="space-y-2">
-            {[...itens].sort((x, y) => y.encargos.dias - x.encargos.dias || y.saldo - x.saldo).slice(0, 100).map((i) => (
-              <Link key={i.titulo.id} href={href} className="block rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: P.TEXTO }}>{i.titulo.descricao || '—'}</p>
-                    <p className="text-xs truncate" style={{ color: P.CINZA }}>{i.titulo.contraparteNome}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>{L('Venceu em', 'Due on', 'Venció el')} {dataTxt(i.titulo.vencimento)}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold" style={{ color: pagar ? P.VERMELHO : P.VERDE }}>{fmt(i.saldo)}</p>
-                    <p className="text-[11px] font-semibold" style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.ALERTA }}>{diasTxt(i.encargos.dias)}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-            {itens.length > 100 && <p className="text-[11px] text-center" style={{ color: P.CINZA }}>{L(`+${itens.length - 100} contas — veja todas na tela de origem`, `+${itens.length - 100} bills — see all on the source screen`, `+${itens.length - 100} cuentas — vea todas en la pantalla de origen`)}</p>}
-          </div>
-        )}
-        {itens.length > 0 && <p className="text-xs font-bold mt-3 text-right" style={{ color: P.TEXTO }}>{L('Total', 'Total', 'Total')}: {fmt(total)}</p>}
-      </div>
-    )
-  }
 
   const situacoes: [Situacao, string][] = [
     ['todas', L('Todas as situações', 'All statuses', 'Todas las situaciones')],
@@ -314,8 +273,8 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
-            {empresaId && <CentralReceber itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />}
-            {lista(true, r.pagar, r.totalPagar)}
+            {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} />}
+            {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} />}
           </div>
         )}
       </ModuloLayout>

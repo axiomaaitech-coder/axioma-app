@@ -1,18 +1,19 @@
 'use client'
-// Central de contas a receber vencidas (Overdue Intelligence, Fase 2 etapa 2). Usa a análise já carregada pela
+// Central de contas vencidas — a receber (Fase 2 etapa 2) e a pagar (etapa 3), uma peça só para os dois lados. Usa a análise já carregada pela
 // tela (motor de vencidos) — nada recalculado aqui. Escreve só contato e promessa de cobrança (tabelas que já
 // existem); o recebimento continua em Contas a Receber (origem única). Contato: lápis + lixeira de 60 dias, sem senha.
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, FileDown, Pencil, RotateCcw, Sheet, Trash2 } from 'lucide-react'
 import type { ItemVencido } from '../../../lib/vencidos/dados'
-import { registrarPromessa } from '../../../lib/vencidos/dados'
+import { registrarPromessa, salvarCaso } from '../../../lib/vencidos/dados'
+import { simularPagamentos, type BaseTesouraria } from '../../../lib/vencidos/motor'
 import { criarInteracao, listarInteracoes, excluirInteracao, restaurarInteracao, atualizarInteracao, listarLixeiraCobranca, restaurarCompromisso, DIAS_LIXEIRA, type CobrancaInteracao, type CobrancaCompromisso } from '../../../lib/cobrancaHelpers'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { exportarPlanilha } from '../../../lib/exportarPlanilha'
 import { createClient } from '../../../lib/supabase/client'
 import { hojeISO } from '../../../lib/datas'
-import { nomeAcao, porqueAcao, nomeFator, nomePromessa, nomeCanal, nomeCausa, nomeTendencia, CANAIS_CONTATO, type Lang } from '../../../lib/vencidos/textos'
+import { nomeAcao, porqueAcao, nomeFator, nomePromessa, nomeCanal, nomeCausa, nomeTendencia, nomeCriticidade, CANAIS_CONTATO, type Lang } from '../../../lib/vencidos/textos'
 
 type Paleta = { VERDE: string; VERMELHO: string; ALERTA: string; CINZA: string; TEXTO: string; PAINEL_BG: string; ANINHADA: string; BORDA: string; CAMPO: string }
 type Ordem = 'prioridade' | 'atraso' | 'saldo' | 'cliente'
@@ -20,8 +21,13 @@ const POR_PAGINA = 20
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
 
-export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt }: { itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string }) {
+export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fmt, dataTxt, tesouraria }: { dominio: 'receber' | 'pagar'; itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; tesouraria: BaseTesouraria }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const pagar = dominio === 'pagar'
+  const corSaldo = pagar ? P.VERMELHO : P.VERDE
+  // colunas que mudam de lado: risco do cliente x importância do fornecedor; último contato x negociação
+  const colRisco = (i: ItemVencido) => (pagar ? nomeCriticidade(lang, i.caso?.criticidade) : risco(i))
+  const colContato = (i: ItemVencido) => (pagar ? (i.emNegociacao ? L('Em negociação', 'In negotiation', 'En negociación') : '—') : i.ultimoContato ? dataTxt(i.ultimoContato.data) : '—')
   const [ordem, setOrdem] = useState<Ordem>('prioridade')
   const [pagina, setPagina] = useState(0)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
@@ -49,19 +55,20 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
   // Exportação: as marcadas ou, sem marcação, todas as da lista filtrada
   const paraExportar = () => (selecionados.size ? ordenados.filter((i) => selecionados.has(i.titulo.id)) : ordenados)
   const linha = (i: ItemVencido) => ({
-    [L('Cliente', 'Customer', 'Cliente')]: i.titulo.contraparteNome, [L('Descrição', 'Description', 'Descripción')]: i.titulo.descricao || '—',
+    [pagar ? L('Fornecedor', 'Supplier', 'Proveedor') : L('Cliente', 'Customer', 'Cliente')]: i.titulo.contraparteNome, [L('Descrição', 'Description', 'Descripción')]: i.titulo.descricao || '—',
     [L('Vencimento', 'Due date', 'Vencimiento')]: dataTxt(i.titulo.vencimento), [L('Dias de atraso', 'Days overdue', 'Días de atraso')]: i.encargos.dias,
     [L('Valor original', 'Original amount', 'Valor original')]: i.titulo.valor, [L('Saldo', 'Balance', 'Saldo')]: i.saldo,
     [L('Juros e multa', 'Interest and fines', 'Intereses y multas')]: Math.round((i.encargos.total - i.saldo) * 100) / 100,
-    [L('Risco (0–1000)', 'Risk (0–1000)', 'Riesgo (0–1000)')]: risco(i), [L('Prioridade', 'Priority', 'Prioridad')]: i.prioridade.score ?? 0,
-    [L('Último contato', 'Last contact', 'Último contacto')]: i.ultimoContato ? dataTxt(i.ultimoContato.data) : '—',
+    [pagar ? L('Importância', 'Importance', 'Importancia') : L('Risco (0–1000)', 'Risk (0–1000)', 'Riesgo (0–1000)')]: colRisco(i), [L('Prioridade', 'Priority', 'Prioridad')]: i.prioridade.score ?? 0,
+    [pagar ? L('Negociação', 'Negotiation', 'Negociación') : L('Último contato', 'Last contact', 'Último contacto')]: colContato(i),
     [L('Próxima ação', 'Next action', 'Próxima acción')]: nomeAcao(lang, i.acao.acao),
   })
-  const nomeArquivo = `${L('contas-a-receber-vencidas', 'overdue-receivables', 'cuentas-por-cobrar-vencidas')}-${hojeISO()}`
+  const titulo = pagar ? L('Contas a pagar vencidas', 'Overdue payables', 'Cuentas por pagar vencidas') : L('Contas a receber vencidas', 'Overdue receivables', 'Cuentas por cobrar vencidas')
+  const nomeArquivo = `${pagar ? L('contas-a-pagar-vencidas', 'overdue-payables', 'cuentas-por-pagar-vencidas') : L('contas-a-receber-vencidas', 'overdue-receivables', 'cuentas-por-cobrar-vencidas')}-${hojeISO()}`
   const exportarExcel = () => exportarPlanilha(paraExportar().map(linha), nomeArquivo, L('Vencidas', 'Overdue', 'Vencidas'), 'xlsx')
   const exportarPdf = () => {
     const l = paraExportar().map(linha), cols = Object.keys(l[0] ?? linha(ordenados[0]))
-    gerarPdfTabela({ titulo: L('Contas a receber vencidas', 'Overdue receivables', 'Cuentas por cobrar vencidas'), subtitulo: dataTxt(hojeISO()),
+    gerarPdfTabela({ titulo, subtitulo: dataTxt(hojeISO()),
       colunas: cols.map((c, k) => ({ header: c, key: c, width: k < 2 ? 3 : 1.4, align: k >= 3 && k <= 8 ? 'right' : 'left' })),
       linhas: l.map((x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, typeof v === 'number' && k !== cols[3] && k !== cols[8] ? fmt(v) : String(v)]))),
       resumo: [{ label: L('Total do saldo', 'Total balance', 'Total del saldo'), valor: fmt(paraExportar().reduce((s, i) => s + i.saldo, 0)) }], nomeArquivo,
@@ -74,7 +81,7 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
   return (
     <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Contas a receber vencidas', 'Overdue receivables', 'Cuentas por cobrar vencidas')} ({itens.length})</p>
+        <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{titulo} ({itens.length})</p>
         <div className="flex flex-wrap items-center gap-1.5">
           <select aria-label={L('Ordenar por', 'Sort by', 'Ordenar por')} value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)} className="rounded-lg px-2 py-1.5 text-xs" style={campo}>
             <option value="prioridade">{L('Mais prioritárias', 'Highest priority', 'Más prioritarias')}</option>
@@ -84,15 +91,16 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
           </select>
           <button type="button" onClick={exportarPdf} disabled={!itens.length} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_ACAO }}><FileDown size={13} />PDF</button>
           <button type="button" onClick={exportarExcel} disabled={!itens.length} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_ACAO }}><Sheet size={13} />Excel</button>
-          <button type="button" onClick={() => setVerLixeira((v) => !v)} aria-pressed={verLixeira} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Trash2 size={13} />{L('Lixeira', 'Trash', 'Papelera')}</button>
+          {!pagar && <button type="button" onClick={() => setVerLixeira((v) => !v)} aria-pressed={verLixeira} className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1" style={{ background: BOTAO_SECUNDARIO }}><Trash2 size={13} />{L('Lixeira', 'Trash', 'Papelera')}</button>}
         </div>
       </div>
       {selecionados.size > 0 && <p className="text-[11px] mb-2" style={{ color: P.CINZA }}>{L(`${selecionados.size} marcada(s): PDF e Excel levam só elas.`, `${selecionados.size} selected: PDF and Excel export only those.`, `${selecionados.size} marcada(s): PDF y Excel llevan solo esas.`)} <button type="button" className="underline" onClick={() => setSelecionados(new Set())}>{L('Desmarcar', 'Clear', 'Desmarcar')}</button></p>}
       {aviso && <p role="status" className="text-xs font-semibold mb-2" style={{ color: P.TEXTO }}>{aviso}</p>}
-      {verLixeira && <Lixeira empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} />}
+      {pagar && selecionados.size > 0 && <SimulacaoPagamento itens={ordenados.filter((i) => selecionados.has(i.titulo.id))} tesouraria={tesouraria} lang={lang} P={P} fmt={fmt} />}
+      {!pagar && verLixeira && <Lixeira empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} />}
 
       {itens.length === 0 ? (
-        <p className="text-xs py-4 text-center" style={{ color: P.VERDE }}>{L('Nenhuma conta a receber vencida com estes filtros.', 'No overdue receivables with these filters.', 'Ninguna cuenta por cobrar vencida con estos filtros.')}</p>
+        <p className="text-xs py-4 text-center" style={{ color: P.VERDE }}>{pagar ? L('Nenhuma conta a pagar vencida com estes filtros.', 'No overdue payables with these filters.', 'Ninguna cuenta por pagar vencida con estos filtros.') : L('Nenhuma conta a receber vencida com estes filtros.', 'No overdue receivables with these filters.', 'Ninguna cuenta por cobrar vencida con estos filtros.')}</p>
       ) : (
         <>
           {/* Computador: tabela */}
@@ -101,14 +109,14 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
               <thead>
                 <tr style={{ color: P.CINZA }} className="text-left">
                   <th className="p-1.5 w-6"><input type="checkbox" aria-label={L('Marcar todas da página', 'Select all on page', 'Marcar todas de la página')} checked={todosMarcados} onChange={() => setSelecionados((s) => { const n = new Set(s); visiveis.forEach((i) => (todosMarcados ? n.delete(i.titulo.id) : n.add(i.titulo.id))); return n })} /></th>
-                  <th className="p-1.5">{L('Cliente', 'Customer', 'Cliente')}</th>
+                  <th className="p-1.5">{pagar ? L('Fornecedor', 'Supplier', 'Proveedor') : L('Cliente', 'Customer', 'Cliente')}</th>
                   <th className="p-1.5">{L('Vencimento', 'Due', 'Vencimiento')}</th>
                   <th className="p-1.5 text-right">{L('Original', 'Original', 'Original')}</th>
                   <th className="p-1.5 text-right">{L('Saldo', 'Balance', 'Saldo')}</th>
                   <th className="p-1.5 text-right">{L('Juros/multa', 'Interest/fine', 'Int./multa')}</th>
-                  <th className="p-1.5 text-right">{L('Risco', 'Risk', 'Riesgo')}</th>
+                  <th className="p-1.5 text-right">{pagar ? L('Importância', 'Importance', 'Importancia') : L('Risco', 'Risk', 'Riesgo')}</th>
                   <th className="p-1.5 text-right">{L('Prioridade', 'Priority', 'Prioridad')}</th>
-                  <th className="p-1.5">{L('Último contato', 'Last contact', 'Último contacto')}</th>
+                  <th className="p-1.5">{pagar ? L('Negociação', 'Negotiation', 'Negociación') : L('Último contato', 'Last contact', 'Último contacto')}</th>
                   <th className="p-1.5">{L('Próxima ação', 'Next action', 'Próxima acción')}</th>
                   <th className="p-1.5 w-6" />
                 </tr>
@@ -116,8 +124,8 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
               <tbody>
                 {visiveis.map((i) => (
                   <FragmentoLinha key={i.titulo.id} i={i} aberto={aberto === i.titulo.id} onAbrir={() => setAberto(aberto === i.titulo.id ? null : i.titulo.id)}
-                    marcado={selecionados.has(i.titulo.id)} onMarcar={() => marcar(i.titulo.id)} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} risco={risco(i)} dias={dias(i.encargos.dias)}
-                    detalhe={<Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />} />
+                    marcado={selecionados.has(i.titulo.id)} onMarcar={() => marcar(i.titulo.id)} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} risco={colRisco(i)} contato={colContato(i)} corSaldo={corSaldo} dias={dias(i.encargos.dias)}
+                    detalhe={pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />} />
                 ))}
               </tbody>
             </table>
@@ -131,14 +139,14 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
                   <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setAberto(aberto === i.titulo.id ? null : i.titulo.id)} aria-expanded={aberto === i.titulo.id}>
                     <div className="flex justify-between gap-2">
                       <p className="text-sm font-semibold truncate" style={{ color: P.TEXTO }}>{i.titulo.contraparteNome}</p>
-                      <p className="text-sm font-bold shrink-0" style={{ color: P.VERDE }}>{fmt(i.saldo)}</p>
+                      <p className="text-sm font-bold shrink-0" style={{ color: corSaldo }}>{fmt(i.saldo)}</p>
                     </div>
                     <p className="text-[11px] truncate" style={{ color: P.CINZA }}>{i.titulo.descricao || '—'}</p>
-                    <p className="text-[11px] mt-1" style={{ color: P.CINZA }}>{dataTxt(i.titulo.vencimento)} · <b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{L(`${i.encargos.dias} dias`, `${i.encargos.dias} days`, `${i.encargos.dias} días`)}</b> · {L('risco', 'risk', 'riesgo')} {risco(i)}</p>
+                    <p className="text-[11px] mt-1" style={{ color: P.CINZA }}>{dataTxt(i.titulo.vencimento)} · <b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{L(`${i.encargos.dias} dias`, `${i.encargos.dias} days`, `${i.encargos.dias} días`)}</b> · {pagar ? L('importância', 'importance', 'importancia') : L('risco', 'risk', 'riesgo')} {colRisco(i)}</p>
                     <p className="text-[11px] mt-0.5 font-semibold" style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</p>
                   </button>
                 </div>
-                {aberto === i.titulo.id && <div className="mt-2"><Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} /></div>}
+                {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />}</div>}
               </div>
             ))}
           </div>
@@ -156,7 +164,7 @@ export default function CentralReceber({ itens, empresaId, lang, P, fmt, dataTxt
   )
 }
 
-function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, dataTxt, risco, dias, detalhe }: { i: ItemVencido; aberto: boolean; onAbrir: () => void; marcado: boolean; onMarcar: () => void; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; risco: string; dias: string; detalhe: ReactNode }) {
+function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, dataTxt, risco, contato, corSaldo, dias, detalhe }: { i: ItemVencido; aberto: boolean; onAbrir: () => void; marcado: boolean; onMarcar: () => void; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; risco: string; contato: string; corSaldo: string; dias: string; detalhe: ReactNode }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   return (
     <>
@@ -165,11 +173,11 @@ function FragmentoLinha({ i, aberto, onAbrir, marcado, onMarcar, lang, P, fmt, d
         <td className="p-1.5 max-w-[14rem]"><p className="font-semibold truncate">{i.titulo.contraparteNome}</p><p className="truncate" style={{ color: P.CINZA }}>{i.titulo.descricao || '—'}</p></td>
         <td className="p-1.5 whitespace-nowrap">{dataTxt(i.titulo.vencimento)}<br /><b style={{ color: i.encargos.dias > 30 ? P.VERMELHO : P.TEXTO }}>{dias}</b></td>
         <td className="p-1.5 text-right whitespace-nowrap">{fmt(i.titulo.valor)}</td>
-        <td className="p-1.5 text-right whitespace-nowrap font-bold" style={{ color: P.VERDE }}>{fmt(i.saldo)}</td>
+        <td className="p-1.5 text-right whitespace-nowrap font-bold" style={{ color: corSaldo }}>{fmt(i.saldo)}</td>
         <td className="p-1.5 text-right whitespace-nowrap">{fmt(Math.max(0, i.encargos.total - i.saldo))}</td>
         <td className="p-1.5 text-right whitespace-nowrap">{risco}</td>
         <td className="p-1.5 text-right">{i.prioridade.score ?? '—'}</td>
-        <td className="p-1.5 whitespace-nowrap">{i.ultimoContato ? `${dataTxt(i.ultimoContato.data)}` : '—'}</td>
+        <td className="p-1.5 whitespace-nowrap">{contato}</td>
         <td className="p-1.5 font-semibold" style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</td>
         <td className="p-1.5"><button type="button" aria-expanded={aberto} aria-label={L('Detalhes', 'Details', 'Detalles')}>{aberto ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button></td>
       </tr>
@@ -317,3 +325,63 @@ function Lixeira({ empresaId, lang, P, fmt, dataTxt, aoMudar }: { empresaId: str
   )
 }
 
+
+// A pagar: importância do fornecedor (lápis), motivos da prioridade e caminho para pagar na origem
+function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; aoMudar: () => void; avisar: (m: string) => void }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
+  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
+  const [ed, setEd] = useState({ criticidade: i.caso?.criticidade ?? 'media', risco_interrupcao: !!i.caso?.risco_interrupcao, impacto_producao: !!i.caso?.impacto_producao, impacto_vendas: !!i.caso?.impacto_vendas })
+  const [salvando, setSalvando] = useState(false)
+  const salvar = async () => {
+    setSalvando(true)
+    const r = await salvarCaso(empresaId, 'pagar', i.titulo.id, ed, 'importância do fornecedor')
+    setSalvando(false)
+    if (!r.ok) return avisar(L('Não foi possível salvar. Só dono, sócio, admin e financeiro podem alterar.', 'Could not save. Only owner, partner, admin and finance can change it.', 'No fue posible guardar. Solo dueño, socio, admin y finanzas pueden cambiarlo.'))
+    aoMudar(); avisar(L('Importância do fornecedor salva — a prioridade foi recalculada.', 'Supplier importance saved — priority recalculated.', 'Importancia del proveedor guardada — la prioridad se recalculó.'))
+  }
+  const enc = i.encargos
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 text-xs" style={{ color: P.TEXTO }}>
+      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
+        <p className="font-bold mb-1">{L('Valores', 'Amounts', 'Valores')}</p>
+        {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
+          .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
+        <p className="text-[11px] pt-1" style={{ color: P.CINZA }}>{L('Estimativa pelo contrato; sem taxa no contrato, juros pela taxa legal (Selic − IPCA). Confira com o fornecedor.', 'Estimate by contract; without a contract rate, interest by the legal rate (Selic − IPCA). Check with the supplier.', 'Estimación por contrato; sin tasa en el contrato, intereses por la tasa legal (Selic − IPCA). Confirme con el proveedor.')}</p>
+      </div>
+      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
+        <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
+        <p style={{ color: P.CINZA }}>{porqueAcao(lang, i.acao.acao)}</p>
+        <p className="font-bold pt-1">{L('Prioridade de pagamento', 'Payment priority', 'Prioridad de pago')}: {i.prioridade.score}</p>
+        {i.prioridade.fatores.map((f) => <p key={f.chave} className="flex justify-between"><span style={{ color: P.CINZA }}>{nomeFator(lang, f.chave)}</span><span>{f.pontos > 0 ? '+' : ''}{f.pontos}</span></p>)}
+        <Link href="/contas-pagar?filtro=vencido" className="inline-block mt-2 px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Pagar em Contas a Pagar', 'Pay in Payables', 'Pagar en Cuentas por Pagar')}</Link>
+      </div>
+      <div className="rounded-xl p-3 space-y-2" style={aninhada}>
+        <p className="font-bold flex items-center gap-1"><Pencil size={13} />{L('Importância do fornecedor', 'Supplier importance', 'Importancia del proveedor')}</p>
+        <select aria-label={L('Importância', 'Importance', 'Importancia')} value={ed.criticidade} onChange={(e) => setEd({ ...ed, criticidade: e.target.value as typeof ed.criticidade })} className="w-full rounded-lg px-1.5 py-1" style={campo}>
+          {(['critica', 'alta', 'media', 'baixa'] as const).map((c) => <option key={c} value={c}>{nomeCriticidade(lang, c)}</option>)}
+        </select>
+        {([['risco_interrupcao', L('Pode parar o fornecimento', 'Supply may stop', 'Puede cortar el suministro')], ['impacto_producao', L('Atraso afeta a produção', 'Delay affects production', 'El atraso afecta la producción')], ['impacto_vendas', L('Atraso afeta as vendas', 'Delay affects sales', 'El atraso afecta las ventas')]] as const).map(([k, t]) => (
+          <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={ed[k]} onChange={(e) => setEd({ ...ed, [k]: e.target.checked })} />{t}</label>
+        ))}
+        <button type="button" disabled={salvando} onClick={() => void salvar()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Salvar importância', 'Save importance', 'Guardar importancia')}</button>
+        <p className="text-[11px]" style={{ color: P.CINZA }}>{L('Um fornecedor essencial pode vir antes de uma conta maior ou mais antiga.', 'An essential supplier may come before a larger or older bill.', 'Un proveedor esencial puede ir antes que una cuenta mayor o más antigua.')}</p>
+      </div>
+    </div>
+  )
+}
+
+// Simulação de regularização: o que acontece com o caixa se pagar as contas marcadas (não grava nada)
+function SimulacaoPagamento({ itens, tesouraria, lang, P, fmt }: { itens: ItemVencido[]; tesouraria: BaseTesouraria; lang: Lang; P: Paleta; fmt: (v: number) => string }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const s = simularPagamentos(tesouraria, itens.map((i) => i.encargos.total))
+  return (
+    <div className="rounded-xl p-3 mb-3 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+      <p className="col-span-2 sm:col-span-4 font-bold">{L(`Simulação: pagar as ${itens.length} marcada(s) — não altera nada`, `Simulation: pay the ${itens.length} selected — changes nothing`, `Simulación: pagar las ${itens.length} marcada(s) — no cambia nada`)}</p>
+      <p><span style={{ color: P.CINZA }}>{L('A pagar (com juros e multa)', 'To pay (with interest and fines)', 'A pagar (con intereses y multas)')}</span><br /><b>{fmt(s.pagamento)}</b></p>
+      <p><span style={{ color: P.CINZA }}>{L('Caixa hoje', 'Cash today', 'Caja hoy')}</span><br /><b>{fmt(s.caixaAntes)}</b></p>
+      <p><span style={{ color: P.CINZA }}>{L('Caixa depois', 'Cash after', 'Caja después')}</span><br /><b style={{ color: s.caixaDepois < 0 ? P.VERMELHO : P.TEXTO }}>{fmt(s.caixaDepois)}</b></p>
+      <p><span style={{ color: P.CINZA }}>{L('Folga sobre a reserva mínima', 'Margin over minimum reserve', 'Margen sobre la reserva mínima')}</span><br /><b style={{ color: s.abaixoDaReserva ? P.VERMELHO : P.VERDE }}>{fmt(s.folgaSobreReserva)}</b></p>
+    </div>
+  )
+}
