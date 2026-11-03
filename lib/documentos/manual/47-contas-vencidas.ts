@@ -37,7 +37,7 @@ const pt: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por faixa' },
-    { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (cinza), até 60 dias (verde-menta) e acima de 60 dias (azul-marinho) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. No celular o gráfico aparece deitado, com o nome de cada faixa na lateral. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
+    { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (cinza), até 30 dias (verde-menta), 31 a 90 dias (azul-marinho) e acima de 90 dias (vermelho, atraso grave) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. No celular o gráfico aparece deitado, com o nome de cada faixa na lateral. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
 
     { h1: 'Previsão e evolução' },
     { p: 'Quanto deve ser recuperado em 7, 15, 30, 60 e 90 dias, com o nível de confiança. A **evolução** mostra o total vencido a receber dia a dia — ela começa a ser registrada no primeiro dia em que a tela é aberta.' },
@@ -54,10 +54,11 @@ const pt: DocumentoAxioma = {
       '**Ordenar**: mais prioritárias, mais atrasadas, maior saldo ou cliente de A a Z. A lista mostra 20 por página (**Anterior** / **Próxima**).',
       '**Marcar**: a caixinha de cada linha (ou a do topo, para a página toda). Com contas marcadas, **PDF** e **Excel** levam só elas; sem marcação, levam a lista filtrada inteira.',
       '**Detalhes**: toque na linha. Aparecem os valores (original, saldo, multa, juros, correção pelo IPCA e total atualizado) com a base legal, a próxima ação e o porquê, a causa provável (confirmada ou a confirmar), os motivos da nota de risco e o comportamento de pagamento do cliente.',
-      '**DNA de pagamento** (embaixo dos detalhes): atraso médio, pagamentos com atraso, regularidade, prazo e valor médios, promessas cumpridas e descumpridas, acordos, exposição (vencido e em aberto) e um gráfico com os dias de atraso de cada pagamento (verde-menta = em dia; azul-marinho = com atraso). A **tendência** (piorando, melhorando ou estável) vem com os números que a sustentam; com menos de 4 pagamentos o cliente não é classificado.',
+      '**DNA de pagamento** (embaixo dos detalhes): atraso médio, pagamentos com atraso, regularidade, prazo e valor médios, promessas cumpridas e descumpridas, acordos, exposição (vencido e em aberto) e um gráfico com os dias de atraso de cada pagamento (verde-menta = em dia; azul-marinho = até 30 dias; vermelho = mais de 30 dias). Nota de risco e tendência também usam essas cores: vermelho = risco alto ou piorando. A **tendência** (piorando, melhorando ou estável) vem com os números que a sustentam; com menos de 4 pagamentos o cliente não é classificado.',
       '**Registrar contato**: escolha o canal e a data, escreva o que foi conversado e toque em **Registrar contato**. O **lápis** corrige o texto; a **lixeira** tira o contato da lista (sem senha).',
       '**Registrar promessa**: valor (até o saldo) e data a partir de hoje. Promessa não conta como dinheiro em caixa.',
       '**Registrar recebimento em Contas a Receber**: o recebimento é sempre lançado lá, num lugar só.',
+      '**Dossiê**: toque no **nome do cliente** (no celular, no botão **Dossiê**). Reúne identificação (documento, telefone, e-mail, cidade, condição de pagamento, limite de crédito), exposição (vencido, a vencer, total), previsão de recuperação, todas as contas vencidas com a próxima ação (**Abrir** leva à conta), o DNA de pagamento e as comunicações. **Abrir Clientes** leva ao cadastro.',
     ] },
     { nota: 'Lixeira: o botão **Lixeira** mostra contatos e promessas apagados nos últimos 60 dias, com quantos dias faltam; **Recuperar** devolve o item para todas as telas.' },
 
@@ -110,7 +111,7 @@ const en: DocumentoAxioma = {
     ] } },
 
     { h1: 'Overdue by range' },
-    { p: 'Column chart with the balance in each range: **Not due** (gray), up to 60 days (mint green) and over 60 days (navy) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. On a phone the chart is shown sideways, with each range name on the side. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
+    { p: 'Column chart with the balance in each range: **Not due** (gray), up to 30 days (mint green), 31 to 90 days (navy) and over 90 days (red, serious delay) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. On a phone the chart is shown sideways, with each range name on the side. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
 
     { h1: 'Forecast and history' },
     { p: 'How much should be recovered in 7, 15, 30, 60 and 90 days, with the confidence level. The **history** shows the overdue receivable total day by day — it starts on the first day the screen is opened.' },
@@ -127,10 +128,11 @@ const en: DocumentoAxioma = {
       '**Sort**: highest priority, most overdue, largest balance or customer A to Z. The list shows 20 per page (**Previous** / **Next**).',
       '**Select**: the checkbox on each row (or the one at the top for the whole page). With bills selected, **PDF** and **Excel** export only those; with none, the whole filtered list.',
       '**Details**: tap the row. You see the amounts (original, balance, fine, interest, IPCA update and updated total) with the legal basis, the next action and why, the likely cause (confirmed or to be confirmed), the reasons for the risk score and the customer payment behaviour.',
-      '**Payment DNA** (below the details): average delay, late payments, regularity, average term and amount, promises kept and broken, agreements, exposure (overdue and open) and a chart with the days late on each payment (mint green = on time; navy = late). The **trend** (getting worse, improving or stable) comes with the numbers behind it; with fewer than 4 payments the customer is not classified.',
+      '**Payment DNA** (below the details): average delay, late payments, regularity, average term and amount, promises kept and broken, agreements, exposure (overdue and open) and a chart with the days late on each payment (mint green = on time; navy = up to 30 days; red = over 30 days). Risk score and trend use the same colors: red = high risk or getting worse. The **trend** (getting worse, improving or stable) comes with the numbers behind it; with fewer than 4 payments the customer is not classified.',
       '**Save contact**: pick the channel and date, write what was discussed and tap **Save contact**. The **pencil** fixes the text; the **trash** removes the contact from the list (no password).',
       '**Save promise**: amount (up to the balance) and a date from today on. A promise does not count as cash.',
       '**Record payment in Receivables**: payments are always recorded there, in one place.',
+      '**Dossier**: tap the **customer name** (on a phone, the **Dossier** button). It gathers identification (tax ID, phone, email, city, payment terms, credit limit), exposure (overdue, not due, total), recovery forecast, all overdue bills with the next action (**Open** goes to the bill), the payment DNA and the communications. **Open Customers** goes to the customer record.',
     ] },
     { nota: 'Trash: the **Trash** button shows contacts and promises deleted in the last 60 days, with the days left; **Restore** brings the item back to every screen.' },
 
@@ -183,7 +185,7 @@ const es: DocumentoAxioma = {
     ] } },
 
     { h1: 'Atraso por rango' },
-    { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (gris), hasta 60 días (verde menta) y más de 60 días (azul marino) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. En el celular el gráfico aparece acostado, con el nombre de cada rango al costado. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
+    { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (gris), hasta 30 días (verde menta), 31 a 90 días (azul marino) y más de 90 días (rojo, atraso grave) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. En el celular el gráfico aparece acostado, con el nombre de cada rango al costado. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
 
     { h1: 'Previsión y evolución' },
     { p: 'Cuánto debe recuperarse en 7, 15, 30, 60 y 90 días, con el nivel de confianza. La **evolución** muestra el total vencido por cobrar día a día — empieza a registrarse el primer día que se abre la pantalla.' },
@@ -200,10 +202,11 @@ const es: DocumentoAxioma = {
       '**Ordenar**: más prioritarias, más atrasadas, mayor saldo o cliente de la A a la Z. La lista muestra 20 por página (**Anterior** / **Siguiente**).',
       '**Marcar**: la casilla de cada fila (o la de arriba, para toda la página). Con cuentas marcadas, **PDF** y **Excel** llevan solo esas; sin marcar, toda la lista filtrada.',
       '**Detalles**: toque la fila. Aparecen los valores (original, saldo, multa, intereses, actualización por IPCA y total actualizado) con la base legal, la próxima acción y el porqué, la causa probable (confirmada o por confirmar), los motivos de la nota de riesgo y el comportamiento de pago del cliente.',
-      '**ADN de pago** (debajo de los detalles): atraso promedio, pagos con atraso, regularidad, plazo y valor promedio, promesas cumplidas e incumplidas, acuerdos, exposición (vencido y abierto) y un gráfico con los días de atraso de cada pago (verde menta = a tiempo; azul marino = con atraso). La **tendencia** (empeorando, mejorando o estable) viene con los números que la sostienen; con menos de 4 pagos el cliente no se clasifica.',
+      '**ADN de pago** (debajo de los detalles): atraso promedio, pagos con atraso, regularidad, plazo y valor promedio, promesas cumplidas e incumplidas, acuerdos, exposición (vencido y abierto) y un gráfico con los días de atraso de cada pago (verde menta = a tiempo; azul marino = hasta 30 días; rojo = más de 30 días). La nota de riesgo y la tendencia usan los mismos colores: rojo = riesgo alto o empeorando. La **tendencia** (empeorando, mejorando o estable) viene con los números que la sostienen; con menos de 4 pagos el cliente no se clasifica.',
       '**Registrar contacto**: elija el canal y la fecha, escriba lo que se habló y toque **Registrar contacto**. El **lápiz** corrige el texto; la **papelera** quita el contacto de la lista (sin contraseña).',
       '**Registrar promesa**: valor (hasta el saldo) y fecha desde hoy. La promesa no cuenta como dinero en caja.',
       '**Registrar cobro en Cuentas por Cobrar**: el cobro siempre se registra allí, en un solo lugar.',
+      '**Expediente**: toque el **nombre del cliente** (en el celular, el botón **Expediente**). Reúne identificación (documento, teléfono, correo, ciudad, condición de pago, límite de crédito), exposición (vencido, por vencer, total), previsión de recuperación, todas las cuentas vencidas con la próxima acción (**Abrir** lleva a la cuenta), el ADN de pago y las comunicaciones. **Abrir Clientes** lleva al registro.',
     ] },
     { nota: 'Papelera: el botón **Papelera** muestra contactos y promesas borrados en los últimos 60 días, con los días que faltan; **Recuperar** devuelve el ítem a todas las pantallas.' },
 

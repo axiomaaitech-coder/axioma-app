@@ -451,6 +451,15 @@ const MAPA_CORES_ESCURO: Record<string, string> = {
 export const serieCores = (claro?: boolean) => claro
   ? ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54"]
   : ["#2ecc9b", "#c8d3e0", "#34d399", "#6b7280", "#4a6fa5"];
+// Cores de SITUAÇÃO (bom / atenção / crítico) — só cores do Axioma: verde-menta, azul-marinho e o vermelho
+// de alerta já usado nas telas. Para ler gráfico e número pelo cenário (em dia x atraso leve x mau pagador).
+// Sempre com rótulo junto (cor nunca é a única informação).
+export const coresSituacao = (claro?: boolean) => claro
+  ? { bom: "#2ecc9b", atencao: "#101b3d", critico: "#d93848", neutro: "#6b7280" }
+  : { bom: "#2ecc9b", atencao: "#c8d3e0", critico: "#f87171", neutro: "#6b7280" };
+// Texto no Claro não usa o verde-menta claro (contraste): menta escuro
+export const corTextoSituacao = (nivel: "bom" | "atencao" | "critico" | "neutro", claro?: boolean) =>
+  nivel === "bom" ? (claro ? "#0f7a5a" : "#34d399") : coresSituacao(claro)[nivel];
 export function corTema(hex: string, claro?: boolean): string {
   return (claro ? MAPA_CORES_CLARO : MAPA_CORES_ESCURO)[hex] ?? hex;
 }

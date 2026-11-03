@@ -14,7 +14,7 @@ import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
-import { optBarrasH, optBarrasV, serieCores, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
+import { optBarrasH, optBarrasV, coresSituacao, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../lib/cfoCore'
 import { carregarAnaliseVencidos, registrarPrevisaoDoDia, type AnaliseVencidos } from '../../../lib/vencidos/dados'
 import { filtrosIniciais, resumoPainel, type Filtros, type Situacao } from '../../../lib/vencidos/painel'
 
@@ -86,10 +86,11 @@ export default function ContasVencidasPage() {
     ['sem_acompanhamento', L('Sem acompanhamento', 'Not followed up', 'Sin seguimiento')],
   ]
   const ag = r ? (lado === 'receber' ? r.agingReceber : r.agingPagar) : null
-  // Sequência oficial de gráficos (serieCores / tema-tokens): a vencer cinza (chart-4, ainda não atrasou),
-  // até 60 dias verde-menta (chart-1), acima de 60 azul-marinho (chart-2) — três cores bem distintas; nada de dourado
-  const sc = serieCores(temaClaro)
-  const CORES_AGING = { aVencer: sc[3], ate60: sc[0], acima60: sc[1] }
+  // Cores de situação do Axioma (coresSituacao): a vencer cinza, até 30 dias verde-menta, 31–90 azul-marinho,
+  // acima de 90 vermelho (atraso grave) — sempre com legenda; nada de dourado
+  const cs = coresSituacao(temaClaro)
+  const CORES_AGING = { aVencer: cs.neutro, ate30: cs.bom, ate90: cs.atencao, acima90: cs.critico }
+  const corFaixa = (ate: number | null) => (ate != null && ate <= 30 ? CORES_AGING.ate30 : ate != null && ate <= 90 ? CORES_AGING.ate90 : CORES_AGING.acima90)
   const rotulosAging = ag ? [L('A vencer', 'Not due', 'Por vencer'), ...ag.faixas.map((x) => x.rotulo)] : []
   const valoresAging = ag ? [ag.aVencer.saldo, ...ag.faixas.map((x) => x.saldo)] : []
   const qtdAging = ag ? [ag.aVencer.qtd, ...ag.faixas.map((x) => x.qtd)] : []
@@ -97,8 +98,8 @@ export default function ContasVencidasPage() {
   const ate30 = ag && baseAging > 0 ? Math.round(((ag.aVencer.saldo + ag.faixas.filter((x) => x.ate != null && x.ate <= 30).reduce((s, x) => s + x.saldo, 0)) / baseAging) * 1000) / 10 : null
   // Celular: barras DEITADAS (faixa na lateral, todas legíveis); computador: colunas. Mesmo dado, mesmas cores.
   const opcaoAging = ag ? (() => {
-    const cores = [CORES_AGING.aVencer, ...ag.faixas.map((x) => (x.ate != null && x.ate <= 60 ? CORES_AGING.ate60 : CORES_AGING.acima60))]
-    const o = (estreito ? optBarrasH : optBarrasV)(valoresAging, rotulosAging, CORES_AGING.acima60, CORES_AGING.ate60, cores, temaClaro)
+    const cores = [CORES_AGING.aVencer, ...ag.faixas.map((x) => corFaixa(x.ate))]
+    const o = (estreito ? optBarrasH : optBarrasV)(valoresAging, rotulosAging, CORES_AGING.ate90, CORES_AGING.ate30, cores, temaClaro)
     const dias = L('dias', 'days', 'días'), contas = L('conta(s)', 'bill(s)', 'cuenta(s)'), doTotal = L('do total', 'of total', 'del total')
     const curto = (v: number) => v.toLocaleString(local, { notation: 'compact', maximumFractionDigits: 1 })
     const nomeFaixa = (v: string, i: number) => (i === 0 ? v : `${v} ${dias}`)
@@ -218,8 +219,9 @@ export default function ContasVencidasPage() {
                 </table>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] mt-1" style={{ color: P.CINZA }}>
                   <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.aVencer }} />{L('A vencer', 'Not due', 'Por vencer')}</span>
-                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate60 }} />{L('Até 60 dias', 'Up to 60 days', 'Hasta 60 días')}</span>
-                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.acima60 }} />{L('Acima de 60 dias', 'Over 60 days', 'Más de 60 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate30 }} />{L('Até 30 dias', 'Up to 30 days', 'Hasta 30 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.ate90 }} />{L('31 a 90 dias', '31 to 90 days', '31 a 90 días')}</span>
+                  <span><i className="inline-block w-2.5 h-2.5 rounded-sm mr-1 align-middle" style={{ background: CORES_AGING.acima90 }} />{L('Acima de 90 dias', 'Over 90 days', 'Más de 90 días')}</span>
                   <span className="ml-auto">{L(`Juros e multa estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Maior devedor: ${pct(ag.maiorPct)} do vencido`, `Estimated interest and fines: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Largest debtor: ${pct(ag.maiorPct)} of overdue`, `Intereses y multas estimados: ${fmt(ag.faixas.reduce((s, x) => s + x.encargos, 0))} · Mayor deudor: ${pct(ag.maiorPct)} de lo vencido`)}</span>
                 </div>
               </div>
