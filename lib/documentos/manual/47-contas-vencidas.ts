@@ -13,6 +13,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **Comercial ▼** → **Contas Vencidas**.'] },
 
+    { h1: 'Letreiro' },
+    { p: 'A faixa azul-marinho no alto passa os números do momento: vencido a receber e a pagar, recuperado no período, taxa de recuperação, promessas descumpridas, divergências abertas e quanto está em até 30 dias (referência de mercado 75–80%). Passe o mouse para pausar.' },
+
     { h1: 'Filtros' },
     { p: 'No topo: **período** (vale para o "Recuperado no período"), **busca** por cliente, fornecedor ou descrição, **faixa de atraso** e **situação** (com promessa de pagamento, em negociação, com divergência ou sem acompanhamento). Os filtros valem para os números, para as faixas e para as listas. A Empresa é a que está escolhida no topo do Axioma.' },
 
@@ -43,7 +46,7 @@ const pt: DocumentoAxioma = {
     { p: 'Quanto deve ser recuperado em 7, 15, 30, 60 e 90 dias, com o nível de confiança. A **evolução** mostra o total vencido a receber dia a dia — ela começa a ser registrada no primeiro dia em que a tela é aberta.' },
 
     { h1: 'Ligações com outros módulos' },
-    { p: 'Botões no topo levam a **Contas a Receber**, **Contas a Pagar**, **Inadimplência** (régua e negociação), **Clientes**, **Fornecedores**, **Tesouraria** e **Fluxo de Caixa**. No caminho de volta, o Dashboard, Contas a Receber, Contas a Pagar, Inadimplência e Tesouraria mostram um cartão com o total vencido e o botão **Abrir Contas Vencidas**.' },
+    { p: 'Botões no topo levam a **Contas a Receber**, **Contas a Pagar**, **Inadimplência** (régua e negociação), **Clientes**, **Fornecedores**, **Tesouraria** e **Fluxo de Caixa**. No caminho de volta, o Dashboard, Contas a Receber, Contas a Pagar, Inadimplência e Tesouraria mostram um cartão com o total vencido e o botão **Abrir Contas Vencidas**. Nos detalhes e no dossiê, o título de cada quadro tem um caminho (›) para o módulo dono daquela informação: Valores → Contas a Receber/Pagar, Contatos e Comunicações → régua de cobrança (Inadimplência), Identificação → cadastro, Previsão e Simulação → Tesouraria, DNA → Inteligência de Clientes, Importância → Fornecedores.' },
 
     { h1: 'Perguntar às IAs' },
     { p: 'As IAs do Axioma (IA Financeira, Relatórios, José e as demais) consultam esta mesma análise. Exemplos: "Quanto temos vencido?", "Quem são os maiores inadimplentes?", "Quais promessas foram descumpridas?", "Qual fornecedor pagar primeiro?", "Se recuperarmos 70% em 30 dias, como fica o caixa?". Os números vêm calculados pelo Axioma; a IA explica e nunca cobra, negocia ou apaga nada.' },
@@ -88,6 +91,9 @@ const en: DocumentoAxioma = {
     { h1: 'How to get there' },
     { lista: ['Top menu → **Commercial ▼** → **Overdue Bills**.'] },
 
+    { h1: 'Ticker' },
+    { p: 'The navy strip at the top scrolls the current numbers: overdue receivable and payable, recovered in period, recovery rate, broken promises, open disputes and how much is within 30 days (market reference 75–80%). Hover to pause.' },
+
     { h1: 'Filters' },
     { p: 'At the top: **period** (used by "Recovered in period"), **search** by customer, supplier or description, **overdue range** and **status** (with payment promise, in negotiation, in dispute or not followed up). Filters apply to the numbers, the ranges and the lists. The Company is the one chosen at the top of Axioma.' },
 
@@ -118,7 +124,7 @@ const en: DocumentoAxioma = {
     { p: 'How much should be recovered in 7, 15, 30, 60 and 90 days, with the confidence level. The **history** shows the overdue receivable total day by day — it starts on the first day the screen is opened.' },
 
     { h1: 'Links to other modules' },
-    { p: 'Buttons at the top lead to **Receivables**, **Payables**, **Delinquency** (schedule and negotiation), **Customers**, **Suppliers**, **Treasury** and **Cash Flow**. On the way back, the Dashboard, Receivables, Payables, Delinquency and Treasury show a card with the overdue total and the **Open Overdue Bills** button.' },
+    { p: 'Buttons at the top lead to **Receivables**, **Payables**, **Delinquency** (schedule and negotiation), **Customers**, **Suppliers**, **Treasury** and **Cash Flow**. On the way back, the Dashboard, Receivables, Payables, Delinquency and Treasury show a card with the overdue total and the **Open Overdue Bills** button. In the details and the dossier, each box title has a path (›) to the module that owns that information: Amounts → Receivables/Payables, Contacts and Communications → collection schedule (Delinquency), Identification → record, Forecast and Simulation → Treasury, DNA → Customer Intelligence, Importance → Suppliers.' },
 
     { h1: 'Asking the AIs' },
     { p: 'Axioma AIs (Financial AI, Reports, José and the others) read this same analysis. Examples: "How much is overdue?", "Who are the biggest late payers?", "Which promises were broken?", "Which supplier should we pay first?", "If we recover 70% in 30 days, how does cash look?". The numbers are calculated by Axioma; the AI explains and never collects, negotiates or deletes anything.' },
@@ -163,6 +169,9 @@ const es: DocumentoAxioma = {
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **Comercial ▼** → **Cuentas Vencidas**.'] },
 
+    { h1: 'Marquesina' },
+    { p: 'La franja azul marino de arriba muestra los números del momento: vencido por cobrar y por pagar, recuperado en el período, tasa de recuperación, promesas incumplidas, divergencias abiertas y cuánto está en hasta 30 días (referencia de mercado 75–80%). Pase el mouse para pausar.' },
+
     { h1: 'Filtros' },
     { p: 'Arriba: **período** (vale para "Recuperado en el período"), **búsqueda** por cliente, proveedor o descripción, **rango de atraso** y **situación** (con promesa de pago, en negociación, con divergencia o sin seguimiento). Los filtros valen para los números, los rangos y las listas. La Empresa es la elegida en la parte superior de Axioma.' },
 
@@ -193,7 +202,7 @@ const es: DocumentoAxioma = {
     { p: 'Cuánto debe recuperarse en 7, 15, 30, 60 y 90 días, con el nivel de confianza. La **evolución** muestra el total vencido por cobrar día a día — empieza a registrarse el primer día que se abre la pantalla.' },
 
     { h1: 'Vínculos con otros módulos' },
-    { p: 'Los botones de arriba llevan a **Cuentas por Cobrar**, **Cuentas por Pagar**, **Morosidad** (regla y negociación), **Clientes**, **Proveedores**, **Tesorería** y **Flujo de Caja**. De vuelta, el Dashboard, Cuentas por Cobrar, Cuentas por Pagar, Morosidad y Tesorería muestran una tarjeta con el total vencido y el botón **Abrir Cuentas Vencidas**.' },
+    { p: 'Los botones de arriba llevan a **Cuentas por Cobrar**, **Cuentas por Pagar**, **Morosidad** (regla y negociación), **Clientes**, **Proveedores**, **Tesorería** y **Flujo de Caja**. De vuelta, el Dashboard, Cuentas por Cobrar, Cuentas por Pagar, Morosidad y Tesorería muestran una tarjeta con el total vencido y el botón **Abrir Cuentas Vencidas**. En los detalles y el expediente, el título de cada cuadro tiene un camino (›) al módulo dueño de esa información: Valores → Cuentas por Cobrar/Pagar, Contactos y Comunicaciones → regla de cobranza (Morosidad), Identificación → registro, Previsión y Simulación → Tesorería, ADN → Inteligencia de Clientes, Importancia → Proveedores.' },
 
     { h1: 'Preguntar a las IAs' },
     { p: 'Las IAs de Axioma (IA Financiera, Informes, José y las demás) consultan este mismo análisis. Ejemplos: "¿Cuánto tenemos vencido?", "¿Quiénes son los mayores morosos?", "¿Qué promesas se incumplieron?", "¿A qué proveedor pagar primero?", "Si recuperamos 70% en 30 días, ¿cómo queda la caja?". Los números los calcula Axioma; la IA explica y nunca cobra, negocia ni borra nada.' },

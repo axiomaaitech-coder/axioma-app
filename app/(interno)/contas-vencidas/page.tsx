@@ -10,6 +10,7 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos from './CentralVencidos'
+import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -128,6 +129,17 @@ export default function ContasVencidasPage() {
         ) : (
           <div className="space-y-4">
             {a.falhou && <p role="alert" className="text-xs font-semibold flex items-center gap-1" style={{ color: P.VERMELHO }}><AlertTriangle size={14} />{L('Alguns dados não carregaram — os números podem estar incompletos. Atualize a página.', 'Some data did not load — the numbers may be incomplete. Refresh the page.', 'Algunos datos no cargaron — los números pueden estar incompletos. Actualice la página.')}</p>}
+
+            {/* Letreiro padrão do Axioma (azul-marinho, letra branca, destaque verde-menta) com os números do painel */}
+            <LetreiroAxioma id="vencidos" cor="#2ecc9b" itens={[
+              `${L('A receber vencido', 'Overdue receivable', 'Por cobrar vencido')}: ${fmt(r.totalReceber)}`,
+              `${L('A pagar vencido', 'Overdue payable', 'Por pagar vencido')}: ${fmt(r.totalPagar)}`,
+              `${L('Recuperado no período', 'Recovered in period', 'Recuperado en el período')}: ${fmt(r.recuperado)}`,
+              `${L('Taxa de recuperação', 'Recovery rate', 'Tasa de recuperación')}: ${pct(r.taxaRecuperacao)}`,
+              `${L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')}: ${r.promessasDescumpridas}`,
+              `${L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')}: ${r.disputasAbertas}`,
+              `${L('Até 30 dias', 'Up to 30 days', 'Hasta 30 días')}: ${pct(ate30)} (${L('referência 75–80%', 'reference 75–80%', 'referencia 75–80%')})`,
+            ]} />
 
             {/* Filtros: valem para os números, as faixas e as listas */}
             <div className="rounded-2xl p-3 axi-card-premium3d axi-card-faixa flex flex-wrap items-center gap-2" style={painel}>

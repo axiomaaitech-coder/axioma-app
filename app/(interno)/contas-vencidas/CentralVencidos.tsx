@@ -254,14 +254,14 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
     : L('Consumidor (ou documento sem CNPJ): multa de no máximo 2% (Código de Defesa do Consumidor, art. 52).', 'Consumer (or no company ID): fine of at most 2% (Consumer Code, art. 52).', 'Consumidor (o sin CNPJ): multa de máximo 2% (Código de Defensa del Consumidor, art. 52).')
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 text-xs" style={{ color: P.TEXTO }}>
-      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
-        <p className="font-bold mb-1">{L('Valores', 'Amounts', 'Valores')}</p>
+      <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
+        <Titulo P={P} texto={L('Valores', 'Amounts', 'Valores')} href="/contas-receber?filtro=vencido" ir={L('Contas a Receber', 'Receivables', 'Cuentas por Cobrar')} />
         {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
           .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
         {i.disputa.aberta && <p style={{ color: P.CINZA }}>{L(`Contestado: ${fmt(i.disputa.contestado)}`, `Disputed: ${fmt(i.disputa.contestado)}`, `Disputado: ${fmt(i.disputa.contestado)}`)}</p>}
         <p className="text-[11px] pt-1" style={{ color: P.CINZA }}>{baseLegal} {L('Juros: os do contrato; sem contrato, Selic − IPCA (Lei 14.905/2024). Cálculo para conferência — o Axioma não cobra nada sozinho.', 'Interest: the contract rate; without it, Selic − IPCA (Law 14.905/2024). For checking only — Axioma never charges anything on its own.', 'Intereses: los del contrato; sin contrato, Selic − IPCA (Ley 14.905/2024). Cálculo para verificación — Axioma no cobra nada solo.')}</p>
       </div>
-      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
+      <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
         <p style={{ color: P.CINZA }}>{porqueAcao(lang, i.acao.acao)}</p>
         <p className="pt-1"><b>{L('Causa provável', 'Likely cause', 'Causa probable')}:</b> {nomeCausa(lang, i.causaSugerida.causa)} <span style={{ color: P.CINZA }}>({i.causaSugerida.tipo === 'fato' ? L('confirmada', 'confirmed', 'confirmada') : L('a confirmar', 'to be confirmed', 'por confirmar')})</span></p>
@@ -271,12 +271,12 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
         <p className="pt-1"><b>{L('Comportamento do cliente', 'Customer behaviour', 'Comportamiento del cliente')}:</b> {nomeTendencia(lang, i.dna.tendencia)}{i.dna.suficiente ? L(` · atraso médio ${i.dna.atrasoMedio} dias em ${i.dna.amostra} pagamentos`, ` · average delay ${i.dna.atrasoMedio} days over ${i.dna.amostra} payments`, ` · atraso promedio ${i.dna.atrasoMedio} días en ${i.dna.amostra} pagos`) : L(` · ${i.dna.amostra} pagamento(s) no histórico (mínimo 4)`, ` · ${i.dna.amostra} payment(s) in history (minimum 4)`, ` · ${i.dna.amostra} pago(s) en el historial (mínimo 4)`)}</p>
         <Link href="/contas-receber?filtro=vencido" className="inline-block mt-2 px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Registrar recebimento em Contas a Receber', 'Record payment in Receivables', 'Registrar cobro en Cuentas por Cobrar')}</Link>
       </div>
-      <div className="rounded-xl p-3 space-y-2" style={aninhada}>
-        <p className="font-bold">{L('Contatos de cobrança', 'Collection contacts', 'Contactos de cobranza')}</p>
+      <div className="rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={aninhada}>
+        <Titulo P={P} texto={L('Contatos de cobrança', 'Collection contacts', 'Contactos de cobranza')} href="/inadimplencia" ir={L('Régua de cobrança', 'Collection schedule', 'Regla de cobranza')} />
         {contatos === null ? <p style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : contatos.length === 0 ? <p style={{ color: P.CINZA }}>{L('Nenhum contato registrado.', 'No contacts yet.', 'Ningún contacto registrado.')}</p> : (
           <ul className="space-y-1.5 max-h-48 overflow-y-auto">
             {contatos.map((c) => (
-              <li key={c.id} className="rounded-lg p-2" style={{ border: `1px solid ${P.BORDA}` }}>
+              <li key={c.id} className="rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}` }}>
                 <div className="flex justify-between gap-2">
                   <span style={{ color: P.CINZA }}>{dataTxt(c.data)} · {nomeCanal(lang, c.canal)}</span>
                   <span className="flex gap-2 shrink-0">
@@ -361,7 +361,7 @@ function MensagemCliente({ i, empresaId, lang, P, aoEnviar, avisar }: { i: ItemV
     catch { avisar(L('Não foi possível copiar — selecione o texto e copie.', 'Could not copy — select the text and copy it.', 'No fue posible copiar — seleccione el texto y cópielo.')) }
   }
   return (
-    <div className="lg:col-span-3 rounded-xl p-3 space-y-2" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+    <div className="lg:col-span-3 rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-bold mr-auto">{L('Mensagem ao cliente', 'Message to the customer', 'Mensaje al cliente')}</p>
         <select aria-label={L('Modelo', 'Template', 'Modelo')} value={tipo} onChange={(e) => { setTipo(e.target.value as TipoMensagem); setEditado(null) }} className="rounded-lg px-1.5 py-1" style={campo}>
@@ -416,8 +416,8 @@ function DnaCliente({ i, historico, itens, lang, P, fmt, dataTxt, temaClaro }: {
     : L('Para comparar, são precisos ao menos 2 pagamentos nos últimos 6 meses e 2 antes disso.', 'To compare, at least 2 payments in the last 6 months and 2 before are needed.', 'Para comparar, se necesitan al menos 2 pagos en los últimos 6 meses y 2 antes.')
   const regra = L('Piora = atraso ou prazo subiu 5 dias e 30%; melhora = caiu 5 dias e 30%.', 'Worse = delay or term rose 5 days and 30%; better = fell 5 days and 30%.', 'Empeora = atraso o plazo subió 5 días y 30%; mejora = bajó 5 días y 30%.')
   return (
-    <div className="lg:col-span-3 rounded-xl p-3" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
-      <p className="font-bold mb-2">{L('DNA de pagamento de', 'Payment DNA of', 'ADN de pago de')} {i.titulo.contraparteNome}</p>
+    <div className="lg:col-span-3 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+      <Titulo P={P} texto={<>{L('DNA de pagamento de', 'Payment DNA of', 'ADN de pago de')} {i.titulo.contraparteNome}</>} href={i.titulo.dominio === 'pagar' ? '/fornecedores' : '/clientes'} ir={i.titulo.dominio === 'pagar' ? L('Fornecedores', 'Suppliers', 'Proveedores') : L('Inteligência de Clientes', 'Customer Intelligence', 'Inteligencia de Clientes')} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="space-y-1">
           {[[L('Atraso médio', 'Average delay', 'Atraso promedio'), n(d.atrasoMedio, dias)], [L('Pagamentos com atraso', 'Late payments', 'Pagos con atraso'), n(d.frequenciaAtrasoPct, '%')],
@@ -454,7 +454,7 @@ function Lixeira({ empresaId, lang, P, fmt, dataTxt, aoMudar }: { empresaId: str
   const itens = l ? [...l.contatos.map((c) => ({ k: 'c' as const, id: c.id, txt: `${dataTxt(c.data)} · ${nomeCanal(lang, c.canal)} — ${c.descricao}`, em: c.excluido_em })),
     ...l.promessas.map((p) => ({ k: 'p' as const, id: p.id, txt: `${L('Promessa', 'Promise', 'Promesa')} ${fmt(Number(p.valor_compromissado))} — ${dataTxt(p.data_compromissada)}`, em: (p as CobrancaCompromisso & { excluido_em?: string }).excluido_em }))] : []
   return (
-    <div className="rounded-xl p-3 mb-3 text-xs" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+    <div className="rounded-xl p-3 mb-3 text-xs axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
       <p className="font-bold mb-1">{L(`Lixeira (recupera por ${DIAS_LIXEIRA} dias)`, `Trash (recoverable for ${DIAS_LIXEIRA} days)`, `Papelera (se recupera por ${DIAS_LIXEIRA} días)`)}</p>
       {l === null ? <p style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : itens.length === 0 ? <p style={{ color: P.CINZA }}>{L('A lixeira está vazia.', 'Trash is empty.', 'La papelera está vacía.')}</p> : (
         <ul className="space-y-1">
@@ -488,21 +488,21 @@ function DetalhePagar({ i, empresaId, lang, P, fmt, aoMudar, avisar }: { i: Item
   const enc = i.encargos
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 text-xs" style={{ color: P.TEXTO }}>
-      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
-        <p className="font-bold mb-1">{L('Valores', 'Amounts', 'Valores')}</p>
+      <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
+        <Titulo P={P} texto={L('Valores', 'Amounts', 'Valores')} href="/contas-pagar?filtro=vencido" ir={L('Contas a Pagar', 'Payables', 'Cuentas por Pagar')} />
         {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
           .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
         <p className="text-[11px] pt-1" style={{ color: P.CINZA }}>{L('Estimativa pelo contrato; sem taxa no contrato, juros pela taxa legal (Selic − IPCA). Confira com o fornecedor.', 'Estimate by contract; without a contract rate, interest by the legal rate (Selic − IPCA). Check with the supplier.', 'Estimación por contrato; sin tasa en el contrato, intereses por la tasa legal (Selic − IPCA). Confirme con el proveedor.')}</p>
       </div>
-      <div className="rounded-xl p-3 space-y-1" style={aninhada}>
+      <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold">{L('Próxima ação', 'Next action', 'Próxima acción')}: <span style={{ color: P.VERDE }}>{nomeAcao(lang, i.acao.acao)}</span></p>
         <p style={{ color: P.CINZA }}>{porqueAcao(lang, i.acao.acao)}</p>
         <p className="font-bold pt-1">{L('Prioridade de pagamento', 'Payment priority', 'Prioridad de pago')}: {i.prioridade.score}</p>
         {i.prioridade.fatores.map((f) => <p key={f.chave} className="flex justify-between"><span style={{ color: P.CINZA }}>{nomeFator(lang, f.chave)}</span><span>{f.pontos > 0 ? '+' : ''}{f.pontos}</span></p>)}
         <Link href="/contas-pagar?filtro=vencido" className="inline-block mt-2 px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Pagar em Contas a Pagar', 'Pay in Payables', 'Pagar en Cuentas por Pagar')}</Link>
       </div>
-      <div className="rounded-xl p-3 space-y-2" style={aninhada}>
-        <p className="font-bold flex items-center gap-1"><Pencil size={13} />{L('Importância do fornecedor', 'Supplier importance', 'Importancia del proveedor')}</p>
+      <div className="rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={aninhada}>
+        <Titulo P={P} texto={<span className="flex items-center gap-1"><Pencil size={13} />{L('Importância do fornecedor', 'Supplier importance', 'Importancia del proveedor')}</span>} href="/fornecedores" ir={L('Fornecedores', 'Suppliers', 'Proveedores')} />
         <select aria-label={L('Importância', 'Importance', 'Importancia')} value={ed.criticidade} onChange={(e) => setEd({ ...ed, criticidade: e.target.value as typeof ed.criticidade })} className="w-full rounded-lg px-1.5 py-1" style={campo}>
           {(['critica', 'alta', 'media', 'baixa'] as const).map((c) => <option key={c} value={c}>{nomeCriticidade(lang, c)}</option>)}
         </select>
@@ -521,8 +521,8 @@ function SimulacaoPagamento({ itens, tesouraria, lang, P, fmt }: { itens: ItemVe
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const s = simularPagamentos(tesouraria, itens.map((i) => i.encargos.total))
   return (
-    <div className="rounded-xl p-3 mb-3 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
-      <p className="col-span-2 sm:col-span-4 font-bold">{L(`Simulação: pagar as ${itens.length} marcada(s) — não altera nada`, `Simulation: pay the ${itens.length} selected — changes nothing`, `Simulación: pagar las ${itens.length} marcada(s) — no cambia nada`)}</p>
+    <div className="rounded-xl p-3 mb-3 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+      <div className="col-span-2 sm:col-span-4"><Titulo P={P} texto={L(`Simulação: pagar as ${itens.length} marcada(s) — não altera nada`, `Simulation: pay the ${itens.length} selected — changes nothing`, `Simulación: pagar las ${itens.length} marcada(s) — no cambia nada`)} href="/tesouraria" ir={L('Tesouraria', 'Treasury', 'Tesorería')} /></div>
       <p><span style={{ color: P.CINZA }}>{L('A pagar (com juros e multa)', 'To pay (with interest and fines)', 'A pagar (con intereses y multas)')}</span><br /><b>{fmt(s.pagamento)}</b></p>
       <p><span style={{ color: P.CINZA }}>{L('Caixa hoje', 'Cash today', 'Caja hoy')}</span><br /><b>{fmt(s.caixaAntes)}</b></p>
       <p><span style={{ color: P.CINZA }}>{L('Caixa depois', 'Cash after', 'Caja después')}</span><br /><b style={{ color: s.caixaDepois < 0 ? P.VERMELHO : P.TEXTO }}>{fmt(s.caixaDepois)}</b></p>
@@ -572,8 +572,8 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <div className="rounded-xl p-3 space-y-1" style={aninhada}>
-          <p className="font-bold mb-1">{L('Identificação', 'Identification', 'Identificación')}</p>
+        <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
+          <Titulo P={P} texto={L('Identificação', 'Identification', 'Identificación')} href={pagar ? '/fornecedores' : '/clientes'} ir={L('Cadastro', 'Record', 'Registro')} />
           {cadV === null ? <p style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : <>
             {linha(L('Documento', 'Tax ID', 'Documento'), cadV.documento || '—')}
             {linha(L('Telefone', 'Phone', 'Teléfono'), cadV.whatsapp || cadV.telefone || '—')}
@@ -584,16 +584,16 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
             {linha(L('Responsável', 'Contact person', 'Responsable'), cadV.responsavel || '—')}
           </>}
         </div>
-        <div className="rounded-xl p-3 space-y-1" style={aninhada}>
-          <p className="font-bold mb-1">{L('Exposição', 'Exposure', 'Exposición')}</p>
+        <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
+          <Titulo P={P} texto={L('Exposição', 'Exposure', 'Exposición')} href={pagar ? '/contas-pagar?filtro=vencido' : '/contas-receber?filtro=vencido'} ir={pagar ? L('Contas a Pagar', 'Payables', 'Cuentas por Pagar') : L('Contas a Receber', 'Receivables', 'Cuentas por Cobrar')} />
           {linha(L('Vencido', 'Overdue', 'Vencido'), <span style={{ color: P.VERMELHO }}>{fmt(vencido)}</span>)}
           {linha(L('A vencer', 'Not due', 'Por vencer'), fmt(Math.max(0, aberto - vencido)))}
           {linha(L('Total em aberto', 'Total open', 'Total abierto'), fmt(aberto))}
           {linha(L('Contas vencidas', 'Overdue bills', 'Cuentas vencidas'), String(daContraparte.length))}
           {!pagar && linha(L('Nota de risco', 'Risk score', 'Nota de riesgo'), <span style={{ color: corTextoSituacao(nivelRisco(i.risco.score), temaClaro) }}>{i.risco.score ?? L('sem histórico', 'no history', 'sin historial')}</span>)}
         </div>
-        <div className="rounded-xl p-3 space-y-1" style={aninhada}>
-          <p className="font-bold mb-1">{pagar ? L('Prioridade de pagamento', 'Payment priority', 'Prioridad de pago') : L('Previsão de recuperação', 'Recovery forecast', 'Previsión de recuperación')}</p>
+        <div className="rounded-xl p-3 space-y-1 axi-card-premium3d axi-card-faixa" style={aninhada}>
+          <Titulo P={P} texto={pagar ? L('Prioridade de pagamento', 'Payment priority', 'Prioridad de pago') : L('Previsão de recuperação', 'Recovery forecast', 'Previsión de recuperación')} href="/tesouraria" ir={L('Tesouraria', 'Treasury', 'Tesorería')} />
           {prev ? (prev.confianca === 'sem_dados'
             ? <p style={{ color: P.CINZA }}>{L('Sem histórico suficiente para prever (o Axioma não inventa previsão).', 'Not enough history to forecast (Axioma does not make up forecasts).', 'Sin historial suficiente para prever (Axioma no inventa previsiones).')}</p>
             : prev.horizontes.map((h) => linha(L(`Em ${h.horizonteDias} dias`, `In ${h.horizonteDias} days`, `En ${h.horizonteDias} días`), fmt(h.valor))))
@@ -601,7 +601,7 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
           {prev && prev.composicao.prometido > 0 && linha(L('Prometido (não é caixa)', 'Promised (not cash)', 'Prometido (no es caja)'), fmt(prev.composicao.prometido))}
         </div>
       </div>
-      <div className="rounded-xl p-3" style={aninhada}>
+      <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
         <p className="font-bold mb-1">{L('Contas vencidas e próximas ações', 'Overdue bills and next actions', 'Cuentas vencidas y próximas acciones')}</p>
         <ul className="space-y-1">
           {daContraparte.map((x) => (
@@ -615,8 +615,8 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
       </div>
       <DnaCliente i={i} historico={historico} itens={itens} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} />
       {!pagar && (
-        <div className="rounded-xl p-3" style={aninhada}>
-          <p className="font-bold mb-1">{L('Comunicações', 'Communications', 'Comunicaciones')}</p>
+        <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
+          <Titulo P={P} texto={L('Comunicações', 'Communications', 'Comunicaciones')} href="/inadimplencia" ir={L('Régua de cobrança', 'Collection schedule', 'Regla de cobranza')} />
           {contatos === null ? <p style={{ color: P.CINZA }}>{L('Carregando…', 'Loading…', 'Cargando…')}</p> : contatos.length === 0
             ? <p style={{ color: P.CINZA }}>{L('Nenhum contato registrado com este cliente.', 'No contacts recorded with this customer.', 'Ningún contacto registrado con este cliente.')}</p>
             : <ul className="space-y-1 max-h-40 overflow-y-auto">{contatos.map((c) => <li key={c.id}><span style={{ color: P.CINZA }}>{dataTxt(c.data)} · {nomeCanal(lang, c.canal)}</span> — {c.descricao}</li>)}</ul>}
@@ -624,5 +624,15 @@ function Dossie({ i, dominio, itens, historico, empresaId, lang, P, fmt, dataTxt
         </div>
       )}
     </div>
+  )
+}
+
+// Título de cartão com caminho para o módulo dono da informação (dá sentido ao destino)
+function Titulo({ texto, href, ir, P }: { texto: ReactNode; href?: string; ir?: string; P: Paleta }) {
+  return (
+    <p className="font-bold mb-1 flex items-center justify-between gap-2">
+      <span>{texto}</span>
+      {href && <Link href={href} className="text-[11px] font-semibold underline shrink-0" style={{ color: P.VERDE }}>{ir} ›</Link>}
+    </p>
   )
 }
