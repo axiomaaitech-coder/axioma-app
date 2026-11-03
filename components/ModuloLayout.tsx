@@ -1,5 +1,5 @@
 ﻿"use client";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Sheet } from "lucide-react";
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
@@ -13,6 +13,8 @@ interface ModuloLayoutProps {
   titulo: string;
   subtitulo: string;
   onExportarPDF?: () => void;
+  /** Opt-in — botão "Exportar Excel" ao lado do PDF (mesma tabela: gerarExcelTabela). */
+  onExportarExcel?: () => void;
   exportando?: boolean;
   labelBotao?: string;
   onNovo?: () => void;
@@ -34,7 +36,7 @@ interface ModuloLayoutProps {
 }
 
 export default function ModuloLayout({
-  titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra, aurora,
+  titulo, subtitulo, onExportarPDF, onExportarExcel, exportando, labelBotao, onNovo, children, botaoExtra, aurora,
   headerFundo, corExportar, corNovo, vencidos
 }: ModuloLayoutProps) {
   // Cabeçalho = cartão azul com o nome do módulo em TODOS os módulos e nos 2
@@ -70,6 +72,19 @@ export default function ModuloLayout({
             >
               <Download size={16} />
               {exportando ? L("Gerando...", "Generating...", "Generando...") : L("Exportar PDF", "Export PDF", "Exportar PDF")}
+            </motion.button>
+          )}
+          {onExportarExcel && (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onExportarExcel}
+              disabled={exportando}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+              style={{ background: "#101b3d", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" }}
+            >
+              <Sheet size={16} />
+              {L("Exportar Excel", "Export Excel", "Exportar Excel")}
             </motion.button>
           )}
           {onNovo && (

@@ -14,7 +14,7 @@ const pt: DocumentoAxioma = {
     { lista: ['Menu do topo → **👥 Comercial ▼** → **Contas a Receber**.', 'Tela **Contas Vencidas** → uma conta a receber ou **Receber em Contas a Receber**: abre esta tela na Central de Recebimentos já filtrada em **Vencido**.'] },
 
     { h1: 'Botões do cabeçalho' },
-    { p: '**+ Nova Conta**, **Compartilhar**, seletor de período, busca (cliente, documento, responsável) e filtro de status.' },
+    { p: '**+ Nova Conta**, **Exportar PDF** e **Exportar Excel** (a lista filtrada; no Excel os valores vêm como número, prontos para somar), **Compartilhar**, seletor de período, busca (cliente, documento, responsável) e filtro de status.' },
 
     { h1: 'As partes da tela' },
     { h2: 'Dashboard Executivo' },
@@ -88,7 +88,7 @@ const en: DocumentoAxioma = {
     { lista: ['Top menu → **👥 Commercial ▼** → **Receivables**.', '**Overdue Bills** screen → a receivable or **Receive in Receivables**: opens this screen at the Receivables Center already filtered on **Overdue**.'] },
 
     { h1: 'Header buttons' },
-    { p: '**+ New Bill**, **Share**, period selector, search (client, document, person in charge) and status filter.' },
+    { p: '**+ New Bill**, **Export PDF** and **Export Excel** (the filtered list; in Excel amounts come as numbers, ready to add up), **Share**, period selector, search (client, document, person in charge) and status filter.' },
 
     { h1: 'Parts of the screen' },
     { h2: 'Executive Dashboard' },
@@ -162,7 +162,7 @@ const es: DocumentoAxioma = {
     { lista: ['Menú superior → **👥 Comercial ▼** → **Cuentas por Cobrar**.', 'Pantalla **Cuentas Vencidas** → una cuenta por cobrar o **Cobrar en Cuentas por Cobrar**: abre esta pantalla en el Centro de Cobros ya filtrado en **Vencido**.'] },
 
     { h1: 'Botones del encabezado' },
-    { p: '**+ Nueva Cuenta**, **Compartir**, selector de período, búsqueda (cliente, documento, responsable) y filtro de estado.' },
+    { p: '**+ Nueva Cuenta**, **Exportar PDF** y **Exportar Excel** (la lista filtrada; en Excel los valores vienen como número, listos para sumar), **Compartir**, selector de período, búsqueda (cliente, documento, responsable) y filtro de estado.' },
 
     { h1: 'Las partes de la pantalla' },
     { h2: 'Panel Ejecutivo' },

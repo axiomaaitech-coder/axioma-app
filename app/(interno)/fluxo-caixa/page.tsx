@@ -11,7 +11,7 @@ import SeloOrigem from "../../../components/SeloOrigem";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { lerTodas } from "../../../lib/lerTodas";
 import { lerVendasPdv, lancamentosPdvFluxo } from "../../../lib/dreCompetencia";
@@ -424,10 +424,10 @@ export default function FluxoCaixa() {
   );
 
   // ═══════════════════════════ PDF ═══════════════════════════
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: t.fluxoCaixa.titulo, subtitulo: t.fluxoCaixa.subtitulo,
         colunas: [
           { header: "Descrição", key: "descricao", width: 4 }, { header: "Tipo", key: "tipo", width: 2 },
@@ -473,7 +473,7 @@ export default function FluxoCaixa() {
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.fluxoCaixa.titulo} subtitulo={t.fluxoCaixa.subtitulo}
-      onExportarPDF={exportarPDF} exportando={exportando}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", natureza: "receita" }); setModalAberto(true); }}
       labelBotao={t.fluxoCaixa.novoLancamento}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}

@@ -241,3 +241,28 @@ export async function compartilharOuBaixarPdf(
     aoErro?.(mensagemFalhaExportacao(lang));
   }
 }
+// "R$ 1.234,56" / "-R$ 10,00" / "R$ -10,00" viram número (dá para somar no Excel); o resto fica como está.
+export function valorPlanilha(v: string): string | number {
+  const m = v.trim().match(/^(-)?\s*R\$\s*(-)?\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/);
+  if (!m) return v;
+  const n = Number(`${m[3].replace(/\./g, "")}.${m[4] ?? "0"}`);
+  return m[1] || m[2] ? -n : n;
+}
+
+// Excel da MESMA tabela do PDF (mesmos títulos de coluna e linhas; o resumo vira uma aba própria).
+// Mesma assinatura de gerarPdfTabela: o módulo troca só a função, sem montar nada de novo.
+// A biblioteca de Excel só carrega no clique (as ~30 telas que importam este arquivo não ficam mais pesadas).
+export async function gerarExcelTabela(args: ArgsPdfTabela, aoErro?: (mensagem: string) => void, lang: LangUi = "pt"): Promise<boolean> {
+  try {
+    const { exportarPlanilhaAbas } = await import("./exportarPlanilha");
+    const linhas = args.linhas.map((l) => Object.fromEntries(args.colunas.map((c) => [c.header, valorPlanilha(l[c.key] ?? "")])));
+    const abas = [{ nome: args.titulo, linhas }];
+    if (args.resumo?.length) abas.push({ nome: lang === "en" ? "Summary" : lang === "es" ? "Resumen" : "Resumo", linhas: args.resumo.map((r) => ({ [lang === "en" ? "Item" : lang === "es" ? "Ítem" : "Item"]: r.label, [lang === "en" ? "Value" : "Valor"]: r.valor })) });
+    exportarPlanilhaAbas(abas, args.nomeArquivo.replace(/\.pdf$/i, ""));
+    return true;
+  } catch (err) {
+    reportarFalhaLeitura(`gerarExcelTabela:${args.nomeArquivo}`, err);
+    aoErro?.(mensagemFalhaExportacao(lang));
+    return false;
+  }
+}

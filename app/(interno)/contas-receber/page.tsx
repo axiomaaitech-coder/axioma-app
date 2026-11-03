@@ -17,7 +17,7 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { SOMBRA_3D, BORDA_3D } from '../../../components/CanvasBox'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
@@ -527,10 +527,10 @@ export default function ContasReceber() {
   const paginaContas = usePagina(contasFiltradas)
 
   // ========== PDF ==========
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true)
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar'),
         subtitulo: L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros'),
         colunas: [
@@ -863,7 +863,7 @@ export default function ContasReceber() {
     <ModuloLayout
       titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')} vencidos='receber'
       subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
-      onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando} onNovo={abrirNovo}
       labelBotao={L('Nova Conta', 'New Account', 'Nueva Cuenta')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}

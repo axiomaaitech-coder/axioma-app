@@ -22,7 +22,7 @@ const pt: DocumentoAxioma = {
     { nota: 'O relatório não gasta saldo de IA e nada é alterado nos seus lançamentos: duplicidades e divergências só são apontadas. O PDF é montado no seu navegador e não fica salvo em nenhum link público. O operador de caixa não acessa relatórios financeiros.' },
     { p: '**Limite por plano:** cada ciclo do plano permite gerar relatórios diferentes até o limite: teste grátis 3, MEI 10, Essencial 40, Empresa 100 e Premium 300. Baixar de novo o mesmo relatório (mesmo tipo, período e comparação) não gasta outro. No limite, aparece o aviso com o caminho para mudar de plano (Config → Planos); os relatórios já gerados continuam liberados.' },
     { h1: 'Como usar' },
-    { numerada: ['Escolha o **Período** (mês e ano).', 'Escolha a aba do relatório.', 'Clique em **Exportar PDF** ou **Compartilhar** para enviar.'] },
+    { numerada: ['Escolha o **Período** (mês e ano).', 'Escolha a aba do relatório.', 'Clique em **Exportar PDF**, **Exportar Excel** (o mesmo relatório numa planilha, com os valores como número) ou **Compartilhar** para enviar.'] },
 
     { h1: 'As abas' },
     { tabela: { colunas: ['Aba', 'O que mostra'], larguras: [2600, 6426], linhas: [
@@ -62,7 +62,7 @@ const en: DocumentoAxioma = {
     { nota: 'The report does not use AI balance and nothing is changed in your entries: duplicates and divergences are only flagged. The PDF is built in your browser and is not stored at any public link. The cashier operator cannot access financial reports.' },
     { p: '**Limit per plan:** each plan cycle allows generating different reports up to the limit: free trial 3, MEI 10, Essential 40, Business 100 and Premium 300. Downloading the same report again (same type, period and comparison) does not use another one. At the limit, a notice shows how to upgrade (Config → Plans); reports already generated remain available.' },
     { h1: 'How to use' },
-    { numerada: ['Choose the **Period** (month and year).', 'Choose the report tab.', 'Click **Export PDF** or **Share** to send it.'] },
+    { numerada: ['Choose the **Period** (month and year).', 'Choose the report tab.', 'Click **Export PDF**, **Export Excel** (the same report in a spreadsheet, with amounts as numbers) or **Share** to send it.'] },
 
     { h1: 'The tabs' },
     { tabela: { colunas: ['Tab', 'What it shows'], larguras: [2600, 6426], linhas: [
@@ -102,7 +102,7 @@ const es: DocumentoAxioma = {
     { nota: 'El informe no gasta saldo de IA y nada se altera en sus registros: duplicidades y divergencias solo se señalan. El PDF se arma en su navegador y no queda guardado en ningún enlace público. El operador de caja no accede a informes financieros.' },
     { p: '**Límite por plan:** cada ciclo del plan permite generar informes diferentes hasta el límite: prueba gratis 3, MEI 10, Esencial 40, Empresa 100 y Premium 300. Descargar de nuevo el mismo informe (mismo tipo, período y comparación) no gasta otro. En el límite aparece el aviso con el camino para cambiar de plan (Config → Planes); los informes ya generados siguen disponibles.' },
     { h1: 'Cómo usar' },
-    { numerada: ['Elija el **Período** (mes y año).', 'Elija la pestaña del informe.', 'Haga clic en **Exportar PDF** o **Compartir** para enviar.'] },
+    { numerada: ['Elija el **Período** (mes y año).', 'Elija la pestaña del informe.', 'Haga clic en **Exportar PDF**, **Exportar Excel** (el mismo informe en una planilla, con los valores como número) o **Compartir** para enviar.'] },
 
     { h1: 'Las pestañas' },
     { tabela: { colunas: ['Pestaña', 'Qué muestra'], larguras: [2600, 6426], linhas: [

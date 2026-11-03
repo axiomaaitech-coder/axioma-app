@@ -26,6 +26,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Gera o PDF da DRE do período.', 'O arquivo é baixado.'],
+      ['**Exportar Excel**', 'A mesma DRE numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['Seletor de período', 'Escolhe o período (Mês atual, Mês anterior, Trimestre, Ano, Últimos 12 meses, Personalizado).', 'Tudo recalcula, inclusive a comparação com o período anterior.'],
       ['**Ver Histórico**', 'Mostra os resultados guardados de cada período.', 'Período fechado fica congelado; o atual aparece "Em andamento".'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento com o resultado.', 'WhatsApp, e-mail, copiar ou PDF.'],
@@ -99,6 +100,7 @@ const en: DocumentoAxioma = {
     { h1: 'Buttons' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2200, 3600, 3226], linhas: [
       ['**Export PDF**', 'Creates the P&L PDF for the period.', 'The file is downloaded.'],
+      ['**Export Excel**', 'The same P&L in a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['Period selector', 'Chooses the period (Current month, Previous month, Quarter, Year, Last 12 months, Custom).', 'Everything recalculates, including the comparison with the previous period.'],
       ['**View History**', 'Shows the saved results of each period.', 'Closed periods are frozen; the current one shows "In progress".'],
       ['**Share**', 'Opens the Sharing Center with the result.', 'WhatsApp, email, copy or PDF.'],
@@ -172,6 +174,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Genera el PDF del período.', 'El archivo se descarga.'],
+      ['**Exportar Excel**', 'El mismo estado de resultados en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['Selector de período', 'Elige el período (Mes actual, Mes anterior, Trimestre, Año, Últimos 12 meses, Personalizado).', 'Todo se recalcula, incluida la comparación con el período anterior.'],
       ['**Ver Historial**', 'Muestra los resultados guardados de cada período.', 'El período cerrado queda congelado; el actual aparece "En curso".'],
       ['**Compartir**', 'Abre el Centro de Compartir con el resultado.', 'WhatsApp, correo, copiar o PDF.'],

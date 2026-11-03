@@ -16,6 +16,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões do cabeçalho' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Gera o PDF com os lançamentos do período e o resumo.', 'O arquivo é baixado.'],
+      ['**Exportar Excel**', 'Os mesmos lançamentos e o resumo numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['**+ Novo Lançamento**', 'Abre a janela de lançamento manual.', 'Veja o passo a passo abaixo.'],
       ['**Escuro / Tema Claro**', 'Troca as cores.', 'Vale para todo o Axioma.'],
     ] } },
@@ -84,6 +85,7 @@ const en: DocumentoAxioma = {
     { h1: 'Header buttons' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2200, 3600, 3226], linhas: [
       ['**Export PDF**', 'Creates the PDF with the period entries and summary.', 'The file is downloaded.'],
+      ['**Export Excel**', 'The same entries and summary in a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['**+ New Entry**', 'Opens the manual entry window.', 'See the step by step below.'],
       ['**Dark / Light Theme**', 'Switches the colors.', 'Applies to all of Axioma.'],
     ] } },
@@ -152,6 +154,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones del encabezado' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Genera el PDF con los registros del período y el resumen.', 'El archivo se descarga.'],
+      ['**Exportar Excel**', 'Los mismos registros y el resumen en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['**+ Nuevo Registro**', 'Abre la ventana de registro manual.', 'Vea el paso a paso abajo.'],
       ['**Oscuro / Tema Claro**', 'Cambia los colores.', 'Vale para todo Axioma.'],
     ] } },

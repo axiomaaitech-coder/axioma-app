@@ -9,7 +9,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
@@ -283,7 +283,7 @@ export default function Relatorios() {
   // =========================================================================
   // PDF EXPORT — usa gerarPdfTabela (preto/branco profissional)
   // =========================================================================
-  async function exportarPDF() {
+  async function exportarPDF(formato: 'pdf' | 'excel' = 'pdf') {
     if (!dre) return;
     setExportando(true);
     try {
@@ -360,7 +360,7 @@ export default function Relatorios() {
         { label: tt.scoreCFO, valor: `${scoreCFO.score}/100 (${scoreCFO.nivel})` },
       ];
 
-      await gerarPdfTabela({
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo,
         subtitulo: new Date().toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR"),
         colunas,
@@ -474,7 +474,8 @@ export default function Relatorios() {
     <ModuloLayout
       titulo={`📊 ${t.relatorios?.titulo || "Relatórios"}`}
       subtitulo={t.relatorios?.subtitulo || "Análise gerencial profissional nível CFO"}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={() => exportarPDF('pdf')}
+      onExportarExcel={() => exportarPDF('excel')}
       exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}

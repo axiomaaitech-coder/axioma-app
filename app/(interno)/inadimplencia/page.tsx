@@ -17,7 +17,7 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import { SOMBRA_3D, BORDA_3D } from '../../../components/CanvasBox'
 import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { fBRL, fBRL2, fPct, corTema, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
@@ -601,10 +601,10 @@ export default function Inadimplencia() {
     ),
   ].join('\n')
 
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true)
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: L('Inadimplência — Mapa Executivo de Risco', 'Delinquency — Executive Risk Map', 'Morosidad — Mapa Ejecutivo de Riesgo'),
         subtitulo: L('Centro de Inteligência de Recuperação Financeira', 'Financial Recovery Intelligence Center', 'Centro de Inteligencia de Recuperación Financiera'),
         colunas: [
@@ -662,7 +662,7 @@ export default function Inadimplencia() {
     <ModuloLayout
       titulo={L('Inadimplência', 'Delinquency', 'Morosidad')} vencidos='receber'
       subtitulo={L('Centro de Inteligência de Recuperação Financeira — lê o Contas a Receber, não duplica dado', 'Financial Recovery Intelligence Center — reads Accounts Receivable, never duplicates data', 'Centro de Inteligencia de Recuperación Financiera — lee Cuentas por Cobrar, no duplica datos')}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')}
       exportando={exportando}
       onNovo={abrirNovoCaso}
       labelBotao={L('Novo Caso', 'New Case', 'Nuevo Caso')}

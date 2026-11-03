@@ -9,7 +9,7 @@ import { createBrowserClient } from "../../../lib/supabaseBrowser";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao, exigirLeitura, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -439,10 +439,10 @@ export default function DREPage() {
     ah: r.ant !== 0 ? ((r.linha.valor - r.ant) / Math.abs(r.ant)) * 100 : (r.linha.valor !== 0 ? 100 : 0),
   }));
 
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: d.titulo,
         subtitulo: d.subtitulo,
         colunas: [
@@ -533,7 +533,7 @@ export default function DREPage() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-    <ModuloLayout titulo={`📈 ${d.titulo}`} subtitulo={d.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+    <ModuloLayout titulo={`📈 ${d.titulo}`} subtitulo={d.subtitulo} onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>

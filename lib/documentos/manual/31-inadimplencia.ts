@@ -14,7 +14,7 @@ const pt: DocumentoAxioma = {
     { lista: ['Menu do topo → **👥 Comercial ▼** → **Inadimplência**.'] },
 
     { h1: 'Botões do cabeçalho' },
-    { p: '**+ Novo Caso** (registra um título vencido direto em Contas a Receber, pela mesma porta oficial), **Compartilhar**, seletor de período, busca por cliente e filtro de prioridade.' },
+    { p: '**+ Novo Caso** (registra um título vencido direto em Contas a Receber, pela mesma porta oficial), **Exportar PDF** e **Exportar Excel** (o mapa de risco filtrado; no Excel os valores vêm como número), **Compartilhar**, seletor de período, busca por cliente e filtro de prioridade.' },
 
     { h1: 'As partes da tela' },
     { h2: 'Dashboard Executivo' },
@@ -73,7 +73,7 @@ const en: DocumentoAxioma = {
     { lista: ['Top menu → **👥 Commercial ▼** → **Default**.'] },
 
     { h1: 'Header buttons' },
-    { p: '**+ New Case** (records an overdue bill straight in Receivables, through the same official path), **Share**, period selector, client search and priority filter.' },
+    { p: '**+ New Case** (records an overdue bill straight in Receivables, through the same official path), **Export PDF** and **Export Excel** (the filtered risk map; in Excel amounts come as numbers), **Share**, period selector, client search and priority filter.' },
 
     { h1: 'Parts of the screen' },
     { h2: 'Executive Dashboard' },
@@ -132,7 +132,7 @@ const es: DocumentoAxioma = {
     { lista: ['Menú superior → **👥 Comercial ▼** → **Morosidad**.'] },
 
     { h1: 'Botones del encabezado' },
-    { p: '**+ Nuevo Caso** (registra un título vencido directo en Cuentas por Cobrar, por la misma puerta oficial), **Compartir**, selector de período, búsqueda por cliente y filtro de prioridad.' },
+    { p: '**+ Nuevo Caso** (registra un título vencido directo en Cuentas por Cobrar, por la misma puerta oficial), **Exportar PDF** y **Exportar Excel** (el mapa de riesgo filtrado; en Excel los valores vienen como número), **Compartir**, selector de período, búsqueda por cliente y filtro de prioridad.' },
 
     { h1: 'Las partes de la pantalla' },
     { h2: 'Panel Ejecutivo' },
