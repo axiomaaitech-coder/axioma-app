@@ -57,6 +57,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Explicação da próxima ação' },
     { p: 'No detalhe de cada conta (a receber e a pagar), a próxima ação vem explicada por inteiro: **Por quê** (o motivo da escolha), **Dados usados** (dias de atraso, saldo, nota de risco ou prioridade, causa provável, comportamento, promessa, negociação, último contato, valor contestado e total com encargos), **Benefício**, **Risco de não fazer** e **Próximo passo** (onde clicar). A explicação só traduz o que o Axioma já calculou; quem decide e executa é você.' },
 
+    { h1: 'Quem pode fazer o quê' },
+    { p: 'Todos da Equipe veem Contas Vencidas. **Registrar contato, promessa, negociação, divergência e marcar alerta como tratado** é para dono, sócio, administrador e financeiro; leitor e contábil só consultam. **Regras do piloto e faixas de atraso** só dono, sócio ou administrador mudam. Ninguém apaga de vez: o que sai vai para a lixeira de 60 dias, e o histórico nunca é apagado nem alterado.' },
+
     { h1: 'Relatório de Contas Vencidas' },
     { p: 'O cartão **Relatório de Contas Vencidas** (acima do Piloto automático) gera um arquivo com tudo o que está na tela, já com o período e os filtros escolhidos: resumo (totais, recuperado, valor em risco, promessas, divergências e previsão), atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas (vencimento, dias, saldo, total atualizado, nota de risco e próxima ação). **Relatório PDF** baixa o documento para enviar ou imprimir; **Relatório Excel** baixa uma planilha com uma aba para cada parte.' },
 
@@ -161,6 +164,9 @@ const en: DocumentoAxioma = {
     { h1: 'Next action explained' },
     { p: 'In each bill’s details (receivable and payable), the next action comes fully explained: **Why** (the reason for the choice), **Data used** (days overdue, balance, risk score or priority, likely cause, behaviour, promise, negotiation, last contact, disputed amount and total with charges), **Benefit**, **Risk of not doing it** and **Next step** (where to click). The explanation only puts into words what Axioma already calculated; you decide and act.' },
 
+    { h1: 'Who can do what' },
+    { p: 'Everyone on the Team sees Overdue Bills. **Recording contacts, promises, negotiations, disputes and marking alerts as handled** is for the owner, partner, admin and finance; viewer and accounting only look. **Autopilot rules and overdue ranges** can only be changed by the owner, partner or admin. Nobody deletes permanently: removed items go to the 60-day trash, and the history is never deleted or changed.' },
+
     { h1: 'Overdue Bills Report' },
     { p: 'The **Overdue Bills Report** card (above the Autopilot) creates a file with everything on the screen, using the chosen period and filters: summary (totals, recovered, amount at risk, promises, disputes and forecast), overdue by range, today’s actions, alerts and overdue receivables and payables (due date, days, balance, updated total, risk score and next action). **PDF report** downloads the document to send or print; **Excel report** downloads a spreadsheet with one tab per part.' },
 
@@ -264,6 +270,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Explicación de la próxima acción' },
     { p: 'En el detalle de cada cuenta (por cobrar y por pagar), la próxima acción viene explicada por completo: **Por qué** (el motivo de la elección), **Datos usados** (días de atraso, saldo, nota de riesgo o prioridad, causa probable, comportamiento, promesa, negociación, último contacto, valor disputado y total con cargos), **Beneficio**, **Riesgo de no hacerlo** y **Próximo paso** (dónde hacer clic). La explicación solo pone en palabras lo que Axioma ya calculó; quien decide y ejecuta es usted.' },
+
+    { h1: 'Quién puede hacer qué' },
+    { p: 'Todo el Equipo ve Cuentas Vencidas. **Registrar contacto, promesa, negociación, divergencia y marcar alerta como tratada** es para dueño, socio, administrador y financiero; lector y contable solo consultan. **Reglas del piloto y rangos de atraso** solo los cambian dueño, socio o administrador. Nadie borra para siempre: lo que sale va a la papelera de 60 días, y el historial nunca se borra ni se altera.' },
 
     { h1: 'Informe de Cuentas Vencidas' },
     { p: 'La tarjeta **Informe de Cuentas Vencidas** (sobre el Piloto automático) genera un archivo con todo lo que está en pantalla, con el período y los filtros elegidos: resumen (totales, recuperado, valor en riesgo, promesas, divergencias y previsión), atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas (vencimiento, días, saldo, total actualizado, nota de riesgo y próxima acción). **Informe PDF** descarga el documento para enviar o imprimir; **Informe Excel** descarga una planilla con una pestaña por cada parte.' },

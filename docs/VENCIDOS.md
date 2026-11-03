@@ -101,6 +101,12 @@ O histórico não se apaga, e outra empresa não enxerga nada.
 - `npx tsx scripts/check-vencidos.mts` cobre: integral, parcial, estorno, desconto, duplicidade, empresas diferentes, limites de faixa (incluindo 29/02), disputa, juros, multa B2C/B2B, taxa legal negativa, IPCA, promessas (cumprida, parcial, vencida, renegociada), DNA (30 → 48 dias), scores, negociação (centavos), previsão, precisão, simulador, impacto, orquestrador, determinismo e as funções unificadas.
 - Permissões e empresas diferentes no banco são garantidas pelas travas do SQL e conferidas no banco depois de rodar.
 
+## Segurança (etapa 15, 2026-11-03)
+
+- Rodado `docs/sql/VENCIDOS-FASE2-SEGURANCA-SQL.sql`: cobranca_interacoes/cobranca_compromissos com regras separadas (ler Empresa; gravar/alterar `vencido_pode_gravar`; sem DELETE — lixeira por `excluido_em`). Execução de `vencido_pode_gravar` só para logado; funções de gatilho sem execução direta; anon sem acesso às 6 tabelas.
+- Teste em transação desfeita (leitor fictício, dono, anon): todos os resultados esperados, nada ficou gravado.
+- Continua aberto (fora do módulo): leitor consegue gravar em contas_receber/contas_pagar pelo banco — entra na Camada 1 geral.
+
 ## Pendente (Fase 2 em diante)
 
 - Tela (camada visual) e automação (envio pela régua).
