@@ -34,6 +34,14 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
   const [aberto, setAberto] = useState<string | null>(null)
   const [verLixeira, setVerLixeira] = useState(false)
   const [aviso, setAviso] = useState('')
+  // tabela no computador OU cartões no celular — nunca os dois montados (antes os detalhes abriam 2× e liam o banco 2×)
+  const [estreito, setEstreito] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const ver = () => setEstreito(mq.matches)
+    ver(); mq.addEventListener('change', ver)
+    return () => mq.removeEventListener('change', ver)
+  }, [])
 
   const ordenados = useMemo(() => [...itens].sort((a, b) =>
     ordem === 'atraso' ? b.encargos.dias - a.encargos.dias
@@ -104,7 +112,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
       ) : (
         <>
           {/* Computador: tabela */}
-          <div className="hidden md:block overflow-x-auto">
+          {!estreito && <div className="overflow-x-auto">
             <table className="w-full text-xs" style={{ color: P.TEXTO }}>
               <thead>
                 <tr style={{ color: P.CINZA }} className="text-left">
@@ -129,9 +137,9 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                 ))}
               </tbody>
             </table>
-          </div>
+          </div>}
           {/* Celular: cartões */}
-          <div className="md:hidden space-y-2">
+          {estreito && <div className="space-y-2">
             {visiveis.map((i) => (
               <div key={i.titulo.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
                 <div className="flex items-start gap-2">
@@ -149,7 +157,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                 {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} />}</div>}
               </div>
             ))}
-          </div>
+          </div>}
           {paginas > 1 && (
             <div className="flex items-center justify-center gap-2 mt-3 text-xs" style={{ color: P.TEXTO }}>
               <button type="button" disabled={pg === 0} onClick={() => setPagina(pg - 1)} className="px-2.5 py-1 rounded-lg text-white font-bold disabled:opacity-60" style={{ background: BOTAO_SECUNDARIO }}>{L('Anterior', 'Previous', 'Anterior')}</button>
