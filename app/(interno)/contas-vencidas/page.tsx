@@ -11,6 +11,7 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos, { CentralDisputas } from './CentralVencidos'
 import Simulador from './Simulador'
+import CentralAlertas from './Alertas'
 import ChatInteligencia from '../../../components/ChatInteligencia'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
@@ -304,6 +305,7 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            {empresaId && <CentralAlertas alertas={a.alertas} empresaId={empresaId} lang={lang} P={P} temaClaro={temaClaro} dataTxt={dataTxt} />}
             {empresaId && (
               <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }}>
                 <ChatInteligencia tela="contas-vencidas" empresaId={empresaId} lang={lang} claro={temaClaro}

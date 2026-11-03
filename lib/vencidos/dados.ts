@@ -180,7 +180,7 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
   const legaisBase = { taxaLegalMesPct: legal.taxaLegalMesPct }
   const migracao30 = M.migracaoAging(receberT, somarDiasISO(hoje, -30), hoje, limites)
   const impacto = M.impactoFinanceiro(tesouraria, previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)
-  const alertas = M.alertasVencidos({ hoje, migracao: migracao30, impacto, itens: [...receber, ...pagar].map((i) => ({ titulo: i.titulo, dna: i.dna, promessa: i.promessa, caso: casoMotor(i.caso), disputaPrazo: i.caso?.disputa_prazo ?? null })) })
+  const alertas = M.alertasVencidos({ hoje, migracao: migracao30, impacto, itens: [...receber, ...pagar].map((i) => ({ titulo: i.titulo, dna: i.dna, promessa: i.promessa, caso: casoMotor(i.caso), disputaPrazo: i.caso?.disputa_prazo ?? null, risco: i.risco.score, ultimoContato: i.ultimoContato?.data ?? null })) })
   return {
     hoje, limites, receber, pagar, agingReceber: M.aging(receberT, hoje, limites, legaisBase), agingPagar: M.aging(pagarT, hoje, limites, legaisBase),
     migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA, titulosReceber: receberT, titulosPagar: pagarT, legais: legaisBase,
@@ -220,6 +220,7 @@ export async function salvarCaso(empresaId: string, dominio: M.Dominio, tituloId
     id = atual?.id
     if (!id) return { ok: false, erro: 'caso não encontrado após criação concorrente' }
   }
+  if (!Object.keys(campos).length) return { ok: true, valor: id! } // só buscar o caso: nada a alterar nem registrar
   const up = await sb.from('vencido_caso').update(campos).eq('id', id!).eq('empresa_id', empresaId).select('id')
   if (up.error || !up.data?.length) { const m = up.error?.message ?? '0 linhas (RLS?)'; reportarFalhaEscrita('vencido_caso', 'update', m); return { ok: false, erro: m } }
   const tipo = 'causa' in campos ? 'causa' : 'disputa_status' in campos || 'disputa_valor' in campos ? 'disputa' : 'criticidade' in campos ? 'estrategia' : 'nota'
@@ -324,4 +325,25 @@ export async function monitorarPromessas(empresaId: string, a: Pick<AnaliseVenci
     if (r.ok) n++
   }
   return n
+}
+
+// ─── Central de alertas (etapa 12) ───
+// "Marcar como tratado" grava um evento no caso da conta (histórico só cresce: nada se apaga nem se altera).
+// O alerta tratado sai dos abertos por DIAS_TRATADO dias; se a situação continuar, volta — com o histórico do que foi feito.
+export const DIAS_TRATADO = 7
+export type AlertaTratado = { chave: string; nota: string; em: string; por: string | null }
+export async function tratarAlerta(empresaId: string, alerta: M.AlertaVencido, nota: string): Promise<Resultado> {
+  if (!alerta.tituloId || !alerta.dominio) return { ok: false, erro: 'alerta geral some sozinho quando a situação muda' }
+  const txt = nota.trim()
+  if (!txt) return { ok: false, erro: 'escreva o que foi feito' }
+  const caso = await salvarCaso(empresaId, alerta.dominio, alerta.tituloId, {})
+  if (!caso.ok || !caso.valor) return { ok: false, erro: caso.ok ? 'caso não encontrado' : caso.erro }
+  return registrarEvento(empresaId, caso.valor, 'nota', { alerta: alerta.chave, nivel: alerta.severidade, tratado: true, nota: txt.slice(0, 500) }, 'usuario', `alerta:${alerta.chave}:${hojeISO()}`)
+}
+// Histórico de alertas tratados dos últimos 90 dias (mais novo primeiro)
+export async function listarAlertasTratados(empresaId: string): Promise<AlertaTratado[] | null> {
+  const r = await comRetentativa(() => createClient().from('vencido_evento').select('dados, criado_em, criado_por').eq('empresa_id', empresaId).eq('tipo', 'nota')
+    .not('dados->>alerta', 'is', null).gte('criado_em', somarDiasISO(hojeISO(), -90)).order('criado_em', { ascending: false }).limit(200))
+  if (r.error) { reportarFalhaLeitura('vencido_evento', r.error.message); return null }
+  return (r.data ?? []).map((x) => ({ chave: String((x.dados as Record<string, unknown>).alerta), nota: String((x.dados as Record<string, unknown>).nota ?? ''), em: x.criado_em as string, por: (x.criado_por as string | null) ?? null }))
 }

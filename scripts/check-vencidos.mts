@@ -196,6 +196,19 @@ const al = M.alertasVencidos({ hoje, migracao: { entraramNoVencido: 0, mudaramPa
   itens: [{ titulo: venc, dna, promessa: 'descumprida' }, { titulo: { ...pagar }, dna: curto, promessa: null, caso: { tituloId: 'p1', criticidade: 'critica' } }, { titulo: t('dp', '2026-10-01', 10), dna: curto, promessa: null, caso: { tituloId: 'dp', disputaStatus: 'aberta' }, disputaPrazo: '2026-10-15' }] })
 for (const tipo of ['promessa_descumprida', 'deterioracao', 'fornecedor_essencial', 'disputa_prazo', 'migracao_faixa', 'ruptura_caixa']) assert.ok(al.some((x) => x.tipo === tipo), `alerta ${tipo}`)
 
+// níveis da central de alertas (etapa 12)
+assert.equal(al.find((x) => x.tipo === 'fornecedor_essencial')?.severidade, 'critico')
+assert.equal(al.find((x) => x.tipo === 'promessa_descumprida')?.severidade, 'alto')
+assert.equal(al.find((x) => x.tipo === 'migracao_faixa')?.severidade, 'atencao', '40% = atenção; 50%+ = alto')
+assert.ok(al.every((x) => x.chave === `${x.tipo}:${x.tituloId ?? 'geral'}`), 'chave estável para marcar tratado')
+assert.ok(al.every((x, k) => k === 0 || M.NIVEIS_ALERTA.indexOf(al[k - 1].severidade) <= M.NIVEIS_ALERTA.indexOf(x.severidade)), 'mais grave primeiro')
+const al2 = M.alertasVencidos({ hoje, migracao: { entraramNoVencido: 0, mudaramParaFaixaPior: 0, qtdMudaramParaFaixaPior: 0, indiceDeterioracaoPct: 0 }, impacto: { ...M.impactoFinanceiro(base, 0), riscoRuptura: 'baixo' },
+  itens: [{ titulo: t('r1', '2026-08-01', 100), dna: curto, promessa: null, risco: 750, ultimoContato: null }, { titulo: t('r2', '2026-08-01', 100), dna: curto, promessa: 'pendente', risco: 100, ultimoContato: hoje }] })
+assert.ok(al2.some((x) => x.tipo === 'risco_alto' && x.severidade === 'alto' && x.tituloId === 'r1'))
+assert.ok(al2.some((x) => x.tipo === 'sem_acompanhamento' && x.tituloId === 'r1'), 'sem contato há mais de 15 dias')
+assert.ok(!al2.some((x) => x.tipo === 'sem_acompanhamento' && x.tituloId === 'r2'), 'com promessa não cobra acompanhamento')
+assert.ok(al2.some((x) => x.tipo === 'promessa_no_prazo' && x.severidade === 'normal'))
+
 // ── determinismo (concorrência: duas leituras iguais dão o mesmo resultado) ──
 assert.deepEqual(M.aging([venc, ...hist], hoje), M.aging([...hist, venc], hoje))
 assert.equal(M.sugerirCausa('cliente diz que a NF-e veio errada').causa, 'nota_fiscal')

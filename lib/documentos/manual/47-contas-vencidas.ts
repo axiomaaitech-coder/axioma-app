@@ -57,6 +57,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Explicação da próxima ação' },
     { p: 'No detalhe de cada conta (a receber e a pagar), a próxima ação vem explicada por inteiro: **Por quê** (o motivo da escolha), **Dados usados** (dias de atraso, saldo, nota de risco ou prioridade, causa provável, comportamento, promessa, negociação, último contato, valor contestado e total com encargos), **Benefício**, **Risco de não fazer** e **Próximo passo** (onde clicar). A explicação só traduz o que o Axioma já calculou; quem decide e executa é você.' },
 
+    { h1: 'Central de alertas' },
+    { p: 'Mostra os alertas do mais grave para o mais leve, em 4 níveis: **Crítico** (vermelho cheio — agir hoje: fornecedor essencial vencido, caixa de 30 dias negativo), **Alto risco** (contorno vermelho — promessa descumprida, nota de risco 700 ou mais, caixa abaixo da reserva, metade do vencido piorando de faixa), **Atenção** (azul-marinho — cliente pagando mais tarde, prazo de divergência vencido, mais de 30 dias de atraso sem contato há 15 dias) e **Normal** (verde-menta — promessa no prazo, só acompanhar). Filtre por nível. **Abrir** leva à conta; **Marcar como tratado** pede o que foi feito e guarda no histórico — o alerta sai por 7 dias e volta se a situação continuar. Alertas gerais (caixa, faixas) somem sozinhos quando a situação muda. **Histórico de tratados** mostra os últimos 90 dias; nada é apagado.' },
+
     { h1: 'Pergunte à Inteligência Axioma' },
     { p: 'O chat logo abaixo dos atalhos dos módulos (o mesmo de Contas a Pagar) responde sobre as contas vencidas com os números do Axioma: quem cobrar primeiro, quanto deve entrar, promessas em risco, "e se recuperarmos 50%?" e o que pagar primeiro. Tem perguntas prontas, ditado e Ouvir, conversa ao vivo, conversas salvas e relatório. A IA só consulta e explica: não cobra, não paga e não grava nada — quem decide é você, na tela.' },
 
@@ -152,6 +155,9 @@ const en: DocumentoAxioma = {
     { h1: 'Next action explained' },
     { p: 'In each bill’s details (receivable and payable), the next action comes fully explained: **Why** (the reason for the choice), **Data used** (days overdue, balance, risk score or priority, likely cause, behaviour, promise, negotiation, last contact, disputed amount and total with charges), **Benefit**, **Risk of not doing it** and **Next step** (where to click). The explanation only puts into words what Axioma already calculated; you decide and act.' },
 
+    { h1: 'Alert center' },
+    { p: 'Shows alerts from most to least serious, in 4 levels: **Critical** (solid red — act today: essential supplier overdue, 30-day cash negative), **High risk** (red outline — broken promise, risk score 700 or more, cash below reserve, half of the overdue amount moving to worse ranges), **Attention** (navy — customer paying later, dispute deadline passed, over 30 days overdue with no contact for 15 days) and **Normal** (mint green — promise on time, just follow). Filter by level. **Open** takes you to the bill; **Mark as handled** asks what was done and keeps it in the history — the alert leaves for 7 days and comes back if the situation continues. General alerts (cash, ranges) disappear on their own when things change. **Handled history** shows the last 90 days; nothing is deleted.' },
+
     { h1: 'Ask Axioma Intelligence' },
     { p: 'The chat right below the module shortcuts (the same as in Payables) answers about overdue bills with Axioma’s numbers: who to collect from first, how much should come in, promises at risk, "what if we recover 50%?" and what to pay first. It has ready-made questions, dictation and Listen, live conversation, saved conversations and reports. The AI only looks up and explains: it does not collect, pay or save anything — you decide, on the screen.' },
 
@@ -246,6 +252,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Explicación de la próxima acción' },
     { p: 'En el detalle de cada cuenta (por cobrar y por pagar), la próxima acción viene explicada por completo: **Por qué** (el motivo de la elección), **Datos usados** (días de atraso, saldo, nota de riesgo o prioridad, causa probable, comportamiento, promesa, negociación, último contacto, valor disputado y total con cargos), **Beneficio**, **Riesgo de no hacerlo** y **Próximo paso** (dónde hacer clic). La explicación solo pone en palabras lo que Axioma ya calculó; quien decide y ejecuta es usted.' },
+
+    { h1: 'Central de alertas' },
+    { p: 'Muestra las alertas de la más grave a la más leve, en 4 niveles: **Crítico** (rojo lleno — actuar hoy: proveedor esencial vencido, caja a 30 días negativa), **Alto riesgo** (contorno rojo — promesa incumplida, nota de riesgo 700 o más, caja bajo la reserva, mitad de lo vencido empeorando de rango), **Atención** (azul marino — cliente pagando más tarde, plazo de divergencia vencido, más de 30 días de atraso sin contacto hace 15 días) y **Normal** (verde menta — promesa en plazo, solo seguir). Filtre por nivel. **Abrir** lleva a la cuenta; **Marcar como tratada** pide lo que se hizo y lo guarda en el historial — la alerta sale por 7 días y vuelve si la situación continúa. Las alertas generales (caja, rangos) desaparecen solas cuando la situación cambia. **Historial de tratadas** muestra los últimos 90 días; nada se borra.' },
 
     { h1: 'Pregunte a la Inteligencia Axioma' },
     { p: 'El chat justo debajo de los atajos de módulos (el mismo de Cuentas por Pagar) responde sobre las cuentas vencidas con los números de Axioma: a quién cobrar primero, cuánto debe entrar, promesas en riesgo, "¿y si recuperamos 50%?" y qué pagar primero. Tiene preguntas listas, dictado y Escuchar, conversación en vivo, conversaciones guardadas e informes. La IA solo consulta y explica: no cobra, no paga ni guarda nada — quien decide es usted, en la pantalla.' },

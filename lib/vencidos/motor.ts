@@ -521,18 +521,31 @@ export function disputaParada(d: { status?: string | null; prazo?: string | null
   return { parada: aberta && (prazoVencido || (sem != null && sem >= dias)), prazoVencido, diasSemAtualizar: sem }
 }
 
-export type AlertaVencido = { tipo: 'promessa_descumprida' | 'deterioracao' | 'migracao_faixa' | 'disputa_prazo' | 'fornecedor_essencial' | 'ruptura_caixa'; severidade: 'atencao' | 'critico'; tituloId?: string; texto: string }
-export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa: SituacaoPromessa | null; caso?: Caso | null; disputaPrazo?: string | null }[]; hoje: string; migracao: ReturnType<typeof migracaoAging>; impacto: ReturnType<typeof impactoFinanceiro> }): AlertaVencido[] {
+// Níveis (etapa 12): normal (só acompanhar) · atencao · alto (risco alto) · critico (agir hoje)
+export type NivelAlerta = 'normal' | 'atencao' | 'alto' | 'critico'
+export const NIVEIS_ALERTA: NivelAlerta[] = ['critico', 'alto', 'atencao', 'normal']
+export type TipoAlerta = 'promessa_descumprida' | 'deterioracao' | 'migracao_faixa' | 'disputa_prazo' | 'fornecedor_essencial' | 'ruptura_caixa' | 'risco_alto' | 'sem_acompanhamento' | 'promessa_no_prazo'
+// `chave` identifica o alerta para marcar como tratado; `dados` monta o texto nos 3 idiomas na tela (o `texto` em pt vai para as IAs)
+export type AlertaVencido = { chave: string; tipo: TipoAlerta; severidade: NivelAlerta; tituloId?: string; dominio?: Dominio; texto: string; dados: { nome?: string; de?: number | null; para?: number | null; pct?: number; dias?: number; risco?: number } }
+export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa: SituacaoPromessa | null; caso?: Caso | null; disputaPrazo?: string | null; risco?: number | null; ultimoContato?: string | null }[]; hoje: string; migracao: ReturnType<typeof migracaoAging>; impacto: ReturnType<typeof impactoFinanceiro> }): AlertaVencido[] {
   const a: AlertaVencido[] = []
   const vistos = new Set<string>()
+  const add = (x: Omit<AlertaVencido, 'chave'>) => a.push({ ...x, chave: `${x.tipo}:${x.tituloId ?? 'geral'}` })
   for (const i of e.itens) {
-    if (i.promessa === 'descumprida') a.push({ tipo: 'promessa_descumprida', severidade: 'critico', tituloId: i.titulo.id, texto: `${i.titulo.contraparteNome}: promessa de pagamento descumprida` })
+    const nome = i.titulo.contraparteNome ?? '', base = { tituloId: i.titulo.id, dominio: i.titulo.dominio }
+    const dias = diasAtraso(i.titulo.vencimento, e.hoje)
+    if (i.promessa === 'descumprida') add({ ...base, tipo: 'promessa_descumprida', severidade: 'alto', texto: `${nome}: promessa de pagamento descumprida`, dados: { nome } })
+    else if (i.promessa && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(i.promessa)) add({ ...base, tipo: 'promessa_no_prazo', severidade: 'normal', texto: `${nome}: promessa de pagamento no prazo — acompanhar até a data`, dados: { nome } })
     const k = chaveContraparte(i.titulo)
-    if (i.dna.tendencia === 'piora' && !vistos.has(k)) { vistos.add(k); a.push({ tipo: 'deterioracao', severidade: 'atencao', tituloId: i.titulo.id, texto: `${i.titulo.contraparteNome}: prazo de pagamento piorou (${i.dna.anteriorPrazo ?? i.dna.anteriorAtraso} → ${i.dna.recentePrazo ?? i.dna.recenteAtraso} dias)` }) }
-    if (i.disputaPrazo && i.disputaPrazo < e.hoje && separarDisputa(1, i.caso).aberta) a.push({ tipo: 'disputa_prazo', severidade: 'atencao', tituloId: i.titulo.id, texto: `${i.titulo.contraparteNome}: prazo da divergência vencido` })
-    if (i.titulo.dominio === 'pagar' && (i.caso?.criticidade === 'critica' || i.caso?.riscoInterrupcao)) a.push({ tipo: 'fornecedor_essencial', severidade: 'critico', tituloId: i.titulo.id, texto: `${i.titulo.contraparteNome}: fornecedor essencial com pagamento vencido` })
+    if (i.dna.tendencia === 'piora' && !vistos.has(k)) { vistos.add(k); const de = i.dna.anteriorPrazo ?? i.dna.anteriorAtraso, para = i.dna.recentePrazo ?? i.dna.recenteAtraso; add({ ...base, tipo: 'deterioracao', severidade: 'atencao', texto: `${nome}: prazo de pagamento piorou (${de} → ${para} dias)`, dados: { nome, de, para } }) }
+    if (i.disputaPrazo && i.disputaPrazo < e.hoje && separarDisputa(1, i.caso).aberta) add({ ...base, tipo: 'disputa_prazo', severidade: 'atencao', texto: `${nome}: prazo da divergência vencido`, dados: { nome } })
+    if (i.titulo.dominio === 'pagar' && (i.caso?.criticidade === 'critica' || i.caso?.riscoInterrupcao)) add({ ...base, tipo: 'fornecedor_essencial', severidade: 'critico', texto: `${nome}: fornecedor essencial com pagamento vencido`, dados: { nome } })
+    if (i.titulo.dominio === 'receber' && i.risco != null && i.risco >= 700 && dias > 0) add({ ...base, tipo: 'risco_alto', severidade: 'alto', texto: `${nome}: nota de risco ${i.risco}/1000`, dados: { nome, risco: i.risco } })
+    // vencida há mais de 30 dias sem contato registrado nos últimos 15 dias
+    if (i.titulo.dominio === 'receber' && dias > 30 && i.promessa == null && (!i.ultimoContato || diasEntre(i.ultimoContato.slice(0, 10), e.hoje) - 1 > 15)) add({ ...base, tipo: 'sem_acompanhamento', severidade: 'atencao', texto: `${nome}: ${dias} dias de atraso sem contato nos últimos 15 dias`, dados: { nome, dias } })
   }
-  if (e.migracao.indiceDeterioracaoPct >= 30) a.push({ tipo: 'migracao_faixa', severidade: 'atencao', texto: `${e.migracao.indiceDeterioracaoPct}% do vencido entrou ou piorou de faixa em 30 dias` })
-  if (e.impacto.riscoRuptura !== 'baixo') a.push({ tipo: 'ruptura_caixa', severidade: e.impacto.riscoRuptura === 'alto' ? 'critico' : 'atencao', texto: e.impacto.riscoRuptura === 'alto' ? 'caixa projetado em 30 dias negativo' : 'caixa projetado em 30 dias abaixo da reserva mínima' })
-  return a
+  const pct = e.migracao.indiceDeterioracaoPct
+  if (pct >= 30) add({ tipo: 'migracao_faixa', severidade: pct >= 50 ? 'alto' : 'atencao', texto: `${pct}% do vencido entrou ou piorou de faixa em 30 dias`, dados: { pct } })
+  if (e.impacto.riscoRuptura !== 'baixo') add({ tipo: 'ruptura_caixa', severidade: e.impacto.riscoRuptura === 'alto' ? 'critico' : 'alto', texto: e.impacto.riscoRuptura === 'alto' ? 'caixa projetado em 30 dias negativo' : 'caixa projetado em 30 dias abaixo da reserva mínima', dados: {} })
+  return a.sort((x, y) => NIVEIS_ALERTA.indexOf(x.severidade) - NIVEIS_ALERTA.indexOf(y.severidade))
 }

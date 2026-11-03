@@ -1,6 +1,6 @@
 // Textos da Overdue Intelligence nos 3 idiomas (regra trilíngue): o motor devolve CÓDIGOS (ação, fator, causa,
 // situação) e a tela mostra por aqui — nada de texto só em português aparecendo em inglês/espanhol.
-import type { Acao, Causa, SituacaoPromessa } from './motor'
+import type { Acao, Causa, SituacaoPromessa, AlertaVencido, NivelAlerta } from './motor'
 
 export type Lang = 'pt' | 'en' | 'es'
 type T3 = [string, string, string]
@@ -72,3 +72,24 @@ export const nomeTendencia = (lang: Lang, t: 'piora' | 'melhora' | 'estavel' | '
 
 export const nomeCriticidade = (lang: Lang, c: string | null | undefined) =>
   em(lang, ({ critica: ['Crítica', 'Critical', 'Crítica'], alta: ['Alta', 'High', 'Alta'], media: ['Média', 'Medium', 'Media'], baixa: ['Baixa', 'Low', 'Baja'] } as Record<string, T3>)[c ?? 'media'] ?? ['Média', 'Medium', 'Media'])
+
+// Central de alertas (etapa 12): nível e texto de cada alerta nos 3 idiomas, a partir dos dados do motor
+const NIVEIS: Record<NivelAlerta, T3> = { normal: ['Normal', 'Normal', 'Normal'], atencao: ['Atenção', 'Attention', 'Atención'], alto: ['Alto risco', 'High risk', 'Alto riesgo'], critico: ['Crítico', 'Critical', 'Crítico'] }
+export const nomeNivel = (lang: Lang, n: NivelAlerta) => em(lang, NIVEIS[n])
+export function textoAlerta(lang: Lang, a: AlertaVencido): string {
+  const d = a.dados, n = d.nome ?? ''
+  const T: Record<AlertaVencido['tipo'], T3> = {
+    promessa_descumprida: [`${n}: promessa de pagamento descumprida`, `${n}: payment promise broken`, `${n}: promesa de pago incumplida`],
+    promessa_no_prazo: [`${n}: promessa de pagamento no prazo — acompanhar até a data`, `${n}: payment promise on time — follow until the date`, `${n}: promesa de pago en plazo — seguir hasta la fecha`],
+    deterioracao: [`${n}: prazo de pagamento piorou (${d.de} → ${d.para} dias)`, `${n}: payment time got worse (${d.de} → ${d.para} days)`, `${n}: el plazo de pago empeoró (${d.de} → ${d.para} días)`],
+    disputa_prazo: [`${n}: prazo da divergência vencido`, `${n}: dispute deadline passed`, `${n}: plazo de la divergencia vencido`],
+    fornecedor_essencial: [`${n}: fornecedor essencial com pagamento vencido`, `${n}: essential supplier with overdue payment`, `${n}: proveedor esencial con pago vencido`],
+    risco_alto: [`${n}: nota de risco ${d.risco}/1000`, `${n}: risk score ${d.risco}/1000`, `${n}: nota de riesgo ${d.risco}/1000`],
+    sem_acompanhamento: [`${n}: ${d.dias} dias de atraso sem contato nos últimos 15 dias`, `${n}: ${d.dias} days overdue with no contact in the last 15 days`, `${n}: ${d.dias} días de atraso sin contacto en los últimos 15 días`],
+    migracao_faixa: [`${d.pct}% do vencido entrou ou piorou de faixa em 30 dias`, `${d.pct}% of the overdue amount entered or moved to a worse range in 30 days`, `${d.pct}% de lo vencido entró o empeoró de rango en 30 días`],
+    ruptura_caixa: a.severidade === 'critico'
+      ? ['Caixa projetado em 30 dias negativo', 'Projected cash in 30 days is negative', 'Caja proyectada a 30 días negativa']
+      : ['Caixa projetado em 30 dias abaixo da reserva mínima', 'Projected cash in 30 days below the minimum reserve', 'Caja proyectada a 30 días bajo la reserva mínima'],
+  }
+  return em(lang, T[a.tipo])
+}
