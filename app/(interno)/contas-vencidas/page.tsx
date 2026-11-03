@@ -3,12 +3,13 @@
 // Números do motor de vencidos (lib/vencidos): mesma regra de saldo das telas de origem; cada lista leva à
 // tela de origem já filtrada em "vencido", onde se paga/recebe. Esta tela só lê (e guarda a foto diária da
 // previsão para comparar previsto x realizado e montar a evolução).
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Search } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
+import CentralReceber from './CentralReceber'
 import ReactECharts from 'echarts-for-react'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -37,6 +38,7 @@ export default function ContasVencidasPage() {
   const temaClaro = tema === 'xms'
   const P = PALETA[tema]
   const [a, setA] = useState<AnaliseVencidos | null>(null)
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [preset, setPreset] = useState<PeriodoPreset>('mes_atual')
   const [personalizado, setPersonalizado] = useState<Periodo>(() => resolverPeriodo('mes_atual'))
@@ -55,6 +57,7 @@ export default function ContasVencidasPage() {
   useEffect(() => {
     const ler = () => {
       void obterEmpresaAtiva().then(async (id) => {
+        setEmpresaId(id)
         if (!id) { setA(null); setCarregando(false); return }
         const analise = await carregarAnaliseVencidos(id)
         setA(analise); setCarregando(false)
@@ -67,7 +70,7 @@ export default function ContasVencidasPage() {
   }, [])
 
   const filtros = { ...f, inicio: periodo.inicio, fim: periodo.fim }
-  const r = useMemo(() => (a ? resumoPainel(a, filtros) : null), [a, filtros.busca, filtros.faixa, filtros.situacao, filtros.inicio, filtros.fim]) // eslint-disable-line react-hooks/exhaustive-deps
+  const r = a ? resumoPainel(a, filtros) : null
 
   const painel = { background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
@@ -75,19 +78,6 @@ export default function ContasVencidasPage() {
   const dataTxt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(local)
   const diasTxt = (n: number) => L(`${n} dia${n > 1 ? 's' : ''} de atraso`, `${n} day${n > 1 ? 's' : ''} overdue`, `${n} día${n > 1 ? 's' : ''} de atraso`)
   const pct = (v: number | null) => (v == null ? '—' : `${v.toLocaleString(local, { maximumFractionDigits: 1 })}%`)
-
-  // Indicador com "de onde vem": toque abre a origem do número (nada escondido em modal)
-  const Indicador = ({ titulo, valor, cor, sub, origem }: { titulo: string; valor: string; cor: string; sub?: string; origem: string }) => (
-    <details className="rounded-xl p-3 min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
-      <summary className="cursor-pointer list-none">
-        <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
-        <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
-        {sub && <p className="text-[11px]" style={{ color: P.CINZA }}>{sub}</p>}
-        <p className="text-[11px] mt-1 underline" style={{ color: P.CINZA }}>{L('De onde vem', 'Where it comes from', 'De dónde viene')}</p>
-      </summary>
-      <p className="text-[11px] mt-2 leading-snug" style={{ color: P.TEXTO }}>{origem}</p>
-    </details>
-  )
 
   const lista = (pagar: boolean, itens: ItemVencido[], total: number) => {
     const href = pagar ? '/contas-pagar?filtro=vencido' : '/contas-receber?filtro=vencido'
@@ -215,23 +205,23 @@ export default function ContasVencidasPage() {
             <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
               <p className="text-sm font-bold mb-3" style={{ color: P.TEXTO }}>{L('Recuperação e acompanhamento', 'Recovery and follow-up', 'Recuperación y seguimiento')}</p>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                <Indicador titulo={L('Recuperado no período', 'Recovered in period', 'Recuperado en el período')} valor={fmt(r.recuperado)} cor={P.VERDE}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Recuperado no período', 'Recovered in period', 'Recuperado en el período')} valor={fmt(r.recuperado)} cor={P.VERDE}
                   origem={L('Soma do que clientes pagaram DEPOIS do vencimento, com a data de recebimento dentro do período escolhido (Contas a Receber). Pagamento em dia não conta.', 'Sum of what customers paid AFTER the due date, with the receipt date inside the chosen period (Receivables). On-time payments do not count.', 'Suma de lo que los clientes pagaron DESPUÉS del vencimiento, con la fecha de cobro dentro del período elegido (Cuentas por Cobrar). El pago a tiempo no cuenta.')} />
-                <Indicador titulo={L('Taxa de recuperação', 'Recovery rate', 'Tasa de recuperación')} valor={pct(r.taxaRecuperacao)} cor={P.VERDE}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Taxa de recuperação', 'Recovery rate', 'Tasa de recuperación')} valor={pct(r.taxaRecuperacao)} cor={P.VERDE}
                   origem={L('Recuperado no período ÷ (recuperado + o que continua vencido hoje).', 'Recovered in period ÷ (recovered + what is still overdue today).', 'Recuperado en el período ÷ (recuperado + lo que sigue vencido hoy).')} />
-                <Indicador titulo={L('Valor em risco', 'Value at risk', 'Valor en riesgo')} valor={fmt(r.valorEmRisco)} cor={P.VERMELHO}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Valor em risco', 'Value at risk', 'Valor en riesgo')} valor={fmt(r.valorEmRisco)} cor={P.VERMELHO}
                   sub={r.qtdSemScore ? L(`+ ${fmt(r.semScore)} sem histórico para medir`, `+ ${fmt(r.semScore)} without history to measure`, `+ ${fmt(r.semScore)} sin historial para medir`) : undefined}
                   origem={L(`Para cada conta vencida de cliente com histórico (4 ou mais pagamentos), saldo não contestado × nota de risco (0 a 1000). Clientes sem histórico suficiente não recebem nota e aparecem à parte. Metodologia ${a.versao}.`, `For each overdue bill of a customer with history (4 or more payments), undisputed balance × risk score (0 to 1000). Customers without enough history get no score and are shown apart. Methodology ${a.versao}.`, `Para cada cuenta vencida de cliente con historial (4 o más pagos), saldo no disputado × nota de riesgo (0 a 1000). Clientes sin historial suficiente no reciben nota y aparecen aparte. Metodología ${a.versao}.`)} />
-                <Indicador titulo={L('Previsão em 30 dias', 'Forecast in 30 days', 'Previsión en 30 días')} valor={fmt(r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)} cor={P.TEXTO}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Previsão em 30 dias', 'Forecast in 30 days', 'Previsión en 30 días')} valor={fmt(r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor ?? 0)} cor={P.TEXTO}
                   sub={L('estimativa, não é caixa', 'estimate, not cash', 'estimación, no es caja')}
                   origem={L('Quanto do vencido deve entrar em 30 dias, pela nota de risco e pelos dias de atraso de cada conta. Valor contestado e cliente sem histórico ficam fora. Promessa não conta como dinheiro.', 'How much of the overdue amount should come in within 30 days, by each bill’s risk score and days overdue. Disputed amounts and customers without history are left out. A promise does not count as money.', 'Cuánto de lo vencido debe entrar en 30 días, según la nota de riesgo y los días de atraso de cada cuenta. Lo disputado y los clientes sin historial quedan fuera. La promesa no cuenta como dinero.')} />
-                <Indicador titulo={L('Promessas em aberto', 'Open promises', 'Promesas abiertas')} valor={String(r.promessasPendentes)} cor={P.TEXTO} sub={r.promessasPendentes ? fmt(r.valorPrometido) : undefined}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Promessas em aberto', 'Open promises', 'Promesas abiertas')} valor={String(r.promessasPendentes)} cor={P.TEXTO} sub={r.promessasPendentes ? fmt(r.valorPrometido) : undefined}
                   origem={L('Promessas de pagamento registradas na cobrança (pendentes, confirmadas ou pagas em parte) que ainda não venceram.', 'Payment promises recorded in collection (pending, confirmed or partly paid) that are not due yet.', 'Promesas de pago registradas en la cobranza (pendientes, confirmadas o pagadas en parte) que aún no vencieron.')} />
-                <Indicador titulo={L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')} valor={String(r.promessasDescumpridas)} cor={r.promessasDescumpridas ? P.VERMELHO : P.TEXTO}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Promessas descumpridas', 'Broken promises', 'Promesas incumplidas')} valor={String(r.promessasDescumpridas)} cor={r.promessasDescumpridas ? P.VERMELHO : P.TEXTO}
                   origem={L('Promessas cuja data passou sem nenhum pagamento depois delas.', 'Promises whose date passed with no payment after them.', 'Promesas cuya fecha pasó sin ningún pago después de ellas.')} />
-                <Indicador titulo={L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')} valor={String(r.disputasAbertas)} cor={r.disputasAbertas ? P.ALERTA : P.TEXTO} sub={r.disputasAbertas ? fmt(r.valorContestado) : undefined}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Divergências abertas', 'Open disputes', 'Divergencias abiertas')} valor={String(r.disputasAbertas)} cor={r.disputasAbertas ? P.ALERTA : P.TEXTO} sub={r.disputasAbertas ? fmt(r.valorContestado) : undefined}
                   origem={L('Contas com divergência aberta ou em análise (a receber e a pagar). O valor é a parte contestada; o restante continua sendo cobrado ou pago.', 'Bills with an open or under-review dispute (receivable and payable). The amount is the disputed part; the rest is still collected or paid.', 'Cuentas con divergencia abierta o en análisis (por cobrar y por pagar). El valor es la parte disputada; el resto se sigue cobrando o pagando.')} />
-                <Indicador titulo={L('Sem previsão confiável', 'No reliable forecast', 'Sin previsión confiable')} valor={fmt(r.previsao.composicao.semPrevisaoConfiavel)} cor={P.CINZA}
+                <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Sem previsão confiável', 'No reliable forecast', 'Sin previsión confiable')} valor={fmt(r.previsao.composicao.semPrevisaoConfiavel)} cor={P.CINZA}
                   origem={L('Saldo de clientes com menos de 4 pagamentos no histórico: o Axioma não inventa previsão para eles.', 'Balance of customers with fewer than 4 payments in history: Axioma does not make up a forecast for them.', 'Saldo de clientes con menos de 4 pagos en el historial: Axioma no inventa una previsión para ellos.')} />
               </div>
             </div>
@@ -309,13 +299,26 @@ export default function ContasVencidasPage() {
                 })()}
               </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {lista(true, r.pagar, r.totalPagar)}
-              {lista(false, r.receber, r.totalReceber)}
-            </div>
+            {empresaId && <CentralReceber itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />}
+            {lista(true, r.pagar, r.totalPagar)}
           </div>
         )}
       </ModuloLayout>
     </div>
+  )
+}
+
+// Indicador com "de onde vem": toque abre a origem do número (nada escondido em modal)
+function Indicador({ titulo, valor, cor, sub, origem, P, aninhada, deOnde }: { titulo: string; valor: string; cor: string; sub?: string; origem: string; P: { CINZA: string; TEXTO: string }; aninhada: CSSProperties; deOnde: string }) {
+  return (
+    <details className="rounded-xl p-3 min-w-0 axi-card-premium3d axi-card-faixa" style={aninhada}>
+      <summary className="cursor-pointer list-none">
+        <p className="text-xs" style={{ color: P.CINZA }}>{titulo}</p>
+        <p className="text-lg font-bold mt-0.5" style={{ color: cor }}>{valor}</p>
+        {sub && <p className="text-[11px]" style={{ color: P.CINZA }}>{sub}</p>}
+        <p className="text-[11px] mt-1 underline" style={{ color: P.CINZA }}>{deOnde}</p>
+      </summary>
+      <p className="text-[11px] mt-2 leading-snug" style={{ color: P.TEXTO }}>{origem}</p>
+    </details>
   )
 }

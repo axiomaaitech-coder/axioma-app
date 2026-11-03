@@ -58,7 +58,8 @@ export type ItemVencido = {
   titulo: M.Titulo; caso: CasoBanco | null; saldo: number; disputa: ReturnType<typeof M.separarDisputa>
   encargos: ReturnType<typeof M.encargos>; dna: M.DNA; risco: ReturnType<typeof M.riscoRecuperacao>
   prioridade: ReturnType<typeof M.prioridadeCobranca>; acao: ReturnType<typeof M.proximaAcao>
-  promessa: M.SituacaoPromessa | null; promessaFalta: number; emNegociacao: boolean; causaSugerida: ReturnType<typeof M.sugerirCausa>
+  promessa: M.SituacaoPromessa | null; promessaFalta: number; emNegociacao: boolean
+  ultimoContato: { data: string; canal: string | null } | null; causaSugerida: ReturnType<typeof M.sugerirCausa>
 }
 export type AnaliseVencidos = {
   hoje: string; limites: number[]; receber: ItemVencido[]; pagar: ItemVencido[]
@@ -73,17 +74,19 @@ export type AnaliseVencidos = {
 export async function carregarAnaliseVencidos(empresaId: string): Promise<AnaliseVencidos> {
   const sb = createClient()
   const hoje = hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
-  const [cr, cp, casos, prom, cfg, legal, hist, negoc] = await Promise.all([
+  const [cr, cp, casos, prom, cfg, legal, hist, negoc, contatos] = await Promise.all([
     comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
     comRetentativa(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).limit(5000)),
-    comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).limit(5000)),
+    comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).is('excluido_em', null).limit(5000)),
     comRetentativa(() => sb.from('vencido_config').select('faixas, parametros').eq('empresa_id', empresaId).maybeSingle()),
     parametrosLegais(sb),
     // evolução da carteira vencida: foto diária já gravada pela previsão (horizonte 7 = uma linha por dia)
     comRetentativa(() => sb.from('vencido_previsao').select('data_base, saldo_base').eq('empresa_id', empresaId).eq('horizonte_dias', 7).order('data_base', { ascending: false }).limit(180)),
     // negociação em andamento = proposta sem decisão
     comRetentativa(() => sb.from('vencido_evento').select('caso_id, tipo, id, dados').eq('empresa_id', empresaId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).limit(5000)),
+    // último contato de cobrança de cada conta (o mais recente primeiro; lixeira fora)
+    comRetentativa(() => sb.from('cobranca_interacoes').select('conta_id, data, canal').eq('empresa_id', empresaId).is('excluido_em', null).order('data', { ascending: false }).limit(5000)),
   ])
   const avisos: string[] = []
   for (const [nome, r] of [['contas a receber', cr], ['contas a pagar', cp]] as const) if (r.error) reportarFalhaLeitura(`vencidos:${nome}`, new Error(r.error.message))
@@ -107,6 +110,8 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
   const textoDe = new Map([...(cr.data ?? []), ...(cp.data ?? [])].map((c) => [c.id, `${c.descricao ?? ''} ${c.observacoes ?? ''}`]))
   const casoDe = new Map(((casos.data ?? []) as CasoBanco[]).map((c) => [(c.conta_receber_id ?? c.conta_pagar_id)!, c]))
   const promessas: M.Promessa[] = (prom.data ?? []).map((p) => ({ id: p.id, tituloId: p.conta_id, valor: Number(p.valor_compromissado) || 0, data: p.data_compromissada, status: p.status, tipo: p.tipo, recebidoNaPromessa: p.recebido_na_promessa, renegociadaDe: p.renegociada_de }))
+  const ultimoContatoDe = new Map<string, { data: string; canal: string | null }>()
+  for (const c of contatos.data ?? []) if (c.conta_id && !ultimoContatoDe.has(c.conta_id)) ultimoContatoDe.set(c.conta_id, { data: c.data, canal: c.canal })
   const reneg = new Set(promessas.map((p) => p.renegociadaDe).filter(Boolean) as string[])
   const decididas = new Set((negoc.data ?? []).filter((e) => e.tipo !== 'negociacao_proposta').map((e) => String((e.dados as { proposta_id?: string })?.proposta_id)))
   const casosEmNegociacao = new Set((negoc.data ?? []).filter((e) => e.tipo === 'negociacao_proposta' && !decididas.has(e.id)).map((e) => e.caso_id as string))
@@ -143,7 +148,7 @@ export async function carregarAnaliseVencidos(empresaId: string): Promise<Analis
         titulo: t, caso: banco, saldo, disputa: M.separarDisputa(saldo, caso),
         encargos: M.encargos(t, hoje, { ...legal, ipcaMesesPct: ipcaDesde(legal.ipcaSerie, t.vencimento) }, caso),
         dna, risco, prioridade, promessa, promessaFalta: sp && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(sp.situacao) ? sp.falta : 0,
-        emNegociacao: !!banco && casosEmNegociacao.has(banco.id), causaSugerida: M.sugerirCausa(textoDe.get(t.id) ?? '', caso),
+        emNegociacao: !!banco && casosEmNegociacao.has(banco.id), ultimoContato: ultimoContatoDe.get(t.id) ?? null, causaSugerida: M.sugerirCausa(textoDe.get(t.id) ?? '', caso),
         acao: M.proximaAcao({ titulo: t, hoje, risco: risco.score, dna, caso, promessa, caixaDisponivel: posicao.totalDisponivel }),
       }
     }).sort((a, b) => (b.prioridade.score ?? 0) - (a.prioridade.score ?? 0))
@@ -185,8 +190,9 @@ export async function salvarCaso(empresaId: string, dominio: M.Dominio, tituloId
   const sb = createClient(), col = dominio === 'receber' ? 'conta_receber_id' : 'conta_pagar_id'
   if (campos.disputa_valor != null && (!(Number(campos.disputa_valor) >= 0))) return { ok: false, erro: 'valor contestado inválido' }
   const achar = () => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).eq(col, tituloId).maybeSingle()
-  let { data: atual, error } = await comRetentativa(achar)
-  if (error) return { ok: false, erro: error.message }
+  const lido = await comRetentativa(achar)
+  if (lido.error) return { ok: false, erro: lido.error.message }
+  let atual = lido.data
   let id = atual?.id as string | undefined
   if (!id) {
     const ins = await sb.from('vencido_caso').insert({ empresa_id: empresaId, dominio, [col]: tituloId, ...campos }).select('id').single()

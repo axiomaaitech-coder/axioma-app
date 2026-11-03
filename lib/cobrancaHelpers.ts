@@ -38,6 +38,7 @@ export type CobrancaInteracao = {
   id: string; user_id: string; conta_id: string; cliente_id?: string | null;
   tipo: "contato" | "negociacao" | "nota"; canal?: string | null;
   descricao: string; data: string; created_at: string;
+  excluido_em?: string | null;
 };
 
 export type CobrancaCompromisso = {
@@ -68,7 +69,7 @@ export const CANAIS_REGUA = ["email", "sms", "whatsapp"] as const;
 // ============================================================================
 
 export async function listarInteracoes(empresaId: string, contaId?: string): Promise<CobrancaInteracao[]> {
-  let q = supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).order("data", { ascending: false });
+  let q = supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).is("excluido_em", null).order("data", { ascending: false });
   if (contaId) q = q.eq("conta_id", contaId);
   const { data } = await q;
   return data || [];
@@ -84,14 +85,45 @@ export async function criarInteracao(userId: string, empresaId: string | null, d
   return {};
 }
 
-export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
-  const { data, error } = await supabase.from("cobranca_interacoes").delete().eq("id", id).select("id");
+// Lixeira de 60 dias (Elias 2026-11-02): contato não é apagado de vez — vai para a lixeira (some de todas as
+// telas) e pode ser recuperado por 60 dias. Item simples: sem senha (regra só para o que é importante).
+export const DIAS_LIXEIRA = 60;
+async function marcarLixeira(tabela: "cobranca_interacoes" | "cobranca_compromissos", id: string, excluir: boolean): Promise<{ erro?: string }> {
+  const { data: u } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from(tabela)
+    .update(excluir ? { excluido_em: new Date().toISOString(), excluido_por: u.user?.id ?? null } : { excluido_em: null, excluido_por: null })
+    .eq("id", id).select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita("cobranca_interacoes", "delete", motivo);
+    reportarFalhaEscrita(tabela, excluir ? "lixeira" : "restaurar", motivo);
     return { erro: motivo };
   }
   return {};
+}
+export const excluirInteracao = (id: string) => marcarLixeira("cobranca_interacoes", id, true);
+export const restaurarInteracao = (id: string) => marcarLixeira("cobranca_interacoes", id, false);
+export const excluirCompromisso = (id: string) => marcarLixeira("cobranca_compromissos", id, true);
+export const restaurarCompromisso = (id: string) => marcarLixeira("cobranca_compromissos", id, false);
+
+// Lápis: corrige o texto/canal/data do contato registrado
+export async function atualizarInteracao(id: string, dados: Pick<Partial<CobrancaInteracao>, "descricao" | "canal" | "data" | "tipo">): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("cobranca_interacoes").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_interacoes", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
+}
+
+// O que está na lixeira há menos de 60 dias (depois disso não aparece mais para recuperar)
+export async function listarLixeiraCobranca(empresaId: string): Promise<{ contatos: CobrancaInteracao[]; promessas: CobrancaCompromisso[] }> {
+  const desde = new Date(Date.now() - DIAS_LIXEIRA * 86400000).toISOString();
+  const [c, p] = await Promise.all([
+    supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).gte("excluido_em", desde).order("excluido_em", { ascending: false }).limit(200),
+    supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).gte("excluido_em", desde).order("excluido_em", { ascending: false }).limit(200),
+  ]);
+  return { contatos: (c.data as CobrancaInteracao[]) || [], promessas: (p.data as CobrancaCompromisso[]) || [] };
 }
 
 // ============================================================================
@@ -102,7 +134,7 @@ export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
 // ============================================================================
 
 export async function listarCompromissos(empresaId: string, contaId?: string): Promise<CobrancaCompromisso[]> {
-  let q = supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).order("data_compromissada", { ascending: true });
+  let q = supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).is("excluido_em", null).order("data_compromissada", { ascending: true });
   if (contaId) q = q.eq("conta_id", contaId);
   const { data } = await q;
   return data || [];
