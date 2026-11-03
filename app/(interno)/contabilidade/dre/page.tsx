@@ -18,6 +18,7 @@ import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../../lib/gerarPdfTabela'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 type Grupo = '6' | '7' | '8' | '9' | '10'
@@ -118,9 +119,40 @@ export default function DrePage() {
     { key: null, label: L('= Resultado Líquido', '= Net Result', '= Resultado Neto'), valor: resultadoLiquido, total: true },
   ]
 
+  // Exportar (PDF ou Excel): cada linha da DRE e, embaixo, as contas que formam o número
+  const [exportando, setExportando] = useState(false)
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    setExportando(true)
+    const brl = (v: number) => `${v < 0 ? '-' : ''}R$ ${fBRL2(Math.abs(v))}`
+    const dt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('pt-BR')
+    const tab: Record<string, string>[] = []
+    for (const l of linhas) {
+      tab.push({ linha: l.label, conta: '', valor: brl(l.sinal ? -l.valor : l.valor) })
+      if (l.key) for (const c of contasPorGrupo[l.key]) tab.push({ linha: '', conta: `${c.conta.codigo} — ${c.conta.nome}`, valor: brl(l.sinal ? -c.valor : c.valor) })
+    }
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados'),
+        subtitulo: `${L('Período', 'Period', 'Período')}: ${dt(periodo.inicio)} – ${dt(periodo.fim)} · ${L('direto do Livro Razão', 'straight from the ledger', 'directo del Libro Mayor')}`,
+        colunas: [
+          { header: L('Linha', 'Line', 'Línea'), key: 'linha', width: 3 }, { header: L('Conta', 'Account', 'Cuenta'), key: 'conta', width: 4 },
+          { header: L('Valor', 'Value', 'Valor'), key: 'valor', width: 2, align: 'right' },
+        ],
+        linhas: tab,
+        resumo: [
+          { label: L('Receita Bruta', 'Gross Revenue', 'Ingreso Bruto'), valor: brl(receitaBruta) },
+          { label: L('Lucro Bruto', 'Gross Profit', 'Utilidad Bruta'), valor: brl(lucroBruto) },
+          { label: L('Resultado Líquido', 'Net Result', 'Resultado Neto'), valor: brl(resultadoLiquido) },
+        ],
+        nomeArquivo: `${L('dre-contabil', 'income-statement', 'estado-resultados')}-${periodo.inicio}-${periodo.fim}`,
+      }, (m) => setAvisoLeitura(m), lang)
+    } finally { setExportando(false) }
+  }
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
+      onExportarPDF={semDados ? undefined : () => void exportar('pdf')} onExportarExcel={semDados ? undefined : () => void exportar('excel')} exportando={exportando}
       titulo={L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')}
       subtitulo={L('Calculado direto do Livro Razão contábil — receita, custo e despesa vêm do ledger, não de planilha solta', 'Calculated straight from the accounting ledger — revenue, cost and expense come from the ledger, not a loose spreadsheet', 'Calculado directo del libro mayor contable — ingreso, costo y gasto vienen del libro mayor, no de una planilla suelta')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}

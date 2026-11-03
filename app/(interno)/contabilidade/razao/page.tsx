@@ -22,6 +22,7 @@ import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../../lib/gerarPdfTabela'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -136,9 +137,43 @@ function RazaoInner() {
   const contaSelecionada = contas.find((c) => c.id === contaId) || null
   const contaNome = (id: string) => { const c = contas.find((x) => x.id === id); return c ? `${c.codigo} — ${c.nome}` : id }
 
+  // Exportar (PDF ou Excel): o extrato da conta escolhida, com saldo anterior e saldo acumulado
+  const [exportando, setExportando] = useState(false)
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    if (!contaSelecionada) return
+    setExportando(true)
+    const brl = (v: number) => `${v < 0 ? '-' : ''}R$ ${fBRL2(Math.abs(v))}`
+    const dt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('pt-BR')
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: `${L('Livro Razão', 'General Ledger', 'Libro Mayor')} — ${contaSelecionada.codigo} ${contaSelecionada.nome}`,
+        subtitulo: `${L('Período', 'Period', 'Período')}: ${dt(periodo.inicio)} – ${dt(periodo.fim)}`,
+        colunas: [
+          { header: L('Data', 'Date', 'Fecha'), key: 'data', width: 1.4 }, { header: L('Histórico', 'Description', 'Histórico'), key: 'historico', width: 4 },
+          { header: L('Débito', 'Debit', 'Débito'), key: 'debito', width: 1.8, align: 'right' }, { header: L('Crédito', 'Credit', 'Crédito'), key: 'credito', width: 1.8, align: 'right' },
+          { header: L('Saldo', 'Balance', 'Saldo'), key: 'saldo', width: 1.8, align: 'right' },
+        ],
+        linhas: [
+          { data: dt(periodo.inicio), historico: L('Saldo anterior', 'Opening balance', 'Saldo anterior'), debito: '', credito: '', saldo: brl(saldoAnterior) },
+          ...linhas.map(({ lancamento, partida, saldo }) => ({
+            data: dt(lancamento.data), historico: lancamento.descricao || '—',
+            debito: partida.tipo === 'debito' ? brl(Number(partida.valor)) : '', credito: partida.tipo === 'credito' ? brl(Number(partida.valor)) : '', saldo: brl(saldo),
+          })),
+        ],
+        resumo: [
+          { label: L('Saldo anterior', 'Opening balance', 'Saldo anterior'), valor: brl(saldoAnterior) },
+          { label: L('Saldo final', 'Closing balance', 'Saldo final'), valor: brl(linhas.length ? linhas[linhas.length - 1].saldo : saldoAnterior) },
+          { label: L('Lançamentos', 'Entries', 'Asientos'), valor: String(linhas.length) },
+        ],
+        nomeArquivo: `${L('razao', 'ledger', 'mayor')}-${contaSelecionada.codigo}-${periodo.inicio}-${periodo.fim}`,
+      }, (m) => setAvisoLeitura(m), lang)
+    } finally { setExportando(false) }
+  }
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
+      onExportarPDF={contaSelecionada ? () => void exportar('pdf') : undefined} onExportarExcel={contaSelecionada ? () => void exportar('excel') : undefined} exportando={exportando}
       titulo={L('Livro Razão', 'General Ledger', 'Libro Mayor')}
       subtitulo={L('Extrato por conta contábil, com saldo acumulado — direto do ledger', 'Account statement with running balance — straight from the ledger', 'Extracto por cuenta contable con saldo acumulado — directo del libro mayor')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}

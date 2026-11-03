@@ -17,6 +17,7 @@ import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../../lib/gerarPdfTabela'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -104,9 +105,40 @@ export default function BalancetePage() {
     }).filter((g) => g.linhas.length > 0)
   }, [contas, totaisPorConta])
 
+  // Exportar (PDF ou Excel): a mesma tabela da tela, conta por conta, com subtotais e total geral
+  const [exportando, setExportando] = useState(false)
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    setExportando(true)
+    const brl = (v: number) => `${v < 0 ? '-' : ''}R$ ${fBRL2(Math.abs(v))}`
+    const linhas: Record<string, string>[] = []
+    for (const g of grupos) {
+      for (const l of g.linhas) linhas.push({ tipo: TIPO_LABEL[g.tipo], codigo: l.conta.codigo, conta: l.conta.nome, debito: brl(l.debito), credito: brl(l.credito), saldo: brl(l.saldo) })
+      linhas.push({ tipo: TIPO_LABEL[g.tipo], codigo: '', conta: L('Subtotal', 'Subtotal', 'Subtotal'), debito: brl(g.totalDebito), credito: brl(g.totalCredito), saldo: '' })
+    }
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación'),
+        subtitulo: `${L('Período', 'Period', 'Período')}: ${new Date(`${periodo.inicio}T00:00:00`).toLocaleDateString('pt-BR')} – ${new Date(`${periodo.fim}T00:00:00`).toLocaleDateString('pt-BR')}`,
+        colunas: [
+          { header: L('Tipo', 'Type', 'Tipo'), key: 'tipo', width: 1.8 }, { header: L('Código', 'Code', 'Código'), key: 'codigo', width: 1.3 },
+          { header: L('Conta', 'Account', 'Cuenta'), key: 'conta', width: 3.5 }, { header: L('Débito', 'Debit', 'Débito'), key: 'debito', width: 1.8, align: 'right' },
+          { header: L('Crédito', 'Credit', 'Crédito'), key: 'credito', width: 1.8, align: 'right' }, { header: L('Saldo', 'Balance', 'Saldo'), key: 'saldo', width: 1.8, align: 'right' },
+        ],
+        linhas,
+        resumo: [
+          { label: L('Total de débitos', 'Total debits', 'Total de débitos'), valor: brl(totalDebitoGeral) },
+          { label: L('Total de créditos', 'Total credits', 'Total de créditos'), valor: brl(totalCreditoGeral) },
+          { label: L('Situação', 'Status', 'Situación'), valor: fecha ? L('Balancete fechado', 'Trial balance closed', 'Balance cerrado') : L('Não fecha', "Doesn't close", 'No cierra') },
+        ],
+        nomeArquivo: `${L('balancete', 'trial-balance', 'balance-comprobacion')}-${periodo.inicio}-${periodo.fim}`,
+      }, (m) => setAvisoLeitura(m), lang)
+    } finally { setExportando(false) }
+  }
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
+      onExportarPDF={grupos.length ? () => void exportar('pdf') : undefined} onExportarExcel={grupos.length ? () => void exportar('excel') : undefined} exportando={exportando}
       titulo={L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')}
       subtitulo={L('Saldo de todas as contas no período, agrupado por tipo — direto do ledger', 'Balance of every account in the period, grouped by type — straight from the ledger', 'Saldo de todas las cuentas en el período, agrupado por tipo — directo del libro mayor')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
