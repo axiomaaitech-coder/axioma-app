@@ -64,6 +64,8 @@ assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '20
 assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 500 }, tp, hoje).falta, 300)
 assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-11-20', recebidoNaPromessa: 600, status: 'confirmado' }, tp, hoje).situacao, 'confirmada')
 assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600, status: 'cancelado' }, tp, hoje).situacao, 'cancelada', 'cancelada não vira descumprida')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 1050, data: '2026-10-20', recebidoNaPromessa: 0 }, t('pr', '2026-10-01', 1000, 1000), hoje).situacao, 'cumprida', 'acordo com juros: conta quitada cumpre a promessa')
+assert.equal(M.situacaoPromessa({ id: 'p', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 0 }, t('pr', '2026-10-01', 1000, 0, { status: 'cancelado' }), hoje).situacao, 'descumprida', 'conta cancelada não cumpre promessa')
 const pl = M.placarPromessas([{ id: 'a', tituloId: 'pr', valor: 400, data: '2026-10-20', recebidoNaPromessa: 600 }, { id: 'b', tituloId: 'pr', valor: 400, data: '2026-11-20', recebidoNaPromessa: 600, renegociadaDe: 'a' }], [tp], hoje)
 assert.equal(pl.descumpridas, 0, 'promessa renegociada não conta como descumprida'); assert.equal(pl.pendentes, 1); assert.equal(pl.renegociadas, 1)
 

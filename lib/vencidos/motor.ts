@@ -176,7 +176,9 @@ export function situacaoPromessa(pr: Promessa, t: Titulo | undefined, hoje: stri
   const r = (situacao: SituacaoPromessa) => ({ situacao, recebidoDepois: reais(depois), falta })
   if (pr.status === 'cancelado') return r('cancelada')
   if (renegociadas.has(pr.id)) return r('renegociada')
-  if (pr.status === 'cumprido' || (prometido > 0 && depois >= prometido)) return { situacao: 'cumprida', recebidoDepois: reais(depois), falta: 0 }
+  // conta quitada também cumpre: acordo pode incluir juros/multa que a baixa trata à parte (Contas a Receber)
+  const quitada = !!t && FECHADOS.has(String(t.status ?? '').toLowerCase()) && !/cancel/i.test(String(t.status))
+  if (pr.status === 'cumprido' || quitada || (prometido > 0 && depois >= prometido)) return { situacao: 'cumprida', recebidoDepois: reais(depois), falta: 0 }
   if (pr.status === 'quebrado' || (hoje > pr.data && depois === 0)) return r('descumprida')
   if (depois > 0) return r('parcialmente_cumprida')
   return r(pr.status === 'confirmado' ? 'confirmada' : 'pendente')
