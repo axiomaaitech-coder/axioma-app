@@ -753,7 +753,7 @@ export default function Inadimplencia() {
               {alertas.map((a, i) => (
                 <motion.button key={i} whileHover={{ scale: 1.005 }}
                   onClick={() => a.clienteId && setClienteAbertoId(a.clienteId)}
-                  className="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                  className="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa"
                   style={{ background: `${severidadeCor(a.severidade)}0c`, border: `1px solid ${severidadeCor(a.severidade)}30`, cursor: a.clienteId ? 'pointer' : 'default' }}>
                   <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: severidadeCor(a.severidade) }} />
                   <div className="min-w-0 flex-1">
@@ -818,8 +818,8 @@ export default function Inadimplencia() {
                   <p className="text-xs italic py-4 text-center" style={{ color: CINZA }}>{L('Nenhum cliente inadimplente.', 'No delinquent clients.', 'Ningún cliente moroso.')}</p>
                 ) : rankingPioresScores.map((l, i) => (
                   <motion.button key={l.s.cliente.id} whileHover={{ scale: 1.01 }} onClick={() => abrirNegociacao(l)}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left"
-                    style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${nivelScoreCor(l.score.nivel)}25` }}>
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left axi-card-premium3d axi-card-faixa"
+                    style={{ background: (temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)'), border: `1px solid ${nivelScoreCor(l.score.nivel)}25` }}>
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-bold w-4 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       {l.score.nivel === 'elite' && <Crown size={12} style={{ color: PLATINA }} className="flex-shrink-0" />}
