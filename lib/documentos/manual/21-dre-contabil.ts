@@ -23,7 +23,7 @@ const pt: DocumentoAxioma = {
       ['Despesas Financeiras', 'Juros e encargos (inclusive multas e juros de contas pagas com atraso).'],
       ['= Resultado Líquido', 'O resultado final pela contabilidade.'],
     ] } },
-    { p: '**Clique num grupo** para abrir as contas que o compõem; **clique numa conta** para ir ao Livro Razão dela. Use o seletor de período e **Compartilhar** como nas outras telas. Grupo sem movimento mostra "Sem contas neste grupo no período".' },
+    { p: '**Clique num grupo** para abrir as contas que o compõem; **clique numa conta** para ir ao Livro Razão dela. Use o seletor de período e **Compartilhar** como nas outras telas. Grupo sem movimento mostra "Sem contas neste grupo no período". **Exportar PDF** e **Exportar Excel**, no topo, baixam a DRE do período com as contas que formam cada linha; no Excel os valores vêm como número.' },
     { nota: 'A leitura é feita em lotes, sem limite de linhas; se algo não carregar, a tela avisa que os números podem estar incompletos.' },
   ],
 }
@@ -50,7 +50,7 @@ const en: DocumentoAxioma = {
       ['Financial Expenses', 'Interest and charges (including late fees and interest on bills paid late).'],
       ['= Net Result', 'The final result according to the books.'],
     ] } },
-    { p: '**Click a group** to open the accounts in it; **click an account** to go to its General Ledger. Use the period selector and **Share** as on the other screens. A group without movement shows "No accounts in this group for the period".' },
+    { p: '**Click a group** to open the accounts in it; **click an account** to go to its General Ledger. Use the period selector and **Share** as on the other screens. A group without movement shows "No accounts in this group for the period". **Export PDF** and **Export Excel**, at the top, download the period income statement with the accounts behind each line; in Excel amounts come as numbers.' },
     { nota: 'Reading is done in batches, with no row limit; if something does not load, the screen warns that the numbers may be incomplete.' },
   ],
 }
@@ -77,7 +77,7 @@ const es: DocumentoAxioma = {
       ['Gastos Financieros', 'Intereses y cargos (incluidas multas e intereses de cuentas pagadas con atraso).'],
       ['= Resultado Neto', 'El resultado final según la contabilidad.'],
     ] } },
-    { p: '**Haga clic en un grupo** para abrir sus cuentas; **haga clic en una cuenta** para ir a su Libro Mayor. Use el selector de período y **Compartir** como en las otras pantallas. Un grupo sin movimiento muestra "Sin cuentas en este grupo en el período".' },
+    { p: '**Haga clic en un grupo** para abrir sus cuentas; **haga clic en una cuenta** para ir a su Libro Mayor. Use el selector de período y **Compartir** como en las otras pantallas. Un grupo sin movimiento muestra "Sin cuentas en este grupo en el período". **Exportar PDF** y **Exportar Excel**, arriba, descargan el estado de resultados del período con las cuentas de cada línea; en Excel los valores vienen como número.' },
     { nota: 'La lectura se hace por lotes, sin límite de filas; si algo no carga, la pantalla avisa que los números pueden estar incompletos.' },
   ],
 }
