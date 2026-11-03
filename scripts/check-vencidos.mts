@@ -120,6 +120,13 @@ assert.equal(nParc.totalNegociado, 400); assert.equal(nParc.restanteEmAberto, 60
 assert.ok(n1.custoOportunidade > 0 && n1.valorLiquidoRecuperavel < n1.valorPresente)
 assert.equal(M.simularNegociacao(1000, { tipo: 'entrada_parcelas', parcelas: 3 }, { custoCapitalMesPct: 0, probabilidadeBase: 0 }).parcelas.reduce((s, p) => s + p.valor, 0), 1000, '1000/3 sem sobra de centavo')
 
+const ctxN = { custoCapitalMesPct: 1, probabilidadeBase: 0.4, encargos: 50 }
+const alts = [M.simularNegociacao(1000, { tipo: 'integral' }, ctxN), M.simularNegociacao(1000, { tipo: 'entrada_parcelas', entradaPct: 30, parcelas: 3 }, ctxN), M.simularNegociacao(1000, { tipo: 'desconto', descontoPct: 10 }, ctxN)]
+const rec = M.recomendarNegociacao(alts)!
+assert.equal(rec.indice, alts.reduce((b, x, k) => (x.valorLiquidoRecuperavel > alts[b].valorLiquidoRecuperavel ? k : b), 0), 'recomenda a maior recuperação esperada')
+assert.equal(M.recomendarNegociacao([M.simularNegociacao(1000, { tipo: 'desconto', descontoPct: 0.001 }, { custoCapitalMesPct: 0, probabilidadeBase: 1 }), M.simularNegociacao(1000, { tipo: 'integral' }, { custoCapitalMesPct: 0, probabilidadeBase: 1 })])!.indice, 1, 'empate: prefere a que não exige concessão')
+assert.equal(M.recomendarNegociacao([]), null)
+
 // ── previsão e precisão ──
 const prev = M.previsaoRecuperacao([{ titulo: t('q1', '2026-10-01', 1000), risco: 200 }, { titulo: t('q2', '2026-10-01', 1000), risco: 200, caso: { tituloId: 'q2', disputaStatus: 'aberta', disputaValor: 1000 } }], hoje)
 const vs = prev.horizontes.map((h) => h.valor)

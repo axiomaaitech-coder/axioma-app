@@ -6,8 +6,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, FileDown, Pencil, RotateCcw, Sheet, Trash2, X } from 'lucide-react'
 import type { ItemVencido } from '../../../lib/vencidos/dados'
-import { registrarPromessa, salvarCaso } from '../../../lib/vencidos/dados'
-import { simularPagamentos, linhaDoTempo, emAberto, saldoDoTitulo, previsaoRecuperacao, type BaseTesouraria, type Titulo } from '../../../lib/vencidos/motor'
+import { registrarPromessa, salvarCaso, listarNegociacoes, proporNegociacao, decidirNegociacao, type PropostaNegociacao } from '../../../lib/vencidos/dados'
+import { simularPagamentos, linhaDoTempo, emAberto, saldoDoTitulo, previsaoRecuperacao, simularNegociacao, recomendarNegociacao, type BaseTesouraria, type Titulo, type OpcaoNegociacao } from '../../../lib/vencidos/motor'
 import ReactECharts from 'echarts-for-react'
 import { optBarrasV, coresSituacao, corTextoSituacao } from '../../../lib/cfoCore'
 import { criarInteracao, listarInteracoes, listarInteracoesCliente, excluirInteracao, restaurarInteracao, atualizarInteracao, listarLixeiraCobranca, restaurarCompromisso, DIAS_LIXEIRA, type CobrancaInteracao, type CobrancaCompromisso } from '../../../lib/cobrancaHelpers'
@@ -15,7 +15,7 @@ import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { montarMensagem, modeloSugerido, nomeMensagem, linkWhatsapp, linkEmail, TIPOS_MENSAGEM, type TipoMensagem } from '../../../lib/vencidos/mensagens'
 import { exportarPlanilha } from '../../../lib/exportarPlanilha'
 import { createClient } from '../../../lib/supabase/client'
-import { hojeISO } from '../../../lib/datas'
+import { hojeISO, somarDiasISO } from '../../../lib/datas'
 import { nomeAcao, porqueAcao, nomeFator, nomePromessa, nomeCanal, nomeCausa, nomeTendencia, nomeCriticidade, CANAIS_CONTATO, type Lang } from '../../../lib/vencidos/textos'
 
 type Paleta = { VERDE: string; VERMELHO: string; ALERTA: string; CINZA: string; TEXTO: string; PAINEL_BG: string; ANINHADA: string; BORDA: string; CAMPO: string }
@@ -311,6 +311,7 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
           <button type="button" disabled={salvando} onClick={() => void salvarPromessa()} className="px-2.5 py-1.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Registrar promessa', 'Save promise', 'Registrar promesa')}</button>
         </div>
       </div>
+      <NegociacaoCliente i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={aoMudar} avisar={avisar} />
       <MensagemCliente i={i} empresaId={empresaId} lang={lang} P={P} aoEnviar={() => { void ler(); aoMudar() }} avisar={avisar} />
       <DnaCliente i={i} historico={historico} itens={itens} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} temaClaro={temaClaro} />
     </div>
@@ -634,5 +635,112 @@ function Titulo({ texto, href, ir, P }: { texto: ReactNode; href?: string; ir?: 
       <span>{texto}</span>
       {href && <Link href={href} className="text-[11px] font-semibold underline shrink-0" style={{ color: P.VERDE }}>{ir} ›</Link>}
     </p>
+  )
+}
+
+// Negociação (etapa 7): alternativas lado a lado pelo motor (simularNegociacao), recomendação pela maior
+// recuperação esperada, proposta registrada e decisão SÓ de dono/sócio/admin (o banco confere). IA não concede.
+const CUSTO_CAPITAL_MES = 1 // premissa declarada na tela: custo do dinheiro de 1% ao mês
+function NegociacaoCliente({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void }) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
+  const encargos = Math.max(0, Math.round((i.encargos.total - i.saldo) * 100) / 100)
+  const probBase = i.risco.score == null ? 0.5 : Math.max(0, Math.min(1, (1000 - i.risco.score) / 1000))
+  const ctx = { custoCapitalMesPct: CUSTO_CAPITAL_MES, probabilidadeBase: probBase, encargos }
+  const [livre, setLivre] = useState<OpcaoNegociacao>({ tipo: 'entrada_parcelas', entradaPct: 20, parcelas: 4, intervaloDias: 30, descontoPct: 0 })
+  const opcoes: { nome: string; op: OpcaoNegociacao }[] = [
+    { nome: L('À vista', 'Pay in full', 'Al contado'), op: { tipo: 'integral' } },
+    { nome: L('Entrada 30% + 3 parcelas', '30% down + 3 installments', 'Entrada 30% + 3 cuotas'), op: { tipo: 'entrada_parcelas', entradaPct: 30, parcelas: 3, intervaloDias: 30 } },
+    { nome: L('10% de desconto à vista', '10% off in full', '10% de descuento al contado'), op: { tipo: 'desconto', descontoPct: 10 } },
+    { nome: L('Novo vencimento em 30 dias', 'New due date in 30 days', 'Nuevo vencimiento en 30 días'), op: { tipo: 'novo_vencimento', prazoDias: 30 } },
+    { nome: L('Personalizada', 'Custom', 'Personalizada'), op: livre },
+  ]
+  const alts = opcoes.map((o) => simularNegociacao(i.saldo, o.op, ctx))
+  const rec = recomendarNegociacao(alts)
+  const [lista, setLista] = useState<{ casoId: string | null; propostas: PropostaNegociacao[] } | null>(null)
+  const [motivo, setMotivo] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const ler = () => listarNegociacoes(empresaId, 'receber', i.titulo.id).then(setLista)
+  useEffect(() => { void ler() }, [i.titulo.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hojeIso = hojeISO()
+  const propor = async (k: number) => {
+    setOcupado(true)
+    let casoId = lista?.casoId ?? null
+    if (!casoId) { const c = await salvarCaso(empresaId, 'receber', i.titulo.id, {}, 'aberto para negociação'); casoId = c.ok ? c.valor ?? null : null }
+    const r = casoId ? await proporNegociacao(empresaId, casoId, alts[k]) : { ok: false as const, erro: '' }
+    setOcupado(false)
+    if (!r.ok) return avisar(L('Não foi possível registrar a proposta. Só dono, sócio, admin e financeiro podem propor.', 'Could not save the proposal. Only owner, partner, admin and finance can propose.', 'No fue posible registrar la propuesta. Solo dueño, socio, admin y finanzas pueden proponer.'))
+    void ler(); aoMudar(); avisar(L('Proposta registrada — aguarda aprovação de dono, sócio ou admin.', 'Proposal saved — awaiting approval by owner, partner or admin.', 'Propuesta registrada — espera aprobación de dueño, socio o admin.'))
+  }
+  const decidir = async (pr: PropostaNegociacao, aprovar: boolean) => {
+    if (!motivo.trim()) return avisar(L('Escreva o motivo da decisão.', 'Write the reason for the decision.', 'Escriba el motivo de la decisión.'))
+    setOcupado(true)
+    const r = await decidirNegociacao(empresaId, lista!.casoId!, pr, aprovar, motivo, i.titulo)
+    setOcupado(false)
+    if (!r.ok) return avisar(L('Não foi possível decidir. Aprovar ou recusar é só para dono, sócio ou admin.', 'Could not decide. Only owner, partner or admin can approve or refuse.', 'No fue posible decidir. Aprobar o rechazar es solo para dueño, socio o admin.'))
+    setMotivo(''); void ler(); aoMudar()
+    avisar(aprovar ? L('Negociação aprovada: virou um acordo no acompanhamento de promessas.', 'Negotiation approved: it became an agreement in promise tracking.', 'Negociación aprobada: se convirtió en un acuerdo en el seguimiento de promesas.') : L('Proposta recusada.', 'Proposal refused.', 'Propuesta rechazada.'))
+  }
+  const linhaV = (t: string, v: string, forte = false) => <p className="flex justify-between gap-2"><span style={{ color: P.CINZA }}>{t}</span>{forte ? <b>{v}</b> : <span>{v}</span>}</p>
+  const dataParcela = (dia: number) => dataTxt(somarDiasISO(hojeIso, dia))
+  return (
+    <div className="lg:col-span-3 rounded-xl p-3 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
+      <Titulo P={P} texto={L('Negociação', 'Negotiation', 'Negociación')} href="/inadimplencia" ir={L('Central de Negociação (Inadimplência)', 'Negotiation center (Delinquency)', 'Central de Negociación (Morosidad)')} />
+      <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`Saldo ${fmt(i.saldo)} + juros e multa ${fmt(encargos)}. Chance base de pagar: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sem histórico: 50%' : `nota de risco ${i.risco.score}`}). Custo do dinheiro: ${CUSTO_CAPITAL_MES}% ao mês (premissa). Simulação — nada é alterado até a aprovação.`, `Balance ${fmt(i.saldo)} + interest and fines ${fmt(encargos)}. Base chance of payment: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'no history: 50%' : `risk score ${i.risco.score}`}). Cost of money: ${CUSTO_CAPITAL_MES}% a month (premise). Simulation — nothing changes until approval.`, `Saldo ${fmt(i.saldo)} + intereses y multas ${fmt(encargos)}. Probabilidad base de pago: ${Math.round(probBase * 100)}% (${i.risco.score == null ? 'sin historial: 50%' : `nota de riesgo ${i.risco.score}`}). Costo del dinero: ${CUSTO_CAPITAL_MES}% al mes (premisa). Simulación — nada cambia hasta la aprobación.`)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
+        {alts.map((a, k) => (
+          <div key={k} className="rounded-lg p-2 space-y-0.5 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${rec?.indice === k ? P.VERDE : P.BORDA}` }}>
+            <p className="font-bold">{opcoes[k].nome}</p>
+            {rec?.indice === k && <p className="text-[11px] font-bold" style={{ color: P.VERDE }}>{rec.motivo === 'sem_concessao' ? L('Recomendada: mesma recuperação sem conceder nada', 'Recommended: same recovery with no concession', 'Recomendada: misma recuperación sin conceder nada') : L('Recomendada: maior recuperação esperada', 'Recommended: highest expected recovery', 'Recomendada: mayor recuperación esperada')}</p>}
+            {k === opcoes.length - 1 && (
+              <div className="grid grid-cols-2 gap-1 py-1">
+                <select aria-label={L('Tipo', 'Type', 'Tipo')} value={livre.tipo} onChange={(e) => setLivre({ ...livre, tipo: e.target.value as OpcaoNegociacao['tipo'] })} className="col-span-2 rounded px-1 py-0.5" style={campo}>
+                  <option value="entrada_parcelas">{L('Entrada + parcelas', 'Down payment + installments', 'Entrada + cuotas')}</option>
+                  <option value="desconto">{L('Desconto à vista', 'Discount in full', 'Descuento al contado')}</option>
+                  <option value="novo_vencimento">{L('Novo vencimento', 'New due date', 'Nuevo vencimiento')}</option>
+                  <option value="parcial">{L('Pagamento parcial', 'Partial payment', 'Pago parcial')}</option>
+                  <option value="renegociacao">{L('Renegociação (parcelas)', 'Rescheduling (installments)', 'Renegociación (cuotas)')}</option>
+                </select>
+                {(livre.tipo === 'entrada_parcelas' || livre.tipo === 'renegociacao') && <>
+                  <label className="text-[11px]">{L('Entrada %', 'Down %', 'Entrada %')}<input type="number" min={0} max={100} value={livre.entradaPct ?? 0} onChange={(e) => setLivre({ ...livre, entradaPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
+                  <label className="text-[11px]">{L('Parcelas', 'Installments', 'Cuotas')}<input type="number" min={1} max={36} value={livre.parcelas ?? 1} onChange={(e) => setLivre({ ...livre, parcelas: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>
+                </>}
+                {livre.tipo !== 'parcial' && <label className="text-[11px]">{L('Desconto %', 'Discount %', 'Descuento %')}<input type="number" min={0} max={100} value={livre.descontoPct ?? 0} onChange={(e) => setLivre({ ...livre, descontoPct: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                {livre.tipo === 'novo_vencimento' && <label className="text-[11px]">{L('Prazo (dias)', 'Term (days)', 'Plazo (días)')}<input type="number" min={1} value={livre.prazoDias ?? 30} onChange={(e) => setLivre({ ...livre, prazoDias: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                {livre.tipo === 'parcial' && <label className="text-[11px] col-span-2">{L('Valor pago agora', 'Amount paid now', 'Valor pagado ahora')}<input type="number" min={0} value={livre.valorParcial ?? 0} onChange={(e) => setLivre({ ...livre, valorParcial: Number(e.target.value) })} className="w-full rounded px-1" style={campo} /></label>}
+                <label className="text-[11px] col-span-2 flex items-center gap-1"><input type="checkbox" checked={!!livre.dispensarEncargos} onChange={(e) => setLivre({ ...livre, dispensarEncargos: e.target.checked })} />{L('Dispensar juros e multa', 'Waive interest and fines', 'Dispensar intereses y multas')}</label>
+              </div>
+            )}
+            {linhaV(L('Devido (com encargos)', 'Owed (with charges)', 'Adeudado (con cargos)'), fmt(a.devido))}
+            {linhaV(L('Desconto', 'Discount', 'Descuento'), fmt(a.desconto))}
+            {linhaV(L('Total negociado', 'Negotiated total', 'Total negociado'), fmt(a.totalNegociado), true)}
+            {a.restanteEmAberto > 0 && linhaV(L('Continua em aberto', 'Still open', 'Sigue abierto'), fmt(a.restanteEmAberto))}
+            <p style={{ color: P.CINZA }}>{L('Parcelas', 'Installments', 'Cuotas')}: {a.parcelas.map((x) => `${dataParcela(x.dia)} ${fmt(x.valor)}`).join(' · ')}</p>
+            {linhaV(L('Caixa em 30 / 60 / 90 dias', 'Cash in 30 / 60 / 90 days', 'Caja en 30 / 60 / 90 días'), `${fmt(a.impactoLiquidez.d30)} / ${fmt(a.impactoLiquidez.d60)} / ${fmt(a.impactoLiquidez.d90)}`)}
+            {linhaV(L('Custo do tempo', 'Cost of time', 'Costo del tiempo'), fmt(a.custoOportunidade))}
+            {linhaV(L('Recuperação esperada', 'Expected recovery', 'Recuperación esperada'), fmt(a.valorLiquidoRecuperavel), true)}
+            <p className="text-[11px]" style={{ color: a.precisaAprovacao ? P.ALERTA : P.CINZA }}>{a.precisaAprovacao ? L('Exige aprovação (dono, sócio ou admin)', 'Needs approval (owner, partner or admin)', 'Requiere aprobación (dueño, socio o admin)') : L('Sem concessão', 'No concession', 'Sin concesión')}</p>
+            <button type="button" disabled={ocupado} onClick={() => void propor(k)} className="w-full mt-1 px-2 py-1 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Propor esta', 'Propose this', 'Proponer esta')}</button>
+          </div>
+        ))}
+      </div>
+      {lista && lista.propostas.length > 0 && (
+        <div className="space-y-1 pt-1" style={{ borderTop: `1px solid ${P.BORDA}` }}>
+          <p className="font-bold">{L('Propostas', 'Proposals', 'Propuestas')}</p>
+          {lista.propostas.map((pr) => (
+            <div key={pr.id} className="rounded-lg p-2 flex flex-wrap items-center justify-between gap-2 axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}` }}>
+              <span>{dataTxt(pr.criado_em.slice(0, 10))} · {fmt(pr.simulacao.totalNegociado)} {L(`em ${pr.simulacao.parcelas.length} pagamento(s)`, `in ${pr.simulacao.parcelas.length} payment(s)`, `en ${pr.simulacao.parcelas.length} pago(s)`)} · <b style={{ color: pr.situacao === 'aprovada' ? P.VERDE : pr.situacao === 'recusada' ? P.VERMELHO : P.TEXTO }}>{pr.situacao === 'pendente' ? L('aguardando aprovação', 'awaiting approval', 'esperando aprobación') : pr.situacao === 'aprovada' ? L('aprovada', 'approved', 'aprobada') : L('recusada', 'refused', 'rechazada')}</b>{pr.motivo ? ` — ${pr.motivo}` : ''}</span>
+              {pr.situacao === 'pendente' && (
+                <span className="flex flex-wrap gap-1">
+                  <input aria-label={L('Motivo da decisão', 'Reason for the decision', 'Motivo de la decisión')} placeholder={L('Motivo da decisão', 'Reason', 'Motivo')} value={motivo} onChange={(e) => setMotivo(e.target.value)} className="rounded px-1.5 py-0.5" style={campo} />
+                  <button type="button" disabled={ocupado} onClick={() => void decidir(pr, true)} className="px-2 py-0.5 rounded-lg font-bold text-white" style={{ background: BOTAO_ACAO }}>{L('Aprovar', 'Approve', 'Aprobar')}</button>
+                  <button type="button" disabled={ocupado} onClick={() => void decidir(pr, false)} className="px-2 py-0.5 rounded-lg font-bold text-white" style={{ background: BOTAO_SECUNDARIO }}>{L('Recusar', 'Refuse', 'Rechazar')}</button>
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

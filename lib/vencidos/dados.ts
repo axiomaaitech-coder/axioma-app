@@ -242,9 +242,42 @@ export async function registrarPromessa(userId: string, empresaId: string, titul
 export async function proporNegociacao(empresaId: string, casoId: string, simulacao: ReturnType<typeof M.simularNegociacao>, origem: 'usuario' | 'ia' = 'usuario') {
   return registrarEvento(empresaId, casoId, 'negociacao_proposta', { ...simulacao }, origem)
 }
-export async function decidirNegociacao(empresaId: string, casoId: string, propostaId: string, aprovar: boolean, motivo: string) {
-  if (!motivo.trim()) return { ok: false as const, erro: 'informe o motivo da decisão' }
-  return registrarEvento(empresaId, casoId, aprovar ? 'negociacao_aprovada' : 'negociacao_recusada', { proposta_id: propostaId, motivo: motivo.trim() }, 'usuario', `decisao:${propostaId}`)
+// Decisão só de dono/sócio/admin (o banco confere: trava vencido_evento_conferir). Aprovada, a negociação vira
+// um ACORDO no controle de promessas que já existe (cobranca_compromissos) — sem outro cadastro.
+export async function decidirNegociacao(empresaId: string, casoId: string, proposta: PropostaNegociacao, aprovar: boolean, motivo: string, titulo?: M.Titulo): Promise<Resultado> {
+  if (!motivo.trim()) return { ok: false, erro: 'informe o motivo da decisão' }
+  const r = await registrarEvento(empresaId, casoId, aprovar ? 'negociacao_aprovada' : 'negociacao_recusada', { proposta_id: proposta.id, motivo: motivo.trim() }, 'usuario', `decisao:${proposta.id}`)
+  if (!r.ok || !aprovar || !titulo || titulo.dominio !== 'receber') return r
+  const { criarCompromisso } = await import('../cobrancaHelpers')
+  const { data: u } = await createClient().auth.getUser()
+  const s = proposta.simulacao
+  const ultima = s.parcelas[s.parcelas.length - 1]
+  const c = await criarCompromisso(u.user?.id ?? '', empresaId, {
+    conta_id: titulo.id, cliente_id: titulo.contraparteId, tipo: 'acordo', valor_original: s.devido, valor_compromissado: s.totalNegociado,
+    data_compromissada: somarDiasISO(proposta.criado_em.slice(0, 10), ultima?.dia ?? 0), parcelas: s.parcelas.length,
+    desconto_pct: s.devido ? Math.round((s.desconto / s.devido) * 10000) / 100 : 0, condicoes: `negociação aprovada: ${motivo.trim()}`.slice(0, 500),
+    ...({ recebido_na_promessa: titulo.quitado } as object),
+  })
+  return c.erro ? { ok: false, erro: c.erro } : { ok: true }
+}
+
+export type PropostaNegociacao = { id: string; criado_em: string; origem: string; simulacao: ReturnType<typeof M.simularNegociacao>; situacao: 'pendente' | 'aprovada' | 'recusada'; motivo: string | null }
+// Propostas de negociação de um título (as mais novas primeiro), com a decisão de cada uma
+export async function listarNegociacoes(empresaId: string, dominio: M.Dominio, tituloId: string): Promise<{ casoId: string | null; propostas: PropostaNegociacao[] }> {
+  const sb = createClient(), col = dominio === 'receber' ? 'conta_receber_id' : 'conta_pagar_id'
+  const caso = await comRetentativa(() => sb.from('vencido_caso').select('id').eq('empresa_id', empresaId).eq(col, tituloId).maybeSingle())
+  const casoId = (caso.data?.id as string | undefined) ?? null
+  if (!casoId) return { casoId: null, propostas: [] }
+  const ev = await comRetentativa(() => sb.from('vencido_evento').select('id, tipo, dados, origem, criado_em').eq('empresa_id', empresaId).eq('caso_id', casoId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).order('criado_em', { ascending: false }).limit(50))
+  const lista = (ev.data ?? []) as { id: string; tipo: string; dados: Record<string, unknown>; origem: string; criado_em: string }[]
+  const decisao = new Map(lista.filter((e) => e.tipo !== 'negociacao_proposta').map((e) => [String(e.dados.proposta_id), e]))
+  return {
+    casoId,
+    propostas: lista.filter((e) => e.tipo === 'negociacao_proposta').map((e) => {
+      const d = decisao.get(e.id)
+      return { id: e.id, criado_em: e.criado_em, origem: e.origem, simulacao: e.dados as unknown as ReturnType<typeof M.simularNegociacao>, situacao: !d ? 'pendente' : d.tipo === 'negociacao_aprovada' ? 'aprovada' : 'recusada', motivo: d ? String(d.dados.motivo ?? '') : null }
+    }),
+  }
 }
 
 // Foto diária da previsão (uma por empresa/dia/horizonte — repetir não duplica)

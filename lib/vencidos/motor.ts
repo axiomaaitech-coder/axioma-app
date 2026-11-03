@@ -363,6 +363,21 @@ export function simularNegociacao(saldo: number, op: OpcaoNegociacao, ctx: { cus
   }
 }
 
+// Recomendação entre alternativas: maior valor líquido esperado (valor presente × chance de pagar);
+// no empate (até 1%), a que não exige concessão. A decisão continua sendo de dono/sócio/admin.
+export function recomendarNegociacao<T extends ReturnType<typeof simularNegociacao>>(alternativas: T[]): { indice: number; motivo: 'maior_recuperacao' | 'sem_concessao' } | null {
+  if (!alternativas.length) return null
+  let melhor = 0
+  for (let k = 1; k < alternativas.length; k++) {
+    const a = alternativas[k], b = alternativas[melhor]
+    const empate = Math.abs(a.valorLiquidoRecuperavel - b.valorLiquidoRecuperavel) <= Math.max(1, b.valorLiquidoRecuperavel * 0.01)
+    if (empate ? !a.precisaAprovacao && b.precisaAprovacao : a.valorLiquidoRecuperavel > b.valorLiquidoRecuperavel) melhor = k
+  }
+  const m = alternativas[melhor]
+  const empatou = alternativas.some((x, k) => k !== melhor && Math.abs(x.valorLiquidoRecuperavel - m.valorLiquidoRecuperavel) <= Math.max(1, m.valorLiquidoRecuperavel * 0.01))
+  return { indice: melhor, motivo: empatou && !m.precisaAprovacao ? 'sem_concessao' : 'maior_recuperacao' }
+}
+
 // ─── RECOVERY FORECAST (7/15/30/60/90) — separado em prometido, negociação, disputa, esperado e sem previsão confiável ───
 export const HORIZONTES = [7, 15, 30, 60, 90] as const
 export const METODO_PREVISAO = 'heuristica-v1: pFinal=(1000-risco)/1000; curva 1-e^(-h/tau), tau=20+dias/2'
