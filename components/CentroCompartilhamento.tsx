@@ -25,7 +25,7 @@ type Props = {
   textoDetalhado?: string;
   onExportarPDF?: () => void;
   cor?: string;
-  /** destinatário já conhecido (ex.: e-mail do convidado) — preenche Gmail/Outlook/E-mail */
+  /** destinatário já conhecido (ex.: e-mail do convidado) — preenche Gmail/Outlook/*/
   para?: string;
 };
 
@@ -38,7 +38,8 @@ export function CentroCompartilhamento({
   const [copiado, setCopiado] = useState(false);
   const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [falhaCopia, setFalhaCopia] = useState(false); // navegador bloqueou a cópia: avisa em vez de ficar calado
-  const canais = canaisCompartilhamento(textoResumo, assunto, para);
+  // sem o "E-mail" (mailto): no computador sem programa de e-mail instalado ele não abria nada — Gmail e Outlook cobrem
+  const canais = canaisCompartilhamento(textoResumo, assunto, para).filter((c) => c.nome !== "E-mail");
 
   const copiar = async () => {
     if (await copiarTexto(textoResumo)) { setFalhaCopia(false); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } else setFalhaCopia(true);

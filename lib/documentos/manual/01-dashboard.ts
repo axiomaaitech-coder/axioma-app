@@ -44,7 +44,7 @@ const pt: DocumentoAxioma = {
     { nota: 'Avisos: confirmações e erros aparecem num cartão animado no topo da tela (some sozinho). As faixas fixas do topo são o aviso de contas que vencem em 7 dias e, quando algo não bate, a Conferência diária (Manual 45).' },
     { h1: 'Botões e ações' },
     { tabela: { colunas: ['Botão', 'Onde fica', 'O que faz', 'O que acontece depois'], larguras: [1800, 1700, 2900, 2626], linhas: [
-      ['Compartilhar', 'Boas-vindas (canto direito)', 'Abre o Centro de Compartilhamento com o resumo: empresa, Score 360°, receita, lucro e margem.', 'Você escolhe WhatsApp, Telegram, Gmail, Outlook, E-mail, Copiar ou PDF. Nada é enviado sem você confirmar no aplicativo escolhido.'],
+      ['Compartilhar', 'Boas-vindas (canto direito)', 'Abre o Centro de Compartilhamento com o resumo: empresa, Score 360°, receita, lucro e margem.', 'Você escolhe WhatsApp, Telegram, Gmail, Outlook, Copiar ou PDF. Nada é enviado sem você confirmar no aplicativo escolhido.'],
       ['📄 PDF', 'Boas-vindas', 'Gera o PDF "axioma-dashboard.pdf" com receita, custos, lucro, margem, o Score 360° e a nota de cada dimensão do score.', 'O arquivo é baixado. Enquanto gera, o botão mostra "Gerando...". Nenhum dado é alterado.'],
       ['Tema (Escuro / Claro)', 'Boas-vindas', 'Troca a aparência da tela.', 'A escolha fica guardada neste navegador.'],
       ['Ver demonstração / Ver meus dados', 'Topo de cada parte (Financeiro e Comercial)', 'Liga ou desliga os dados fictícios daquela parte.', 'Aparece a faixa "MODO DEMONSTRAÇÃO — dados fictícios, não são da sua empresa" e o selo DEMO nos cartões. Clique em Ver meus dados para voltar. Nada é gravado.'],
@@ -175,7 +175,7 @@ const en: DocumentoAxioma = {
     { nota: 'Notices: confirmations and errors show in an animated card at the top of the screen (it fades on its own). The fixed banners at the top are the bills-due-in-7-days notice and, when something does not match, the daily Reconciliation (Manual 45).' },
     { h1: 'Buttons and actions' },
     { tabela: { colunas: ['Button', 'Where', 'What it does', 'What happens next'], larguras: [1800, 1700, 2900, 2626], linhas: [
-      ['Share', 'Welcome (right corner)', 'Opens the Sharing Center with the summary: company, 360° Score, revenue, profit and margin.', 'You choose WhatsApp, Telegram, Gmail, Outlook, E-mail, Copy or PDF. Nothing is sent until you confirm in the chosen app.'],
+      ['Share', 'Welcome (right corner)', 'Opens the Sharing Center with the summary: company, 360° Score, revenue, profit and margin.', 'You choose WhatsApp, Telegram, Gmail, Outlook, Copy or PDF. Nothing is sent until you confirm in the chosen app.'],
       ['📄 PDF', 'Welcome', 'Generates "axioma-dashboard.pdf" with revenue, costs, profit, margin, the 360° Score and the grade of each score dimension.', 'The file is downloaded. While generating, the button shows "Gerando..." (Generating). No data is changed.'],
       ['Theme (Dark / Light)', 'Welcome', 'Changes the look of the screen.', 'The choice is kept in this browser.'],
       ['View demo / View my data', 'Top of each part (Financial and Commercial)', 'Turns sample data for that part on or off.', 'The bar "DEMO MODE — sample data, not your company\'s" and the DEMO tag on the cards appear. Click View my data to go back. Nothing is saved.'],
@@ -306,7 +306,7 @@ const es: DocumentoAxioma = {
     { nota: 'Avisos: confirmaciones y errores aparecen en una tarjeta animada arriba de la pantalla (desaparece sola). Las franjas fijas de arriba son el aviso de cuentas que vencen en 7 días y, cuando algo no cuadra, la Conciliación diaria (Manual 45).' },
     { h1: 'Botones y acciones' },
     { tabela: { colunas: ['Botón', 'Dónde está', 'Qué hace', 'Qué pasa después'], larguras: [1800, 1700, 2900, 2626], linhas: [
-      ['Compartir', 'Bienvenida (esquina derecha)', 'Abre el Centro de Compartir con el resumen: empresa, Puntuación 360°, ingresos, utilidad y margen.', 'Usted elige WhatsApp, Telegram, Gmail, Outlook, E-mail, Copiar o PDF. Nada se envía sin que usted confirme en la aplicación elegida.'],
+      ['Compartir', 'Bienvenida (esquina derecha)', 'Abre el Centro de Compartir con el resumen: empresa, Puntuación 360°, ingresos, utilidad y margen.', 'Usted elige WhatsApp, Telegram, Gmail, Outlook, Copiar o PDF. Nada se envía sin que usted confirme en la aplicación elegida.'],
       ['📄 PDF', 'Bienvenida', 'Genera el PDF "axioma-dashboard.pdf" con ingresos, costos, utilidad, margen, la Puntuación 360° y la nota de cada dimensión.', 'El archivo se descarga. Mientras se genera, el botón muestra "Gerando..." (Generando). No se altera ningún dato.'],
       ['Tema (Oscuro / Claro)', 'Bienvenida', 'Cambia la apariencia de la pantalla.', 'La elección se guarda en este navegador.'],
       ['Ver demostración / Ver mis datos', 'Parte superior de cada sección (Financiero y Comercial)', 'Activa o desactiva los datos ficticios de esa parte.', 'Aparece la franja "MODO DEMOSTRACIÓN — datos ficticios, no son de su empresa" y el sello DEMO en las tarjetas. Haga clic en Ver mis datos para volver. Nada se guarda.'],

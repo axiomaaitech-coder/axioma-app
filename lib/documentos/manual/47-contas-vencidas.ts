@@ -54,6 +54,9 @@ const pt: DocumentoAxioma = {
     { h1: 'Perguntar às IAs' },
     { p: 'As IAs do Axioma (IA Financeira, Relatórios, José e as demais) consultam esta mesma análise. Exemplos: "Quanto temos vencido?", "Quem são os maiores inadimplentes?", "Quais promessas foram descumpridas?", "Qual fornecedor pagar primeiro?", "Se recuperarmos 70% em 30 dias, como fica o caixa?". Os números vêm calculados pelo Axioma; a IA explica e nunca cobra, negocia ou apaga nada.' },
 
+    { h1: 'Simulador de recuperação' },
+    { p: 'Responde "e se?" sobre o caixa, sem gravar nada. Escolha quanto do vencido a receber recuperar (30% a 90% ou a régua), em quantos dias (15, 30, 60 ou 90), quantas promessas podem ser descumpridas e se as negociações serão antecipadas. Aparecem o recuperado, o caixa no prazo com o risco de faltar caixa (verde-menta baixo, azul-marinho médio, vermelho alto), a cobertura das obrigações, a folga sobre a reserva mínima, a liquidez imediata e o capital de giro, mais uma tabela comparando 30%, 50%, 70% e 90%. O caixa vem da Tesouraria (link no título). O mesmo dinheiro nunca conta duas vezes: promessas e negociações saem do restante antes do percentual.' },
+
     { h1: 'Central de divergências' },
     { p: 'Aparece quando há divergência aberta: lista as dos dois lados (a receber e a pagar) com o valor contestado, o responsável, o prazo e quantas evidências há. As **paradas** (prazo vencido ou 15 dias sem atualização) vêm primeiro, com borda vermelha. **Abrir** leva direto à conta.' },
 
@@ -140,6 +143,9 @@ const en: DocumentoAxioma = {
     { h1: 'Asking the AIs' },
     { p: 'Axioma AIs (Financial AI, Reports, José and the others) read this same analysis. Examples: "How much is overdue?", "Who are the biggest late payers?", "Which promises were broken?", "Which supplier should we pay first?", "If we recover 70% in 30 days, how does cash look?". The numbers are calculated by Axioma; the AI explains and never collects, negotiates or deletes anything.' },
 
+    { h1: 'Recovery simulator' },
+    { p: 'Answers "what if?" about cash, without saving anything. Choose how much of the overdue receivables to recover (30% to 90% or the slider), in how many days (15, 30, 60 or 90), how many promises may be broken and whether negotiations are brought forward. It shows the amount recovered, cash at the end of the period with the risk of running short (mint green low, navy medium, red high), obligation coverage, margin over the minimum reserve, immediate liquidity and working capital, plus a table comparing 30%, 50%, 70% and 90%. Cash comes from Treasury (link in the title). The same money is never counted twice: promises and negotiations come out of the remainder before the percentage.' },
+
     { h1: 'Dispute center' },
     { p: 'Shows up when there is an open dispute: it lists them on both sides (receivable and payable) with the disputed amount, person in charge, deadline and number of evidence items. **Stalled** ones (deadline passed or 15 days without update) come first, with a red border. **Open** goes straight to the bill.' },
 
@@ -225,6 +231,9 @@ const es: DocumentoAxioma = {
 
     { h1: 'Preguntar a las IAs' },
     { p: 'Las IAs de Axioma (IA Financiera, Informes, José y las demás) consultan este mismo análisis. Ejemplos: "¿Cuánto tenemos vencido?", "¿Quiénes son los mayores morosos?", "¿Qué promesas se incumplieron?", "¿A qué proveedor pagar primero?", "Si recuperamos 70% en 30 días, ¿cómo queda la caja?". Los números los calcula Axioma; la IA explica y nunca cobra, negocia ni borra nada.' },
+
+    { h1: 'Simulador de recuperación' },
+    { p: 'Responde "¿y si?" sobre la caja, sin guardar nada. Elija cuánto de lo vencido por cobrar recuperar (30% a 90% o la regla), en cuántos días (15, 30, 60 o 90), cuántas promesas pueden incumplirse y si se anticipan las negociaciones. Muestra lo recuperado, la caja al final del plazo con el riesgo de quedarse sin caja (verde menta bajo, azul marino medio, rojo alto), la cobertura de obligaciones, el margen sobre la reserva mínima, la liquidez inmediata y el capital de trabajo, además de una tabla que compara 30%, 50%, 70% y 90%. La caja viene de Tesorería (enlace en el título). El mismo dinero nunca cuenta dos veces: promesas y negociaciones salen del resto antes del porcentaje.' },
 
     { h1: 'Central de divergencias' },
     { p: 'Aparece cuando hay una divergencia abierta: las lista de los dos lados (por cobrar y por pagar) con el valor disputado, el responsable, el plazo y cuántas evidencias hay. Las **detenidas** (plazo vencido o 15 días sin actualización) aparecen primero, con borde rojo. **Abrir** lleva directo a la cuenta.' },

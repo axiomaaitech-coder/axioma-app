@@ -33,7 +33,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Botões e ações' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2300, 3700, 3026], linhas: [
-      ['Compartilhar', 'Abre o Centro de Compartilhamento com o retrato do dia (score, alerta e vereditos).', 'Você escolhe WhatsApp, Telegram, Gmail, Outlook, E-mail ou Copiar e envia.'],
+      ['Compartilhar', 'Abre o Centro de Compartilhamento com o retrato do dia (score, alerta e vereditos).', 'Você escolhe WhatsApp, Telegram, Gmail, Outlook ou Copiar e envia.'],
       ['Tema (Escuro / Claro)', 'Troca a aparência.', 'Fica guardado no navegador.'],
       ['Alerta do dia (clicável)', 'Quando o alerta tem solução, a faixa inteira é um atalho.', 'Abre a tela que resolve o problema (veja a tabela de alertas).'],
       ['Ver detalhe → (em cada cartão)', 'Atalho do veredito.', 'Teto → Faturamento; O que é seu → Painel MEI; DAS → DAS & Obrigações; Trabalhando de graça → Precificação MEI.'],
@@ -122,7 +122,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Buttons and actions' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2300, 3700, 3026], linhas: [
-      ['Share', 'Opens the Sharing Center with the day\'s snapshot (score, alert and verdicts).', 'You choose WhatsApp, Telegram, Gmail, Outlook, E-mail or Copy and send.'],
+      ['Share', 'Opens the Sharing Center with the day\'s snapshot (score, alert and verdicts).', 'You choose WhatsApp, Telegram, Gmail, Outlook or Copy and send.'],
       ['Theme (Dark / Light)', 'Changes the look.', 'Kept in the browser.'],
       ['Alert of the day (clickable)', 'When the alert has a fix, the whole bar is a shortcut.', 'Opens the screen that solves the problem (see the alerts table).'],
       ['See detail → (on each card)', 'Verdict shortcut.', 'Cap → Revenue; What\'s really yours → MEI Dashboard; DAS → DAS & Obligations; Working for free → MEI Pricing.'],
@@ -211,7 +211,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Botones y acciones' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2300, 3700, 3026], linhas: [
-      ['Compartir', 'Abre el Centro de Compartir con la foto del día (score, alerta y veredictos).', 'Usted elige WhatsApp, Telegram, Gmail, Outlook, E-mail o Copiar y envía.'],
+      ['Compartir', 'Abre el Centro de Compartir con la foto del día (score, alerta y veredictos).', 'Usted elige WhatsApp, Telegram, Gmail, Outlook o Copiar y envía.'],
       ['Tema (Oscuro / Claro)', 'Cambia la apariencia.', 'Se guarda en el navegador.'],
       ['Alerta del día (clicable)', 'Cuando la alerta tiene solución, toda la franja es un atajo.', 'Abre la pantalla que resuelve el problema (vea la tabla de alertas).'],
       ['Ver detalle → (en cada tarjeta)', 'Atajo del veredicto.', 'Techo → Facturación; Lo que es suyo → Panel MEI; DAS → DAS & Obligaciones; Trabajando gratis → Precios MEI.'],

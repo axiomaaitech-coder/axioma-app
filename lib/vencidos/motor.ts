@@ -441,6 +441,36 @@ export function simularPagamentos(base: BaseTesouraria, valores: number[]) {
   const pag = valores.reduce((t, v) => t + centavos(v), 0), antes = centavos(base.caixaDisponivel), depois = antes - pag
   return { simulacao: true as const, pagamento: reais(pag), caixaAntes: reais(antes), caixaDepois: reais(depois), folgaSobreReserva: reais(depois - centavos(base.reservaMinima)), abaixoDaReserva: depois < centavos(base.reservaMinima) }
 }
+// A pagar / a receber que vencem dentro do prazo do cenário (a partir de hoje), pela regra única de saldo
+export function noPrazo(titulos: Titulo[], hoje: string, prazoDias: number): number {
+  const ate = somarDiasISO(hoje, prazoDias)
+  return reais(conferirEntrada(titulos).filter((t) => emAberto(t, hoje) && t.vencimento >= hoje && t.vencimento <= ate).reduce((s, t) => s + centavos(saldoDoTitulo(t, hoje)), 0))
+}
+
+// Cenário de recuperação (simulação, nunca grava): o vencido a receber é separado em prometido, em negociação e
+// o restante, para não contar o mesmo dinheiro 2×. Recuperado = restante × % + prometido × (1 − % descumprido)
+// + negociação (inteira se antecipada, senão × %). Mesmo caixa/cobertura/reserva de simularRecuperacao.
+export type Cenario = { pct: number; prazoDias: number; prometido: number; emNegociacao: number; pctDescumpre: number; anteciparNegociacao: boolean }
+export function simularCenarioRecuperacao(base: BaseTesouraria, c: Cenario) {
+  if (!(c.pct >= 0 && c.pct <= 100) || !(c.pctDescumpre >= 0 && c.pctDescumpre <= 100)) throw new Error('vencidos: percentuais entre 0 e 100')
+  const venc = centavos(base.vencidoReceber)
+  const prom = Math.min(centavos(c.prometido), venc), neg = Math.min(centavos(c.emNegociacao), venc - prom)
+  const resto = venc - prom - neg
+  const daPromessa = Math.round(prom * (1 - c.pctDescumpre / 100))
+  const daNegociacao = c.anteciparNegociacao ? neg : Math.round(neg * c.pct / 100)
+  const doResto = Math.round(resto * c.pct / 100)
+  const rec = doResto + daPromessa + daNegociacao
+  const caixa = centavos(base.caixaDisponivel) + rec + centavos(base.aReceberNoPrazo) - centavos(base.aPagarNoPrazo) - centavos(base.vencidoPagar)
+  const obrig = centavos(base.vencidoPagar) + centavos(base.aPagarNoPrazo)
+  return {
+    simulacao: true as const, ...c, recuperado: reais(rec), composicao: { doRestante: reais(doResto), dasPromessas: reais(daPromessa), dasNegociacoes: reais(daNegociacao) },
+    aindaVencido: reais(venc - rec), caixaProjetado: reais(caixa), liquidezImediata: reais(centavos(base.caixaDisponivel) + rec - centavos(base.vencidoPagar)),
+    coberturaObrigacoes: obrig ? r2((centavos(base.caixaDisponivel) + rec + centavos(base.aReceberNoPrazo)) / obrig) : null,
+    capitalDeGiro: base.capitalDeGiro ?? null, folgaSobreReserva: reais(caixa - centavos(base.reservaMinima)),
+    riscoRuptura: caixa < 0 ? 'alto' as const : caixa < centavos(base.reservaMinima) ? 'medio' as const : 'baixo' as const,
+  }
+}
+
 export function impactoFinanceiro(base: BaseTesouraria, esperado30: number) {
   const caixa30 = centavos(base.caixaDisponivel) + centavos(esperado30) + centavos(base.aReceberNoPrazo) - centavos(base.aPagarNoPrazo) - centavos(base.vencidoPagar)
   const obrig = centavos(base.vencidoPagar) + centavos(base.aPagarNoPrazo)

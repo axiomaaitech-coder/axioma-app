@@ -10,6 +10,7 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import CentralVencidos, { CentralDisputas } from './CentralVencidos'
+import Simulador from './Simulador'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import ReactECharts from 'echarts-for-react'
@@ -302,6 +303,7 @@ export default function ContasVencidasPage() {
               ))}
             </nav>
 
+            <Simulador a={a} prometido={a.previsao.composicao.prometido} emNegociacao={a.previsao.composicao.emNegociacao} lang={lang} P={P} fmt={fmt} temaClaro={temaClaro} />
             <CentralDisputas itens={[...a.receber, ...a.pagar]} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />
             {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
             {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosPagar} temaClaro={temaClaro} />}

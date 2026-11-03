@@ -151,6 +151,18 @@ assert.throws(() => M.simularRecuperacao(base, 120, 30))
 assert.equal(M.simularRecuperacao(base, 0, 30).caixaProjetado, -6000)
 assert.equal(M.impactoFinanceiro(base, 0).riscoRuptura, 'alto')
 
+// ── cenários do simulador (sem dupla contagem) ──
+const cen = (x: Partial<import('../lib/vencidos/motor').Cenario>) => M.simularCenarioRecuperacao(base, { pct: 50, prazoDias: 30, prometido: 0, emNegociacao: 0, pctDescumpre: 0, anteciparNegociacao: false, ...x })
+assert.equal(cen({}).recuperado, 10000, '50% de 20.000')
+assert.equal(cen({ prometido: 4000 }).recuperado, 12000, 'promessa sem descumprimento entra inteira, resto 16.000 × 50%')
+assert.equal(cen({ prometido: 4000, pctDescumpre: 25 }).recuperado, 11000, '25% das promessas descumpridas')
+assert.equal(cen({ emNegociacao: 6000, anteciparNegociacao: true }).recuperado, 13000, 'negociação antecipada entra inteira')
+assert.equal(cen({ prometido: 30000 }).recuperado, 20000, 'prometido nunca passa do vencido')
+assert.equal(cen({ pct: 0 }).caixaProjetado, -6000); assert.equal(cen({ pct: 0 }).riscoRuptura, 'alto')
+assert.throws(() => cen({ pctDescumpre: 150 }))
+const tsN = [t('n1', '2026-11-10', 300), t('n2', '2026-12-20', 200), t('n3', '2026-10-01', 999)]
+assert.equal(M.noPrazo(tsN, hoje, 15), 300, 'só o que vence dentro do prazo'); assert.equal(M.noPrazo(tsN, hoje, 60), 500)
+
 // ── orquestrador ──
 const acao = (caso?: Parameters<typeof M.proximaAcao>[0]['caso'], extra: Partial<Parameters<typeof M.proximaAcao>[0]> = {}) => M.proximaAcao({ titulo: venc, hoje, risco: 500, dna, caso, ...extra }).acao
 assert.equal(acao({ tituloId: 'v1', disputaStatus: 'aberta', disputaValor: 10 }), 'resolver_divergencia')
