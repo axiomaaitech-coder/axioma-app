@@ -21,6 +21,7 @@ import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -71,6 +72,8 @@ export default function TesourariaPage() {
   const [fluxo, setFluxo] = useState<FluxoProjetadoResultado | null>(null)
   const [alertas, setAlertas] = useState<AlertaTesouraria[]>([])
   const [shareAberto, setShareAberto] = useState(false)
+  const [exportando, setExportando] = useState(false)
+  const [erroExport, setErroExport] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -197,14 +200,54 @@ export default function TesourariaPage() {
     alertas.length > 0 ? `⚠️ ${L('Riscos ativos', 'Active risks', 'Riesgos activos')}: ${alertas.map((a) => tituloAlertaLocalizado(a.tipo, lang)).join(', ')}` : `✅ ${L('Sem riscos ativos', 'No active risks', 'Sin riesgos activos')}`,
   ].filter(Boolean).join('\n') : ''
 
+  // Exportar (PDF ou Excel): posição por conta + projeção — mesma tabela nos dois formatos
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    if (!posicao) return
+    setExportando(true); setErroExport('')
+    const brl = (v: number) => `R$ ${fBRL2(v)}`
+    const TIPO: Record<string, string> = { disponivel: L('Disponível', 'Available', 'Disponible'), aplicado: L('Aplicado', 'Invested', 'Invertido'), restrito: L('Restrito', 'Restricted', 'Restringido') }
+    const parte = L('Parte', 'Section', 'Parte')
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('Tesouraria', 'Treasury', 'Tesorería'),
+        subtitulo: `${L('Posição de caixa e projeção', 'Cash position and forecast', 'Posición de caja y proyección')} · ${new Date(`${hojeISO()}T00:00:00`).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}`,
+        colunas: [
+          { header: parte, key: 'parte', width: 1.8 },
+          { header: L('Item', 'Item', 'Ítem'), key: 'item', width: 3.5 },
+          { header: L('Detalhe', 'Detail', 'Detalle'), key: 'detalhe', width: 3.5 },
+          { header: L('Valor', 'Value', 'Valor'), key: 'valor', width: 2, align: 'right' },
+        ],
+        linhas: [
+          ...posicao.linhas.map((l) => ({ parte: L('Posição', 'Position', 'Posición'), item: l.conta_nome, detalhe: [l.banco_nome, TIPO[l.tipo_liquidez] ?? l.tipo_liquidez].filter(Boolean).join(' · '), valor: brl(l.saldo) })),
+          ...(fluxo?.pontos ?? []).map((pt) => ({
+            parte: L('Projeção', 'Forecast', 'Proyección'), item: L(`Em ${pt.horizonteDias} dias (cenário base)`, `In ${pt.horizonteDias} days (base scenario)`, `En ${pt.horizonteDias} días (escenario base)`),
+            detalhe: `${L('entradas', 'inflows', 'entradas')} ${brl(pt.entradasPrevistas.base)} · ${L('saídas', 'outflows', 'salidas')} ${brl(pt.saidasPrevistas.base)}${pt.abaixoDaReserva.base ? ` · ${L('abaixo da reserva', 'below reserve', 'bajo la reserva')}` : ''}`,
+            valor: brl(pt.saldoProjetado.base),
+          })),
+        ],
+        resumo: [
+          { label: L('Caixa total', 'Total cash', 'Caja total'), valor: brl(posicao.totalGeral) },
+          { label: L('Disponível', 'Available', 'Disponible'), valor: brl(posicao.totalDisponivel) },
+          { label: L('Aplicado', 'Invested', 'Invertido'), valor: brl(posicao.totalAplicado) },
+          { label: L('Restrito', 'Restricted', 'Restringido'), valor: brl(posicao.totalRestrito) },
+          { label: L('Reserva mínima', 'Minimum reserve', 'Reserva mínima'), valor: brl(reservaMinima) },
+          { label: L('Livre acima da reserva', 'Free above reserve', 'Libre sobre la reserva'), valor: brl(posicao.totalLivre) },
+        ],
+        nomeArquivo: `${L('tesouraria', 'treasury', 'tesoreria')}-${hojeISO()}`,
+      }, setErroExport, lang)
+    } finally { setExportando(false) }
+  }
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Tesouraria', 'Treasury', 'Tesorería')} vencidos='tesouraria'
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      onExportarPDF={posicao ? () => void exportar('pdf') : undefined} onExportarExcel={posicao ? () => void exportar('excel') : undefined} exportando={exportando}
       botaoExtra={
         <>
+          {erroExport && <span className="text-xs self-center" style={{ color: '#f87171' }}>{erroExport}</span>}
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/tesouraria/simulador')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm axi-card-premium3d axi-card-faixa"

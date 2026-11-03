@@ -16,6 +16,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões do cabeçalho' },
     { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
       ['+ Nova Conta', 'Abre o cadastro de uma conta a pagar.'],
+      ['Exportar PDF / Exportar Excel', 'Baixa a lista que está na tela (com os filtros de agora): fornecedor, descrição, nota, vencimento, valor, pago, saldo e situação, mais o total, o já pago e o saldo a pagar. No Excel os valores vêm como número, prontos para somar.'],
       ['Gerar de Custo Fixo', 'Lista os custos fixos **vigentes** do mês e cria a conta de cada um com um clique (sem duplicar no mesmo mês).'],
       ['Importar XML NF-e', 'Lê a nota fiscal eletrônica e preenche a conta sozinho. Se a nota já entrou pelo PDV, oferece vincular em vez de duplicar.'],
       ['Compartilhar', 'Envia o resumo das contas.'],
@@ -99,6 +100,7 @@ const en: DocumentoAxioma = {
     { h1: 'Header buttons' },
     { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
       ['+ New Bill', 'Opens the form for a new bill.'],
+      ['Export PDF / Export Excel', 'Downloads the list on screen (with the current filters): supplier, description, invoice, due date, amount, paid, balance and status, plus the total, already paid and balance to pay. In Excel amounts come as numbers, ready to add up.'],
       ['Generate from Fixed Cost', 'Lists the month’s **active** fixed costs and creates each bill with one click (no duplicates in the same month).'],
       ['Import NF-e XML', 'Reads the electronic invoice and fills in the bill automatically. If the invoice already came in through the POS, it offers to link instead of duplicating.'],
       ['Share', 'Sends the bills summary.'],
@@ -181,6 +183,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Botones del encabezado' },
     { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
+      ['Exportar PDF / Exportar Excel', 'Descarga la lista que está en pantalla (con los filtros actuales): proveedor, descripción, factura, vencimiento, valor, pagado, saldo y situación, más el total, lo ya pagado y el saldo por pagar. En Excel los valores vienen como número, listos para sumar.'],
       ['+ Nueva Cuenta', 'Abre el registro de una cuenta por pagar.'],
       ['Generar de Costo Fijo', 'Lista los costos fijos **vigentes** del mes y crea la cuenta de cada uno con un clic (sin duplicar en el mismo mes).'],
       ['Importar XML NF-e', 'Lee la factura electrónica y completa la cuenta sola. Si la factura ya entró por el PDV, ofrece vincular en lugar de duplicar.'],

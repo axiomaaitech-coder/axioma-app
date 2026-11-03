@@ -16,6 +16,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Botões do topo' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2200, 3600, 3226], linhas: [
+      ['**Exportar PDF** / **Exportar Excel**', 'Baixa a posição de caixa por conta (banco, tipo e saldo), a projeção em cada prazo no cenário base (entradas, saídas e saldo) e o resumo (total, disponível, aplicado, restrito, reserva mínima e livre). No Excel os valores vêm como número.', 'O arquivo é baixado.'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento com o resumo do caixa.', 'WhatsApp, e-mail, copiar ou PDF.'],
       ['**Simulador de Estresse**', 'Abre o simulador.', 'Veja a seção própria abaixo.'],
       ['**Gêmeo Financeiro**', 'Abre o gêmeo da empresa.', 'Veja a seção própria abaixo.'],
@@ -77,6 +78,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Top buttons' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2200, 3600, 3226], linhas: [
+      ['**Export PDF** / **Export Excel**', 'Downloads the cash position by account (bank, type and balance), the forecast for each horizon in the base scenario (inflows, outflows and balance) and the summary (total, available, invested, restricted, minimum reserve and free). In Excel amounts come as numbers.', 'The file is downloaded.'],
       ['**Share**', 'Opens the Sharing Center with the cash summary.', 'WhatsApp, email, copy or PDF.'],
       ['**Stress Simulator**', 'Opens the simulator.', 'See its section below.'],
       ['**Financial Twin**', 'Opens the company twin.', 'See its section below.'],
@@ -138,6 +140,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Botones de arriba' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2200, 3600, 3226], linhas: [
+      ['**Exportar PDF** / **Exportar Excel**', 'Descarga la posición de caja por cuenta (banco, tipo y saldo), la proyección en cada plazo en el escenario base (entradas, salidas y saldo) y el resumen (total, disponible, invertido, restringido, reserva mínima y libre). En Excel los valores vienen como número.', 'El archivo se descarga.'],
       ['**Compartir**', 'Abre el Centro de Compartir con el resumen de la caja.', 'WhatsApp, correo, copiar o PDF.'],
       ['**Simulador de Estrés**', 'Abre el simulador.', 'Vea su sección abajo.'],
       ['**Gemelo Financiero**', 'Abre el gemelo de la empresa.', 'Vea su sección abajo.'],

@@ -17,6 +17,7 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import { perguntarAoAxioma } from "../../../lib/ia/cliente";
 import HistoricoConta from "../../../components/HistoricoConta";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -241,6 +242,42 @@ export default function ContasPagarPage() {
       return alvo.includes(busca.toLowerCase());
     });
   }, [contas, busca, filtroStatus, filtroFornecedor, filtroCategoria, filtroVencDe, filtroVencAte, fornecedores, hoje, em7ISO, mesAtual]);
+
+  // Exportar (PDF ou Excel): a lista filtrada da tela, com saldo e situação — mesma tabela nos dois formatos
+  const [exportando, setExportando] = useState(false);
+  const exportarLista = async (formato: "pdf" | "excel") => {
+    setExportando(true);
+    const dataBR = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR") : "—");
+    const saldo = (c: ContaPagar) => Math.max(0, (Number(c.valor_total) || 0) - (Number(c.valor_pago) || 0));
+    const lang = (idioma === "en" || idioma === "es" ? idioma : "pt") as "pt" | "en" | "es";
+    try {
+      await (formato === "excel" ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar"),
+        subtitulo: `${contasFiltradas.length} ${L("contas (filtros da tela)", "bills (screen filters)", "cuentas (filtros de la pantalla)")} · ${dataBR(hoje)}`,
+        colunas: [
+          { header: L("Fornecedor", "Supplier", "Proveedor"), key: "fornecedor", width: 3 },
+          { header: L("Descrição", "Description", "Descripción"), key: "descricao", width: 3.5 },
+          { header: L("Nota", "Invoice", "Factura"), key: "nota", width: 1.4 },
+          { header: L("Vencimento", "Due date", "Vencimiento"), key: "vencimento", width: 1.6 },
+          { header: L("Valor", "Amount", "Valor"), key: "valor", width: 1.8, align: "right" },
+          { header: L("Pago", "Paid", "Pagado"), key: "pago", width: 1.8, align: "right" },
+          { header: L("Saldo", "Balance", "Saldo"), key: "saldo", width: 1.8, align: "right" },
+          { header: L("Situação", "Status", "Situación"), key: "situacao", width: 1.8 },
+        ],
+        linhas: contasFiltradas.map((c) => ({
+          fornecedor: nomeFornecedor(c.fornecedor_id), descricao: c.descricao || "—", nota: c.numero_nota || "—", vencimento: dataBR(c.data_vencimento),
+          valor: fmt(Number(c.valor_total) || 0), pago: fmt(Number(c.valor_pago) || 0), saldo: fmt(saldo(c)),
+          situacao: statusLabel(statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento)),
+        })),
+        resumo: [
+          { label: L("Total das contas", "Bills total", "Total de las cuentas"), valor: fmt(contasFiltradas.reduce((t, c) => t + (Number(c.valor_total) || 0), 0)) },
+          { label: L("Já pago", "Already paid", "Ya pagado"), valor: fmt(contasFiltradas.reduce((t, c) => t + (Number(c.valor_pago) || 0), 0)) },
+          { label: L("Saldo a pagar", "Balance to pay", "Saldo por pagar"), valor: fmt(contasFiltradas.reduce((t, c) => t + saldo(c), 0)) },
+        ],
+        nomeArquivo: `${L("contas-a-pagar", "accounts-payable", "cuentas-por-pagar")}-${hoje}`,
+      }, (m) => showToast(m, "erro"), lang);
+    } finally { setExportando(false); }
+  };
 
   function statusLabel(s?: string | null) {
     if (s === "pago") return L("Pago", "Paid", "Pagado");
@@ -1880,6 +1917,7 @@ export default function ContasPagarPage() {
       titulo={L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")} vencidos="pagar"
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
       onNovo={podeEditar ? abrirNovaConta : undefined}
+      onExportarPDF={() => void exportarLista("pdf")} onExportarExcel={() => void exportarLista("excel")} exportando={exportando}
       labelBotao={L("Nova Conta", "New Bill", "Nueva Cuenta")}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
