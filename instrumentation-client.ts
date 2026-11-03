@@ -9,7 +9,9 @@ Sentry.init({
   dsn: "https://b7f638e37fa0bf89c943b8cbefe83513@o4511068799696896.ingest.us.sentry.io/4511068809265152",
 
   // Add optional integrations for additional features
-  integrations: [Sentry.replayIntegration()],
+  // Camada 3 de segurança (2026-11-03): máscaras escritas aqui para nenhuma atualização desligá-las — a
+  // gravação de tela do erro nunca mostra texto, valor digitado nem imagem.
+  integrations: [Sentry.replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true })],
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,

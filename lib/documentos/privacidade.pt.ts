@@ -99,7 +99,8 @@ const doc: DocumentoAxioma = {
       ['Pluggy', 'Conexão bancária por Open Finance e iniciação de pagamentos', 'Brasil'],
       ['Stripe', 'Cobrança da assinatura', 'EUA e Brasil'],
       ['Resend', 'Envio de e-mails (códigos de confirmação e convites)', 'EUA'],
-      ['Sentry', 'Registro de erros técnicos', 'EUA'],
+      ['Sentry', 'Registro de erros técnicos (textos, valores e imagens da tela ficam escondidos)', 'EUA'],
+      ['PostHog', 'Medição de uso das telas, sem textos, valores nem gravação de sessão', 'EUA'],
       ['Cloudflare', 'Verificação anti-robô e proteção contra abusos', 'Rede global'],
       ['BrasilAPI e ViaCEP', 'Consulta pública de CNPJ e CEP para preencher cadastros', 'Brasil'],
     ] } },
@@ -152,7 +153,7 @@ const doc: DocumentoAxioma = {
     { p: 'Muitas ações já podem ser feitas direto na Plataforma: editar dados da conta, exportar relatórios, sair de uma empresa e, para o Proprietário e Administradores, apagar os dados pessoais de termos de convite.' },
 
     { h1: '11. Cookies' },
-    { p: 'Usamos apenas cookies e armazenamento local estritamente necessários para manter a sessão aberta, proteger o acesso e lembrar preferências (idioma, tema, empresa ativa). Não usamos cookies de publicidade. Se forem adotadas ferramentas de estatística de uso, esta Política será atualizada e, quando exigido, pediremos consentimento.' },
+    { p: 'Usamos apenas cookies e armazenamento local estritamente necessários para manter a sessão aberta, proteger o acesso e lembrar preferências (idioma, tema, empresa ativa). Não usamos cookies de publicidade. Para melhorar as telas, medimos o uso com o PostHog de forma reduzida: sem cookie, sem guardar nada no seu navegador, sem gravação de sessão e sem levar textos, valores ou nomes que aparecem na tela — só que tela foi aberta e que tipo de botão foi usado.' },
 
     { h1: '12. Crianças e adolescentes' },
     { p: 'O Axioma é destinado a empresas e a maiores de 18 anos. Não tratamos intencionalmente dados de crianças e adolescentes. Se identificarmos esse tratamento, os dados serão eliminados.' },

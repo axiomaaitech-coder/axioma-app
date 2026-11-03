@@ -100,7 +100,8 @@ const doc: DocumentoAxioma = {
       ['Pluggy', 'Bank connection via Open Finance and payment initiation', 'Brazil'],
       ['Stripe', 'Subscription billing', 'USA and Brazil'],
       ['Resend', 'Sending e-mails (confirmation codes and invitations)', 'USA'],
-      ['Sentry', 'Technical error logging', 'USA'],
+      ['Sentry', 'Technical error logging (on-screen text, values and images are hidden)', 'USA'],
+      ['PostHog', 'Screen usage measurement, with no text, values or session recording', 'USA'],
       ['Cloudflare', 'Anti-bot verification and abuse protection', 'Global network'],
       ['BrasilAPI and ViaCEP', 'Public lookup of CNPJ and postal code (CEP) to fill in records', 'Brazil'],
     ] } },
@@ -153,7 +154,7 @@ const doc: DocumentoAxioma = {
     { p: 'Many actions can already be done directly in the Platform: edit account data, export reports, leave a company and, for the Owner and Administrators, delete the personal data of invitation terms.' },
 
     { h1: '11. Cookies' },
-    { p: 'We use only cookies and local storage that are strictly necessary to keep the session open, protect access and remember preferences (language, theme, active company). We do not use advertising cookies. If usage statistics tools are adopted, this Policy will be updated and, when required, we will ask for consent.' },
+    { p: 'We use only cookies and local storage that are strictly necessary to keep the session open, protect access and remember preferences (language, theme, active company). We do not use advertising cookies. To improve the screens, we measure usage with PostHog in a reduced way: no cookies, nothing stored in your browser, no session recording and no text, values or names shown on screen — only which screen was opened and what kind of button was used.' },
 
     { h1: '12. Children and adolescents' },
     { p: 'Axioma is intended for companies and people over 18. We do not knowingly process data of children and adolescents. If we identify such processing, the data will be deleted.' },

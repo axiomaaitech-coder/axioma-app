@@ -100,7 +100,8 @@ const doc: DocumentoAxioma = {
       ['Pluggy', 'Conexión bancaria por Open Finance e iniciación de pagos', 'Brasil'],
       ['Stripe', 'Cobro de la suscripción', 'EE. UU. y Brasil'],
       ['Resend', 'Envío de e-mails (códigos de confirmación e invitaciones)', 'EE. UU.'],
-      ['Sentry', 'Registro de errores técnicos', 'EE. UU.'],
+      ['Sentry', 'Registro de errores técnicos (textos, valores e imágenes de la pantalla quedan ocultos)', 'EE. UU.'],
+      ['PostHog', 'Medición de uso de las pantallas, sin textos, valores ni grabación de sesión', 'EE. UU.'],
       ['Cloudflare', 'Verificación anti-robot y protección contra abusos', 'Red global'],
       ['BrasilAPI y ViaCEP', 'Consulta pública de CNPJ y código postal (CEP) para completar registros', 'Brasil'],
     ] } },
@@ -153,7 +154,7 @@ const doc: DocumentoAxioma = {
     { p: 'Muchas acciones ya pueden hacerse directamente en la Plataforma: editar datos de la cuenta, exportar informes, salir de una empresa y, para el Propietario y los Administradores, eliminar los datos personales de los términos de invitación.' },
 
     { h1: '11. Cookies' },
-    { p: 'Usamos solo cookies y almacenamiento local estrictamente necesarios para mantener la sesión abierta, proteger el acceso y recordar preferencias (idioma, tema, empresa activa). No usamos cookies de publicidad. Si se adoptan herramientas de estadística de uso, esta Política será actualizada y, cuando sea exigido, pediremos consentimiento.' },
+    { p: 'Usamos solo cookies y almacenamiento local estrictamente necesarios para mantener la sesión abierta, proteger el acceso y recordar preferencias (idioma, tema, empresa activa). No usamos cookies de publicidad. Para mejorar las pantallas, medimos el uso con PostHog de forma reducida: sin cookies, sin guardar nada en su navegador, sin grabación de sesión y sin llevar textos, valores ni nombres que aparecen en pantalla — solo qué pantalla se abrió y qué tipo de botón se usó.' },
 
     { h1: '12. Niños y adolescentes' },
     { p: 'Axioma está destinado a empresas y a mayores de 18 años. No tratamos intencionalmente datos de niños y adolescentes. Si identificamos ese tratamiento, los datos serán eliminados.' },
