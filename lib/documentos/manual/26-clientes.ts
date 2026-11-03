@@ -12,6 +12,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **👥 Comercial ▼** → **Clientes**.'] },
+    { nota: '**Exportar Excel** (no topo, ao lado do Exportar PDF): baixa os números desta tela numa planilha, com os valores em reais como número — prontos para somar, filtrar ou mandar ao contador.' },
 
     { h1: 'Aba Carteira' },
     { h2: 'Mapa Executivo da Carteira' },
@@ -78,6 +79,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **👥 Commercial ▼** → **Clients**.'] },
+    { nota: '**Export Excel** (at the top, next to Export PDF): downloads the numbers on this screen as a spreadsheet, with amounts as numbers — ready to add up, filter or send to the accountant.' },
 
     { h1: 'Portfolio tab' },
     { h2: 'Portfolio Executive Map' },
@@ -144,6 +146,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **👥 Comercial ▼** → **Clientes**.'] },
+    { nota: '**Exportar Excel** (arriba, junto a Exportar PDF): descarga los números de esta pantalla en una planilla, con los valores como número — listos para sumar, filtrar o enviar al contador.' },
 
     { h1: 'Pestaña Cartera' },
     { h2: 'Mapa Ejecutivo de la Cartera' },

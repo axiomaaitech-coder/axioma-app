@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -216,10 +216,10 @@ export default function CustosFixos() {
   const corUrg = (u: string) => ct(u === "vencido" ? CORES.vermelho : u === "critico" ? CORES.laranja : u === "proximo" ? CORES.amarelo : CORES.cyan);
 
   // ═══════════ PDF ═══════════
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: t.custosFixos.titulo, subtitulo: t.custosFixos.subtitulo,
         colunas: [
           { header: "Descrição", key: "descricao", width: 4 },
@@ -301,7 +301,7 @@ export default function CustosFixos() {
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.custosFixos.titulo} subtitulo={t.custosFixos.subtitulo}
-      onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.custosFixos.novoCusto}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando} labelBotao={t.custosFixos.novoCusto}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "", inicio: "", fim: "" }); setModalAberto(true); }}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}

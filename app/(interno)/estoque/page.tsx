@@ -10,7 +10,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
-import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -988,7 +988,7 @@ export default function EstoquePage() {
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
       titulo={et.titulo} subtitulo={et.subtitulo}
-      onExportarPDF={exportarPDF} exportando={exportando}
+      onExportarPDF={exportarPDF} onExportarExcel={() => { const a = montarArgsPdfAtual(); if (a) void gerarExcelTabela(a, (msg) => mostrarToast(msg, 'erro'), lang) }} exportando={exportando}
       onNovo={aba === "produtos" ? () => abrirModalProduto() : aba === "movimentacoes" ? () => abrirModalMovimentacao() : undefined}
       labelBotao={aba === "produtos" ? et.novoProduto : et.novaMovimentacao}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}

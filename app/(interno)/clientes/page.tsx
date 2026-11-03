@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import {
   Pencil, Trash2, X, Phone, Mail, MapPin, FileText, ChevronRight, ChevronLeft,
@@ -761,11 +761,11 @@ export default function ClientesPage() {
   }
 
   // ═══════════════════════ PDF ═══════════════════════
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
       if (aba === "cobrancas") {
-        gerarPdfTabela({
+        (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
           titulo: `${cl.titulo} - ${cl.abaContas}`,
           subtitulo: clienteAtual ? clienteAtual.s.cliente.nome : cl.subtitulo,
           colunas: [
@@ -870,7 +870,7 @@ export default function ClientesPage() {
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
-      onExportarPDF={exportarPDF} exportando={exportando}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando}
       onNovo={() => { setEditandoCliente(null); setForm(FORM_VAZIO); setEtapaCadastro(0); setModalCliente(true); }}
       labelBotao={cl.novoCliente} botaoExtra={<div className="flex gap-2 flex-wrap items-center">{botaoCobranca}{botaoCompartilhar}<ThemeToggle /></div>}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}

@@ -30,6 +30,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões do cabeçalho' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Gera um PDF com tudo o que está na tela.', 'O arquivo é baixado no seu computador ou celular.'],
+      ['**Exportar Excel**', 'Baixa os mesmos números numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento com um resumo pronto.', 'Você escolhe WhatsApp, e-mail, copiar o texto ou baixar o PDF.'],
       ['**Escuro / Tema Claro**', 'Troca as cores da tela.', 'A escolha vale para todo o Axioma.'],
     ] } },
@@ -94,6 +95,7 @@ const en: DocumentoAxioma = {
     { h1: 'Header buttons' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2200, 3600, 3226], linhas: [
       ['**Export PDF**', 'Creates a PDF with everything on the screen.', 'The file is downloaded to your computer or phone.'],
+      ['**Export Excel**', 'Downloads the same numbers as a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['**Share**', 'Opens the Sharing Center with a ready summary.', 'You pick WhatsApp, email, copy the text or download the PDF.'],
       ['**Dark / Light Theme**', 'Switches the screen colors.', 'The choice applies to all of Axioma.'],
     ] } },
@@ -158,6 +160,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones del encabezado' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Genera un PDF con todo lo que está en la pantalla.', 'El archivo se descarga en su computadora o celular.'],
+      ['**Exportar Excel**', 'Descarga los mismos números en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['**Compartir**', 'Abre el Centro de Compartir con un resumen listo.', 'Usted elige WhatsApp, correo, copiar el texto o descargar el PDF.'],
       ['**Oscuro / Tema Claro**', 'Cambia los colores de la pantalla.', 'La elección vale para todo Axioma.'],
     ] } },

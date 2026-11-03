@@ -11,7 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { corTema, fBRL, fData } from "../../../lib/cfoCore";
 import { LABEL_NATUREZA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
@@ -1664,7 +1664,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
   // PDF GERENCIAL
   // =========================================================================
 
-  async function exportarPDF() {
+  async function exportarPDF(formato: 'pdf' | 'excel' = 'pdf') {
     setExportando(true);
     try {
       const colunas = [
@@ -1693,7 +1693,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
         { label: tt.horasEconomizadas, valor: `${stats.horas_economizadas}h` },
       ];
 
-      await gerarPdfTabela({
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: tt.dashboard,
         subtitulo: new Date().toLocaleDateString("pt-BR"),
         colunas,
@@ -1736,7 +1736,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
     <ModuloLayout
       titulo={`📄 ${imp?.titulo || "Importar Documentos"}`}
       subtitulo={imp?.subtitulo || "Central de importação inteligente — OFX, NF-e, CSV, XLSX"}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')}
       exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}

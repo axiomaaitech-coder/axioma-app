@@ -12,6 +12,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **MEI ▼** → **DAS & Obrigações**.', 'Cockpit → cartão **DAS & Obrigações** → **Ver detalhe**, ou o alerta "DAS vence em X dias / atrasado".', 'Painel MEI → **Acesso rápido**.'] },
+    { nota: '**Exportar Excel** (no topo, ao lado do Exportar PDF): baixa os números desta tela numa planilha, com os valores em reais como número — prontos para somar, filtrar ou mandar ao contador.' },
 
     { h1: 'A regra do DAS (importante)' },
     { p: 'O DAS de um mês (a **competência**) vence no **dia 20 do mês seguinte**. Exemplo: o DAS de **setembro** vence em **20 de outubro**. Por isso o cartão "Janeiro de 2026" mostra a competência 12/2025.' },
@@ -138,6 +139,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **MEI ▼** → **DAS & Obligations**.', 'Cockpit → **DAS & Obligations** card → **See detail**, or the "DAS due in X days / overdue" alert.', 'MEI Panel → **Quick access**.'] },
+    { nota: '**Export Excel** (at the top, next to Export PDF): downloads the numbers on this screen as a spreadsheet, with amounts as numbers — ready to add up, filter or send to the accountant.' },
 
     { h1: 'The DAS rule (important)' },
     { p: 'The DAS for a month (the **period**) is due on **the 20th of the following month**. Example: the **September** DAS is due on **October 20**. That is why the "January 2026" card shows period 12/2025.' },
@@ -264,6 +266,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **MEI ▼** → **DAS & Obligaciones**.', 'Cockpit → tarjeta **DAS & Obligaciones** → **Ver detalle**, o la alerta "DAS vence en X días / atrasado".', 'Panel MEI → **Acceso rápido**.'] },
+    { nota: '**Exportar Excel** (arriba, junto a Exportar PDF): descarga los números de esta pantalla en una planilla, con los valores como número — listos para sumar, filtrar o enviar al contador.' },
 
     { h1: 'La regla del DAS (importante)' },
     { p: 'El DAS de un mes (la **competencia**) vence el **día 20 del mes siguiente**. Ejemplo: el DAS de **septiembre** vence el **20 de octubre**. Por eso la tarjeta "Enero de 2026" muestra la competencia 12/2025.' },

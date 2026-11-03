@@ -17,6 +17,7 @@ const pt: DocumentoAxioma = {
       'Clique no logo do Axioma no canto do menu.',
       'Ele também é a tela que abre logo depois de entrar no sistema.',
     ] },
+    { nota: '**📊 Excel** (no topo, ao lado de **📄 PDF**): baixa os números do Dashboard numa planilha, com os valores em reais como número — prontos para somar, filtrar ou mandar ao contador.' },
 
     { h1: 'Antes de começar' },
     { p: 'O Dashboard não tem cadastro próprio: ele lê os outros módulos. Para os cartões saírem do zero, cadastre pelo menos:' },
@@ -148,6 +149,7 @@ const en: DocumentoAxioma = {
       'Click the Axioma logo in the corner of the menu.',
       'It is also the screen that opens right after you sign in.',
     ] },
+    { nota: '**📊 Excel** (at the top, next to **📄 PDF**): downloads the Dashboard numbers as a spreadsheet, with amounts as numbers — ready to add up, filter or send to the accountant.' },
 
     { h1: 'Before you start' },
     { p: 'The Dashboard has no registration of its own: it reads the other modules. For the cards to show figures, register at least:' },
@@ -279,6 +281,7 @@ const es: DocumentoAxioma = {
       'Haga clic en el logo de Axioma en la esquina del menú.',
       'También es la pantalla que se abre justo después de ingresar al sistema.',
     ] },
+    { nota: '**📊 Excel** (arriba, junto a **📄 PDF**): descarga los números del Dashboard en una planilla, con los valores como número — listos para sumar, filtrar o enviar al contador.' },
 
     { h1: 'Antes de empezar' },
     { p: 'El Panel no tiene registro propio: lee los otros módulos. Para que las tarjetas dejen de estar en cero, registre al menos:' },

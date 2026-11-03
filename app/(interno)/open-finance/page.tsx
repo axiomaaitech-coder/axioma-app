@@ -25,7 +25,7 @@ import {
   type Periodo, type PeriodoPreset,
 } from '../../../lib/cfoCore'
 import { cfoT } from '../../../lib/cfoTextos'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento, exigirLeitura } from '../../../lib/erroUiHelpers'
 import {
   classificarTransacoes, calcularSaldoSistema, calcularKPIsOpenFinance,
@@ -555,10 +555,10 @@ export default function OpenFinancePage() {
     return todas.sort((a, b) => (b.data || '').localeCompare(a.data || ''))
   }, [resultado])
 
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true)
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: t.titulo, subtitulo: t.sub,
         colunas: [
           { header: t.data, key: 'data', width: 2 },
@@ -607,7 +607,7 @@ export default function OpenFinancePage() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} onExportarPDF={exportarPDF} exportando={exportando}
+    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')} exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>

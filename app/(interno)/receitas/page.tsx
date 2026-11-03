@@ -10,7 +10,7 @@ import { lerTodas } from "../../../lib/lerTodas";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -248,10 +248,10 @@ export default function Receitas() {
   const temDados = receitas.length > 0;
 
   // ═══════════ PDF ═══════════
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
-      gerarPdfTabela({
+      (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
         titulo: t.receitas.titulo, subtitulo: t.receitas.subtitulo,
         colunas: [
           { header: "Descrição", key: "descricao", width: 4 },
@@ -338,7 +338,7 @@ export default function Receitas() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-    <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={exportarPDF}
+    <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')}
       exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" }); setModalAberto(true); }}
       labelBotao={t.receitas.novaReceita}

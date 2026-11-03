@@ -7,7 +7,7 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import { FileText, AlertTriangle, CheckCircle, Share2, Upload, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, X, Check } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -403,7 +403,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     {janelaConfirmacao}
     <AvisoAxioma aviso={toastDoc} onFechar={() => setToastDoc(null)} />
-    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} onExportarExcel={() => void gerarExcelTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)} exportando={exportando}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={

@@ -15,7 +15,7 @@ import {
   lerBaseMEI,
 } from '../../../../lib/meiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
-import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -281,7 +281,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
     <ModuloLayout
       titulo={t('titulo')}
       subtitulo={t('subtitulo')}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={exportarPDF} onExportarExcel={() => void gerarExcelTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
       exportando={exportando}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}

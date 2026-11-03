@@ -16,6 +16,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões do cabeçalho' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Gera um PDF com o cálculo da tela.', 'O arquivo é baixado.'],
+      ['**Exportar Excel**', 'Baixa os mesmos números numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento com o resumo do preço.', 'WhatsApp, e-mail, copiar ou baixar o PDF.'],
       ['**Escuro / Tema Claro**', 'Troca as cores.', 'Vale para todo o Axioma.'],
     ] } },
@@ -81,6 +82,7 @@ const en: DocumentoAxioma = {
     { h1: 'Header buttons' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2200, 3600, 3226], linhas: [
       ['**Export PDF**', 'Creates a PDF with the calculation on screen.', 'The file is downloaded.'],
+      ['**Export Excel**', 'Downloads the same numbers as a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['**Share**', 'Opens the Sharing Center with the price summary.', 'WhatsApp, email, copy or download the PDF.'],
       ['**Dark / Light Theme**', 'Switches the colors.', 'Applies to all of Axioma.'],
     ] } },
@@ -146,6 +148,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones del encabezado' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2200, 3600, 3226], linhas: [
       ['**Exportar PDF**', 'Genera un PDF con el cálculo de la pantalla.', 'El archivo se descarga.'],
+      ['**Exportar Excel**', 'Descarga los mismos números en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['**Compartir**', 'Abre el Centro de Compartir con el resumen del precio.', 'WhatsApp, correo, copiar o descargar el PDF.'],
       ['**Oscuro / Tema Claro**', 'Cambia los colores.', 'Vale para todo Axioma.'],
     ] } },

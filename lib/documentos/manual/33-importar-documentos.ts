@@ -9,6 +9,7 @@ const pt: DocumentoAxioma = {
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Em vez de digitar lançamento por lançamento, você envia o arquivo e o Axioma lê, classifica e lança no módulo certo: Fluxo de Caixa, Receitas, Custos Fixos, Custos Variáveis, Contas a Pagar, Contas a Receber, Fornecedores ou Endividamento. **Você confere tudo antes de gravar.**' },
+    { nota: '**Exportar Excel** (no topo, ao lado do Exportar PDF): baixa o histórico de importações desta tela numa planilha, com os valores em reais como número.' },
     { h2: 'Como chegar' },
     { lista: ['Menu do topo → **🏢 Gestão ▼** → **Importar Documentos**.'] },
     { h2: 'Arquivos aceitos' },
@@ -63,6 +64,7 @@ const en: DocumentoAxioma = {
   blocos: [
     { h1: 'What it is for' },
     { p: 'Instead of typing entry by entry, you upload the file and Axioma reads, classifies and posts it to the right module: Cash Flow, Revenue, Fixed Costs, Variable Costs, Accounts Payable, Receivables, Suppliers or Debt. **You review everything before saving.**' },
+    { nota: '**Export Excel** (at the top, next to Export PDF): downloads the import history on this screen as a spreadsheet, with amounts as numbers.' },
     { h2: 'How to get there' },
     { lista: ['Top menu → **🏢 Management ▼** → **Import Documents**.'] },
     { h2: 'Accepted files' },
@@ -117,6 +119,7 @@ const es: DocumentoAxioma = {
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'En lugar de escribir registro por registro, usted sube el archivo y Axioma lee, clasifica y registra en el módulo correcto: Flujo de Caja, Ingresos, Costos Fijos, Costos Variables, Cuentas por Pagar, Cuentas por Cobrar, Proveedores o Endeudamiento. **Usted revisa todo antes de guardar.**' },
+    { nota: '**Exportar Excel** (arriba, junto a Exportar PDF): descarga el historial de importaciones de esta pantalla en una planilla, con los valores como número.' },
     { h2: 'Cómo llegar' },
     { lista: ['Menú superior → **🏢 Gestión ▼** → **Importar Documentos**.'] },
     { h2: 'Archivos aceptados' },

@@ -15,7 +15,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -1435,12 +1435,12 @@ export default function Fornecedores() {
   }
 
   // ---------- PDF ----------
-  const exportarPDF = async () => {
+  const exportarPDF = async (formato: 'pdf' | 'excel' = 'pdf') => {
     setExportando(true);
     try {
       const fmtN = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       if (aba === "fornecedores") {
-        gerarPdfTabela({
+        (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
           titulo: t.fornecedores.titulo,
           subtitulo: t.fornecedores.subtitulo,
           colunas: [
@@ -1804,7 +1804,7 @@ export default function Fornecedores() {
     <ModuloLayout
       titulo={t.fornecedores.titulo}
       subtitulo={t.fornecedores.subtitulo}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={() => exportarPDF('pdf')} onExportarExcel={() => exportarPDF('excel')}
       exportando={exportando}
       onNovo={abrirNovoForn}
       labelBotao={t.fornecedores.novoFornecedor}

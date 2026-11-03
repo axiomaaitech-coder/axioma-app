@@ -57,6 +57,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões e ações' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2300, 3700, 3026], linhas: [
       ['Exportar PDF', 'Gera o PDF do painel com os números atuais.', 'O arquivo é baixado e aparece o aviso "PDF pronto". Nada é alterado.'],
+      ['Exportar Excel', 'Baixa os mesmos números numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['Configurar MEI', 'Abre a janela de configuração.', 'Só grava ao clicar em Salvar.'],
       ['Compartilhar', 'Abre o Centro de Compartilhamento com o resumo do MEI.', 'Você escolhe o canal e envia; o botão PDF dali gera o mesmo PDF.'],
       ['Tema (Escuro / Claro)', 'Troca a aparência.', 'Fica guardado no navegador.'],
@@ -212,6 +213,7 @@ const en: DocumentoAxioma = {
     { h1: 'Buttons and actions' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2300, 3700, 3026], linhas: [
       ['Export PDF', 'Generates the dashboard PDF with the current figures.', 'The file is downloaded and the notice "PDF ready" appears. Nothing is changed.'],
+      ['Export Excel', 'Downloads the same numbers as a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['Configure MEI', 'Opens the setup window.', 'It only saves when you click Save.'],
       ['Share', 'Opens the Sharing Center with the MEI summary.', 'You choose the channel and send; its PDF button generates the same PDF.'],
       ['Theme (Dark / Light)', 'Changes the look.', 'Kept in the browser.'],
@@ -367,6 +369,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones y acciones' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2300, 3700, 3026], linhas: [
       ['Exportar PDF', 'Genera el PDF del panel con los números actuales.', 'El archivo se descarga y aparece el aviso "PDF listo". Nada se altera.'],
+      ['Exportar Excel', 'Descarga los mismos números en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['Configurar MEI', 'Abre la ventana de configuración.', 'Solo graba al hacer clic en Guardar.'],
       ['Compartir', 'Abre el Centro de Compartir con el resumen del MEI.', 'Usted elige el canal y envía; su botón PDF genera el mismo PDF.'],
       ['Tema (Oscuro / Claro)', 'Cambia la apariencia.', 'Se guarda en el navegador.'],

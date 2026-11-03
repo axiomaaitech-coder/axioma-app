@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "../../../lib/supabaseBrowser";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import DashFinanceiro from "../../../components/DashFinanceiro";
 import DashComercial from "../../../components/DashComercial";
@@ -201,9 +201,9 @@ export default function DashboardPage() {
 
   // Share
   function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL2(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL2(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
-  async function exportarPDF() {
+  async function exportarPDF(formato: 'pdf' | 'excel' = 'pdf') {
     if (!snap || !score360) return; setExportando(true);
-    try { await gerarPdfTabela({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
+    try { await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
       colunas: [{ header: "MÉTRICA", key: "m", width: 55, align: "left" as const }, { header: "VALOR", key: "v", width: 40, align: "right" as const }],
       linhas: [{ m: tt.receita, v: fBRL2(snap.receita_bruta) }, { m: tt.custos, v: fBRL2(snap.custos_totais) }, { m: tt.lucro, v: fBRL2(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
         ...score360.dimensoes.map(d => ({ m: lang === "en" ? d.nome_en : d.nome, v: `${d.score}/100` }))],
@@ -249,11 +249,13 @@ export default function DashboardPage() {
                 {empresaNome && <p className="text-base mt-2 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
                 <p className="text-sm mt-3 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
               </div>
-              <div className="flex gap-3 items-center">
-                <button onClick={() => setShareAberto(true)} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
+              <div className="flex flex-wrap gap-3 items-center">
+                <button onClick={() => setShareAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
                   style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }}>{tt.compartilhar}</button>
-                <button onClick={exportarPDF} disabled={exportando} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
+                <button onClick={() => void exportarPDF('pdf')} disabled={exportando} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
                   style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
+                <button onClick={() => void exportarPDF('excel')} disabled={exportando} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
+                  style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.35)", color: "#fff" }}>📊 Excel</button>
                 <ThemeToggle />
               </div>
             </div>

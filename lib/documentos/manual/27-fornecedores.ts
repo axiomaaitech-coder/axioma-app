@@ -12,6 +12,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **👥 Comercial ▼** → **Fornecedores**.'] },
+    { nota: '**Exportar Excel** (no topo, ao lado do Exportar PDF): baixa os números desta tela numa planilha, com os valores em reais como número — prontos para somar, filtrar ou mandar ao contador.' },
 
     { h1: 'Dashboard Executivo' },
     { p: 'Grade de indicadores. Clique em qualquer um para ver o detalhe e a explicação de como é calculado:' },
@@ -97,6 +98,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **👥 Commercial ▼** → **Suppliers**.'] },
+    { nota: '**Export Excel** (at the top, next to Export PDF): downloads the numbers on this screen as a spreadsheet, with amounts as numbers — ready to add up, filter or send to the accountant.' },
 
     { h1: 'Executive Dashboard' },
     { p: 'A grid of indicators. Click any of them to see the detail and how it is calculated:' },
@@ -182,6 +184,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **👥 Comercial ▼** → **Proveedores**.'] },
+    { nota: '**Exportar Excel** (arriba, junto a Exportar PDF): descarga los números de esta pantalla en una planilla, con los valores como número — listos para sumar, filtrar o enviar al contador.' },
 
     { h1: 'Dashboard Ejecutivo' },
     { p: 'Una grilla de indicadores. Haga clic en cualquiera para ver el detalle y cómo se calcula:' },

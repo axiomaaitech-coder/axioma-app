@@ -32,6 +32,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Botões e ações' },
     { tabela: { colunas: ['Botão', 'O que faz', 'O que acontece depois'], larguras: [2300, 3700, 3026], linhas: [
       ['Exportar PDF', 'Gera o PDF do faturamento do ano.', 'O arquivo é baixado e aparece "PDF pronto — baixado". Nada é alterado.'],
+      ['Exportar Excel', 'Baixa os mesmos números numa planilha, com os valores como número.', 'A planilha é baixada.'],
       ['Nova venda', 'Abre a janela para lançar uma venda ou serviço.', 'Só grava ao clicar em Salvar (veja o passo a passo).'],
       ['Compartilhar', 'Abre o Centro de Compartilhamento com o resumo do faturamento.', 'Você escolhe o canal e envia.'],
       ['Tema (Escuro / Claro)', 'Troca a aparência.', 'Fica guardado no navegador.'],
@@ -125,6 +126,7 @@ const en: DocumentoAxioma = {
     { h1: 'Buttons and actions' },
     { tabela: { colunas: ['Button', 'What it does', 'What happens next'], larguras: [2300, 3700, 3026], linhas: [
       ['Export PDF', 'Generates the PDF of the year\'s revenue.', 'The file is downloaded and "PDF ready — downloaded" appears. Nothing is changed.'],
+      ['Export Excel', 'Downloads the same numbers as a spreadsheet, with amounts as numbers.', 'The spreadsheet is downloaded.'],
       ['New sale', 'Opens the window to enter a sale or service.', 'It only saves when you click Save (see step by step).'],
       ['Share', 'Opens the Sharing Center with the revenue summary.', 'You choose the channel and send.'],
       ['Theme (Dark / Light)', 'Changes the look.', 'Kept in the browser.'],
@@ -218,6 +220,7 @@ const es: DocumentoAxioma = {
     { h1: 'Botones y acciones' },
     { tabela: { colunas: ['Botón', 'Qué hace', 'Qué pasa después'], larguras: [2300, 3700, 3026], linhas: [
       ['Exportar PDF', 'Genera el PDF de la facturación del año.', 'El archivo se descarga y aparece "PDF listo — descargado". Nada se altera.'],
+      ['Exportar Excel', 'Descarga los mismos números en una planilla, con los valores como número.', 'La planilla se descarga.'],
       ['Nueva venta', 'Abre la ventana para registrar una venta o servicio.', 'Solo graba al hacer clic en Guardar (vea el paso a paso).'],
       ['Compartir', 'Abre el Centro de Compartir con el resumen de la facturación.', 'Usted elige el canal y envía.'],
       ['Tema (Oscuro / Claro)', 'Cambia la apariencia.', 'Se guarda en el navegador.'],

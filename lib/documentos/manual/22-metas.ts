@@ -12,6 +12,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **Crescimento ▼** → **Metas**.'] },
+    { nota: '**Exportar Excel** (no topo, ao lado do Exportar PDF): baixa os números desta tela numa planilha, com os valores em reais como número — prontos para somar, filtrar ou mandar ao contador.' },
 
     { h1: 'Tipos de meta (cada um lê um dado real)' },
     { tabela: { colunas: ['Tipo', 'De onde vem o número'], larguras: [2800, 6226], linhas: [
@@ -65,6 +66,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'How to get there' },
     { lista: ['Top menu → **Growth ▼** → **Goals**.'] },
+    { nota: '**Export Excel** (at the top, next to Export PDF): downloads the numbers on this screen as a spreadsheet, with amounts as numbers — ready to add up, filter or send to the accountant.' },
 
     { h1: 'Goal types (each reads real data)' },
     { tabela: { colunas: ['Type', 'Where the number comes from'], larguras: [2800, 6226], linhas: [
@@ -118,6 +120,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **Crecimiento ▼** → **Metas**.'] },
+    { nota: '**Exportar Excel** (arriba, junto a Exportar PDF): descarga los números de esta pantalla en una planilla, con los valores como número — listos para sumar, filtrar o enviar al contador.' },
 
     { h1: 'Tipos de meta (cada uno lee un dato real)' },
     { tabela: { colunas: ['Tipo', 'De dónde viene el número'], larguras: [2800, 6226], linhas: [

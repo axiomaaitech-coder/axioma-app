@@ -17,7 +17,7 @@ import html2canvas from 'html2canvas'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro, FALLBACK_MACRO } from '../../../lib/bcbApi'
-import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
@@ -403,7 +403,7 @@ export default function PainelMEI() {
     <ModuloLayout
       titulo={t('titulo')}
       subtitulo={t('subtitulo')}
-      onExportarPDF={exportarPDF}
+      onExportarPDF={exportarPDF} onExportarExcel={() => void gerarExcelTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
       exportando={exportando}
       onNovo={() => setModalConfig(true)}
       labelBotao={t('configurar')}

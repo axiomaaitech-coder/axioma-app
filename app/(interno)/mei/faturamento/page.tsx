@@ -11,7 +11,7 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import { AlertTriangle, Pencil, Trash2, X, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, gerarExcelTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, mensagemFalhaCarregamento } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -442,7 +442,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
-    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} onExportarExcel={() => void gerarExcelTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)} exportando={exportando}
       onNovo={abrirNovaVenda} labelBotao={t('novaVenda')}
       corNovo={temaClaro ? 'linear-gradient(135deg, #0a4f3b, #0f7d5c)' : undefined}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
