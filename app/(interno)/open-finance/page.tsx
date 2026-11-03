@@ -638,42 +638,42 @@ export default function OpenFinancePage() {
         {/* ---- KPIs executivos: Saldo do Banco vs Sistema vs Divergência ---- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('conciliado')}><CanvasBox {...cartaoTema} cor={corSaldoBanco}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoBanco}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoBanco}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corSaldoBanco }}>{fmtOuTraco(saldoBanco, temBanco)}</p>
-            {!temBanco && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>}
+            {!temBanco && <p className="text-xs font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>}
           </CanvasBox></div>
           <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino('/fluxo-caixa', router)}><CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoSistema}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoSistema}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: ct(BRONZE) }}>{fmt(saldoSistema)}</p>
-            <p className="text-[10px] leading-snug" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.saldoSistemaExplicacao}</p>
+            <p className="text-xs leading-snug" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.saldoSistemaExplicacao}</p>
           </CanvasBox></div>
           <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('pendente')}><CanvasBox {...cartaoTema} cor={corDivergencia}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiDivergencia}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiDivergencia}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corDivergencia }}>{fmtOuTraco(kpis.divergencia, temBanco)}</p>
             {!temBanco ? (
-              <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>
+              <p className="text-xs font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>
             ) : divergenciaRelevante ? (
               (resultado.pendentes.length + resultado.atipicas.length) > 0 && (
-                <button onClick={() => irParaAba('pendente')} className="text-[11px] font-semibold underline text-left" style={{ color: corDivergencia }}>
+                <button onClick={() => irParaAba('pendente')} className="text-xs font-semibold underline text-left" style={{ color: corDivergencia }}>
                   {resultado.pendentes.length + resultado.atipicas.length} {t.divergenciaConvite}
                 </button>
               )
             ) : (
-              <p className="text-[11px] font-semibold" style={{ color: ct(VERDE) }}>{t.divergenciaOk}</p>
+              <p className="text-xs font-semibold" style={{ color: ct(VERDE) }}>{t.divergenciaOk}</p>
             )}
           </CanvasBox></div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('pendente')}><CanvasBox {...cartaoTema} cor={corNaoExplicado}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiNaoExplicado}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiNaoExplicado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corNaoExplicado }}>{fmtOuTraco(kpis.dinheiroNaoExplicado, temTransacoes)}</p>
-            {!temTransacoes && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
+            {!temTransacoes && <p className="text-xs font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
           </CanvasBox></div>
           <div className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaAba('conciliado')}><CanvasBox {...cartaoTema} cor={corPctConciliado}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiPctConciliado}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiPctConciliado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corPctConciliado }}>{fPctOuTraco(kpis.percentualConciliado)}</p>
-            {kpis.percentualConciliado === null && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
+            {kpis.percentualConciliado === null && <p className="text-xs font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
           </CanvasBox></div>
         </div>
 
@@ -745,7 +745,7 @@ export default function OpenFinancePage() {
                   <div className="flex items-center gap-2 mb-3">
                     <FlaskConical size={14} style={{ color: ct('#94a3b8') }} />
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#94a3b8') }}>{t.ambienteTeste}</p>
-                    <span className="text-[11px]" style={{ color: ct('#5a7a9a') }}>— {t.ambienteTesteDesc}</span>
+                    <span className="text-xs" style={{ color: ct('#5a7a9a') }}>— {t.ambienteTesteDesc}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 opacity-70">
                     {bancosSandbox.map((banco, i) => (

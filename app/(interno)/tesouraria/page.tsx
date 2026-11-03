@@ -289,7 +289,7 @@ export default function TesourariaPage() {
               <div className="flex flex-wrap items-center gap-4">
                 <div className="text-4xl md:text-5xl font-black" style={{ color: CORES_SCORE[score.cor] }}><AnimatedNumber value={String(score.total)} /></div>
                 <div className="flex-1 min-w-[220px]">
-                  <p className="text-[10px] font-black tracking-[0.25em] uppercase mb-1" style={{ color: CORES_SCORE[score.cor] }}>
+                  <p className="text-xs font-black tracking-[0.25em] uppercase mb-1" style={{ color: CORES_SCORE[score.cor] }}>
                     {L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}
                   </p>
                   <p className="text-sm" style={{ color: TEXTO }}>{explicarLiquidityScore(score, reservaMinima, lang)}</p>
@@ -298,7 +298,7 @@ export default function TesourariaPage() {
               <div className="grid grid-cols-3 gap-2 mt-4">
                 {(['cobertura', 'reserva', 'folga'] as const).map((k) => (
                   <div key={k} className="rounded-xl p-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: "1px solid rgba(46,204,155,0.22)" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>
                       {k === 'cobertura' ? L('Cobertura', 'Coverage', 'Cobertura') : k === 'reserva' ? L('Reserva', 'Reserve', 'Reserva') : L('Folga', 'Slack', 'Holgura')}
                     </p>
                     <p className="text-base font-bold" style={{ color: TITULO }}>{score.subscores[k]}</p>
@@ -317,7 +317,7 @@ export default function TesourariaPage() {
               { label: L('Aplicado', 'Invested', 'Aplicado'), valor: posicao.totalAplicado, cor: AZUL },
             ].map((k) => (
               <div key={k.label} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}><AnimatedNumber value={`R$ ${fBRL2(k.valor)}`} /></p>
               </div>
             ))}
@@ -347,7 +347,7 @@ export default function TesourariaPage() {
                         {l.banco_nome || l.conta_nome} <span style={{ color: CINZA }}>({l.conta_codigo})</span>
                       </td>
                       <td className="py-2 px-3">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: `${AZULC}15`, color: AZULC }}>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: `${AZULC}15`, color: AZULC }}>
                           {LABEL_TIPO_LIQUIDEZ[l.tipo_liquidez][lang]}
                         </span>
                       </td>
@@ -406,7 +406,7 @@ export default function TesourariaPage() {
                 </tbody>
               </table>
             </div>
-            <p className="text-[10px] mt-2" style={{ color: CINZA }}>
+            <p className="text-xs mt-2" style={{ color: CINZA }}>
               {fluxo.amostraAtrasoAR > 0 || fluxo.amostraAtrasoAP > 0
                 ? L(
                     `Desvio calculado do histórico real: ${(fluxo.fracaoAtrasoAR * 100).toFixed(0)}% do recebido chega atrasado (${fluxo.amostraAtrasoAR} contas), sobretaxa média de atraso em pagamentos de ${(fluxo.fatorAtrasoAP * 100).toFixed(0)}% (${fluxo.amostraAtrasoAP} contas).`,
@@ -434,7 +434,7 @@ export default function TesourariaPage() {
                       <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{descreverAlerta(a, lang)}</p>
                     </div>
                     <button onClick={() => marcarResolvido(a.id)}
-                      className="text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap"
+                      className="text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap"
                       style={{ background: neutro(0.06), color: CINZA }}>
                       {L('Resolver', 'Resolve', 'Resolver')}
                     </button>
@@ -462,7 +462,7 @@ export default function TesourariaPage() {
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {PERGUNTAS_SUGERIDAS_ZIA[lang].map((sug) => (
-                <button key={sug} onClick={() => perguntarZia(sug)} disabled={carregandoRespostaZia} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: neutro(0.04), color: CINZA, border: `1px solid ${neutro(0.08)}` }}>
+                <button key={sug} onClick={() => perguntarZia(sug)} disabled={carregandoRespostaZia} className="px-2.5 py-1 rounded-full text-xs disabled:opacity-60" style={{ background: neutro(0.04), color: CINZA, border: `1px solid ${neutro(0.08)}` }}>
                   {sug}
                 </button>
               ))}

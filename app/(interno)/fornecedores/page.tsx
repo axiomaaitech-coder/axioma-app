@@ -89,7 +89,7 @@ function Campo({ label, value, onChange, onBlur, tipo = "text", placeholder, err
       <label className={labelCls} style={labelStyle}>{label}</label>
       <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder}
         className={inputCls} style={inputStyle} />
-      {erro && <p className="text-[10px] mt-1" style={erroStyle}>{erro}</p>}
+      {erro && <p className="text-xs mt-1" style={erroStyle}>{erro}</p>}
     </div>
   );
 }
@@ -1853,10 +1853,10 @@ export default function Fornecedores() {
             {kpis.map((k) => (
               <button key={k.key} onClick={() => setDrillDown(k.key)} className={`text-left rounded-xl p-3 transition-all hover:scale-[1.02]${classePremium3d} axi-card-premium3d axi-card-faixa`}
                 style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
-                <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-lg font-black" style={{ color: k.cor }}>{k.valor}</p>
-                {k.sub && <p className="text-[10px] truncate mt-0.5" style={{ color: ct("#5a7a9a") }}>{k.sub}</p>}
-                {k.vazio && <p className="text-[9px] mt-1 flex items-center gap-1" style={{ color: ct("#5a7a9a") }}><ChevronRight size={9} /> {tt.semDados}</p>}
+                {k.sub && <p className="text-xs truncate mt-0.5" style={{ color: ct("#5a7a9a") }}>{k.sub}</p>}
+                {k.vazio && <p className="text-xs mt-1 flex items-center gap-1" style={{ color: ct("#5a7a9a") }}><ChevronRight size={9} /> {tt.semDados}</p>}
               </button>
             ))}
           </div>
@@ -1866,11 +1866,11 @@ export default function Fornecedores() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.curvaAbcTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcSub}</p>
               {curvaABCOption ? (
                 <>
                   <ReactECharts option={curvaABCOption} style={{ height: 220 }} notMerge lazyUpdate />
-                  <div className="flex items-center gap-3 mt-2 flex-wrap text-[10px]">
+                  <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
                     <span className="flex items-center gap-1" style={{ color: ct("#f87171") }}>● {tt.classeA}</span>
                     <span className="flex items-center gap-1" style={{ color: ct("#2ecc9b") }}>● {tt.classeB}</span>
                     <span className="flex items-center gap-1" style={{ color: ct("#34d399") }}>● {tt.classeC}</span>
@@ -1880,7 +1880,7 @@ export default function Fornecedores() {
             </div>
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.geoTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.geoSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.geoSub}</p>
               {geoOption ? <ReactECharts option={geoOption} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.geoVazio}</p>}
             </div>
           </div>
@@ -1889,12 +1889,12 @@ export default function Fornecedores() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.radarTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.radarSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.radarSub}</p>
               {radarTemDado ? <ReactECharts option={radarOption} style={{ height: 240 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.radarVazio}</p>}
             </div>
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.escadaTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.escadaSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.escadaSub}</p>
               {escadaVencimentos.length === 0 ? (
                 <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.escadaVazio}</p>
               ) : (
@@ -1903,7 +1903,7 @@ export default function Fornecedores() {
                     <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: `${corUrgencia(r.urgencia)}0e`, border: `1px solid ${corUrgencia(r.urgencia)}30` }}>
                       <div className="min-w-0">
                         <p className="text-xs font-semibold truncate" style={{ color: ct("#e2e8f0") }}>{r.descricao}</p>
-                        <p className="text-[10px] font-medium" style={{ color: corUrgencia(r.urgencia) }}>{r.categoria} · {textoUrgencia(r.diasRestantes)}</p>
+                        <p className="text-xs font-medium" style={{ color: corUrgencia(r.urgencia) }}>{r.categoria} · {textoUrgencia(r.diasRestantes)}</p>
                       </div>
                       {r.valor > 0 && <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: corUrgencia(r.urgencia) }}>{fmt(r.valor)}</p>}
                     </div>
@@ -1916,7 +1916,7 @@ export default function Fornecedores() {
           {/* Ranking Axioma (Fase 3) */}
           <div className={`rounded-xl p-4 mt-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-sm font-black mb-0.5 flex items-center gap-2" style={{ color: ct("#f1f5f9") }}><Trophy size={15} style={{ color: AMBAR }} /> {tt.rankingTitulo}</p>
-            <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.rankingSub}</p>
+            <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.rankingSub}</p>
             {rankingAxioma.length === 0 ? (
               <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.rankingVazio}</p>
             ) : (
@@ -1926,10 +1926,10 @@ export default function Fornecedores() {
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all hover:scale-[1.01] axi-card-premium3d axi-card-faixa"
                     style={{ background: `${NIVEL_SCORE_COR[r.score.nivel]}0e`, border: `1px solid ${NIVEL_SCORE_COR[r.score.nivel]}30` }}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-[10px] font-black w-5 flex-shrink-0" style={{ color: ct("#5a7a9a") }}>#{i + 1}</span>
+                      <span className="text-xs font-black w-5 flex-shrink-0" style={{ color: ct("#5a7a9a") }}>#{i + 1}</span>
                       <div className="min-w-0 text-left">
                         <p className="text-xs font-semibold truncate" style={{ color: ct("#e2e8f0") }}>{r.fornecedor.nome}</p>
-                        <p className="text-[10px]" style={{ color: NIVEL_SCORE_COR[r.score.nivel] }}>{NIVEL_SCORE_LABEL[r.score.nivel]}</p>
+                        <p className="text-xs" style={{ color: NIVEL_SCORE_COR[r.score.nivel] }}>{NIVEL_SCORE_LABEL[r.score.nivel]}</p>
                       </div>
                     </div>
                     <p className="text-base font-black flex-shrink-0 ml-2" style={{ color: NIVEL_SCORE_COR[r.score.nivel] }}>{r.score.total}</p>
@@ -1970,7 +1970,7 @@ export default function Fornecedores() {
                   <p className="text-2xl font-black" style={{ color: inflacao.variacaoPct > 0 ? ct("#f87171") : inflacao.variacaoPct < 0 ? ct("#34d399") : ct("#2ecc9b") }}>
                     <AnimatedNumber value={`${inflacao.variacaoPct > 0 ? "+" : ""}${inflacao.variacaoPct.toLocaleString("pt-BR")}%`} />
                   </p>
-                  <p className="text-[10px] mt-1" style={{ color: ct("#5a7a9a") }}>{fmt(inflacao.ticketAnterior)} → {fmt(inflacao.ticketAtual)}</p>
+                  <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{fmt(inflacao.ticketAnterior)} → {fmt(inflacao.ticketAtual)}</p>
                 </div>
               ) : <p className="text-xs py-4" style={{ color: ct("#5a7a9a") }}>{tt.inflacaoVazio}</p>}
             </div>
@@ -1986,7 +1986,7 @@ export default function Fornecedores() {
                   <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)" }}>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
-                      <p className="text-[10px]" style={{ color: ct("#f87171") }}>{a.tipo === "aumento_recorrente" ? tt.tendenciaAumentoRecorrente : tt.tendenciaAcimaMedia}</p>
+                      <p className="text-xs" style={{ color: ct("#f87171") }}>{a.tipo === "aumento_recorrente" ? tt.tendenciaAumentoRecorrente : tt.tendenciaAcimaMedia}</p>
                     </div>
                     <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: ct("#f87171") }}>{fmt(a.valorReferencia)} → {fmt(a.valorAtual)}</p>
                   </div>
@@ -1999,12 +1999,12 @@ export default function Fornecedores() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.sazonalidadeTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeSub}</p>
               {sazonalidadeOption ? <ReactECharts option={sazonalidadeOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeVazio}</p>}
             </div>
             <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.desperdiciosTitulo}</p>
-              <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.desperdiciosSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.desperdiciosSub}</p>
               {desperdicios.alertas.length === 0 ? (
                 <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.desperdiciosVazio}</p>
               ) : (
@@ -2023,7 +2023,7 @@ export default function Fornecedores() {
           {/* Oportunidades de Consolidação */}
           <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.consolidacaoTitulo}</p>
-            <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.consolidacaoSub}</p>
+            <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.consolidacaoSub}</p>
             {consolidacao.length === 0 ? (
               <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.consolidacaoVazio}</p>
             ) : (
@@ -2036,8 +2036,8 @@ export default function Fornecedores() {
                     </div>
                     <div className="space-y-1">
                       {g.fornecedores.map((f, idx) => (
-                        <div key={f.id} className="flex items-center justify-between text-[11px]">
-                          <span style={{ color: ct("#c8d8f0") }}>{f.nome} {idx === 0 && <span className="px-1.5 py-0.5 rounded-full ml-1" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), fontSize: "9px" }}>{tt.maisBaratoTag}</span>}</span>
+                        <div key={f.id} className="flex items-center justify-between text-xs">
+                          <span style={{ color: ct("#c8d8f0") }}>{f.nome} {idx === 0 && <span className="px-1.5 py-0.5 rounded-full ml-1" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), fontSize: "12px" }}>{tt.maisBaratoTag}</span>}</span>
                           <span style={{ color: ct("#5a7a9a") }}>{fmt(f.ticketMedio)}/{idioma === "pt" ? "compra" : idioma === "es" ? "compra" : "purchase"}</span>
                         </div>
                       ))}
@@ -2072,15 +2072,15 @@ export default function Fornecedores() {
                   <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: NIVEL_SCORE_COR[a.severidade] }} />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{a.titulo}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: ct("#94a3b8") }}>{a.descricao}</p>
-                    <p className="text-[11px] mt-1 font-semibold" style={{ color: NIVEL_SCORE_COR[a.severidade] }}>→ {a.acao}</p>
+                    <p className="text-xs mt-0.5" style={{ color: ct("#94a3b8") }}>{a.descricao}</p>
+                    <p className="text-xs mt-1 font-semibold" style={{ color: NIVEL_SCORE_COR[a.severidade] }}>→ {a.acao}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <p className="text-[10px] mt-4 pt-3" style={{ color: ct("#5a7a9a"), borderTop: "1px solid rgba(255,255,255,0.06)" }}>{tt.alertaQuedaQualidadeLegenda}</p>
+          <p className="text-xs mt-4 pt-3" style={{ color: ct("#5a7a9a"), borderTop: "1px solid rgba(255,255,255,0.06)" }}>{tt.alertaQuedaQualidadeLegenda}</p>
         </CanvasBox>
 
         {/* ====== SIMULADOR EXECUTIVO (Fase 5A) ====== */}
@@ -2156,7 +2156,7 @@ export default function Fornecedores() {
                       })}
                     </tbody>
                   </table>
-                  <p className="text-[10px] mt-3" style={{ color: ct("#5a7a9a") }}>{tt.notaCapitalGiro}</p>
+                  <p className="text-xs mt-3" style={{ color: ct("#5a7a9a") }}>{tt.notaCapitalGiro}</p>
                 </div>
               )}
             </>
@@ -2183,7 +2183,7 @@ export default function Fornecedores() {
                 {(["pleno", "parcial", "baixo", "indefinido"] as const).map((nivel) => (
                   <div key={nivel} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${NIVEL_CREDITO_COR[nivel]}0e`, border: `1px solid ${NIVEL_CREDITO_COR[nivel]}30` }}>
                     <p className="text-xl font-black" style={{ color: NIVEL_CREDITO_COR[nivel] }}>{contagemCredito[nivel]}</p>
-                    <p className="text-[10px] mt-1" style={{ color: NIVEL_CREDITO_COR[nivel] }}>{NIVEL_CREDITO_LABEL[nivel]}</p>
+                    <p className="text-xs mt-1" style={{ color: NIVEL_CREDITO_COR[nivel] }}>{NIVEL_CREDITO_LABEL[nivel]}</p>
                   </div>
                 ))}
               </div>
@@ -2191,7 +2191,7 @@ export default function Fornecedores() {
                 {creditoReforma.map((c) => (
                   <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <p className="text-xs truncate" style={{ color: ct("#e2e8f0") }}>{c.nome}</p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: `${NIVEL_CREDITO_COR[c.nivel]}18`, color: NIVEL_CREDITO_COR[c.nivel] }}>{NIVEL_CREDITO_LABEL[c.nivel]}</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: `${NIVEL_CREDITO_COR[c.nivel]}18`, color: NIVEL_CREDITO_COR[c.nivel] }}>{NIVEL_CREDITO_LABEL[c.nivel]}</span>
                   </div>
                 ))}
               </div>
@@ -2330,11 +2330,11 @@ export default function Fornecedores() {
                                 cada conta lá abre o histórico completo (criação, pagamentos, juros, falta). */}
                             <button onClick={() => verContasDoFornecedor(f.nome)} title={tt.verContasFornecedor} className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: ct("#2ecc9b") }}>{fmt(aberto)}</p>
-                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Em aberto — ver contas" : idioma === "es" ? "Abierto — ver cuentas" : "Open — see bills"}</p>
+                              <p style={{ color: ct("#5a7a9a"), fontSize: "12px" }}>{idioma === "pt" ? "Em aberto — ver contas" : idioma === "es" ? "Abierto — ver cuentas" : "Open — see bills"}</p>
                             </button>
                             <button onClick={() => verContasDoFornecedor(f.nome)} title={tt.verContasFornecedor} className="text-center rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)" }}>
                               <p className="text-xs font-black" style={{ color: AMBAR }}>{contasForn.length}</p>
-                              <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Contas — ver histórico" : idioma === "es" ? "Cuentas — ver historial" : "Bills — see history"}</p>
+                              <p style={{ color: ct("#5a7a9a"), fontSize: "12px" }}>{idioma === "pt" ? "Contas — ver histórico" : idioma === "es" ? "Cuentas — ver historial" : "Bills — see history"}</p>
                             </button>
                           </div>
                         )}
@@ -2457,11 +2457,11 @@ export default function Fornecedores() {
                   <div className="flex items-start gap-0.5 mb-5 overflow-x-auto pb-1">
                     {ETAPAS_CADASTRO.map((et, idx) => (
                       <button key={et} onClick={() => setEtapaCadastro(idx)} className="flex flex-col items-center gap-1 flex-shrink-0 px-1.5" style={{ opacity: idx <= etapaCadastro ? 1 : 0.45 }}>
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black"
                           style={{ background: idx < etapaCadastro ? ct("#34d399") : idx === etapaCadastro ? AMBAR : "rgba(148,163,184,0.15)", color: idx <= etapaCadastro ? "#fff" : ct("#64748b") }}>
                           {idx < etapaCadastro ? <Check size={12} /> : idx + 1}
                         </div>
-                        <span className="text-[8px] whitespace-nowrap" style={{ color: idx === etapaCadastro ? AMBAR : ct("#5a7a9a") }}>{tt.etapaNomes[et]}</span>
+                        <span className="text-xs whitespace-nowrap" style={{ color: idx === etapaCadastro ? AMBAR : ct("#5a7a9a") }}>{tt.etapaNomes[et]}</span>
                       </button>
                     ))}
                   </div>
@@ -2510,7 +2510,7 @@ export default function Fornecedores() {
                                     <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{c.nome} {c.principal && <span style={{ color: AMBAR }}>★</span>}</p>
-                                        <p className="text-[10px] truncate" style={{ color: ct("#5a7a9a") }}>{[c.cargo, c.telefone, c.email].filter(Boolean).join(" · ")}</p>
+                                        <p className="text-xs truncate" style={{ color: ct("#5a7a9a") }}>{[c.cargo, c.telefone, c.email].filter(Boolean).join(" · ")}</p>
                                       </div>
                                       <div className="flex items-center gap-2 flex-shrink-0">
                                         <button onClick={() => editarContato(c)} style={{ color: AMBAR }}><Pencil size={13} /></button>
@@ -2548,7 +2548,7 @@ export default function Fornecedores() {
                             <label className={labelCls} style={labelStyle}>{tt.lblCep} {buscandoCep && <span style={{ color: ct("#34d399"), fontWeight: 400 }}>· {tt.buscandoCep}</span>}</label>
                             <input value={nf.cep} onChange={(e) => { const v = e.target.value; setNf({ ...nf, cep: v }); if (v.replace(/\D/g, "").length === 8) buscarCep(v); }}
                               onBlur={() => validarCampoForm("cep", nf.cep)} placeholder="00000-000" className={inputCls} style={inputStyle} />
-                            {errosForm.cep && <p className="text-[10px] mt-1" style={{ color: ct("#f87171") }}>{errosForm.cep}</p>}
+                            {errosForm.cep && <p className="text-xs mt-1" style={{ color: ct("#f87171") }}>{errosForm.cep}</p>}
                           </div>
                           {nf.pais === "BR" ? (
                             <>
@@ -2594,7 +2594,7 @@ export default function Fornecedores() {
                                     <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{tipoInfo?.icon} {d.nome}</p>
-                                        {d.data_validade && <p className="text-[10px]" style={{ color: vencido ? ct("#f87171") : aVencer ? "#2ecc9b" : ct("#5a7a9a") }}>{tt.lblValidade}: {new Date(d.data_validade + "T00:00:00").toLocaleDateString("pt-BR")} {vencido ? `· ${tt.statusVencido}` : aVencer ? `· ${tt.statusAVencer}` : ""}</p>}
+                                        {d.data_validade && <p className="text-xs" style={{ color: vencido ? ct("#f87171") : aVencer ? "#2ecc9b" : ct("#5a7a9a") }}>{tt.lblValidade}: {new Date(d.data_validade + "T00:00:00").toLocaleDateString("pt-BR")} {vencido ? `· ${tt.statusVencido}` : aVencer ? `· ${tt.statusAVencer}` : ""}</p>}
                                       </div>
                                       <div className="flex items-center gap-2 flex-shrink-0">
                                         {d.storage_path && <button onClick={() => baixarDocumento(d)} style={{ color: AMBAR }}><Download size={13} /></button>}
@@ -2675,7 +2675,7 @@ export default function Fornecedores() {
                                     <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                       <div className="min-w-0">
                                         <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{c.descricao} {c.renovacao_automatica && "🔄"}</p>
-                                        <p className="text-[10px]" style={{ color: vencido ? ct("#f87171") : ct("#5a7a9a") }}>
+                                        <p className="text-xs" style={{ color: vencido ? ct("#f87171") : ct("#5a7a9a") }}>
                                           {c.data_fim ? `${tt.lblDataFim}: ${new Date(c.data_fim + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
                                           {c.valor_contratado ? ` · ${tt.saldoContrato}: ${fmt(saldo)}` : ""}
                                           {vencido ? ` · ${tt.statusVencido}` : ""}
@@ -2723,7 +2723,7 @@ export default function Fornecedores() {
                                   <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                                     <div className="min-w-0">
                                       <p className="text-xs font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{p.descricao}</p>
-                                      <p className="text-[10px] truncate" style={{ color: ct("#5a7a9a") }}>{[p.categoria, p.unidade, p.valor_unitario ? fmt(p.valor_unitario) : null].filter(Boolean).join(" · ")}</p>
+                                      <p className="text-xs truncate" style={{ color: ct("#5a7a9a") }}>{[p.categoria, p.unidade, p.valor_unitario ? fmt(p.valor_unitario) : null].filter(Boolean).join(" · ")}</p>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                       <button onClick={() => editarProduto(p)} style={{ color: AMBAR }}><Pencil size={13} /></button>
@@ -2784,7 +2784,7 @@ export default function Fornecedores() {
                                       <div className="min-w-0 flex items-start gap-2">
                                         <Clock size={12} className="mt-0.5 flex-shrink-0" style={{ color: ct("#5a7a9a") }} />
                                         <div className="min-w-0">
-                                          <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{new Date(it.data + "T00:00:00").toLocaleDateString("pt-BR")} {it.tipo ? `· ${it.tipo}` : ""}</p>
+                                          <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{new Date(it.data + "T00:00:00").toLocaleDateString("pt-BR")} {it.tipo ? `· ${it.tipo}` : ""}</p>
                                           <p className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{it.descricao}</p>
                                         </div>
                                       </div>
@@ -3002,14 +3002,14 @@ export default function Fornecedores() {
                       <div key={c.chave} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold" style={{ color: ct("#e2e8f0") }}>{NOME_CRITERIO[c.chave]}</p>
-                          <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{tt.pesoLabel}: {c.peso}</p>
+                          <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.pesoLabel}: {c.peso}</p>
                         </div>
                         {c.semDados ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(148,163,184,0.1)", color: ct("#5a7a9a") }}>{tt.semDadosCriterio}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(148,163,184,0.1)", color: ct("#5a7a9a") }}>{tt.semDadosCriterio}</span>
                         ) : (
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-black" style={{ color: (c.valor || 0) >= 70 ? ct("#34d399") : (c.valor || 0) >= 40 ? AMBAR : ct("#f87171") }}>{Math.round(c.valor as number)}</p>
-                            <p className="text-[9px]" style={{ color: ct("#5a7a9a") }}>+{c.contribuicao} {tt.contribuicaoLabel.toLowerCase()}</p>
+                            <p className="text-xs" style={{ color: ct("#5a7a9a") }}>+{c.contribuicao} {tt.contribuicaoLabel.toLowerCase()}</p>
                           </div>
                         )}
                       </div>

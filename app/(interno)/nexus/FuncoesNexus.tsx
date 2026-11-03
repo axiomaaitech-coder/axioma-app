@@ -34,7 +34,7 @@ function TextoCard({ oque, como, rotuloComo, cores }: { oque: string; como: stri
   return (
     <>
       <p className="text-xs leading-relaxed mb-2" style={{ color: cores.texto }}>{oque}</p>
-      <p className="text-[11px] leading-relaxed mb-3" style={{ color: cores.cinza }}><span className="font-bold">{rotuloComo}</span> {como}</p>
+      <p className="text-xs leading-relaxed mb-3" style={{ color: cores.cinza }}><span className="font-bold">{rotuloComo}</span> {como}</p>
     </>
   )
 }

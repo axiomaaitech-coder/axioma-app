@@ -156,7 +156,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
     <label className="block">
       <span className="text-xs font-semibold" style={{ color: TEXTO }}>{rotulo}</span>
       <div className="mt-1">{filho}</div>
-      {dica && <span className="text-[11px] block mt-1" style={{ color: CINZA }}>{dica}</span>}
+      {dica && <span className="text-xs block mt-1" style={{ color: CINZA }}>{dica}</span>}
     </label>
   )
   const entrada = (valor: string, mudar: (v: string) => void, extra: Record<string, unknown> = {}) => (
@@ -191,7 +191,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
             'Just want to hand Axioma control to a CEO, Partner or Admin already on the team? Use "Transfer ownership" on the Team screen.',
             '¿Solo quiere pasar el control de Axioma a un CEO, Socio o Admin que ya está en el equipo? Use "Transferir propiedad" en la pantalla Equipo.')}
         </p>
-        <p className="text-[11px] mt-2" style={{ color: CINZA }}>
+        <p className="text-xs mt-2" style={{ color: CINZA }}>
           {L(`Regras da lei conferidas em ${dataBR(BASE_LEGAL_DATA)} (Código Civil, Lei 6.404/76 e normas do DREI). Leis mudam: confirme com a Junta Comercial do seu estado antes de assinar.`,
             `Legal rules checked on ${dataBR(BASE_LEGAL_DATA)} (Civil Code, Law 6,404/76 and DREI rules). Laws change: confirm with your state Commercial Registry before signing.`,
             `Reglas legales verificadas el ${dataBR(BASE_LEGAL_DATA)} (Código Civil, Ley 6.404/76 y normas del DREI). Las leyes cambian: confirme con la Junta Comercial de su estado antes de firmar.`)}
@@ -296,8 +296,8 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                     <label key={i.id} className="flex items-start gap-2 cursor-pointer">
                       <input type="checkbox" checked={!!marcados[i.id]} onChange={(e) => setMarcados({ ...marcados, [i.id]: e.target.checked })} className="mt-1" />
                       <span className="text-sm" style={{ color: TEXTO }}>
-                        {i.texto[lang]} <span className="text-[11px] font-semibold" style={{ color: i.obrigatorio ? VERMELHO : CINZA }}>({i.obrigatorio ? L('obrigatório', 'required', 'obligatorio') : L('recomendado', 'recommended', 'recomendado')})</span>
-                        <span className="block text-[11px]" style={{ color: CINZA }}>{i.ajuda[lang]}</span>
+                        {i.texto[lang]} <span className="text-xs font-semibold" style={{ color: i.obrigatorio ? VERMELHO : CINZA }}>({i.obrigatorio ? L('obrigatório', 'required', 'obligatorio') : L('recomendado', 'recommended', 'recomendado')})</span>
+                        <span className="block text-xs" style={{ color: CINZA }}>{i.ajuda[lang]}</span>
                       </span>
                     </label>
                   ))}
@@ -360,7 +360,7 @@ export default function TransferirEmpresa({ empresa, userId, lang, temaClaro, ca
                 <div key={t.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: aninhado }}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-bold" style={{ color: TEXTO }}>{t.cedente_nome} <ArrowRightLeft size={12} className="inline mx-1" /> {t.cessionario_nome}</p>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${s.cor}22`, color: s.cor, border: `1px solid ${s.cor}50` }}>{s.txt}</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${s.cor}22`, color: s.cor, border: `1px solid ${s.cor}50` }}>{s.txt}</span>
                   </div>
                   <p className="text-xs mt-1" style={{ color: CINZA }}>
                     {nomeOperacao(t.tipo_operacao)} · {nomeTipo(t.tipo_societario)} · {L('Junta', 'Registry', 'Junta')} {t.junta_protocolo} ({dataBR(t.junta_data)}) · {L('pedido em', 'requested on', 'pedido el')} {dataBR(t.created_at)}

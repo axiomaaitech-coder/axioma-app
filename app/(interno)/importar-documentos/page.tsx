@@ -1792,7 +1792,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               const cor = corDestinoClaro(card.cor, temaClaro);
               return (
                 <CanvasBox {...cartaoTema} key={i} cor={cor}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                   <p className="text-lg md:text-xl font-black" style={{ color: cor }}><AnimatedNumber value={String(card.valor)} /></p>
                 </CanvasBox>
               );
@@ -1849,7 +1849,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                   transition={arrastando ? { y: { duration: 0.7, repeat: Infinity }, scale: { duration: 0.2 } } : { duration: 0.2 }}>📥</motion.div>
                 <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{arrastando ? tt.soltarAqui : tt.arrasteAqui}</p>
                 <p className="text-xs sm:text-sm mb-4" style={{ color: ct("#5a7a9a") }}>{tt.ouClique}</p>
-                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
+                <span className="inline-block px-3 py-1.5 rounded-full text-xs" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(163,177,194,0.15)", color: temaClaro ? "#101b3d" : "#2ecc9b" }}>
                   {tt.formatosSuportados}
                 </span>
                 <input
@@ -2020,7 +2020,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Data</label>
+                <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Data</label>
                 <input
                   type="date"
                   value={formEdicao.data}
@@ -2031,7 +2031,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Valor (R$)</label>
+                <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Valor (R$)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -2043,7 +2043,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Descrição</label>
+                <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Descrição</label>
                 <div className="flex gap-2 items-center mt-1">
                 <input
                   type="text"
@@ -2057,7 +2057,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Categoria</label>
+                <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Categoria</label>
                 <input
                   type="text"
                   value={formEdicao.categoria}
@@ -2068,7 +2068,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
                 />
               </div>
 
-              <div className="rounded-lg p-2 text-[11px] axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+              <div className="rounded-lg p-2 text-xs axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
                 ℹ️ A alteração será aplicada em <strong style={{ color: temaClaro ? "#101b3d" : "#2ecc9b" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
               </div>
             </div>
@@ -2130,7 +2130,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
             </div>
 
             {/* Grid de canais */}
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>Compartilhar via</p>
+            <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>Compartilhar via</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               <button onClick={shareWhatsApp}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
@@ -2178,7 +2178,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
               </button>
             </div>
 
-            <div className="rounded-lg p-2 text-[11px] mb-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+            <div className="rounded-lg p-2 text-xs mb-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
               ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: ct("#2ecc9b") }}>Link Seguro</strong> expira em 24h.
             </div>
 
@@ -2254,7 +2254,7 @@ function PreviewBlock(props: any) {
       <div className="space-y-4">
         {perguntasSup.length > 0 && (
           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: pendentesSupervisao > 0 ? "2px solid #16a97d" : temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
-            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
+            <p className="text-xs uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               🧑‍💼 {tt.supervisaoTitulo} {pendentesSupervisao > 0 ? `(${pendentesSupervisao})` : "✓"}
             </p>
             <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.supervisaoSub}</p>
@@ -2315,7 +2315,7 @@ function PreviewBlock(props: any) {
         )}
         {classif && (
           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
-            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>🧾 {tt.deQueECompra}</p>
+            <p className="text-xs uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>🧾 {tt.deQueECompra}</p>
             <div className="mt-2 space-y-2">
               {Object.entries(classif.porNatureza).map(([natureza, g]) => (
                 <div key={natureza}>
@@ -2342,7 +2342,7 @@ function PreviewBlock(props: any) {
         )}
         {textoResumoPag && (
           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(46,204,155,0.15)" }}>
-            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
+            <p className="text-xs uppercase tracking-wider font-bold" style={{ color: ct("#5a7a9a") }}>
               💳 {idioma === "en" ? "How it was paid" : idioma === "es" ? "Cómo se pagó" : "Como foi pago"}
             </p>
             <p className="text-sm mt-1" style={{ color: ct("#c8d8f0") }}>{textoResumoPag}</p>
@@ -2367,7 +2367,7 @@ function PreviewBlock(props: any) {
         {/* Header do preview */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)") }}>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.preview}</p>
+            <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.preview}</p>
             <p className="text-base font-bold" style={{ color: ct("#c8d8f0") }}>
               <span className="mr-2">{destInfo.icon}</span>
               {resultado.linhas.length} {tt.linhasDetectadas}
@@ -2383,7 +2383,7 @@ function PreviewBlock(props: any) {
           {/* Aplicar destino a TODAS as linhas de uma vez — cada linha ainda
               pode ser trocada individualmente na tabela abaixo. */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.destino} {tt.destinoTodasLinhas}</label>
+            <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.destino} {tt.destinoTodasLinhas}</label>
             <select
               value={multiplosDestinos ? "" : destinoResumo}
               onChange={(e) => aplicarDestinoEmMassa(e.target.value as DestinoTabela, false)}
@@ -2405,7 +2405,7 @@ function PreviewBlock(props: any) {
         {/* Templates */}
         {templates.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>{tt.templatesDisponiveis}</p>
+            <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>{tt.templatesDisponiveis}</p>
             <div className="flex flex-wrap gap-2">
               {templates.map((tpl: any) => (
                 <button key={tpl.id} onClick={() => aplicarTemplate(tpl)}
@@ -2431,7 +2431,7 @@ function PreviewBlock(props: any) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {camposMap.map((c) => (
                 <div key={c.key}>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</label>
+                  <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</label>
                   <select
                     value={(mapeamento[c.key] as string) || ""}
                     onChange={(e) => aplicarMapeamento({ ...mapeamento, [c.key]: e.target.value || undefined })}
@@ -2490,7 +2490,7 @@ function PreviewBlock(props: any) {
             className="px-2.5 py-1 rounded-lg" style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>
             ✕ {tt.desselecionar}
           </button>
-          <span className="ml-auto text-[11px]" style={{ color: ct("#5a7a9a") }}>
+          <span className="ml-auto text-xs" style={{ color: ct("#5a7a9a") }}>
             <strong style={{ color: ct("#34d399") }}>{totalSelecionadas}</strong> {tt.linhasSelecionadas}
             {totalDuplicadas > 0 && <> · <strong style={{ color: ct("#2ecc9b") }}>{totalDuplicadas}</strong> {tt.duplicadasMarcadas}</>}
           </span>
@@ -2498,12 +2498,12 @@ function PreviewBlock(props: any) {
 
         {/* Aplicar destino em massa às linhas marcadas (mesmo padrão da
             confirmação de duplicata: seleção + ação em massa) */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <span style={{ color: ct("#5a7a9a") }}>{tt.destinoSelecionadas}</span>
           <select
             value={destinoMassa}
             onChange={(e) => setDestinoMassa(e.target.value as DestinoTabela)}
-            className="px-2 py-1 rounded-lg text-[11px]"
+            className="px-2 py-1 rounded-lg text-xs"
             style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}
           >
             {DESTINOS.map((d) => (
@@ -2589,14 +2589,14 @@ function PreviewBlock(props: any) {
                               type="button"
                               title={`${tt.motivo}: ${sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}`}
                               onClick={() => editarLinha(i, "categoria", sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria || "")}
-                              className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
+                              className="text-xs px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
                               style={{ background: "rgba(46,204,155,0.15)", color: ct("#2ecc9b") }}
                             >
                               💡 {sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}
                             </button>
                           )}
                           {isDup && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap"
+                            <span className="text-xs px-1.5 py-0.5 rounded whitespace-nowrap"
                               style={{ background: "rgba(46,204,155,0.15)", color: ct("#2ecc9b") }}>
                               DUP
                             </span>
@@ -2608,7 +2608,7 @@ function PreviewBlock(props: any) {
                           <select
                             value={destinos[i]}
                             onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
-                            className="text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
+                            className="text-xs px-1.5 py-1 rounded-lg focus:outline-none"
                             style={{
                               background: fundoInput,
                               color: confereDestino ? ct("#2ecc9b") : ct("#c8d8f0"),
@@ -2622,7 +2622,7 @@ function PreviewBlock(props: any) {
                           {confereDestino && (
                             <span
                               title={l.motivoDestino || tt.confiraDestino}
-                              className="text-[10px] cursor-help"
+                              className="text-xs cursor-help"
                               style={{ color: ct("#2ecc9b") }}
                             >
                               ⚠️
@@ -2637,7 +2637,7 @@ function PreviewBlock(props: any) {
             </table>
           </div>
           {linhas.length > 200 && (
-            <p className="text-[10px] text-center py-2" style={{ color: ct("#5a7a9a") }}>
+            <p className="text-xs text-center py-2" style={{ color: ct("#5a7a9a") }}>
               Mostrando primeiras 200 de {linhas.length} linhas (todas serão importadas se selecionadas)
             </p>
           )}
@@ -2664,10 +2664,10 @@ function PreviewBlock(props: any) {
                     <p className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{l.descricao || "—"}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {l.categoria && (
-                        <span className="text-[10px]" style={{ color: ct("#2ecc9b") }}>{l.categoria}</span>
+                        <span className="text-xs" style={{ color: ct("#2ecc9b") }}>{l.categoria}</span>
                       )}
                       {isDup && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded"
+                        <span className="text-xs px-1.5 py-0.5 rounded"
                           style={{ background: "rgba(46,204,155,0.15)", color: ct("#2ecc9b") }}>
                           DUPLICADA
                         </span>
@@ -2677,7 +2677,7 @@ function PreviewBlock(props: any) {
                       <select
                         value={destinos[i]}
                         onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
-                        className="flex-1 text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
+                        className="flex-1 text-xs px-1.5 py-1 rounded-lg focus:outline-none"
                         style={{
                           background: fundoInput,
                           color: l.confiancaDestino === "baixa" ? ct("#2ecc9b") : ct("#c8d8f0"),
@@ -2689,7 +2689,7 @@ function PreviewBlock(props: any) {
                         ))}
                       </select>
                       {l.confiancaDestino === "baixa" && (
-                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: ct("#2ecc9b") }}>⚠️</span>
+                        <span title={l.motivoDestino || tt.confiraDestino} className="text-xs" style={{ color: ct("#2ecc9b") }}>⚠️</span>
                       )}
                     </div>
                   </div>
@@ -2698,7 +2698,7 @@ function PreviewBlock(props: any) {
             );
           })}
           {linhas.length > 50 && (
-            <p className="text-[10px] text-center py-2" style={{ color: ct("#5a7a9a") }}>
+            <p className="text-xs text-center py-2" style={{ color: ct("#5a7a9a") }}>
               Mostrando 50 de {linhas.length}
             </p>
           )}
@@ -2720,13 +2720,13 @@ function PreviewBlock(props: any) {
               </p>
               {pendentesDuplicata > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[10px] self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
+                  <span className="text-xs self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
                   {possiveisDuplicatas.some((p: any, k: number) => p?.baixa && decisoesDuplicata[k] === null) && (
-                    <button onClick={() => resolverDuplicataEmMassa("baixar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(22,169,125,0.15)", color: ct("#2ecc9b") }}>{tt.darBaixa}</button>
+                    <button onClick={() => resolverDuplicataEmMassa("baixar")} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(22,169,125,0.15)", color: ct("#2ecc9b") }}>{tt.darBaixa}</button>
                   )}
-                  <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>{tt.somar}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)"), color: ct("#2ecc9b") }}>{tt.somar}</button>
                 </div>
               )}
             </div>
@@ -2741,35 +2741,35 @@ function PreviewBlock(props: any) {
                     <p className="text-xs font-semibold" style={{ color: ct("#c8d8f0") }}>
                       Linha {i + 1}: {linha.descricao || "—"} · {formatBRL(linha.valor || 0)} · {linha.data ? formatData(linha.data) : "—"}
                     </p>
-                    <p className="text-[11px] mt-1" style={{ color: ct("#2ecc9b") }}>
+                    <p className="text-xs mt-1" style={{ color: ct("#2ecc9b") }}>
                       {pd.baixa ? tt.contaEmAberto : tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
                       {pd.decisao === "duplicata" && <span style={{ color: ct("#f87171") }}> — {tt.duplicataConfirmada}</span>}
                       {pd.decisao === "baixar" && <span style={{ color: ct("#2ecc9b") }}> — {tt.pagamentoDeConta}</span>}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.porIA ? `🧠 ${tt.conferidoIA}: ` : ""}{pd.motivo}</p>
+                    <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.porIA ? `🧠 ${tt.conferidoIA}: ` : ""}{pd.motivo}</p>
                     {pd.decisao === "perguntar" && pd.pergunta && (
-                      <p className="text-[11px] mt-1 font-semibold" style={{ color: ct("#c8d8f0") }}>❓ {tt.perguntaHumano}: {pd.pergunta}</p>
+                      <p className="text-xs mt-1 font-semibold" style={{ color: ct("#c8d8f0") }}>❓ {tt.perguntaHumano}: {pd.pergunta}</p>
                     )}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {pd.baixa && (
                         <button onClick={() => resolverDuplicata(i, "baixar")}
-                          className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                          className="text-xs px-2 py-1 rounded-lg font-semibold"
                           style={{ background: decisao === "baixar" ? "#16a97d" : "rgba(22,169,125,0.15)", color: decisao === "baixar" ? "#ffffff" : ct("#2ecc9b"), border: decisao === "baixar" ? "1px solid #16a97d" : "none" }}>
                           ✓ {tt.darBaixa}
                         </button>
                       )}
                       <button onClick={() => resolverDuplicata(i, "importar")}
-                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        className="text-xs px-2 py-1 rounded-lg font-semibold"
                         style={{ background: decisao === "importar" ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.12)", color: ct("#34d399"), border: decisao === "importar" ? `1px solid ${ct("#34d399")}` : "none" }}>
                         {tt.importarMesmoAssim}
                       </button>
                       <button onClick={() => resolverDuplicata(i, "pular")}
-                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        className="text-xs px-2 py-1 rounded-lg font-semibold"
                         style={{ background: decisao === "pular" ? "rgba(148,163,184,0.3)" : "rgba(148,163,184,0.12)", color: ct("#cbd5e1"), border: decisao === "pular" ? `1px solid ${ct("#cbd5e1")}` : "none" }}>
                         {tt.pular}
                       </button>
                       {pd.candidato.tabela !== "lote" && <button onClick={() => resolverDuplicata(i, "somar")}
-                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        className="text-xs px-2 py-1 rounded-lg font-semibold"
                         style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)"), color: temaClaro ? "#101b3d" : ct("#2ecc9b"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#2ecc9b")}` : "none" }}>
                         {tt.somar}
                       </button>}
@@ -2784,7 +2784,7 @@ function PreviewBlock(props: any) {
         {/* Simulador — mesmo caminho da importação real, nada é gravado */}
         {simulacao && (
           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(46,204,155,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.25)") }}>
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#2ecc9b") }}>🔍 {tt.resultadoSimulacao}</p>
+            <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#2ecc9b") }}>🔍 {tt.resultadoSimulacao}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { label: tt.importadas, valor: simulacao.importadas, cor: ct("#34d399") },
@@ -2794,7 +2794,7 @@ function PreviewBlock(props: any) {
               ].map((s: any, i: number) => (
                 <div key={i} className="rounded-lg p-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada }}>
                   <p className="text-lg font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
-                  <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
+                  <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                 </div>
               ))}
             </div>
@@ -2805,7 +2805,7 @@ function PreviewBlock(props: any) {
         <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.valorTotal}</p>
+              <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.valorTotal}</p>
               <p className="text-xl font-bold" style={{ color: ct("#34d399") }}><AnimatedNumber value={formatBRL(valorTotalPreview)} /></p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -2866,7 +2866,7 @@ function HistoricoBlock(props: any) {
       <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : ct("#2ecc9b")}>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroStatus}</label>
+            <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroStatus}</label>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
               style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}>
@@ -2877,7 +2877,7 @@ function HistoricoBlock(props: any) {
             </select>
           </div>
           <div className="flex-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroDestino}</label>
+            <label className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroDestino}</label>
             <select value={filtroDestino} onChange={(e) => setFiltroDestino(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
               style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)") }}>
@@ -2916,10 +2916,10 @@ function HistoricoBlock(props: any) {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: ct("#c8d8f0") }}>{item.nome_arquivo}</p>
                       <p className="text-xs mt-0.5" style={{ color: destInfo.cor }}>→ {destinoLabel(tt, item.destino)}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{formatDataHora(item.created_at)}</p>
+                      <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{formatDataHora(item.created_at)}</p>
                     </div>
                   </div>
-                  <span className="px-2 py-1 rounded-lg text-[11px] font-semibold flex-shrink-0"
+                  <span className="px-2 py-1 rounded-lg text-xs font-semibold flex-shrink-0"
                     style={{ background: `${stInfo.cor}20`, color: stInfo.cor }}>
                     {statusLabel(tt, item.status)}
                   </span>
@@ -2934,7 +2934,7 @@ function HistoricoBlock(props: any) {
                     { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: ct("#2ecc9b") },
                   ].map((s, i) => (
                     <div key={i} className="rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada }}>
-                      <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
+                      <p className="text-xs uppercase" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                       <p className="text-sm font-bold" style={{ color: s.cor }}>{s.valor}</p>
                     </div>
                   ))}
@@ -2946,7 +2946,7 @@ function HistoricoBlock(props: any) {
                     {/* Metadados */}
                     <div className="rounded-lg p-3 text-xs space-y-1 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p style={{ color: ct("#5a7a9a") }}>
-                        Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
+                        Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 12 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
                       </p>
                       {item.tipo_arquivo && <p style={{ color: ct("#5a7a9a") }}>Formato: <span style={{ color: ct("#c8d8f0") }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
                       {item.tamanho_bytes > 0 && <p style={{ color: ct("#5a7a9a") }}>Tamanho: <span style={{ color: ct("#c8d8f0") }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
@@ -2957,7 +2957,7 @@ function HistoricoBlock(props: any) {
 
                     {/* Fila de Exceções — o que o sistema não decidiu sozinho */}
                     <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(248,113,113,0.15)" }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#f87171") }}>⚠️ {tt.excecoes}</p>
+                      <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#f87171") }}>⚠️ {tt.excecoes}</p>
                       {(excecoesPorImportacao[item.id] || []).length === 0 ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semExcecoes}</p>
                       ) : (
@@ -2968,8 +2968,8 @@ function HistoricoBlock(props: any) {
                                 <p className="text-xs font-semibold" style={{ color: ct("#f87171") }}>
                                   {exc.tipo} {exc.linha_numero ? `— linha ${exc.linha_numero}` : ""}
                                 </p>
-                                <p className="text-[11px] mt-0.5" style={{ color: ct("#c8d8f0") }}>{tt.motivo}: {exc.motivo}</p>
-                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? ct("#2ecc9b") : ct("#34d399") }}>
+                                <p className="text-xs mt-0.5" style={{ color: ct("#c8d8f0") }}>{tt.motivo}: {exc.motivo}</p>
+                                <p className="text-xs mt-0.5" style={{ color: exc.status === "pendente" ? ct("#2ecc9b") : ct("#34d399") }}>
                                   {exc.status === "pendente" ? tt.excecaoPendente : tt.excecaoResolvida}
                                 </p>
                               </div>
@@ -2977,7 +2977,7 @@ function HistoricoBlock(props: any) {
                                 <button
                                   onClick={() => resolverExcecaoUI(exc.id, item.id)}
                                   disabled={resolvendoExcecao === exc.id}
-                                  className="px-2 py-1 rounded-lg text-[10px] font-semibold flex-shrink-0 disabled:opacity-50"
+                                  className="px-2 py-1 rounded-lg text-xs font-semibold flex-shrink-0 disabled:opacity-50"
                                   style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}
                                 >
                                   {resolvendoExcecao === exc.id ? tt.resolvendo : tt.resolver}
@@ -2991,7 +2991,7 @@ function HistoricoBlock(props: any) {
 
                     {/* Linha do Tempo */}
                     <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>🕒 {tt.timeline}</p>
+                      <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>🕒 {tt.timeline}</p>
                       {(timelinePorImportacao[item.id] || []).length === 0 ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semTimeline}</p>
                       ) : (
@@ -3016,7 +3016,7 @@ function HistoricoBlock(props: any) {
                       </div>
                     ) : linhasPorImportacao[item.id] ? (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>
+                        <p className="text-xs uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>
                           📋 Lançamentos desta Importação ({linhasPorImportacao[item.id].length})
                         </p>
 
@@ -3051,7 +3051,7 @@ function HistoricoBlock(props: any) {
                                       </td>
                                       <td className="px-2 py-1.5" style={{ color: ct("#2ecc9b") }}>{ln.categoria || "—"}</td>
                                       <td className="px-2 py-1.5 text-center">
-                                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{
+                                        <span className="px-1.5 py-0.5 rounded text-xs" style={{
                                           background: ln.status === "importada" ? "rgba(52,211,153,0.15)" :
                                                        ln.status === "duplicada" ? "rgba(46,204,155,0.15)" :
                                                        ln.status === "revertida" ? "rgba(58,90,138,0.2)" :
@@ -3101,12 +3101,12 @@ function HistoricoBlock(props: any) {
                                 opacity: editavel ? 1 : 0.55,
                               }}>
                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                  <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>#{ln.linha_numero} · {fData(ln.data_lancamento)}</span>
+                                  <span className="text-xs" style={{ color: ct("#5a7a9a") }}>#{ln.linha_numero} · {fData(ln.data_lancamento)}</span>
                                   <span className="text-sm font-bold" style={{ color: ct("#34d399") }}>{formatBRL(Number(ln.valor) || 0)}</span>
                                 </div>
                                 <p className="text-xs truncate mb-1" style={{ color: ct("#c8d8f0") }}>{ln.descricao || "—"}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[10px]" style={{ color: ct("#2ecc9b") }}>{ln.categoria || "—"}</span>
+                                  <span className="text-xs" style={{ color: ct("#2ecc9b") }}>{ln.categoria || "—"}</span>
                                   {editavel && (
                                     <div className="flex gap-1">
                                       <button onClick={() => abrirEdicao(ln)}

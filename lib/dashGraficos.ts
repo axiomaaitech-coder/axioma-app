@@ -42,10 +42,10 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     xAxis: { type: "category", data: meses,
       axisLine: { lineStyle: { color: e.linha } }, axisTick: { show: false },
-      axisLabel: { color: e.rotulo, fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: e.rotulo, fontSize: 12, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
-      axisLabel: { color: e.rotuloFraco, fontSize: 10, formatter: (v: number) => fK(v) } },
+      axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [{
       type: "bar", barWidth: "60%",
       itemStyle: {
@@ -53,7 +53,7 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
         shadowColor: cor + "60", shadowBlur: claro ? 4 : 12,
       },
-      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 10, fontWeight: 800, formatter: (p: any) => fK(p.value) },
+      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => fK(p.value) },
       emphasis: { itemStyle: { shadowBlur: 24 } },
       data: dados,
     }],
@@ -69,7 +69,7 @@ export function rosca(dadosEscuro: { name: string; value: number; color: string 
     tooltip: { ...(claro ? tipClaro : tip), trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${claro ? "#16a97d" : cor}">${p.percent}%</span>` },
     legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: e.rotulo, fontSize: 11, fontWeight: 600 },
+      textStyle: { color: e.rotulo, fontSize: 12, fontWeight: 600 },
       formatter: (name: string) => { const d = dados.find(x => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name}  ${pct}%`; } },
     series: [{ type: "pie", radius: ["54%", "80%"], center: ["34%", "52%"], avoidLabelOverlap: false,
       itemStyle: { borderColor: claro ? "#ffffff" : "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
@@ -78,7 +78,7 @@ export function rosca(dadosEscuro: { name: string; value: number; color: string 
       data: dados.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
     graphic: [
       { type: "text", left: "34%", top: "45%", style: { text: fK(total), textAlign: "center", fill: e.valor, fontSize: 18, fontWeight: 900 }, z: 10 },
-      { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: e.rotuloFraco, fontSize: 9, fontWeight: 700 }, z: 10 },
+      { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: e.rotuloFraco, fontSize: 12, fontWeight: 700 }, z: 10 },
     ],
   };
 }

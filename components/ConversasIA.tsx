@@ -171,7 +171,7 @@ export function BarraConversas({ api, lang, claro }: { api: ConversaSalvaApi; la
             <div key={c.id} className="flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: c.id === api.conversaId ? "rgba(46,204,155,0.12)" : "transparent" }}>
               <button type="button" onClick={() => { api.abrir(c.id); setAberta(false); }} className="flex-1 min-w-0 text-left">
                 <span className="block text-sm truncate" style={{ color: cTexto }}>{c.titulo}</span>
-                <span className="block text-[11px]" style={{ color: cSuave }}>{data(c.atualizado_em)}</span>
+                <span className="block text-xs" style={{ color: cSuave }}>{data(c.atualizado_em)}</span>
               </button>
               {confirmar === c.id ? (
                 <span className="flex items-center gap-1 text-xs">

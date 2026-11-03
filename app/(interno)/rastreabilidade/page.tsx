@@ -243,7 +243,7 @@ export default function RastreabilidadePage() {
                         </p>
                       )}
                       {r.payload?.proveniencia?.arquivo && (
-                        <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>
+                        <p className="text-xs mt-0.5" style={{ color: P.CINZA }}>
                           {L('Origem', 'Source', 'Origen')}: {r.payload.proveniencia.arquivo}
                           {r.payload.proveniencia.documento ? ` · NF ${r.payload.proveniencia.documento}` : ''}
                           {r.payload.proveniencia.chave_acesso ? ` · ${L('chave', 'key', 'clave')} …${String(r.payload.proveniencia.chave_acesso).slice(-8)}` : ''}
@@ -280,7 +280,7 @@ export default function RastreabilidadePage() {
                             <s.Icone size={13} aria-hidden />{s.txt}
                             {d.tentativas > 1 && <span className="font-normal" style={{ color: P.CINZA }}>· {d.tentativas} {L('tentativas', 'attempts', 'intentos')}</span>}
                           </p>
-                          {d.resolvido_por === 'guardiao' && d.status === 'ok' && <p className="text-[11px] mt-0.5" style={{ color: P.CINZA }}>{L('concluído pelo Guardião', 'completed by the Guardian', 'completado por el Guardián')}</p>}
+                          {d.resolvido_por === 'guardiao' && d.status === 'ok' && <p className="text-xs mt-0.5" style={{ color: P.CINZA }}>{L('concluído pelo Guardião', 'completed by the Guardian', 'completado por el Guardián')}</p>}
                         </li>
                       )
                     })}

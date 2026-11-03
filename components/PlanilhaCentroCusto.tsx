@@ -566,7 +566,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                   }}>
                     <div className="flex items-center justify-between gap-1">
                       <button onClick={() => setOrdenacao(prev => ({ coluna: c.id, dir: prev?.coluna === c.id && prev.dir === "asc" ? "desc" : "asc" }))}
-                        className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: TEXTO_HEADER }}>
+                        className="text-xs font-black uppercase tracking-wider flex items-center gap-1" style={{ color: TEXTO_HEADER }}>
                         {c.letra} · {labelHeader(c.id)}
                         {ordenacao?.coluna === c.id && (ordenacao.dir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />)}
                       </button>
@@ -579,7 +579,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {colunaFiltroAberta === c.id && (
                       <div className="absolute mt-2 z-20 rounded-xl p-2 max-h-56 overflow-y-auto" style={{ background: FUNDO_POPOVER, border: `1px solid ${PRIMARIA}40`, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
                         <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[10px]" style={{ color: TEXTO_SECUNDARIO }}>{t.filtrar}</span>
+                          <span className="text-xs" style={{ color: TEXTO_SECUNDARIO }}>{t.filtrar}</span>
                           <button onClick={() => setColunaFiltroAberta(null)}><X size={12} style={{ color: TEXTO_SECUNDARIO }} /></button>
                         </div>
                         {valoresDistintos(c.id).map(v => {
@@ -616,7 +616,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                         </span>
                       </td>
                       <td style={{ padding: "6px 10px", fontWeight: 800, color: PRIMARIA }}>{fmt(r.subtotal)}</td>
-                      <td colSpan={r.orcado > 0 ? 1 : 5} style={{ padding: "6px 10px", fontSize: 11, color: TEXTO_SECUNDARIO }}>
+                      <td colSpan={r.orcado > 0 ? 1 : 5} style={{ padding: "6px 10px", fontSize: 12, color: TEXTO_SECUNDARIO }}>
                         {r.orcado > 0 ? <span style={{ color: corOrc, fontWeight: 700 }}>{r.subtotal > r.orcado ? t.estourouOrcamento : t.dentroOrcamento}</span> : t.semOrcamento}
                       </td>
                       {r.orcado > 0 && <td colSpan={4} />}
@@ -631,7 +631,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                         <span className="text-xs font-bold" style={{ color: SECUNDARIA }}>{t.subtotal} — {r.nome}</span>
                       </td>
                       <td style={{ padding: "6px 10px", fontWeight: 800, color: SECUNDARIA }}>{fmt(r.subtotal)}</td>
-                      <td colSpan={5} style={{ padding: "6px 10px", fontSize: 11, color: corOrc, fontWeight: r.orcado > 0 ? 700 : 400 }}>
+                      <td colSpan={5} style={{ padding: "6px 10px", fontSize: 12, color: corOrc, fontWeight: r.orcado > 0 ? 700 : 400 }}>
                         {r.orcado > 0 ? `${fmt(r.orcado)} ${t.orcadoS.toLowerCase()}` : ""}
                       </td>
                     </tr>
@@ -657,8 +657,8 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {/* A - Origem (com o número de linha usado no endereçamento de fórmula, ex: D3) */}
                     <td style={{ position: "sticky", left: 0, background: selecionada ? FUNDO_LINHA_SEL_STICKY : FUNDO_LINHA, padding: "4px 10px", borderRight: temaClaro ? "1px solid rgba(16,27,61,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
                       <span className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono" style={{ color: TEXTO_NUMERO_LINHA }}>{r.numeroFormula}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${PRIMARIA}18`, color: PRIMARIA }}>{LABEL_ORIGEM[l.tabela][idioma]}</span>
+                        <span className="text-xs font-mono" style={{ color: TEXTO_NUMERO_LINHA }}>{r.numeroFormula}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${PRIMARIA}18`, color: PRIMARIA }}>{LABEL_ORIGEM[l.tabela][idioma]}</span>
                       </span>
                     </td>
                     {/* B - Descrição */}
@@ -691,7 +691,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {l.rateios && l.rateios.length > 0 ? (
                       <td style={{ padding: "4px 10px" }} title={l.rateios.map(r => `${r.centroNome}: ${r.percentual}%`).join(" · ")}>
                         <button onClick={(e) => { e.stopPropagation(); onEditarRateio(l.tabela, l.id); }}
-                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${ct("#2ecc9b")}20`, color: ct("#2ecc9b") }}>
+                          className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${ct("#2ecc9b")}20`, color: ct("#2ecc9b") }}>
                           <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")} <Pencil size={8} />
                         </button>
                       </td>
@@ -713,13 +713,13 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {/* H - Status (somente leitura) */}
                     {l.tabela === "contas_pagar" ? (
                       <td title={t.somenteLeitura} style={{ padding: "4px 10px" }}>
-                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${corStatus(l.status)}18`, color: corStatus(l.status) }}>
+                        <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${corStatus(l.status)}18`, color: corStatus(l.status) }}>
                           <Lock size={9} /> {l.status || "-"}
                         </span>
                       </td>
                     ) : <td style={{ padding: "4px 10px", color: TEXTO_NUMERO_LINHA }}>—</td>}
                     {/* I - % do Total (viva) */}
-                    <td style={{ padding: "4px 10px", fontSize: 11, color: TEXTO_SECUNDARIO }}>{pctTotal.toFixed(1)}%</td>
+                    <td style={{ padding: "4px 10px", fontSize: 12, color: TEXTO_SECUNDARIO }}>{pctTotal.toFixed(1)}%</td>
                   </tr>
                 );
               })}
@@ -808,7 +808,7 @@ function CelulaEditavel(props: {
           type={tipo === "data" ? "date" : tipo === "numero" ? "number" : "text"}
           className="w-full px-2 py-1 rounded text-xs focus:outline-none" style={{ background: fundoInput, border: `1px solid ${corAcento}`, color: textoPrimario }} />
       )}
-      {erro && <p className="text-[9px] mt-0.5" style={{ color: "#f87171" }}>{erro}</p>}
+      {erro && <p className="text-xs mt-0.5" style={{ color: "#f87171" }}>{erro}</p>}
     </td>
   );
 }

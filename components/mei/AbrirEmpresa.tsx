@@ -76,13 +76,13 @@ export default function AbrirEmpresa({ lang, temaClaro, cartaoTema, onPreencher 
         {passos.map(([titulo, texto, link], i) => (
           <li key={titulo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
             <p className="text-xs font-bold" style={{ color: TEXTO }}>{i + 1}. {titulo}</p>
-            <p className="text-[11px] mt-1" style={{ color: SEC }}>{texto}</p>
-            {link && <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><ExternalLink size={11} />{L('Abrir portal oficial', 'Open official portal', 'Abrir portal oficial')}</a>}
+            <p className="text-xs mt-1" style={{ color: SEC }}>{texto}</p>
+            {link && <a href={link} target="_blank" rel="noopener noreferrer" className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><ExternalLink size={11} />{L('Abrir portal oficial', 'Open official portal', 'Abrir portal oficial')}</a>}
           </li>
         ))}
       </ol>
       <div className="flex flex-wrap items-end gap-2 mt-3">
-        <label className="text-[11px] flex-1 min-w-[180px]" style={{ color: SEC }}>{L('Já tenho CNPJ', 'I already have a CNPJ', 'Ya tengo CNPJ')}
+        <label className="text-xs flex-1 min-w-[180px]" style={{ color: SEC }}>{L('Já tenho CNPJ', 'I already have a CNPJ', 'Ya tengo CNPJ')}
           <input value={cnpj} onChange={(e) => setCnpj(e.target.value)} inputMode="numeric" placeholder="00.000.000/0000-00" className="block w-full mt-1 px-3 py-2 rounded-lg text-sm" style={CAMPO} />
         </label>
         <button onClick={() => void buscar()} disabled={buscando || cnpj.replace(/\D/g, '').length !== 14} className="px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 disabled:cursor-not-allowed" style={{ background: MENTA, color: '#ffffff' }}>

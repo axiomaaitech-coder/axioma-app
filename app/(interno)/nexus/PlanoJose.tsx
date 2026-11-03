@@ -136,7 +136,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
           <li key={i}>
             <p className="text-sm font-bold leading-snug" style={{ color: TITULO }}>{a.titulo}</p>
             <p className="text-xs leading-relaxed mt-0.5" style={{ color: TEXTO }}>{a.detalhe}</p>
-            <p className="text-[11px] mt-1" style={{ color: CINZA }}>
+            <p className="text-xs mt-1" style={{ color: CINZA }}>
               <span className="font-bold" style={{ color: corPrio(a.prioridade) }}>{nomePrio(a.prioridade)}</span> · {L('impacto', 'impact', 'impacto')}: {a.impacto}
             </p>
           </li>
@@ -154,7 +154,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
   return (
     <div className="mt-3 rounded-xl p-3" style={temaClaro ? { background: '#101b3d', border: '1px solid #101b3d' } : { background: 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
       <p className="text-sm font-bold mb-0.5" style={{ color: CX_TIT }}>🔮 {L('Pergunte ao José: como sua empresa pode estar em…', 'Ask José: where could your company be in…', 'Pregunte a José: ¿cómo puede estar su empresa en…')}</p>
-      <p className="text-[11px] mb-2.5" style={{ color: CX_TXT, opacity: temaClaro ? 1 : 0.85 }}>
+      <p className="text-xs mb-2.5" style={{ color: CX_TXT, opacity: temaClaro ? 1 : 0.85 }}>
         {L('Ele lê o seu caixa e os seus custos, cruza com a economia do Brasil e do mundo e monta um plano para sobreviver, economizar e crescer.', 'He reads your cash and costs, cross-checks with the Brazilian and world economy and builds a plan to survive, save and grow.', 'Lee su caja y sus costos, cruza con la economía de Brasil y del mundo y arma un plan para sobrevivir, ahorrar y crecer.')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -165,7 +165,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
             <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
             <p className="text-lg leading-none mb-1">{h.emoji}</p>
             <p className="text-sm font-black" style={{ color: TITULO }}>{L3(h.titulo)}</p>
-            <p className="text-[11px]" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L3(h.sub)}</p>
+            <p className="text-xs" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L3(h.sub)}</p>
           </button>
         ))}
       </div>
@@ -192,13 +192,13 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
               return (
                 <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-1.5" style={temaClaro ? { background: '#ffffff', border: '1px solid #ffffff' } : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <span className="text-xs font-bold" style={{ color: TITULO }}>{nomeHorizonte(p.horizonte)}</span>
-                  <span className="text-[11px]" style={{ color: CINZA }}>{new Date(p.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}</span>
-                  <span className="text-[11px] font-semibold" style={{ color: urgente ? (temaClaro ? '#dc3545' : '#f87171') : CINZA }}>
+                  <span className="text-xs" style={{ color: CINZA }}>{new Date(p.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}</span>
+                  <span className="text-xs font-semibold" style={{ color: urgente ? (temaClaro ? '#dc3545' : '#f87171') : CINZA }}>
                     {L(`apaga em ${dias} dia(s)`, `deleted in ${dias} day(s)`, `se borra en ${dias} día(s)`)}
                   </span>
                   <span className="ml-auto flex gap-1.5">
-                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={temaClaro ? { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' } : { color: ACENTO, border: `1px solid ${ACENTO}` }}>{L('Abrir', 'Open', 'Abrir')}</button>
-                    <button onClick={() => baixarPdfPlano(r, nomeHorizonte(p.horizonte), lang)} className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md" style={VERDE_SOLIDO}>
+                    <button onClick={() => abrirSalvo(p)} className="text-xs font-bold px-2 py-1 rounded-md" style={temaClaro ? { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' } : { color: ACENTO, border: `1px solid ${ACENTO}` }}>{L('Abrir', 'Open', 'Abrir')}</button>
+                    <button onClick={() => baixarPdfPlano(r, nomeHorizonte(p.horizonte), lang)} className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md" style={VERDE_SOLIDO}>
                       <FileDown size={11} aria-hidden />PDF
                     </button>
                   </span>
@@ -208,7 +208,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
           </ul>
         </div>
       )}
-      {!empresaId && <p className="text-[11px] mt-2" style={{ color: CX_CIN }}>{L('Cadastre sua empresa para receber o plano.', 'Register your company to get the plan.', 'Registre su empresa para recibir el plan.')}</p>}
+      {!empresaId && <p className="text-xs mt-2" style={{ color: CX_CIN }}>{L('Cadastre sua empresa para receber o plano.', 'Register your company to get the plan.', 'Registre su empresa para recibir el plan.')}</p>}
 
       {montado && createPortal(
         <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
@@ -235,8 +235,8 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
                             <FileDown size={13} aria-hidden />{L('Salvar em PDF', 'Save as PDF', 'Guardar en PDF')}
                           </button>
                         )}
-                        {resultado && <p className="text-[11px]" style={{ color: CINZA }}>{L(`Fica guardado no Axioma por ${DIAS_GUARDA_PLANO} dias — salve em PDF para manter depois disso.`, `Kept in Axioma for ${DIAS_GUARDA_PLANO} days — save as PDF to keep it longer.`, `Se guarda en Axioma por ${DIAS_GUARDA_PLANO} días — guárdelo en PDF para conservarlo.`)}</p>}
-                        {resultado && <p className="text-[11px]" style={{ color: CINZA }}>{L('Gerado em', 'Generated on', 'Generado el')} {new Date(resultado.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')} · {L('confiança', 'confidence', 'confianza')} {Math.round(resultado.plano.confianca)}/100 · {L('não é recomendação de investimento', 'not investment advice', 'no es recomendación de inversión')}</p>}
+                        {resultado && <p className="text-xs" style={{ color: CINZA }}>{L(`Fica guardado no Axioma por ${DIAS_GUARDA_PLANO} dias — salve em PDF para manter depois disso.`, `Kept in Axioma for ${DIAS_GUARDA_PLANO} days — save as PDF to keep it longer.`, `Se guarda en Axioma por ${DIAS_GUARDA_PLANO} días — guárdelo en PDF para conservarlo.`)}</p>}
+                        {resultado && <p className="text-xs" style={{ color: CINZA }}>{L('Gerado em', 'Generated on', 'Generado el')} {new Date(resultado.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')} · {L('confiança', 'confidence', 'confianza')} {Math.round(resultado.plano.confianca)}/100 · {L('não é recomendação de investimento', 'not investment advice', 'no es recomendación de inversión')}</p>}
                       </div>
                     </div>
                     <button onClick={() => setAberto(null)} aria-label={L('Fechar', 'Close', 'Cerrar')} className={`p-1 rounded-lg ${temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}><X size={18} style={{ color: CINZA }} /></button>
@@ -281,7 +281,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
                             { l: L('Fôlego de caixa', 'Cash runway', 'Autonomía de caja'), v: n.folegoMeses != null ? `${n.folegoMeses} ${L('meses', 'months', 'meses')}` : n.lucroMensal >= 0 ? L('no azul', 'profitable', 'en positivo') : '—' },
                           ].map((k) => (
                             <div key={k.l} className="rounded-xl p-3" style={caixa}>
-                              <p className="text-[11px]" style={{ color: CINZA }}>{k.l}</p>
+                              <p className="text-xs" style={{ color: CINZA }}>{k.l}</p>
                               <p className="text-sm font-black" style={{ color: TITULO }}>{k.v}</p>
                             </div>
                           ))}
@@ -292,7 +292,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
                           <div className="rounded-xl p-3" style={caixa}>{titulo(L('O que a economia sinaliza no período', 'What the economy signals for the period', 'Lo que la economía señala en el período'))}<p className="text-xs leading-relaxed" style={{ color: TEXTO }}>{p.cenario_periodo}</p></div>
                           <div className="rounded-xl p-3" style={caixa}>
                             {titulo(L('Sobrevivência', 'Survival', 'Supervivencia'))}
-                            <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1.5" style={{ color: corRisco(p.sobrevivencia.risco), border: `1px solid ${corRisco(p.sobrevivencia.risco)}` }}>
+                            <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mb-1.5" style={{ color: corRisco(p.sobrevivencia.risco), border: `1px solid ${corRisco(p.sobrevivencia.risco)}` }}>
                               {L('risco', 'risk', 'riesgo')} {p.sobrevivencia.risco === 'alto' ? L('alto', 'high', 'alto') : p.sobrevivencia.risco === 'medio' ? L('médio', 'medium', 'medio') : L('baixo', 'low', 'bajo')}
                             </span>
                             <p className="text-xs leading-relaxed" style={{ color: TEXTO }}>{p.sobrevivencia.texto}</p>
@@ -330,7 +330,7 @@ export function PlanoJose({ lang, temaClaro, empresaId }: { lang: Lang; temaClar
 
                         <div className="rounded-xl p-3" style={caixa}>
                           {titulo(L('O que ainda falta para o José enxergar melhor', 'What José still needs to see better', 'Lo que aún le falta a José para ver mejor'))}
-                          <ul className="list-disc pl-4 space-y-0.5">{p.limitacoes.map((l, i) => <li key={i} className="text-[11px]" style={{ color: CINZA }}>{l}</li>)}</ul>
+                          <ul className="list-disc pl-4 space-y-0.5">{p.limitacoes.map((l, i) => <li key={i} className="text-xs" style={{ color: CINZA }}>{l}</li>)}</ul>
                         </div>
                       </div>
                     )

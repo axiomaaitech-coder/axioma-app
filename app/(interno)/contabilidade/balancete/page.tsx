@@ -152,7 +152,7 @@ export default function BalancetePage() {
                 {grupos.map((g) => (
                   <Fragment key={g.tipo}>
                     <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
-                      <td colSpan={5} className="py-2 font-black uppercase tracking-wide" style={{ color: TEAL, fontSize: 10 }}>{TIPO_LABEL[g.tipo]}</td>
+                      <td colSpan={5} className="py-2 font-black uppercase tracking-wide" style={{ color: TEAL, fontSize: 12 }}>{TIPO_LABEL[g.tipo]}</td>
                     </tr>
                     {g.linhas.map((l) => (
                       <tr key={l.conta.id} onClick={() => router.push(`/contabilidade/razao?conta=${l.conta.id}`)} className="cursor-pointer" style={{ borderTop: '1px solid var(--axi-border)' }}>

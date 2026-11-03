@@ -74,7 +74,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
         <span className="axv-mic" style={{ width: 22, height: 22 }}><Icone size={13} aria-hidden className={minha === "carregando" ? "animate-spin" : undefined} /></span>
         <span className="axv-rotulo text-xs">{minha === "falando" ? t("parar") : minha === "carregando" ? t("preparando") : t("ouvir")}</span>
       </button>
-      {aviso && <span role="alert" className="text-[11px] font-medium" style={{ color: cor }}>{aviso}</span>}
+      {aviso && <span role="alert" className="text-xs font-medium" style={{ color: cor }}>{aviso}</span>}
     </span>
   );
 }

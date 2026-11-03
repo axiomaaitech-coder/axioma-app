@@ -137,7 +137,7 @@ export default function UsoIaPage() {
     <div key={titulo} className="rounded-xl p-4" style={NESTED}>
       <p className="text-xs font-semibold" style={{ color: MUTED }}>{titulo}</p>
       <p className="text-2xl font-black mt-1" style={{ color: TEXTO }}>{valor}</p>
-      <p className="text-[11px] mt-1" style={{ color: MUTED }}>{desc}</p>
+      <p className="text-xs mt-1" style={{ color: MUTED }}>{desc}</p>
     </div>
   )
 
@@ -198,7 +198,7 @@ export default function UsoIaPage() {
               <CanvasBox cor={ACENTO} fundo={CREME} premium3d>
                 <p className="text-sm font-black mb-3" style={{ color: TEXTO }}>{t.porTela}</p>
                 <div className="rounded-xl overflow-hidden" style={NESTED}>
-                  <div className="flex justify-between px-3 py-2 text-[11px] font-bold" style={{ color: MUTED }}><span>{t.tela}</span><span>{t.qtd}</span></div>
+                  <div className="flex justify-between px-3 py-2 text-xs font-bold" style={{ color: MUTED }}><span>{t.tela}</span><span>{t.qtd}</span></div>
                   {r.telas.map(([tela, qtd]) => (
                     <div key={tela} className="flex justify-between px-3 py-2 text-xs" style={{ color: TEXTO, borderTop: temaClaro ? '1px solid rgba(16,27,61,0.08)' : '1px solid rgba(46,204,155,0.08)' }}>
                       <span>{tela}</span><span className="font-bold">{num(qtd)}</span>

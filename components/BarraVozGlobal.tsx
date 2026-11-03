@@ -61,13 +61,13 @@ export default function BarraVozGlobal() {
           <p className="text-xs font-bold truncate" style={{ color: cor }}>
             {g.ativa ? `${t(g.tela ?? "nexus")} · ${t(g.estado ?? "conectando")}` : t("lendo")}
           </p>
-          {g.ativa && ultima && <p className="text-[11px] truncate" style={{ color: cor, opacity: 0.85 }}>{ultima}</p>}
+          {g.ativa && ultima && <p className="text-xs truncate" style={{ color: cor, opacity: 0.85 }}>{ultima}</p>}
         </div>
         {g.ativa && g.caminho && pathname !== g.caminho && (
-          <Link href={g.caminho} className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full text-white" style={{ background: "#0f7a5a" }}>{t("voltar")}</Link>
+          <Link href={g.caminho} className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full text-white" style={{ background: "#0f7a5a" }}>{t("voltar")}</Link>
         )}
         <button type="button" onClick={g.ativa ? encerrarConversaGlobal : pararFala}
-          className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full text-white" style={{ background: "#101b3d", border: "1px solid #2ecc9b" }}>
+          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full text-white" style={{ background: "#101b3d", border: "1px solid #2ecc9b" }}>
           {g.ativa ? <PhoneOff size={13} aria-hidden /> : <Square size={12} aria-hidden />}
           {g.ativa ? t("encerrar") : t("parar")}
         </button>

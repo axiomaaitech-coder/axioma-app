@@ -78,24 +78,24 @@ export default function ContadorProjecaoPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {dados.pontos.map((p) => (
               <div key={p.horizonteDias} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${p.abaixoDaReserva ? VERMELHO : AZULC}25` }}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: p.abaixoDaReserva ? VERMELHO : AZULC }}><AnimatedNumber value={`R$ ${fBRL2(p.saldoProjetadoBase)}`} /></p>
-                {p.abaixoDaReserva && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{L('abaixo da reserva', 'below reserve', 'debajo de la reserva')}</p>}
+                {p.abaixoDaReserva && <p className="text-xs mt-1" style={{ color: VERMELHO }}>{L('abaixo da reserva', 'below reserve', 'debajo de la reserva')}</p>}
               </div>
             ))}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${dados.capitalDeGiro.capitalDeGiro >= 0 ? VERDE : VERMELHO}25` }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Capital de Giro', 'Working Capital', 'Capital de Trabajo')}</p>
+              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Capital de Giro', 'Working Capital', 'Capital de Trabajo')}</p>
               <p className="text-sm md:text-lg font-bold" style={{ color: dados.capitalDeGiro.capitalDeGiro >= 0 ? VERDE : VERMELHO }}><AnimatedNumber value={`R$ ${fBRL2(dados.capitalDeGiro.capitalDeGiro)}`} /></p>
             </div>
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMARELO}25` }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Dívida Pendente', 'Outstanding Debt', 'Deuda Pendiente')}</p>
+              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Dívida Pendente', 'Outstanding Debt', 'Deuda Pendiente')}</p>
               <p className="text-sm md:text-lg font-bold" style={{ color: AMARELO }}><AnimatedNumber value={`R$ ${fBRL2(dados.dividaPendente)}`} /></p>
             </div>
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}25` }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
+              <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
               <p className="text-sm md:text-lg font-bold" style={{ color: AZULC }}><AnimatedNumber value={String(dados.liquidityScoreAtual.total)} /></p>
             </div>
           </div>

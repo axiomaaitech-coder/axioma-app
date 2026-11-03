@@ -115,7 +115,7 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
       </div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {sugestoes.map((s) => (
-          <button key={s} type="button" onClick={() => void enviar(s)} className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-white" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.35)" }}>{s}</button>
+          <button key={s} type="button" onClick={() => void enviar(s)} className="px-2.5 py-1 rounded-full text-xs font-semibold text-white" style={{ background: "#101b3d", border: "1px solid rgba(46,204,155,0.35)" }}>{s}</button>
         ))}
       </div>
       <PainelMemoriaIA empresaId={empresaId} area="financeira" lang={lang} claro={claro} />

@@ -210,7 +210,7 @@ function RazaoInner() {
                   <td className="py-2">
                     <span style={{ color: TEXTO }}>{lancamento.descricao}</span>
                     {lancamento.estornado_por_id && (
-                      <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
+                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
                         {L('ESTORNADO', 'REVERSED', 'REVERSADO')}
                       </span>
                     )}
@@ -238,7 +238,7 @@ function RazaoInner() {
                 <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: MODAL_BG, border: `1px solid ${TEAL}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: TEAL }}>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: TEAL }}>
                         {new Date(modalLancamento.data + 'T00:00:00').toLocaleDateString(localeData)}
                       </p>
                       <h3 className="text-base font-bold" style={{ color: TITULO }}>{modalLancamento.descricao}</h3>

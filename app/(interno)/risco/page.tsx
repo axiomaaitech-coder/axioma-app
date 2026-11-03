@@ -129,7 +129,7 @@ export default function RiscoPage() {
                     <div key={m.t} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
                       <p className="text-xs uppercase tracking-wider" style={{ color: P.CINZA }}>{m.t}</p>
                       <p className="text-lg font-black" style={{ color: temaClaro ? '#101b3d' : P.OK }}>{m.v}</p>
-                      <p className="text-[11px] mt-1" style={{ color: P.CINZA }}>{m.d}</p>
+                      <p className="text-xs mt-1" style={{ color: P.CINZA }}>{m.d}</p>
                     </div>
                   ))}
                 </div>

@@ -83,12 +83,12 @@ function optBarrasPct(dados: number[], labels: string[], cores: string[], temaCl
       textStyle: { color: "#e2e8f0", fontSize: 13 }, extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);",
       trigger: "item" as const, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${p.value.toFixed(0)}%</b>`,
     },
-    xAxis: { type: "category" as const, data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: eixoCor, fontSize: 10, fontWeight: 700, interval: 0, rotate: labels.some(l => l.length > 8) ? 20 : 0 } },
-    yAxis: { type: "value" as const, max: 100, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" as const } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: "{value}%" } },
+    xAxis: { type: "category" as const, data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: eixoCor, fontSize: 12, fontWeight: 700, interval: 0, rotate: labels.some(l => l.length > 8) ? 20 : 0 } },
+    yAxis: { type: "value" as const, max: 100, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" as const } }, axisLabel: { color: "#64748b", fontSize: 12, formatter: "{value}%" } },
     series: [{
       type: "bar" as const, barWidth: "50%",
       itemStyle: { borderRadius: [8, 8, 2, 2], color: (p: any) => cores[p.dataIndex] || corFallback },
-      label: { show: true, position: "top" as const, distance: 6, color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 10, fontWeight: 800, formatter: (p: any) => `${p.value.toFixed(0)}%` },
+      label: { show: true, position: "top" as const, distance: 6, color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 12, fontWeight: 800, formatter: (p: any) => `${p.value.toFixed(0)}%` },
       data: dados,
     }],
   };
@@ -616,7 +616,7 @@ export default function Investimentos() {
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
@@ -629,7 +629,7 @@ export default function Investimentos() {
                     <Landmark size={14} style={{ color: ct(CORES.azul) }} />
                     <p className="text-xs font-black" style={{ color: ct("#f1f5f9") }}>{cx.invIndicadoresMacro}</p>
                   </div>
-                  <p className="text-[9px]" style={{ color: macro.fonte !== "fallback" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte !== "fallback" ? cx.invFonteBcb : cx.invFonteFallback}</p>
+                  <p className="text-xs" style={{ color: macro.fonte !== "fallback" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte !== "fallback" ? cx.invFonteBcb : cx.invFonteFallback}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
@@ -637,7 +637,7 @@ export default function Investimentos() {
                     { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
                   ].map((m, i) => (
                     <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                      <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                      <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                       <p className="text-sm font-black" style={{ color: ct(CORES.azulC) }}>{m.v}</p>
                     </div>
                   ))}
@@ -671,8 +671,8 @@ export default function Investimentos() {
                 backgroundColor: "transparent", animationDuration: 900,
                 grid: { left: 52, right: 16, top: 20, bottom: 28 },
                 tooltip: { backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14], textStyle: { color: ct("#e2e8f0"), fontSize: 13 }, extraCssText: "border-radius:12px;", trigger: "item" as const, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${ct(CORES.azulC)}">${fBRL(p.value)}</b>` },
-                xAxis: { type: "category" as const, data: escadaLabels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#374151" : "#cbd5e1", fontSize: 10, fontWeight: 700 } },
-                yAxis: { type: "value" as const, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" as const } }, axisLabel: { color: ct("#64748b"), fontSize: 10 } },
+                xAxis: { type: "category" as const, data: escadaLabels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#374151" : "#cbd5e1", fontSize: 12, fontWeight: 700 } },
+                yAxis: { type: "value" as const, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" as const } }, axisLabel: { color: ct("#64748b"), fontSize: 12 } },
                 series: [{ type: "bar" as const, barWidth: "58%", itemStyle: { borderRadius: [8, 8, 2, 2], color: ct(CORES.azul), shadowColor: ct(CORES.azul) + "55", shadowBlur: 12 }, data: escadaValores }],
               }} altura={220} />
             </div>
@@ -706,7 +706,7 @@ export default function Investimentos() {
                 <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#2ecc9b"}` }} />
                 <div>
                   <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
-                  <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
+                  <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
                 </div>
               </div>
             </motion.button>
@@ -786,13 +786,13 @@ export default function Investimentos() {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? corOuro : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#1a1400" : ct("#94a3b8") }}>{r.prioridade}</span>
                         <p className="text-xs md:text-[13px] font-medium truncate" style={{ color: ct("#e2e8f0") }}>{montarNarrativaAlocacao(lang, r)}</p>
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: r.risco === "alto" ? "rgba(239,68,68,0.15)" : r.risco === "medio" ? "rgba(234,179,8,0.15)" : "rgba(16,185,129,0.15)", color: r.risco === "alto" ? ct(CORES.vermelho) : r.risco === "medio" ? ct(CORES.amarelo) : ct(CORES.verde) }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: r.risco === "alto" ? "rgba(239,68,68,0.15)" : r.risco === "medio" ? "rgba(234,179,8,0.15)" : "rgba(16,185,129,0.15)", color: r.risco === "alto" ? ct(CORES.vermelho) : r.risco === "medio" ? ct(CORES.amarelo) : ct(CORES.verde) }}>
                           {r.risco === "alto" ? cx.invRiscoAlto : r.risco === "medio" ? cx.invRiscoMedio : cx.invRiscoBaixo}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => simularOportunidade(r)}
-                          className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct(CORES.azulC) }}>
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: ct(CORES.azulC) }}>
                           {cx.invUsarNaSimulacao}
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerOpcaoAlocacao(r.id)}>
@@ -823,7 +823,7 @@ export default function Investimentos() {
                   { l: cx.invChoqueRetornoAporte, v: choqueRetornoAporte, set: setChoqueRetornoAporte },
                 ].map((f, i) => (
                   <div key={i}>
-                    <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#2ecc9b") }}>{f.l}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#2ecc9b") }}>{f.l}</label>
                     <input type="number" value={f.v} onChange={(e) => f.set(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
                       style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(46,204,155,0.2)"}`, color: ct("#c8d8f0") }} />
@@ -844,12 +844,12 @@ export default function Investimentos() {
                     const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? ct(CORES.azul) : ct(CORES.amarelo);
                     return (
                       <div key={r.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
-                        <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{nomeLabel[r.nome]}</p>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
+                        <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{nomeLabel[r.nome]}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
                         <p className="text-sm font-black mb-2" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invSaldoProjetado12m}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invSaldoProjetado12m}</p>
                         <p className="text-sm font-black mb-2" style={{ color: r.saldoCaixaProjetado >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(r.saldoCaixaProjetado)}</p>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invRunwayCritico}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invRunwayCritico}</p>
                         <p className="text-xs font-black" style={{ color: r.runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde) }}>{r.runwayMeses !== null ? `${r.runwayMeses}m` : cx.invSemRunway}</p>
                       </div>
                     );
@@ -897,7 +897,7 @@ export default function Investimentos() {
                             {NOME_TIPO[inv.tipo] || inv.tipo}
                           </span>
                           {inv.status === "resgatado" && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(148,163,184,0.15)", color: ct("#94a3b8") }}>{cx.invStatusResgatado}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(148,163,184,0.15)", color: ct("#94a3b8") }}>{cx.invStatusResgatado}</span>
                           )}
                         </div>
                       </div>
@@ -939,7 +939,7 @@ export default function Investimentos() {
                       <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#2ecc9b"}` }} />
                       <div>
                         <p className="text-base md:text-lg font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
-                        <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
+                        <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
                       </div>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setAnaliseAberta(false)} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>

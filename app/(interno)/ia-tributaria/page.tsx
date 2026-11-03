@@ -157,7 +157,7 @@ function ControleAtividadeFiscal({ lang, atividadeFiscal, setAtividadeFiscal, is
   const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(46,204,155,0.2)";
   return (
     <CanvasBox cor={atividadeFiscal ? VERDE : AMARELO} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d>
-      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>
+      <p className="text-xs uppercase tracking-wider mb-2" style={{ color: CINZA }}>
         {L("Atividade fiscal (Lucro Presumido)", "Tax activity (Presumed Profit)", "Actividad fiscal (Lucro Presumido)")}
       </p>
       {!atividadeFiscal && (
@@ -386,7 +386,7 @@ export default function IATributariaPage() {
           {/* HEADER */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <CanvasBox cor={scoreFiscal.cor} {...cartaoTema}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>🛡️ {tt.scoreFiscal}</p>
+              <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>🛡️ {tt.scoreFiscal}</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-black" style={{ color: scoreFiscal.cor }}><AnimatedNumber value={String(scoreFiscal.score)} /></span>
                 <span style={{ color: CINZA }}>/100</span>
@@ -399,7 +399,7 @@ export default function IATributariaPage() {
               { label: lang === "en" ? "Savings" : lang === "es" ? "Ahorro" : "Economia", valor: economia && economia.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
             ].map((c, i) => (
               <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/fiscal", router)}><CanvasBox cor={c.cor} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox></div>
             ))}
@@ -436,7 +436,7 @@ export default function IATributariaPage() {
           {/* SCORE FISCAL */}
           {aba === "score" && (
             <CanvasBox cor={scoreFiscal.cor} {...cartaoTema}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.scoreFiscal}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.scoreFiscal}</p>
               <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.scoreFiscalDesc}</p>
               <div className="space-y-1">
                 {scoreFiscal.itens.map((it, i) => (
@@ -448,7 +448,7 @@ export default function IATributariaPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold" style={{ color: it.ok ? VERDE : CINZA }}>+{it.pontos}pts</span>
                       {!it.ok && (
-                        <a href="/empresa" className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: AZULC }}>
+                        <a href="/empresa" className="text-xs px-1.5 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: AZULC }}>
                           ✏️
                         </a>
                       )}
@@ -464,7 +464,7 @@ export default function IATributariaPage() {
             <CanvasBox cor={AZULC} {...cartaoTema}>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold" style={{ color: TEXTO }}>{tt.chatTitulo}</p>
-                <button onClick={onLimpar} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.chatLimpar}</button>
+                <button onClick={onLimpar} className="text-xs px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.chatLimpar}</button>
               </div>
               <BarraConversas api={conversas} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />
               <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
@@ -477,7 +477,7 @@ export default function IATributariaPage() {
                 {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
               </div>
               <div className="flex gap-2 mb-3 flex-wrap">
-                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : AZULC }}>{s}</button>))}
+                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-xs px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : AZULC }}>{s}</button>))}
               </div>
               <div className="flex gap-2">
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
@@ -503,7 +503,7 @@ export default function IATributariaPage() {
           {aba === "simulador" && (
             <div className="space-y-3">
               <CanvasBox cor={ROXO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.simuladorTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.simuladorTitulo}</p>
                 <p className="text-xs" style={{ color: TEXTO }}>{tt.simuladorDesc}</p>
               </CanvasBox>
               <ControleAtividadeFiscal
@@ -519,9 +519,9 @@ export default function IATributariaPage() {
                       <div>
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.regime_label}</p>
                         <div className="flex gap-2 mt-1">
-                          {isAtual && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
-                          {i === 0 && s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
-                          {!s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.inelegivel}</span>}
+                          {isAtual && <span className="text-xs px-2 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
+                          {i === 0 && s.elegivel && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
+                          {!s.elegivel && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.inelegivel}</span>}
                         </div>
                       </div>
                       <div className="text-right">
@@ -529,11 +529,11 @@ export default function IATributariaPage() {
                         <p className="text-xs" style={{ color: CINZA }}>{tt.aliquotaEfetiva}: {s.aliquota_efetiva}%</p>
                       </div>
                     </div>
-                    <p className="text-[11px] mb-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{lang === "en" ? s.detalhamento_en : lang === "es" ? s.detalhamento_es : s.detalhamento}</p>
+                    <p className="text-xs mb-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{lang === "en" ? s.detalhamento_en : lang === "es" ? s.detalhamento_es : s.detalhamento}</p>
                     {s.economia_vs_atual > 0 && !isAtual && s.elegivel && (
                       <p className="text-xs font-bold mt-1" style={{ color: VERDE }}>💰 {tt.economiaPorAno}: {formatBRL(s.economia_vs_atual)}</p>
                     )}
-                    {s.motivo_inelegivel && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>⚠️ {s.motivo_inelegivel}</p>}
+                    {s.motivo_inelegivel && <p className="text-xs mt-1" style={{ color: VERMELHO }}>⚠️ {s.motivo_inelegivel}</p>}
                   </CanvasBox>
                 );
               })}
@@ -548,7 +548,7 @@ export default function IATributariaPage() {
                 issMunicipalPct={issMunicipalPct} setIssMunicipalPct={setIssMunicipalPct}
               />
               <CanvasBox cor={carga.carga_pct > 15 ? AMARELO : VERDE} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.cargaTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.cargaTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.cargaDesc}</p>
                 <div className="flex items-baseline gap-2 mb-4">
                   <span className="text-5xl font-black" style={{ color: carga.carga_pct > 15 ? AMARELO : VERDE }}><AnimatedNumber value={`${carga.carga_pct.toFixed(1)}%`} /></span>
@@ -556,18 +556,18 @@ export default function IATributariaPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
-                    <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.porMes}</p>
+                    <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.porMes}</p>
                     <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_mensal)}</p>
                   </div>
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
-                    <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.porAno}</p>
+                    <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.porAno}</p>
                     <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_anual)}</p>
                   </div>
                 </div>
               </CanvasBox>
               {carga.composicao.length > 1 && (
                 <CanvasBox cor={ROXO} {...cartaoTema}>
-                  <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.composicao}</p>
+                  <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.composicao}</p>
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                       <Pie data={carga.composicao} cx="50%" cy="50%" outerRadius={80} dataKey="valor" label={(e: unknown) => { const x = e as { nome?: string; pct?: number }; return `${x.nome}: ${(x.pct ?? 0).toFixed(1)}%`; }} labelLine={false}>
@@ -585,23 +585,23 @@ export default function IATributariaPage() {
           {aba === "economia" && economia && (
             <div className="space-y-4">
               <CanvasBox cor={VERDE} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.economiaTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.economiaTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.economiaDesc}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
-                    <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.economiaMensal}</p>
+                    <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.economiaMensal}</p>
                     <p className="text-2xl font-black" style={{ color: VERDE }}><AnimatedNumber value={formatBRL(economia.economia_mensal)} /></p>
                   </div>
                   <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
-                    <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.economiaAnual}</p>
+                    <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.economiaAnual}</p>
                     <p className="text-2xl font-black" style={{ color: VERDE }}><AnimatedNumber value={formatBRL(economia.economia_anual)} /></p>
                   </div>
                   <div className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(46,204,155,0.3)" }}>
-                    <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.regimeIdeal}</p>
+                    <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.regimeIdeal}</p>
                     <p className="text-lg font-bold" style={{ color: AZULC }}>{economia.regime_ideal}</p>
                   </div>
                 </div>
-                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.acoesEconomia}</p>
+                <p className="text-xs uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.acoesEconomia}</p>
                 <div className="space-y-2">
                   {economia.acoes.map((a, i: number) => (
                     <div key={i} className="rounded-lg p-3 flex items-center justify-between axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(52,211,153,0.15)" }}>
@@ -618,7 +618,7 @@ export default function IATributariaPage() {
           {aba === "reforma" && (
             <div className="space-y-3">
               <CanvasBox cor={AMARELO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.reformaTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.reformaTitulo}</p>
                 <p className="text-xs" style={{ color: TEXTO }}>{tt.reformaDesc}</p>
               </CanvasBox>
               {alertasReforma.map((a, i) => {
@@ -632,7 +632,7 @@ export default function IATributariaPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-sm font-bold" style={{ color: TEXTO }}>{reformaTit(a)}</p>
-                          <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${cor}15`, color: cor }}>{label} • {a.data}</span>
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: `${cor}15`, color: cor }}>{label} • {a.data}</span>
                         </div>
                         <p className="text-xs" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{reformaDesc(a)}</p>
                       </div>
@@ -646,7 +646,7 @@ export default function IATributariaPage() {
           {/* DIAGNÓSTICO */}
           {aba === "diagnostico" && (
             <CanvasBox cor={AZULC} {...cartaoTema}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.diagnosticoTitulo}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.diagnosticoTitulo}</p>
               <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.diagnosticoDesc}</p>
               <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed axi-card-premium3d axi-card-faixa"
                 style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)", color: TEXTO }}>{diagnostico}</div>
@@ -656,7 +656,7 @@ export default function IATributariaPage() {
           {/* CALENDÁRIO */}
           {aba === "calendario" && (
             <CanvasBox cor={AMARELO} {...cartaoTema}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.calendarioTitulo}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.calendarioTitulo}</p>
               <p className="text-xs mb-4" style={{ color: TEXTO }}>{tt.calendarioDesc}</p>
               <a href="/empresa" className="inline-block px-4 py-2.5 rounded-xl text-sm font-semibold"
                 style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{tt.irParaEmpresa}</a>

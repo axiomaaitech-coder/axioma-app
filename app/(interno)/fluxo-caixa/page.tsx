@@ -83,11 +83,11 @@ function optEntradasSaidas(labels: string[], entradas: number[], saidas: number[
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
-    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [cxE, cxS] },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: [cxE, cxS] },
     tooltip: { ...tip, trigger: "axis", axisPointer: { type: "shadow" },
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
-    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 10, fontWeight: 700 } },
-    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 12, fontWeight: 700 } },
+    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [
       { name: cxE, type: "bar", barGap: "10%", itemStyle: { borderRadius: [4, 4, 0, 0], color: corVerde }, data: entradas },
       { name: cxS, type: "bar", itemStyle: { borderRadius: [4, 4, 0, 0], color: corVermelho }, data: saidas },
@@ -756,7 +756,7 @@ export default function FluxoCaixa() {
                         <option key={n.natureza} value={n.natureza}>{n[lang]}</option>
                       ))}
                     </select>
-                    <p className="text-[11px] mt-1" style={{ color: TEXTO_SEC }}>{L("Só Receita e Custo entram na DRE. Aporte, empréstimo, retirada, transferência e aplicação mexem só no caixa e na contabilidade.", "Only Revenue and Cost reach the P&L. Contributions, loans, withdrawals, transfers and investments only affect cash and accounting.", "Solo Ingreso y Costo entran al Estado de Resultados. Aportes, préstamos, retiros, transferencias e inversiones solo afectan caja y contabilidad.")}</p>
+                    <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L("Só Receita e Custo entram na DRE. Aporte, empréstimo, retirada, transferência e aplicação mexem só no caixa e na contabilidade.", "Only Revenue and Cost reach the P&L. Contributions, loans, withdrawals, transfers and investments only affect cash and accounting.", "Solo Ingreso y Costo entran al Estado de Resultados. Aportes, préstamos, retiros, transferencias e inversiones solo afectan caja y contabilidad.")}</p>
                   </div>
                   {[
                     { label: t.geral.valor, key: "valor", type: "number" },

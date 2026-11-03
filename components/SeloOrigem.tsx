@@ -28,7 +28,7 @@ export default function SeloOrigem({ origemTabela, temaClaro }: { origemTabela: 
       title={L(`Lançado automaticamente a partir de ${nome}. Para corrigir, altere ou estorne lá — o Axioma atualiza todos os módulos.`,
         `Posted automatically from ${nome}. To fix it, change or reverse it there — Axioma updates every module.`,
         `Registrado automáticamente desde ${nome}. Para corregirlo, modifíquelo o reviértalo allí — Axioma actualiza todos los módulos.`)}
-      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md whitespace-nowrap"
+      className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap"
       style={temaClaro ? { background: '#101b3d', color: '#fff' } : { color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.45)' }}>
       <Link2 size={11} aria-hidden />{L('Origem', 'Source', 'Origen')}: {nome}
     </button>

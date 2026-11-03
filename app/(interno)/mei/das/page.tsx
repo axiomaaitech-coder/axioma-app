@@ -667,10 +667,10 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
-                  <button onClick={() => copiarValor(faturamentoAnual)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button>
+                  <button onClick={() => copiarValor(faturamentoAnual)} className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button>
                 </span>
               </div>
-              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('receitaDe')}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('receitaDe')}</p>
               {dasn.qtdForaDoLimite > 0 && (
                 <p className="text-xs mt-2" style={{ color: 'var(--axi-text-primary)' }}>
                   <AlertTriangle size={12} className="inline mr-1" />{t('foraLimite').replace('{n}', String(dasn.qtdForaDoLimite)).replace('{v}', fmt(dasn.foraDoLimite))}{' '}
@@ -684,24 +684,24 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 <div key={k} className="flex justify-between items-center gap-2 text-sm py-1">
                   <span style={{ color: 'var(--axi-text-primary)' }}>{k}</span>
                   <span className="flex items-center gap-2"><b style={{ color: 'var(--axi-text-primary)' }}>{fmt(v)}</b>
-                    <button onClick={() => copiarValor(v)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button></span>
+                    <button onClick={() => copiarValor(v)} className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: '#16a97d', color: '#ffffff' }}>{t('copiar')}</button></span>
                 </div>
               ))}
-              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dasnDica')}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dasnDica')}</p>
             </div>
             <div className="p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
               <div className="flex justify-between items-center gap-2 flex-wrap">
                 <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}: <b style={{ color: AZUL }}>{categoriaAtual}</b></span>
                 <a href="/mei" className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#1e3a5f', color: '#ffffff' }}>{t('alterarCategoria')}</a>
               </div>
-              <p className="text-[11px] mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('categoriaDefine')}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('categoriaDefine')}</p>
               <div className="grid grid-cols-3 gap-2 mt-2">
                 {[
                   [t('catDas'), fmt(dasMensalPorCategoria(categoriaAtual))],
                   [t('catLimite'), fmt(regraLimiteMEI(categoriaAtual, anoAtual).anual)],
                   [t('catIsento'), `${Math.round(percentualIsentoPorCategoria(categoriaAtual) * 100)}%`],
                 ].map(([k, v]) => (
-                  <div key={k}><p className="text-[11px]" style={{ color: 'var(--axi-text-secondary)' }}>{k}</p><p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{v}</p></div>
+                  <div key={k}><p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{k}</p><p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{v}</p></div>
                 ))}
               </div>
             </div>

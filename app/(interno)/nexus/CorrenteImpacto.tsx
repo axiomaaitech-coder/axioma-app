@@ -122,7 +122,7 @@ export function CorrenteMini({ payload, lang, temaClaro }: { payload: PayloadEve
   const margem = c.elos[c.elos.length - 1]
   const cor = margem.sobe ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#dc3545' : '#f87171')
   return (
-    <p className="text-[11px] mt-2 leading-snug" style={{ color: SEC }} title={c.elos.map((e) => L(e.nome)).join(' → ')}>
+    <p className="text-xs mt-2 leading-snug" style={{ color: SEC }} title={c.elos.map((e) => L(e.nome)).join(' → ')}>
       <span aria-hidden>{c.elos.slice(0, -1).map((e) => e.icone).join(' → ')} → </span>
       <span className="font-bold" style={temaClaro ? { background: '#101b3d', color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor }}>{L(['margem', 'margin', 'margen'])} {margem.sobe ? '▲' : '▼'}</span>
     </p>
@@ -157,7 +157,7 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
               {i > 0 && <li aria-hidden className="text-xs" style={{ color: SEC }}>→</li>}
               <motion.li
                 initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.12, duration: 0.25 }}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg"
+                className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg"
                 style={ultimo && temaClaro ? { color: '#fff', background: cor, border: `1px solid ${cor}` } : { color: cor, border: `1px solid ${ultimo ? cor + '80' : borda}`, background: ultimo ? cor + '14' : 'transparent' }}
               >
                 <span aria-hidden>{e.icone}</span>{L(e.nome)}
@@ -167,8 +167,8 @@ export function CorrenteImpacto({ payload, lang, temaClaro, fundo, borda }: {
           )
         })}
       </ol>
-      {corrente.nota && <p className="text-[11px] mt-2 leading-relaxed" style={{ color: SEC }}>{L(corrente.nota)}</p>}
-      <p className="text-[10px] mt-1" style={{ color: SEC }}>
+      {corrente.nota && <p className="text-xs mt-2 leading-relaxed" style={{ color: SEC }}>{L(corrente.nota)}</p>}
+      <p className="text-xs mt-1" style={{ color: SEC }}>
         {L(['Caminho típico, não certeza. O tamanho do efeito na sua empresa sai no simulador "E se...?".', 'Typical path, not a certainty. The size of the effect on your company comes from the "What if...?" simulator.', 'Camino típico, no certeza. El tamaño del efecto en su empresa sale del simulador "¿Y si...?".'])}
       </p>
     </div>

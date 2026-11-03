@@ -184,7 +184,7 @@ export default function TesourariaSimuladorPage() {
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Variáveis', 'Variables', 'Variables')}</h3>
-                <button onClick={resetar} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: CINZA }}>
+                <button onClick={resetar} className="flex items-center gap-1 text-xs font-semibold" style={{ color: CINZA }}>
                   <RotateCcw size={12} />{L('Zerar', 'Reset', 'Restablecer')}
                 </button>
               </div>
@@ -208,13 +208,13 @@ export default function TesourariaSimuladorPage() {
                   <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>{L('Nova Dívida', 'New Debt', 'Nueva Deuda')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px]" style={{ color: CINZA }}>{L('Valor (entra hoje)', 'Amount (in today)', 'Valor (entra hoy)')}</label>
+                      <label className="text-xs" style={{ color: CINZA }}>{L('Valor (entra hoje)', 'Amount (in today)', 'Valor (entra hoy)')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaValor || ''} placeholder="0"
                         onChange={(e) => setVar('novaDividaValor', Number(e.target.value.replace(',', '.')) || 0)}
                         className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     </div>
                     <div>
-                      <label className="text-[10px]" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
+                      <label className="text-xs" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaParcelaMensal || ''} placeholder="0"
                         onChange={(e) => setVar('novaDividaParcelaMensal', Number(e.target.value.replace(',', '.')) || 0)}
                         className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
@@ -224,7 +224,7 @@ export default function TesourariaSimuladorPage() {
 
                 <div>
                   <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>{L('Nova Contratação', 'New Hire', 'Nueva Contratación')}</p>
-                  <label className="text-[10px]" style={{ color: CINZA }}>{L('Custo mensal', 'Monthly cost', 'Costo mensual')}</label>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Custo mensal', 'Monthly cost', 'Costo mensual')}</label>
                   <input type="text" inputMode="decimal" value={vars.novaContratacaoCustoMensal || ''} placeholder="0"
                     onChange={(e) => setVar('novaContratacaoCustoMensal', Number(e.target.value.replace(',', '.')) || 0)}
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
@@ -266,10 +266,10 @@ export default function TesourariaSimuladorPage() {
                           {confirmandoExclusao === c.id ? (
                             <>
                               <button onClick={() => handleExcluir(c.id)} disabled={excluindoId === c.id}
-                                className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
+                                className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
                                 {L('Confirmar', 'Confirm', 'Confirmar')}
                               </button>
-                              <button onClick={() => setConfirmandoExclusao(null)} className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: CINZA }}>
+                              <button onClick={() => setConfirmandoExclusao(null)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: CINZA }}>
                                 {L('Cancelar', 'Cancel', 'Cancelar')}
                               </button>
                             </>
@@ -302,12 +302,12 @@ export default function TesourariaSimuladorPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}25` }}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Caixa Disponível', 'Available Cash', 'Caja Disponible')}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Caixa Disponível', 'Available Cash', 'Caja Disponible')}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: AZULC }}>R$ {fBRL2(simulacao.caixaDisponivelSimulado)}</p>
-                <p className="text-[10px]" style={{ color: CINZA }}>{L('era', 'was', 'era')} R$ {fBRL2(posicao.totalDisponivel)}</p>
+                <p className="text-xs" style={{ color: CINZA }}>{L('era', 'was', 'era')} R$ {fBRL2(posicao.totalDisponivel)}</p>
               </div>
               <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${simulacao.liquidityScoreSimulado.cor === 'verde' ? VERDE : simulacao.liquidityScoreSimulado.cor === 'azul' ? AZULC : simulacao.liquidityScoreSimulado.cor === 'amarelo' ? AMARELO : VERMELHO}25` }}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
                 <p className="text-sm md:text-lg font-bold" style={{ color: simulacao.liquidityScoreSimulado.cor === 'verde' ? VERDE : simulacao.liquidityScoreSimulado.cor === 'azul' ? AZULC : simulacao.liquidityScoreSimulado.cor === 'amarelo' ? AMARELO : VERMELHO }}>
                   {simulacao.liquidityScoreSimulado.total}
                 </p>
@@ -338,7 +338,7 @@ export default function TesourariaSimuladorPage() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-[10px] mt-2" style={{ color: CINZA }}>
+              <p className="text-xs mt-2" style={{ color: CINZA }}>
                 {L('Tudo determinístico: a variação é aplicada sobre o cenário Base real (fluxo do ledger/AP/AR), nunca inventado.',
                   'Fully deterministic: the variation is applied on top of the real Base scenario (ledger/AP/AR cash flow), never invented.',
                   'Todo determinístico: la variación se aplica sobre el escenario Base real (flujo del libro/CP/CC), nunca inventado.')}

@@ -32,7 +32,7 @@ export function BotaoDemo({ demo, onToggle, claro, rotulo }: { demo: boolean; on
   return (
     <div className="flex items-center justify-end gap-2">
       <button onClick={onToggle}
-        className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
+        className="text-xs font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
         style={claro
           ? (demo ? { background: "#2ecc9b", border: "1px solid #2ecc9b", color: "#101b3d" } : { background: "rgba(16,27,61,0.06)", border: "1px solid rgba(16,27,61,0.15)", color: "#374151" })
           : { background: demo ? `${OURO}25` : "rgba(255,255,255,0.05)", border: `1px solid ${demo ? OURO : "rgba(148,163,184,0.3)"}`, color: demo ? OURO_C : "#94a3b8" }}>
@@ -45,7 +45,7 @@ export function BotaoDemo({ demo, onToggle, claro, rotulo }: { demo: boolean; on
 export function BannerDemo({ claro, texto }: { claro: boolean; texto: string }) {
   return (
     <div className="w-full rounded-xl px-4 py-2.5 text-center" style={claro ? { background: "rgba(46,204,155,0.15)", border: "1px dashed #16a97d" } : { background: `${OURO}18`, border: `1px dashed ${OURO}` }}>
-      <span className="text-[11px] font-black tracking-widest uppercase" style={{ color: claro ? "#101b3d" : OURO_C }}>🎭 {texto}</span>
+      <span className="text-xs font-black tracking-widest uppercase" style={{ color: claro ? "#101b3d" : OURO_C }}>🎭 {texto}</span>
     </div>
   );
 }
@@ -64,14 +64,14 @@ export function KpisDash({ kpis, demo, claro, rotuloDemo }: { kpis: KpiDash[]; d
           <div className="flex items-center justify-between mb-2">
             <span className="text-lg">{k.i}</span>
             {k.d && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={claro
+              <span className="text-xs px-1.5 py-0.5 rounded font-black" style={claro
                 ? { background: k.up ? "#16a97d" : "#ff5a6b", color: k.up ? "#ffffff" : "#2b0007" }
                 : { background: k.up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: k.up ? "#10b981" : "#ef4444" }}>{k.d}</span>
             )}
           </div>
           {/* Claro: número em azul-marinho (legível no creme); a cor da categoria fica no Escuro */}
           <p className="text-lg font-black tracking-tight" style={{ color: claro ? "#101b3d" : k.c }}><AnimatedNumber value={k.v} /></p>
-          <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{k.l}</p>
+          <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{k.l}</p>
         </div>
       ))}
     </div>
@@ -111,7 +111,7 @@ export function PainelDash({ titulo, sub, barraEscuro, claro, children }: { titu
           <span className="w-1.5 h-6 rounded-full" style={{ background: claro ? "linear-gradient(180deg,#101b3d,#2ecc9b)" : barraEscuro.fundo, boxShadow: claro ? undefined : `0 0 12px ${barraEscuro.brilho}` }} />
           <div>
             <p className="text-base font-black" style={{ color: claro ? "#101b3d" : "#f1f5f9" }}>{titulo}</p>
-            <p className="text-[10px] font-medium" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{sub}</p>
+            <p className="text-xs font-medium" style={{ color: claro ? "#374151" : "#a3b1c2" }}>{sub}</p>
           </div>
         </div>
         {children}
@@ -131,9 +131,9 @@ export function ChartDash({ titulo, cor, path, option, altura, vazio, demo, clar
         <div className="flex items-center gap-2">
           <span className="w-1 h-4 rounded-full" style={{ background: claro ? "#2ecc9b" : cor, boxShadow: claro ? undefined : `0 0 8px ${cor}` }} />
           <p className="text-[13px] font-black" style={{ color: claro ? "#101b3d" : "#f1f5f9" }}>{titulo}</p>
-          {demo && <span className="text-[9px] px-2 py-0.5 rounded font-black tracking-wider" style={claro ? SELO_DEMO_CLARO : { background: `${OURO}30`, color: OURO, border: `1px solid ${OURO}60` }}>🎭 {rotuloDemo}</span>}
+          {demo && <span className="text-xs px-2 py-0.5 rounded font-black tracking-wider" style={claro ? SELO_DEMO_CLARO : { background: `${OURO}30`, color: OURO, border: `1px solid ${OURO}60` }}>🎭 {rotuloDemo}</span>}
         </div>
-        <button onClick={() => router.push(path)} className="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all hover:scale-105"
+        <button onClick={() => router.push(path)} className="px-2 py-0.5 rounded-md text-xs font-bold transition-all hover:scale-105"
           style={claro ? VERDE_SOLIDO : { background: `${cor}15`, border: `1px solid ${cor}38`, color: cor }}>{rotuloVerModulo} →</button>
       </div>
       {option ? (

@@ -101,11 +101,11 @@ export default function DocumentosContador({ ano, receitas, calendario, categori
         {RELS.map(([fn, titulo, texto]) => (
           <div key={titulo} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
             <p className="text-xs font-bold" style={{ color: TEXTO }}>{titulo}</p>
-            <p className="text-[11px] mt-1" style={{ color: SEC }}>{texto}</p>
+            <p className="text-xs mt-1" style={{ color: SEC }}>{texto}</p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <button onClick={() => baixar(fn(), 'pdf')} className="px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5" style={{ background: MENTA, color: '#ffffff' }}><FileText size={12} />PDF</button>
-              <button onClick={() => baixar(fn(), 'xlsx')} className="px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><FileSpreadsheet size={12} />Excel</button>
-              <button onClick={() => baixar(fn(), 'csv')} className="px-3 py-1.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><FileDown size={12} />CSV</button>
+              <button onClick={() => baixar(fn(), 'pdf')} className="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5" style={{ background: MENTA, color: '#ffffff' }}><FileText size={12} />PDF</button>
+              <button onClick={() => baixar(fn(), 'xlsx')} className="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><FileSpreadsheet size={12} />Excel</button>
+              <button onClick={() => baixar(fn(), 'csv')} className="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5" style={{ background: NAVY, color: '#ffffff' }}><FileDown size={12} />CSV</button>
             </div>
           </div>
         ))}

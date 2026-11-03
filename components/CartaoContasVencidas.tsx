@@ -44,7 +44,7 @@ export default function CartaoContasVencidas({ foco }: { foco: FocoVencidos }) {
         <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: claro ? '#0f7a5a' : '#2ecc9b' }} aria-hidden />
         <div className="min-w-0">
           <p className="text-sm font-bold" style={{ color: texto }}>{L('Contas vencidas', 'Overdue bills', 'Cuentas vencidas')}: {partes.join(L(' e ', ' and ', ' y '))}</p>
-          {foco === 'tesouraria' && <p className="text-[11px] mt-0.5" style={{ color: cinza }}>{L('Vencido a receber não é caixa disponível; vencido a pagar já pressiona a liquidez.', 'Overdue receivables are not available cash; overdue payables already press liquidity.', 'Lo vencido por cobrar no es caja disponible; lo vencido por pagar ya presiona la liquidez.')}</p>}
+          {foco === 'tesouraria' && <p className="text-xs mt-0.5" style={{ color: cinza }}>{L('Vencido a receber não é caixa disponível; vencido a pagar já pressiona a liquidez.', 'Overdue receivables are not available cash; overdue payables already press liquidity.', 'Lo vencido por cobrar no es caja disponible; lo vencido por pagar ya presiona la liquidez.')}</p>}
         </div>
       </div>
       <Link href="/contas-vencidas" className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #0a4f3b, #0f7d5c)' }}>

@@ -389,7 +389,7 @@ export default function Simulacoes() {
                   { l: cx.simRegimeAtualLabel, v: regimeTributario || "—" },
                 ].map((m, i) => (
                   <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                    <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                     <p className="text-xs md:text-sm font-black truncate" style={{ color: ct(PRATAC) }}>{m.v}</p>
                   </div>
                 ))}
@@ -404,7 +404,7 @@ export default function Simulacoes() {
                     <Percent size={14} style={{ color: ct(CORES.indigo) }} />
                     <p className="text-xs font-black" style={{ color: ct("#f1f5f9") }}>{cx.invIndicadoresMacro}</p>
                   </div>
-                  <p className="text-[9px]" style={{ color: macro.fonte !== "fallback" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte !== "fallback" ? cx.invFonteBcb : cx.invFonteFallback}</p>
+                  <p className="text-xs" style={{ color: macro.fonte !== "fallback" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte !== "fallback" ? cx.invFonteBcb : cx.invFonteFallback}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
@@ -412,7 +412,7 @@ export default function Simulacoes() {
                     { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
                   ].map((m, i) => (
                     <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                      <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                      <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                       <p className="text-sm font-black" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{m.v}</p>
                     </div>
                   ))}
@@ -459,13 +459,13 @@ export default function Simulacoes() {
                   <button onClick={() => aplicarPreset("reduzirCustos")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simObjReduzirCustos}</button>
                   <input type="number" value={reduzirCustosPct} onChange={(e) => setReduzirCustosPct(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
-                  <span className="text-[10px]" style={{ color: ct("#64748b") }}>%</span>
+                  <span className="text-xs" style={{ color: ct("#64748b") }}>%</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(46,204,155,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
                   <button onClick={() => aplicarPreset("reduzirDivida")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simObjReduzirDivida}</button>
                   <input type="number" value={reduzirJurosPontos} onChange={(e) => setReduzirJurosPontos(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
-                  <span className="text-[10px]" style={{ color: ct("#64748b") }}>pts</span>
+                  <span className="text-xs" style={{ color: ct("#64748b") }}>pts</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -502,7 +502,7 @@ export default function Simulacoes() {
                   { l: cx.simHorizonteLabel, v: horizonteMeses, set: setHorizonteMeses },
                 ].map((f, i) => (
                   <div key={i}>
-                    <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{f.l}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{f.l}</label>
                     <input type="number" value={f.v} onChange={(e) => f.set(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                   </div>
@@ -512,12 +512,12 @@ export default function Simulacoes() {
               {/* Câmbio — avançado, só entra na Análise de Sensibilidade se exposição > 0 */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{cx.simChoqueCambio}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{cx.simChoqueCambio}</label>
                   <input type="number" value={choqueCambio} onChange={(e) => setChoqueCambio(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                 </div>
                 <div>
-                  <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{cx.simExposicaoCambial}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#2ecc9b" }}>{cx.simExposicaoCambial}</label>
                   <input type="number" value={exposicaoCambial} onChange={(e) => setExposicaoCambial(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                 </div>
@@ -544,12 +544,12 @@ export default function Simulacoes() {
                       const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? ct(CORES.indigo) : ct(CORES.amarelo);
                       return (
                         <div key={r.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
                           <p className="text-sm font-black mb-2" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invSaldoProjetado12m}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invSaldoProjetado12m}</p>
                           <p className="text-sm font-black mb-2" style={{ color: r.saldoCaixaProjetado >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(r.saldoCaixaProjetado)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invRunwayCritico}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invRunwayCritico}</p>
                           <p className="text-xs font-black" style={{ color: r.runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde) }}>{r.runwayMeses !== null ? `${r.runwayMeses}m` : cx.invSemRunway}</p>
                         </div>
                       );
@@ -570,12 +570,12 @@ export default function Simulacoes() {
                       <div key={s.driver} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between mb-1.5">
                           <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{nomeDriverSensibilidade(lang, s.driver as DriverSensibilidade)}</p>
-                          <p className="text-[10px] font-black" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
+                          <p className="text-xs font-black" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
                         </div>
                         <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: CAMPO_BORDA2 }}>
                           <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pesoPct)}%`, background: `linear-gradient(90deg, ${ct(CORES.indigo)}, ${temaClaro ? "#16a97d" : "#2ecc9b"})` }} />
                         </div>
-                        <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center justify-between text-xs">
                           <span style={{ color: ct(CORES.vermelhoC) }}>{cx.simDesfavoravel}: {fBRL(s.impactoDesfavoravelRS)}</span>
                           <span style={{ color: ct(CORES.verdeC) }}>{cx.simFavoravel}: {fBRL(s.impactoFavoravelRS)}</span>
                         </div>
@@ -593,11 +593,11 @@ export default function Simulacoes() {
                   <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simMonteCarloSub} ({resultado.monteCarlo.iteracoes.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")} {cx.simIteracoes})</p>
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(16,185,129,0.08)", border: `1px solid ${ct(CORES.verde)}30` }}>
-                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbLucroPositivo}</p>
+                      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbLucroPositivo}</p>
                       <p className="text-xl font-black" style={{ color: ct(CORES.verde) }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)} /></p>
                     </div>
                     <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : CAMPO_BG3, border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : "rgba(255,255,255,0.1)"}30` }}>
-                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbRupturaCaixa}</p>
+                      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbRupturaCaixa}</p>
                       <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : ct("#e2e8f0") }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)} /></p>
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export default function Simulacoes() {
                       { l: "P10", v: resultado.monteCarlo.lucroLiquidoP10 }, { l: cx.simMediana, v: resultado.monteCarlo.lucroLiquidoP50 }, { l: "P90", v: resultado.monteCarlo.lucroLiquidoP90 },
                     ].map((m, i) => (
                       <div key={i} className="rounded-xl px-3 py-2 text-center axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                         <p className="text-xs font-black" style={{ color: m.v >= 0 ? ct(PRATAC) : ct(CORES.vermelhoC) }}>{fBRL(m.v)}</p>
                       </div>
                     ))}
@@ -627,11 +627,11 @@ export default function Simulacoes() {
                         <div key={t.regime} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: isMelhor ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${isMelhor ? OURO_BADGE_BORDA : "var(--axi-border)"}` }}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-black" style={{ color: ct("#e2e8f0") }}>{NOME_REGIME[t.regime]}</p>
-                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: corOuro }}>{cx.simRegimeMelhorTag}</span>}
+                            {isMelhor && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: corOuro }}>{cx.simRegimeMelhorTag}</span>}
                           </div>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simImpostoMensalLabel}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simImpostoMensalLabel}</p>
                           <p className="text-xs font-black mb-1.5" style={{ color: ct(PRATAC) }}>{fBRL(t.impostoMensal)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simLucroLiquidoRegimeLabel}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simLucroLiquidoRegimeLabel}</p>
                           <p className="text-sm font-black" style={{ color: t.lucroLiquido >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(t.lucroLiquido)}</p>
                         </div>
                       );
@@ -645,14 +645,14 @@ export default function Simulacoes() {
                     <Sparkles size={16} style={{ color: corOuro }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simConselhoTitulo}</p>
                   </div>
-                  <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.simConselhoSub}</p>
+                  <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.simConselhoSub}</p>
 
-                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simResumoLabel}</p>
+                  <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simResumoLabel}</p>
                   <p className="text-xs md:text-[13px] font-medium mb-4" style={{ color: ct("#e2e8f0") }}>{montarNarrativaMonteCarlo(lang, resultado.monteCarlo)}</p>
 
                   {riscos.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.vermelhoC) }}>{cx.simRiscosLabel}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.vermelhoC) }}>{cx.simRiscosLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {riscos.map((r, i) => (
                           <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
@@ -666,7 +666,7 @@ export default function Simulacoes() {
 
                   {oportunidadesTxt.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.verdeC) }}>{cx.simOportunidadesLabel}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.verdeC) }}>{cx.simOportunidadesLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {oportunidadesTxt.map((o, i) => (
                           <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
@@ -678,7 +678,7 @@ export default function Simulacoes() {
                     </>
                   )}
 
-                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simPremissasLabel}</p>
+                  <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simPremissasLabel}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                     {[
                       { l: cx.simPremissaReceita, v: fBRL(receitaMensalMedia) },
@@ -687,20 +687,20 @@ export default function Simulacoes() {
                       { l: cx.invChoqueReceita, v: `${resultado.choque.receitaPct}%` },
                     ].map((p, i) => (
                       <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{p.l}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{p.l}</p>
                         <p className="text-xs font-black" style={{ color: ct(PRATAC) }}>{p.v}</p>
                       </div>
                     ))}
                   </div>
 
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simNivelConfiancaLabel}</p>
+                    <p className="text-xs font-black uppercase tracking-wider" style={{ color: temaClaro ? "#2ecc9b" : "#2ecc9b" }}>{cx.simNivelConfiancaLabel}</p>
                     <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_COR[nivelConfianca]}18`, color: NIVEL_COR[nivelConfianca] }}>{NIVEL_LABEL[nivelConfianca]}</span>
                   </div>
 
                   {planoAcao.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simPlanoAcaoLabel}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simPlanoAcaoLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {planoAcao.map((a, i) => (
                           <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
@@ -712,9 +712,9 @@ export default function Simulacoes() {
                     </>
                   )}
 
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simLimitacoesLabel}</p>
-                  <p className="text-[11px] leading-relaxed mb-2" style={{ color: ct("#64748b") }}>{cx.simLimitacoesTexto}</p>
-                  <p className="text-[10px] italic leading-relaxed" style={{ color: "#4b5563" }}>{cx.simTransparenciaTexto}</p>
+                  <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simLimitacoesLabel}</p>
+                  <p className="text-xs leading-relaxed mb-2" style={{ color: ct("#64748b") }}>{cx.simLimitacoesTexto}</p>
+                  <p className="text-xs italic leading-relaxed" style={{ color: "#4b5563" }}>{cx.simTransparenciaTexto}</p>
                 </div>
               </>
             )}

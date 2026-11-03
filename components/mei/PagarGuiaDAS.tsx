@@ -137,7 +137,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
 
         <div className="rounded-xl p-3 mt-3 axi-card-premium3d axi-card-faixa" style={CAIXA}>
           <p className="text-xs font-bold" style={{ color: TEXTO }}>1. {L('Gere a guia no portal oficial', 'Issue the slip on the official portal', 'Genere la guía en el portal oficial')}</p>
-          <p className="text-[11px] mt-1" style={{ color: SEC }}>{simples
+          <p className="text-xs mt-1" style={{ color: SEC }}>{simples
             ? L('No Portal do Simples, entre no PGDAS-D (certificado digital ou código de acesso), faça a apuração do mês e clique em "Gerar DAS". Baixe o PDF.', 'On the Simples Portal, open PGDAS-D (digital certificate or access code), file the month and click "Gerar DAS". Download the PDF.', 'En el Portal del Simples, entre al PGDAS-D (certificado digital o código de acceso), haga la apuración del mes y haga clic en "Gerar DAS". Descargue el PDF.')
             : L('No PGMEI, informe o CNPJ, escolha o ano, marque o(s) mês(es) e clique em "Emitir DAS". Baixe o PDF.', 'In PGMEI, enter the CNPJ, pick the year, tick the month(s) and click "Emitir DAS". Download the PDF.', 'En el PGMEI, informe el CNPJ, elija el año, marque el/los mes(es) y haga clic en "Emitir DAS". Descargue el PDF.')}</p>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -153,7 +153,7 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
             <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" disabled={lendo} onChange={(e) => { const f = e.target.files?.[0]; if (f) void enviarArquivo(f); e.target.value = '' }} />
           </label>
           {guia && (
-            <div className="mt-2 text-[11px] space-y-0.5" style={{ color: TEXTO }}>
+            <div className="mt-2 text-xs space-y-0.5" style={{ color: TEXTO }}>
               <p>{L('A IA leu assim — confira com a guia:', 'AI read it like this — check against the slip:', 'La IA leyó así — verifique con la guía:')}</p>
               <p><b>{L('Valor', 'Amount', 'Valor')}:</b> {guia.valor_total != null ? fmt(guia.valor_total) : '—'} · <b>{L('Pagar até', 'Pay by', 'Pagar hasta')}:</b> {guia.data_vencimento ? new Date(guia.data_vencimento + 'T00:00:00').toLocaleDateString(local) : '—'}</p>
               <p><b>{L('Meses', 'Months', 'Meses')}:</b> {guia.competencias.map((c) => `${c.slice(5, 7)}/${c.slice(0, 4)}`).join(', ') || '—'} · <b>{L('Nº do documento', 'Doc. no.', 'Nº del documento')}:</b> {guia.numero_documento || '—'}</p>
@@ -175,13 +175,13 @@ export default function PagarGuiaDAS({ aberto, onFechar, empresaId, cnpjEmpresa,
                 {L('Pagar com Pix pelo Axioma', 'Pay with Pix through Axioma', 'Pagar con Pix por Axioma')}{PIX_AXIOMA_ATIVO ? '' : L(' (em ativação)', ' (being activated)', ' (en activación)')}
               </button>}
             </div>
-            {!simples && <p className="text-[11px] mt-2" style={{ color: SEC }}>{L('Cartão de crédito: aceito pela Receita desde set/2025 no próprio PGMEI ("Pagar Online"). Os juros do cartão costumam ser bem maiores que o parcelamento oficial do PGMEI — compare antes. Cartão de débito não é aceito pelas regras oficiais que encontramos.', 'Credit card: accepted by the Federal Revenue since Sep/2025 in PGMEI itself ("Pagar Online"). Card interest is usually much higher than the official PGMEI installment plan — compare first. Debit card is not accepted under the official rules we found.', 'Tarjeta de crédito: aceptada por la Receita desde sep/2025 en el propio PGMEI ("Pagar Online"). Los intereses de la tarjeta suelen ser mucho mayores que el parcelamiento oficial del PGMEI — compare antes. Tarjeta de débito no es aceptada según las reglas oficiales encontradas.')}</p>}
-            <p className="text-[11px] mt-2" style={{ color: SEC }}>{L('Pagou no app do banco? Informe a data e clique em "Já paguei" — a baixa sai com o nº desta guia, e o extrato reconhece sozinho.', 'Paid in your bank app? Enter the date and click "Already paid" — it is recorded with this slip number and the statement matches it automatically.', '¿Pagó en la app del banco? Informe la fecha y haga clic en "Ya pagué" — se registra con el nº de esta guía y el extracto lo reconoce solo.')}</p>
+            {!simples && <p className="text-xs mt-2" style={{ color: SEC }}>{L('Cartão de crédito: aceito pela Receita desde set/2025 no próprio PGMEI ("Pagar Online"). Os juros do cartão costumam ser bem maiores que o parcelamento oficial do PGMEI — compare antes. Cartão de débito não é aceito pelas regras oficiais que encontramos.', 'Credit card: accepted by the Federal Revenue since Sep/2025 in PGMEI itself ("Pagar Online"). Card interest is usually much higher than the official PGMEI installment plan — compare first. Debit card is not accepted under the official rules we found.', 'Tarjeta de crédito: aceptada por la Receita desde sep/2025 en el propio PGMEI ("Pagar Online"). Los intereses de la tarjeta suelen ser mucho mayores que el parcelamiento oficial del PGMEI — compare antes. Tarjeta de débito no es aceptada según las reglas oficiales encontradas.')}</p>}
+            <p className="text-xs mt-2" style={{ color: SEC }}>{L('Pagou no app do banco? Informe a data e clique em "Já paguei" — a baixa sai com o nº desta guia, e o extrato reconhece sozinho.', 'Paid in your bank app? Enter the date and click "Already paid" — it is recorded with this slip number and the statement matches it automatically.', '¿Pagó en la app del banco? Informe la fecha y haga clic en "Ya pagué" — se registra con el nº de esta guía y el extracto lo reconoce solo.')}</p>
             <div className="flex flex-wrap items-end gap-2 mt-2">
-              <label className="text-[11px]" style={{ color: SEC }}>{L('Data do pagamento', 'Payment date', 'Fecha del pago')}
+              <label className="text-xs" style={{ color: SEC }}>{L('Data do pagamento', 'Payment date', 'Fecha del pago')}
                 <input type="date" value={dataPg} max={hojeISO()} onChange={(e) => setDataPg(e.target.value)} className="block mt-1 px-2 py-1.5 rounded-lg text-xs" style={CAMPO} />
               </label>
-              <label className="text-[11px]" style={{ color: SEC }}>{L('Como pagou', 'How you paid', 'Cómo pagó')}
+              <label className="text-xs" style={{ color: SEC }}>{L('Como pagou', 'How you paid', 'Cómo pagó')}
                 <select value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPagamento)} className="block mt-1 px-2 py-1.5 rounded-lg text-xs" style={CAMPO}>
                   <option value="pix">Pix</option><option value="boleto">{L('Código de barras', 'Barcode', 'Código de barras')}</option><option value="debito_automatico">{L('Débito automático', 'Direct debit', 'Débito automático')}</option><option value="cartao">{L('Cartão de crédito', 'Credit card', 'Tarjeta de crédito')}</option>
                 </select>

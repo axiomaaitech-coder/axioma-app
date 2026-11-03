@@ -117,10 +117,10 @@ function linhaMetas(tt: any, claro = false) {
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter(p => p.value != null).map(p => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", boundaryGap: false, data: tt.meses,
       axisLine: { lineStyle: { color: e.linhaTempo } }, axisTick: { show: false },
-      axisLabel: { color: e.rotuloTempo, fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: e.rotuloTempo, fontSize: 12, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
-      axisLabel: { color: e.rotuloFraco, fontSize: 10, formatter: (v: number) => fK(v) } },
+      axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [
       { name: tt.realizado, type: "line", smooth: true, symbol: "circle", symbolSize: 8,
         lineStyle: { width: 4, color: corReal, shadowColor: corReal + "90", shadowBlur: claro ? 4 : 14 },

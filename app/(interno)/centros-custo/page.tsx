@@ -803,14 +803,14 @@ export default function CentrosCustoPage() {
                 <p className="text-sm font-bold capitalize" style={{ color: ct("#c8d8f0") }}>{idioma === "pt" ? "Score do Módulo" : idioma === "es" ? "Score del Módulo" : "Module Score"} — {
                   { excelente: { pt: "excelente", en: "excellent", es: "excelente" }, bom: { pt: "bom", en: "good", es: "bueno" }, atencao: { pt: "atenção", en: "needs attention", es: "atención" }, critico: { pt: "crítico", en: "critical", es: "crítico" } }[scoreModulo.nivel][idioma === "en" ? "en" : idioma === "es" ? "es" : "pt"]
                 }</p>
-                <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Disciplina orçamentária, anomalias, oportunidades capturadas e cobertura de atribuição." : idioma === "es" ? "Disciplina presupuestaria, anomalías, oportunidades capturadas y cobertura de asignación." : "Budget discipline, anomalies, captured opportunities and tagging coverage."}</p>
+                <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Disciplina orçamentária, anomalias, oportunidades capturadas e cobertura de atribuição." : idioma === "es" ? "Disciplina presupuestaria, anomalías, oportunidades capturadas y cobertura de asignación." : "Budget discipline, anomalies, captured opportunities and tagging coverage."}</p>
               </div>
             </div>
             <div className="flex gap-3 flex-wrap">
               {scoreModulo.dimensoes.map(d => (
                 <div key={d.nome} className="text-center px-2">
                   <p className="text-sm font-black" style={{ color: ct(d.cor) }}>{d.score}</p>
-                  <p className="text-[9px] max-w-[90px]" style={{ color: ct("#5a7a9a") }} title={d.detalhe}>{d.nome}</p>
+                  <p className="text-xs max-w-[90px]" style={{ color: ct("#5a7a9a") }} title={d.detalhe}>{d.nome}</p>
                 </div>
               ))}
             </div>
@@ -1120,7 +1120,7 @@ export default function CentrosCustoPage() {
                       <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{c.centroNome}{c.fornecedorNome ? ` · ${c.fornecedorNome}` : ""}</span>
                     </div>
                     <p className="text-sm" style={{ color: ct("#c8d8f0") }}>{c.explicacao}</p>
-                    <p className="text-[11px] mt-1" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Quando" : idioma === "es" ? "Cuándo" : "When"}: {c.quando ? new Date(c.quando + "T00:00:00").toLocaleDateString("pt-BR") : "-"} · {c.autor}</p>
+                    <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Quando" : idioma === "es" ? "Cuándo" : "When"}: {c.quando ? new Date(c.quando + "T00:00:00").toLocaleDateString("pt-BR") : "-"} · {c.autor}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <span className="text-sm font-black" style={{ color: ct("#f87171") }}>{fmt(c.impacto)}</span>
@@ -1151,7 +1151,7 @@ export default function CentrosCustoPage() {
                     </div>
                   ))}
                 </div>
-                {!periodoEhMesAtual && <p className="text-[10px] mt-2" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Período selecionado não é o mês corrente — mostrando o realizado do mês, não uma projeção." : idioma === "es" ? "El período seleccionado no es el mes actual — mostrando lo realizado, no una proyección." : "Selected period isn't the current month — showing the actual, not a projection."}</p>}
+                {!periodoEhMesAtual && <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Período selecionado não é o mês corrente — mostrando o realizado do mês, não uma projeção." : idioma === "es" ? "El período seleccionado no es el mes actual — mostrando lo realizado, no una proyección." : "Selected period isn't the current month — showing the actual, not a projection."}</p>}
               </CanvasBox>
             )}
             {oportunidades.length === 0 ? (
@@ -1214,7 +1214,7 @@ export default function CentrosCustoPage() {
                   <input type="number" value={simHorizonte} onChange={(e) => setSimHorizonte(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                 </div>
                 <div className="flex items-end">
-                  <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Recalcula automaticamente com base nos dados reais de Receitas, Custos Fixos e Custos Variáveis do período." : idioma === "es" ? "Recalcula automáticamente con base en los datos reales de Ingresos, Costos Fijos y Costos Variables del período." : "Recalculates automatically from real Revenue, Fixed and Variable Costs of the period."}</p>
+                  <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Recalcula automaticamente com base nos dados reais de Receitas, Custos Fixos e Custos Variáveis do período." : idioma === "es" ? "Recalcula automáticamente con base en los datos reales de Ingresos, Costos Fijos y Costos Variables del período." : "Recalculates automatically from real Revenue, Fixed and Variable Costs of the period."}</p>
                 </div>
               </div>
             </CanvasBox>
@@ -1301,7 +1301,7 @@ export default function CentrosCustoPage() {
                           {p.tarefas.map((tf, i) => <li key={i}>{tf}</li>)}
                         </ul>
                       )}
-                      <p className="text-[11px] mt-1" style={{ color: ct("#5a7a9a") }}>
+                      <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>
                         {p.responsavel ? `${idioma === "pt" ? "Responsável" : idioma === "es" ? "Responsable" : "Owner"}: ${p.responsavel} · ` : ""}
                         {p.prazo ? `${idioma === "pt" ? "Prazo" : idioma === "es" ? "Plazo" : "Due"}: ${new Date(p.prazo + "T00:00:00").toLocaleDateString("pt-BR")} · ` : ""}
                         {p.economia_estimada ? `${idioma === "pt" ? "Economia" : idioma === "es" ? "Ahorro" : "Savings"}: ${fmt(p.economia_estimada)}` : ""}
@@ -1432,7 +1432,7 @@ export default function CentrosCustoPage() {
                 <input type="number" value={areaCentro} onChange={(e) => setAreaCentro(e.target.value)} placeholder={idioma === "pt" ? "Área (m²)" : idioma === "es" ? "Área (m²)" : "Area (m²)"} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
               </div>
             </div>
-            <p className="text-[10px] mt-2" style={{ color: ct("#5a7a9a") }}>
+            <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>
               {idioma === "pt" ? "Headcount e área servem de base para o rateio automático (\"Ratear Custo\")." : idioma === "es" ? "Headcount y área sirven de base para el reparto automático (\"Distribuir Costo\")." : "Headcount and area feed the automatic cost allocation (\"Allocate Cost\")."}
             </p>
           </div>

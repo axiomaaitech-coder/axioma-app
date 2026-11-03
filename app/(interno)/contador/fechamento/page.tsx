@@ -78,7 +78,7 @@ export default function ContadorFechamentoPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           <div className={`md:col-span-1 rounded-2xl p-5 flex flex-col items-center justify-center text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${corReadiness(fechamento.readiness_pct, VERDE, AMARELO, VERMELHO)}30` }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Close Readiness', 'Close Readiness', 'Close Readiness')}</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Close Readiness', 'Close Readiness', 'Close Readiness')}</p>
             <p className="text-4xl font-black" style={{ color: corReadiness(fechamento.readiness_pct, VERDE, AMARELO, VERMELHO) }}><AnimatedNumber value={`${fechamento.readiness_pct.toFixed(0)}%`} /></p>
             <p className="text-xs mt-2" style={{ color: CINZA }}>
               {fechamento.previsao_prazo != null
@@ -88,7 +88,7 @@ export default function ContadorFechamentoPage() {
           </div>
 
           <div className={`md:col-span-1 rounded-2xl p-5 flex flex-col items-center justify-center text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}25` }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Data Trust Score', 'Data Trust Score', 'Data Trust Score')}</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Data Trust Score', 'Data Trust Score', 'Data Trust Score')}</p>
             {dataTrust ? (
               <p className="text-4xl font-black" style={{ color: AZULC }}><AnimatedNumber value={String(dataTrust.score)} /><span className="text-base font-semibold" style={{ color: CINZA }}>/1000</span></p>
             ) : (
@@ -97,23 +97,23 @@ export default function ContadorFechamentoPage() {
           </div>
 
           <div className={`md:col-span-1 rounded-2xl p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Eventos não contabilizados', 'Uncooked events', 'Eventos no contabilizados')}</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Eventos não contabilizados', 'Uncooked events', 'Eventos no contabilizados')}</p>
             <p className="text-2xl font-black" style={{ color: (fechamento.pendencias?.eventos_nao_contabilizados || 0) > 0 ? AMARELO : VERDE }}>
               <AnimatedNumber value={String(fechamento.pendencias?.eventos_nao_contabilizados ?? 0)} />
             </p>
-            <p className="text-[11px] mt-1" style={{ color: CINZA }}>{L(`de ${fechamento.pendencias?.eventos_total_periodo ?? 0} no período`, `out of ${fechamento.pendencias?.eventos_total_periodo ?? 0} this period`, `de ${fechamento.pendencias?.eventos_total_periodo ?? 0} en el período`)}</p>
+            <p className="text-xs mt-1" style={{ color: CINZA }}>{L(`de ${fechamento.pendencias?.eventos_total_periodo ?? 0} no período`, `out of ${fechamento.pendencias?.eventos_total_periodo ?? 0} this period`, `de ${fechamento.pendencias?.eventos_total_periodo ?? 0} en el período`)}</p>
           </div>
 
           <div onClick={() => router.push('/contas-pagar')} className={`md:col-span-1 rounded-2xl p-5 cursor-pointer hover:brightness-110${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Contas a pagar pendentes', 'Pending payables', 'Cuentas por pagar pendientes')}</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Contas a pagar pendentes', 'Pending payables', 'Cuentas por pagar pendientes')}</p>
             <p className="text-2xl font-black" style={{ color: TEXTO }}><AnimatedNumber value={String(fechamento.pendencias?.contas_pagar_pendentes.qtd ?? 0)} /></p>
-            <p className="text-[11px] mt-1" style={{ color: CINZA }}>R$ {fBRL2(fechamento.pendencias?.contas_pagar_pendentes.valor_total ?? 0)} — {L('clique pra resolver', 'click to resolve', 'clic para resolver')}</p>
+            <p className="text-xs mt-1" style={{ color: CINZA }}>R$ {fBRL2(fechamento.pendencias?.contas_pagar_pendentes.valor_total ?? 0)} — {L('clique pra resolver', 'click to resolve', 'clic para resolver')}</p>
           </div>
 
           <div onClick={() => router.push('/contas-receber')} className={`md:col-span-1 rounded-2xl p-5 cursor-pointer hover:brightness-110${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Contas a receber pendentes', 'Pending receivables', 'Cuentas por cobrar pendientes')}</p>
+            <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Contas a receber pendentes', 'Pending receivables', 'Cuentas por cobrar pendientes')}</p>
             <p className="text-2xl font-black" style={{ color: TEXTO }}><AnimatedNumber value={String(fechamento.pendencias?.contas_receber_pendentes.qtd ?? 0)} /></p>
-            <p className="text-[11px] mt-1" style={{ color: CINZA }}>R$ {fBRL2(fechamento.pendencias?.contas_receber_pendentes.valor_total ?? 0)} — {L('clique pra resolver', 'click to resolve', 'clic para resolver')}</p>
+            <p className="text-xs mt-1" style={{ color: CINZA }}>R$ {fBRL2(fechamento.pendencias?.contas_receber_pendentes.valor_total ?? 0)} — {L('clique pra resolver', 'click to resolve', 'clic para resolver')}</p>
           </div>
 
         </div>

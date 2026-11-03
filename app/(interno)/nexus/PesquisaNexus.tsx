@@ -32,7 +32,7 @@ export function BotaoPesquisaNexus({ tema, lang, temaClaro, rotulo }: { tema: st
   return (
     <>
       <button onClick={abrir} title={L('Pesquisar fontes e reportagens sobre isto', 'Search sources and news about this', 'Buscar fuentes y noticias sobre esto')}
-        className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md transition-transform hover:scale-105"
+        className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md transition-transform hover:scale-105"
         style={temaClaro ? { background: '#101b3d', color: '#fff' } : { color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.45)' }}>
         <Search size={11} aria-hidden />{rotulo ?? L('Pesquisar', 'Search', 'Buscar')}
       </button>
@@ -57,7 +57,7 @@ function JanelaPesquisa({ lang, temaClaro, estado, r, onFechar, onTentar }: { la
       <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: '#2ecc9b' }} aria-hidden />
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider" style={{ color: acento }}>
+          <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider" style={{ color: acento }}>
             <Search size={12} aria-hidden />{L('Motor de Pesquisa Nexus', 'Nexus Search Engine', 'Motor de Búsqueda Nexus')}
           </p>
           <h3 className="text-lg font-black leading-snug mt-0.5" style={{ color: TITULO }}>{r?.titulo ?? '…'}</h3>
@@ -88,14 +88,14 @@ function JanelaPesquisa({ lang, temaClaro, estado, r, onFechar, onTentar }: { la
         <div className="space-y-4">
           {r.dados.length > 0 && (
             <section>
-              <p className="text-[11px] font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>{L('Dado oficial', 'Official data', 'Dato oficial')}</p>
+              <p className="text-xs font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>{L('Dado oficial', 'Official data', 'Dato oficial')}</p>
               <ul className="space-y-1.5">
                 {r.dados.map((d) => (
                   <li key={d.serie} className="rounded-xl px-3 py-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.05)' : 'rgba(255,255,255,0.04)' }}>
                     <p className="text-sm font-bold" style={{ color: TITULO }}>{d.nome}: {num(d.valor)}
                       {d.anterior && <span className="text-xs font-semibold" style={{ color: CINZA }}> ({L('antes', 'before', 'antes')}: {num(d.anterior.valor)})</span>}
                     </p>
-                    <p className="text-[11px]" style={{ color: TEXTO }}>
+                    <p className="text-xs" style={{ color: TEXTO }}>
                       {L('Referência', 'Reference', 'Referencia')}: {dataRef(d.data, d.frequencia)}
                       {d.fonte && <> · {L('Fonte', 'Source', 'Fuente')}: {d.pagina ? <a href={d.pagina} target="_blank" rel="noopener noreferrer" className="underline font-semibold" style={{ color: acento }}>{d.fonte}</a> : d.fonte}</>}
                       {d.coletadoEm && <> · {L('coletado em', 'collected on', 'recolectado el')} {new Date(d.coletadoEm).toLocaleString(local, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</>}
@@ -108,7 +108,7 @@ function JanelaPesquisa({ lang, temaClaro, estado, r, onFechar, onTentar }: { la
 
           {r.resumo && (
             <section>
-              <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>
+              <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>
                 <JosephAvatar tamanho={18} estado="parado" />{L('Leitura do José', "José's reading", 'Lectura de José')}
               </p>
               <p className="text-[14px] leading-relaxed" style={{ color: TEXTO }}>{r.resumo}</p>
@@ -118,7 +118,7 @@ function JanelaPesquisa({ lang, temaClaro, estado, r, onFechar, onTentar }: { la
           )}
 
           <section>
-            <p className="text-[11px] font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>
+            <p className="text-xs font-black uppercase tracking-wide mb-1.5" style={{ color: CINZA }}>
               {L('Reportagens coletadas (últimos 30 dias)', 'Collected news (last 30 days)', 'Noticias recogidas (últimos 30 días)')}
             </p>
             {r.materias.length === 0
@@ -129,14 +129,14 @@ function JanelaPesquisa({ lang, temaClaro, estado, r, onFechar, onTentar }: { la
                       {m.url
                         ? <a href={m.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-start gap-1 text-[13px] font-bold underline leading-snug" style={{ color: TITULO }}>{m.titulo}<ExternalLink size={11} className="mt-0.5 shrink-0" aria-hidden /></a>
                         : <p className="text-[13px] font-bold leading-snug" style={{ color: TITULO }}>{m.titulo}</p>}
-                      <p className="text-[11px] mt-0.5" style={{ color: acento }}>{m.veiculo} · {new Date(m.data).toLocaleString(local, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs mt-0.5" style={{ color: acento }}>{m.veiculo} · {new Date(m.data).toLocaleString(local, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                       {m.resumo && <p className="text-[12px] leading-relaxed mt-1" style={{ color: TEXTO }}>{m.resumo}</p>}
                     </li>
                   ))}
                 </ul>}
           </section>
 
-          <p className="text-[10px] text-right" style={{ color: CINZA }}>
+          <p className="text-xs text-right" style={{ color: CINZA }}>
             {r.assinatura === 'José' ? L('— José, pelo Motor de Pesquisa Nexus', '— José, via the Nexus Search Engine', '— José, por el Motor de Búsqueda Nexus') : L('— Motor de Pesquisa Nexus', '— Nexus Search Engine', '— Motor de Búsqueda Nexus')}
             {' · '}{new Date(r.geradoEm).toLocaleString(local, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
             {' · '}{L('reportagens: fonte jornalística, não confirmada oficialmente', 'news: journalistic source, not officially confirmed', 'noticias: fuente periodística, no confirmada oficialmente')}

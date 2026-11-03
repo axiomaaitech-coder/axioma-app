@@ -48,7 +48,7 @@ export default function ProgressoEtapas({ etapas, atual, titulo, detalhe, dica, 
         <div className="min-w-0 flex-1">
           <p className="font-bold text-sm" style={{ color: texto }}>{titulo}</p>
           {detalhe && <p className="text-xs truncate mt-0.5" style={{ color: sec }}>{detalhe}</p>}
-          <p className="text-[11px] mt-0.5 tabular-nums" style={{ color: sec }}>
+          <p className="text-xs mt-0.5 tabular-nums" style={{ color: sec }}>
             {rotuloTempo ? rotuloTempo(segundos) : `${segundos}s`}{dica ? ` · ${dica}` : ""}
           </p>
         </div>

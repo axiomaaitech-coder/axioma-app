@@ -82,7 +82,7 @@ export default function NexusEventStream() {
         >
           <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
           <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>
+            <p className="flex items-center gap-1.5 text-xs font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>
               <Globe2 size={13} aria-hidden /> José · {L('Radar Global', 'Global Radar', 'Radar Global')}
             </p>
             <button onClick={fechar} aria-label={L('Fechar', 'Close', 'Cerrar')} className={`p-1 rounded-lg ${temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}>
@@ -90,7 +90,7 @@ export default function NexusEventStream() {
             </button>
           </div>
           <p className="text-sm font-bold leading-snug mb-1" style={{ color: TITULO }}>{texto.titulo}</p>
-          <p className="text-[11px] mb-3" style={{ color: TEXTO, opacity: 0.85 }}>
+          <p className="text-xs mb-3" style={{ color: TEXTO, opacity: 0.85 }}>
             {L('Impacto potencial: alto', 'Potential impact: high', 'Impacto potencial: alto')}
             {evento.confidence != null && <> · {L('confiabilidade', 'reliability', 'fiabilidad')} {Math.round(evento.confidence)}/100</>}
           </p>
@@ -101,7 +101,7 @@ export default function NexusEventStream() {
             <button onClick={verDepois} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ color: TEXTO }}>
               {L('Ver depois', 'Later', 'Ver después')}
             </button>
-            <button onClick={desligar} className="ml-auto text-[10px] underline" style={{ color: CINZA }}>
+            <button onClick={desligar} className="ml-auto text-xs underline" style={{ color: CINZA }}>
               {L('Não mostrar avisos', "Don't show alerts", 'No mostrar avisos')}
             </button>
           </div>

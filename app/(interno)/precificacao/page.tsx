@@ -610,7 +610,7 @@ export default function Precificacao() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {ippa.subscores.map((s) => (
                   <div key={s.chave} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                    <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{SUB_LABEL[s.chave] || s.chave}</p>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{SUB_LABEL[s.chave] || s.chave}</p>
                     <p className="text-sm font-black" style={{ color: COR_PRC_C }}>{Math.round(s.valor)}</p>
                   </div>
                 ))}
@@ -633,7 +633,7 @@ export default function Precificacao() {
                     return (
                       <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: `${corTipo}10`, border: `1px solid ${corTipo}25` }}>
                         <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{montarNarrativaOportunidadePrecificacao(lang, o)}</p>
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${corTipo}18`, color: corTipo }}>{nomeTipoOportunidadePrecificacao(lang, o.tipo as TipoOportunidadePrecificacao)}</span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${corTipo}18`, color: corTipo }}>{nomeTipoOportunidadePrecificacao(lang, o.tipo as TipoOportunidadePrecificacao)}</span>
                       </div>
                     );
                   })}
@@ -644,7 +644,7 @@ export default function Precificacao() {
 
             {/* SELETOR DE PRODUTO (usado pelo Motor, Desconto, Concorrentes, Elasticidade) */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
-              <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: COR_PRC_C }}>{txt.selecioneProduto}</label>
+              <label className="text-xs font-black uppercase tracking-wider mb-2 block" style={{ color: COR_PRC_C }}>{txt.selecioneProduto}</label>
               <select value={produtoSelecionadoId} onChange={(e) => setProdutoSelecionadoId(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle}>
                 <option value="">—</option>
@@ -663,15 +663,15 @@ export default function Precificacao() {
                   <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcMotorSub}</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                     <div>
-                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcPrecoAtualLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcPrecoAtualLabel}</label>
                       <div className="w-full px-3 py-2.5 rounded-xl text-sm axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
                     </div>
                     <div>
-                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcPrecoCandidatoLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcPrecoCandidatoLabel}</label>
                       <input type="number" value={precoCandidato} onChange={(e) => setPrecoCandidato(e.target.value)} onBlur={(e) => setPrecoCandidato(precoBlur(e.target.value))} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     </div>
                     <div>
-                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcUnidadesVendidasLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcUnidadesVendidasLabel}</label>
                       <input type="number" value={unidadesCandidato} onChange={(e) => setUnidadesCandidato(e.target.value)}
                         placeholder={produtoSelecionado.unidades_vendidas_mes != null ? String(produtoSelecionado.unidades_vendidas_mes) : "0"}
                         className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
@@ -688,7 +688,7 @@ export default function Precificacao() {
                           { l: cx.prcMargemNovaLabel, v: fPct(impactoPreco.margemContribuicaoPct), c: COR_PRC_C },
                         ].map((k, i) => (
                           <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{k.l}</p>
+                            <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{k.l}</p>
                             <p className="text-xs font-black" style={{ color: k.c }}>{k.v}</p>
                           </div>
                         ))}
@@ -709,7 +709,7 @@ export default function Precificacao() {
                   </div>
                   <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcDescontoSub}</p>
                   <div className="max-w-xs mb-3">
-                    <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcDescontoPctLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcDescontoPctLabel}</label>
                     <input type="number" value={descontoPct} onChange={(e) => setDescontoPct(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                   </div>
                   {impactoDesconto && (
@@ -790,8 +790,8 @@ export default function Precificacao() {
                     const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? COR_PRC : ct(CORES.azul);
                     return (
                       <div key={r.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
-                        <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
+                        <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
                         <p className="text-sm font-black" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
                       </div>
                     );
@@ -806,7 +806,7 @@ export default function Precificacao() {
                 <Users size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcPainelEspecialistasTitulo}</p>
               </div>
-              <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.prcPainelEspecialistasSub}</p>
+              <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcPainelEspecialistasSub}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                 {[
                   { l: cx.prcEspecialistaCFO, t: `${cx.prcImpactoLucroLabel}: ${fBRL(dreAtual.lucroLiquido.valor)}` },
@@ -816,12 +816,12 @@ export default function Precificacao() {
                   { l: cx.prcEspecialistaAnalista, t: elasticidade.temDadosSuficientes ? montarNarrativaElasticidade(lang, elasticidade) : cx.prcElasticidadeDadosInsuficientes },
                 ].map((e, i) => (
                   <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.l}</p>
+                    <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.l}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.t}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
+              <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                   <Sparkles size={15} style={{ color: corOuro, flexShrink: 0, marginTop: 2 }} />
@@ -840,7 +840,7 @@ export default function Precificacao() {
                   </div>
                 )}
               </div>
-              <p className="text-[10px] italic leading-relaxed" style={{ color: "#4b5563" }}>{cx.prcTransparenciaTexto}</p>
+              <p className="text-xs italic leading-relaxed" style={{ color: "#4b5563" }}>{cx.prcTransparenciaTexto}</p>
             </div>
 
             {/* MEMÓRIA ESTRATÉGICA */}
@@ -860,7 +860,7 @@ export default function Precificacao() {
                       <div key={d.id} className="px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-1.5">
                           <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{produtoNome}</p>
-                          <p className="text-[11px]" style={{ color: ct("#94a3b8") }}>{fBRL(d.preco_anterior)} → {fBRL(d.preco_novo)}</p>
+                          <p className="text-xs" style={{ color: ct("#94a3b8") }}>{fBRL(d.preco_anterior)} → {fBRL(d.preco_novo)}</p>
                         </div>
                         <input placeholder={cx.prcResultadoRealLabel} defaultValue={d.resultado_real || ""} onBlur={(e) => atualizarResultadoReal(d.id, e.target.value)}
                           className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />

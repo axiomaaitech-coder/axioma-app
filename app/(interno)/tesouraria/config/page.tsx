@@ -143,7 +143,7 @@ export default function TesourariaConfigPage() {
                   onChange={(e) => setReservaMinima(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none disabled:opacity-50"
                   style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
-                <p className="text-[10px] mt-1" style={{ color: CINZA }}>
+                <p className="text-xs mt-1" style={{ color: CINZA }}>
                   {L('Caixa que você quer manter sempre intocado — usado no Liquidity Score e no Radar de ruptura.', 'Cash you always want to keep untouched — used in the Liquidity Score and the rupture radar.', 'Caja que quieres mantener siempre intocada — usada en el Liquidity Score y el radar de ruptura.')}
                 </p>
               </div>
@@ -176,7 +176,7 @@ export default function TesourariaConfigPage() {
                 <div key={c.id} className={`flex flex-wrap items-center gap-3 rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                   <div className="min-w-[140px]">
                     <p className="text-xs font-bold" style={{ color: TEXTO }}>{c.conta_codigo} — {c.conta_nome}</p>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: `${AZULC}15`, color: AZULC }}>
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: `${AZULC}15`, color: AZULC }}>
                       {LABEL_TIPO_LIQUIDEZ[c.tipo_liquidez][lang]}
                     </span>
                   </div>
@@ -187,7 +187,7 @@ export default function TesourariaConfigPage() {
                     style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                   {podeEditar && (
                     <button onClick={() => salvarBanco(c)} disabled={salvandoConta === c.id}
-                      className="text-[10px] font-bold px-3 py-2 rounded-lg whitespace-nowrap disabled:opacity-60"
+                      className="text-xs font-bold px-3 py-2 rounded-lg whitespace-nowrap disabled:opacity-60"
                       style={{ background: `${AZULC}18`, color: AZULC }}>
                       {salvandoConta === c.id ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
                     </button>

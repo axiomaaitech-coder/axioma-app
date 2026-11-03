@@ -572,8 +572,8 @@ export default function Inadimplencia() {
     backgroundColor: 'transparent',
     tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
     grid: { left: 100, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: ct('#94a3b8'), fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
-    yAxis: { type: 'category', data: nomesClientesHeatmap, splitArea: { show: true }, axisLabel: { color: ct('#cbd5e1'), fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: ct('#94a3b8'), fontSize: 12, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: nomesClientesHeatmap, splitArea: { show: true }, axisLabel: { color: ct('#cbd5e1'), fontSize: 12 }, axisLine: { show: false } },
     visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
     series: [{ type: 'heatmap', data: heatmapData.map((c) => [['0-30', '31-60', '61-90', '90+'].indexOf(c.faixa), nomesClientesHeatmap.indexOf(c.clienteNome), c.valor]), label: { show: false }, itemStyle: { borderColor: temaClaro ? '#ffffff' : '#020810', borderWidth: 2, borderRadius: 4 } }],
   } : null
@@ -637,7 +637,7 @@ export default function Inadimplencia() {
     setExportando(false)
   }
 
-  const labelInput = 'text-[10px] font-semibold tracking-wider uppercase mb-1 block'
+  const labelInput = 'text-xs font-semibold tracking-wider uppercase mb-1 block'
   const inputCls = 'w-full px-3 py-2.5 rounded-xl focus:outline-none text-xs'
   const inputStyle = { background: temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)', border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
   const selectStyle = { background: BG_CARD, border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
@@ -698,7 +698,7 @@ export default function Inadimplencia() {
           </select>
         </div>
 
-        <p className="text-[10px] italic" style={{ color: CINZA }}>
+        <p className="text-xs italic" style={{ color: CINZA }}>
           {L('Recuperado no período selecionado', 'Recovered in the selected period', 'Recuperado en el período seleccionado')}: <span className="font-bold" style={{ color: VERDE }}>{fBRL(recuperadoPeriodo)}</span>
         </p>
 
@@ -721,7 +721,7 @@ export default function Inadimplencia() {
           {kpiTiles.map((k) => (
             <div key={k.key} onClick={() => irParaDestino(DESTINO_KPI[k.key] || '#aging-inad', router)} title={L('Ver detalhes', 'See details', 'Ver detalles')} className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer transition-transform hover:-translate-y-0.5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
-              <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
@@ -739,8 +739,8 @@ export default function Inadimplencia() {
               <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
             </p>
             <div className="flex items-center gap-2">
-              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
-              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
+              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
+              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
             </div>
           </div>
           {alertas.length === 0 ? (
@@ -759,7 +759,7 @@ export default function Inadimplencia() {
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
                     <p className="text-xs mt-0.5" style={{ color: ct('#c8d8f0') }}>{a.descricao}</p>
-                    <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
+                    <p className="text-xs mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
                   </div>
                 </motion.button>
               ))}
@@ -784,7 +784,7 @@ export default function Inadimplencia() {
                 {aging.map((f, i) => (
                   <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${agingCores[i]}12`, border: `1px solid ${agingCores[i]}35` }}>
                     <p className="text-base font-black" style={{ color: agingCores[i] }}>{fBRL(f.valor)}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('títulos', 'invoices', 'títulos')}</p>
+                    <p className="text-xs mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('títulos', 'invoices', 'títulos')}</p>
                   </div>
                 ))}
               </div>
@@ -813,7 +813,7 @@ export default function Inadimplencia() {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase mb-1" style={{ color: CINZA }}>{L('Ranking dos Maiores Riscos', 'Highest Risk Ranking', 'Ranking de Mayores Riesgos')}</p>
+                <p className="text-xs font-bold uppercase mb-1" style={{ color: CINZA }}>{L('Ranking dos Maiores Riscos', 'Highest Risk Ranking', 'Ranking de Mayores Riesgos')}</p>
                 {rankingPioresScores.length === 0 ? (
                   <p className="text-xs italic py-4 text-center" style={{ color: CINZA }}>{L('Nenhum cliente inadimplente.', 'No delinquent clients.', 'Ningún cliente moroso.')}</p>
                 ) : rankingPioresScores.map((l, i) => (
@@ -826,7 +826,7 @@ export default function Inadimplencia() {
                       <span className="text-xs font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{l.s.cliente.nome}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>{nivelScoreLabel(l.score.nivel)}</span>
+                      <span className="text-xs font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>{nivelScoreLabel(l.score.nivel)}</span>
                       <span className="text-xs font-black w-10 text-right" style={{ color: nivelScoreCor(l.score.nivel) }}>{l.score.total}</span>
                     </div>
                   </motion.button>
@@ -841,7 +841,7 @@ export default function Inadimplencia() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <Brain size={14} /> {L('Prevenção Axioma', 'Axioma Prevention', 'Prevención Axioma')}
           </p>
-          <p className="text-[10px] mb-4 italic" style={{ color: CINZA }}>
+          <p className="text-xs mb-4 italic" style={{ color: CINZA }}>
             {L('Modo por regras — nenhum texto aqui foi gerado por um modelo de linguagem.', 'Rule-based mode — no text here was generated by a language model.', 'Modo por reglas — ningún texto aquí fue generado por un modelo de lenguaje.')}
           </p>
           {sinaisPrevencao.length === 0 ? (
@@ -870,16 +870,16 @@ export default function Inadimplencia() {
             </p>
             <div className="flex items-center gap-2">
               {etapasEscalonamento.length === 0 && (
-                <button onClick={usarEscalonamentoPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${PLATINA}15`, color: PLATINA, border: `1px solid ${PLATINA}30` }}>
+                <button onClick={usarEscalonamentoPadrao} className="px-3 py-1.5 rounded-lg text-xs font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${PLATINA}15`, color: PLATINA, border: `1px solid ${PLATINA}30` }}>
                   {L('Usar escalonamento padrão', 'Use default ladder', 'Usar escalonamiento predeterminado')}
                 </button>
               )}
-              <button onClick={() => abrirNovaEtapa()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
+              <button onClick={() => abrirNovaEtapa()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold axi-card-premium3d axi-card-faixa" style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
                 <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
               </button>
             </div>
           </div>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Cobrança amigável → formal → protesto → jurídico → negativação. Só organiza os degraus — nenhuma ação real dispara nesta fase.', 'Friendly → formal → protest → legal → credit blacklist. Only organizes the steps — no real action fires in this phase.', 'Amistoso → formal → protesto → jurídico → negativación. Solo organiza los pasos — ninguna acción real dispara en esta fase.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Cobrança amigável → formal → protesto → jurídico → negativação. Só organiza os degraus — nenhuma ação real dispara nesta fase.', 'Friendly → formal → protest → legal → credit blacklist. Only organizes the steps — no real action fires in this phase.', 'Amistoso → formal → protesto → jurídico → negativación. Solo organiza los pasos — ninguna acción real dispara en esta fase.')}</p>
           {etapasEscalonamento.length === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Nenhuma etapa configurada ainda.', 'No steps configured yet.', 'Ninguna etapa configurada aún.')}</p>
           ) : (
@@ -897,10 +897,10 @@ export default function Inadimplencia() {
                         <button onClick={() => excluirEtapa(etapa.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
                       </div>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.06)'), color: CINZA }}>
+                    <span className="text-xs px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.06)'), color: CINZA }}>
                       D+{etapa.dias_relativos} · {etapa.canal}
                     </span>
-                    <p className="text-[10px] line-clamp-2" style={{ color: ct('#c8d8f0') }}>{etapa.mensagem_modelo}</p>
+                    <p className="text-xs line-clamp-2" style={{ color: ct('#c8d8f0') }}>{etapa.mensagem_modelo}</p>
                   </div>
                 )
               })}
@@ -914,7 +914,7 @@ export default function Inadimplencia() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <AlertTriangle size={14} /> {L('Mapa Executivo de Risco', 'Executive Risk Map', 'Mapa Ejecutivo de Riesgo')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Um cliente por linha — todo saldo vencido vem direto do Contas a Receber.', 'One client per row — all overdue balance comes directly from Accounts Receivable.', 'Un cliente por línea — todo el saldo vencido viene directo de Cuentas por Cobrar.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Um cliente por linha — todo saldo vencido vem direto do Contas a Receber.', 'One client per row — all overdue balance comes directly from Accounts Receivable.', 'Un cliente por línea — todo el saldo vencido viene directo de Cuentas por Cobrar.')}</p>
 
           {linhasFiltradas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -933,7 +933,7 @@ export default function Inadimplencia() {
                       L('Prioridade', 'Priority', 'Prioridad'), L('Impacto Fin.', 'Fin. Impact', 'Impacto Fin.'), L('Responsável', 'Owner', 'Responsable'),
                       L('Negociação', 'Negotiation', 'Negociación'), '',
                     ].map((h) => (
-                      <th key={h} className="text-left px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: CINZA }}>{h}</th>
+                      <th key={h} className="text-left px-2 py-1.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: CINZA }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -950,12 +950,12 @@ export default function Inadimplencia() {
                       <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: l.probabilidadePerda != null ? VERMELHO : CINZA }}>{l.probabilidadePerda != null ? `${l.probabilidadePerda}%` : L('sem dados', 'no data', 'sin datos')}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap">
                         <span className="font-black" style={{ color: nivelScoreCor(l.score.nivel) }}>{l.score.total}</span>{' '}
-                        <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>({nivelScoreLabel(l.score.nivel)})</span>
+                        <span className="text-xs font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>({nivelScoreLabel(l.score.nivel)})</span>
                       </td>
-                      <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${prioridadeCor(l.prioridade)}15`, color: prioridadeCor(l.prioridade) }}>{prioridadeLabel(l.prioridade)}</span></td>
+                      <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-xs font-bold" style={{ background: `${prioridadeCor(l.prioridade)}15`, color: prioridadeCor(l.prioridade) }}>{prioridadeLabel(l.prioridade)}</span></td>
                       <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: ct('#c8d8f0') }}>{fPct(l.impactoFinanceiroPct)}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{l.responsavel || '—'}</td>
-                      <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${l.negociacao.cor}15`, color: l.negociacao.cor }}>{l.negociacao.label}</span></td>
+                      <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-xs font-bold" style={{ background: `${l.negociacao.cor}15`, color: l.negociacao.cor }}>{l.negociacao.label}</span></td>
                       <td className="px-2 py-2.5 rounded-r-xl whitespace-nowrap">
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirNegociacao(l)} title={L('Negociação', 'Negotiation', 'Negociación')}>
                           <HandCoins size={14} style={{ color: INDIGO }} />
@@ -975,7 +975,7 @@ export default function Inadimplencia() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <Calculator size={14} /> {L('Simulador Executivo de Recuperação', 'Executive Recovery Simulator', 'Simulador Ejecutivo de Recuperación')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Ajuste as alavancas e veja o impacto em caixa, EBITDA e lucro — reaproveita o mesmo motor de DRE de Investimentos/Simulações.', 'Adjust the levers and see the impact on cash, EBITDA and profit — reuses the same DRE engine from Investments/Simulations.', 'Ajuste las palancas y vea el impacto en caja, EBITDA y ganancia — reutiliza el mismo motor de DRE de Inversiones/Simulaciones.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Ajuste as alavancas e veja o impacto em caixa, EBITDA e lucro — reaproveita o mesmo motor de DRE de Investimentos/Simulações.', 'Adjust the levers and see the impact on cash, EBITDA and profit — reuses the same DRE engine from Investments/Simulations.', 'Ajuste las palancas y vea el impacto en caja, EBITDA y ganancia — reutiliza el mismo motor de DRE de Inversiones/Simulaciones.')}</p>
           {loading ? (
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
         ) : !temDadosSimulador ? (
@@ -995,14 +995,14 @@ export default function Inadimplencia() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {cenariosRecuperacao.map((c) => (
                   <div key={c.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCenario(c.nome)}30` }}>
-                    <p className="text-[10px] font-bold uppercase mb-2" style={{ color: corCenario(c.nome) }}>{nomeCenario(c.nome)}</p>
-                    <p className="text-[10px]" style={{ color: CINZA }}>{L('Recuperado', 'Recovered', 'Recuperado')}</p>
+                    <p className="text-xs font-bold uppercase mb-2" style={{ color: corCenario(c.nome) }}>{nomeCenario(c.nome)}</p>
+                    <p className="text-xs" style={{ color: CINZA }}>{L('Recuperado', 'Recovered', 'Recuperado')}</p>
                     <p className="text-sm font-black mb-1.5" style={{ color: VERDE }}>{fBRL(c.valorRecuperado)}</p>
-                    <p className="text-[10px]" style={{ color: CINZA }}>{L('Perda Assumida', 'Assumed Loss', 'Pérdida Asumida')}</p>
+                    <p className="text-xs" style={{ color: CINZA }}>{L('Perda Assumida', 'Assumed Loss', 'Pérdida Asumida')}</p>
                     <p className="text-sm font-black mb-1.5" style={{ color: VERMELHO }}>{fBRL(c.perdaAssumida)}</p>
-                    <p className="text-[10px]" style={{ color: CINZA }}>{L('EBITDA Mensal', 'Monthly EBITDA', 'EBITDA Mensual')}</p>
+                    <p className="text-xs" style={{ color: CINZA }}>{L('EBITDA Mensal', 'Monthly EBITDA', 'EBITDA Mensual')}</p>
                     <p className="text-xs font-bold mb-1.5" style={{ color: ct('#c8d8f0') }}>{fBRL(c.ebitdaMensal)}</p>
-                    <p className="text-[10px]" style={{ color: CINZA }}>{L('Caixa Projetado', 'Projected Cash', 'Caja Proyectada')}</p>
+                    <p className="text-xs" style={{ color: CINZA }}>{L('Caixa Projetado', 'Projected Cash', 'Caja Proyectada')}</p>
                     <p className="text-xs font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? VERDE : VERMELHO }}>{fBRL(c.saldoCaixaProjetado)}</p>
                   </div>
                 ))}
@@ -1017,18 +1017,18 @@ export default function Inadimplencia() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: AZUL }}>
             <TrendingUp size={14} /> {L('Previsão de Recuperação Multi-Horizonte', 'Multi-Horizon Recovery Forecast', 'Previsión de Recuperación Multi-Horizonte')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Quanto do saldo vencido tende a ser recuperado até cada prazo, por confiança.', 'How much of the overdue balance tends to be recovered by each deadline, by confidence.', 'Cuánto del saldo vencido tiende a recuperarse hasta cada plazo, por confianza.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Quanto do saldo vencido tende a ser recuperado até cada prazo, por confiança.', 'How much of the overdue balance tends to be recovered by each deadline, by confidence.', 'Cuánto del saldo vencido tiende a recuperarse hasta cada plazo, por confianza.')}</p>
           {kpis.valorTotalInadimplente === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Nenhum saldo vencido pra projetar.', 'No overdue balance to project.', 'Ningún saldo vencido para proyectar.')}</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
               {previsaoRecuperacao.map((p) => (
                 <div key={p.horizonteDias} className="rounded-xl p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
-                  <p className="text-[10px] font-black mb-1.5" style={{ color: AZUL }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
-                  <p className="text-[9px]" style={{ color: VERDE }}>{L('Otimista', 'Optimistic', 'Optimista')}: {fBRL(p.otimista)}</p>
-                  <p className="text-[9px]" style={{ color: AZUL }}>{L('Provável', 'Probable', 'Probable')}: {fBRL(p.provavel)}</p>
-                  <p className="text-[9px]" style={{ color: AMBAR }}>{L('Conservador', 'Conservative', 'Conservador')}: {fBRL(p.conservador)}</p>
-                  <p className="text-[9px]" style={{ color: VERMELHO }}>{L('Improvável', 'Unlikely', 'Improbable')}: {fBRL(p.improvavel)}</p>
+                  <p className="text-xs font-black mb-1.5" style={{ color: AZUL }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
+                  <p className="text-xs" style={{ color: VERDE }}>{L('Otimista', 'Optimistic', 'Optimista')}: {fBRL(p.otimista)}</p>
+                  <p className="text-xs" style={{ color: AZUL }}>{L('Provável', 'Probable', 'Probable')}: {fBRL(p.provavel)}</p>
+                  <p className="text-xs" style={{ color: AMBAR }}>{L('Conservador', 'Conservative', 'Conservador')}: {fBRL(p.conservador)}</p>
+                  <p className="text-xs" style={{ color: VERMELHO }}>{L('Improvável', 'Unlikely', 'Improbable')}: {fBRL(p.improvavel)}</p>
                 </div>
               ))}
             </div>
@@ -1041,11 +1041,11 @@ export default function Inadimplencia() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>
             <PiggyBank size={14} /> {L('Perda Esperada — Provisão PCLD', 'Expected Loss — PCLD Provision', 'Pérdida Esperada — Provisión PCLD')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Dos valores vencidos, quanto tende a virar perda — por faixa de aging.', 'Of the overdue amounts, how much tends to become a loss — by aging bucket.', 'De los valores vencidos, cuánto tiende a convertirse en pérdida — por rango de antigüedad.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Dos valores vencidos, quanto tende a virar perda — por faixa de aging.', 'Of the overdue amounts, how much tends to become a loss — by aging bucket.', 'De los valores vencidos, cuánto tiende a convertirse en pérdida — por rango de antigüedad.')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {perdaPorFaixa.map((f) => (
               <div key={f.faixa} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}30` }}>
-                <p className="text-[10px] mb-1" style={{ color: CINZA }}>{f.faixa} {L('dias', 'days', 'días')}</p>
+                <p className="text-xs mb-1" style={{ color: CINZA }}>{f.faixa} {L('dias', 'days', 'días')}</p>
                 <p className="text-sm font-black" style={{ color: ct('#c8d8f0') }}>{fBRL(f.valorVencido)}</p>
                 <p className="text-xs font-bold mt-1" style={{ color: f.perdaEsperada != null ? VERMELHO : CINZA }}>{f.perdaEsperada != null ? fBRL(f.perdaEsperada) : L('sem dados suficientes', 'not enough data', 'sin datos suficientes')}</p>
               </div>
@@ -1054,14 +1054,14 @@ export default function Inadimplencia() {
 
           {impactoDRE && (
             <div className="rounded-xl p-3 mb-4 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}25` }}>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: INDIGO }}>{L('Impacto Simulado na DRE (mês atual)', 'Simulated DRE Impact (current month)', 'Impacto Simulado en la DRE (mes actual)')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: INDIGO }}>{L('Impacto Simulado na DRE (mês atual)', 'Simulated DRE Impact (current month)', 'Impacto Simulado en la DRE (mes actual)')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px]" style={{ color: CINZA }}>{L('Margem Líquida Atual', 'Current Net Margin', 'Margen Neto Actual')}</p>
+                  <p className="text-xs" style={{ color: CINZA }}>{L('Margem Líquida Atual', 'Current Net Margin', 'Margen Neto Actual')}</p>
                   <p className="text-sm font-black" style={{ color: ct('#c8d8f0') }}>{fPct(impactoDRE.dreAtual.margemLiquidaPct)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px]" style={{ color: CINZA }}>{L('Margem com Provisão', 'Margin with Provision', 'Margen con Provisión')}</p>
+                  <p className="text-xs" style={{ color: CINZA }}>{L('Margem com Provisão', 'Margin with Provision', 'Margen con Provisión')}</p>
                   <p className="text-sm font-black" style={{ color: VERMELHO }}>{fPct(impactoDRE.dreComProvisao.margemLiquidaPct)}</p>
                 </div>
               </div>
@@ -1073,7 +1073,7 @@ export default function Inadimplencia() {
             </div>
           )}
 
-          <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Custo de Cobrança × Valor Recuperável', 'Collection Cost × Recoverable Value', 'Costo de Cobro × Valor Recuperable')}</p>
+          <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Custo de Cobrança × Valor Recuperável', 'Collection Cost × Recoverable Value', 'Costo de Cobro × Valor Recuperable')}</p>
           <div className="flex items-center gap-2 mb-3">
             <label className="text-xs" style={{ color: CINZA }}>{L('Custo médio estimado por título (R$)', 'Estimated avg. cost per invoice (R$)', 'Costo medio estimado por título (R$)')}:</label>
             <input type="number" value={custoMedioCobranca} onChange={(e) => setCustoMedioCobranca(e.target.value)} className="w-24 px-2 py-1 rounded-lg text-xs" style={inputStyle} />
@@ -1085,7 +1085,7 @@ export default function Inadimplencia() {
               {naoValeAPena.slice(0, 8).map((c) => (
                 <div key={c.linha.s.cliente.id} className="flex items-center justify-between px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}20` }}>
                   <span className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{c.linha.s.cliente.nome}</span>
-                  <span className="text-[10px]" style={{ color: VERMELHO }}>{L('Custo', 'Cost', 'Costo')} {fBRL(c.custoEstimado)} &gt; {L('recuperável', 'recoverable', 'recuperable')} {fBRL(c.valorRecuperavelEstimado)}</span>
+                  <span className="text-xs" style={{ color: VERMELHO }}>{L('Custo', 'Cost', 'Costo')} {fBRL(c.custoEstimado)} &gt; {L('recuperável', 'recoverable', 'recuperable')} {fBRL(c.valorRecuperavelEstimado)}</span>
                 </div>
               ))}
             </div>
@@ -1100,48 +1100,48 @@ export default function Inadimplencia() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Heatmap da Inadimplência', 'Delinquency Heatmap', 'Heatmap de Morosidad')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Heatmap da Inadimplência', 'Delinquency Heatmap', 'Heatmap de Morosidad')}</p>
               {heatmapOption ? <ReactECharts option={heatmapOption} style={{ height: Math.max(160, nomesClientesHeatmap.length * 26) }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem contas vencidas.', 'No overdue accounts.', 'Sin cuentas vencidas.')}</p>}
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Evolução Mensal', 'Monthly Evolution', 'Evolución Mensual')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Evolução Mensal', 'Monthly Evolution', 'Evolución Mensual')}</p>
               {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Distribuição por Estado', 'Distribution by State', 'Distribución por Estado')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Distribuição por Estado', 'Distribution by State', 'Distribución por Estado')}</p>
               {donutGrupos(distribuicaoEstado) ? <ReactECharts option={donutGrupos(distribuicaoEstado)!} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Distribuição por Segmento', 'Distribution by Segment', 'Distribución por Segmento')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Distribuição por Segmento', 'Distribution by Segment', 'Distribución por Segmento')}</p>
               {donutGrupos(distribuicaoSegmento) ? <ReactECharts option={donutGrupos(distribuicaoSegmento)!} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Curva ABC da Inadimplência', 'ABC Curve of Delinquency', 'Curva ABC de la Morosidad')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Curva ABC da Inadimplência', 'ABC Curve of Delinquency', 'Curva ABC de la Morosidad')}</p>
               {curvaABC.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {curvaABC.slice(0, 10).map((c) => (
                     <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
-                      <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{c.nome}</span>
-                      <span className="text-[10px] font-bold flex-shrink-0" style={{ color: c.classe === 'A' ? VERMELHO : c.classe === 'B' ? AMBAR : VERDE }}>{c.classe} · {fBRL(c.valor)}</span>
+                      <span className="text-xs truncate" style={{ color: ct('#c8d8f0') }}>{c.nome}</span>
+                      <span className="text-xs font-bold flex-shrink-0" style={{ color: c.classe === 'A' ? VERMELHO : c.classe === 'B' ? AMBAR : VERDE }}>{c.classe} · {fBRL(c.valor)}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Ranking de Maior Recuperação', 'Top Recovery Ranking', 'Ranking de Mayor Recuperación')}</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Ranking de Maior Recuperação', 'Top Recovery Ranking', 'Ranking de Mayor Recuperación')}</p>
               {rankingRecuperacao.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem recuperações registradas.', 'No recoveries recorded.', 'Sin recuperaciones registradas.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {rankingRecuperacao.map((r, i) => (
                     <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
-                      <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{i + 1}. {r.chave}</span>
-                      <span className="text-[10px] font-bold flex-shrink-0" style={{ color: VERDE }}>{fBRL(r.valor)}</span>
+                      <span className="text-xs truncate" style={{ color: ct('#c8d8f0') }}>{i + 1}. {r.chave}</span>
+                      <span className="text-xs font-bold flex-shrink-0" style={{ color: VERDE }}>{fBRL(r.valor)}</span>
                     </div>
                   ))}
                 </div>
@@ -1172,13 +1172,13 @@ export default function Inadimplencia() {
                   </div>
 
                   {/* Títulos em aberto — editar carrega os dados de volta, sem duplicar */}
-                  <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Títulos em Aberto', 'Open Invoices', 'Títulos Abiertos')}</p>
+                  <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Títulos em Aberto', 'Open Invoices', 'Títulos Abiertos')}</p>
                   <div className="space-y-1.5 mb-4">
                     {titulosVencidosCliente.map((c) => (
                       <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${VERMELHO}20` }}>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{c.numero_documento || c.descricao}</p>
-                          <p className="text-[10px]" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button onClick={() => darBaixaTitulo(c)} title={L('Dar baixa (marcar como pago)', 'Settle (mark as paid)', 'Saldar (marcar como pagado)')}><CheckCircle2 size={13} style={{ color: VERDE }} /></button>
@@ -1192,11 +1192,11 @@ export default function Inadimplencia() {
                   {/* Estratégia recomendada — destaque da Fase 2 */}
                   {estrategiasCliente.length > 0 && (
                     <div className="mb-4 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${INDIGO}0c`, border: `1px solid ${INDIGO}30` }}>
-                      <p className="text-[10px] font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
+                      <p className="text-xs font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {estrategiasCliente.map((e) => (
                           <div key={e.tipo} className="rounded-lg px-2.5 py-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)') }}>
-                            <p className="text-[11px] font-semibold" style={{ color: ct('#c8d8f0') }}>{e.label}</p>
+                            <p className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{e.label}</p>
                             <p className="text-xs font-black" style={{ color: VERDE }}>~{e.probabilidadeEstimada}% {L('de recuperar', 'to recover', 'de recuperar')}</p>
                           </div>
                         ))}
@@ -1204,7 +1204,7 @@ export default function Inadimplencia() {
                     </div>
                   )}
 
-                  <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Timeline de Interações', 'Interaction Timeline', 'Cronología de Interacciones')}</p>
+                  <p className="text-xs font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Timeline de Interações', 'Interaction Timeline', 'Cronología de Interacciones')}</p>
                   <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-1">
                     {timelineCliente.length === 0 ? (
                       <p className="text-xs italic py-3" style={{ color: CINZA }}>{L('Nenhuma interação registrada ainda.', 'No interaction recorded yet.', 'Ninguna interacción registrada aún.')}</p>
@@ -1214,7 +1214,7 @@ export default function Inadimplencia() {
                         <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCompromisso(c.status)}25` }}>
                           <div className="min-w-0">
                             <p className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')} · {fBRL(c.valor_compromissado)}{c.parcelas ? ` · ${c.parcelas}x` : ''}</p>
-                            <p className="text-[10px]" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}{c.responsavel ? ` · ${c.responsavel}` : ''}</p>
+                            <p className="text-xs" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}{c.responsavel ? ` · ${c.responsavel}` : ''}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {c.status === 'pendente' ? (
@@ -1223,7 +1223,7 @@ export default function Inadimplencia() {
                                 <button onClick={() => marcarCompromisso(c.id, 'cumprido')} title={L('Cumprido', 'Fulfilled', 'Cumplido')}><CheckCircle2 size={14} style={{ color: VERDE }} /></button>
                                 <button onClick={() => marcarCompromisso(c.id, 'quebrado')} title={L('Quebrado', 'Broken', 'Incumplido')}><X size={14} style={{ color: VERMELHO }} /></button>
                               </>
-                            ) : <span className="text-[10px] font-bold" style={{ color: corCompromisso(c.status) }}>{c.status === 'cumprido' ? L('Cumprido', 'Fulfilled', 'Cumplido') : L('Quebrado', 'Broken', 'Incumplido')}</span>}
+                            ) : <span className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.status === 'cumprido' ? L('Cumprido', 'Fulfilled', 'Cumplido') : L('Quebrado', 'Broken', 'Incumplido')}</span>}
                           </div>
                         </div>
                       )
@@ -1234,7 +1234,7 @@ export default function Inadimplencia() {
                           <Phone size={12} style={{ color: AZUL }} className="flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{it.descricao}</p>
-                            <p className="text-[10px]" style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')}{it.canal ? ` · ${it.canal}` : ''}</p>
+                            <p className="text-xs" style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')}{it.canal ? ` · ${it.canal}` : ''}</p>
                           </div>
                         </div>
                       )
@@ -1247,7 +1247,7 @@ export default function Inadimplencia() {
                     <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: temaClaro ? '1px solid #e4e7ec' : '1px solid rgba(255,255,255,0.08)' }}>
                       {/* Registrar contato */}
                       <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase" style={{ color: AZUL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
+                        <p className="text-xs font-bold uppercase" style={{ color: AZUL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
                         <select value={novoContato.conta_id} onChange={(e) => setNovoContato({ ...novoContato, conta_id: e.target.value })} className={inputCls} style={selectStyle}>
                           {titulosVencidosCliente.map((c) => <option key={c.id} value={c.id}>{c.numero_documento || c.descricao}</option>)}
                         </select>
@@ -1271,7 +1271,7 @@ export default function Inadimplencia() {
 
                       {/* Registrar / editar negociação */}
                       <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase" style={{ color: INDIGO }}>{editandoCompromissoId ? L('Editar Negociação', 'Edit Negotiation', 'Editar Negociación') : L('Registrar Negociação', 'Register Negotiation', 'Registrar Negociación')}</p>
+                        <p className="text-xs font-bold uppercase" style={{ color: INDIGO }}>{editandoCompromissoId ? L('Editar Negociação', 'Edit Negotiation', 'Editar Negociación') : L('Registrar Negociação', 'Register Negotiation', 'Registrar Negociación')}</p>
                         <select value={novoCompromisso.conta_id} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, conta_id: e.target.value })} className={inputCls} style={selectStyle}>
                           {titulosVencidosCliente.map((c) => (
                             <option key={c.id} value={c.id}>{c.numero_documento || c.descricao} · {fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))}</option>
@@ -1385,7 +1385,7 @@ export default function Inadimplencia() {
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCaso} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
-                  <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Registra um título vencido direto no Contas a Receber — sem cadastro paralelo.', 'Registers an overdue invoice directly in Accounts Receivable — no parallel record.', 'Registra un título vencido directo en Cuentas por Cobrar — sin registro paralelo.')}</p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Registra um título vencido direto no Contas a Receber — sem cadastro paralelo.', 'Registers an overdue invoice directly in Accounts Receivable — no parallel record.', 'Registra un título vencido directo en Cuentas por Cobrar — sin registro paralelo.')}</p>
                   <div className="space-y-3">
                     <div>
                       <label className={labelInput} style={{ color: PLATINA }}>{L('Cliente', 'Client', 'Cliente')} *</label>

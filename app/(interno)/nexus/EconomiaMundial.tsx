@@ -58,10 +58,10 @@ export function EconomiaMundial({ lang, temaClaro, dados }: { lang: Lang; temaCl
                 <BotaoPesquisaNexus tema={`pais:${c.iso}`} lang={lang} temaClaro={temaClaro} />
               </div>
               <p className="text-2xl font-black leading-none" style={{ color: TITULO }}>{pct(p?.pib ?? null, lang)}</p>
-              <p className="text-[11px] mt-1" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L('crescimento do PIB', 'GDP growth', 'crecimiento del PIB')}</p>
+              <p className="text-xs mt-1" style={{ color: TEXTO, opacity: temaClaro ? 1 : 0.85 }}>{L('crescimento do PIB', 'GDP growth', 'crecimiento del PIB')}</p>
               <p className="text-xs mt-2" style={{ color: TEXTO }}>{L('Inflação', 'Inflation', 'Inflación')}: <span className="font-bold" style={{ color: TITULO }}>{pct(p?.inflacao ?? null, lang)}</span></p>
               <div className="flex items-center justify-between mt-auto">
-                <span className="text-[10px]" style={{ color: CINZA }}>{p?.ano ? `${L('ano', 'year', 'año')} ${p.ano} · Banco Mundial` : L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
+                <span className="text-xs" style={{ color: CINZA }}>{p?.ano ? `${L('ano', 'year', 'año')} ${p.ano} · Banco Mundial` : L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
               </div>
             </div>
           )
@@ -122,8 +122,8 @@ function CardPreco({ ind, rotulo, valor, mensal, lang, temaClaro }: { ind: Indic
       <p className="text-2xl font-black leading-none mb-1" style={{ color: TITULO }}>{valor}</p>
       {ind && <Sparkline valores={ind.historico.map((p) => p.valor)} cor={temaClaro ? '#16a97d' : CIANO} />}
       <div className="flex items-center justify-between mt-auto">
-        <span className="text-[10px]" style={{ color: CINZA }}>{data ?? L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
-        {ind?.valor != null && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={temaClaro
+        <span className="text-xs" style={{ color: CINZA }}>{data ?? L('aguardando 1ª coleta', 'awaiting first update', 'esperando 1ª actualización')}</span>
+        {ind?.valor != null && <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={temaClaro
           ? (ind.freshness === 'live' || ind.freshness === 'fresh' ? { background: '#2ecc9b', color: '#101b3d' } : ind.freshness === 'recent' ? { background: '#f5a623', color: '#2b1900' } : { background: '#ff5a6b', color: '#2b0007' })
           : { background: `${fresh.cor}20`, color: fresh.cor }}>{fresh.texto}</span>}
       </div>

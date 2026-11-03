@@ -172,12 +172,12 @@ export default function TesourariaGemeoPage() {
               { label: L('Liquidity Score', 'Liquidity Score', 'Liquidity Score'), valor: scoreAtual.total, cor: CORES_SCORE[scoreAtual.cor], icone: Building2, semReais: true },
             ].map((k) => (
               <div key={k.label} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}><AnimatedNumber value={(k as any).semReais ? String(k.valor) : `R$ ${fBRL2(k.valor)}`} /></p>
               </div>
             ))}
           </div>
-          <p className="text-[10px] -mt-3" style={{ color: CINZA }}>
+          <p className="text-xs -mt-3" style={{ color: CINZA }}>
             {L(`Capital de giro = contas a receber em aberto (R$ ${fBRL2(capitalDeGiro.contasAReceberAberto)}) + estoque (R$ ${fBRL2(capitalDeGiro.valorEstoque)}) − contas a pagar em aberto (R$ ${fBRL2(capitalDeGiro.contasAPagarAberto)}).`,
               `Working capital = open receivables (R$ ${fBRL2(capitalDeGiro.contasAReceberAberto)}) + inventory (R$ ${fBRL2(capitalDeGiro.valorEstoque)}) − open payables (R$ ${fBRL2(capitalDeGiro.contasAPagarAberto)}).`,
               `Capital de trabajo = cuentas por cobrar abiertas (R$ ${fBRL2(capitalDeGiro.contasAReceberAberto)}) + inventario (R$ ${fBRL2(capitalDeGiro.valorEstoque)}) − cuentas por pagar abiertas (R$ ${fBRL2(capitalDeGiro.contasAPagarAberto)}).`)}
@@ -207,12 +207,12 @@ export default function TesourariaGemeoPage() {
             {mudanca === 'emprestimo' && (
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
-                  <label className="text-[10px]" style={{ color: CINZA }}>{L('Valor do empréstimo', 'Loan amount', 'Monto del préstamo')}</label>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Valor do empréstimo', 'Loan amount', 'Monto del préstamo')}</label>
                   <input type="text" inputMode="decimal" value={emprestimoValor} onChange={(e) => setEmprestimoValor(e.target.value)} placeholder="0"
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
                 <div>
-                  <label className="text-[10px]" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
                   <input type="text" inputMode="decimal" value={emprestimoParcela} onChange={(e) => setEmprestimoParcela(e.target.value)} placeholder="0"
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
@@ -222,12 +222,12 @@ export default function TesourariaGemeoPage() {
             {mudanca === 'filial' && (
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
-                  <label className="text-[10px]" style={{ color: CINZA }}>{L('Investimento inicial', 'Initial investment', 'Inversión inicial')}</label>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Investimento inicial', 'Initial investment', 'Inversión inicial')}</label>
                   <input type="text" inputMode="decimal" value={filialInvestimento} onChange={(e) => setFilialInvestimento(e.target.value)} placeholder="0"
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
                 <div>
-                  <label className="text-[10px]" style={{ color: CINZA }}>{L('Custo mensal adicional', 'Additional monthly cost', 'Costo mensual adicional')}</label>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Custo mensal adicional', 'Additional monthly cost', 'Costo mensual adicional')}</label>
                   <input type="text" inputMode="decimal" value={filialCustoMensal} onChange={(e) => setFilialCustoMensal(e.target.value)} placeholder="0"
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>

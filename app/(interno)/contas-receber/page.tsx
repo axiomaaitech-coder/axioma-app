@@ -823,8 +823,8 @@ export default function ContasReceber() {
     backgroundColor: 'transparent',
     tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
     grid: { left: 100, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
-    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#94a3b8', fontSize: 12, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#cbd5e1', fontSize: 12 }, axisLine: { show: false } },
     visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
     series: [{ type: 'heatmap', data: heatmapData.map((c) => [c.faixa, c.clienteNome, c.valor]).map((d) => [['0-30', '31-60', '61-90', '90+'].indexOf(d[0] as string), [...new Set(heatmapData.map((x) => x.clienteNome))].indexOf(d[1] as string), d[2]]), label: { show: false }, itemStyle: { borderColor: temaClaro ? '#ffffff' : '#020810', borderWidth: 2, borderRadius: 4 } }],
   } : null
@@ -927,7 +927,7 @@ export default function ContasReceber() {
               className={`text-left rounded-2xl p-4 relative overflow-hidden${classePremium3d} axi-card-premium3d axi-card-faixa`}
               style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined, cursor: k.drillable ? 'pointer' : 'default' }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
-              <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
@@ -946,8 +946,8 @@ export default function ContasReceber() {
               <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
             </p>
             <div className="flex items-center gap-2">
-              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
-              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
+              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
+              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-xs font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
             </div>
           </div>
           {alertas.length === 0 ? (
@@ -966,7 +966,7 @@ export default function ContasReceber() {
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
                     <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{a.descricao}</p>
-                    <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
+                    <p className="text-xs mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
                   </div>
                 </motion.button>
               ))}
@@ -996,7 +996,7 @@ export default function ContasReceber() {
                   return (
                   <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${corAging}12`, border: `1px solid ${corAging}35` }}>
                     <p className="text-base font-black" style={{ color: corAging }}>{fBRL(f.valor)}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
+                    <p className="text-xs mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
                   </div>
                   );
                 })}
@@ -1035,7 +1035,7 @@ export default function ContasReceber() {
                       <span className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{r.s.cliente.nome}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(r.score.nivel) }}>{nivelScoreLabel(r.score.nivel)}</span>
+                      <span className="text-xs font-bold" style={{ color: nivelScoreCor(r.score.nivel) }}>{nivelScoreLabel(r.score.nivel)}</span>
                       <span className="text-xs font-black w-10 text-right" style={{ color: nivelScoreCor(r.score.nivel) }}>{r.score.total}</span>
                     </div>
                   </motion.button>
@@ -1050,7 +1050,7 @@ export default function ContasReceber() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
             <Brain size={14} /> {L('Análise Explicativa Axioma', 'Axioma Explanatory Analysis', 'Análisis Explicativo Axioma')}
           </p>
-          <p className="text-[10px] mb-4 italic" style={{ color: CINZA }}>
+          <p className="text-xs mb-4 italic" style={{ color: CINZA }}>
             {L('Modo por regras — nenhum texto aqui foi gerado por um modelo de linguagem.', 'Rule-based mode — no text here was generated by a language model.', 'Modo por reglas — ningún texto aquí fue generado por un modelo de lenguaje.')}
           </p>
           {pareceresCobranca.length === 0 ? (
@@ -1075,7 +1075,7 @@ export default function ContasReceber() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>
             <ListChecks size={14} /> {L('Fila de Cobrança Priorizada', 'Prioritized Collection Queue', 'Cola de Cobro Priorizada')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Ordenada pelo Score Axioma — pior nota e maior saldo vencido primeiro.', 'Ordered by Axioma Score — worst score and highest overdue balance first.', 'Ordenada por Score Axioma — peor nota y mayor saldo vencido primero.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Ordenada pelo Score Axioma — pior nota e maior saldo vencido primeiro.', 'Ordered by Axioma Score — worst score and highest overdue balance first.', 'Ordenada por Score Axioma — peor nota y mayor saldo vencido primero.')}</p>
           {filaCobranca.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8">
               <CheckCircle2 size={28} style={{ color: VERDE }} className="mb-2" />
@@ -1094,7 +1094,7 @@ export default function ContasReceber() {
                       <span className="text-xs font-bold w-5 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       <div className="min-w-0">
                         <p className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{item.s.cliente.nome}</p>
-                        <p className="text-[10px]" style={{ color: CINZA }}>{L('Score', 'Score', 'Score')} {item.score.total} · {item.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>{L('Score', 'Score', 'Score')} {item.score.total} · {item.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')}</p>
                       </div>
                     </div>
                     <span className="text-xs font-black flex-shrink-0" style={{ color: VERMELHO }}>{fBRL(item.s.valorVencido)}</span>
@@ -1113,16 +1113,16 @@ export default function ContasReceber() {
             </p>
             <div className="flex items-center gap-2">
               {etapasRegua.length === 0 && (
-                <button onClick={usarReguaPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}30` }}>
+                <button onClick={usarReguaPadrao} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}30` }}>
                   {L('Usar régua padrão', 'Use default ladder', 'Usar regla predeterminada')}
                 </button>
               )}
-              <button onClick={abrirNovaEtapa} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${ESMERALDA}20`, color: ESMERALDA, border: `1px solid ${ESMERALDA}30` }}>
+              <button onClick={abrirNovaEtapa} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${ESMERALDA}20`, color: ESMERALDA, border: `1px solid ${ESMERALDA}30` }}>
                 <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
               </button>
             </div>
           </div>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Só organiza os passos e mensagens — nenhum envio real acontece nesta fase.', 'Only organizes the steps and messages — no real sending happens in this phase.', 'Solo organiza los pasos y mensajes — ningún envío real ocurre en esta fase.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Só organiza os passos e mensagens — nenhum envio real acontece nesta fase.', 'Only organizes the steps and messages — no real sending happens in this phase.', 'Solo organiza los pasos y mensajes — ningún envío real ocurre en esta fase.')}</p>
           {etapasRegua.length === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Nenhuma etapa configurada ainda.', 'No steps configured yet.', 'Ninguna etapa configurada aún.')}</p>
           ) : (
@@ -1138,11 +1138,11 @@ export default function ContasReceber() {
                       <button onClick={() => excluirEtapa(e.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
                     </div>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: BOTAO_BG, color: CINZA }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: BOTAO_BG, color: CINZA }}>
                     {e.canal === 'email' ? <Mail size={9} className="inline mr-1" /> : e.canal === 'whatsapp' ? <MessageSquare size={9} className="inline mr-1" /> : <Send size={9} className="inline mr-1" />}
                     {e.canal}
                   </span>
-                  <p className="text-[10px] line-clamp-2" style={{ color: TEXTO }}>{e.mensagem_modelo}</p>
+                  <p className="text-xs line-clamp-2" style={{ color: TEXTO }}>{e.mensagem_modelo}</p>
                 </div>
               ))}
             </div>
@@ -1154,7 +1154,7 @@ export default function ContasReceber() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
             <TrendingUp size={14} /> {L('Previsão de Caixa', 'Cash Forecast', 'Previsión de Caja')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Classificado por confiança (Score Axioma + probabilidade de recebimento) — não é só o valor bruto.', 'Classified by confidence (Axioma Score + payment probability) — not just the raw amount.', 'Clasificado por confianza (Score Axioma + probabilidad de cobro) — no solo el monto bruto.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Classificado por confiança (Score Axioma + probabilidade de recebimento) — não é só o valor bruto.', 'Classified by confidence (Axioma Score + payment probability) — not just the raw amount.', 'Clasificado por confianza (Score Axioma + probabilidad de cobro) — no solo el monto bruto.')}</p>
           {contas.length === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Sem contas suficientes para projetar.', 'Not enough accounts to project.', 'Sin cuentas suficientes para proyectar.')}</p>
           ) : (
@@ -1162,12 +1162,12 @@ export default function ContasReceber() {
               <table className="w-full text-xs border-separate" style={{ borderSpacing: '0 6px', minWidth: 640 }}>
                 <thead>
                   <tr>
-                    <th className="text-left px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L('Horizonte', 'Horizon', 'Horizonte')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: VERDE }}>{L('Previsto', 'Forecast', 'Previsto')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AZUL }}>{L('Provável', 'Likely', 'Probable')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AMBAR }}>{L('Em Risco', 'At Risk', 'En Riesgo')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: VERMELHO }}>{L('Perdido', 'Lost', 'Perdido')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L('Total', 'Total', 'Total')}</th>
+                    <th className="text-left px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L('Horizonte', 'Horizon', 'Horizonte')}</th>
+                    <th className="text-right px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: VERDE }}>{L('Previsto', 'Forecast', 'Previsto')}</th>
+                    <th className="text-right px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: AZUL }}>{L('Provável', 'Likely', 'Probable')}</th>
+                    <th className="text-right px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: AMBAR }}>{L('Em Risco', 'At Risk', 'En Riesgo')}</th>
+                    <th className="text-right px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: VERMELHO }}>{L('Perdido', 'Lost', 'Perdido')}</th>
+                    <th className="text-right px-2 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L('Total', 'Total', 'Total')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1195,7 +1195,7 @@ export default function ContasReceber() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: OURO }}>
             <Landmark size={14} /> {L('Simulador Executivo', 'Executive Simulator', 'Simulador Ejecutivo')}
           </p>
-          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Mesmo motor de DRE do módulo Investimentos — impacto em margem, caixa e lucro antes de decidir.', 'Same DRE engine as the Investments module — margin, cash and profit impact before deciding.', 'Mismo motor de DRE del módulo Inversiones — impacto en margen, caja y ganancia antes de decidir.')}</p>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>{L('Mesmo motor de DRE do módulo Investimentos — impacto em margem, caixa e lucro antes de decidir.', 'Same DRE engine as the Investments module — margin, cash and profit impact before deciding.', 'Mismo motor de DRE del módulo Inversiones — impacto en margen, caja y ganancia antes de decidir.')}</p>
 
           {loading ? (
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -1232,12 +1232,12 @@ export default function ContasReceber() {
                   const nomeLabel = { conservador: L('Conservador', 'Conservative', 'Conservador'), base: L('Base', 'Base', 'Base'), otimista: L('Otimista', 'Optimistic', 'Optimista'), adverso: L('Adverso', 'Adverse', 'Adverso') }[c.nome]
                   return (
                     <div key={c.nome} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${cor}0c`, border: `1px solid ${cor}30` }}>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: cor }}>{nomeLabel}</p>
-                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Lucro líquido', 'Net profit', 'Ganancia neta')}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: cor }}>{nomeLabel}</p>
+                      <p className="text-xs mb-0.5" style={{ color: CINZA }}>{L('Lucro líquido', 'Net profit', 'Ganancia neta')}</p>
                       <p className="text-sm font-black mb-1.5" style={{ color: TEXTO }}>{fBRL(c.lucroLiquidoMensal)}</p>
-                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('EBITDA', 'EBITDA', 'EBITDA')}</p>
+                      <p className="text-xs mb-0.5" style={{ color: CINZA }}>{L('EBITDA', 'EBITDA', 'EBITDA')}</p>
                       <p className="text-xs font-bold mb-1.5" style={{ color: TEXTO }}>{fBRL(c.ebitdaMensal)}</p>
-                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Caixa projetado', 'Projected cash', 'Caja proyectada')}</p>
+                      <p className="text-xs mb-0.5" style={{ color: CINZA }}>{L('Caixa projetado', 'Projected cash', 'Caja proyectada')}</p>
                       <p className="text-xs font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? VERDE : VERMELHO }}>{fBRL(c.saldoCaixaProjetado)}</p>
                     </div>
                   )
@@ -1251,11 +1251,11 @@ export default function ContasReceber() {
               <p className="text-xs font-black mb-2" style={{ color: AZUL }}>{L('Antecipação de Recebíveis', 'Receivables Anticipation', 'Anticipación de Cobros')}</p>
               <div className="flex gap-2 mb-3">
                 <div className="flex-1">
-                  <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Em quantos dias', 'Within how many days', 'En cuántos días')}</label>
+                  <label className="text-xs uppercase font-semibold" style={{ color: CINZA }}>{L('Em quantos dias', 'Within how many days', 'En cuántos días')}</label>
                   <input type="number" value={diasAntecipacaoCard} onChange={(e) => setDiasAntecipacaoCard(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
                 </div>
                 <div className="flex-1">
-                  <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Taxa de deságio (%)', 'Discount rate (%)', 'Tasa de descuento (%)')}</label>
+                  <label className="text-xs uppercase font-semibold" style={{ color: CINZA }}>{L('Taxa de deságio (%)', 'Discount rate (%)', 'Tasa de descuento (%)')}</label>
                   <input type="number" value={taxaAntecipacaoCard} onChange={(e) => setTaxaAntecipacaoCard(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
                 </div>
               </div>
@@ -1267,13 +1267,13 @@ export default function ContasReceber() {
             <div className="rounded-xl p-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${OURO}25` }}>
               <p className="text-xs font-black mb-2" style={{ color: OURO }}>{L('Impacto do Split Payment (Reforma 2026/2027)', 'Split Payment Impact (2026/2027 Reform)', 'Impacto del Split Payment (Reforma 2026/2027)')}</p>
               <div className="mb-3">
-                <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Alíquota estimada IBS+CBS (%)', 'Estimated IBS+CBS rate (%)', 'Alícuota estimada IBS+CBS (%)')}</label>
+                <label className="text-xs uppercase font-semibold" style={{ color: CINZA }}>{L('Alíquota estimada IBS+CBS (%)', 'Estimated IBS+CBS rate (%)', 'Alícuota estimada IBS+CBS (%)')}</label>
                 <input type="number" value={aliquotaSplitPayment} onChange={(e) => setAliquotaSplitPayment(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
               </div>
               <p className="text-xs mb-2" style={{ color: TEXTO }}>
                 {L('Do total a receber', 'Of the total receivable', 'Del total por cobrar')} (<b>{fBRL(kpis.valorTotalAReceber)}</b>), {L('uma estimativa de', 'an estimated', 'una estimación de')} <b style={{ color: VERMELHO }}>{fBRL(splitPaymentResultado.valorRetidoEstimado)}</b> {L('iria direto ao governo na liquidação, restando', 'would go directly to the government at settlement, leaving', 'iría directo al gobierno en la liquidación, quedando')} <b style={{ color: VERDE }}>{fBRL(splitPaymentResultado.valorLiquidoEstimado)}</b> {L('em caixa.', 'in cash.', 'en caja.')}
               </p>
-              <p className="text-[10px] italic" style={{ color: CINZA }}>{L('* Premissa: split payment previsto na EC 132/2023 e na LC 214/2025 (planalto.gov.br, conferidas em out/2026), com implantação gradual; a alíquota acima é uma estimativa que você pode ajustar. Regras em transição, podem mudar.', '* Assumption: split payment provided for in Constitutional Amendment 132/2023 and LC 214/2025 (planalto.gov.br, checked Oct/2026), phased in gradually; the rate above is an estimate you can adjust. Rules in transition, may change.', '* Premisa: split payment previsto en la EC 132/2023 y la LC 214/2025 (planalto.gov.br, verificadas en oct/2026), con implantación gradual; la alícuota de arriba es una estimación que puede ajustar. Reglas en transición, pueden cambiar.')}</p>
+              <p className="text-xs italic" style={{ color: CINZA }}>{L('* Premissa: split payment previsto na EC 132/2023 e na LC 214/2025 (planalto.gov.br, conferidas em out/2026), com implantação gradual; a alíquota acima é uma estimativa que você pode ajustar. Regras em transição, podem mudar.', '* Assumption: split payment provided for in Constitutional Amendment 132/2023 and LC 214/2025 (planalto.gov.br, checked Oct/2026), phased in gradually; the rate above is an estimate you can adjust. Rules in transition, may change.', '* Premisa: split payment previsto en la EC 132/2023 y la LC 214/2025 (planalto.gov.br, verificadas en oct/2026), con implantación gradual; la alícuota de arriba es una estimación que puede ajustar. Reglas en transición, pueden cambiar.')}</p>
             </div>
           </div>
         </div>
@@ -1306,7 +1306,7 @@ export default function ContasReceber() {
                   return (
                     <div key={classe} className="rounded-lg p-2.5 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${cor}10`, border: `1px solid ${cor}30` }}>
                       <p className="text-sm font-black" style={{ color: cor }}>{L('Classe', 'Class', 'Clase')} {classe}</p>
-                      <p className="text-[10px]" style={{ color: CINZA }}>{itens.length} {L('clientes', 'clients', 'clientes')} · {fBRL(valor)}</p>
+                      <p className="text-xs" style={{ color: CINZA }}>{itens.length} {L('clientes', 'clients', 'clientes')} · {fBRL(valor)}</p>
                     </div>
                   )
                 })}
@@ -1316,7 +1316,7 @@ export default function ContasReceber() {
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {curvaABC.slice(0, 15).map((i) => (
                   <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
-                    <span style={{ color: TEXTO }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-[9px] font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
+                    <span style={{ color: TEXTO }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-xs font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
                     <span style={{ color: CINZA }}>{fBRL(i.valor)} · {i.percentual}%</span>
                   </div>
                 ))}
@@ -1397,7 +1397,7 @@ export default function ContasReceber() {
                       L('Forma Receb.', 'Payment', 'Forma Pago'), L('Prioridade', 'Priority', 'Prioridad'), L('Score Cliente', 'Client Score', 'Score Cliente'),
                       L('Risco', 'Risk', 'Riesgo'), '',
                     ].map((h) => (
-                      <th key={h} className="text-left px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: CINZA }}>{h}</th>
+                      <th key={h} className="text-left px-2 py-1.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: CINZA }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1427,15 +1427,15 @@ export default function ContasReceber() {
                         <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: TEXTO }}>{fBRL(valorAtualizado)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: VERDE }}>{fBRL(c.valor_recebido || 0)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: cor }}>{fBRL(saldo)}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-xs font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span></td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.responsavel || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{cc?.nome || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.projeto || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.categoria || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.forma_recebimento || '—'}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-[10px] font-bold" style={{ color: prioridadeCor(c.prioridade) }}>{prioridadeLabel(c.prioridade)}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-xs font-bold" style={{ color: prioridadeCor(c.prioridade) }}>{prioridadeLabel(c.prioridade)}</span></td>
                         <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? score.total : '—'}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-[10px] font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? nivelScoreLabel(score.nivel) : '—'}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-xs font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? nivelScoreLabel(score.nivel) : '—'}</span></td>
                         <td className="px-2 py-2.5 rounded-r-xl whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setHistoricoContaId(c.id)} title={L('Histórico: criação, cada recebimento, juros e quanto falta', "History: creation, each receipt, interest and what's left", 'Historial: creación, cada cobro, intereses y lo que falta')}>
@@ -1746,7 +1746,7 @@ export default function ContasReceber() {
                 <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${kpiAtivo.cor}40`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <p className="text-[10px] font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
+                      <p className="text-xs font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
                       <h3 className="text-2xl font-black" style={{ color: kpiAtivo.cor }}><AnimatedNumber value={String(kpiAtivo.valor)} /></h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setDrillKpi(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1763,7 +1763,7 @@ export default function ContasReceber() {
                         {/* Caminho direto para resolver: registrar o recebimento desta conta (pedido do CEO, 2026-10-16) */}
                         {l.conta && (l.conta.status || '') !== 'recebido' && (
                           <button type="button" onClick={() => { const c = l.conta!; setDrillKpi(null); abrirReceber(c) }}
-                            className="mt-2 w-full px-3 py-1.5 rounded-lg text-[11px] font-bold text-white" style={{ background: '#0f7a5a', border: '1px solid #2ecc9b' }}>
+                            className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{ background: '#0f7a5a', border: '1px solid #2ecc9b' }}>
                             {L('Registrar recebimento (dar baixa)', 'Record payment received', 'Registrar cobro (dar de baja)')}
                           </button>
                         )}
@@ -1837,7 +1837,7 @@ export default function ContasReceber() {
                   <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${OURO}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>{L('Central de Cobrança', 'Collection Center', 'Centro de Cobranza')}</p>
+                        <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>{L('Central de Cobrança', 'Collection Center', 'Centro de Cobranza')}</p>
                         <h3 className="text-base font-bold" style={{ color: TITULO }}>{cliente(contaCobranca.cliente_id)?.nome || contaCobranca.descricao}</h3>
                         <p className="text-xs" style={{ color: CINZA }}>{contaCobranca.descricao} · {L('Saldo', 'Balance', 'Saldo')}: <span style={{ color: VERMELHO, fontWeight: 700 }}>{fBRL(calcularLinha(contaCobranca).saldo)}</span></p>
                       </div>
@@ -1846,11 +1846,11 @@ export default function ContasReceber() {
 
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
-                        <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
+                        <p className="text-xs uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
                         <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}><AnimatedNumber value={prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')} /></p>
                       </div>
                       <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG }}>
-                        <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>
+                        <p className="text-xs uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>
                         <p className="text-xs font-bold" style={{ color: proximaEtapa ? OURO : CINZA }}>{proximaEtapa ? `${proximaEtapa.canal} — ${proximaEtapa.dias_relativos === 0 ? L('hoje', 'today', 'hoy') : proximaEtapa.dias_relativos < 0 ? `D${proximaEtapa.dias_relativos}` : `D+${proximaEtapa.dias_relativos}`}` : L('nenhuma configurada', 'none configured', 'ninguna configurada')}</p>
                       </div>
                     </div>

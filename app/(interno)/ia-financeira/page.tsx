@@ -540,7 +540,7 @@ export default function IAFinanceiraPage() {
           {/* HEADER: Score 360 + Resumo rápido */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <CanvasBox {...cartaoTema} cor={ct(score360.cor)}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>🏆 Score 360°</p>
+              <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>🏆 Score 360°</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-black" style={{ color: ct(score360.cor) }}><AnimatedNumber value={String(score360.total)} /></span>
                 <span style={{ color: ct("#5a7a9a") }}>/100</span>
@@ -553,7 +553,7 @@ export default function IAFinanceiraPage() {
               { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: ct("#2ecc9b"), ir: "/precificacao" },
             ].map((c, i) => (
               <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/dre", router)}><CanvasBox {...cartaoTema} cor={c.cor}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox></div>
             ))}
@@ -593,7 +593,7 @@ export default function IAFinanceiraPage() {
             <div className="space-y-4">
               {/* Radar Chart */}
               <CanvasBox {...cartaoTema} cor={ct(score360.cor)}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>{tt.scoreEmpresarial}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>{tt.scoreEmpresarial}</p>
                 <RadarEnergyField className="mx-auto max-w-[480px]">
                   <div className="p-2">
                     <ResponsiveContainer width="100%" height={320}>
@@ -606,7 +606,7 @@ export default function IAFinanceiraPage() {
                         </defs>
                         <PolarGrid stroke="rgba(147,197,253,0.2)" gridType="polygon" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "#c8d8f0", fontSize: 12, fontWeight: 600 }} />
-                        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#7fa3c9", fontSize: 10 }} axisLine={false} />
+                        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#7fa3c9", fontSize: 12 }} axisLine={false} />
                         <Radar name="Benchmark" dataKey="benchmark" stroke="#2ecc9b" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
                         <Radar name="Score" dataKey="score" stroke={score360.cor} fill="url(#radarGrad)" strokeWidth={2.5}
                           dot={(props: { cx?: number; cy?: number; index?: number; payload?: Record<string, unknown> }) => {
@@ -624,7 +624,7 @@ export default function IAFinanceiraPage() {
                         <Tooltip contentStyle={tooltipStyle} />
                       </RadarChart>
                     </ResponsiveContainer>
-                    <div className="flex items-center justify-center gap-4 mt-1 text-[10px] flex-wrap pb-1">
+                    <div className="flex items-center justify-center gap-4 mt-1 text-xs flex-wrap pb-1">
                       <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: score360.cor }}></span> <span style={{ color: "#7fa3c9" }}>Score</span></span>
                       <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: "#2ecc9b", borderTop: "1px dashed #2ecc9b" }}></span> <span style={{ color: "#7fa3c9" }}>Benchmark (70)</span></span>
                     </div>
@@ -647,15 +647,15 @@ export default function IAFinanceiraPage() {
                           <div className="flex items-center gap-2">
                             <span style={{ color: ind.status === "bom" ? ct("#34d399") : ind.status === "atencao" ? ct("#2ecc9b") : ct("#f87171") }}>{ind.valor}</span>
                             {ind.status !== "bom" && (
-                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>✏️</a>
+                              <a href="/empresa" className="text-xs px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(46,204,155,0.1)", color: ct("#2ecc9b") }}>✏️</a>
                             )}
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="rounded-lg p-2 axi-card-premium3d axi-card-faixa" style={{ background: `${ct(d.cor)}10`, border: `1px solid ${ct(d.cor)}20` }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: ct("#5a7a9a") }}>💡 {tt.sugestao}</p>
-                      <p className="text-[11px]" style={{ color: ct("#c8d8f0") }}>{dimSugestao(d)}</p>
+                      <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: ct("#5a7a9a") }}>💡 {tt.sugestao}</p>
+                      <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{dimSugestao(d)}</p>
                     </div>
                   </CanvasBox>
                 ))}
@@ -668,7 +668,7 @@ export default function IAFinanceiraPage() {
             <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{tt.chatTitulo}</p>
-                <button onClick={onLimparHistorico} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>{tt.chatLimpar}</button>
+                <button onClick={onLimparHistorico} className="text-xs px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>{tt.chatLimpar}</button>
               </div>
               <BarraConversas api={conversas} lang={lang as "pt" | "en" | "es"} claro={temaClaro} />
               <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
@@ -692,7 +692,7 @@ export default function IAFinanceiraPage() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviarMensagem(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : ct("#2ecc9b") }}>
+                    className="text-xs px-3 py-1.5 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#101b3d" : "rgba(46,204,155,0.08)", border: temaClaro ? "1px solid #101b3d" : "1px solid rgba(46,204,155,0.2)", color: temaClaro ? "#ffffff" : ct("#2ecc9b") }}>
                     {s}
                   </button>
                 ))}
@@ -725,7 +725,7 @@ export default function IAFinanceiraPage() {
           {aba === "anomalias" && (
             <div className="space-y-3">
               <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.anomaliasTitulo}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.anomaliasTitulo}</p>
               </CanvasBox>
               {anomalias.length === 0 ? (
                 <CanvasBox {...cartaoTema} cor={ct("#34d399")}><p className="text-xs py-6 text-center" style={{ color: ct("#34d399") }}>{tt.anomaliasVazio}</p></CanvasBox>
@@ -755,7 +755,7 @@ export default function IAFinanceiraPage() {
           {/* ABA PROJEÇÕES */}
           {aba === "projecoes" && (
             <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.projecoesTitulo}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.projecoesTitulo}</p>
               {projecoes.length === 0 ? (
                 <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.projecoesVazio}</p>
               ) : (
@@ -767,8 +767,8 @@ export default function IAFinanceiraPage() {
                       <linearGradient id="gPe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#f87171")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#f87171")} stopOpacity={0}/></linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.08)"} />
-                    <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
-                    <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                    <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 12 }} />
+                    <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 12 }} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: unknown) => formatBRL(Number(v) || 0)} />
                     <Area type="monotone" dataKey="otimista" stroke={ct("#34d399")} fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
                     <Area type="monotone" dataKey="realista" stroke={ct("#2ecc9b")} fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
@@ -783,7 +783,7 @@ export default function IAFinanceiraPage() {
           {aba === "whatif" && (
             <div className="space-y-4">
               <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.whatIfTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.whatIfTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: ct("#c8d8f0") }}>{tt.whatIfDescricao}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <select value={whatIfTipo} onChange={(e) => setWhatIfTipo(e.target.value)}
@@ -816,7 +816,7 @@ export default function IAFinanceiraPage() {
                       { label: tt.margemDepois, valor: `${whatIfResultado.margem_depois.toFixed(1)}%`, cor: whatIfResultado.margem_depois > whatIfResultado.margem_antes ? ct("#34d399") : ct("#f87171") },
                     ].map((c, i) => (
                       <div key={i} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: `1px solid ${c.cor}30` }}>
-                        <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
+                        <p className="text-xs uppercase" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                         <p className="text-base font-bold mt-1" style={{ color: c.cor }}>{c.valor}</p>
                       </div>
                     ))}
@@ -830,7 +830,7 @@ export default function IAFinanceiraPage() {
           {aba === "plano" && (
             <div className="space-y-3">
               <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.planoTitulo}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.planoTitulo}</p>
                 <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{tt.planoDescricao}</p>
               </CanvasBox>
               {acoes.length === 0 ? (
@@ -849,7 +849,7 @@ export default function IAFinanceiraPage() {
                           <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{acaoTitulo(a)}</p>
                           <p className="text-xs mt-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{acaoDesc(a)}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {a.impacto_estimado}</span>
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {a.impacto_estimado}</span>
                           </div>
                         </div>
                       </div>
@@ -863,7 +863,7 @@ export default function IAFinanceiraPage() {
           {/* ABA RESUMO EXECUTIVO */}
           {aba === "resumo" && (
             <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.resumoTitulo}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.resumoTitulo}</p>
               <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.resumoDescricao}</p>
               <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed axi-card-premium3d axi-card-faixa"
                 style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)", color: ct("#c8d8f0") }}>
@@ -876,7 +876,7 @@ export default function IAFinanceiraPage() {
           {aba === "benchmark" && bench && (
             <div className="space-y-3">
               <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.benchmarkTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.benchmarkTitulo}</p>
                 <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{tt.benchmarkDescricao}</p>
                 <p className="text-xs mt-1" style={{ color: ct("#2ecc9b") }}>
                   {lang === "en" ? "Industry" : lang === "es" ? "Sector" : "Setor"}: <strong>{bench.setor}</strong>
@@ -900,7 +900,7 @@ export default function IAFinanceiraPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-black" style={{ color: dentro ? ct("#34d399") : ct("#f87171") }}>{b.valor.toFixed(1)}{b.unit}</p>
-                        <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: dentro ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: dentro ? ct("#34d399") : ct("#f87171") }}>
+                        <span className="text-xs px-2 py-0.5 rounded" style={{ background: dentro ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: dentro ? ct("#34d399") : ct("#f87171") }}>
                           {dentro ? "✓" : "✗"} {tt.seuValor}
                         </span>
                       </div>

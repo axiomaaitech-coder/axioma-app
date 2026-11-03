@@ -71,7 +71,7 @@ export default function ConferenciaPage() {
     window.dispatchEvent(new CustomEvent('axioma:dados-atualizados', { detail: { origem: 'conferencia' } }))
     await carregar(ano)
   }
-  const btn = (cor: string) => ({ className: 'px-3 py-1.5 rounded-lg text-[11px] font-bold disabled:cursor-not-allowed', style: { background: cor, color: '#ffffff' } })
+  const btn = (cor: string) => ({ className: 'px-3 py-1.5 rounded-lg text-xs font-bold disabled:cursor-not-allowed', style: { background: cor, color: '#ffffff' } })
 
   const painel = { background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
@@ -143,7 +143,7 @@ export default function ConferenciaPage() {
                   <summary className="text-xs font-bold cursor-pointer" style={{ color: P.TEXTO }}>{g.codigo} · {NOME_CASO[g.codigo]} ({g.itens.length})</summary>
                   <div className="space-y-2 mt-2">
                     {g.itens.slice(0, 50).map((c) => (
-                      <div key={`${c.codigo}-${c.id}`} className="rounded-lg p-2.5 text-[11px] axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
+                      <div key={`${c.codigo}-${c.id}`} className="rounded-lg p-2.5 text-xs axi-card-premium3d axi-card-faixa" style={{ border: `1px solid ${P.BORDA}`, color: P.TEXTO }}>
                         <p className="font-bold">{c.descricao} {c.data ? `· ${new Date(`${c.data}T00:00:00`).toLocaleDateString(local)}` : ''}</p>
                         <p style={{ color: P.CINZA }}>{L('Onde está', 'Where it is', 'Dónde está')}: {MODULO_TABELA[c.tabela] ? L(MODULO_TABELA[c.tabela].pt, MODULO_TABELA[c.tabela].en, MODULO_TABELA[c.tabela].es) : c.tabela}</p>
                         <p className="mt-1"><b>{L('Antes', 'Before', 'Antes')}:</b> {c.antes}</p>
@@ -153,8 +153,8 @@ export default function ConferenciaPage() {
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           {c.codigo === 'D7' ? (
                             <>
-                              <label className="text-[11px]" style={{ color: P.CINZA }}>{L('Vencimento', 'Due date', 'Vencimiento')}{' '}
-                                <input type="date" value={vencimentos[c.id] ?? ''} onChange={(e) => setVencimentos((v) => ({ ...v, [c.id]: e.target.value }))} className="px-2 py-1 rounded-lg text-[11px]" style={{ background: '#ffffff', color: '#101b3d', border: `1px solid ${P.BORDA}` }} />
+                              <label className="text-xs" style={{ color: P.CINZA }}>{L('Vencimento', 'Due date', 'Vencimiento')}{' '}
+                                <input type="date" value={vencimentos[c.id] ?? ''} onChange={(e) => setVencimentos((v) => ({ ...v, [c.id]: e.target.value }))} className="px-2 py-1 rounded-lg text-xs" style={{ background: '#ffffff', color: '#101b3d', border: `1px solid ${P.BORDA}` }} />
                               </label>
                               <button {...btn('#0f7a5a')} disabled={processando === c.id || !vencimentos[c.id]} onClick={() => void corrigir(c, false)}>
                                 {processando === c.id ? L('Corrigindo…', 'Fixing…', 'Corrigiendo…') : L('Criar a conta a receber', 'Create the receivable', 'Crear la cuenta por cobrar')}
@@ -174,11 +174,11 @@ export default function ConferenciaPage() {
                               {processando === c.id ? L('Corrigindo…', 'Fixing…', 'Corrigiendo…') : L('Corrigir este caso', 'Fix this case', 'Corregir este caso')}
                             </button>
                           )}
-                          {aviso?.id === c.id && <span className="text-[11px] font-semibold" style={{ color: aviso.ok ? P.VERDE : P.VERMELHO }}>{aviso.texto}</span>}
+                          {aviso?.id === c.id && <span className="text-xs font-semibold" style={{ color: aviso.ok ? P.VERDE : P.VERMELHO }}>{aviso.texto}</span>}
                         </div>
                       </div>
                     ))}
-                    {g.itens.length > 50 && <p className="text-[11px]" style={{ color: P.CINZA }}>{L(`+${g.itens.length - 50} casos iguais`, `+${g.itens.length - 50} similar cases`, `+${g.itens.length - 50} casos iguales`)}</p>}
+                    {g.itens.length > 50 && <p className="text-xs" style={{ color: P.CINZA }}>{L(`+${g.itens.length - 50} casos iguais`, `+${g.itens.length - 50} similar cases`, `+${g.itens.length - 50} casos iguales`)}</p>}
                   </div>
                 </details>
               ))}

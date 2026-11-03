@@ -206,15 +206,15 @@ function optProgressoMetas(labels: string[], real: number[], esperado: number[],
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 44, right: 16, top: 34, bottom: 44, containLabel: false },
-    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: eixoCor, fontSize: 11, fontWeight: 700 } },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: eixoCor, fontSize: 12, fontWeight: 700 } },
     tooltip: {
       backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, borderColor: corReal, padding: [10, 14],
       textStyle: { color: "#e2e8f0", fontSize: 13 }, extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);",
       trigger: "axis", axisPointer: { type: "shadow" },
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.map((p) => `${p.marker} ${p.seriesName}: <b>${Number(p.value).toFixed(0)}%</b>`).join("<br/>"),
     },
-    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: eixoCor, fontSize: 10, fontWeight: 700, interval: 0, rotate: labels.length > 4 ? 20 : 0 } },
-    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => `${v}%` } },
+    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: eixoCor, fontSize: 12, fontWeight: 700, interval: 0, rotate: labels.length > 4 ? 20 : 0 } },
+    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => `${v}%` } },
     series: [
       { name: labelReal, type: "bar", barGap: "10%", itemStyle: { borderRadius: [4, 4, 0, 0], color: corReal }, data: real },
       { name: labelEsperado, type: "bar", itemStyle: { borderRadius: [4, 4, 0, 0], color: corEsperado }, data: esperado },
@@ -724,7 +724,7 @@ export default function Metas() {
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
@@ -769,7 +769,7 @@ export default function Metas() {
                   <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#2ecc9b"}` }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaModalAnaliseTitulo}</p>
-                    <p className="text-[10px] font-medium" style={{ color: ct("#64748b") }}>{cx.metaModalAnaliseSub}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.metaModalAnaliseSub}</p>
                   </div>
                 </div>
 
@@ -881,7 +881,7 @@ export default function Metas() {
                       <p className="text-2xl font-black mb-0.5" style={{ color: concluida ? corOuro : ct("#e2e8f0") }}>
                         {formatarValorMeta(m.tipo_meta, m.valor_meta)}
                       </p>
-                      <p className="text-[11px] mb-1" style={{ color: ct("#5a7a9a") }}>
+                      <p className="text-xs mb-1" style={{ color: ct("#5a7a9a") }}>
                         {cx.metaDeParaLabel} {formatarValorMeta(m.tipo_meta, m.valor_inicial)} {cx.metaParaLabel} {formatarValorMeta(m.tipo_meta, m.valor_meta)}
                       </p>
                       {m.descricao && <p className="text-xs mb-2 italic" style={{ color: ct("#94a3b8") }}>{m.descricao}</p>}
@@ -973,7 +973,7 @@ export default function Metas() {
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }}>
                       {TIPOS_META.map(tp => <option key={tp} value={tp}>{nomeTipoMeta(lang, tp)}</option>)}
                     </select>
-                    {!!editando && !!editando.tipo_meta && <p className="text-[10px] mt-1.5" style={{ color: ct("#64748b") }}>{txt.tipoTravado}</p>}
+                    {!!editando && !!editando.tipo_meta && <p className="text-xs mt-1.5" style={{ color: ct("#64748b") }}>{txt.tipoTravado}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -989,7 +989,7 @@ export default function Metas() {
                         style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                     </div>
                   </div>
-                  <p className="text-[10px] -mt-2" style={{ color: ct("#64748b") }}>{cx.metaValorInicialAjuda}</p>
+                  <p className="text-xs -mt-2" style={{ color: ct("#64748b") }}>{cx.metaValorInicialAjuda}</p>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{cx.metaDirecaoLabel}</label>
                     <div className="grid grid-cols-2 gap-2">
@@ -1001,7 +1001,7 @@ export default function Metas() {
                         </motion.button>
                       ))}
                     </div>
-                    {direcaoInconsistente && <p className="text-[11px] mt-1.5" style={{ color: ct(CORES.amarelo) }}>{cx.metaDirecaoInconsistente}</p>}
+                    {direcaoInconsistente && <p className="text-xs mt-1.5" style={{ color: ct(CORES.amarelo) }}>{cx.metaDirecaoInconsistente}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#2ecc9b") }}>{txt.prazoLabel} <span style={{ color: ct(CORES.vermelho) }}>*</span></label>

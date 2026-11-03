@@ -93,7 +93,7 @@ export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consul
           style={{ width: 44, height: 44, background: minha ? "#b42318" : "#101b3d", border: "1px solid #2ecc9b" }}>
           {ocupado ? <Loader2 size={18} className="animate-spin" aria-hidden /> : minha ? <PhoneOff size={18} aria-hidden /> : <AudioLines size={20} aria-hidden />}
         </button>
-        {aviso && <span role="alert" className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg px-2 py-1 text-[11px] font-semibold" style={{ background: claro ? "#ffffff" : "#0a1628", color: claro ? "#b42318" : "#fca5a5", border: "1px solid rgba(229,72,77,0.5)" }}>{aviso}</span>}
+        {aviso && <span role="alert" className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg px-2 py-1 text-xs font-semibold" style={{ background: claro ? "#ffffff" : "#0a1628", color: claro ? "#b42318" : "#fca5a5", border: "1px solid rgba(229,72,77,0.5)" }}>{aviso}</span>}
       </span>
     );
   }
@@ -102,9 +102,9 @@ export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consul
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold" style={{ color: corTexto }}>{t(`titulo-${tela}`)}</span>
         {fornecedores.length > 1 && !g.ativa && (
-          <label className="text-[11px] font-medium inline-flex items-center gap-1" style={{ color: corTexto }}>
+          <label className="text-xs font-medium inline-flex items-center gap-1" style={{ color: corTexto }}>
             {t("voz")}:
-            <select value={escolhido ?? ""} onChange={(e) => setEscolhido(e.target.value as FornecedorTR)} className="rounded-md px-2 py-1 text-[11px]"
+            <select value={escolhido ?? ""} onChange={(e) => setEscolhido(e.target.value as FornecedorTR)} className="rounded-md px-2 py-1 text-xs"
               style={{ background: claro ? "#ffffff" : "#0a1628", color: corTexto, border: "1px solid rgba(46,204,155,0.35)" }}>
               {fornecedores.map((f) => <option key={f} value={f}>{NOME_FORNECEDOR[f]}</option>)}
             </select>
@@ -128,11 +128,11 @@ export default function ConversaAoVivo({ empresaId, lang, claro, aoFalar, consul
           {t(g.estado ?? "conectando")}
         </p>
       ) : outraTela ? (
-        <p className="mt-2 text-[11px] font-semibold" style={{ color: corTexto }}>{t("outra")}</p>
+        <p className="mt-2 text-xs font-semibold" style={{ color: corTexto }}>{t("outra")}</p>
       ) : (
-        <p className="mt-2 text-[11px] font-medium" style={{ color: corTexto }}>{t("dica")}</p>
+        <p className="mt-2 text-xs font-medium" style={{ color: corTexto }}>{t("dica")}</p>
       )}
-      {aviso && <p role="alert" className="mt-1 text-[11px] font-semibold" style={{ color: claro ? "#b42318" : "#fca5a5" }}>{aviso}</p>}
+      {aviso && <p role="alert" className="mt-1 text-xs font-semibold" style={{ color: claro ? "#b42318" : "#fca5a5" }}>{aviso}</p>}
     </div>
   );
 }

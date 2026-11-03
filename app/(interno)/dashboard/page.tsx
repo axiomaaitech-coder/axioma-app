@@ -273,7 +273,7 @@ export default function DashboardPage() {
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dfTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dfSub}</p>
+                <p className="text-xs md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dfSub}</p>
               </div>
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dcTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dcSub}</p>
+                <p className="text-xs md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dcSub}</p>
               </div>
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                     onMouseEnter={(e) => { if (claro) { e.currentTarget.style.borderColor = "#2ecc9b"; return; } e.currentTarget.style.background = `${m.c}18`; e.currentTarget.style.borderColor = `${m.c}40`; e.currentTarget.style.boxShadow = `0 6px 20px ${m.c}15`; }}
                     onMouseLeave={(e) => { if (claro) { e.currentTarget.style.borderColor = "rgba(16,27,61,0.12)"; return; } e.currentTarget.style.background = `${m.c}06`; e.currentTarget.style.borderColor = `${m.c}12`; e.currentTarget.style.boxShadow = "none"; }}>
                     <span className="text-xl">{m.i}</span>
-                    <span className="text-[8px] md:text-[9px] font-bold leading-tight text-center" style={{ color: claro ? "#101b3d" : m.c }}>{m.l}</span>
+                    <span className="text-xs font-bold leading-tight text-center" style={{ color: claro ? "#101b3d" : m.c }}>{m.l}</span>
                   </button>
                 ))}
               </div>

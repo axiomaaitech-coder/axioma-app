@@ -144,7 +144,7 @@ export default function HistoricoConta({ tipo, contaId, onFechar }: { tipo: Tipo
 
   const Info = ({ rotulo, valor }: { rotulo: string; valor: string }) => (
     <div className="rounded-lg px-3 py-2" style={{ background: P.ANINHADA, border: `1px solid ${P.BORDA}` }}>
-      <p className="text-[11px]" style={{ color: P.CINZA }}>{rotulo}</p>
+      <p className="text-xs" style={{ color: P.CINZA }}>{rotulo}</p>
       <p className="text-sm font-semibold break-words" style={{ color: P.TEXTO }}>{valor}</p>
     </div>
   )

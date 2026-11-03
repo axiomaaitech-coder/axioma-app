@@ -81,7 +81,7 @@ export function SeletorCentroCusto({
             <X size={15} />
           </button>
         </div>
-        {erro && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{erro}</p>}
+        {erro && <p className="text-xs mt-1" style={{ color: "#f87171" }}>{erro}</p>}
       </div>
     );
   }

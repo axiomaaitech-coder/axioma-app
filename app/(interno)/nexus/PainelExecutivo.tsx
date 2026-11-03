@@ -49,12 +49,12 @@ function Fontes({ fontes, cores }: { fontes?: FonteBriefing[]; cores: Cores }) {
   const dataFmt = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T12:00:00').toLocaleDateString(cores.lang === 'en' ? 'en-US' : cores.lang === 'es' ? 'es-ES' : 'pt-BR') : d
   return (
     <div className="mt-2 pt-2" style={{ borderTop: `1px dashed ${cores.borda}` }}>
-      <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wide mb-1" style={{ color: cores.cinza }}>
+      <p className="flex items-center gap-1 text-xs font-black uppercase tracking-wide mb-1" style={{ color: cores.cinza }}>
         <Search size={10} aria-hidden />{L('Fontes — Motor de Pesquisa Nexus', 'Sources — Nexus Search Engine', 'Fuentes — Motor de Búsqueda Nexus')}
       </p>
       <ul className="space-y-0.5">
         {fontes.map((f, i) => (
-          <li key={i} className="text-[11px] leading-snug" style={{ color: cores.texto }}>
+          <li key={i} className="text-xs leading-snug" style={{ color: cores.texto }}>
             {f.url
               ? <a href={f.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline font-semibold" style={{ color: cores.acento }}>{f.nome}<ExternalLink size={10} aria-hidden /></a>
               : <span className="font-semibold">{f.nome}</span>}
@@ -217,12 +217,12 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
         )
         const horizonte = (h: BriefingJose['horizonte_12m']) => (
           <>
-            <span className="self-start inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-2" style={chipConfianca(h.confianca)}>
+            <span className="self-start inline-block text-xs font-bold px-2 py-0.5 rounded-full mb-2" style={chipConfianca(h.confianca)}>
               {L('confiança', 'confidence', 'confianza')} {Math.round(h.confianca)}/100
             </span>
             <p className="text-[15px] font-bold leading-snug mb-1.5" style={{ color: TITULO }}>{h.titulo}</p>
             <p className="text-[13px] leading-relaxed" style={{ color: TEXTO }}>{h.texto}</p>
-            {h.sinais?.length ? <p className="text-[11px] font-black uppercase tracking-wide mt-2" style={{ color: CINZA }}>{L('Sinais para acompanhar', 'Signals to watch', 'Señales a seguir')}</p> : null}
+            {h.sinais?.length ? <p className="text-xs font-black uppercase tracking-wide mt-2" style={{ color: CINZA }}>{L('Sinais para acompanhar', 'Signals to watch', 'Señales a seguir')}</p> : null}
             {pontos(h.sinais)}
           </>
         )
@@ -241,11 +241,11 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
             <Card emoji="🧠" rotulo={L('O que o José faria', 'What José would do', 'Lo que haría José')} cores={cores}>
               <p className="text-[15px] font-bold leading-snug mb-2" style={{ color: TITULO }}>{c.jose_faria.titulo}</p>
               <ol className="space-y-1.5">{c.jose_faria.acoes.map((a, i) => <li key={i} className="text-[13px] leading-relaxed" style={{ color: TEXTO }}><span className="font-bold" style={{ color: cores.acento }}>{i + 1}.</span> {a}</li>)}</ol>
-              <p className="text-[11px] italic mt-2 text-right" style={{ color: CINZA }}>— José</p>
+              <p className="text-xs italic mt-2 text-right" style={{ color: CINZA }}>— José</p>
             </Card>
             <Card emoji="📌" rotulo={L('De onde veio e limites', 'Sources and limits', 'Fuentes y límites')} cores={cores}>
               <ul className="list-disc pl-4 space-y-1 mb-2">{c.base_usada.map((b, i) => <li key={i} className="text-[12px]" style={{ color: TEXTO }}>{b}</li>)}</ul>
-              <p className="text-[11px] font-black uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('O que ainda falta na base', 'What the data still lacks', 'Lo que aún falta en la base')}</p>
+              <p className="text-xs font-black uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('O que ainda falta na base', 'What the data still lacks', 'Lo que aún falta en la base')}</p>
               <ul className="list-disc pl-4 space-y-1">{c.limitacoes.map((b, i) => <li key={i} className="text-[12px]" style={{ color: CINZA }}>{b}</li>)}</ul>
             </Card>
           </div>

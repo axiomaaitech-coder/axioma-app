@@ -88,7 +88,7 @@ function sparklineOption(historico: PontoSerie[], cor: string, temaClaro: boolea
       trigger: 'axis',
       backgroundColor: temaClaro ? '#ffffff' : 'rgba(10,20,36,0.95)',
       borderColor: cor,
-      textStyle: { color: temaClaro ? '#101b3d' : '#e2ecf7', fontSize: 10 },
+      textStyle: { color: temaClaro ? '#101b3d' : '#e2ecf7', fontSize: 12 },
       formatter: (p: any) => `${p[0].axisValueLabel}<br/>${Number(p[0].value).toLocaleString()}`,
     },
     series: [{
@@ -124,7 +124,7 @@ function CardMiniNoticia({ noticia, lang, localeData, onClick, temaClaro, compac
         <span className="truncate">{noticia.fonte}</span>
       </p>
       <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{noticia.titulo}</h4>
-      <span className="text-[10px] mt-auto pt-2" style={{ color: CINZA }}>{formatarDataNoticia(noticia.data, lang, localeData)}</span>
+      <span className="text-xs mt-auto pt-2" style={{ color: CINZA }}>{formatarDataNoticia(noticia.data, lang, localeData)}</span>
     </button>
   )
 }
@@ -407,7 +407,7 @@ export default function NexusPage() {
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-auto">
-                    <span className="text-[10px]" style={{ color: CINZA }}>
+                    <span className="text-xs" style={{ color: CINZA }}>
                       {ind.dataReferencia
                         ? (ind.frequencia === 'mensal' || ind.frequencia === 'mensal_defasada')
                           // Série mensal: "ago/2026" (o mês inteiro), não "01/08/2026" — que parecia dado velho.
@@ -419,7 +419,7 @@ export default function NexusPage() {
                         : <> · {ind.fonte.nome}</>)}
                       {ind.fonteReserva && <span title={L('O Banco Central do Brasil atrasou; valor do Banco Central Europeu (fonte reserva).', 'The Central Bank of Brazil is late; value from the European Central Bank (backup source).', 'El Banco Central de Brasil se atrasó; valor del Banco Central Europeo (fuente de respaldo).')}> · {L('reserva BCE', 'ECB backup', 'respaldo BCE')}</span>}
                     </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloFreshness(ind.freshness, fresh.cor, temaClaro)}>
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={estiloFreshness(ind.freshness, fresh.cor, temaClaro)}>
                       {fresh.texto}
                     </span>
                   </div>
@@ -480,21 +480,21 @@ export default function NexusPage() {
                     >
                       {BARRA_EFEITO}
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
                         {ev.payload && seriesDoRamo.includes(ev.payload.serie) && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={temaClaro ? { background: '#101b3d', color: '#ffffff' } : { background: `${CIANO}22`, color: TEXTO, border: `1px solid ${CIANO}55` }}>{L('Mexe com o seu ramo', 'Affects your industry', 'Afecta a su sector')}</span>
+                          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={temaClaro ? { background: '#101b3d', color: '#ffffff' } : { background: `${CIANO}22`, color: TEXTO, border: `1px solid ${CIANO}55` }}>{L('Mexe com o seu ramo', 'Affects your industry', 'Afecta a su sector')}</span>
                         )}
                       </div>
                       <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{texto.titulo}</h4>
                       {ev.payload && <CorrenteMini payload={ev.payload} lang={lang} temaClaro={temaClaro} />}
                       <div className="flex items-center justify-between gap-2 mt-auto pt-2">
-                        <span className="flex items-center gap-1 text-[10px] font-semibold min-w-0" style={{ color: corTrava(trava.nivel).texto }}>
+                        <span className="flex items-center gap-1 text-xs font-semibold min-w-0" style={{ color: corTrava(trava.nivel).texto }}>
                           {trava.nivel === 'oficial' ? <ShieldCheck size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}
                           <span className="truncate">{trava.texto}</span>
                         </span>
                         {ev.publicadoEm && (
-                          <span className="text-[10px] shrink-0" style={{ color: CINZA }}>{new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</span>
+                          <span className="text-xs shrink-0" style={{ color: CINZA }}>{new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</span>
                         )}
                       </div>
                     </button>
@@ -534,7 +534,7 @@ export default function NexusPage() {
               </div>
               {/* só depois de carregar — senão o selo pisca em toda abertura, mesmo com notícia real */}
               {noticiasIsDemo && !semNoticiaAinda && (
-                <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
+                <span className="text-xs font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
                   {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                 </span>
               )}
@@ -610,7 +610,7 @@ export default function NexusPage() {
                   <div className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)' }} />
 
                   {noticiasIsDemo && (
-                    <span className="absolute top-3 right-3 text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: AZULC, border: `1px solid ${AZULC}55` }}>
+                    <span className="absolute top-3 right-3 text-xs font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: AZULC, border: `1px solid ${AZULC}55` }}>
                       {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                     </span>
                   )}
@@ -651,7 +651,7 @@ export default function NexusPage() {
                       </div>
                     )}
                     <h3 className="font-black leading-snug mb-1 line-clamp-2 text-sm md:text-lg" style={{ color: '#fff' }}>{noticiaAtual.titulo}</h3>
-                    <div className="flex items-center gap-2 text-[10px] md:text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                    <div className="flex items-center gap-2 text-xs md:text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
                       <span className="truncate">{noticiaAtual.fonte}</span>
                       <span>•</span>
                       <span className="shrink-0">{formatarDataNoticia(noticiaAtual.data, lang, localeData)}</span>
@@ -753,8 +753,8 @@ export default function NexusPage() {
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
                   </div>
                   <button onClick={() => setEventoAberto(null)} aria-label={L('Fechar', 'Close', 'Cerrar')} className={`p-1 rounded-lg shrink-0 ${temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}>
                     <X size={18} style={{ color: CINZA }} />
@@ -832,12 +832,12 @@ export default function NexusPage() {
                     <X size={20} />
                   </motion.button>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] font-semibold mb-3" style={{ color: CINZA }}>
+                <div className="flex items-center gap-2 text-xs font-semibold mb-3" style={{ color: CINZA }}>
                   <span>{noticiaAberta.fonte}</span>
                   <span>•</span>
                   <span>{formatarDataNoticia(noticiaAberta.data, lang, localeData)}</span>
                   {noticiaAberta.isDemo && (
-                    <span className="ml-auto text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
+                    <span className="ml-auto text-xs font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
                       {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                     </span>
                   )}

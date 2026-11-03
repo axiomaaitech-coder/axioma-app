@@ -1310,7 +1310,7 @@ export default function EmpresaPage() {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.empresa}</p>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.empresa}</p>
                   <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>{empresa.nome_fantasia || empresa.razao_social || empresa.nome}</p>
                   <p className="text-xs" style={{ color: AZULC }}>{empresa.cnpj || tt.semCnpj}</p>
                 </div>
@@ -1319,25 +1319,25 @@ export default function EmpresaPage() {
 
             <CanvasBox cor={ct(healthScore.cor)} {...cartaoTema}>
               <button onClick={() => setModalScoreDetalhe("health")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.healthScore}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.healthScore}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black" style={{ color: ct(healthScore.cor) }}><AnimatedNumber value={String(healthScore.score)} /></span>
                   <span style={{ color: CINZA }}>/100</span>
                   <span className="text-xs font-bold" style={{ color: ct(healthScore.cor) }}>{healthScore.nivel}</span>
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
+                <p className="text-xs mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
               </button>
             </CanvasBox>
 
             <CanvasBox cor={ct(complianceScore.cor)} {...cartaoTema}>
               <button onClick={() => setModalScoreDetalhe("compliance")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.complianceScore}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.complianceScore}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black" style={{ color: ct(complianceScore.cor) }}><AnimatedNumber value={String(complianceScore.score)} /></span>
                   <span style={{ color: CINZA }}>/100</span>
                   <span className="text-xs font-bold" style={{ color: ct(complianceScore.cor) }}>{complianceScore.nivel}</span>
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
+                <p className="text-xs mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
               </button>
             </CanvasBox>
           </div>
@@ -1386,13 +1386,13 @@ export default function EmpresaPage() {
               </div>
 
               <CanvasBox cor={ROXO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.autoCnpjTitulo}</p>
+                <p className="text-xs uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.autoCnpjTitulo}</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <div className="flex-1">
                     <input value={empresaForm.cnpj || ""} onChange={(e) => onChangeCampo("cnpj", formatarCNPJ(e.target.value))}
                       onBlur={() => { if (empresaForm.cnpj && !validarCNPJ(limparCNPJ(empresaForm.cnpj))) setErrosCampo((p) => ({ ...p, cnpj: tt.erroCnpjInvalido })); }}
                       placeholder="00.000.000/0000-00" className="w-full px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
-                    {errosCampo.cnpj && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cnpj}</p>}
+                    {errosCampo.cnpj && <p className="text-xs mt-1" style={{ color: VERMELHO }}>{errosCampo.cnpj}</p>}
                   </div>
                   <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
                     className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
@@ -1400,13 +1400,13 @@ export default function EmpresaPage() {
                     {consultandoCNPJ ? tt.consultando : tt.preencherCnpj}
                   </button>
                 </div>
-                <p className="text-[10px] mt-2" style={{ color: CINZA }}>{tt.autoCnpjInfo}</p>
+                <p className="text-xs mt-2" style={{ color: CINZA }}>{tt.autoCnpjInfo}</p>
               </CanvasBox>
 
               <CanvasBox cor={AZULC} {...cartaoTema}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div className="md:col-span-1">
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.logo}</p>
+                    <p className="text-xs uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.logo}</p>
                     {empresaForm.logo_url ? (
                       <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)") }} />
                     ) : (
@@ -1457,7 +1457,7 @@ export default function EmpresaPage() {
               </CanvasBox>
 
               <CanvasBox cor={VERDE} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.tributario}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.tributario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FieldLabel label={tt.regimeTributario} sugerido={camposSugeridos.has("regime_tributario")} sugeridoTexto={tt.sugeridoBadge}>
                     <select value={empresaForm.regime_tributario || ""} onChange={(e) => onChangeCampo("regime_tributario", e.target.value)}
@@ -1508,7 +1508,7 @@ export default function EmpresaPage() {
               </CanvasBox>
 
               <CanvasBox cor={AMARELO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.endereco}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.endereco}</p>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                   <div className="md:col-span-2">
                     <div className="flex gap-2">
@@ -1523,7 +1523,7 @@ export default function EmpresaPage() {
                         className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
                         style={{ background: "rgba(46,204,155,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
                     </div>
-                    {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cep}</p>}
+                    {errosCampo.cep && <p className="text-xs mt-1" style={{ color: VERMELHO }}>{errosCampo.cep}</p>}
                   </div>
                   <div className="md:col-span-3"><input value={empresaForm.logradouro || ""} onChange={(e) => onChangeCampo("logradouro", e.target.value)} placeholder={tt.logradouro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
                   <div className="md:col-span-1"><input value={empresaForm.numero || ""} onChange={(e) => onChangeCampo("numero", e.target.value)} placeholder={tt.numero} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
@@ -1535,7 +1535,7 @@ export default function EmpresaPage() {
               </CanvasBox>
 
               <CanvasBox cor={AZULC} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contato}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contato}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FieldLabel label={tt.telefonePrincipal} sugerido={camposSugeridos.has("telefone_principal")} sugeridoTexto={tt.sugeridoBadge}>
                     <input value={empresaForm.telefone_principal || ""} onChange={(e) => onChangeCampo("telefone_principal", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
@@ -1572,7 +1572,7 @@ export default function EmpresaPage() {
               </CanvasBox>
 
               <CanvasBox cor={ROXO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.bancario}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.bancario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <FieldLabel label={tt.banco}>
                     <div className="relative">
@@ -1609,7 +1609,7 @@ export default function EmpresaPage() {
                       onBlur={(e) => onChangeCampo("chave_pix", formatarChavePix(e.target.value))}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                     {empresaForm.chave_pix && detectarTipoChavePix(empresaForm.chave_pix) && (
-                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>
+                      <p className="text-xs mt-1" style={{ color: CINZA }}>
                         {tt.pixTipoDetectado}: {(tt as any)[`pixTipo_${detectarTipoChavePix(empresaForm.chave_pix)}`]}
                       </p>
                     )}
@@ -1618,7 +1618,7 @@ export default function EmpresaPage() {
               </CanvasBox>
 
               <CanvasBox cor={AMARELO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contador}</p>
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contador}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="md:col-span-2"><FieldLabel label={tt.nome}><input value={empresaForm.contador_nome || ""} onChange={(e) => setCampo("contador_nome", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel></div>
                   <FieldLabel label={tt.crc}><input value={empresaForm.contador_crc || ""} onChange={(e) => setCampo("contador_crc", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
@@ -1647,7 +1647,7 @@ export default function EmpresaPage() {
             <div className="space-y-4">
               <CanvasBox cor={AZULC} {...cartaoTema}>
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.quadroSocietario} ({socios.length})</p>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.quadroSocietario} ({socios.length})</p>
                   <button onClick={() => setModalSocio("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                     style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #16a97d, #2ecc9b)"), color: "#fff" }}>{tt.novoSocio}</button>
@@ -1686,7 +1686,7 @@ export default function EmpresaPage() {
               <CanvasBox cor={ct(complianceScore.cor)} {...cartaoTema}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.calendarioFiscal} ({obrigacoes.length})</p>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.calendarioFiscal} ({obrigacoes.length})</p>
                     <p className="text-xs" style={{ color: TEXTO }}>
                       {tt.regime}: <strong style={{ color: ct(complianceScore.cor) }}>{empresa.regime_tributario || tt.naoDefinido}</strong>
                     </p>
@@ -1725,7 +1725,7 @@ export default function EmpresaPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold"
                             style={{ background: `${corStatus}20`, color: corStatus }}>{labelStatus}</span>
                           {o.status !== "paga" && (
                             <button onClick={() => marcarObrigacaoPaga(o)} title={tt.marcarPaga}
@@ -1750,7 +1750,7 @@ export default function EmpresaPage() {
               <CanvasBox cor={AMARELO} {...cartaoTema}>
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.cofreDigital} ({documentos.length})</p>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.cofreDigital} ({documentos.length})</p>
                     <p className="text-xs" style={{ color: TEXTO }}>{tt.cofreInfo}</p>
                   </div>
                   <button onClick={() => setModalDocumento("novo")}
@@ -1771,11 +1771,11 @@ export default function EmpresaPage() {
                       <div key={d.id} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${vencido ? VERMELHO : AMARELO}30` }}>
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-2xl">{tipo.icon}</span>
-                          {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: VERMELHO }}>{tt.documentoVencido}</span>}
+                          {vencido && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: VERMELHO }}>{tt.documentoVencido}</span>}
                         </div>
                         <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>{d.nome}</p>
-                        <p className="text-[11px]" style={{ color: CINZA }}>{tipo.label}</p>
-                        {d.data_validade && <p className="text-[10px] mt-1" style={{ color: vencido ? VERMELHO : AMARELO }}>{tt.validoAte}: {formatData(d.data_validade, lang)}</p>}
+                        <p className="text-xs" style={{ color: CINZA }}>{tipo.label}</p>
+                        {d.data_validade && <p className="text-xs mt-1" style={{ color: vencido ? VERMELHO : AMARELO }}>{tt.validoAte}: {formatData(d.data_validade, lang)}</p>}
                         <div className="flex gap-1 mt-2">
                           {d.storage_path && (
                             <button onClick={() => baixarDocumento(d)}
@@ -1796,7 +1796,7 @@ export default function EmpresaPage() {
           {aba === "auditoria" && (
             <div className="space-y-2">
               <CanvasBox cor={ROXO} {...cartaoTema}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.historico} ({auditoria.length})</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.historico} ({auditoria.length})</p>
                 <p className="text-xs" style={{ color: TEXTO }}>{tt.auditoriaInfo}</p>
               </CanvasBox>
               {auditoria.length === 0 ? (
@@ -1812,23 +1812,23 @@ export default function EmpresaPage() {
                         <span className="text-lg flex-shrink-0">{icon}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm" style={{ color: TEXTO }}>{a.descricao || `${a.acao} → ${a.tabela}`}</p>
-                          {a.empresa_nome && <p className="text-[11px]" style={{ color: CINZA }}>{tt.auditEmpresa}: <strong>{a.empresa_nome}</strong></p>}
+                          {a.empresa_nome && <p className="text-xs" style={{ color: CINZA }}>{tt.auditEmpresa}: <strong>{a.empresa_nome}</strong></p>}
                           {(a.autor_nome || a.autor_email) && (
-                            <p className="text-[11px]" style={{ color: CINZA }}>
+                            <p className="text-xs" style={{ color: CINZA }}>
                               {tt.auditPor}: <strong>{a.autor_nome || a.autor_email}</strong>{a.autor_nome && a.autor_email ? ` (${a.autor_email})` : ""}
                             </p>
                           )}
-                          {a.campo && <p className="text-[11px]" style={{ color: CINZA }}>{tt.campo}: <strong>{a.campo}</strong></p>}
+                          {a.campo && <p className="text-xs" style={{ color: CINZA }}>{tt.campo}: <strong>{a.campo}</strong></p>}
                           {a.campo && (a.valor_antes !== undefined || a.valor_depois !== undefined) && (
                             a.valor_antes?.redigido || a.valor_depois?.redigido ? (
-                              <p className="text-[11px] italic" style={{ color: CINZA }}>{tt.auditValorRedigido}</p>
+                              <p className="text-xs italic" style={{ color: CINZA }}>{tt.auditValorRedigido}</p>
                             ) : (
-                              <p className="text-[11px]" style={{ color: CINZA }}>
+                              <p className="text-xs" style={{ color: CINZA }}>
                                 {tt.auditDe}: <strong>{String(a.valor_antes?.[a.campo] ?? "—")}</strong> → {tt.auditPara}: <strong>{String(a.valor_depois?.[a.campo] ?? "—")}</strong>
                               </p>
                             )
                           )}
-                          <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{formatDataHora(a.created_at, lang)}</p>
+                          <p className="text-xs mt-0.5" style={{ color: CINZA }}>{formatDataHora(a.created_at, lang)}</p>
                         </div>
                       </div>
                     );
@@ -1943,7 +1943,7 @@ export default function EmpresaPage() {
                 </p>
               </div>
             )}
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.compartilharVia}</p>
+            <p className="text-xs uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.compartilharVia}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               <button onClick={shareWhatsApp} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
@@ -2009,17 +2009,17 @@ function FieldLabel({ label, children, sugerido, sugeridoTexto, erro }: {
   const { CINZA, ROXO, VERMELHO } = PALETA[tema];
   return (
     <div>
-      <label className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 flex-wrap" style={{ color: CINZA }}>
+      <label className="text-xs uppercase tracking-wider flex items-center gap-1.5 flex-wrap" style={{ color: CINZA }}>
         {label}
         {sugerido && (
-          <span className="text-[9px] normal-case font-semibold px-1.5 py-0.5 rounded-full"
+          <span className="text-xs normal-case font-semibold px-1.5 py-0.5 rounded-full"
             style={{ background: "rgba(46,204,155,0.15)", color: ROXO, border: "1px solid rgba(46,204,155,0.3)" }}>
             ✨ {sugeridoTexto}
           </span>
         )}
       </label>
       {children}
-      {erro && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{erro}</p>}
+      {erro && <p className="text-xs mt-1" style={{ color: VERMELHO }}>{erro}</p>}
     </div>
   );
 }
@@ -2107,12 +2107,12 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
         placeholder={tt.numeroDocumento} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.emissao}</label>
+          <label className="text-xs uppercase" style={{ color: CINZA }}>{tt.emissao}</label>
           <input type="date" value={form.data_emissao || ""} onChange={(e) => setForm({ ...form, data_emissao: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
         <div>
-          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.validade}</label>
+          <label className="text-xs uppercase" style={{ color: CINZA }}>{tt.validade}</label>
           <input type="date" value={form.data_validade || ""} onChange={(e) => setForm({ ...form, data_validade: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
@@ -2148,12 +2148,12 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
         placeholder={tt.descricao} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.vencimento}</label>
+          <label className="text-xs uppercase" style={{ color: CINZA }}>{tt.vencimento}</label>
           <input type="date" value={form.data_vencimento || ""} onChange={(e) => setForm({ ...form, data_vencimento: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
         <div>
-          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.valorEstimado}</label>
+          <label className="text-xs uppercase" style={{ color: CINZA }}>{tt.valorEstimado}</label>
           <input type="number" step="0.01" value={form.valor_estimado || ""} onChange={(e) => setForm({ ...form, valor_estimado: parseFloat(e.target.value) || 0 })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>

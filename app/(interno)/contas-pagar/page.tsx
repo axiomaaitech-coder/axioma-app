@@ -2040,9 +2040,9 @@ export default function ContasPagarPage() {
                 title={L("Ver estas contas", "See these bills", "Ver estas cuentas")}
                 onClick={() => { setFiltroStatus(k.filtro); setFiltroVencDe(""); setFiltroVencAte(""); document.getElementById("lista-contas-pagar")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
                 <CanvasBox {...cartaoTema} cor={k.cor}>
-                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
                   <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
-                  {filtroStatus === k.filtro && <p className="text-[10px] font-bold mt-1" style={{ color: k.cor }}>● {L("filtrando a lista", "filtering the list", "filtrando la lista")}</p>}
+                  {filtroStatus === k.filtro && <p className="text-xs font-bold mt-1" style={{ color: k.cor }}>● {L("filtrando a lista", "filtering the list", "filtrando la lista")}</p>}
                 </CanvasBox>
               </motion.div>
             ))}
@@ -2133,7 +2133,7 @@ export default function ContasPagarPage() {
                       {podeEditar && (
                         <>
                           {c.status !== "pago" && c.status !== "aguardando_aprovacao" && ehDasSimples(c) && (
-                            <button onClick={() => void abrirGuiaDas(c)} className="px-2 py-1 rounded-lg text-[11px] font-bold" style={{ background: "#0f7a5a", color: "#ffffff" }} title={L("Pagar pela guia do PGDAS-D: envie o PDF, a IA lê e você confere", "Pay with the PGDAS-D slip: upload the PDF, AI reads it and you check", "Pagar con la guía del PGDAS-D: suba el PDF, la IA lee y usted confirma")}>{L("Pagar DAS", "Pay DAS", "Pagar DAS")}</button>
+                            <button onClick={() => void abrirGuiaDas(c)} className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "#0f7a5a", color: "#ffffff" }} title={L("Pagar pela guia do PGDAS-D: envie o PDF, a IA lê e você confere", "Pay with the PGDAS-D slip: upload the PDF, AI reads it and you check", "Pagar con la guía del PGDAS-D: suba el PDF, la IA lee y usted confirma")}>{L("Pagar DAS", "Pay DAS", "Pagar DAS")}</button>
                           )}
                           {c.status !== "pago" && c.status !== "aguardando_aprovacao" && (
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa (marcar como pago)", "Register payment (mark as paid)", "Registrar pago (marcar como pagado)")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
@@ -2223,19 +2223,19 @@ export default function ContasPagarPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)") }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
+                    <p className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
                     <p className="text-lg font-black" style={{ color: TEXTO }}><AnimatedNumber value={fmt(forecastAp.saldoAtual)} /></p>
                   </div>
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
+                    <p className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoOtimista)} /></p>
                   </div>
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
+                    <p className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoPessimista)} /></p>
                   </div>
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>
+                    <p className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>
                     <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(pontoForecast.saldoProjetadoSemPagamentos)}</p>
                   </div>
                 </div>
@@ -2350,7 +2350,7 @@ export default function ContasPagarPage() {
                         </button>
                       )
                     ) : (
-                      <span className="px-2 py-1 rounded-lg text-[10px] flex-shrink-0" style={{ color: CINZA, background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)") }} title={L("Recorrência não mensal — Custo Fixo hoje só modela despesa mensal.", "Non-monthly recurrence — Fixed Cost today only models monthly expenses.", "Recurrencia no mensual — Costo Fijo hoy solo modela gasto mensual.")}>
+                      <span className="px-2 py-1 rounded-lg text-xs flex-shrink-0" style={{ color: CINZA, background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)") }} title={L("Recorrência não mensal — Custo Fixo hoje só modela despesa mensal.", "Non-monthly recurrence — Fixed Cost today only models monthly expenses.", "Recurrencia no mensual — Costo Fijo hoy solo modela gasto mensual.")}>
                         {L("recorrência não mensal", "non-monthly recurrence", "recurrencia no mensual")}
                       </span>
                     )}
@@ -2472,7 +2472,7 @@ export default function ContasPagarPage() {
               <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Desconto Ainda Aproveitável", "Discount Still Available", "Descuento Todavía Aprovechable")}
               </h4>
-              <p className="text-[10px] mb-2" style={{ color: CINZA }}>
+              <p className="text-xs mb-2" style={{ color: CINZA }}>
                 {L("Avaliação isolada, uma conta por vez — marque a caixinha de mais de uma pra ver o efeito CUMULATIVO real de antecipar todas juntas.",
                   "Isolated evaluation, one bill at a time — check the box on more than one to see the real CUMULATIVE effect of moving all of them up together.",
                   "Evaluación aislada, una cuenta por vez — marque la casilla de más de una para ver el efecto CUMULATIVO real de anticipar todas juntas.")}
@@ -2563,13 +2563,13 @@ export default function ContasPagarPage() {
                         </p>
                       )}
                       {antecipacaoConjunta.contasForaDoHorizonte.length > 0 && (
-                        <p className="text-[10px]" style={{ color: CINZA }}>
+                        <p className="text-xs" style={{ color: CINZA }}>
                           {L(`${antecipacaoConjunta.contasForaDoHorizonte.length} conta(s) selecionada(s) tem prazo de desconto além dos 90 dias do forecast — economia contada no total acima, mas o impacto no caixa dessas não entrou no cálculo.`,
                             `${antecipacaoConjunta.contasForaDoHorizonte.length} selected bill(s) have a discount deadline beyond the forecast's 90 days — savings counted in the total above, but their cash impact wasn't included in the calculation.`,
                             `${antecipacaoConjunta.contasForaDoHorizonte.length} cuenta(s) seleccionada(s) tienen plazo de descuento más allá de los 90 días del forecast — ahorro contado en el total arriba, pero el impacto en la caja de esas no entró en el cálculo.`)}
                         </p>
                       )}
-                      <p className="text-[10px] italic" style={{ color: CINZA }}>
+                      <p className="text-xs italic" style={{ color: CINZA }}>
                         {L("O sistema nunca antecipa pagamento sozinho — isso é só simulação. Você decide.", "The system never moves up a payment on its own — this is only a simulation. You decide.", "El sistema nunca anticipa un pago solo — esto es solo una simulación. Usted decide.")}
                       </p>
                     </div>
@@ -2697,7 +2697,7 @@ export default function ContasPagarPage() {
                         style={{ height: `${Math.max(2, (t.valor / maiorValorTendencia) * 100)}%`, background: `${AZUL}80`, minWidth: "4px" }} />
                     ))}
                   </div>
-                  <div className="flex justify-between text-[9px] mt-1" style={{ color: CINZA }}>
+                  <div className="flex justify-between text-xs mt-1" style={{ color: CINZA }}>
                     <span>{tendenciaMensal[0]?.label}</span>
                     <span>{tendenciaMensal[tendenciaMensal.length - 1]?.label}</span>
                   </div>
@@ -2866,7 +2866,7 @@ export default function ContasPagarPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold" style={{ color: TEXTO }}>{p.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusPedido(p.status)}20`, color: corStatusPedido(p.status) }}>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusPedido(p.status)}20`, color: corStatusPedido(p.status) }}>
                         {labelStatusPedido(p.status)}
                       </span>
                     </div>
@@ -2942,11 +2942,11 @@ export default function ContasPagarPage() {
                         <span className="text-sm font-semibold" style={{ color: TEXTO }}>
                           {m.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}
                         </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusMatch(m.status)}20`, color: corStatusMatch(m.status) }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusMatch(m.status)}20`, color: corStatusMatch(m.status) }}>
                           {labelStatusMatch(m.status)}
                         </span>
                         {m.nivel === "3way" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(46,204,155,0.15)"), color: ROXO }}>3-way</span>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(46,204,155,0.15)"), color: ROXO }}>3-way</span>
                         )}
                       </div>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2982,7 +2982,7 @@ export default function ContasPagarPage() {
 
                   {expandido.has(m.id) && (
                     <div className="mt-3 pt-3" style={{ borderTop: (temaClaro ? "1px solid #eef2f7" : "1px solid rgba(255,255,255,0.06)") }}>
-                      <p className="text-[10px] uppercase font-bold mb-2" style={{ color: CINZA }}>
+                      <p className="text-xs uppercase font-bold mb-2" style={{ color: CINZA }}>
                         {L("Chave de acesso", "Access key", "Clave de acceso")}: {m.chaveAcesso || "—"} · {L("Conta", "Bill", "Cuenta")}: {m.contaDescricao || L("ainda não existe", "doesn't exist yet", "todavía no existe")}
                       </p>
                       {!divergenciasPorMatch[m.id] ? (
@@ -3159,7 +3159,7 @@ export default function ContasPagarPage() {
                       placeholder={L("Ex.: lançamento de teste, criado por engano", "E.g.: test entry, created by mistake", "Ej.: registro de prueba, creado por error")}
                       className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                     {motivoExclusaoHist.trim().length > 0 && motivoExclusaoHist.trim().length < 5 && (
-                      <p className="text-[11px] mt-1" style={{ color: VERMELHO }}>{L("Escreva pelo menos 5 letras.", "Write at least 5 characters.", "Escriba al menos 5 letras.")}</p>
+                      <p className="text-xs mt-1" style={{ color: VERMELHO }}>{L("Escreva pelo menos 5 letras.", "Write at least 5 characters.", "Escriba al menos 5 letras.")}</p>
                     )}
                   </div>
                   <label className="flex items-start gap-2 mb-4 cursor-pointer">
@@ -3242,7 +3242,7 @@ export default function ContasPagarPage() {
                         </select>
                         {sugestaoCategoria && !nc.categoria && (
                           <button onClick={() => { setNc({ ...nc, categoria: sugestaoCategoria }); setSugestaoCategoria(null); }}
-                            className="mt-1 text-[10px] font-semibold flex items-center gap-1" style={{ color: ROXO }}>
+                            className="mt-1 text-xs font-semibold flex items-center gap-1" style={{ color: ROXO }}>
                             <Sparkles size={10} /> {cat(sugestaoCategoria)}
                           </button>
                         )}
@@ -3296,7 +3296,7 @@ export default function ContasPagarPage() {
                         <input type="date" value={nc.desconto_data_limite} onChange={(e) => setNc({ ...nc, desconto_data_limite: e.target.value })}
                           disabled={!nc.desconto_disponivel_pct.trim()}
                           className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
-                        <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Preencha os dois só se o fornecedor oferecer desconto por antecipar o pagamento.", "Only fill both if the supplier offers a discount for early payment.", "Complete ambos solo si el proveedor ofrece descuento por pago anticipado.")}</p>
+                        <p className="text-xs mt-1" style={{ color: CINZA }}>{L("Preencha os dois só se o fornecedor oferecer desconto por antecipar o pagamento.", "Only fill both if the supplier offers a discount for early payment.", "Complete ambos solo si el proveedor ofrece descuento por pago anticipado.")}</p>
                       </div>
                     </div>
                     <div>
@@ -3445,7 +3445,7 @@ export default function ContasPagarPage() {
                               {certa ? L("Mesma", "Same", "Misma") : L("Dúvida", "Unsure", "Duda")}
                             </span>
                             {podeEditar && c.tabela === "contas_pagar" && (
-                              <button onClick={() => vincularAExistente(d)} className="text-[10px] font-semibold underline" style={{ color: AZUL }}>
+                              <button onClick={() => vincularAExistente(d)} className="text-xs font-semibold underline" style={{ color: AZUL }}>
                                 {L("Abrir esta", "Open this one", "Abrir esta")}
                               </button>
                             )}
@@ -3530,9 +3530,9 @@ export default function ContasPagarPage() {
                   <div className="space-y-3">
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor deste pagamento (R$)", "Amount of this payment (R$)", "Valor de este pago (R$)")}</label>
-                      <p className="text-[11px] mb-1" style={{ color: CINZA }}>{L("Falta pagar", "Left to pay", "Falta pagar")}: {fmt(resta(contaBaixa))}{(contaBaixa.valor_pago || 0) > 0 ? ` · ${L("já pago", "already paid", "ya pagado")}: ${fmt(contaBaixa.valor_pago || 0)}` : ""}</p>
+                      <p className="text-xs mb-1" style={{ color: CINZA }}>{L("Falta pagar", "Left to pay", "Falta pagar")}: {fmt(resta(contaBaixa))}{(contaBaixa.valor_pago || 0) > 0 ? ` · ${L("já pago", "already paid", "ya pagado")}: ${fmt(contaBaixa.valor_pago || 0)}` : ""}</p>
                       {parseFloat(valorBaixa || "0") - resta(contaBaixa) > 0.005 && (
-                        <p className="text-[11px] mb-1 font-semibold" style={{ color: AMBAR }}>{L("Juros/multa por atraso", "Late interest/penalty", "Intereses/multa por atraso")}: {fmt(parseFloat(valorBaixa) - resta(contaBaixa))} — {L("lançado como despesa financeira", "booked as financial expense", "registrado como gasto financiero")}</p>
+                        <p className="text-xs mb-1 font-semibold" style={{ color: AMBAR }}>{L("Juros/multa por atraso", "Late interest/penalty", "Intereses/multa por atraso")}: {fmt(parseFloat(valorBaixa) - resta(contaBaixa))} — {L("lançado como despesa financeira", "booked as financial expense", "registrado como gasto financiero")}</p>
                       )}
                       <input type="number" value={valorBaixa} onChange={(e) => setValorBaixa(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
@@ -3901,11 +3901,11 @@ export default function ContasPagarPage() {
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Limite de Aprovação Automática (R$)", "Auto-approval Limit (R$)", "Límite de Aprobación Automática (R$)")}</label>
                       <input type="number" value={configForm.limite} onChange={(e) => setConfigForm({ ...configForm, limite: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
-                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Contas com valor acima disso pedem aprovação antes de poder ser pagas.", "Bills above this amount need approval before they can be paid.", "Cuentas con valor superior a esto piden aprobación antes de poder pagarse.")}</p>
+                      <p className="text-xs mt-1" style={{ color: CINZA }}>{L("Contas com valor acima disso pedem aprovação antes de poder ser pagas.", "Bills above this amount need approval before they can be paid.", "Cuentas con valor superior a esto piden aprobación antes de poder pagarse.")}</p>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Aprovadores", "Approvers", "Aprobadores")}</label>
-                      <p className="text-[10px] mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
+                      <p className="text-xs mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
                       <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2 axi-card-premium3d axi-card-faixa" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                         {equipe.length === 0 ? (
                           <p className="text-xs px-2 py-1" style={{ color: CINZA }}>{L("Ninguém além de você tem acesso ainda.", "No one besides you has access yet.", "Nadie además de usted tiene acceso todavía.")}</p>
@@ -3940,7 +3940,7 @@ export default function ContasPagarPage() {
                             className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(46,204,155,0.15)"), color: TEXTO }} />
                         </div>
                       </div>
-                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
+                      <p className="text-xs mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
                     </div>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "rgba(163,177,194,0.1)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: temaClaro ? CINZA : "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
@@ -4013,7 +4013,7 @@ export default function ContasPagarPage() {
                         />
                       </div>
                     </div>
-                    <p className="text-[10px]" style={{ color: CINZA }}>
+                    <p className="text-xs" style={{ color: CINZA }}>
                       {L("As contas antigas desse padrão passam a ficar vinculadas a este Custo Fixo, e a conta deste mês é gerada automaticamente (sem duplicar se já existir).",
                         "The old bills from this pattern get linked to this Fixed Cost, and this month's bill is generated automatically (no duplicate if one already exists).",
                         "Las cuentas antiguas de ese patrón quedan vinculadas a este Costo Fijo, y la cuenta de este mes se genera automáticamente (sin duplicar si ya existe).")}

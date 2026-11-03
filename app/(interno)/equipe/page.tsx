@@ -659,19 +659,19 @@ export default function EquipePage() {
               </div>
               <div className="space-y-2.5">
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
+                  <label className="text-xs uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
                   <input type="email" value={form.email_convidado} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
                     placeholder="nome@empresa.com.br" autoComplete="off"
                     className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
+                    <label className="text-xs uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
                     <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
                       className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
+                    <label className="text-xs uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
                     <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
                       className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                   </div>
@@ -690,9 +690,9 @@ export default function EquipePage() {
                   valor={String(form.acesso_dias)}
                   opcoes={([1, 3, 7, 30, 60, 90, 180, 365, null] as (number | null)[]).filter((d) => d !== null || podeSemPrazo(form)).map((d) => ({ valor: String(d), label: rotuloPrazo(d) }))}
                   onEscolher={(v) => ajustarForm({ ...form, acesso_dias: v === 'null' ? null : Number(v) })} />
-                {!podeSemPrazo(form) && <p className="text-[10px] -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
+                {!podeSemPrazo(form) && <p className="text-xs -mt-1" style={{ color: MUTED }}>{t.semPrazoRegra}</p>}
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}{precisaAutorizacao ? ' *' : ''}</label>
+                  <label className="text-xs uppercase tracking-wider" style={{ color: MUTED }}>{t.motivoLabel}{precisaAutorizacao ? ' *' : ''}</label>
                   <input value={form.motivo_convite} onChange={(e) => setForm({ ...form, motivo_convite: e.target.value })} maxLength={300}
                     className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
@@ -703,7 +703,7 @@ export default function EquipePage() {
                 {meuPapelConvite && precisaAutorizacao && (
                   <div className="rounded-lg p-2.5 space-y-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(46,204,155,0.06)', border: `1px solid ${AMBAR}66` }}>
                     <p className="text-xs font-bold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>🔒 {t.autTitulo}</p>
-                    <p className="text-[11px]" style={{ color: MUTED }}>{t.autAviso}</p>
+                    <p className="text-xs" style={{ color: MUTED }}>{t.autAviso}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input value={autEmail} onChange={(e) => { setAutEmail(e.target.value); setErroModal('') }} placeholder={t.autEmail} type="email" autoComplete="off"
                         className="w-full px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
@@ -715,10 +715,10 @@ export default function EquipePage() {
                 )}
                 <label className="flex items-start gap-2 cursor-pointer rounded-lg p-2" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.03)', border: `1px solid ${termoRemetente ? '#16a97d' : (temaClaro ? 'rgba(16,27,61,0.15)' : 'rgba(255,255,255,0.08)')}` }}>
                   <input type="checkbox" checked={termoRemetente} onChange={(e) => { setTermoRemetente(e.target.checked); setErroModal('') }} className="mt-0.5" />
-                  <span className="text-[11px] leading-snug" style={{ color: TEXTO }}>{t.termoRemetente(nomeRemetente, dataHora(new Date()))}</span>
+                  <span className="text-xs leading-snug" style={{ color: TEXTO }}>{t.termoRemetente(nomeRemetente, dataHora(new Date()))}</span>
                 </label>
                 <div className="pt-1">
-                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: MUTED }}>{t.enviarPor}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[
                       { canal: 'WhatsApp', rotulo: 'WhatsApp', cor: '#25D366' },
@@ -901,11 +901,11 @@ export default function EquipePage() {
               <div>
                 <p className="text-lg font-black" style={{ ...FONTE_EXEC, color: TEXTO }}>{membros.length}</p>
                 <p className="text-xs" style={{ color: MUTED }}>{t.titulo}</p>
-                {vagas && <p className="text-[11px] font-bold mt-0.5" style={{ color: vagas.ocupadas >= vagas.limite ? VERMELHO : '#2ecc9b' }}>{t.vagasPlano(vagas.ocupadas, vagas.limite)}</p>}
-                {vagas && <p className="text-[11px] font-bold" style={{ color: vagas.tempUsados >= vagas.tempLimite ? VERMELHO : MUTED }}>{t.tempPlano(vagas.tempUsados, vagas.tempLimite)}</p>}
+                {vagas && <p className="text-xs font-bold mt-0.5" style={{ color: vagas.ocupadas >= vagas.limite ? VERMELHO : '#2ecc9b' }}>{t.vagasPlano(vagas.ocupadas, vagas.limite)}</p>}
+                {vagas && <p className="text-xs font-bold" style={{ color: vagas.tempUsados >= vagas.tempLimite ? VERMELHO : MUTED }}>{t.tempPlano(vagas.tempUsados, vagas.tempLimite)}</p>}
               </div>
             </div>
-            <p className="text-[11px] flex-1 sm:px-4" style={{ color: MUTED }}>
+            <p className="text-xs flex-1 sm:px-4" style={{ color: MUTED }}>
               {t.hierarquia}
               {membros.filter((m) => m.origem === 'ativo' && !m.suspenso_em && (m.nivel ?? 99) <= 4).length <= 1 && (
                 <span className="block mt-1 font-semibold" style={{ color: temaClaro ? '#101b3d' : AMBAR }}>⚠ {t.unicoGestor}</span>
@@ -964,7 +964,7 @@ export default function EquipePage() {
                       <p className="text-xs truncate" style={{ color: MUTED }}>
                         {m.email || t.conviteLink} {m.nivel != null && m.nivel <= 4 ? `• ${nomeNivel(m.nivel)}` : m.relacao ? `• ${(t as any)[`rel_${m.relacao}`] || m.relacao}` : ''} {m.cargo ? `• ${m.cargo}` : ''} {m.nivel === 1 ? '' : `• ${labelPapel(m.papel)}`}
                       </p>
-                      <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      <span className="inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${status.cor}22`, color: status.cor, border: `1px solid ${status.cor}50` }}>
                         {status.label}
                       </span>
@@ -1209,7 +1209,7 @@ function MenuEscolha({ rotulo, valor, opcoes, onEscolher, temaClaro, cores }: {
   const atual = opcoes.find((o) => o.valor === valor)?.label || '—'
   return (
     <div className="relative">
-      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: cores.muted }}>{rotulo}</p>
+      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: cores.muted }}>{rotulo}</p>
       <motion.button type="button" onClick={() => setAberto((a) => !a)} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-left"
         style={{ background: cores.campo, border: aberto ? '1px solid #16a97d' : cores.borda, color: cores.texto }}>

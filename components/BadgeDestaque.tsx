@@ -16,7 +16,7 @@ export function BadgeDestaque({ lang = "pt", label }: { lang?: string; label?: s
   const texto = label || LABELS[lang] || LABELS.pt;
   return (
     <span
-      className="inline-flex items-center gap-1 text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded-full"
+      className="inline-flex items-center gap-1 text-xs font-black tracking-wider px-1.5 py-0.5 rounded-full"
       style={{
         background: `linear-gradient(135deg, ${cor}22, ${cor}10)`,
         color: cor,

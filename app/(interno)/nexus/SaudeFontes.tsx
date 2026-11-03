@@ -105,27 +105,27 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                     <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-bold break-words flex items-center gap-1" style={{ color: TITULO }}>{f.nome}{SITE[f.nome] && <ExternalLink size={12} style={{ color: CINZA }} aria-hidden />}</p>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro
                         ? { background: COR[f.saude], color: TEXTO_SOBRE[f.saude] }
                         : { background: `${COR[f.saude]}20`, color: COR[f.saude] }}>{L(...ROTULO[f.saude])}</span>
                     </div>
-                    <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
-                    {f.ultimaFalha && <p className="text-[11px]" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
-                    {f.nota != null && <p className="text-[11px]" style={{ color: CINZA }}>{L('Confiança da fonte', 'Source confidence', 'Confianza de la fuente')}: <span className="font-bold" style={{ color: TITULO }}>{Math.round(f.nota)}/100</span></p>}
+                    <p className="text-xs mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
+                    {f.ultimaFalha && <p className="text-xs" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
+                    {f.nota != null && <p className="text-xs" style={{ color: CINZA }}>{L('Confiança da fonte', 'Source confidence', 'Confianza de la fuente')}: <span className="font-bold" style={{ color: TITULO }}>{Math.round(f.nota)}/100</span></p>}
                     {f.saude !== 'ok' && f.saude !== 'desligada' && RESERVAS_DA_FONTE[f.nome] && (
-                      <p className="text-[11px] font-semibold mt-0.5" style={{ color: temaClaro ? '#0f7d5c' : '#2ecc9b' }}>
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: temaClaro ? '#0f7d5c' : '#2ecc9b' }}>
                         ✓ {L('Dados cobertos pela reserva', 'Data covered by backup', 'Datos cubiertos por el respaldo')}: {RESERVAS_DA_FONTE[f.nome]}
                       </p>
                     )}
                     {f.saude === 'desligada' && f.nome === 'Currents' && (
-                      <p className="text-[11px] mt-0.5" style={{ color: CINZA }}>{L('Desligada de propósito: serviço pago. Notícias vêm das fontes gratuitas.', 'Turned off on purpose: paid service. News comes from the free sources.', 'Apagada a propósito: servicio pago. Las noticias vienen de las fuentes gratuitas.')}</p>
+                      <p className="text-xs mt-0.5" style={{ color: CINZA }}>{L('Desligada de propósito: serviço pago. Notícias vêm das fontes gratuitas.', 'Turned off on purpose: paid service. News comes from the free sources.', 'Apagada a propósito: servicio pago. Las noticias vienen de las fuentes gratuitas.')}</p>
                     )}
-                    {f.emPausa && <p className="text-[11px] font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar, tenta de novo em até 6 horas.', 'Paused: source down, retries within 6 hours.', 'En pausa: fuente caída, reintenta en hasta 6 horas.')}</p>}
+                    {f.emPausa && <p className="text-xs font-semibold" style={{ color: TEXTO }}>{L('Em pausa: fora do ar, tenta de novo em até 6 horas.', 'Paused: source down, retries within 6 hours.', 'En pausa: fuente caída, reintenta en hasta 6 horas.')}</p>}
                   </a>
                 ))}
               </div>
               {semColeta.length > 0 && (
-                <p className="text-[11px] mt-3" style={{ color: CINZA }}>
+                <p className="text-xs mt-3" style={{ color: CINZA }}>
                   {L('Cadastradas, ainda sem nenhuma coleta', 'Registered, no collection yet', 'Registradas, aún sin recolección')}: <span style={{ color: TEXTO }}>{semColeta.map((f) => f.nome).join(', ')}</span>
                 </p>
               )}

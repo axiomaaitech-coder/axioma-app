@@ -68,9 +68,9 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
         ].map((c) => (
           <div key={c.rotulo} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={temaClaro ? { background: '#101b3d', border: '1px solid #101b3d' } : { background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                 <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
-            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: temaClaro ? '#ffffff' : CINZA }}>{c.rotulo}</p>
+            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: temaClaro ? '#ffffff' : CINZA }}>{c.rotulo}</p>
             <p className="text-xl font-black leading-tight" style={{ color: temaClaro ? '#ffffff' : TITULO }}>{c.valor}</p>
-            <p className="text-[10px]" style={{ color: temaClaro ? '#dbe4f0' : CINZA }}>{c.sub}</p>
+            <p className="text-xs" style={{ color: temaClaro ? '#dbe4f0' : CINZA }}>{c.sub}</p>
           </div>
         ))}
       </div>
@@ -86,12 +86,12 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
               <div key={p.id} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                 <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-bold" style={{ color: TITULO }}>{nomeSerie(p.serie)} <span className="text-[11px] font-normal" style={{ color: CINZA }}>· {p.horizonte} {L('dias', 'days', 'días')}</span></p>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro ? { background: st.cor, color: st.sobre } : { background: `${st.cor}20`, color: st.cor }}>{L(...st.rotulo)}</span>
+                  <p className="text-sm font-bold" style={{ color: TITULO }}>{nomeSerie(p.serie)} <span className="text-xs font-normal" style={{ color: CINZA }}>· {p.horizonte} {L('dias', 'days', 'días')}</span></p>
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro ? { background: st.cor, color: st.sobre } : { background: `${st.cor}20`, color: st.cor }}>{L(...st.rotulo)}</span>
                 </div>
                 <p className="text-xs mt-1 font-bold" style={{ color: temaClaro ? '#122b54' : ACENTO }}>{L(...DIRECAO[p.direcao])}{p.confianca != null && <span className="font-normal" style={{ color: CINZA }}> · {L('confiança', 'confidence', 'confianza')} {p.confianca}%</span>}</p>
-                {p.motivo && <p className="text-[11px] mt-1" style={{ color: TEXTO }}>{p.motivo[lang]}</p>}
-                <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>
+                {p.motivo && <p className="text-xs mt-1" style={{ color: TEXTO }}>{p.motivo[lang]}</p>}
+                <p className="text-xs mt-1.5" style={{ color: CINZA }}>
                   {L('Partida', 'Start', 'Partida')}: <span style={{ color: TEXTO }}>{num(p.valorBase)}</span> ({data(p.dataBase)})
                   {p.valorReal != null
                     ? <> · {L('Real', 'Actual', 'Real')}: <span style={{ color: TEXTO }}>{num(p.valorReal)}</span></>

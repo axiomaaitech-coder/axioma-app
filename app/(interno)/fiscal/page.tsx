@@ -234,7 +234,7 @@ export default function FiscalPage() {
                   {L('Atividade fiscal não definida — o cálculo de imposto está usando um default (Serviços) avisado.', 'Tax activity not defined — tax calculation is using a flagged default (Services).', 'Actividad fiscal no definida — el cálculo de impuestos usa un valor por defecto (Servicios) avisado.')}
                 </p>
               </div>
-              <button onClick={() => router.push('/fiscal/config')} className="text-[11px] font-bold whitespace-nowrap" style={{ color: AMARELO }}>
+              <button onClick={() => router.push('/fiscal/config')} className="text-xs font-bold whitespace-nowrap" style={{ color: AMARELO }}>
                 {L('Definir agora →', 'Set it now →', 'Definir ahora →')}
               </button>
             </div>
@@ -243,7 +243,7 @@ export default function FiscalPage() {
           {/* FISCAL HEALTH SCORE — sempre explicado */}
           {health && (
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}30` }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Fiscal Health Score', 'Fiscal Health Score', 'Fiscal Health Score')}</p>
+              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Fiscal Health Score', 'Fiscal Health Score', 'Fiscal Health Score')}</p>
               <div className="flex flex-wrap items-baseline gap-3 mb-1">
                 <span className="text-4xl font-black leading-none" style={{ color: health.score >= 750 ? VERDE : health.score >= 500 ? AMARELO : VERMELHO }}><AnimatedNumber value={String(health.score)} /></span>
                 <span className="text-xs" style={{ color: CINZA }}>/ 1000</span>
@@ -267,7 +267,7 @@ export default function FiscalPage() {
                   style={{ background: PAINEL_BG, border: ativo ? `2px solid ${t.cor}` : `1px solid ${t.cor}30` }}>
                   <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
                   <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
-                  <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
                 </motion.button>
               )
             })}
@@ -277,7 +277,7 @@ export default function FiscalPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Próximas Obrigações', 'Upcoming Obligations', 'Próximas Obligaciones')}</h3>
-              <button onClick={() => router.push('/fiscal/obrigacoes')} className="text-[11px] font-semibold" style={{ color: AZULC }}>
+              <button onClick={() => router.push('/fiscal/obrigacoes')} className="text-xs font-semibold" style={{ color: AZULC }}>
                 {L('Ver calendário completo →', 'See full calendar →', 'Ver calendario completo →')}
               </button>
             </div>
@@ -311,9 +311,9 @@ export default function FiscalPage() {
           {/* LISTA DE DESCOBERTAS — densa, hierárquica, sem card decorativo por item */}
           <div id="lista-descobertas-fiscal" className="scroll-mt-28">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              {filtroCard && <button onClick={() => setFiltroCard(null)} className="text-[11px] font-bold px-2 py-0.5 rounded-full order-last" style={{ background: temaClaro ? '#101b3d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>{L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕</button>}
+              {filtroCard && <button onClick={() => setFiltroCard(null)} className="text-xs font-bold px-2 py-0.5 rounded-full order-last" style={{ background: temaClaro ? '#101b3d' : 'rgba(46,204,155,0.15)', color: temaClaro ? '#ffffff' : AZULC }}>{L('Filtrando', 'Filtering', 'Filtrando')}: {TILES.find((x) => x.filtro === filtroCard)?.label} ✕</button>}
               <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Descobertas', 'Findings', 'Hallazgos')}</h3>
-              <button onClick={() => setMostrarTodas((v) => !v)} className="text-[11px] font-semibold" style={{ color: AZULC }}>
+              <button onClick={() => setMostrarTodas((v) => !v)} className="text-xs font-semibold" style={{ color: AZULC }}>
                 {mostrarTodas ? L('Mostrar só abertas', 'Show only open', 'Mostrar solo abiertas') : L('Mostrar todas', 'Show all', 'Mostrar todas')}
               </button>
             </div>
@@ -341,7 +341,7 @@ export default function FiscalPage() {
                     {visiveis.map((d) => (
                       <tr key={d.id} onClick={() => setSelecionada(d)} className="cursor-pointer hover:bg-white/[0.02]" style={{ borderTop: '1px solid var(--axi-border)' }}>
                         <td className="py-2.5 px-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: `${COR_PRIORIDADE[d.prioridade]}20`, color: COR_PRIORIDADE[d.prioridade] }}>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-black" style={{ background: `${COR_PRIORIDADE[d.prioridade]}20`, color: COR_PRIORIDADE[d.prioridade] }}>
                             {d.prioridade}
                           </span>
                         </td>
@@ -372,13 +372,13 @@ export default function FiscalPage() {
                 <div key={i} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG3, border: `1px solid ${a.impacto === 'negativo' ? VERMELHO : a.impacto === 'positivo' ? VERDE : CINZA}30` }}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-bold" style={{ color: TEXTO }}>{lang === 'en' ? a.titulo_en : lang === 'es' ? a.titulo_es : a.titulo}</p>
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${CINZA}18`, color: CINZA }}>{a.data}</span>
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${CINZA}18`, color: CINZA }}>{a.data}</span>
                   </div>
-                  <p className="text-[11px]" style={{ color: CINZA }}>{lang === 'en' ? a.descricao_en : lang === 'es' ? a.descricao_es : a.descricao}</p>
+                  <p className="text-xs" style={{ color: CINZA }}>{lang === 'en' ? a.descricao_en : lang === 'es' ? a.descricao_es : a.descricao}</p>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] mt-2" style={{ color: CINZA }}>
+            <p className="text-xs mt-2" style={{ color: CINZA }}>
               {L('Educativo — regras em transição, podem mudar. Fonte: EC 132/2023 e LC 214/2025 (planalto.gov.br), conferidas em 11/10/2026; alíquotas finais dependem de lei.', 'Educational — rules in transition, may change. Source: Constitutional Amendment 132/2023 and LC 214/2025 (planalto.gov.br), checked on 10/11/2026; final rates depend on law.', 'Educativo — reglas en transición, pueden cambiar. Fuente: EC 132/2023 y LC 214/2025 (planalto.gov.br), verificadas el 11/10/2026; las alícuotas finales dependen de ley.')}
             </p>
           </div>
@@ -399,10 +399,10 @@ export default function FiscalPage() {
                   <div className="flex justify-between items-start mb-4 gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: `${COR_PRIORIDADE[selecionada.prioridade]}20`, color: COR_PRIORIDADE[selecionada.prioridade] }}>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-black" style={{ background: `${COR_PRIORIDADE[selecionada.prioridade]}20`, color: COR_PRIORIDADE[selecionada.prioridade] }}>
                           {selecionada.prioridade}
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: COR_TIPO[selecionada.tipo] }}>{LABEL_TIPO[selecionada.tipo][lang]}</span>
+                        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: COR_TIPO[selecionada.tipo] }}>{LABEL_TIPO[selecionada.tipo][lang]}</span>
                       </div>
                       <h3 className="text-base font-bold" style={{ color: TITULO }}>{selecionada.titulo}</h3>
                     </div>
@@ -413,34 +413,34 @@ export default function FiscalPage() {
 
                   {selecionada.causa && (
                     <div className="rounded-lg p-3 mb-3 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
-                      <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}</p>
                       <p className="text-xs" style={{ color: TEXTO }}>{selecionada.causa}</p>
                     </div>
                   )}
 
                   <div className="flex flex-wrap gap-3 mb-3">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Confiança', 'Confidence', 'Confianza')}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Confiança', 'Confidence', 'Confianza')}</p>
                       <p className="text-sm font-bold" style={{ color: COR_CONFIANCA[selecionada.confianca] }}>{LABEL_CONFIANCA[selecionada.confianca][lang]}</p>
                     </div>
                     {selecionada.impacto_estimado != null && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}</p>
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>R$ {fBRL2(Number(selecionada.impacto_estimado))}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Encontrada em', 'Found on', 'Encontrada el')}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Encontrada em', 'Found on', 'Encontrada el')}</p>
                       <p className="text-sm font-bold" style={{ color: TEXTO }}>{new Date(selecionada.criado_em).toLocaleDateString(localeData)}</p>
                     </div>
                   </div>
 
                   {selecionada.evidencia && entradasEvidencia(selecionada.evidencia, L).length > 0 && (
                     <div className="rounded-lg p-3 mb-4 axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
-                      <p className="text-[10px] font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: CINZA }}><Eye size={11} />{L('Evidência (dados e cálculo usados)', 'Evidence (data and calculation used)', 'Evidencia (datos y cálculo usados)')}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: CINZA }}><Eye size={11} />{L('Evidência (dados e cálculo usados)', 'Evidence (data and calculation used)', 'Evidencia (datos y cálculo usados)')}</p>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                         {entradasEvidencia(selecionada.evidencia, L).map(([k, v]) => (
-                          <div key={k} className="flex justify-between gap-2 text-[11px]">
+                          <div key={k} className="flex justify-between gap-2 text-xs">
                             <span style={{ color: CINZA }}>{k}</span>
                             <span className="font-semibold text-right" style={{ color: TEXTO }}>{v}</span>
                           </div>
@@ -469,7 +469,7 @@ export default function FiscalPage() {
                       </button>
                     </div>
                   ) : (
-                    <p className="text-[11px] font-semibold" style={{ color: CINZA }}>
+                    <p className="text-xs font-semibold" style={{ color: CINZA }}>
                       {L('Status', 'Status', 'Estado')}: {LABEL_STATUS[selecionada.status][lang]}
                       {selecionada.resolvido_em && ` — ${new Date(selecionada.resolvido_em).toLocaleDateString(localeData)}`}
                     </p>

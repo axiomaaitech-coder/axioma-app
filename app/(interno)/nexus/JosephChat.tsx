@@ -224,8 +224,8 @@ ${montarContexto()}`, conversaId: conversaId.current })
             {L('Como José no Egito: ler os sinais de hoje para se preparar para as vacas magras.', 'Like José in Egypt: read today’s signs to prepare for the lean years.', 'Como José en Egipto: leer las señales de hoy para prepararse para las vacas flacas.')}
           </p>
           <div className="w-full mt-4 text-left rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(16,27,61,0.15)' }}>
-            <p className="text-[11px] font-bold mb-1.5" style={{ color: '#101b3d' }}>{L('O que o José está vendo agora', 'What José sees right now', 'Lo que José ve ahora')}</p>
-            <ul className="space-y-1 text-[11px] font-medium" style={{ color: '#101b3d' }}>
+            <p className="text-xs font-bold mb-1.5" style={{ color: '#101b3d' }}>{L('O que o José está vendo agora', 'What José sees right now', 'Lo que José ve ahora')}</p>
+            <ul className="space-y-1 text-xs font-medium" style={{ color: '#101b3d' }}>
               <li>📊 {indicadores.filter((i) => i.valor != null).length} {L('indicadores oficiais', 'official indicators', 'indicadores oficiales')}</li>
               <li>🌎 {eventos.length} {L('eventos do Radar Global', 'Global Radar events', 'eventos del Radar Global')}</li>
               <li>🧠 {qtdLeituras} {L('leituras já feitas', 'readings done', 'lecturas hechas')}</li>
@@ -240,7 +240,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-xs" style={{ color: CINZA }}>{L('Ele só usa os dados do Axioma — nada inventado. Não é recomendação de investimento.', 'He only uses Axioma data — nothing made up. Not investment advice.', 'Solo usa datos de Axioma — nada inventado. No es recomendación de inversión.')}</p>
             {mensagens.length > 0 && (
-              <button onClick={() => conversas.nova()} className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg" style={chip}>
+              <button onClick={() => conversas.nova()} className="shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg" style={chip}>
                 <RotateCcw size={11} aria-hidden />{L('Nova conversa', 'New chat', 'Nueva conversación')}
               </button>
             )}
@@ -329,7 +329,7 @@ ${montarContexto()}`, conversaId: conversaId.current })
                 <Headphones size={14} aria-hidden />
                 {modoConversa ? L('Conversa por voz: ligada', 'Voice conversation: on', 'Conversación por voz: activada') : L('Conversa por voz: desligada', 'Voice conversation: off', 'Conversación por voz: desactivada')}
               </button>
-              <span className="text-[11px] font-medium" style={{ color: TEXTO }}>
+              <span className="text-xs font-medium" style={{ color: TEXTO }}>
                 {modoConversa
                   ? L('Toque em Falar e faça a pergunta: ela vai direto ao José e ele responde falando. Tocar em Falar enquanto ele fala interrompe. Para corrigir, é só perguntar de novo.', 'Tap Speak and ask: it goes straight to José and he answers out loud. Tapping Speak while he talks interrupts him. To correct, just ask again.', 'Toque Hablar y pregunte: va directo a José y él responde hablando. Tocar Hablar mientras habla lo interrumpe. Para corregir, solo pregunte de nuevo.')
                   : L('Ligue para conversar com o José por voz, como numa reunião.', 'Turn on to talk with José by voice, like in a meeting.', 'Actívela para conversar con José por voz, como en una reunión.')}

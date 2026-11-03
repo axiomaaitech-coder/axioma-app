@@ -261,10 +261,10 @@ export default function LancamentoManualPage() {
                       <button onClick={() => setExpandido(isExpandido ? null : m.id)} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: estornado ? CINZA : TEXTO, textDecoration: estornado ? 'line-through' : 'none' }}>{m.descricao}</p>
-                          <p className="text-[10px]" style={{ color: CINZA }}>{new Date(m.data + 'T00:00:00').toLocaleDateString(localeData)}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>{new Date(m.data + 'T00:00:00').toLocaleDateString(localeData)}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {estornado && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${AMARELO}15`, color: AMARELO }}>{L('ESTORNADO', 'REVERSED', 'REVERTIDO')}</span>}
+                          {estornado && <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${AMARELO}15`, color: AMARELO }}>{L('ESTORNADO', 'REVERSED', 'REVERTIDO')}</span>}
                           {isExpandido ? <ChevronUp size={14} style={{ color: CINZA }} /> : <ChevronDown size={14} style={{ color: CINZA }} />}
                         </div>
                       </button>
@@ -274,7 +274,7 @@ export default function LancamentoManualPage() {
                             {partidas.map((p) => {
                               const conta = contaPorId.get(p.conta_id)
                               return (
-                                <div key={p.id} className="flex justify-between text-[11px] py-0.5">
+                                <div key={p.id} className="flex justify-between text-xs py-0.5">
                                   <span style={{ color: CINZA }}>{conta ? `${conta.codigo} — ${conta.nome}` : p.conta_id}</span>
                                   <span className="font-semibold" style={{ color: p.tipo === 'debito' ? AZULC : VERDE }}>
                                     {p.tipo === 'debito' ? L('D', 'D', 'D') : L('C', 'C', 'C')} R$ {fBRL2(Number(p.valor))}
@@ -286,17 +286,17 @@ export default function LancamentoManualPage() {
                           {podeEditar && !estornado && (
                             confirmandoEstorno === m.id ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px]" style={{ color: AMARELO }}>{L('Confirma o estorno?', 'Confirm reversal?', '¿Confirma la reversión?')}</span>
+                                <span className="text-xs" style={{ color: AMARELO }}>{L('Confirma o estorno?', 'Confirm reversal?', '¿Confirma la reversión?')}</span>
                                 <button onClick={() => confirmarEstorno(m.id)} disabled={estornando === m.id}
-                                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg disabled:opacity-60" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
+                                  className="text-xs font-bold px-2.5 py-1 rounded-lg disabled:opacity-60" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
                                   {estornando === m.id ? L('Estornando...', 'Reversing...', 'Revirtiendo...') : L('Sim, estornar', 'Yes, reverse', 'Sí, revertir')}
                                 </button>
-                                <button onClick={() => setConfirmandoEstorno(null)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: BTN_BG, color: CINZA }}>
+                                <button onClick={() => setConfirmandoEstorno(null)} className="text-xs font-semibold px-2.5 py-1 rounded-lg" style={{ background: BTN_BG, color: CINZA }}>
                                   {L('Cancelar', 'Cancel', 'Cancelar')}
                                 </button>
                               </div>
                             ) : (
-                              <button onClick={() => setConfirmandoEstorno(m.id)} className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: BTN_BG, color: AMARELO }}>
+                              <button onClick={() => setConfirmandoEstorno(m.id)} className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg" style={{ background: BTN_BG, color: AMARELO }}>
                                 <Undo2 size={12} />{L('Estornar', 'Reverse', 'Revertir')}
                               </button>
                             )

@@ -25,7 +25,7 @@ export function DivisorNexus({ rotulo }: { rotulo?: string }) {
           <ellipse cx="7.2" cy="12.2" rx="1.4" ry="2.6" fill="#2ecc9b" transform="rotate(-30 7.2 12.2)" />
           <ellipse cx="12.8" cy="12.2" rx="1.4" ry="2.6" fill="#2ecc9b" transform="rotate(30 12.8 12.2)" />
         </svg>
-        {rotulo && <span className="text-[11px] font-bold tracking-wide" style={{ color: '#2ecc9b' }}>{rotulo}</span>}
+        {rotulo && <span className="text-xs font-bold tracking-wide" style={{ color: '#2ecc9b' }}>{rotulo}</span>}
       </span>
 
       <div className="relative flex-1 h-[2px] overflow-hidden rounded-full" style={{ background: 'linear-gradient(90deg, rgba(46,204,155,0.55), transparent)' }}>

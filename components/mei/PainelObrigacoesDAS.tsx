@@ -298,9 +298,9 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
 
   const Indicador = ({ titulo, valor, sub, cor }: { titulo: string; valor: string; sub?: string; cor: string }) => (
     <div className={caixa} style={caixaStyle}>
-      <p className="text-[11px] font-semibold" style={{ color: TEXTO_SEC }}>{titulo}</p>
+      <p className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{titulo}</p>
       <p className="text-lg font-black leading-tight mt-0.5" style={{ color: cor }}>{valor}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: TEXTO_SEC }}>{sub}</p>}
+      {sub && <p className="text-xs mt-0.5" style={{ color: TEXTO_SEC }}>{sub}</p>}
     </div>
   )
 
@@ -346,7 +346,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
               <Indicador titulo={L('Falta informar o pagamento', 'Payment details missing', 'Falta informar el pago')} valor={String(aguardando.length)} cor={aguardando.length ? AMBAR : VERDE} sub={aguardando.length ? L('marcados como pagos sem valor — não contam como pago nem como dívida', 'marked paid without amount — count neither as paid nor as debt', 'marcados pagados sin valor — no cuentan como pago ni deuda') : L('tudo conciliado', 'all reconciled', 'todo conciliado')} />
             </div>
             {temProjecao && premissaProjecao && (
-              <p className="text-[11px] mb-4 flex items-start gap-1.5" style={{ color: TEXTO_SEC }}><Info size={13} className="mt-0.5 shrink-0" />{L('Premissa da estimativa: ', 'Estimate assumption: ', 'Premisa de la estimación: ')}{premissaProjecao}. {L('O valor muda em janeiro com o salário mínimo.', 'The amount changes in January with the minimum wage.', 'El valor cambia en enero con el salario mínimo.')}</p>
+              <p className="text-xs mb-4 flex items-start gap-1.5" style={{ color: TEXTO_SEC }}><Info size={13} className="mt-0.5 shrink-0" />{L('Premissa da estimativa: ', 'Estimate assumption: ', 'Premisa de la estimación: ')}{premissaProjecao}. {L('O valor muda em janeiro com o salário mínimo.', 'The amount changes in January with the minimum wage.', 'El valor cambia en enero con el salario mínimo.')}</p>
             )}
 
             {/* 12 meses */}
@@ -360,18 +360,18 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
                   <div key={m.id} className={caixa} style={{ ...caixaStyle, border: atual ? `2px solid ${VERDE}` : caixaStyle.border }} aria-current={atual ? 'date' : undefined}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-bold" style={{ color: TEXTO }}>{mesAno(m.data_vencimento)}{atual && <span className="ml-1 text-[10px] font-semibold" style={{ color: VERDE }}>{L('· este mês', '· this month', '· este mes')}</span>}</p>
-                        <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{L('Competência', 'Period', 'Competencia')} {m.competencia.slice(5, 7)}/{m.competencia.slice(0, 4)} · {L('vence', 'due', 'vence')} {dataBR(m.data_vencimento)}</p>
+                        <p className="text-sm font-bold" style={{ color: TEXTO }}>{mesAno(m.data_vencimento)}{atual && <span className="ml-1 text-xs font-semibold" style={{ color: VERDE }}>{L('· este mês', '· this month', '· este mes')}</span>}</p>
+                        <p className="text-xs" style={{ color: TEXTO_SEC }}>{L('Competência', 'Period', 'Competencia')} {m.competencia.slice(5, 7)}/{m.competencia.slice(0, 4)} · {L('vence', 'due', 'vence')} {dataBR(m.data_vencimento)}</p>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${st.c}22`, color: st.c, border: `1px solid ${st.c}55` }}>{st.r}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${st.c}22`, color: st.c, border: `1px solid ${st.c}55` }}>{st.r}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 mt-2 text-[11px]">
+                    <div className="grid grid-cols-3 gap-1 mt-2 text-xs">
                       <div><p style={{ color: TEXTO_SEC }}>{m.natureza === 'projecao' ? L('Estimado', 'Estimated', 'Estimado') : L('Valor', 'Amount', 'Valor')}</p><p className="font-bold" style={{ color: TEXTO }}>{m.valor_esperado != null ? fmt(m.valor_esperado) : '—'}</p></div>
                       <div><p style={{ color: TEXTO_SEC }}>{L('Pago', 'Paid', 'Pagado')}</p><p className="font-bold" style={{ color: m.pago > 0 ? VERDE : TEXTO }}>{fmt(r2(m.pago + m.encargos))}</p></div>
                       <div><p style={{ color: TEXTO_SEC }}>{L('Falta', 'Left', 'Falta')}</p><p className="font-bold" style={{ color: m.vencido ? VERMELHO : TEXTO }}>{m.natureza === 'projecao' ? '—' : fmt(m.saldo)}</p></div>
                     </div>
-                    {ultimo && <p className="text-[10px] mt-1" style={{ color: TEXTO_SEC }}>{L('Pago em', 'Paid on', 'Pagado el')} {dataBR(ultimo.data_pagamento)}{ultimo.referencia ? ` · ${L('ref.', 'ref.', 'ref.')} ${ultimo.referencia}` : ''}</p>}
-                    {m.situacao === 'aguardando_conciliacao' && <p className="text-[10px] mt-1" style={{ color: AMBAR }}>{L('Marcado como pago antes, sem valor. Informe quanto e quando pagou.', 'Marked paid before, without amount. Enter how much and when.', 'Marcado pagado antes, sin valor. Informe cuánto y cuándo pagó.')}</p>}
+                    {ultimo && <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L('Pago em', 'Paid on', 'Pagado el')} {dataBR(ultimo.data_pagamento)}{ultimo.referencia ? ` · ${L('ref.', 'ref.', 'ref.')} ${ultimo.referencia}` : ''}</p>}
+                    {m.situacao === 'aguardando_conciliacao' && <p className="text-xs mt-1" style={{ color: AMBAR }}>{L('Marcado como pago antes, sem valor. Informe quanto e quando pagou.', 'Marked paid before, without amount. Enter how much and when.', 'Marcado pagado antes, sin valor. Informe cuánto y cuándo pagó.')}</p>}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {pagavel && <button {...botao(MENTA)} onClick={() => setPagarComp(m.competencia)}>{L('Pagar este DAS', 'Pay this DAS', 'Pagar este DAS')}</button>}
                       {pagavel && <button {...botao(NAVY)} onClick={() => abrirPagamento(m)}>{L('Registrar pagamento', 'Record payment', 'Registrar pago')}</button>}
@@ -397,15 +397,15 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
             <Indicador titulo={L('Caixa livre hoje (Tesouraria)', 'Free cash today (Treasury)', 'Caja libre hoy (Tesorería)')} valor={caixaLivre == null ? '—' : fmt(caixaLivre)} cor={caixaLivre == null ? NEUTRO : caixaLivre >= faltaAteDez ? VERDE : VERMELHO}
               sub={caixaLivre == null ? L('cadastre as contas na Tesouraria para comparar', 'add accounts in Treasury to compare', 'registre las cuentas en Tesorería para comparar') : caixaLivre >= faltaAteDez ? L('cobre todos os DAS até dezembro', 'covers every DAS until December', 'cubre todos los DAS hasta diciembre') : L(`faltam ${fmt(r2(faltaAteDez - caixaLivre))} para cobrir`, `${fmt(r2(faltaAteDez - caixaLivre))} short`, `faltan ${fmt(r2(faltaAteDez - caixaLivre))} para cubrir`)} />
           </div>
-          <p className="text-[11px] mb-1 font-semibold" style={{ color: TEXTO }}>{L('Meses com desembolso', 'Months with payments due', 'Meses con desembolso')}</p>
+          <p className="text-xs mb-1 font-semibold" style={{ color: TEXTO }}>{L('Meses com desembolso', 'Months with payments due', 'Meses con desembolso')}</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {meses.filter((m) => m.saldo > 0 || (m.natureza === 'projecao' && m.data_vencimento >= hoje)).map((m) => (
-              <span key={m.id} className="text-[11px] px-2 py-1 rounded-lg" style={{ ...caixaStyle, color: m.vencido ? VERMELHO : TEXTO }}>
+              <span key={m.id} className="text-xs px-2 py-1 rounded-lg" style={{ ...caixaStyle, color: m.vencido ? VERMELHO : TEXTO }}>
                 {dataBR(m.data_vencimento)} · {fmt(m.natureza === 'projecao' ? (m.valor_esperado ?? 0) : m.saldo)}{m.natureza === 'projecao' ? ` (${L('estimado', 'estimated', 'estimado')})` : ''}
               </span>
             ))}
           </div>
-          <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{L('Pagar adiantado: pelas regras atuais o Portal do Simples gera as guias do ano corrente; as do ano seguinte só a partir de janeiro. Confirme no PGMEI antes de pagar.', 'Paying ahead: under current rules the Simples portal issues the current year slips; next year only from January. Check PGMEI before paying.', 'Pagar por adelantado: según las reglas actuales el Portal del Simples emite las guías del año en curso; las del siguiente solo desde enero. Confirme en el PGMEI antes de pagar.')}</p>
+          <p className="text-xs" style={{ color: TEXTO_SEC }}>{L('Pagar adiantado: pelas regras atuais o Portal do Simples gera as guias do ano corrente; as do ano seguinte só a partir de janeiro. Confirme no PGMEI antes de pagar.', 'Paying ahead: under current rules the Simples portal issues the current year slips; next year only from January. Check PGMEI before paying.', 'Pagar por adelantado: según las reglas actuales el Portal del Simples emite las guías del año en curso; las del siguiente solo desde enero. Confirme en el PGMEI antes de pagar.')}</p>
         </CanvasBox>
       )}
 
@@ -441,8 +441,8 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
             </div>
           )}
           <div className={`${caixa} mb-3`} style={caixaStyle}>
-            <p className="text-[11px] font-bold mb-1" style={{ color: TEXTO }}>{L('Reforma Tributária', 'Tax Reform', 'Reforma Tributaria')}</p>
-            <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{L('O DAS do MEI é um valor fixo definido pela regra oficial do período — o Axioma não aplica aumento da Reforma por conta própria. O impacto econômico da Reforma (preços, custos, margem) é outra análise: use Simulações e a IA Tributária. Quando sair regra oficial para o MEI, ela entra aqui com fonte e data.', 'The MEI DAS is a fixed amount set by the official rule for the period — Axioma does not apply Reform increases on its own. The Reform economic impact (prices, costs, margin) is a separate analysis: use Simulations and Tax AI. When an official MEI rule is published, it comes in here with source and date.', 'El DAS del MEI es un valor fijo definido por la regla oficial del período — Axioma no aplica aumentos de la Reforma por su cuenta. El impacto económico de la Reforma (precios, costos, margen) es otro análisis: use Simulaciones y la IA Tributaria. Cuando salga una regla oficial para el MEI, entra aquí con fuente y fecha.')}</p>
+            <p className="text-xs font-bold mb-1" style={{ color: TEXTO }}>{L('Reforma Tributária', 'Tax Reform', 'Reforma Tributaria')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{L('O DAS do MEI é um valor fixo definido pela regra oficial do período — o Axioma não aplica aumento da Reforma por conta própria. O impacto econômico da Reforma (preços, custos, margem) é outra análise: use Simulações e a IA Tributária. Quando sair regra oficial para o MEI, ela entra aqui com fonte e data.', 'The MEI DAS is a fixed amount set by the official rule for the period — Axioma does not apply Reform increases on its own. The Reform economic impact (prices, costs, margin) is a separate analysis: use Simulations and Tax AI. When an official MEI rule is published, it comes in here with source and date.', 'El DAS del MEI es un valor fijo definido por la regla oficial del período — Axioma no aplica aumentos de la Reforma por su cuenta. El impacto económico de la Reforma (precios, costos, margen) es otro análisis: use Simulaciones y la IA Tributaria. Cuando salga una regla oficial para el MEI, entra aquí con fuente y fecha.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <input value={nomeSim} onChange={(e) => setNomeSim(e.target.value)} maxLength={80} placeholder={L('Nome da simulação (opcional)', 'Scenario name (optional)', 'Nombre del escenario (opcional)')}
@@ -454,7 +454,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
             <div className="space-y-1.5">
               {sims.map((s) => (
                 <div key={s.id} className={`${caixa} flex flex-wrap items-center justify-between gap-2`} style={caixaStyle}>
-                  <div className="text-[11px]" style={{ color: TEXTO }}>
+                  <div className="text-xs" style={{ color: TEXTO }}>
                     <p className="font-bold">{s.nome}</p>
                     <p style={{ color: TEXTO_SEC }}>{s.parametros.ano} · {s.parametros.pct >= 0 ? '+' : ''}{s.parametros.pct}% · {fmt(s.resultado_projetado.cenario)} ({s.resultado_projetado.diferenca >= 0 ? '+' : ''}{fmt(s.resultado_projetado.diferenca)}) · {new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s.created_at) ? s.created_at : s.created_at + 'Z').toLocaleDateString(local)}</p>
                   </div>
@@ -483,7 +483,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
             <input type="number" step="0.01" min="0" value={fValor} onChange={(e) => setFValor(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: `1px solid ${NESTED_BORDA}`, color: TEXTO }} />
           </label>
-          <p className="text-[11px] mt-1 mb-3" style={{ color: parcialFalta > 0 ? AMBAR : TEXTO_SEC }}>
+          <p className="text-xs mt-1 mb-3" style={{ color: parcialFalta > 0 ? AMBAR : TEXTO_SEC }}>
             {parcialFalta > 0 ? L(`Pagamento parcial: continua faltando ${fmt(parcialFalta)}.`, `Partial payment: ${fmt(parcialFalta)} still left.`, `Pago parcial: sigue faltando ${fmt(parcialFalta)}.`)
               : encargos > 0 ? L(`${fmt(principal)} do DAS + ${fmt(encargos)} de multa/juros (vão para a conta de juros).`, `${fmt(principal)} DAS + ${fmt(encargos)} fines/interest (go to the interest account).`, `${fmt(principal)} del DAS + ${fmt(encargos)} de multa/intereses (van a la cuenta de intereses).`)
               : L('Quita o mês inteiro.', 'Clears the whole month.', 'Salda el mes entero.')}
@@ -496,7 +496,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
           <label className="text-xs font-semibold block" style={{ color: TEXTO_SEC }}>{L('Nº do documento ou autenticação (opcional)', 'Document number or authentication (optional)', 'Nº del documento o autenticación (opcional)')}
             <input value={fRef} onChange={(e) => setFRef(e.target.value)} maxLength={80} className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: CAMPO_BG, border: `1px solid ${NESTED_BORDA}`, color: TEXTO }} />
           </label>
-          <p className="text-[11px] mt-1 mb-4" style={{ color: TEXTO_SEC }}>{L('Com o nº da guia, o Axioma reconhece este pagamento no extrato do banco sozinho.', 'With the slip number, Axioma recognizes this payment in the bank statement by itself.', 'Con el nº de la guía, Axioma reconoce este pago en el extracto bancario solo.')}</p>
+          <p className="text-xs mt-1 mb-4" style={{ color: TEXTO_SEC }}>{L('Com o nº da guia, o Axioma reconhece este pagamento no extrato do banco sozinho.', 'With the slip number, Axioma recognizes this payment in the bank statement by itself.', 'Con el nº de la guía, Axioma reconoce este pago en el extracto bancario solo.')}</p>
           <div className="flex gap-2">
             <button disabled={salvando} onClick={() => setPagando(null)} {...botao(NAVY, 'flex-1 py-2.5 text-sm')}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
             <button disabled={salvando} onClick={() => void confirmarPagamento()} {...botao(MENTA, 'flex-1 py-2.5 text-sm')}>{salvando ? '…' : pagando?.corrigir ? L('Salvar correção', 'Save fix', 'Guardar corrección') : L('Registrar pagamento', 'Record payment', 'Registrar pago')}</button>
@@ -513,7 +513,7 @@ export default function PainelObrigacoesDAS({ empresaId, lang, temaClaro, cores,
             <div className="space-y-1.5">
               {detalhe.pagamentos.map((p) => (
                 <div key={p.id} className={`${caixa} flex items-center justify-between gap-2`} style={caixaStyle}>
-                  <div className="text-[11px]" style={{ color: TEXTO, textDecoration: p.estornado ? 'line-through' : undefined }}>
+                  <div className="text-xs" style={{ color: TEXTO, textDecoration: p.estornado ? 'line-through' : undefined }}>
                     <p className="font-bold">{fmt(r2(p.valor + p.encargos))} · {dataBR(p.data_pagamento)}</p>
                     <p style={{ color: TEXTO_SEC }}>{metodos.find(([v]) => v === p.metodo)?.[1] ?? p.metodo}{p.encargos > 0 ? ` · ${L('inclui', 'includes', 'incluye')} ${fmt(p.encargos)} ${L('de multa/juros', 'fines/interest', 'de multa/intereses')}` : ''}{p.referencia ? ` · ${p.referencia}` : ''}{p.estornado ? ` · ${L('estornado', 'reversed', 'revertido')}` : ''}</p>
                   </div>

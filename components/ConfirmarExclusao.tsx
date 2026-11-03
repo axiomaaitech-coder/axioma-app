@@ -109,7 +109,7 @@ export function useConfirmarExclusao(temaClaro: boolean): { confirmar: (p: Pedid
   }
   const bloco = (n: number, titulo: string, conteudo: ReactNode) => (
     <div className="rounded-lg px-3 py-2 mt-2 text-xs axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? 'rgba(245,238,220,0.7)' : 'rgba(255,255,255,0.04)', color: texto }}>
-      <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: '#f87171' }}>{n}. {titulo}</p>
+      <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: '#f87171' }}>{n}. {titulo}</p>
       {conteudo}
     </div>
   )
@@ -120,7 +120,7 @@ export function useConfirmarExclusao(temaClaro: boolean): { confirmar: (p: Pedid
         <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: texto }}>
           <ShieldAlert size={18} />{L('Exclusão precisa de autorização', 'Deletion needs authorization', 'La eliminación necesita autorización')}
         </h3>
-        <p className="text-[11px] mt-1" style={{ color: texto, opacity: 0.8 }}>
+        <p className="text-xs mt-1" style={{ color: texto, opacity: 0.8 }}>
           {L('Nada da empresa é apagado sem aviso, motivo e autorização de um supervisor — nem por pessoas, nem pela Inteligência do Axioma.', 'Nothing in the company is deleted without notice, a reason and a supervisor authorization — neither by people nor by Axioma Intelligence.', 'Nada de la empresa se elimina sin aviso, motivo y autorización de un supervisor — ni por personas ni por la Inteligencia de Axioma.')}
         </p>
         {bloco(1, L('O que está apagando', 'What is being deleted', 'Qué se está eliminando'),

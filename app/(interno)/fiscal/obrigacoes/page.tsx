@@ -155,11 +155,11 @@ export default function FiscalObrigacoesPage() {
                         <td className="py-2.5 px-3">{EMOJI_RISCO[risco]}</td>
                         <td className="py-2.5 px-3" style={{ color: TEXTO }}>
                           <p className="font-semibold">{o.nome}</p>
-                          <p className="text-[10px]" style={{ color: CINZA }}>{o.tipo}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>{o.tipo}</p>
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap hidden sm:table-cell" style={{ color: TEXTO }}>
                           {new Date(o.data_vencimento + 'T00:00:00').toLocaleDateString(localeData)}
-                          <span className="ml-1.5 text-[10px] font-bold" style={{ color: COR_RISCO[risco] }}>
+                          <span className="ml-1.5 text-xs font-bold" style={{ color: COR_RISCO[risco] }}>
                             ({risco === 'atrasada' ? L('atrasada', 'overdue', 'atrasada') : `${o.dias_restantes}d`})
                           </span>
                         </td>
@@ -198,7 +198,7 @@ export default function FiscalObrigacoesPage() {
             </div>
           )}
 
-          <p className="text-[10px]" style={{ color: CINZA }}>
+          <p className="text-xs" style={{ color: CINZA }}>
             {L('Edição completa (nome, valor, recorrência) fica na aba Compliance da tela Empresa — aqui é só status rápido, sem duplicar o cadastro.', 'Full editing (name, amount, recurrence) stays in the Compliance tab on the Company screen — here it is just quick status, no duplicate record.', 'La edición completa (nombre, valor, recurrencia) queda en la pestaña Compliance de la pantalla Empresa — aquí es solo estado rápido, sin duplicar el registro.')}
           </p>
         </div>

@@ -692,7 +692,7 @@ function CardEstat({ label, valor, cor }: { label: string; valor: string; cor?: 
   const { tokens } = useTemaPdv();
   return (
     <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}><AnimatedNumber value={valor} /></p>
     </div>
   );
@@ -1047,7 +1047,7 @@ function PainelFechamento({
 
                 <div className="flex items-center justify-between gap-3 mb-4 rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.acentoSuaveBg }}>
                   <div>
-                    <p className="text-[11px] font-bold uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
+                    <p className="text-xs font-bold uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
                     {composicaoCarregando && composicaoTotal === null ? (
                       <Loader2 className="animate-spin mt-1" size={16} style={{ color: tokens.cardTexto }} />
                     ) : (
@@ -1153,7 +1153,7 @@ function ListaMovimentacoes({ lang, movimentacoes, carregando, turnoAberto, user
                 <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>
                   {t(m.tipo, lang)} · {moeda(m.valor)}
                 </p>
-                <p className="text-[11px] truncate" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
+                <p className="text-xs truncate" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
                   {new Date(m.criadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   {m.motivo ? ` · ${m.motivo}` : ""}
                   {m.usuarioId === userId ? ` · ${t("voce", lang)}` : ""}
@@ -1196,15 +1196,15 @@ function CardResultadoFechamento({ lang, resultado, onVerComposicao }: { lang: I
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
+          <p className="text-xs font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
           <p className="text-lg font-black" style={{ color: tokens.cardTexto }}><AnimatedNumber value={moeda(resultado.valorEsperado)} /></p>
         </div>
         <div>
-          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("contado", lang)}</p>
+          <p className="text-xs font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("contado", lang)}</p>
           <p className="text-lg font-black" style={{ color: tokens.cardTexto }}><AnimatedNumber value={moeda(resultado.valorContado)} /></p>
         </div>
         <div>
-          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("diferenca", lang)}</p>
+          <p className="text-xs font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("diferenca", lang)}</p>
           <p className="text-lg font-black" style={{ color: corDiferenca }}>
             {diferenca === null ? "—" : diferenca === 0 ? t("bateuCerto", lang) : diferenca > 0 ? t("sobra", lang, { valor: moeda(diferenca) }) : t("falta", lang, { valor: moeda(Math.abs(diferenca)) })}
           </p>
@@ -1287,7 +1287,7 @@ function SecaoComposicao({ titulo, total, sinal, cor, expandido, onToggle, vazio
         <span className="text-sm font-black shrink-0" style={{ color: cor }}>{sinal} {moeda(total)}</span>
       </button>
       {vazio ? (
-        <p className="text-[11px] mt-1" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("nenhumRegistro", lang)}</p>
+        <p className="text-xs mt-1" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("nenhumRegistro", lang)}</p>
       ) : expandido ? (
         <div className="mt-1">{children}</div>
       ) : null}
@@ -1330,7 +1330,7 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>{t("compAbertura", lang)}</p>
-                {abertura && <p className="text-[11px]" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{dataHora(abertura.horario)}</p>}
+                {abertura && <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{dataHora(abertura.horario)}</p>}
               </div>
               <p className="text-sm font-black shrink-0" style={{ color: tokens.cardTexto }}>{moeda(totalAbertura)}</p>
             </div>
@@ -1683,7 +1683,7 @@ function LinhaDenominacao({ valor, qtd, onQtd, lang }: { valor: number; qtd: str
         inputMode="numeric" placeholder="0" aria-label={t("qtdLabel", lang)}
         className="w-[80px] px-2 py-2 rounded-lg text-[16px] font-bold text-center outline-none shrink-0"
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }} />
-      <span className="text-[11px] font-bold uppercase shrink-0" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("qtdLabel", lang)}</span>
+      <span className="text-xs font-bold uppercase shrink-0" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("qtdLabel", lang)}</span>
       <span className="text-[16px] font-bold ml-auto text-right" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
     </div>
   );

@@ -26,7 +26,7 @@ export default function Manual() {
     <ModuloLayout titulo={titulo} subtitulo={sub}>
       <div className="grid lg:grid-cols-[260px_1fr] gap-4 items-start">
         <nav className="rounded-2xl p-3 lg:sticky lg:top-32 axi-card-premium3d axi-card-faixa" style={{ background: "#101b3d" }}>
-          <p className="text-[11px] font-black uppercase tracking-wider mb-2 px-2" style={{ color: "#2ecc9b" }}>{lang === "en" ? "Modules" : lang === "es" ? "Módulos" : "Módulos"}</p>
+          <p className="text-xs font-black uppercase tracking-wider mb-2 px-2" style={{ color: "#2ecc9b" }}>{lang === "en" ? "Modules" : lang === "es" ? "Módulos" : "Módulos"}</p>
           <div className="flex lg:flex-col gap-1 overflow-x-auto">
             {MANUAIS.map((m) => (
               <button key={m.numero} onClick={() => { setAtual(m.numero); window.scrollTo({ top: 0, behavior: "smooth" }); }}

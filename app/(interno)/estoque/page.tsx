@@ -94,7 +94,7 @@ function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, 
           {lista.map((o) => <option key={o} value={o} />)}
         </datalist>
       )}
-      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
+      {dica && <p className="text-xs mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
     </div>
   );
 }
@@ -136,7 +136,7 @@ function CampoMoeda({ label, valor, onChange, dica }: {
           onChange(numero);
         }}
         placeholder="0,00" className={inputCls} style={inputStyle} />
-      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
+      {dica && <p className="text-xs mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
     </div>
   );
 }
@@ -527,7 +527,7 @@ export default function EstoquePage() {
         <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO_CT : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO_CT : ct("#c8d8f0") }}>{p.saldo_disponivel}</td>
         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{moeda(p.preco_medio)}</td>
         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{moeda(p.preco_venda ?? p.preco_sugerido)}</td>
-        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO_CT : ct("#5a7a9a") }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
+        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO_CT : ct("#5a7a9a") }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
         <td className="py-2 px-3 text-right">
           <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO_CT }}><Pencil size={15} /></button>
           <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO_CT }}><Trash2 size={15} /></button>
@@ -1055,7 +1055,7 @@ export default function EstoquePage() {
               // card leva à aba onde estão esses itens
               <div key={k.label} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => { setAba(k.aba as typeof aba); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
               <CanvasBox {...cartaoTema} cor={k.cor}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               </CanvasBox>
               </div>
@@ -1183,7 +1183,7 @@ export default function EstoquePage() {
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <p className="text-xs font-bold mr-1" style={{ color: ct("#c8d8f0") }}>{et.automacoesTitulo}</p>
               {produtosSelecionados.size > 0 && (
-                <span className="text-[11px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
+                <span className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
                   {produtosSelecionados.size} {et.itensSelecionados}
                 </span>
               )}
@@ -1286,16 +1286,16 @@ export default function EstoquePage() {
                       <tr key={m.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
                         <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{new Date(m.data_hora).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
                         <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{m.produto_nome}</td>
-                        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${tipoInfo?.cor}22`, color: tipoInfo?.cor }}>{tipoInfo?.label}</span></td>
+                        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: `${tipoInfo?.cor}22`, color: tipoInfo?.cor }}>{tipoInfo?.label}</span></td>
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.quantidade}</td>
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
                         <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
-                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>
+                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
                             </button>
                           ) : (
-                            <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>—</span>
+                            <span className="text-xs" style={{ color: ct("#5a7a9a") }}>—</span>
                           )}
                         </td>
                         <td className="py-2 px-3 text-right">
@@ -1329,13 +1329,13 @@ export default function EstoquePage() {
                   <div key={a.produto_id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{a.nome}</p>
-                      <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{et.colSaldo}: {a.saldo_disponivel} · {et.colPrecoMedio}: {fBRL(a.preco_medio)}</p>
+                      <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.colSaldo}: {a.saldo_disponivel} · {et.colPrecoMedio}: {fBRL(a.preco_medio)}</p>
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
-                      {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
-                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
-                      {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: ct(BRONZE) }}>{et.avisoCapitalParado}</span>}
-                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(46,204,155,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
+                      {a.ruptura && <span className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
+                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
+                      {a.capital_parado && <span className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(161,98,7,0.15)", color: ct(BRONZE) }}>{et.avisoCapitalParado}</span>}
+                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(46,204,155,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
                     </div>
                   </div>
                 ))}
@@ -1356,9 +1356,9 @@ export default function EstoquePage() {
                     <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                       <div>
                         <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{v.produto_nome}</p>
-                        <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {fData(v.data_validade)}</p>
+                        <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {fData(v.data_validade)}</p>
                       </div>
-                      <span className="px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap" style={{ background: `${cor}22`, color: cor }}>{SEVERIDADE_LABEL[v.severidade]}</span>
+                      <span className="px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap" style={{ background: `${cor}22`, color: cor }}>{SEVERIDADE_LABEL[v.severidade]}</span>
                     </div>
                   );
                 })}
@@ -1397,7 +1397,7 @@ export default function EstoquePage() {
                           <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{fBRL(c.valor_saida_90d)}</td>
                           <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{c.pct_acumulado}%</td>
                           <td className="py-2 px-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{
                               background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(46,204,155,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
                               color: c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : c.classe_abc === "C" ? NEGATIVO_CT : ct("#5a7a9a"),
                             }}>{c.classe_abc === "A" ? et.intClasseA : c.classe_abc === "B" ? et.intClasseB : c.classe_abc === "C" ? et.intClasseC : et.intSemGiro}</span>
@@ -1492,7 +1492,7 @@ export default function EstoquePage() {
 
           <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <p className="text-sm font-bold mb-1" style={{ color: ct("#c8d8f0") }}>{et.intRentabilidadeTitulo}</p>
-            <p className="text-[11px] mb-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeAviso}</p>
+            <p className="text-xs mb-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeAviso}</p>
             {rentabilidadeCategoria.length === 0 && rentabilidadeFornecedor.length === 0 && rentabilidadeMarca.length === 0 ? (
               <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p>
             ) : (
@@ -1517,7 +1517,7 @@ export default function EstoquePage() {
               </div>
             )}
             {[...rentabilidadeCategoria, ...rentabilidadeFornecedor, ...rentabilidadeMarca].some((it) => it.margem_media == null) && (
-              <p className="text-[11px] mt-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeSemDado}</p>
+              <p className="text-xs mt-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeSemDado}</p>
             )}
           </CanvasBox>
 
@@ -1664,10 +1664,10 @@ export default function EstoquePage() {
           <SecaoTitulo>{et.secaoLocalizacao}</SecaoTitulo>
           {combosLocalizacao.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <span className="text-[10px] font-semibold" style={{ color: ct("#5a7a9a") }}>{et.localizacoesJaUsadas}</span>
+              <span className="text-xs font-semibold" style={{ color: ct("#5a7a9a") }}>{et.localizacoesJaUsadas}</span>
               {combosLocalizacao.map((c, i) => (
                 <button key={i} type="button" onClick={() => aplicarComboLocalizacao(c)}
-                  className="px-2 py-1 rounded-lg text-[11px] font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: ct(JADE) }}>
+                  className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: ct(JADE) }}>
                   {[c.rua, c.prateleira, c.nivel, c.posicao].filter(Boolean).join(" / ") || "—"}
                 </button>
               ))}
@@ -1783,7 +1783,7 @@ export default function EstoquePage() {
           <SecaoTitulo>{et.secaoPrecos}</SecaoTitulo>
           {produtoEditando && (
             <div className="p-3 rounded-xl mb-1 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(4,120,87,0.08)" }}>
-              <p className="text-[10px] font-bold uppercase" style={{ color: ct("#5a7a9a") }}>{et.campoCustoMedioSistema}</p>
+              <p className="text-xs font-bold uppercase" style={{ color: ct("#5a7a9a") }}>{et.campoCustoMedioSistema}</p>
               <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{moeda(formProduto.preco_medio)}</p>
             </div>
           )}
@@ -1941,7 +1941,7 @@ export default function EstoquePage() {
               </div>
             )}
             {produtoSelecionadoMov && (
-              <p className="text-[11px] mt-1" style={{ color: POSITIVO_CT }}>{produtoSelecionadoMov.nome} ({et.colSaldo}: {produtoSelecionadoMov.saldo_disponivel})</p>
+              <p className="text-xs mt-1" style={{ color: POSITIVO_CT }}>{produtoSelecionadoMov.nome} ({et.colSaldo}: {produtoSelecionadoMov.saldo_disponivel})</p>
             )}
           </div>
 

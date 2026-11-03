@@ -952,7 +952,7 @@ export default function ClientesPage() {
                       { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: ct("#2ecc9b") },
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
+                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
                         <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
                     ))}
@@ -977,7 +977,7 @@ export default function ClientesPage() {
                       { label: lang === "en" ? "Portfolio Risk" : lang === "es" ? "Riesgo de Cartera" : "Risco da Carteira", valor: `${riscoCarteira}/100`, cor: riscoCarteira <= 30 ? ct("#34d399") : riscoCarteira <= 60 ? "#2ecc9b" : ct("#f87171") },
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
+                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
                         <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
                     ))}
@@ -985,11 +985,11 @@ export default function ClientesPage() {
                   {temContaRecorrenteMarcada && (
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.06)" }}>
-                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Recurring Revenue" : lang === "es" ? "Ingresos Recurrentes" : "Receita Recorrente"}</p>
+                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Recurring Revenue" : lang === "es" ? "Ingresos Recurrentes" : "Receita Recorrente"}</p>
                         <p className="text-base font-black" style={{ color: ct("#34d399") }}>{fmt(receitaRecorrente)}</p>
                       </div>
                       <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Non-Recurring Revenue" : lang === "es" ? "Ingresos No Recurrentes" : "Receita Não Recorrente"}</p>
+                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{lang === "en" ? "Non-Recurring Revenue" : lang === "es" ? "Ingresos No Recurrentes" : "Receita Não Recorrente"}</p>
                         <p className="text-base font-black" style={{ color: ct("#94a3b8") }}>{fmt(receitaNaoRecorrente)}</p>
                       </div>
                     </div>
@@ -998,7 +998,7 @@ export default function ClientesPage() {
                   {contas.length > 0 ? (
                     <ReactECharts option={optFluxoFuturo} style={{ height: 200, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
                   ) : (
-                    <p className="text-[11px] py-4 text-center" style={{ color: ct("#5a7a9a") }}>{tt.semDadoAgrupado}</p>
+                    <p className="text-xs py-4 text-center" style={{ color: ct("#5a7a9a") }}>{tt.semDadoAgrupado}</p>
                   )}
                 </CanvasBox>
 
@@ -1018,7 +1018,7 @@ export default function ClientesPage() {
                           className="rounded-xl p-3 text-left transition-all axi-card-premium3d axi-card-faixa"
                           style={{ background: ativo ? `${cor}20` : CAMPO_BG3, border: `1px solid ${ativo ? cor : "rgba(148,163,184,0.12)"}` }}>
                           <p className="text-lg font-black" style={{ color: cor }}>{radarCarteira[tipo].length}</p>
-                          <p className="text-[10px] uppercase tracking-wider flex items-center gap-1" style={{ color: ct("#94a3b8") }}>{SINAL_ICONE[tipo]} {tt.nomeSinalPlural[tipo]}</p>
+                          <p className="text-xs uppercase tracking-wider flex items-center gap-1" style={{ color: ct("#94a3b8") }}>{SINAL_ICONE[tipo]} {tt.nomeSinalPlural[tipo]}</p>
                         </button>
                       );
                     })}
@@ -1045,7 +1045,7 @@ export default function ClientesPage() {
                     ].map((f) => (
                       <div key={f.chave} className="rounded-xl p-3 text-center axi-card-premium3d axi-card-faixa" style={{ background: `${f.cor}10`, border: `1px solid ${f.cor}25` }}>
                         <p className="text-lg font-black" style={{ color: f.cor }}>{distribuicaoNiveis[f.chave]}</p>
-                        <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{f.label}</p>
+                        <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{f.label}</p>
                       </div>
                     ))}
                   </div>
@@ -1087,7 +1087,7 @@ export default function ClientesPage() {
                         {bloco.temDado ? (
                           <ReactECharts option={bloco.opt} style={{ height: 180, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
                         ) : (
-                          <p className="text-[11px] py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.semDadoAgrupado}</p>
+                          <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.semDadoAgrupado}</p>
                         )}
                       </CanvasBox>
                     ))}
@@ -1133,18 +1133,18 @@ export default function ClientesPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-bold text-sm truncate" style={{ color: ct("#c8d8f0") }}>{s.cliente.nome}</p>
-                                  <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>
+                                  <p className="text-xs" style={{ color: ct("#5a7a9a") }}>
                                     {s.cliente.classificacao ? `${nomeClassificacao(lang, s.cliente.classificacao)} · ` : ""}{tt.ticketMedioCarteira}: {fmt(s.ticketMedio)}
                                   </p>
                                 </div>
                                 <div className="text-right flex-shrink-0">
                                   <p className="text-lg font-black" style={{ color: NIVEL_COR[ivca.nivel] }}>{ivca.total}</p>
-                                  <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>IVCA</p>
+                                  <p className="text-xs uppercase" style={{ color: ct("#64748b") }}>IVCA</p>
                                 </div>
                                 <ChevronRight size={16} style={{ color: ct("#5a7a9a") }} />
                               </div>
                               {piorSinal && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-block" style={{ background: `${SEVERIDADE_COR[piorSinal.severidade]}18`, color: SEVERIDADE_COR[piorSinal.severidade] }}>
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full inline-block" style={{ background: `${SEVERIDADE_COR[piorSinal.severidade]}18`, color: SEVERIDADE_COR[piorSinal.severidade] }}>
                                   {nomeTipoSinal(lang, piorSinal.tipo)}
                                 </span>
                               )}
@@ -1217,7 +1217,7 @@ export default function ClientesPage() {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                       {clienteAtual.ivca.subscores.map((sub) => (
                         <div key={sub.chave} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{nomeSubscoreIVCA(lang, sub.chave)}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{nomeSubscoreIVCA(lang, sub.chave)}</p>
                           <p className="text-sm font-black" style={{ color: ct("#2ecc9b") }}>{Math.round(sub.valor)}</p>
                         </div>
                       ))}
@@ -1240,7 +1240,7 @@ export default function ClientesPage() {
                         const cor = g.v >= 70 ? ct(CORES.verde) : g.v >= 40 ? ct(CORES.amarelo) : ct(CORES.vermelho);
                         return (
                           <div key={g.label} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[10px] mb-1.5" style={{ color: ct("#64748b") }}>{g.label}</p>
+                            <p className="text-xs mb-1.5" style={{ color: ct("#64748b") }}>{g.label}</p>
                             <p className="text-sm font-black mb-1.5" style={{ color: cor }}>{Math.round(g.v)}/100</p>
                             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
                               <div className="h-full rounded-full" style={{ width: `${Math.round(g.v)}%`, background: cor }} />
@@ -1260,15 +1260,15 @@ export default function ClientesPage() {
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                          <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.ultimaCompra}</p>
+                          <p className="text-xs mb-1" style={{ color: ct("#64748b") }}>{tt.ultimaCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.ultima ? fmt(compras.ultima.valor) : tt.semRegistro}</p>
                         </div>
                         <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                          <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.maiorCompra}</p>
+                          <p className="text-xs mb-1" style={{ color: ct("#64748b") }}>{tt.maiorCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.maior ? fmt(compras.maior.valor) : tt.semRegistro}</p>
                         </div>
                         <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                          <p className="text-[10px] mb-1" style={{ color: ct("#64748b") }}>{tt.primeiraCompra}</p>
+                          <p className="text-xs mb-1" style={{ color: ct("#64748b") }}>{tt.primeiraCompra}</p>
                           <p className="text-xs font-black" style={{ color: ct("#c8d8f0") }}>{compras.primeira ? new Date(compras.primeira + "T00:00:00").toLocaleDateString("pt-BR") : tt.semRegistro}</p>
                         </div>
                       </div>
@@ -1291,7 +1291,7 @@ export default function ClientesPage() {
                           return (
                             <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: `${cor}10`, border: `1px solid ${cor}25` }}>
                               <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{montarNarrativaSinal(lang, sinal)}</p>
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${cor}18`, color: cor }}>{nomeTipoSinal(lang, sinal.tipo)}</span>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${cor}18`, color: cor }}>{nomeTipoSinal(lang, sinal.tipo)}</span>
                             </div>
                           );
                         })}
@@ -1306,44 +1306,44 @@ export default function ClientesPage() {
                         <ClipboardList size={16} style={{ color: ct("#2ecc9b") }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.parecerTitulo}</p>
                       </div>
-                      <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{tt.parecerSub}</p>
+                      <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{tt.parecerSub}</p>
                       <div className="mb-3">
-                        <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct("#2ecc9b") }}>{tt.parecerResumo}</p>
+                        <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: ct("#2ecc9b") }}>{tt.parecerResumo}</p>
                         <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.resumo}</p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{tt.parecerFortes}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{tt.parecerFortes}</p>
                           <ul className="space-y-1">{parecer.pontosFortes.map((p, i) => <li key={i} className="text-xs" style={{ color: ct("#e2e8f0") }}>• {p}</li>)}</ul>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.vermelho) }}>{tt.parecerFracos}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.vermelho) }}>{tt.parecerFracos}</p>
                           <ul className="space-y-1">{parecer.pontosFracos.map((p, i) => <li key={i} className="text-xs" style={{ color: ct("#e2e8f0") }}>• {p}</li>)}</ul>
                         </div>
                       </div>
                       {parecer.riscos.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.vermelho) }}>{tt.parecerRiscos}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.vermelho) }}>{tt.parecerRiscos}</p>
                           <ul className="space-y-1">{parecer.riscos.map((p, i) => <li key={i} className="text-xs" style={{ color: ct("#e2e8f0") }}>• {p}</li>)}</ul>
                         </div>
                       )}
                       {parecer.oportunidades.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{tt.parecerOportunidades}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{tt.parecerOportunidades}</p>
                           <ul className="space-y-1">{parecer.oportunidades.map((p, i) => <li key={i} className="text-xs" style={{ color: ct("#e2e8f0") }}>• {p}</li>)}</ul>
                         </div>
                       )}
                       <div className="px-3 py-2.5 rounded-xl mb-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
-                        <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct(CORES.cyan) }}>{lang === "en" ? "Revenue Forecast" : lang === "es" ? "Previsión de Facturación" : "Previsão de Faturamento"}</p>
+                        <p className="text-xs font-black uppercase mb-1" style={{ color: ct(CORES.cyan) }}>{lang === "en" ? "Revenue Forecast" : lang === "es" ? "Previsión de Facturación" : "Previsão de Faturamento"}</p>
                         <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{previsaoFaturamentoCliente(lang, clienteAtual.s).texto}</p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div className="px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
-                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct("#2ecc9b") }}>{tt.parecerSugestao}</p>
+                          <p className="text-xs font-black uppercase mb-1" style={{ color: ct("#2ecc9b") }}>{tt.parecerSugestao}</p>
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.sugestao}</p>
                         </div>
                         <div className="px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
-                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: corOuro }}>{tt.parecerProximoPasso}</p>
+                          <p className="text-xs font-black uppercase mb-1" style={{ color: corOuro }}>{tt.parecerProximoPasso}</p>
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.proximoPasso}</p>
                         </div>
                       </div>
@@ -1357,18 +1357,18 @@ export default function ClientesPage() {
                         <Users size={16} style={{ color: corOuro }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.conselhoTitulo}</p>
                       </div>
-                      <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{tt.conselhoSub}</p>
+                      <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{tt.conselhoSub}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                         {especialistas.cards.map((e, i) => (
                           <div key={i} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.papel}</p>
+                            <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.papel}</p>
                             <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.texto}</p>
                           </div>
                         ))}
                       </div>
                       {especialistas.recomendacoes.length > 0 && (
                         <>
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{tt.recomendacaoConsolidada}</p>
+                          <p className="text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{tt.recomendacaoConsolidada}</p>
                           <div className="space-y-1.5">
                             {especialistas.recomendacoes.map((sinal, i) => (
                               <div key={i} className="flex items-start gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
@@ -1426,7 +1426,7 @@ export default function ClientesPage() {
                       <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                         {timeline.slice(0, 30).map((ev, i) => (
                           <div key={i} className="flex items-start gap-2">
-                            <span className="text-[10px] flex-shrink-0 pt-0.5" style={{ color: ct("#5a7a9a"), width: 72 }}>{new Date(ev.data + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                            <span className="text-xs flex-shrink-0 pt-0.5" style={{ color: ct("#5a7a9a"), width: 72 }}>{new Date(ev.data + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                             <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{ev.texto}</p>
                           </div>
                         ))}
@@ -1529,14 +1529,14 @@ export default function ClientesPage() {
                         </div>
                         {expandida && (
                           <div className="mt-3 pt-3 grid grid-cols-2 md:grid-cols-4 gap-2" style={{ borderTop: "1px solid rgba(148,163,184,0.12)" }}>
-                            {conta.parcelas != null && <div><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.parcelasLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.parcelas}x</p></div>}
-                            {conta.taxa_juros != null && <div><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.jurosLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.taxa_juros}%</p></div>}
-                            {conta.taxa_multa != null && <div><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.multaLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.taxa_multa}%</p></div>}
-                            {conta.forma_recebimento && <div><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.formaRecebLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.forma_recebimento}</p></div>}
-                            {conta.observacoes && <div className="col-span-2 md:col-span-4"><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.observacoesLbl}</p><p className="text-xs" style={{ color: ct("#c8d8f0") }}>{conta.observacoes}</p></div>}
+                            {conta.parcelas != null && <div><p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.parcelasLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.parcelas}x</p></div>}
+                            {conta.taxa_juros != null && <div><p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.jurosLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.taxa_juros}%</p></div>}
+                            {conta.taxa_multa != null && <div><p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.multaLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.taxa_multa}%</p></div>}
+                            {conta.forma_recebimento && <div><p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.formaRecebLbl}</p><p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{conta.forma_recebimento}</p></div>}
+                            {conta.observacoes && <div className="col-span-2 md:col-span-4"><p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.observacoesLbl}</p><p className="text-xs" style={{ color: ct("#c8d8f0") }}>{conta.observacoes}</p></div>}
                             {sugestao && (
                               <div className="col-span-2 md:col-span-4 mt-1 px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: "rgba(46,204,155,0.08)", border: "1px solid rgba(46,204,155,0.2)" }}>
-                                <p className="text-[9px] uppercase font-black mb-0.5" style={{ color: ct("#2ecc9b") }}>{tt.sugestaoAcaoLbl}</p>
+                                <p className="text-xs uppercase font-black mb-0.5" style={{ color: ct("#2ecc9b") }}>{tt.sugestaoAcaoLbl}</p>
                                 <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{sugestao}</p>
                               </div>
                             )}
@@ -1576,11 +1576,11 @@ export default function ClientesPage() {
                   <div className="flex items-start gap-0.5 mb-5 overflow-x-auto pb-1">
                     {ETAPAS_CADASTRO.map((et, idx) => (
                       <button key={et} onClick={() => setEtapaCadastro(idx)} className="flex flex-col items-center gap-1 flex-shrink-0 px-1.5" style={{ opacity: idx <= etapaCadastro ? 1 : 0.45 }}>
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black"
                           style={{ background: idx < etapaCadastro ? ct(CORES.verde) : idx === etapaCadastro ? ct("#2ecc9b") : "rgba(148,163,184,0.15)", color: idx <= etapaCadastro ? "#fff" : ct("#64748b") }}>
                           {idx < etapaCadastro ? <Check size={12} /> : idx + 1}
                         </div>
-                        <span className="text-[8px] whitespace-nowrap" style={{ color: idx === etapaCadastro ? ct("#2ecc9b") : ct("#5a7a9a") }}>{tt.etapaNomes[et]}</span>
+                        <span className="text-xs whitespace-nowrap" style={{ color: idx === etapaCadastro ? ct("#2ecc9b") : ct("#5a7a9a") }}>{tt.etapaNomes[et]}</span>
                       </button>
                     ))}
                   </div>
@@ -1745,7 +1745,7 @@ export default function ClientesPage() {
                   <div className="space-y-5">
                     {/* Básico */}
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secBasico}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secBasico}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Campo label={cl.descricao} value={formConta.descricao} onChange={(v) => setFormConta({ ...formConta, descricao: v })} />
                         <CampoSelect label={cl.cliente} value={formConta.clienteId} onChange={(v) => setFormConta({ ...formConta, clienteId: v })}
@@ -1756,7 +1756,7 @@ export default function ClientesPage() {
                         <Campo label={cl.vencimento} value={formConta.vencimento} onChange={(v) => setFormConta({ ...formConta, vencimento: v })} tipo="date" />
                         <Campo label={tt.lblCompetencia} value={formConta.competencia} onChange={(v) => setFormConta({ ...formConta, competencia: v })} tipo="date" />
                         <div className="rounded-xl px-4 py-3 axi-card-premium3d axi-card-faixa" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.2)" }}>
-                          <p className="text-[10px] uppercase" style={{ color: ct("#64748b") }}>{tt.lblValorFinal}</p>
+                          <p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.lblValorFinal}</p>
                           <p className="text-sm font-black" style={{ color: ct("#34d399") }}>{fmt(valorFinalConta)}</p>
                         </div>
                       </div>
@@ -1764,7 +1764,7 @@ export default function ClientesPage() {
 
                     {/* Documentação */}
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secDocumentacao}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secDocumentacao}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Campo label={tt.lblNumeroCobranca} value={formConta.numeroDocumento} onChange={(v) => setFormConta({ ...formConta, numeroDocumento: v })} />
                         <Campo label={tt.lblCategoria} value={formConta.categoria} onChange={(v) => setFormConta({ ...formConta, categoria: v })} />
@@ -1785,7 +1785,7 @@ export default function ClientesPage() {
 
                     {/* Pagamento */}
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secPagamento}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secPagamento}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Campo label={tt.formaRecebLbl} value={formConta.formaRecebimento} onChange={(v) => setFormConta({ ...formConta, formaRecebimento: v })} />
                         <Campo label={tt.parcelasLbl} value={formConta.parcelas} onChange={(v) => setFormConta({ ...formConta, parcelas: v })} tipo="number" />
@@ -1800,17 +1800,17 @@ export default function ClientesPage() {
 
                     {/* Inteligência — preview somente leitura */}
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secInteligenciaConta}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secInteligenciaConta}</p>
                       {!previewCobranca ? (
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.selecioneClientePrevisao}</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-3">
                           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.scoreRecebimentoLbl}</p>
+                            <p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.scoreRecebimentoLbl}</p>
                             <p className="text-sm font-black" style={{ color: previewCobranca.score >= 70 ? ct("#34d399") : previewCobranca.score >= 40 ? "#2ecc9b" : ct("#f87171") }}>{previewCobranca.score}/100</p>
                           </div>
                           <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.probInadimplenciaLbl}</p>
+                            <p className="text-xs uppercase" style={{ color: ct("#64748b") }}>{tt.probInadimplenciaLbl}</p>
                             <p className="text-sm font-black" style={{ color: previewCobranca.prob <= 30 ? ct("#34d399") : previewCobranca.prob <= 60 ? "#2ecc9b" : ct("#f87171") }}>{previewCobranca.prob}%</p>
                           </div>
                         </div>
@@ -1819,7 +1819,7 @@ export default function ClientesPage() {
 
                     {/* Anexo & Observações */}
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secAnexoObs}</p>
+                      <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct("#34d399") }}>{tt.secAnexoObs}</p>
                       <div className="space-y-3">
                         <Campo label={tt.lblAnexoUrl} value={formConta.anexoUrl} onChange={(v) => setFormConta({ ...formConta, anexoUrl: v })} placeholder="https://..." />
                         <CampoTextarea label={tt.observacoesLbl} value={formConta.observacoes} onChange={(v) => setFormConta({ ...formConta, observacoes: v })} linhas={2} />

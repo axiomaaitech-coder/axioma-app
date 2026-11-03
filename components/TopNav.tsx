@@ -319,7 +319,7 @@ export default function TopNav() {
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         title={title}
-        className="axi-menu-card relative flex items-center justify-center gap-1 rounded-lg text-[11px] font-semibold h-8 w-full px-1.5 transition-all"
+        className="axi-menu-card relative flex items-center justify-center gap-1 rounded-lg text-xs font-semibold h-8 w-full px-1.5 transition-all"
         style={ativo ? {
           // Seção onde o usuário está (pedido do Elias 2026-10-04): verde-menta escuro forte
           background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)",
@@ -542,7 +542,7 @@ export default function TopNav() {
                             <span className="text-sm font-medium">{item.label[lang]}</span>
                             {item.path === "/open-finance" && !itemAtivo && (
                               <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
-                                style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 8, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 12, border: "1px solid rgba(106,176,255,0.3)" }}>
                                 NOVO
                               </span>
                             )}
@@ -627,7 +627,7 @@ export default function TopNav() {
                     style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.3))", border: "1px solid rgba(52,211,153,0.6)", color: "#7CFFC4", boxShadow: "0 0 16px rgba(52,211,153,0.4)" }}>
                     <Landmark size={17} />
                     <span className="font-black text-sm uppercase tracking-wide">{conectarLabelCurto}</span>
-                    <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
+                    <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 12, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
                   </motion.button>
                 )}
 
@@ -680,7 +680,7 @@ export default function TopNav() {
                                     <span className="text-sm font-medium">{item.label[lang]}</span>
                                     {item.path === "/open-finance" && !itemAtivo && (
                                       <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
-                                        style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 8, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                        style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 12, border: "1px solid rgba(106,176,255,0.3)" }}>
                                         NOVO
                                       </span>
                                     )}

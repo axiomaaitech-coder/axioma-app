@@ -289,7 +289,7 @@ export default function NexusSimulacoesPage() {
                         <input type="number" inputMode="decimal" value={variaveis[c.k]}
                           onChange={(e) => setVariaveis((v) => ({ ...v, [c.k]: Number(e.target.value) || 0 }))}
                           className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={campo} />
-                        <span className="block text-[10px] mt-1" style={{ color: CINZA }}>{L3(c.dica)}</span>
+                        <span className="block text-xs mt-1" style={{ color: CINZA }}>{L3(c.dica)}</span>
                       </label>
                     ))}
                   </div>
@@ -331,15 +331,15 @@ export default function NexusSimulacoesPage() {
                     return (
                       <div key={c.nome} className="rounded-xl p-3" style={aninhada}>
                         <p className="text-xs font-bold mb-1" style={{ color: c.nome === 'base' ? (temaClaro ? '#16a97d' : CIANO) : CINZA }}>{L3(NOME_CENARIO[c.nome])}</p>
-                        <p className="text-[11px]" style={{ color: CINZA }}>{L('Lucro por mês', 'Profit per month', 'Beneficio por mes')}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>{L('Lucro por mês', 'Profit per month', 'Beneficio por mes')}</p>
                         <p className="text-lg font-black" style={{ color: TITULO }}>{fBRL(c.lucroLiquidoMensal)}</p>
                         <p className="text-xs font-bold" style={{ color: Math.round(delta) === 0 ? CINZA : delta > 0 ? POS : NEG }}>
                           {Math.round(delta) === 0 ? L('= sem mudança', '= no change', '= sin cambio') : `${delta > 0 ? '▲' : '▼'} ${fBRL(Math.abs(delta))} ${L('vs hoje', 'vs today', 'vs hoy')}`}
                         </p>
-                        <p className="text-[11px] mt-2" style={{ color: CINZA }}>{L('Caixa em', 'Cash in', 'Caja en')} {horizonte / 12} {horizonte === 12 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')}</p>
+                        <p className="text-xs mt-2" style={{ color: CINZA }}>{L('Caixa em', 'Cash in', 'Caja en')} {horizonte / 12} {horizonte === 12 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')}</p>
                         <p className="text-sm font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? TITULO : NEG }}>{fBRL(c.saldoCaixaProjetado)}</p>
                         {c.runwayMeses !== null && (
-                          <p className="text-[11px] mt-1 font-semibold" style={{ color: NEG }}>{L(`Caixa dura ~${c.runwayMeses} meses`, `Cash lasts ~${c.runwayMeses} months`, `La caja dura ~${c.runwayMeses} meses`)}</p>
+                          <p className="text-xs mt-1 font-semibold" style={{ color: NEG }}>{L(`Caixa dura ~${c.runwayMeses} meses`, `Cash lasts ~${c.runwayMeses} months`, `La caja dura ~${c.runwayMeses} meses`)}</p>
                         )}
                       </div>
                     )
@@ -401,7 +401,7 @@ export default function NexusSimulacoesPage() {
                         <p className="text-xs font-bold" style={{ color: Math.round(d) === 0 ? CINZA : d > 0 ? POS : NEG }}>
                           {Math.round(d) === 0 ? L('= sem mudança no cenário base', '= no change in base case', '= sin cambio en escenario base') : `${d > 0 ? '▲' : '▼'} ${fBRL(Math.abs(d))}/${L('mês no cenário base', 'mo in base case', 'mes en escenario base')}`}
                         </p>
-                        <p className="text-[11px] mt-1" style={{ color: CINZA }}>
+                        <p className="text-xs mt-1" style={{ color: CINZA }}>
                           {s.horizonteMeses / 12} {s.horizonteMeses === 12 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')} · {new Date(s.atualizadoEm).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}
                         </p>
                         <div className="flex gap-1 mt-auto pt-3">
@@ -424,7 +424,7 @@ export default function NexusSimulacoesPage() {
                   {L('Ver mais', 'Show more', 'Ver más')}
                 </button>
               )}
-              {!arquivadas && <p className="text-[10px] mt-3" style={{ color: CINZA }}>{L('Simulações sem uso há 90 dias (e não favoritas) vão sozinhas para Arquivadas. Nada é apagado.', 'Simulations unused for 90 days (and not favorited) move to Archived automatically. Nothing is deleted.', 'Las simulaciones sin uso por 90 días (y no favoritas) pasan solas a Archivadas. Nada se borra.')}</p>}
+              {!arquivadas && <p className="text-xs mt-3" style={{ color: CINZA }}>{L('Simulações sem uso há 90 dias (e não favoritas) vão sozinhas para Arquivadas. Nada é apagado.', 'Simulations unused for 90 days (and not favorited) move to Archived automatically. Nothing is deleted.', 'Las simulaciones sin uso por 90 días (y no favoritas) pasan solas a Archivadas. Nada se borra.')}</p>}
             </section>
           </div>
         )}

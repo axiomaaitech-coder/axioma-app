@@ -118,7 +118,7 @@ export default function AjudaAxioma() {
                       <div className="flex flex-wrap gap-1.5 mt-2.5">
                         {m.manuais.map((r) => (
                           <Link key={r.numero} href={`/manual?m=${r.numero}`} onClick={() => { setAberto(false); window.dispatchEvent(new CustomEvent("axioma:abrir-manual", { detail: r.numero })); }}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg"
+                            className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg"
                             style={{ background: "#fff", color: NAVY }}>
                             <BookOpen size={12} /> {t.abrir} {r.numero} — {r.nome}
                           </Link>

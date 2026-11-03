@@ -59,25 +59,25 @@ export default function MonitorLimiteMEI({ empresaId, ano, faturado, projecaoAnu
     <CanvasBox cor={corNivel} {...cartaoTema}>
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
         <p className="text-sm font-bold" style={{ color: TEXTO }}>{L(`Limite do MEI em ${ano}`, `MEI cap in ${ano}`, `Límite del MEI en ${ano}`)}</p>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corNivel}22`, color: corNivel, border: `1px solid ${corNivel}55` }}>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${corNivel}22`, color: corNivel, border: `1px solid ${corNivel}55` }}>
           {nivel === 'excedeu' ? L('Limite ultrapassado', 'Cap exceeded', 'Límite superado') : nivel === 'atencao' ? L('Atenção', 'Attention', 'Atención') : L('Dentro do limite', 'Within the cap', 'Dentro del límite')}
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
         <div className={caixa} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
-          <p className="text-[11px] font-semibold" style={{ color: TEXTO_SEC }}>{L('Faturado de verdade', 'Actually invoiced', 'Facturado de verdad')}</p>
+          <p className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{L('Faturado de verdade', 'Actually invoiced', 'Facturado de verdad')}</p>
           <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(faturado)}</p>
-          <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{pctReal.toFixed(1)}% {L('do limite', 'of the cap', 'del límite')}</p>
+          <p className="text-xs" style={{ color: TEXTO_SEC }}>{pctReal.toFixed(1)}% {L('do limite', 'of the cap', 'del límite')}</p>
         </div>
         <div className={caixa} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
-          <p className="text-[11px] font-semibold" style={{ color: TEXTO_SEC }}>{L('Projeção até dezembro (estimativa)', 'Projection to December (estimate)', 'Proyección hasta diciembre (estimación)')}</p>
+          <p className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{L('Projeção até dezembro (estimativa)', 'Projection to December (estimate)', 'Proyección hasta diciembre (estimación)')}</p>
           <p className="text-lg font-black" style={{ color: proj.situacao === 'dentro' ? TEXTO : AMBAR }}>{fmt(projecaoAnual)}</p>
-          <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{pctProj.toFixed(1)}% · {L('média dos últimos 6 meses', 'average of the last 6 months', 'promedio de los últimos 6 meses')}</p>
+          <p className="text-xs" style={{ color: TEXTO_SEC }}>{pctProj.toFixed(1)}% · {L('média dos últimos 6 meses', 'average of the last 6 months', 'promedio de los últimos 6 meses')}</p>
         </div>
         <div className={caixa} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
-          <p className="text-[11px] font-semibold" style={{ color: TEXTO_SEC }}>{L('Limite legal', 'Legal cap', 'Límite legal')}{ehTac ? L(' — caminhoneiro', ' — truck driver', ' — camionero') : ''}</p>
+          <p className="text-xs font-semibold" style={{ color: TEXTO_SEC }}>{L('Limite legal', 'Legal cap', 'Límite legal')}{ehTac ? L(' — caminhoneiro', ' — truck driver', ' — camionero') : ''}</p>
           <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(teto)}</p>
-          <p className="text-[11px]" style={{ color: TEXTO_SEC }}>{proporcional ? L(`proporcional: ${mesesAtivos} meses × ${fmt(regra.mensal)}`, `prorated: ${mesesAtivos} months × ${fmt(regra.mensal)}`, `proporcional: ${mesesAtivos} meses × ${fmt(regra.mensal)}`) : L('ano inteiro', 'full year', 'año completo')}</p>
+          <p className="text-xs" style={{ color: TEXTO_SEC }}>{proporcional ? L(`proporcional: ${mesesAtivos} meses × ${fmt(regra.mensal)}`, `prorated: ${mesesAtivos} months × ${fmt(regra.mensal)}`, `proporcional: ${mesesAtivos} meses × ${fmt(regra.mensal)}`) : L('ano inteiro', 'full year', 'año completo')}</p>
         </div>
       </div>
       {real.situacao !== 'dentro' && <p className="text-xs font-semibold mb-2" style={{ color: VERMELHO }}>{efeitoTexto(real.situacao)}</p>}
@@ -86,19 +86,19 @@ export default function MonitorLimiteMEI({ empresaId, ano, faturado, projecaoAnu
       )}
       {/* Sempre à vista (regra: toda função tem entrada visível); abre sozinho perto do limite */}
       <details className={`${caixa} mb-2`} style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }} open={nivel !== 'ok'}>
-        <summary className="text-[11px] font-bold cursor-pointer" style={{ color: TEXTO }}>{L('Passar de MEI para ME — o que acontece e o que fazer', 'Moving from MEI to ME — what happens and what to do', 'Pasar de MEI a ME — qué pasa y qué hacer')}</summary>
-        <p className="text-[11px] mt-2" style={{ color: TEXTO_SEC }}>{L(`Se o faturamento passar de ${fmt(teto)}: até 20% acima (${fmt(real.limite20)}), você sai do MEI em 1º de janeiro do ano seguinte e paga a diferença em janeiro; mais de 20% acima, a saída volta a 1º de janeiro do ano do excesso.`, `If revenue goes over ${fmt(teto)}: up to 20% above (${fmt(real.limite20)}), you leave MEI on January 1 of the following year and pay the difference in January; over 20% above, it goes back to January 1 of the year of the excess.`, `Si la facturación supera ${fmt(teto)}: hasta 20% por encima (${fmt(real.limite20)}), sale del MEI el 1º de enero del año siguiente y paga la diferencia en enero; más de 20% por encima, la salida vuelve al 1º de enero del año del exceso.`)}</p>
-        <ul className="text-[11px] space-y-1 list-disc pl-4 mt-2" style={{ color: TEXTO_SEC }}>{checklist.map((c) => <li key={c}>{c}</li>)}</ul>
-        <a href="https://www8.receita.fazenda.gov.br/SimplesNacional/" target="_blank" rel="noopener noreferrer" className="inline-block mt-2 px-3 py-1.5 rounded-lg text-[11px] font-bold" style={{ background: '#101b3d', color: '#ffffff' }}>{L('Abrir o Portal do Simples Nacional', 'Open the Simples Nacional portal', 'Abrir el Portal del Simples Nacional')}</a>
+        <summary className="text-xs font-bold cursor-pointer" style={{ color: TEXTO }}>{L('Passar de MEI para ME — o que acontece e o que fazer', 'Moving from MEI to ME — what happens and what to do', 'Pasar de MEI a ME — qué pasa y qué hacer')}</summary>
+        <p className="text-xs mt-2" style={{ color: TEXTO_SEC }}>{L(`Se o faturamento passar de ${fmt(teto)}: até 20% acima (${fmt(real.limite20)}), você sai do MEI em 1º de janeiro do ano seguinte e paga a diferença em janeiro; mais de 20% acima, a saída volta a 1º de janeiro do ano do excesso.`, `If revenue goes over ${fmt(teto)}: up to 20% above (${fmt(real.limite20)}), you leave MEI on January 1 of the following year and pay the difference in January; over 20% above, it goes back to January 1 of the year of the excess.`, `Si la facturación supera ${fmt(teto)}: hasta 20% por encima (${fmt(real.limite20)}), sale del MEI el 1º de enero del año siguiente y paga la diferencia en enero; más de 20% por encima, la salida vuelve al 1º de enero del año del exceso.`)}</p>
+        <ul className="text-xs space-y-1 list-disc pl-4 mt-2" style={{ color: TEXTO_SEC }}>{checklist.map((c) => <li key={c}>{c}</li>)}</ul>
+        <a href="https://www8.receita.fazenda.gov.br/SimplesNacional/" target="_blank" rel="noopener noreferrer" className="inline-block mt-2 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#101b3d', color: '#ffffff' }}>{L('Abrir o Portal do Simples Nacional', 'Open the Simples Nacional portal', 'Abrir el Portal del Simples Nacional')}</a>
       </details>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="text-[11px] flex items-center gap-1.5" style={{ color: TEXTO_SEC }}>
+        <label className="text-xs flex items-center gap-1.5" style={{ color: TEXTO_SEC }}>
           {L('Me avise a partir de', 'Warn me from', 'Avíseme desde')}
           <input type="number" min={50} max={100} step={5} value={alertaPct} onChange={(e) => salvarAlerta(Math.max(50, Math.min(100, Number(e.target.value) || 80)))}
             className="w-16 px-2 py-1 rounded-lg text-xs" style={{ background: CAMPO_BG, border: `1px solid ${NESTED_BORDA}`, color: TEXTO }} aria-label={L('Percentual de alerta', 'Alert percentage', 'Porcentaje de alerta')} />
           {L('% do limite', '% of the cap', '% del límite')}
         </label>
-        <p className="text-[10px]" style={{ color: NEUTRO }}>{L('Fonte: ', 'Source: ', 'Fuente: ')}{regra.fonte}. {L('Análise preliminar — valide com o contador.', 'Preliminary analysis — validate with your accountant.', 'Análisis preliminar — valide con su contador.')}</p>
+        <p className="text-xs" style={{ color: NEUTRO }}>{L('Fonte: ', 'Source: ', 'Fuente: ')}{regra.fonte}. {L('Análise preliminar — valide com o contador.', 'Preliminary analysis — validate with your accountant.', 'Análisis preliminar — valide con su contador.')}</p>
       </div>
     </CanvasBox>
   )

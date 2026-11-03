@@ -1065,7 +1065,7 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
       className={fullscreenAtivo ? "flex flex-col h-screen p-3 md:p-4 overflow-hidden" : "flex flex-col h-full min-h-0"}
       style={fullscreenAtivo ? { background: tokens.fundo } : undefined}
     >
-      <div className={`shrink-0 flex items-center justify-between mb-1.5 ${fullscreenAtivo ? "text-xs" : "text-[11px]"}`}>
+      <div className={`shrink-0 flex items-center justify-between mb-1.5 ${fullscreenAtivo ? "text-xs" : "text-xs"}`}>
         <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <div className="flex items-center gap-4">
           {mostrarRetaguarda && (
@@ -1190,7 +1190,7 @@ function QuadroValor({ label, valor, corValor, grande, tamanho }: {
   return (
     <div className={(grande ? "shrink-0 rounded-xl px-4 py-3" : "shrink-0 rounded-xl px-3 py-2") + " axi-card-premium3d axi-card-faixa"}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className={grande ? "text-xs font-bold uppercase tracking-wide mb-1 truncate" : "text-[10px] font-bold uppercase tracking-wide leading-none truncate"}
+      <p className={grande ? "text-xs font-bold uppercase tracking-wide mb-1 truncate" : "text-xs font-bold uppercase tracking-wide leading-none truncate"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className={`${tamanhoFinal} font-black truncate leading-tight`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
@@ -1230,8 +1230,8 @@ function LogoBoxGrande({ lang, idle, grande }: { lang: Idioma; idle: boolean; gr
       </p>
       {idle && (
         <div className="max-w-[90%] shrink-0">
-          <p className={`font-semibold truncate ${grande ? "text-sm mb-0.5" : "text-[10px]"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleTitulo", lang)}</p>
-          <p className={`truncate ${grande ? "text-xs" : "text-[9px]"}`} style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("idleSubtitulo", lang)}</p>
+          <p className={`font-semibold truncate ${grande ? "text-sm mb-0.5" : "text-xs"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleTitulo", lang)}</p>
+          <p className={`truncate ${grande ? "text-xs" : "text-xs"}`} style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("idleSubtitulo", lang)}</p>
         </div>
       )}
     </div>
@@ -1251,7 +1251,7 @@ function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resul
   const { tokens } = useTemaPdv();
   return (
     <div className={`shrink-0 relative rounded-xl axi-card-premium3d ${grande ? "px-3 py-2" : "px-2.5 py-1.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1" : "text-[9px] font-bold uppercase tracking-wide leading-none mb-1"}
+      <p className={grande ? "text-xs font-bold uppercase tracking-wide mb-1" : "text-xs font-bold uppercase tracking-wide leading-none mb-1"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
       <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} grande={grande} />
       {busca.trim().length > 0 && (
@@ -1306,10 +1306,10 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
           <ShoppingCart size={grande ? 16 : 13} style={{ color: tokens.acento }} />
           <h3 className={grande ? "text-sm font-bold" : "text-xs font-bold"} style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
         </div>
-        <button onClick={onLimpar} disabled={carrinho.length === 0} className={`font-semibold disabled:opacity-40 ${grande ? "text-xs" : "text-[11px]"}`} style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
+        <button onClick={onLimpar} disabled={carrinho.length === 0} className={`font-semibold disabled:opacity-40 ${grande ? "text-xs" : "text-xs"}`} style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
       </div>
 
-      <div className={`shrink-0 grid items-center uppercase tracking-wide ${grande ? "px-3 py-2 text-sm" : "px-3 py-1 text-[10px]"}`}
+      <div className={`shrink-0 grid items-center uppercase tracking-wide ${grande ? "px-3 py-2 text-sm" : "px-3 py-1 text-xs"}`}
         style={{ gridTemplateColumns: COLUNAS_GRID, color: tokens.cardTexto, opacity: 0.65, borderBottom: `1px solid ${tokens.cardBorda}` }}>
         <span>{t("colNumero", lang)}</span>
         <span>{t("colCodigo", lang)}</span>
@@ -1390,7 +1390,7 @@ function RodapeTotais({
 
       {/* Tributo aproximado (Lei 12.741) — linha própria, legível, junto do
           Subtotal/Total a pagar (não mais espremida perto do rodapé). */}
-      <div className={`flex items-center justify-between gap-3 font-semibold ${grande ? "mb-3 text-sm" : "mb-1.5 text-[11px]"}`} style={{ color: tokens.cardTexto }}>
+      <div className={`flex items-center justify-between gap-3 font-semibold ${grande ? "mb-3 text-sm" : "mb-1.5 text-xs"}`} style={{ color: tokens.cardTexto }}>
         <span className="truncate">{t("tributosAproximados", lang)}</span>
         <span className="shrink-0">{moeda(tributoAproximado)}</span>
       </div>
@@ -1400,7 +1400,7 @@ function RodapeTotais({
           calculadora de troco pro operador, nunca vai pro finalizar_venda. */}
       <div className={`grid grid-cols-2 ${grande ? "gap-3 mb-3" : "gap-2 mb-1.5"}`}>
         <div className={grande ? "rounded-lg px-3 py-2.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className={`font-bold uppercase tracking-wide leading-none flex items-center gap-1 ${grande ? "text-xs mb-1.5" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+          <p className={`font-bold uppercase tracking-wide leading-none flex items-center gap-1 ${grande ? "text-xs mb-1.5" : "text-xs mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>
             <Banknote size={grande ? 13 : 10} />{t("totalRecebido", lang)}
           </p>
           <input
@@ -1412,7 +1412,7 @@ function RodapeTotais({
           />
         </div>
         <div className={grande ? "rounded-lg px-3 py-2.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className={`font-bold uppercase tracking-wide leading-none ${grande ? "text-xs mb-1.5" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
+          <p className={`font-bold uppercase tracking-wide leading-none ${grande ? "text-xs mb-1.5" : "text-xs mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
           <p className={`font-black truncate ${grande ? "text-3xl" : "text-base md:text-lg"}`} style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
             {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
           </p>
@@ -1432,7 +1432,7 @@ function AtalhosRodape({ lang, grande }: { lang: Idioma; grande?: boolean }) {
   const { tokens } = useTemaPdv();
   const atalhos: (keyof typeof txt)[] = ["atalhoEnter", "atalhoF2", "atalhoDelete", "atalhoEsc"];
   return (
-    <div className={`shrink-0 flex items-center justify-center flex-wrap ${grande ? "gap-6 mt-2 pt-2 text-xs" : "gap-4 md:gap-6 mt-1.5 pt-1.5 text-[11px]"}`}
+    <div className={`shrink-0 flex items-center justify-center flex-wrap ${grande ? "gap-6 mt-2 pt-2 text-xs" : "gap-4 md:gap-6 mt-1.5 pt-1.5 text-xs"}`}
       style={{ color: tokens.textoMuted, borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
       {atalhos.map((chave) => <span key={chave}>{t(chave, lang)}</span>)}
     </div>

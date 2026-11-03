@@ -89,13 +89,13 @@ export function SaldoIA({ empresaId, lang, temaClaro }: { empresaId: string | nu
                 <div key={tipo} className="rounded-xl p-4" style={NESTED}>
                   <p className="text-xs font-semibold" style={{ color: MUTED }}>{ROTULO[tipo][lang]}</p>
                   <p className="text-2xl font-black mt-1" style={{ color: TEXTO }}>{x.restante.toLocaleString(locale)}</p>
-                  <p className="text-[11px]" style={{ color: MUTED }}>
+                  <p className="text-xs" style={{ color: MUTED }}>
                     {L(`restantes · plano: ${doPlano} de ${x.limite}`, `left · plan: ${doPlano} of ${x.limite}`, `restantes · plan: ${doPlano} de ${x.limite}`)}{x.recarga > 0 ? L(` · recarga: ${x.recarga}`, ` · top-up: ${x.recarga}`, ` · recarga: ${x.recarga}`) : ''}
                   </p>
                   <div className="h-1.5 rounded-full mt-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(46,204,155,0.1)' }}>
                     <div className="h-1.5 rounded-full" style={{ width: `${pctUsado}%`, background: alerta ? (temaClaro ? '#b91c1c' : '#f87171') : ACENTO }} />
                   </div>
-                  {alerta && <p className="text-[11px] mt-2 font-semibold" style={{ color: temaClaro ? '#b91c1c' : '#f87171' }}>{x.restante === 0 ? L('Acabou — recarregue para continuar.', 'Used up — top up to continue.', 'Se agotó — recarga para continuar.') : L('Mais de 80% usado.', 'Over 80% used.', 'Más del 80% usado.')}</p>}
+                  {alerta && <p className="text-xs mt-2 font-semibold" style={{ color: temaClaro ? '#b91c1c' : '#f87171' }}>{x.restante === 0 ? L('Acabou — recarregue para continuar.', 'Used up — top up to continue.', 'Se agotó — recarga para continuar.') : L('Mais de 80% usado.', 'Over 80% used.', 'Más del 80% usado.')}</p>}
                   <button onClick={() => recarregar(tipo)} disabled={abrindo !== null}
                     className="mt-3 w-full px-3 py-2 rounded-lg text-xs font-bold"
                     style={{ background: abrindo !== null ? (temaClaro ? '#6b7280' : '#334155') : 'linear-gradient(135deg,#0a4f3b,#0f7d5c)', color: '#ffffff' }}>

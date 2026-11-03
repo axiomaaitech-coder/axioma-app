@@ -172,11 +172,11 @@ export default function FiscalConfigPage() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Regime Tributário', 'Tax Regime', 'Régimen Tributario')}</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Regime Tributário', 'Tax Regime', 'Régimen Tributario')}</p>
                 <p style={{ color: TEXTO }}>{config?.regime_tributario || L('Não definido', 'Not defined', 'No definido')}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('CNAE Principal', 'Main CNAE', 'CNAE Principal')}</p>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('CNAE Principal', 'Main CNAE', 'CNAE Principal')}</p>
                 <p style={{ color: TEXTO }}>{config?.cnae_principal || L('Não definido', 'Not defined', 'No definido')}</p>
               </div>
             </div>
@@ -207,7 +207,7 @@ export default function FiscalConfigPage() {
                   onChange={(e) => setAliquotaIss(e.target.value)} placeholder="5"
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none disabled:opacity-50"
                   style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
-                <p className="text-[10px] mt-1" style={{ color: CINZA }}>
+                <p className="text-xs mt-1" style={{ color: CINZA }}>
                   {L('Varia por município (2% a 5%). Deixe em branco pra usar 5% (default).', 'Varies by municipality (2% to 5%). Leave blank to use 5% (default).', 'Varía por municipio (2% a 5%). Deje en blanco para usar 5% (por defecto).')}
                 </p>
               </div>
@@ -216,17 +216,17 @@ export default function FiscalConfigPage() {
             {regimeUsaAtividade && impostoComDefault != null && impostoComAtividade != null && (
               <div className="grid grid-cols-2 gap-3 mt-4 mb-2">
                 <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG }}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Sem atividade definida (default)', 'Without activity defined (default)', 'Sin actividad definida (por defecto)')}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Sem atividade definida (default)', 'Without activity defined (default)', 'Sin actividad definida (por defecto)')}</p>
                   <p className="text-lg font-black" style={{ color: CINZA }}>R$ {impostoComDefault.toFixed(2)}</p>
                 </div>
                 <div className="rounded-lg p-3 axi-card-premium3d axi-card-faixa" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}30` }}>
-                  <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: VERDE }}>{L('Com a atividade que você escolheu', 'With the activity you chose', 'Con la actividad que eligió')}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: VERDE }}>{L('Com a atividade que você escolheu', 'With the activity you chose', 'Con la actividad que eligió')}</p>
                   <p className="text-lg font-black" style={{ color: VERDE }}>R$ {impostoComAtividade.toFixed(2)}</p>
                 </div>
               </div>
             )}
             {!regimeUsaAtividade && config?.regime_tributario && (
-              <p className="text-[11px] mt-3" style={{ color: CINZA }}>
+              <p className="text-xs mt-3" style={{ color: CINZA }}>
                 {L(`Seu regime atual (${config.regime_tributario}) não usa a atividade fiscal no cálculo — fica pronta pra quando você mudar de regime ou simular Lucro Presumido em IA Tributária.`,
                   `Your current regime (${config.regime_tributario}) doesn't use tax activity in its calculation — it's ready for when you switch regimes or simulate Presumed Profit under Tax AI.`,
                   `Su régimen actual (${config.regime_tributario}) no usa la actividad fiscal en el cálculo — queda lista para cuando cambie de régimen o simule Lucro Presumido en IA Tributaria.`)}

@@ -102,7 +102,7 @@ function JosephPensando({ lang, temaClaro }: { lang: Lang; temaClaro: boolean })
               style={{ width: i === etapa ? 18 : 6, background: i <= etapa ? ACENTO : SEC + '40' }} />
           ))}
         </div>
-        <p className="text-[10px] mt-1.5" style={{ color: SEC }}>
+        <p className="text-xs mt-1.5" style={{ color: SEC }}>
           {lang === 'en' ? 'First time takes up to a minute — then it is saved for everyone.' : lang === 'es' ? 'La primera vez tarda hasta un minuto — luego queda guardado para todos.' : 'Na primeira vez leva até 1 minuto — depois fica guardado para todos.'}
         </p>
       </div>
@@ -146,14 +146,14 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
     ? { background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(16,27,61,0.12)' }
     : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }
   const cor = (c: { escuro: string; claro: string }) => (temaClaro ? c.claro : c.escuro)
-  const rotulo = (texto: string) => <p className="text-[11px] font-bold mb-1" style={{ color: SEC }}>{texto}</p>
+  const rotulo = (texto: string) => <p className="text-xs font-bold mb-1" style={{ color: SEC }}>{texto}</p>
 
   return (
     <section className="mt-5 rounded-2xl p-4" style={{ border: `1px dashed ${ACENTO}80` }} aria-live="polite">
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <Brain size={16} style={{ color: ACENTO }} aria-hidden />
         <h4 className="text-sm font-black" style={{ color: TIT }}>José · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}</h4>
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: SEC, border: `1px solid ${SEC}60` }}>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: SEC, border: `1px solid ${SEC}60` }}>
           {L('Interpretação — não é fato', 'Interpretation — not a fact', 'Interpretación — no es un hecho')}
         </span>
       </div>
@@ -200,7 +200,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
           <div className="rounded-xl p-3" style={caixa}>
             {rotulo(L('O que muda para uma empresa como a sua', 'What changes for a business like yours', 'Qué cambia para una empresa como la suya'))}
             <p className="text-xs leading-relaxed" style={{ color: TXT }}>{analise.impacto_empresa}</p>
-            <p className="text-[10px] mt-2" style={{ color: SEC }}>
+            <p className="text-xs mt-2" style={{ color: SEC }}>
               {L('Visão para uma empresa típica. A conta com os números da sua empresa chega com o simulador "E se...?".', 'View for a typical business. The math with your own numbers comes with the "What if...?" simulator.', 'Visión para una empresa típica. El cálculo con sus números llega con el simulador "¿Y si...?".')}
             </p>
           </div>
@@ -214,8 +214,8 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
                 return (
                   <div key={i} className="rounded-xl p-3" style={{ ...caixa, borderTop: `3px solid ${cor(t)}` }}>
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[11px] font-bold" style={temaClaro ? { background: cor(t), color: '#fff', padding: '1px 8px', borderRadius: 999 } : { color: cor(t) }}>{L3(t.nome)}</span>
-                      <span className="text-[11px] font-bold" style={{ color: TIT }}>{p}%</span>
+                      <span className="text-xs font-bold" style={temaClaro ? { background: cor(t), color: '#fff', padding: '1px 8px', borderRadius: 999 } : { color: cor(t) }}>{L3(t.nome)}</span>
+                      <span className="text-xs font-bold" style={{ color: TIT }}>{p}%</span>
                     </div>
                     <div className="h-1.5 rounded-full mb-2" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(255,255,255,0.08)' }} role="img" aria-label={`${p}%`}>
                       <div className="h-1.5 rounded-full" style={{ width: `${p}%`, background: cor(t) }} />
@@ -236,7 +236,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
                 return (
                   <li key={i} className="rounded-xl p-3" style={caixa}>
                     <p className="text-xs font-bold leading-snug" style={{ color: TIT }}>{i + 1}. {a.acao}</p>
-                    <p className="text-[10px] mt-1" style={{ color: SEC }}>
+                    <p className="text-xs mt-1" style={{ color: SEC }}>
                       <span className="font-bold" style={temaClaro ? { background: cor(pr), color: '#fff', padding: '0 6px', borderRadius: 6 } : { color: cor(pr) }}>{L3(pr.nome)}</span> · {a.horizonte}
                     </p>
                   </li>
@@ -258,7 +258,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
               <ul className="list-disc pl-4 space-y-0.5">{analise.porque_confianca.map((m, i) => <li key={i} className="text-xs" style={{ color: TXT }}>{m}</li>)}</ul>
               {rotulo(L('O que pode mudar este quadro', 'What could change this picture', 'Qué puede cambiar este panorama'))}
               <ul className="list-disc pl-4 space-y-0.5">{analise.incertezas.map((m, i) => <li key={i} className="text-xs" style={{ color: TXT }}>{m}</li>)}</ul>
-              <p className="text-[10px]" style={{ color: SEC }}>{L('Horizonte', 'Horizon', 'Horizonte')}: {analise.horizonte}</p>
+              <p className="text-xs" style={{ color: SEC }}>{L('Horizonte', 'Horizon', 'Horizonte')}: {analise.horizonte}</p>
             </div>
           </details>
         </div>
