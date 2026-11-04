@@ -9,7 +9,7 @@ import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
-import { normalizarTexto } from "./cfoCore";
+import { normalizarTexto, topConcentracao } from "./cfoCore";
 import { carregarKpisEstoque } from "./estoqueHelpers";
 import { registrarLeitura, avisarSeFalhou, avisarFalhaLeitura } from "./erroUiHelpers";
 
@@ -380,49 +380,40 @@ export async function gerarAlertasCandidatos(empresaId: string, p: {
     candidatos.push({ tipo: "caixa_ocioso", severidade: "atencao", dado_origem: { valorOcioso: idle.valor, caixaDisponivel: idle.caixaDisponivel, reservaMinima: idle.reservaMinima, saidas30Dias: idle.saidasProximos30Dias } });
   }
 
-  // Concentração bancária — maior banco vs total disponível+aplicado.
+  // Concentração bancária — maior banco vs total das contas com saldo (fora o restrito).
   const limiteConcentracao = await obterLimiteConcentracao(empresaId);
   const totalContas = p.posicao.totalDisponivel + p.posicao.totalAplicado;
-  if (totalContas > 0) {
-    const porBanco = new Map<string, number>();
-    p.posicao.linhas.filter((l) => l.tipo_liquidez !== "restrito").forEach((l) => {
-      const chave = l.banco_nome || l.conta_nome;
-      porBanco.set(chave, (porBanco.get(chave) || 0) + l.saldo);
+  const porBanco = new Map<string, number>();
+  p.posicao.linhas.filter((l) => l.tipo_liquidez !== "restrito").forEach((l) => {
+    const chave = l.banco_nome || l.conta_nome;
+    porBanco.set(chave, (porBanco.get(chave) || 0) + l.saldo);
+  });
+  const maiorBanco = topConcentracao(porBanco);
+  if (maiorBanco && maiorBanco.percentual > limiteConcentracao) {
+    const pct = maiorBanco.percentual;
+    candidatos.push({
+      tipo: "concentracao_banco",
+      severidade: pct > 90 ? "critico" : pct > 80 ? "risco" : "atencao",
+      dado_origem: { banco: maiorBanco.chave, percentual: Math.round(pct * 10) / 10, limite: limiteConcentracao, valor: maiorBanco.valor },
     });
-    const maiorBanco = [...porBanco.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (maiorBanco) {
-      const pct = (maiorBanco[1] / totalContas) * 100;
-      if (pct > limiteConcentracao) {
-        candidatos.push({
-          tipo: "concentracao_banco",
-          severidade: pct > 90 ? "critico" : pct > 80 ? "risco" : "atencao",
-          dado_origem: { banco: maiorBanco[0], percentual: Math.round(pct * 10) / 10, limite: limiteConcentracao },
-        });
-      }
-    }
   }
 
   // Concentração de cliente — maior cliente vs total de contas_receber em aberto.
   const { data: abertas, error: erroAbertas } = await lerTodas<{ cliente_id: string | null; valor: number; valor_recebido: number | null }>(() => supabase.from("contas_receber").select("cliente_id, valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido").order("id"));
   if (erroAbertas) avisarFalhaLeitura("tesouraria:concentracaoCliente", new Error(erroAbertas.message));
-  const totalAberto = abertas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
-  if (totalAberto > 0) {
-    const porCliente = new Map<string, number>();
-    abertas.filter((c) => c.cliente_id).forEach((c) => {
-      const saldo = Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0));
-      porCliente.set(c.cliente_id as string, (porCliente.get(c.cliente_id as string) || 0) + saldo);
+  const porCliente = new Map<string, number>();
+  abertas.filter((c) => c.cliente_id).forEach((c) => {
+    const saldo = Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0));
+    porCliente.set(c.cliente_id as string, (porCliente.get(c.cliente_id as string) || 0) + saldo);
+  });
+  const maiorCliente = topConcentracao(porCliente);
+  if (maiorCliente && maiorCliente.percentual > limiteConcentracao) {
+    const pct = maiorCliente.percentual;
+    candidatos.push({
+      tipo: "concentracao_cliente",
+      severidade: pct > 90 ? "critico" : pct > 80 ? "risco" : "atencao",
+      dado_origem: { clienteId: maiorCliente.chave, percentual: Math.round(pct * 10) / 10, limite: limiteConcentracao, valor: maiorCliente.valor },
     });
-    const maiorCliente = [...porCliente.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (maiorCliente) {
-      const pct = (maiorCliente[1] / totalAberto) * 100;
-      if (pct > limiteConcentracao) {
-        candidatos.push({
-          tipo: "concentracao_cliente",
-          severidade: pct > 90 ? "critico" : pct > 80 ? "risco" : "atencao",
-          dado_origem: { clienteId: maiorCliente[0], percentual: Math.round(pct * 10) / 10, limite: limiteConcentracao },
-        });
-      }
-    }
   }
 
   // Dívida alta — pendente de `dividas` comparada ao caixa da tesouraria.
@@ -502,6 +493,8 @@ export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCa
 
 // Texto 100% localizado pra exibição — reconstrói a frase a partir de
 // tipo+dado_origem (nunca do titulo/descricao gravados, que ficam só em PT).
+export const pctAlerta = (v: unknown, lang: Idioma3) => Number(v).toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { maximumFractionDigits: 1 });
+
 export function descreverAlerta(a: Pick<AlertaTesouraria, "tipo" | "dado_origem">, lang: Idioma3): string {
   const d = (a.dado_origem || {}) as Record<string, number | string>;
   const brl = (n: number) => `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -515,13 +508,13 @@ export function descreverAlerta(a: Pick<AlertaTesouraria, "tipo" | "dado_origem"
       if (lang === "es") return `${brl(Number(d.valorOcioso))} potencialmente ocioso — disponible (${brl(Number(d.caixaDisponivel))}) menos reserva (${brl(Number(d.reservaMinima))}) menos pagos de 30 días (${brl(Number(d.saidas30Dias))}).`;
       return `${brl(Number(d.valorOcioso))} potencialmente ocioso — disponível (${brl(Number(d.caixaDisponivel))}) menos reserva (${brl(Number(d.reservaMinima))}) menos saídas dos próximos 30 dias (${brl(Number(d.saidas30Dias))}).`;
     case "concentracao_banco":
-      if (lang === "en") return `${d.banco} holds ${d.percentual}% of total cash (limit: ${d.limite}%).`;
-      if (lang === "es") return `${d.banco} concentra ${d.percentual}% del caja total (límite: ${d.limite}%).`;
-      return `${d.banco} concentra ${d.percentual}% do caixa total (limite: ${d.limite}%).`;
+      if (lang === "en") return `${d.banco} holds ${pctAlerta(d.percentual, lang)}% of total cash (limit: ${d.limite}%).`;
+      if (lang === "es") return `${d.banco} concentra ${pctAlerta(d.percentual, lang)}% del caja total (límite: ${d.limite}%).`;
+      return `${d.banco} concentra ${pctAlerta(d.percentual, lang)}% do caixa total (limite: ${d.limite}%).`;
     case "concentracao_cliente":
-      if (lang === "en") return `One client accounts for ${d.percentual}% of open receivables (limit: ${d.limite}%).`;
-      if (lang === "es") return `Un cliente concentra ${d.percentual}% de las cuentas por cobrar abiertas (límite: ${d.limite}%).`;
-      return `Um cliente concentra ${d.percentual}% das contas a receber em aberto (limite: ${d.limite}%).`;
+      if (lang === "en") return `One client accounts for ${pctAlerta(d.percentual, lang)}% of open receivables (limit: ${d.limite}%).`;
+      if (lang === "es") return `Un cliente concentra ${pctAlerta(d.percentual, lang)}% de las cuentas por cobrar abiertas (límite: ${d.limite}%).`;
+      return `Um cliente concentra ${pctAlerta(d.percentual, lang)}% das contas a receber em aberto (limite: ${d.limite}%).`;
     case "divida_alta":
       if (lang === "en") return `Outstanding debt (${brl(Number(d.dividaPendente))}) is ${d.razao}x the treasury cash (${brl(Number(d.caixaTotal))}).`;
       if (lang === "es") return `La deuda pendiente (${brl(Number(d.dividaPendente))}) es ${d.razao}x el caja de tesorería (${brl(Number(d.caixaTotal))}).`;

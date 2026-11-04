@@ -1,6 +1,7 @@
 // 🦅 AXIOMA AI.TECH - Helpers IA Tributária
 // Simulador de regime, Score Fiscal, carga tributária, economia estimada, reforma 2026.
 
+import { fBRL2 } from "./cfoCore";
 import { lerTodas } from "./lerTodas";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
@@ -234,9 +235,9 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
     imposto_anual: Math.round(meiMensal * 12),
     aliquota_efetiva: rbMes > 0 ? parseFloat(((meiMensal / rbMes) * 100).toFixed(2)) : 0,
     economia_vs_atual: Math.round((impostoAtual - meiMensal) * 12),
-    detalhamento: `DAS fixo R$ ${meiMensal.toFixed(2)}/mês. Limite: R$ ${limiteMei.toLocaleString("pt-BR")}/ano. Até 1 funcionário.`,
-    detalhamento_en: `Fixed DAS R$ ${meiMensal.toFixed(2)}/month. Limit: R$ ${limiteMei.toLocaleString("en-US")}/year. Up to 1 employee.`,
-    detalhamento_es: `DAS fijo R$ ${meiMensal.toFixed(2)}/mes. Límite: R$ ${limiteMei.toLocaleString("es-ES")}/año. Hasta 1 empleado.`,
+    detalhamento: `DAS fixo R$ ${fBRL2(meiMensal)}/mês. Limite: R$ ${limiteMei.toLocaleString("pt-BR")}/ano. Até 1 funcionário.`,
+    detalhamento_en: `Fixed DAS R$ ${fBRL2(meiMensal)}/month. Limit: R$ ${limiteMei.toLocaleString("en-US")}/year. Up to 1 employee.`,
+    detalhamento_es: `DAS fijo R$ ${fBRL2(meiMensal)}/mes. Límite: R$ ${limiteMei.toLocaleString("es-ES")}/año. Hasta 1 empleado.`,
     elegivel: meiElegivel,
     motivo_inelegivel: meiElegivel ? undefined : `Faturamento acima de R$ ${limiteMei.toLocaleString("pt-BR")}/ano`,
   });

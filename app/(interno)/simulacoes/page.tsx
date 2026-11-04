@@ -409,7 +409,7 @@ export default function Simulacoes() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     { l: cx.invSelic, v: fPct(macro.selic) }, { l: cx.invCdi, v: fPct(macro.cdi) },
-                    { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
+                    { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${fBRL2(macro.usdBrl)}` },
                   ].map((m, i) => (
                     <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: CAMPO_BG3 }}>
                       <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>

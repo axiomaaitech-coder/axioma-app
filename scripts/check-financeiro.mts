@@ -255,3 +255,13 @@ const tab = {
   ok('12/17/18/20 cobertos por check-voz-faseD (operador, cobrança única), check-voz-faseB (consulta repetida) e check-voz-tempo-real (voz); ferramentas ligadas ao motor')
 }
 console.log('check-financeiro: tudo certo ✔')
+
+// Concentração nunca passa de 100%, mesmo com conta de saldo negativo (era "100,7% do caixa")
+{
+  const { topConcentracao, fBRL2 } = await import('../lib/cfoCore')
+  const t = topConcentracao(new Map([['A', 1000], ['B', -7], ['C', 0]]))!
+  if (t.chave !== 'A' || t.percentual !== 100 || t.total !== 1000) throw new Error('concentração com saldo negativo')
+  if (topConcentracao(new Map([['A', -5]])) !== null) throw new Error('só saldo negativo não tem concentração')
+  if (fBRL2(1783443.6) !== '1.783.443,60') throw new Error('formato de reais')
+  console.log('check-financeiro concentração e formato: ok')
+}

@@ -19,6 +19,7 @@
 // Tributaria/gerarAlertasReforma vêm de lib/iaTributariaHelpers.ts, fonte
 // canônica única — nunca recalculados aqui.
 
+import { fBRL2 } from "./cfoCore";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { registrarAuditoria } from "./empresaHelpers";
@@ -305,9 +306,9 @@ async function regraObrigacaoAtrasada(empresaId: string, obrigacoes: ObrigacaoRo
       empresa_id: empresaId, tipo: "risco", prioridade,
       titulo: L(`${o.nome} está atrasada há ${diasAtraso} dia(s)`, `${o.nome} is ${diasAtraso} day(s) overdue`, `${o.nome} está atrasada hace ${diasAtraso} día(s)`),
       descricao: valor > 0
-        ? L(`Multa de mora estimada: R$ ${multaEstimada.toFixed(2)} (${multaPct.toFixed(1)}% sobre R$ ${valor.toFixed(2)} — 0,33%/dia, teto 20%). Estimativa, confirme o valor oficial na guia.`,
-            `Estimated late-payment penalty: R$ ${multaEstimada.toFixed(2)} (${multaPct.toFixed(1)}% of R$ ${valor.toFixed(2)} — 0.33%/day, 20% cap). Estimate — confirm the official amount on the tax slip.`,
-            `Multa por mora estimada: R$ ${multaEstimada.toFixed(2)} (${multaPct.toFixed(1)}% sobre R$ ${valor.toFixed(2)} — 0,33%/día, tope 20%). Estimación — confirme el valor oficial en la guía.`)
+        ? L(`Multa de mora estimada: R$ ${fBRL2(multaEstimada)} (${multaPct.toFixed(1)}% sobre R$ ${fBRL2(valor)} — 0,33%/dia, teto 20%). Estimativa, confirme o valor oficial na guia.`,
+            `Estimated late-payment penalty: R$ ${fBRL2(multaEstimada)} (${multaPct.toFixed(1)}% of R$ ${fBRL2(valor)} — 0.33%/day, 20% cap). Estimate — confirm the official amount on the tax slip.`,
+            `Multa por mora estimada: R$ ${fBRL2(multaEstimada)} (${multaPct.toFixed(1)}% sobre R$ ${fBRL2(valor)} — 0,33%/día, tope 20%). Estimación — confirme el valor oficial en la guía.`)
         : L(`Atraso de ${diasAtraso} dia(s), sem valor estimado cadastrado pra calcular a multa.`, `${diasAtraso} day(s) overdue, no estimated amount on file to calculate the penalty.`, `Atraso de ${diasAtraso} día(s), sin valor estimado registrado para calcular la multa.`),
       causa: L("Vencimento já passou e a obrigação ainda não foi marcada como paga.", "Due date has passed and the obligation is still not marked as paid.", "El vencimiento ya pasó y la obligación aún no fue marcada como pagada."),
       impacto_estimado: multaEstimada || diasAtraso * 50,
@@ -380,9 +381,9 @@ async function regraDivergenciaImposto(
   const gravou = await gravarDescobertaFiscalSeNova({
     empresa_id: empresaId, tipo: "divergencia", prioridade,
     titulo: L(`${maisRecente.nome}: valor cadastrado diverge ${diffPct.toFixed(0)}% do imposto calculado`, `${maisRecente.nome}: recorded amount diverges ${diffPct.toFixed(0)}% from the calculated tax`, `${maisRecente.nome}: valor registrado diverge ${diffPct.toFixed(0)}% del impuesto calculado`),
-    descricao: L(`Cadastrado: R$ ${valorCadastrado.toFixed(2)}. Calculado pela regra do regime (${dadosFiscais.regime_atual}) sobre a receita do mês: R$ ${impostoCalculado.toFixed(2)}.${!config?.atividade_fiscal ? " Atividade fiscal ainda não definida — o cálculo usa um default (Serviços). Defina em Fiscal > Atividade Fiscal pra ficar mais preciso." : ""}`,
-      `Recorded: R$ ${valorCadastrado.toFixed(2)}. Calculated from the regime rule (${dadosFiscais.regime_atual}) on this month's revenue: R$ ${impostoCalculado.toFixed(2)}.${!config?.atividade_fiscal ? " Tax activity not defined yet — the calculation uses a default (Services). Set it under Tax > Tax Activity for more accuracy." : ""}`,
-      `Registrado: R$ ${valorCadastrado.toFixed(2)}. Calculado por la regla del régimen (${dadosFiscais.regime_atual}) sobre los ingresos del mes: R$ ${impostoCalculado.toFixed(2)}.${!config?.atividade_fiscal ? " Actividad fiscal aún no definida — el cálculo usa un valor por defecto (Servicios). Defínala en Fiscal > Actividad Fiscal para más precisión." : ""}`),
+    descricao: L(`Cadastrado: R$ ${fBRL2(valorCadastrado)}. Calculado pela regra do regime (${dadosFiscais.regime_atual}) sobre a receita do mês: R$ ${fBRL2(impostoCalculado)}.${!config?.atividade_fiscal ? " Atividade fiscal ainda não definida — o cálculo usa um default (Serviços). Defina em Fiscal > Atividade Fiscal pra ficar mais preciso." : ""}`,
+      `Recorded: R$ ${fBRL2(valorCadastrado)}. Calculated from the regime rule (${dadosFiscais.regime_atual}) on this month's revenue: R$ ${fBRL2(impostoCalculado)}.${!config?.atividade_fiscal ? " Tax activity not defined yet — the calculation uses a default (Services). Set it under Tax > Tax Activity for more accuracy." : ""}`,
+      `Registrado: R$ ${fBRL2(valorCadastrado)}. Calculado por la regla del régimen (${dadosFiscais.regime_atual}) sobre los ingresos del mes: R$ ${fBRL2(impostoCalculado)}.${!config?.atividade_fiscal ? " Actividad fiscal aún no definida — el cálculo usa un valor por defecto (Servicios). Defínala en Fiscal > Actividad Fiscal para más precisión." : ""}`),
     causa: null, impacto_estimado: Math.abs(impostoCalculado - valorCadastrado),
     evidencia: { chave: `divergencia_imposto:${maisRecente.id}`, obrigacaoId: maisRecente.id, valorCadastrado, impostoCalculado, diffPct: Number(diffPct.toFixed(1)), atividadeDefinida: !!config?.atividade_fiscal, pontuacao },
     confianca: "calculo",
@@ -414,9 +415,9 @@ async function regraExposicaoFiscal(empresaId: string, obrigacoes: ObrigacaoRow[
   const gravou = await gravarDescobertaFiscalSeNova({
     empresa_id: empresaId, tipo: "tendencia", prioridade,
     titulo: L(`Carga tributária subindo: ${atual.nome} ${variacaoPct.toFixed(0)}% acima da média`, `Tax burden rising: ${atual.nome} ${variacaoPct.toFixed(0)}% above average`, `Carga tributaria subiendo: ${atual.nome} ${variacaoPct.toFixed(0)}% por encima del promedio`),
-    descricao: L(`R$ ${valorAtual.toFixed(2)} contra uma média de R$ ${media.toFixed(2)} nas 3 competências anteriores — receita crescendo (ou enquadramento mudando) mais rápido do que parece no dia a dia.`,
-      `R$ ${valorAtual.toFixed(2)} against a R$ ${media.toFixed(2)} average over the previous 3 periods — revenue growing (or bracket shifting) faster than it feels day to day.`,
-      `R$ ${valorAtual.toFixed(2)} contra un promedio de R$ ${media.toFixed(2)} en las 3 competencias anteriores — ingresos creciendo (o cambio de tramo) más rápido de lo que parece en el día a día.`),
+    descricao: L(`R$ ${fBRL2(valorAtual)} contra uma média de R$ ${fBRL2(media)} nas 3 competências anteriores — receita crescendo (ou enquadramento mudando) mais rápido do que parece no dia a dia.`,
+      `R$ ${fBRL2(valorAtual)} against a R$ ${fBRL2(media)} average over the previous 3 periods — revenue growing (or bracket shifting) faster than it feels day to day.`,
+      `R$ ${fBRL2(valorAtual)} contra un promedio de R$ ${fBRL2(media)} en las 3 competencias anteriores — ingresos creciendo (o cambio de tramo) más rápido de lo que parece en el día a día.`),
     causa: null, impacto_estimado: valorAtual - media,
     evidencia: { chave: `exposicao_fiscal:${atual.tipo}`, valorAtual, media, variacaoPct: Number(variacaoPct.toFixed(1)), mesesHistorico: historico.length, pontuacao },
     confianca: "calculo",
@@ -439,9 +440,9 @@ async function regraOportunidadeRegime(empresaId: string, userId: string, lang: 
   const gravou = await gravarDescobertaFiscalSeNova({
     empresa_id: empresaId, tipo: "oportunidade", prioridade,
     titulo: L(`Regime tributário pode não ser o ideal — vale simular`, `Tax regime may not be ideal — worth simulating`, `El régimen tributario puede no ser el ideal — vale la pena simular`),
-    descricao: L(`Simulação aponta possível economia de R$ ${economia.economia_mensal.toFixed(2)}/mês migrando de ${economia.regime_atual} para ${economia.regime_ideal}. Isto é uma SUGESTÃO baseada em receita/custos atuais, não uma recomendação definitiva — confirme com o simulador completo em IA Tributária antes de decidir.`,
-      `Simulation points to a possible R$ ${economia.economia_mensal.toFixed(2)}/month saving migrating from ${economia.regime_atual} to ${economia.regime_ideal}. This is a SUGGESTION based on current revenue/costs, not a final recommendation — confirm with the full simulator under Tax AI before deciding.`,
-      `La simulación indica un posible ahorro de R$ ${economia.economia_mensal.toFixed(2)}/mes migrando de ${economia.regime_atual} a ${economia.regime_ideal}. Esto es una SUGERENCIA basada en ingresos/costos actuales, no una recomendación definitiva — confirme con el simulador completo en IA Tributaria antes de decidir.`),
+    descricao: L(`Simulação aponta possível economia de R$ ${fBRL2(economia.economia_mensal)}/mês migrando de ${economia.regime_atual} para ${economia.regime_ideal}. Isto é uma SUGESTÃO baseada em receita/custos atuais, não uma recomendação definitiva — confirme com o simulador completo em IA Tributária antes de decidir.`,
+      `Simulation points to a possible R$ ${fBRL2(economia.economia_mensal)}/month saving migrating from ${economia.regime_atual} to ${economia.regime_ideal}. This is a SUGGESTION based on current revenue/costs, not a final recommendation — confirm with the full simulator under Tax AI before deciding.`,
+      `La simulación indica un posible ahorro de R$ ${fBRL2(economia.economia_mensal)}/mes migrando de ${economia.regime_atual} a ${economia.regime_ideal}. Esto es una SUGERENCIA basada en ingresos/costos actuales, no una recomendación definitiva — confirme con el simulador completo en IA Tributaria antes de decidir.`),
     causa: null, impacto_estimado: economia.economia_anual,
     evidencia: { chave: "oportunidade_regime", regimeAtual: economia.regime_atual, regimeIdeal: economia.regime_ideal, economiaMensal: economia.economia_mensal, economiaAnual: economia.economia_anual, pontuacao },
     confianca: "inferencia",

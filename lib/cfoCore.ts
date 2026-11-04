@@ -295,9 +295,11 @@ export function concentracao(itens: Lancamento[], topPct = 0.2): number {
 // vem agrupada por quem chama) e devolve só a maior fatia. Usado onde a
 // pergunta é "uma contraparte específica pesa demais sobre o total?".
 export function topConcentracao(valoresPorChave: Map<string, number>): { chave: string; valor: number; total: number; percentual: number } | null {
-  const total = [...valoresPorChave.values()].reduce((a, b) => a + b, 0);
+  // Saldo negativo ou zero fica fora: com ele, o maior passava de 100% do total ("100,7% do caixa").
+  const positivos = [...valoresPorChave.entries()].filter(([, v]) => v > 0);
+  const total = positivos.reduce((a, [, v]) => a + v, 0);
   if (total <= 0) return null;
-  const maior = [...valoresPorChave.entries()].sort((a, b) => b[1] - a[1])[0];
+  const maior = positivos.sort((a, b) => b[1] - a[1])[0];
   if (!maior) return null;
   return { chave: maior[0], valor: maior[1], total, percentual: (maior[1] / total) * 100 };
 }

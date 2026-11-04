@@ -18,7 +18,7 @@ import * as Sentry from "@sentry/nextjs";
 import { resolverPeriodo, periodoAnterior, topConcentracao, fBRL2, type Periodo } from "./cfoCore";
 import {
   obterConfigTesouraria, obterPosicaoCaixa, obterFluxoProjetado, obterDividaPendente, obterCapitalDeGiro,
-  gerarAlertasCandidatos, calcularLiquidityScore, obterPontoFluxoProjetadoAvulso,
+  gerarAlertasCandidatos, pctAlerta, calcularLiquidityScore, obterPontoFluxoProjetadoAvulso,
   type CapitalDeGiro, type AlertaCandidato, type LiquidityScoreResultado,
 } from "./tesourariaHelpers";
 import { detectarDescontosPerdidos, detectarDuplicidadesPassadas, type ContaPagar } from "./contasPagarHelpers";
@@ -222,9 +222,9 @@ async function regraConcentracaoFornecedor(empresaId: string, lang: Idioma3, lim
   return gravarDescobertaSeNova({
     empresa_id: empresaId, tipo: "concentracao", prioridade,
     titulo: L(`${top.nome} concentra ${top.percentual.toFixed(0)}% das suas contas a pagar em aberto`, `${top.nome} holds ${top.percentual.toFixed(0)}% of your open payables`, `${top.nome} concentra ${top.percentual.toFixed(0)}% de sus cuentas por pagar abiertas`),
-    descricao: L(`De R$ ${top.totalAberto.toFixed(2)} em contas a pagar ainda em aberto, R$ ${((top.percentual / 100) * top.totalAberto).toFixed(2)} são desse único fornecedor.`,
-      `Of R$ ${top.totalAberto.toFixed(2)} in open payables, R$ ${((top.percentual / 100) * top.totalAberto).toFixed(2)} belong to this single supplier.`,
-      `De R$ ${top.totalAberto.toFixed(2)} en cuentas por pagar abiertas, R$ ${((top.percentual / 100) * top.totalAberto).toFixed(2)} son de este único proveedor.`),
+    descricao: L(`De R$ ${fBRL2(top.totalAberto)} em contas a pagar ainda em aberto, R$ ${fBRL2(((top.percentual / 100) * top.totalAberto))} são desse único fornecedor.`,
+      `Of R$ ${fBRL2(top.totalAberto)} in open payables, R$ ${fBRL2(((top.percentual / 100) * top.totalAberto))} belong to this single supplier.`,
+      `De R$ ${fBRL2(top.totalAberto)} en cuentas por pagar abiertas, R$ ${fBRL2(((top.percentual / 100) * top.totalAberto))} son de este único proveedor.`),
     causa: null, impacto_estimado: top.totalAberto,
     evidencia: { chave: `concentracao_fornecedor:${top.fornecedorId}`, fornecedorId: top.fornecedorId, percentual: top.percentual, totalAberto: top.totalAberto, pontuacao },
     confianca: "calculo",
@@ -266,19 +266,19 @@ const TITULO_ALERTA_TESOURARIA: Record<AlertaCandidato["tipo"], Record<Idioma3, 
     es: () => `Deuda pendiente alta frente a la caja disponible`,
   },
   concentracao_banco: {
-    pt: (a) => `${a.dado_origem.banco} concentra ${a.dado_origem.percentual}% do seu caixa`,
-    en: (a) => `${a.dado_origem.banco} holds ${a.dado_origem.percentual}% of your cash`,
-    es: (a) => `${a.dado_origem.banco} concentra ${a.dado_origem.percentual}% de su caja`,
+    pt: (a) => `${a.dado_origem.banco} concentra ${pctAlerta(a.dado_origem.percentual, "pt")}% do seu caixa`,
+    en: (a) => `${a.dado_origem.banco} holds ${pctAlerta(a.dado_origem.percentual, "en")}% of your cash`,
+    es: (a) => `${a.dado_origem.banco} concentra ${pctAlerta(a.dado_origem.percentual, "es")}% de su caja`,
   },
   concentracao_cliente: {
-    pt: (a) => `Um único cliente concentra ${a.dado_origem.percentual}% do seu contas a receber em aberto`,
-    en: (a) => `A single customer holds ${a.dado_origem.percentual}% of your open receivables`,
-    es: (a) => `Un único cliente concentra ${a.dado_origem.percentual}% de sus cuentas por cobrar abiertas`,
+    pt: (a) => `Um único cliente concentra ${pctAlerta(a.dado_origem.percentual, "pt")}% das suas contas a receber em aberto`,
+    en: (a) => `A single customer holds ${pctAlerta(a.dado_origem.percentual, "en")}% of your open receivables`,
+    es: (a) => `Un único cliente concentra ${pctAlerta(a.dado_origem.percentual, "es")}% de sus cuentas por cobrar abiertas`,
   },
   caixa_ocioso: {
-    pt: (a) => `R$ ${Number(a.dado_origem.valorOcioso).toFixed(2)} em caixa parados além do necessário`,
-    en: (a) => `R$ ${Number(a.dado_origem.valorOcioso).toFixed(2)} sitting idle beyond what's needed`,
-    es: (a) => `R$ ${Number(a.dado_origem.valorOcioso).toFixed(2)} en caja ociosa más allá de lo necesario`,
+    pt: (a) => `R$ ${fBRL2(Number(a.dado_origem.valorOcioso))} em caixa parados além do necessário`,
+    en: (a) => `R$ ${fBRL2(Number(a.dado_origem.valorOcioso))} sitting idle beyond what's needed`,
+    es: (a) => `R$ ${fBRL2(Number(a.dado_origem.valorOcioso))} en caja ociosa más allá de lo necesario`,
   },
 };
 
@@ -296,7 +296,7 @@ async function regraConcentracaoEBancoECaixa(empresaId: string, lang: Idioma3): 
       empresa_id: empresaId, tipo, prioridade,
       titulo: TITULO_ALERTA_TESOURARIA[a.tipo][lang](a),
       descricao: TITULO_ALERTA_TESOURARIA[a.tipo][lang](a),
-      causa: null, impacto_estimado: Math.abs(Number(a.dado_origem.valorOcioso ?? a.dado_origem.saldoProjetadoBase ?? a.dado_origem.dividaPendente ?? 0)),
+      causa: null, impacto_estimado: Math.abs(Number(a.dado_origem.valorOcioso ?? a.dado_origem.saldoProjetadoBase ?? a.dado_origem.dividaPendente ?? a.dado_origem.valor ?? 0)),
       evidencia: { chave: `tesouraria:${a.tipo}`, ...a.dado_origem, pontuacao },
       confianca: "calculo",
     });
@@ -316,9 +316,9 @@ async function regraOportunidadesAP(empresaId: string, contasPagar: ContaPagar[]
     const gravou = await gravarDescobertaSeNova({
       empresa_id: empresaId, tipo: "oportunidade", prioridade,
       titulo: L(`Desconto de ${p.percentual}% perdido em "${p.descricao}"`, `${p.percentual}% discount missed on "${p.descricao}"`, `Descuento de ${p.percentual}% perdido en "${p.descricao}"`),
-      descricao: L(`R$ ${p.valorPerdido.toFixed(2)} de desconto por pagamento antecipado deixado na mesa (prazo até ${p.dataLimite}).`,
-        `R$ ${p.valorPerdido.toFixed(2)} in early-payment discount left on the table (deadline ${p.dataLimite}).`,
-        `R$ ${p.valorPerdido.toFixed(2)} de descuento por pago anticipado quedó sin usar (plazo hasta ${p.dataLimite}).`),
+      descricao: L(`R$ ${fBRL2(p.valorPerdido)} de desconto por pagamento antecipado deixado na mesa (prazo até ${p.dataLimite}).`,
+        `R$ ${fBRL2(p.valorPerdido)} in early-payment discount left on the table (deadline ${p.dataLimite}).`,
+        `R$ ${fBRL2(p.valorPerdido)} de descuento por pago anticipado quedó sin usar (plazo hasta ${p.dataLimite}).`),
       causa: p.motivo === "pago_apos_limite"
         ? L("Pago depois do prazo do desconto.", "Paid after the discount deadline.", "Pagado después del plazo del descuento.")
         : L("Prazo do desconto expirou e a conta ainda não foi paga.", "Discount deadline expired and the bill is still unpaid.", "El plazo del descuento venció y la cuenta aún no fue pagada."),
@@ -341,7 +341,7 @@ async function regraEstoqueParado(empresaId: string, lang: Idioma3): Promise<num
   if (!prioridade) return 0;
   const gravou = await gravarDescobertaSeNova({
     empresa_id: empresaId, tipo: "oportunidade", prioridade,
-    titulo: L(`R$ ${valorParado.toFixed(2)} de capital parado em ${parados.length} produto(s) no estoque`, `R$ ${valorParado.toFixed(2)} in idle capital across ${parados.length} inventory item(s)`, `R$ ${valorParado.toFixed(2)} de capital inmovilizado en ${parados.length} producto(s) del inventario`),
+    titulo: L(`R$ ${fBRL2(valorParado)} de capital parado em ${parados.length} produto(s) no estoque`, `R$ ${fBRL2(valorParado)} in idle capital across ${parados.length} inventory item(s)`, `R$ ${fBRL2(valorParado)} de capital inmovilizado en ${parados.length} producto(s) del inventario`),
     descricao: L("Produtos com giro baixo/nenhum, empatando capital que poderia estar em caixa.", "Slow/no-turnover items tying up capital that could sit in cash instead.", "Productos de bajo/nulo movimiento inmovilizando capital que podría estar en caja."),
     causa: null, impacto_estimado: valorParado,
     evidencia: { chave: "estoque_capital_parado", qtdProdutos: parados.length, valorParado, produtos: parados.slice(0, 10).map((a) => a.produto_id), pontuacao },
@@ -365,9 +365,9 @@ async function regraDuplicidades(empresaId: string, contasPagar: ContaPagar[], l
     const gravou = await gravarDescobertaSeNova({
       empresa_id: empresaId, tipo: "divergencia", prioridade,
       titulo: L(`Possível duplicidade: "${d.a.descricao}" lançada 2x`, `Possible duplicate: "${d.a.descricao}" entered twice`, `Posible duplicidad: "${d.a.descricao}" registrada 2 veces`),
-      descricao: L(`Duas contas a pagar do mesmo fornecedor, mesmo valor (R$ ${d.a.valor_total.toFixed(2)}), com vencimento a ${d.diasEntre.toFixed(0)} dia(s) de diferença.`,
-        `Two payables from the same supplier, same amount (R$ ${d.a.valor_total.toFixed(2)}), due ${d.diasEntre.toFixed(0)} day(s) apart.`,
-        `Dos cuentas por pagar del mismo proveedor, mismo valor (R$ ${d.a.valor_total.toFixed(2)}), con vencimiento a ${d.diasEntre.toFixed(0)} día(s) de diferencia.`),
+      descricao: L(`Duas contas a pagar do mesmo fornecedor, mesmo valor (R$ ${fBRL2(d.a.valor_total)}), com vencimento a ${d.diasEntre.toFixed(0)} dia(s) de diferença.`,
+        `Two payables from the same supplier, same amount (R$ ${fBRL2(d.a.valor_total)}), due ${d.diasEntre.toFixed(0)} day(s) apart.`,
+        `Dos cuentas por pagar del mismo proveedor, mismo valor (R$ ${fBRL2(d.a.valor_total)}), con vencimiento a ${d.diasEntre.toFixed(0)} día(s) de diferencia.`),
       causa: d.motivo || L("Mesmo fornecedor, mesmo valor, vencimentos próximos — confira antes de pagar as duas.", "Same supplier, same amount, close due dates — check before paying both.", "Mismo proveedor, mismo valor, vencimientos cercanos — confirme antes de pagar ambas."),
       impacto_estimado: d.a.valor_total,
       evidencia: { chave: `duplicidade:${d.a.id}:${d.b.id}`, contaIdA: d.a.id, contaIdB: d.b.id, fornecedorId: d.a.fornecedor_id, valor: d.a.valor_total, pontuacao,
@@ -401,9 +401,9 @@ async function regraClassificacaoSuspeita(empresaId: string, contasPagar: ContaP
   const gravou = await gravarDescobertaSeNova({
     empresa_id: empresaId, tipo: "classificacao_suspeita", prioridade,
     titulo: L(`${percentual.toFixed(0)}% das contas a pagar do mês caíram em "Outros"`, `${percentual.toFixed(0)}% of this month's payables landed in "Other"`, `${percentual.toFixed(0)}% de las cuentas a pagar del mes cayeron en "Otros"`),
-    descricao: L(`R$ ${valorOutros.toFixed(2)} de R$ ${valorTotal.toFixed(2)} lançados numa categoria genérica — informação real fica escondida.`,
-      `R$ ${valorOutros.toFixed(2)} of R$ ${valorTotal.toFixed(2)} recorded under a generic category — real detail gets lost.`,
-      `R$ ${valorOutros.toFixed(2)} de R$ ${valorTotal.toFixed(2)} registrados en una categoría genérica — información real queda oculta.`),
+    descricao: L(`R$ ${fBRL2(valorOutros)} de R$ ${fBRL2(valorTotal)} lançados numa categoria genérica — informação real fica escondida.`,
+      `R$ ${fBRL2(valorOutros)} of R$ ${fBRL2(valorTotal)} recorded under a generic category — real detail gets lost.`,
+      `R$ ${fBRL2(valorOutros)} de R$ ${fBRL2(valorTotal)} registrados en una categoría genérica — información real queda oculta.`),
     causa: null, impacto_estimado: valorOutros,
     evidencia: { chave: `classificacao_outros:${competenciaISO.slice(0, 7)}`, competencia: competenciaISO.slice(0, 7), valorOutros, valorTotal, percentual, pontuacao },
     confianca: "calculo",
@@ -426,9 +426,9 @@ async function regraAnomaliaCorrelacionada(empresaId: string, contasPagar: Conta
   const gravou = await gravarDescobertaSeNova({
     empresa_id: empresaId, tipo: "risco", prioridade,
     titulo: L(`${concFornecedor.nome}: concentração alta + desconto perdido — vale uma checada`, `${concFornecedor.nome}: high concentration + missed discount — worth a look`, `${concFornecedor.nome}: concentración alta + descuento perdido — vale la pena revisar`),
-    descricao: L(`Esse fornecedor concentra ${concFornecedor.percentual.toFixed(0)}% das suas contas a pagar em aberto E já perdeu R$ ${impactoTotal.toFixed(2)} em desconto por atraso — dois sinais juntos no mesmo fornecedor.`,
-      `This supplier holds ${concFornecedor.percentual.toFixed(0)}% of your open payables AND already lost R$ ${impactoTotal.toFixed(2)} in discounts due to delays — two signals on the same supplier.`,
-      `Este proveedor concentra ${concFornecedor.percentual.toFixed(0)}% de sus cuentas por pagar abiertas Y ya perdió R$ ${impactoTotal.toFixed(2)} en descuento por atraso — dos señales juntas en el mismo proveedor.`),
+    descricao: L(`Esse fornecedor concentra ${concFornecedor.percentual.toFixed(0)}% das suas contas a pagar em aberto E já perdeu R$ ${fBRL2(impactoTotal)} em desconto por atraso — dois sinais juntos no mesmo fornecedor.`,
+      `This supplier holds ${concFornecedor.percentual.toFixed(0)}% of your open payables AND already lost R$ ${fBRL2(impactoTotal)} in discounts due to delays — two signals on the same supplier.`,
+      `Este proveedor concentra ${concFornecedor.percentual.toFixed(0)}% de sus cuentas por pagar abiertas Y ya perdió R$ ${fBRL2(impactoTotal)} en descuento por atraso — dos señales juntas en el mismo proveedor.`),
     causa: L("Dependência alta de um fornecedor que também não está sendo pago no prazo ideal.", "High dependency on a supplier that also isn't being paid on the ideal schedule.", "Dependencia alta de un proveedor que tampoco está siendo pagado en el plazo ideal."),
     impacto_estimado: concFornecedor.totalAberto,
     evidencia: { chave: `correlacao_fornecedor:${concFornecedor.fornecedorId}`, fornecedorId: concFornecedor.fornecedorId, concentracaoPct: concFornecedor.percentual, descontosPerdidos: perdidosDoFornecedor.length, impactoDescontos: impactoTotal, pontuacao },
