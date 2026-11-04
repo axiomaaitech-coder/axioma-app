@@ -16,7 +16,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Tela principal' },
     { tabela: { colunas: ['Elemento', 'O que faz', 'O que acontece depois'], larguras: [2600, 3400, 3026], linhas: [
-      ['**Rodar descoberta**', 'A Axioma vasculha os dados atrás de riscos e oportunidades.', 'Aparece **Rodando...**; depois as descobertas novas, ou "Nada novo — tudo já mapeado".'],
+      ['**Rodar descoberta**', 'A Axioma vasculha os dados atrás de riscos e oportunidades. Também roda sozinha na primeira vez que a tela abre no dia.', 'Aparece **Rodando...**; depois as descobertas novas, ou "Nada novo — tudo já mapeado". As abertas têm os números atualizados, e a que deixou de valer vira **Resolvida**.'],
       ['Cartões **Riscos Críticos**, **Oportunidades**, **Pendências**, **Previsões**', 'Contam as descobertas abertas de cada tipo.', '**Ver estas descobertas** filtra a lista.'],
       ['**Mostrar só abertas / Mostrar todas**', 'Filtra a lista.', 'A lista muda na hora.'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento.', 'WhatsApp, e-mail, copiar ou PDF.'],
@@ -69,7 +69,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Main screen' },
     { tabela: { colunas: ['Element', 'What it does', 'What happens next'], larguras: [2600, 3400, 3026], linhas: [
-      ['**Run discovery**', 'Axioma scans the data for risks and opportunities.', '**Running...** appears; then the new discoveries, or "Nothing new — all mapped".'],
+      ['**Run discovery**', 'Axioma scans the data for risks and opportunities. It also runs by itself the first time the screen opens each day.', '**Running...** appears; then the new discoveries, or "Nothing new — all mapped". Open ones get updated numbers, and any that no longer applies becomes **Resolved**.'],
       ['**Critical Risks**, **Opportunities**, **Pending**, **Forecasts** cards', 'Count open discoveries of each type.', '**See these discoveries** filters the list.'],
       ['**Show only open / Show all**', 'Filters the list.', 'The list changes right away.'],
       ['**Share**', 'Opens the Sharing Center.', 'WhatsApp, email, copy or PDF.'],
@@ -122,7 +122,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Pantalla principal' },
     { tabela: { colunas: ['Elemento', 'Qué hace', 'Qué pasa después'], larguras: [2600, 3400, 3026], linhas: [
-      ['**Ejecutar descubrimiento**', 'Axioma revisa los datos en busca de riesgos y oportunidades.', 'Aparece **Ejecutando...**; después los descubrimientos nuevos, o "Nada nuevo — todo ya mapeado".'],
+      ['**Ejecutar descubrimiento**', 'Axioma revisa los datos en busca de riesgos y oportunidades. También se ejecuta sola la primera vez que la pantalla abre en el día.', 'Aparece **Ejecutando...**; después los descubrimientos nuevos, o "Nada nuevo — todo ya mapeado". Los abiertos tienen los números actualizados, y el que dejó de valer pasa a **Resuelta**.'],
       ['Tarjetas **Riesgos Críticos**, **Oportunidades**, **Pendientes**, **Previsiones**', 'Cuentan los descubrimientos abiertos de cada tipo.', '**Ver estos descubrimientos** filtra la lista.'],
       ['**Mostrar solo abiertos / Mostrar todos**', 'Filtra la lista.', 'La lista cambia al instante.'],
       ['**Compartir**', 'Abre el Centro de Compartir.', 'WhatsApp, correo, copiar o PDF.'],

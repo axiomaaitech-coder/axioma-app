@@ -10,8 +10,14 @@ export type LangUi = "pt" | "en" | "es";
 // categoria de erro (catch silencioso) foi encontrada duplicada em 21+
 // lugares — duplicar de novo o remédio recriaria o mesmo problema.
 export function reportarFalhaLeitura(contexto: string, err: unknown): void {
+  falhasLeitura++;
   Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { contexto } });
 }
+
+// Quem encerra um alerta porque "a regra não disparou" compara esta contagem antes e depois:
+// se alguma leitura falhou no meio, a ausência do alerta não prova nada e nada é encerrado.
+let falhasLeitura = 0;
+export const contagemFalhasLeitura = () => falhasLeitura;
 
 type RespostaBanco<T> = { data: T; error: ErroBanco | null };
 

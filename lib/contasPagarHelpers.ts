@@ -1091,9 +1091,9 @@ export type MultaEvitavel = {
 
 export async function detectarMultasEvitaveis(empresaId: string): Promise<{ multas: MultaEvitavel[]; totalRecuperavel: number }> {
   const [{ data: cp }, { data: fc }] = avisarSeFalhou(await Promise.all([
-    supabase.from("contas_pagar")
+    lerTodas(() => supabase.from("contas_pagar")
       .select("id, descricao, fornecedor_id, valor_total, valor_pago, data_vencimento, data_pagamento, taxa_multa_mensal")
-      .eq("empresa_id", empresaId).eq("status", "pago"),
+      .eq("empresa_id", empresaId).eq("status", "pago").order("id")),
     lerTodas(() => supabase.from("fluxo_caixa").select("data, valor, tipo").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
   ]), "contasPagar:multasEvitaveis");
 

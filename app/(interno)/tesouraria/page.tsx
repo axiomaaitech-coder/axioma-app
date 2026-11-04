@@ -22,6 +22,7 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import { perguntarAoAxioma } from '../../../lib/ia/cliente'
 import { hojeISO } from '../../../lib/datas'
 import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
+import { contagemFalhasLeitura } from '../../../lib/erroUiHelpers'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -87,6 +88,7 @@ export default function TesourariaPage() {
       const reserva = Number(config?.reserva_minima || 0)
       setReservaMinima(reserva)
 
+      const falhasAntes = contagemFalhasLeitura()
       const [pos, flx, dividaPendente] = await Promise.all([
         obterPosicaoCaixa(empId, hojeISO(), reserva),
         obterFluxoProjetado(empId, reserva),
@@ -96,7 +98,7 @@ export default function TesourariaPage() {
       setFluxo(flx)
 
       const candidatos = await gerarAlertasCandidatos(empId, { posicao: pos, fluxo: flx, dividaPendente })
-      await gravarNovosAlertas(empId, candidatos)
+      await gravarNovosAlertas(empId, candidatos, contagemFalhasLeitura() === falhasAntes)
       setAlertas(await listarAlertasAtivos(empId))
 
       setLoading(false)

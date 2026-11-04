@@ -6,7 +6,10 @@ import { useEffect } from 'react'
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+    // Sem a chave (variável na Vercel), não inicia: evita erro no navegador em toda tela
+    const chave = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    if (!chave) return
+    posthog.init(chave, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       person_profiles: 'identified_only',
       capture_pageview: false,

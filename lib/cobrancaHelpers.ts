@@ -11,7 +11,8 @@ import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, I
 import { scoreRecebimento, contaParaTitulo } from "./clienteIntelHelpers";
 import { dnaFinanceiro } from "./vencidos/motor";
 import { hojeISO, isoDia } from "./datas";
-import { registrarLeitura } from "./erroUiHelpers";
+import { registrarLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,10 +70,12 @@ export const CANAIS_REGUA = ["email", "sms", "whatsapp"] as const;
 // ============================================================================
 
 export async function listarInteracoes(empresaId: string, contaId?: string): Promise<CobrancaInteracao[]> {
-  let q = supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).is("excluido_em", null).order("data", { ascending: false });
-  if (contaId) q = q.eq("conta_id", contaId);
-  const { data } = await q;
-  return data || [];
+  const { data, error } = await lerTodas<CobrancaInteracao>(() => {
+    const q = supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).is("excluido_em", null);
+    return (contaId ? q.eq("conta_id", contaId) : q).order("data", { ascending: false }).order("id");
+  });
+  if (error) avisarFalhaLeitura("cobranca:listarInteracoes", new Error(error.message));
+  return data;
 }
 
 // Todos os contatos de um cliente (dossiê de Contas Vencidas), lixeira fora
@@ -140,10 +143,12 @@ export async function listarLixeiraCobranca(empresaId: string): Promise<{ contat
 // ============================================================================
 
 export async function listarCompromissos(empresaId: string, contaId?: string): Promise<CobrancaCompromisso[]> {
-  let q = supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).is("excluido_em", null).order("data_compromissada", { ascending: true });
-  if (contaId) q = q.eq("conta_id", contaId);
-  const { data } = await q;
-  return data || [];
+  const { data, error } = await lerTodas<CobrancaCompromisso>(() => {
+    const q = supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).is("excluido_em", null);
+    return (contaId ? q.eq("conta_id", contaId) : q).order("data_compromissada", { ascending: true }).order("id");
+  });
+  if (error) avisarFalhaLeitura("cobranca:listarCompromissos", new Error(error.message));
+  return data;
 }
 
 export async function criarCompromisso(userId: string, empresaId: string | null, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {

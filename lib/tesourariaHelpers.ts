@@ -11,7 +11,7 @@ import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto } from "./cfoCore";
 import { carregarKpisEstoque } from "./estoqueHelpers";
-import { registrarLeitura, avisarSeFalhou } from "./erroUiHelpers";
+import { registrarLeitura, avisarSeFalhou, avisarFalhaLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -403,8 +403,8 @@ export async function gerarAlertasCandidatos(empresaId: string, p: {
   }
 
   // Concentração de cliente — maior cliente vs total de contas_receber em aberto.
-  const crAbertas = await registrarLeitura(() => supabase.from("contas_receber").select("cliente_id, valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido"), "tesourariaHelpers:400");
-  const abertas = (crAbertas as { cliente_id: string | null; valor: number; valor_recebido: number | null }[]) || [];
+  const { data: abertas, error: erroAbertas } = await lerTodas<{ cliente_id: string | null; valor: number; valor_recebido: number | null }>(() => supabase.from("contas_receber").select("cliente_id, valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido").order("id"));
+  if (erroAbertas) avisarFalhaLeitura("tesouraria:concentracaoCliente", new Error(erroAbertas.message));
   const totalAberto = abertas.reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
   if (totalAberto > 0) {
     const porCliente = new Map<string, number>();
@@ -475,11 +475,21 @@ const TITULO_ALERTA_PT: Record<TipoAlertaTesouraria, string> = {
 // registro de auditoria (rastreável no banco); a tela SEMPRE renderiza o
 // texto localizado a partir de tipo+dado_origem via descreverAlerta(),
 // nunca lê titulo/descricao pra exibir (evita travar o alerta num idioma só).
-export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCandidato[]): Promise<void> {
-  if (candidatos.length === 0) return;
+// Alerta já ativo é atualizado com os números de hoje (antes ficava congelado no dia em que nasceu);
+// `fecharSuperados`: encerra o ativo cuja condição acabou — só quando todas as leituras vieram.
+export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCandidato[], fecharSuperados = false): Promise<void> {
   const ativos = await listarAlertasAtivos(empresaId);
   const tiposAtivos = new Set(ativos.map((a) => a.tipo));
   const novos = candidatos.filter((c) => !tiposAtivos.has(c.tipo));
+
+  for (const a of ativos) {
+    const c = candidatos.find((x) => x.tipo === a.tipo);
+    if (!c && !fecharSuperados) continue;
+    const { error } = await supabase.from("tesouraria_alerta")
+      .update(c ? { severidade: c.severidade, dado_origem: c.dado_origem } : { resolvido_em: new Date().toISOString() })
+      .eq("id", a.id).eq("empresa_id", empresaId);
+    if (error) reportarFalhaEscrita("tesouraria_alerta", c ? "update" : "fechar superado", error.message);
+  }
   if (novos.length === 0) return;
 
   const linhas = novos.map((c) => ({

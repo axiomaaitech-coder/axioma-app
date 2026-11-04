@@ -253,7 +253,7 @@ export default function CentrosCustoPage() {
       empId ? carregarRateios(empId) : Promise.resolve([]),
       empId ? carregarOrcamentos(empId) : Promise.resolve([]),
       empId ? carregarReceitasOrigem(empId) : Promise.resolve([]),
-      empId ? supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? carregarAuditoriaCentro(empId) : Promise.resolve([]),

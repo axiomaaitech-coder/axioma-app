@@ -26,6 +26,7 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe, type ItemNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj, registrarNfeComItens } from "../../../lib/pdvNfeHelpers";
+import { lerTodas } from "../../../lib/lerTodas";
 import {
   conferirNfe, diferencaPct, listarMatchResultados, listarDivergencias, decidirMatchResultado,
   type MatchResultadoListado, type DivergenciaListada, type TipoDivergencia,
@@ -165,9 +166,9 @@ export default function ContasPagarPage() {
     const [cp, { data: forn, error: eForn }, { data: cc, error: eCc }, { data: cf, error: eCf }, cfgAp] = await Promise.all([
       empId ? listarContasPagar(empId) : Promise.resolve({ data: [] as ContaPagar[], erro: undefined as string | undefined }),
       empId
-        ? supabase.from("fornecedores")
+        ? lerTodas<Fornecedor>(() => supabase.from("fornecedores")
             .select("id, nome, nivel_dependencia, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id")
-            .eq("empresa_id", empId).order("nome")
+            .eq("empresa_id", empId).order("nome").order("id"))
         : Promise.resolve({ data: [] as Fornecedor[], error: null }),
       empId
         ? supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).order("nome")

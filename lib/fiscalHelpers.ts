@@ -106,7 +106,15 @@ async function gravarDescobertaFiscalSeNova(d: {
   const existente = await exigirLeitura(() => supabase.from("fiscal_descoberta").select("id")
     .eq("empresa_id", d.empresa_id).eq("tipo", d.tipo).eq("status", "aberto")
     .contains("evidencia", { chave: d.evidencia.chave }).limit(1), "fiscalHelpers:105");
-  if (existente && existente.length > 0) return false;
+  if (existente && existente.length > 0) {
+    // Já existe aberta: atualiza com os números de hoje, em vez de ficar congelada no dia em que nasceu.
+    const { prioridade, titulo, descricao, causa, impacto_estimado, evidencia, confianca } = d;
+    const { error: erroAtualizar } = await supabase.from("fiscal_descoberta")
+      .update({ prioridade, titulo, descricao, causa, impacto_estimado, evidencia, confianca })
+      .eq("id", existente[0].id).eq("empresa_id", d.empresa_id);
+    if (erroAtualizar) reportarFalhaEscrita("fiscal_descoberta", "update (discovery)", erroAtualizar.message);
+    return false;
+  }
   const { error } = await supabase.from("fiscal_descoberta").insert(d);
   if (error) { reportarFalhaEscrita("fiscal_descoberta", "insert (fiscal radar)", error.message); return false; }
   return true;

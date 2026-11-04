@@ -10,7 +10,7 @@ import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
+import { obterEmpresaAtiva, obterMeuPapel } from '../../../lib/empresaHelpers'
 import {
   listarDescobertas, contarPorPrioridade, atualizarStatusDescoberta, rodarDiscoveryEngine,
   type Descoberta, type StatusDescoberta, type TipoDescoberta, type Confianca,
@@ -114,7 +114,19 @@ export default function ContadorPage() {
       setUserId(user?.id || null)
       if (empId) await carregar(empId)
       setLoading(false)
+      // Sem isto a lista só mudava no clique e mostrava número antigo: quem pode gravar atualiza sozinho uma vez por dia
+      if (!empId) return
+      const chave = `axioma_contador_rodada_${empId}`
+      let jaRodouHoje = false
+      try { jaRodouHoje = localStorage.getItem(chave) === hojeISO() } catch { /* navegador sem armazenamento: roda de novo, a gravação não duplica */ }
+      if (jaRodouHoje || !['dono', 'admin', 'financeiro'].includes((await obterMeuPapel(empId)) ?? '')) return
+      setRodando(true)
+      const { erro } = await rodarDiscoveryEngine(empId, lang)
+      if (!erro) { try { localStorage.setItem(chave, hojeISO()) } catch { /* idem */ } }
+      await carregar(empId)
+      setRodando(false)
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- roda ao abrir a tela; trocar idioma não refaz a rodada
   }, [carregar])
 
   async function rodarAgora() {

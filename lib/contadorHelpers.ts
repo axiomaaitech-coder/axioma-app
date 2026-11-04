@@ -26,7 +26,8 @@ import { carregarAvisosEstoque } from "./estoqueHelpers";
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow, saldoNatural } from "./contabilidadeRelatoriosHelpers";
 import { listarPlanoDeContas, type ContaContabil } from "./contabilidadeHelpers";
 import { hojeISO, isoDia } from "./datas";
-import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
+import { exigirLeitura, registrarLeitura, avisarFalhaLeitura, contagemFalhasLeitura } from "./erroUiHelpers";
+import { lerTodas } from "./lerTodas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -146,15 +147,45 @@ function normalizarImpactoReais(valorAbsoluto: number, teto: number): number {
 // clique em "Rodar descoberta".
 // ============================================================================
 
+// Chaves que as regras confirmaram nesta rodada. O que estava aberto e não voltou a disparar
+// deixou de valer e é encerrado no fim da rodada (fecharDescobertasSuperadas).
+let chavesDaRodada: Set<string> | null = null;
+const REGRAS_COM_CHAVE = ["concentracao_fornecedor", "tesouraria", "desconto_perdido", "duplicidade", "classificacao_outros", "correlacao_fornecedor",
+  "despesa_crescendo", "fornecedor_aumentou", "queda_recebimentos", "cliente_atrasando", "margem_caindo", "centro_estourando"];
+
+async function fecharDescobertasSuperadas(empresaId: string, vistas: Set<string>): Promise<void> {
+  const abertas = await exigirLeitura(() => supabase.from("contador_descoberta").select("id, evidencia")
+    .eq("empresa_id", empresaId).eq("status", "aberto"), "contador:fecharSuperadas");
+  const superadas = ((abertas || []) as { id: string; evidencia: { chave?: string } | null }[]).filter((d) => {
+    const chave = d.evidencia?.chave;
+    return !!chave && REGRAS_COM_CHAVE.includes(chave.split(":")[0]) && !vistas.has(chave);
+  }).map((d) => d.id);
+  if (superadas.length === 0) return;
+  // resolvido_por vazio = encerrada pelo sistema; não entra no diário de decisões do dono.
+  const { error } = await supabase.from("contador_descoberta").update({ status: "resolvido", resolvido_em: new Date().toISOString(), resolvido_por: null })
+    .eq("empresa_id", empresaId).in("id", superadas);
+  if (error) reportarFalhaEscrita("contador_descoberta", "fechar superadas", error.message);
+}
+
 async function gravarDescobertaSeNova(d: {
   empresa_id: string; tipo: TipoDescoberta; prioridade: Prioridade; titulo: string; descricao: string;
   causa: string | null; impacto_estimado: number; evidencia: Record<string, unknown> & { chave: string };
   confianca: Confianca;
 }): Promise<boolean> {
+  chavesDaRodada?.add(d.evidencia.chave);
   const existente = await exigirLeitura(() => supabase.from("contador_descoberta").select("id")
     .eq("empresa_id", d.empresa_id).eq("tipo", d.tipo).eq("status", "aberto")
     .contains("evidencia", { chave: d.evidencia.chave }).limit(1), "contadorHelpers:153");
-  if (existente && existente.length > 0) return false;
+  if (existente && existente.length > 0) {
+    // Já existe aberta: atualiza com os números de hoje. Antes ficava congelada no dia em que nasceu
+    // (ex.: "cliente concentra 100%" gravado em outubro, com 38,7% de verdade em novembro).
+    const { prioridade, titulo, descricao, causa, impacto_estimado, evidencia, confianca } = d;
+    const { error: erroAtualizar } = await supabase.from("contador_descoberta")
+      .update({ prioridade, titulo, descricao, causa, impacto_estimado, evidencia, confianca })
+      .eq("id", existente[0].id).eq("empresa_id", d.empresa_id);
+    if (erroAtualizar) reportarFalhaEscrita("contador_descoberta", "update (discovery engine)", erroAtualizar.message);
+    return false;
+  }
   const { error } = await supabase.from("contador_descoberta").insert(d);
   if (error) { reportarFalhaEscrita("contador_descoberta", "insert (discovery engine)", error.message); return false; }
   return true;
@@ -168,9 +199,9 @@ async function gravarDescobertaSeNova(d: {
 
 // ---- Concentração de fornecedor (lado AP — Tesouraria já cobre banco/cliente) ----
 export async function obterConcentracaoFornecedor(empresaId: string): Promise<{ fornecedorId: string; nome: string; percentual: number; totalAberto: number } | null> {
-  const cpAbertas = await registrarLeitura(() => supabase.from("contas_pagar").select("fornecedor_id, valor_total, valor_pago")
-    .eq("empresa_id", empresaId).neq("status", "pago"), "contadorHelpers:170");
-  const abertas = (cpAbertas as { fornecedor_id: string | null; valor_total: number; valor_pago: number | null }[]) || [];
+  const { data: abertas, error: erroAbertas } = await lerTodas<{ fornecedor_id: string | null; valor_total: number; valor_pago: number | null }>(() => supabase.from("contas_pagar").select("fornecedor_id, valor_total, valor_pago")
+    .eq("empresa_id", empresaId).neq("status", "pago").order("id"));
+  if (erroAbertas) avisarFalhaLeitura("contadorHelpers:concentracaoFornecedor", new Error(erroAbertas.message));
   const porFornecedor = new Map<string, number>();
   abertas.filter((c) => c.fornecedor_id).forEach((c) => {
     const saldo = Math.max(0, Number(c.valor_total) - Number(c.valor_pago || 0));
@@ -694,15 +725,18 @@ async function regraCentroEstourando(empresaId: string, d: DadosProativos, lang:
 export async function rodarDiscoveryEngine(empresaId: string, lang: Idioma3): Promise<{ novasDescobertas: number; erro?: string }> {
   try {
     const competencia = hojeISO();
+    const falhasAntes = contagemFalhasLeitura();
+    const vistas = new Set<string>();
+    chavesDaRodada = vistas;
 
     // 1) Variação de despesa — RPC da Rodada 1, já grava e é idempotente sozinha.
     const { error: erroVar } = await supabase.rpc("contador_detectar_variacao_despesa", { p_empresa_id: empresaId, p_competencia: competencia });
     if (erroVar) reportarFalhaEscrita("contador_detectar_variacao_despesa", "rpc", erroVar.message);
 
     // Contas a pagar são a base de 4 regras diferentes — busca uma vez.
-    const { data: cpTodas, error: erroCp } = await supabase.from("contas_pagar").select("*").eq("empresa_id", empresaId);
-    if (erroCp) reportarFalhaEscrita("contas_pagar", "select (discovery engine)", erroCp.message);
-    const contasPagar = (cpTodas as ContaPagar[]) || [];
+    const { data: cpTodas, error: erroCp } = await lerTodas<ContaPagar>(() => supabase.from("contas_pagar").select("*").eq("empresa_id", empresaId).order("id"));
+    if (erroCp) avisarFalhaLeitura("contador:contasPagar", new Error(erroCp.message));
+    const contasPagar = cpTodas;
 
     const resultados = await Promise.all([
       regraConcentracaoFornecedor(empresaId, lang),
@@ -724,6 +758,8 @@ export async function rodarDiscoveryEngine(empresaId: string, lang: Idioma3): Pr
     ]);
 
     const novasDescobertas = resultados.reduce((s: number, r) => s + (typeof r === "number" ? r : r ? 1 : 0), 0);
+    // Só encerra se todas as leituras vieram: com falha no meio, "não disparou" não prova que acabou.
+    if (contagemFalhasLeitura() === falhasAntes) await fecharDescobertasSuperadas(empresaId, vistas);
     return { novasDescobertas };
   } catch (e) {
     const motivo = e instanceof Error ? e.message : String(e);

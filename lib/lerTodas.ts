@@ -5,6 +5,7 @@
 // Cada lote passa pelo sistema anti-falha (lib/antiFalha): banco lento/rede oscilando → tenta de novo
 // sozinho antes de devolver erro. Lote é leitura pura com .range(): repetir nunca duplica nada.
 import { comRetentativa } from './antiFalha'
+import { reportarFalhaLeitura } from './erroUiHelpers'
 
 const LOTE = 1000
 const TETO = 50000
@@ -20,7 +21,10 @@ export async function lerTodas<T = any>(
     const { data, error } = await comRetentativa(() => montar().range(de, de + LOTE - 1))
     if (error) return { data: tudo, error }
     tudo.push(...(data || []))
-    if (!data || data.length < LOTE) break
+    if (!data || data.length < LOTE) return { data: tudo, error: null }
   }
-  return { data: tudo, error: null }
+  // Chegou ao teto com lote cheio: o total pode estar incompleto. Vira erro, nunca soma menor calada.
+  const message = `lerTodas: mais de ${TETO} linhas, leitura incompleta`
+  reportarFalhaLeitura('lerTodas:teto', new Error(message))
+  return { data: tudo, error: { message } }
 }
