@@ -49,4 +49,4 @@ Quando a OpenAI ou a Anthropic responde "sem crédito" (insufficient_quota / no 
 
 ## Reserva do Gemini (2026-11-04)
 
-Com OpenAI e Anthropic sem crédito, a resposta depende do Gemini gratuito. Se o modelo principal responde 404, 429, 500, 503 ou 504, ou estoura 30 s, o motor tenta `gemini-3.6-flash` e depois `gemini-3.5-flash-lite`, enquanto a pergunta estiver abaixo de 70 s. Causa: 503 do modelo em testes deixou duas perguntas seguidas sem resposta. Teste em `scripts/check-portas.mts`.
+Com OpenAI e Anthropic sem crédito, a resposta depende do Gemini gratuito. O modelo principal é o estável `gemini-3.6-flash`. Se ele responde 404, 429, 500, 503 ou 504, ou estoura 30 s, o motor tenta `gemini-3.5-flash-lite` e depois `gemini-3-flash-preview`, enquanto a pergunta estiver abaixo de 70 s. Causa: 503 do modelo em testes, antes o principal, deixou duas perguntas seguidas sem resposta e depois atrasava cada resposta em 30 s. Teste em `scripts/check-portas.mts`.

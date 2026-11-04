@@ -461,6 +461,9 @@ export default function EstoquePage() {
     avisarSeLeituraFalhou();
   }, [empresaId]);
 
+  // Ao abrir a tela: as abas mostram a contagem real desde o início (antes "Produtos (0)" e "Avisos (0)" até clicar nelas)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- uma vez por Empresa; cada aba recarrega ao ser aberta
+  useEffect(() => { void carregarProdutos(); void carregarAvisos(); }, [empresaId]);
   useEffect(() => { if (aba === "produtos") carregarProdutos(); }, [aba, carregarProdutos]);
   useEffect(() => { if (aba === "movimentacoes") carregarMovimentacoes(); }, [aba, carregarMovimentacoes]);
   useEffect(() => { if (aba === "painel") carregarPainel(); }, [aba, carregarPainel]);

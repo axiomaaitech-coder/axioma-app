@@ -104,16 +104,16 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
       if (x instanceof Error) throw x
       return x
     }) as typeof fetch
-    const r = await M.chamarOpenAIComFerramentas('s', [{ role: 'user', content: 'p' }], 'gemini-3-flash-preview', consulta, undefined, prov)
+    const r = await M.chamarOpenAIComFerramentas('s', [{ role: 'user', content: 'p' }], 'gemini-3.6-flash', consulta, undefined, prov)
     return { r, modelos }
   }
   const erro = (s: number) => new Response('{}', { status: s })
   let x = await rodar([ok('oi')])
-  assert.deepEqual(x.modelos, ['gemini-3-flash-preview'], 'sem falha não troca')
+  assert.deepEqual(x.modelos, ['gemini-3.6-flash'], 'sem falha não troca')
   x = await rodar([erro(503), ok('oi')])
-  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3.6-flash', 2], '503 vai para o estável')
+  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3.5-flash-lite', 2], '503 vai para a reserva estável')
   x = await rodar([new Error('timeout'), erro(429), ok('oi')])
-  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3.5-flash-lite', 3], 'tempo esgotado e limite também')
+  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3-flash-preview', 3], 'tempo esgotado e limite também')
   x = await rodar([erro(503), erro(503), erro(503)])
   assert.deepEqual([x.r.texto, x.modelos.length], [null, 3], 'todos fora: desiste, sem repetir para sempre')
   x = await rodar([erro(400)])

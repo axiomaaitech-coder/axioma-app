@@ -65,10 +65,10 @@ const OPENAI_FORTE = 'gpt-4o'
 // ferramentas de consulta. Entra quando OpenAI e Anthropic falham (sem crédito, fora do ar) e quando a
 // empresa está sem saldo de IA no plano (não desconta nada). Chave: GEMINI_API_KEY (a mesma da voz).
 type ProvedorCompat = { nome: 'openai' | 'gemini'; url: string; chave: string }
-const GEMINI_MODELO = () => process.env.GEMINI_MOTOR_MODELO || 'gemini-3-flash-preview'
+const GEMINI_MODELO = () => process.env.GEMINI_MOTOR_MODELO || 'gemini-3.6-flash'
 // Modelo sobrecarregado (503) não pode deixar a pergunta sem resposta: tenta os estáveis indicados pelo Google
 // (ai.google.dev, deprecations, conferido em 2026-11-04). O limite de tempo cabe nos 120 s da rota.
-const GEMINI_RESERVAS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite']
+const GEMINI_RESERVAS = ['gemini-3.5-flash-lite', 'gemini-3-flash-preview']
 const GEMINI_TEMPO_TENTATIVA_MS = 30000, GEMINI_LIMITE_RESERVA_MS = 70000
 const provedorGemini = (): ProvedorCompat | null => process.env.GEMINI_API_KEY
   ? { nome: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave: process.env.GEMINI_API_KEY } : null
