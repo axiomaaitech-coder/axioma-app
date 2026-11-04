@@ -41,6 +41,7 @@ const pt: DocumentoAxioma = {
       ['Consumo OpenAI', 'Em tokens; o valor em dólar fica no painel da OpenAI.'],
       ['Telas que mais usaram', 'Ranking das telas com mais perguntas.'],
     ] } },
+    { p: '**Exportar PDF** e **Exportar Excel** (no topo, quando o período tem perguntas) baixam esses indicadores do período escolhido, sem nenhum conteúdo das conversas.' },
     { nota: 'Escolha o período no topo da tela (últimos 7, 30 ou 90 dias). Todos os registros do período são contados, sem limite de linhas; se a leitura falhar, a tela avisa. Os registros seguem a política de retenção e auditoria do Axioma, descrita na Política de Privacidade.' },
   ],
 }
@@ -85,6 +86,7 @@ const en: DocumentoAxioma = {
       ['OpenAI consumption', 'In tokens; the dollar amount is in the OpenAI dashboard.'],
       ['Screens that used it most', 'Ranking of the screens with the most questions.'],
     ] } },
+    { p: '**Export PDF** and **Export Excel** (at the top, when the period has questions) download these indicators for the chosen period, with no conversation content.' },
     { nota: 'Choose the period at the top of the screen (last 7, 30 or 90 days). Every record in the period is counted, with no row limit; if loading fails, the screen warns you. Records follow Axioma’s retention and audit policy, described in the Privacy Policy.' },
   ],
 }
@@ -129,6 +131,7 @@ const es: DocumentoAxioma = {
       ['Consumo OpenAI', 'En tokens; el valor en dólares está en el panel de OpenAI.'],
       ['Pantallas que más usaron', 'Ranking de las pantallas con más preguntas.'],
     ] } },
+    { p: '**Exportar PDF** y **Exportar Excel** (arriba, cuando el período tiene preguntas) descargan estos indicadores del período elegido, sin ningún contenido de las conversaciones.' },
     { nota: 'Elija el período arriba en la pantalla (últimos 7, 30 o 90 días). Todos los registros del período se cuentan, sin límite de filas; si la lectura falla, la pantalla avisa. Los registros siguen la política de retención y auditoría de Axioma, descrita en la Política de Privacidad.' },
   ],
 }

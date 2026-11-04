@@ -37,6 +37,7 @@ const pt: DocumentoAxioma = {
       ['Ciclo de caixa', 'Receber − pagar. Positivo: você paga antes de receber e o caixa banca a operação.'],
       ['Quanto o caixa aguenta', 'Caixa ÷ saídas do mês, se nenhuma venda entrar.'],
     ] } },
+    { p: '**Exportar PDF** e **Exportar Excel** (no topo) baixam os 6 riscos, do pior para o melhor, com a explicação, as métricas e a nota geral.' },
     { alerta: 'Use o painel para decidir onde agir primeiro: comece pelo cartão vermelho de nota mais baixa.' },
   ],
 }
@@ -77,6 +78,7 @@ const en: DocumentoAxioma = {
       ['Cash cycle', 'Collection − payment. Positive: you pay before you get paid and cash funds the operation.'],
       ['Cash runway', 'Cash ÷ monthly outflows, if no sale comes in.'],
     ] } },
+    { p: '**Export PDF** and **Export Excel** (at the top) download the 6 risks, worst first, with the explanation, the metrics and the overall score.' },
     { alerta: 'Use the panel to decide where to act first: start with the red card with the lowest score.' },
   ],
 }
@@ -117,6 +119,7 @@ const es: DocumentoAxioma = {
       ['Ciclo de caja', 'Cobro − pago. Positivo: usted paga antes de cobrar y la caja financia la operación.'],
       ['Cuánto aguanta la caja', 'Caja ÷ salidas del mes, si no entra ninguna venta.'],
     ] } },
+    { p: '**Exportar PDF** y **Exportar Excel** (arriba) descargan los 6 riesgos, del peor al mejor, con la explicación, las métricas y la nota general.' },
     { alerta: 'Use el panel para decidir dónde actuar primero: empiece por la tarjeta roja con la nota más baja.' },
   ],
 }

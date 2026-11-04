@@ -32,6 +32,7 @@ const pt: DocumentoAxioma = {
       ['**Marcar como paga**', 'Atualiza o status na hora ("Atualizado.").'],
       ['**Marcar como dispensada**', 'Para obrigação que não se aplica ao seu caso.'],
       ['**Editar valor/dados na aba Compliance**', 'Abre Configurações → Empresa → Compliance, onde fica a edição completa (nome, valor, recorrência) — sem duplicar cadastro.'],
+      ['**Exportar PDF** e **Exportar Excel**', 'Baixam as obrigações da janela escolhida (7, 30 ou 60 dias) com vencimento, prazo, valor e status, mais os totais. Aparecem quando há obrigação na lista.'],
       ['**Voltar ao Fiscal**', 'Volta para a tela principal.'],
     ] } },
 
@@ -71,6 +72,7 @@ const en: DocumentoAxioma = {
       ['**Mark as paid**', 'Updates the status right away ("Updated.").'],
       ['**Mark as waived**', 'For an obligation that does not apply to your case.'],
       ['**Edit amount/data in the Compliance tab**', 'Opens Settings → Company → Compliance, where full editing (name, amount, recurrence) lives — no duplicate records.'],
+      ['**Export PDF** and **Export Excel**', 'Download the obligations in the chosen window (7, 30 or 60 days) with due date, time left, amount and status, plus the totals. They show when the list has an obligation.'],
       ['**Back to Tax**', 'Returns to the main screen.'],
     ] } },
 
@@ -110,6 +112,7 @@ const es: DocumentoAxioma = {
       ['**Marcar como pagada**', 'Actualiza el estado al instante ("Actualizado.").'],
       ['**Marcar como dispensada**', 'Para una obligación que no aplica a su caso.'],
       ['**Editar valor/datos en la pestaña Compliance**', 'Abre Configuración → Empresa → Compliance, donde está la edición completa (nombre, valor, recurrencia) — sin duplicar registros.'],
+      ['**Exportar PDF** y **Exportar Excel**', 'Descargan las obligaciones de la ventana elegida (7, 30 o 60 días) con vencimiento, plazo, valor y estado, más los totales. Aparecen cuando hay una obligación en la lista.'],
       ['**Volver al Fiscal**', 'Vuelve a la pantalla principal.'],
     ] } },
 

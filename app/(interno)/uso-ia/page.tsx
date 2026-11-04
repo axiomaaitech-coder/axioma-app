@@ -19,6 +19,8 @@ import { ThemeToggle } from '../../../components/ThemeToggle'
 import { reportarFalhaLeitura } from '../../../lib/erroUiHelpers'
 import { lerTodas } from '../../../lib/lerTodas'
 import { SaldoIA } from '../../../components/SaldoIA'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 type Idioma = 'pt' | 'en' | 'es'
@@ -92,6 +94,8 @@ export default function UsoIaPage() {
   const [registros, setRegistros] = useState<Registro[] | null>(null)
   const [erro, setErro] = useState(false)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
+  const [exportando, setExportando] = useState(false)
+  const [erroExport, setErroExport] = useState('')
   useEffect(() => { obterEmpresaAtiva().then(setEmpresaId) }, [])
 
   useEffect(() => {
@@ -141,9 +145,44 @@ export default function UsoIaPage() {
     </div>
   )
 
+  // Exportar (PDF ou Excel): indicadores, níveis e telas do período escolhido — mesma tabela nos dois formatos
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+    const custo = `US$ ${r.custo.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
+    setExportando(true); setErroExport('')
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: t.titulo,
+        subtitulo: t.dias(dias),
+        colunas: [
+          { header: L('Parte', 'Section', 'Parte'), key: 'parte', width: 2 },
+          { header: L('Item', 'Item', 'Ítem'), key: 'item', width: 3.5 },
+          { header: L('Resultado', 'Result', 'Resultado'), key: 'valor', width: 2, align: 'right' },
+          { header: L('O que significa', 'What it means', 'Qué significa'), key: 'detalhe', width: 4 },
+        ],
+        linhas: [
+          ...[
+            [t.perguntas, num(r.total), `${num(r.respondidas)} ${t.respondidas}`],
+            [t.subiram, `${num(r.subiram)} (${pct(r.subiram, r.total)})`, t.subiramDesc],
+            [t.qualidade, pct(r.conferidas, r.respondidas), t.qualidadeDesc],
+            [t.consultas, num(r.consultas), t.consultasDesc],
+            [t.custo, custo, t.custoDesc],
+            [t.tokensOpenai, num(r.tokensOpenai), t.tokensOpenaiDesc],
+          ].map(([item, valor, detalhe]) => ({ parte: L('Indicador', 'Indicator', 'Indicador'), item, valor, detalhe })),
+          ...([['rotina', t.rotina], ['analise', t.analise], ['estrategica', t.estrategica]] as const).map(([k, item]) => ({ parte: t.porNivel, item, valor: `${num(r.nivel[k])} · ${pct(r.nivel[k], r.total)}`, detalhe: '' })),
+          ...r.telas.map(([tela, qtd]) => ({ parte: t.porTela, item: tela, valor: num(qtd), detalhe: '' })),
+        ],
+        nomeArquivo: `axioma-uso-ia-${dias}d-${hojeISO()}.pdf`,
+      }, setErroExport, lang)
+    } finally { setExportando(false) }
+  }
+  const podeExportar = !!registros?.length
+
   return (
     <div data-theme={tema}>
-      <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
+      <ModuloLayout titulo={t.titulo} subtitulo={t.sub}
+        onExportarPDF={podeExportar ? () => void exportar('pdf') : undefined} onExportarExcel={podeExportar ? () => void exportar('excel') : undefined} exportando={exportando}
+        botaoExtra={<>{erroExport && <span className="text-xs self-center" style={{ color: '#f87171' }}>{erroExport}</span>}<ThemeToggle /></>}>
         <div className="space-y-4">
           <LetreiroExecutivo cor="#101b3d" itens={[
             { texto: '🚀 AXIOMA AI.TECH', destaque: true },

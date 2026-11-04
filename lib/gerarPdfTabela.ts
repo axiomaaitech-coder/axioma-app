@@ -20,6 +20,9 @@ export type ArgsPdfTabela = {
   nomeArquivo: string;
 };
 
+// A biblioteca de PDF não põe a terminação: sem ".pdf" no nome o arquivo baixado não abria com dois cliques.
+export const nomePdf = (nome: string) => (/\.pdf$/i.test(nome) ? nome : `${nome}.pdf`);
+
 // Monta o documento (mesmo motor usado por gerarPdfTabela e compartilharOuBaixarPdf) —
 // PDF LIMPO, fundo branco e texto preto — formato relatório/auditoria.
 function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: ArgsPdfTabela): jsPDF {
@@ -174,7 +177,7 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
 // navegador. Corrigido uma vez aqui, vale pra todo chamador, atual e futuro.
 export function gerarPdfTabela(args: ArgsPdfTabela, aoErro?: (mensagem: string) => void, lang: LangUi = "pt"): boolean {
   try {
-    montarDocumentoPdf(args).save(args.nomeArquivo);
+    montarDocumentoPdf(args).save(nomePdf(args.nomeArquivo));
     return true;
   } catch (err) {
     reportarFalhaLeitura(`gerarPdfTabela:${args.nomeArquivo}`, err);
@@ -218,7 +221,7 @@ export async function compartilharOuBaixarPdf(
     aoErro?.(mensagemFalhaExportacao(lang));
     return;
   }
-  const arquivo = new File([blob], args.nomeArquivo, { type: "application/pdf" });
+  const arquivo = new File([blob], nomePdf(args.nomeArquivo), { type: "application/pdf" });
 
   const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean; share?: (data: ShareData) => Promise<void> };
   if (nav.canShare && nav.share && nav.canShare({ files: [arquivo] })) {
@@ -234,7 +237,7 @@ export async function compartilharOuBaixarPdf(
   }
 
   try {
-    pdf.save(args.nomeArquivo);
+    pdf.save(nomePdf(args.nomeArquivo));
     aoConcluir(true);
   } catch (err) {
     reportarFalhaLeitura(`compartilharOuBaixarPdf:fallbackSave:${args.nomeArquivo}`, err);

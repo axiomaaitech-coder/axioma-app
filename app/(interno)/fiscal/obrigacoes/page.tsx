@@ -10,6 +10,8 @@ import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, atualizarObrigacao } from '../../../../lib/empresaHelpers'
 import { obterObrigacoesProximas, corRiscoObrigacao, type ObrigacaoProxima } from '../../../../lib/fiscalHelpers'
 import { fBRL2 } from '../../../../lib/cfoCore'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../../lib/gerarPdfTabela'
+import { hojeISO } from '../../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +55,9 @@ export default function FiscalObrigacoesPage() {
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoProxima[]>([])
   const [processando, setProcessando] = useState<string | null>(null)
   const [mensagem, setMensagem] = useState<{ texto: string; erro?: boolean } | null>(null)
+  const [exportando, setExportando] = useState(false)
+  // O banco guarda o status em português; a tela e os arquivos mostram no idioma de quem usa.
+  const rotuloStatus = (s: string) => (s === 'pendente' ? L('Pendente', 'Pending', 'Pendiente') : s === 'paga' ? L('Paga', 'Paid', 'Pagada') : s === 'dispensada' ? L('Dispensada', 'Waived', 'Dispensada') : s)
 
   const carregar = useCallback(async (empId: string, dias: number) => {
     setObrigacoes(await obterObrigacoesProximas(empId, dias))
@@ -89,12 +94,44 @@ export default function FiscalObrigacoesPage() {
     setProcessando(null)
   }
 
+  // Exportar (PDF ou Excel): as obrigações da janela escolhida — mesma tabela nos dois formatos
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    const situacao = (o: ObrigacaoProxima) => (corRiscoObrigacao(o) === 'atrasada' ? L('Atrasada', 'Overdue', 'Atrasada') : L(`${o.dias_restantes} dias`, `${o.dias_restantes} days`, `${o.dias_restantes} días`))
+    setExportando(true); setMensagem(null)
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('Calendário de Obrigações', 'Obligation Calendar', 'Calendario de Obligaciones'),
+        subtitulo: L(`Próximos ${janela} dias`, `Next ${janela} days`, `Próximos ${janela} días`),
+        colunas: [
+          { header: L('Obrigação', 'Obligation', 'Obligación'), key: 'nome', width: 4 },
+          { header: L('Tipo', 'Type', 'Tipo'), key: 'tipo', width: 1.5 },
+          { header: L('Vencimento', 'Due Date', 'Vencimiento'), key: 'vencimento', width: 1.8 },
+          { header: L('Prazo', 'Time left', 'Plazo'), key: 'prazo', width: 1.5 },
+          { header: L('Valor', 'Amount', 'Valor'), key: 'valor', width: 2, align: 'right' },
+          { header: L('Status', 'Status', 'Estado'), key: 'status', width: 1.5 },
+        ],
+        linhas: obrigacoes.map((o) => ({
+          nome: o.nome, tipo: o.tipo, vencimento: new Date(`${o.data_vencimento}T00:00:00`).toLocaleDateString(localeData), prazo: situacao(o),
+          valor: o.valor_estimado != null && o.valor_estimado > 0 ? `R$ ${fBRL2(Number(o.valor_estimado))}` : '—', status: rotuloStatus(o.status),
+        })),
+        resumo: [
+          { label: L('Obrigações', 'Obligations', 'Obligaciones'), valor: String(obrigacoes.length) },
+          { label: L('Atrasadas', 'Overdue', 'Atrasadas'), valor: String(obrigacoes.filter((o) => corRiscoObrigacao(o) === 'atrasada').length) },
+          { label: L('Valor estimado', 'Estimated amount', 'Valor estimado'), valor: `R$ ${fBRL2(obrigacoes.reduce((s, o) => s + Number(o.valor_estimado || 0), 0))}` },
+        ],
+        nomeArquivo: `axioma-obrigacoes-${hojeISO()}.pdf`,
+      }, (m) => setMensagem({ texto: m, erro: true }), lang)
+    } finally { setExportando(false) }
+  }
+  const podeExportar = !loading && obrigacoes.length > 0
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Calendário de Obrigações', 'Obligation Calendar', 'Calendario de Obligaciones')}
       subtitulo={L('DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD e as demais obrigações já geradas pro seu regime — vencimento, status e o que falta.', 'DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD and the other obligations already generated for your regime — due date, status, and what is left.', 'DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD y las demás obligaciones ya generadas para su régimen — vencimiento, estado y lo que falta.')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      onExportarPDF={podeExportar ? () => void exportar('pdf') : undefined} onExportarExcel={podeExportar ? () => void exportar('excel') : undefined} exportando={exportando}
       botaoExtra={
         <>
           <button onClick={() => router.push('/fiscal')}
@@ -167,7 +204,7 @@ export default function FiscalObrigacoesPage() {
                           {o.valor_estimado != null && o.valor_estimado > 0 ? `R$ ${fBRL2(Number(o.valor_estimado))}` : '—'}
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: resolvida ? CINZA : COR_RISCO[risco] }}>
-                          {o.status}
+                          {rotuloStatus(o.status)}
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap text-right">
                           {!resolvida && (

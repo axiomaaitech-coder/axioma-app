@@ -15,6 +15,7 @@ import { montarRetrato, type NumerosRetrato } from '../../../lib/ia/retratoEmpre
 import { lerTodas } from '../../../lib/lerTodas'
 import { hojeISO } from '../../../lib/datas'
 import { avaliarRiscos, notaGeral, nivelDaNota, prazoMedioDias, mesesDeCaixa, type ItemRisco, type NivelRisco, type Idioma3 } from '../../../lib/riscoHelpers'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 
 const PALETA = {
   dark: { OK: '#2ecc9b', ATENCAO: '#fbbf24', RISCO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
@@ -33,6 +34,8 @@ export default function RiscoPage() {
   const [falhou, setFalhou] = useState(false)
   const [num, setNum] = useState<NumerosRetrato | null>(null)
   const [prazos, setPrazos] = useState<{ pmr: number | null; pmp: number | null }>({ pmr: null, pmp: null })
+  const [exportando, setExportando] = useState(false)
+  const [erroExport, setErroExport] = useState('')
 
   const carregar = useCallback(async () => {
     setCarregando(true); setFalhou(false)
@@ -63,13 +66,54 @@ export default function RiscoPage() {
   const ordenados = [...itens].sort((a, b) => (a.nota ?? 999) - (b.nota ?? 999)) // pior primeiro, sem dado no fim
   const painel = { background: P.PAINEL_BG, border: `1px solid ${P.BORDA}` }
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
+  const metricas = (() => {
+    if (!num) return []
+    const brl = (v: number) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    const dias = (d: number | null) => (d == null ? '—' : L(`${d} dias`, `${d} days`, `${d} días`))
+    const saidaMensal = num.custoFixoMensal + num.custoVariavelMensal + num.impostoMensal + num.jurosMensal
+    const aguenta = mesesDeCaixa(num.caixa, saidaMensal)
+    const ciclo = prazos.pmr != null && prazos.pmp != null ? prazos.pmr - prazos.pmp : null
+    return [
+      { t: L('Margem de lucro', 'Profit margin', 'Margen de ganancia'), v: num.margemPct == null ? '—' : `${num.margemPct.toFixed(1)}%`, d: L('Lucro ÷ receita, média mensal de 12 meses.', 'Profit ÷ revenue, 12-month monthly average.', 'Ganancia ÷ ingresos, promedio mensual de 12 meses.') },
+      { t: L('Ponto de equilíbrio', 'Break-even', 'Punto de equilibrio'), v: num.pontoEquilibrioMensal == null ? '—' : `${brl(num.pontoEquilibrioMensal)}/${L('mês', 'mo', 'mes')}`, d: L('Quanto precisa vender por mês para não ter prejuízo.', 'How much you must sell per month to avoid a loss.', 'Cuánto debe vender por mes para no tener pérdida.') },
+      { t: L('Prazo médio para receber', 'Average collection period', 'Plazo medio de cobro'), v: dias(prazos.pmr), d: L('Da emissão até o dinheiro entrar (contas recebidas em 12 meses).', 'From issue until the money arrives (bills received in 12 months).', 'De la emisión hasta que entra el dinero (cuentas cobradas en 12 meses).') },
+      { t: L('Prazo médio para pagar', 'Average payment period', 'Plazo medio de pago'), v: dias(prazos.pmp), d: L('Da emissão até você pagar (contas pagas em 12 meses).', 'From issue until you pay (bills paid in 12 months).', 'De la emisión hasta que usted paga (cuentas pagadas en 12 meses).') },
+      { t: L('Ciclo de caixa', 'Cash cycle', 'Ciclo de caja'), v: ciclo == null ? '—' : dias(ciclo), d: ciclo == null ? L('Precisa de contas recebidas e pagas para calcular.', 'Needs received and paid bills to calculate.', 'Necesita cuentas cobradas y pagadas para calcular.') : ciclo > 0 ? L('Você paga antes de receber: esse é o tempo que o caixa banca a operação.', 'You pay before you get paid: this is how long cash funds the operation.', 'Usted paga antes de cobrar: es el tiempo que la caja financia la operación.') : L('Você recebe antes de pagar — bom para o caixa.', 'You get paid before you pay — good for cash.', 'Usted cobra antes de pagar — bueno para la caja.') },
+      { t: L('Quanto o caixa aguenta', 'Cash runway', 'Cuánto aguanta la caja'), v: aguenta == null ? '—' : L(`${aguenta} meses`, `${aguenta} months`, `${aguenta} meses`), d: L(`Caixa ${brl(num.caixa)} ÷ saídas de ${brl(saidaMensal)}/mês, se nenhuma venda entrar.`, `Cash ${brl(num.caixa)} ÷ outflows of ${brl(saidaMensal)}/mo, if no sale comes in.`, `Caja ${brl(num.caixa)} ÷ salidas de ${brl(saidaMensal)}/mes, si no entra ninguna venta.`) },
+    ]
+  })()
+
+  // Exportar (PDF ou Excel): os riscos, do pior para o melhor, e as métricas — mesma tabela nos dois formatos
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    setExportando(true); setErroExport('')
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('Painel de Risco', 'Risk Panel', 'Panel de Riesgo'),
+        subtitulo: `${L('Riscos e métricas do CFO', 'Risks and CFO metrics', 'Riesgos y métricas del CFO')} · ${new Date(`${hojeISO()}T00:00:00`).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}`,
+        colunas: [
+          { header: L('Parte', 'Section', 'Parte'), key: 'parte', width: 1.5 },
+          { header: L('Item', 'Item', 'Ítem'), key: 'item', width: 3 },
+          { header: L('Resultado', 'Result', 'Resultado'), key: 'valor', width: 2 },
+          { header: L('Explicação', 'Explanation', 'Explicación'), key: 'detalhe', width: 4.5 },
+        ],
+        linhas: [
+          ...ordenados.map((i) => ({ parte: L('Risco', 'Risk', 'Riesgo'), item: i.titulo, valor: i.nota == null ? rotulo(i.nivel) : `${i.nota}/100 · ${rotulo(i.nivel)}`, detalhe: i.explicacao })),
+          ...metricas.map((m) => ({ parte: L('Métrica', 'Metric', 'Métrica'), item: m.t, valor: m.v, detalhe: m.d })),
+        ],
+        resumo: [{ label: L('Nota geral de risco', 'Overall risk score', 'Nota general de riesgo'), valor: geral == null ? '—' : `${geral}/100` }],
+        nomeArquivo: `axioma-painel-risco-${hojeISO()}.pdf`,
+      }, setErroExport, lang)
+    } finally { setExportando(false) }
+  }
+  const podeExportar = !carregando && itens.length > 0
 
   return (
     <div data-theme={tema}>
       <ModuloLayout titulo={L('Painel de Risco', 'Risk Panel', 'Panel de Riesgo')}
         subtitulo={L('O que pode dar problema de dinheiro — nota de 0 a 100 por risco, com o porquê em números', 'What could cause money trouble — a 0–100 score per risk, with the reason in numbers', 'Lo que puede causar problemas de dinero — nota de 0 a 100 por riesgo, con el porqué en números')}
         headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
-        botaoExtra={<ThemeToggle />}>
+        onExportarPDF={podeExportar ? () => void exportar('pdf') : undefined} onExportarExcel={podeExportar ? () => void exportar('excel') : undefined} exportando={exportando}
+        botaoExtra={<>{erroExport && <span className="text-xs self-center" style={{ color: '#f87171' }}>{erroExport}</span>}<ThemeToggle /></>}>
         <div className="space-y-4" style={{ color: P.TEXTO }}>
           <div className="rounded-2xl p-4 md:p-5 axi-card-premium3d axi-card-faixa flex items-center gap-4 flex-wrap" style={painel}>
             <ShieldAlert size={28} style={{ color: cor(nivelDaNota(geral)) }} aria-hidden />
@@ -107,35 +151,20 @@ export default function RiscoPage() {
             ))}
           </div>
 
-          {num && (() => {
-            const brl = (v: number) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-            const dias = (d: number | null) => (d == null ? '—' : L(`${d} dias`, `${d} days`, `${d} días`))
-            const saidaMensal = num.custoFixoMensal + num.custoVariavelMensal + num.impostoMensal + num.jurosMensal
-            const aguenta = mesesDeCaixa(num.caixa, saidaMensal)
-            const ciclo = prazos.pmr != null && prazos.pmp != null ? prazos.pmr - prazos.pmp : null
-            const metricas = [
-              { t: L('Margem de lucro', 'Profit margin', 'Margen de ganancia'), v: num.margemPct == null ? '—' : `${num.margemPct.toFixed(1)}%`, d: L('Lucro ÷ receita, média mensal de 12 meses.', 'Profit ÷ revenue, 12-month monthly average.', 'Ganancia ÷ ingresos, promedio mensual de 12 meses.') },
-              { t: L('Ponto de equilíbrio', 'Break-even', 'Punto de equilibrio'), v: num.pontoEquilibrioMensal == null ? '—' : `${brl(num.pontoEquilibrioMensal)}/${L('mês', 'mo', 'mes')}`, d: L('Quanto precisa vender por mês para não ter prejuízo.', 'How much you must sell per month to avoid a loss.', 'Cuánto debe vender por mes para no tener pérdida.') },
-              { t: L('Prazo médio para receber', 'Average collection period', 'Plazo medio de cobro'), v: dias(prazos.pmr), d: L('Da emissão até o dinheiro entrar (contas recebidas em 12 meses).', 'From issue until the money arrives (bills received in 12 months).', 'De la emisión hasta que entra el dinero (cuentas cobradas en 12 meses).') },
-              { t: L('Prazo médio para pagar', 'Average payment period', 'Plazo medio de pago'), v: dias(prazos.pmp), d: L('Da emissão até você pagar (contas pagas em 12 meses).', 'From issue until you pay (bills paid in 12 months).', 'De la emisión hasta que usted paga (cuentas pagadas en 12 meses).') },
-              { t: L('Ciclo de caixa', 'Cash cycle', 'Ciclo de caja'), v: ciclo == null ? '—' : dias(ciclo), d: ciclo == null ? L('Precisa de contas recebidas e pagas para calcular.', 'Needs received and paid bills to calculate.', 'Necesita cuentas cobradas y pagadas para calcular.') : ciclo > 0 ? L('Você paga antes de receber: esse é o tempo que o caixa banca a operação.', 'You pay before you get paid: this is how long cash funds the operation.', 'Usted paga antes de cobrar: es el tiempo que la caja financia la operación.') : L('Você recebe antes de pagar — bom para o caixa.', 'You get paid before you pay — good for cash.', 'Usted cobra antes de pagar — bueno para la caja.') },
-              { t: L('Quanto o caixa aguenta', 'Cash runway', 'Cuánto aguanta la caja'), v: aguenta == null ? '—' : L(`${aguenta} meses`, `${aguenta} months`, `${aguenta} meses`), d: L(`Caixa ${brl(num.caixa)} ÷ saídas de ${brl(saidaMensal)}/mês, se nenhuma venda entrar.`, `Cash ${brl(num.caixa)} ÷ outflows of ${brl(saidaMensal)}/mo, if no sale comes in.`, `Caja ${brl(num.caixa)} ÷ salidas de ${brl(saidaMensal)}/mes, si no entra ninguna venta.`) },
-            ]
-            return (
-              <div className="rounded-2xl p-4 md:p-5 axi-card-premium3d axi-card-faixa" style={painel}>
-                <p className="text-sm font-semibold mb-3">{L('Métricas do CFO', 'CFO metrics', 'Métricas del CFO')}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {metricas.map((m) => (
-                    <div key={m.t} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
-                      <p className="text-xs uppercase tracking-wider" style={{ color: P.CINZA }}>{m.t}</p>
-                      <p className="text-lg font-black" style={{ color: temaClaro ? '#101b3d' : P.OK }}>{m.v}</p>
-                      <p className="text-xs mt-1" style={{ color: P.CINZA }}>{m.d}</p>
-                    </div>
-                  ))}
-                </div>
+          {num && (
+            <div className="rounded-2xl p-4 md:p-5 axi-card-premium3d axi-card-faixa" style={painel}>
+              <p className="text-sm font-semibold mb-3">{L('Métricas do CFO', 'CFO metrics', 'Métricas del CFO')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {metricas.map((m) => (
+                  <div key={m.t} className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={aninhada}>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: P.CINZA }}>{m.t}</p>
+                    <p className="text-lg font-black" style={{ color: temaClaro ? '#101b3d' : P.OK }}>{m.v}</p>
+                    <p className="text-xs mt-1" style={{ color: P.CINZA }}>{m.d}</p>
+                  </div>
+                ))}
               </div>
-            )
-          })()}
+            </div>
+          )}
         </div>
       </ModuloLayout>
     </div>

@@ -15,7 +15,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp, Pencil, Trash2,
-  Calculator, Banknote,
+  Calculator, Banknote, Download, Sheet,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { AnimatedNumber } from "../../../../components/AnimatedNumber";
@@ -33,6 +33,7 @@ import {
   type ComposicaoLinha, type MovimentacaoCaixa,
 } from "../../../../lib/retaguardaHelpers";
 import AvisoAxioma from "../../../../components/AvisoAxioma";
+import { gerarPdfTabela, gerarExcelTabela } from "../../../../lib/gerarPdfTabela";
 
 const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
 const INTERVALO_ATUALIZACAO_MS = 30000;
@@ -66,6 +67,16 @@ const txt = {
   assistenteCancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
   configurar: { pt: "Configurar", en: "Configure", es: "Configurar" },
   configSalva: { pt: "Configuração salva.", en: "Configuration saved.", es: "Configuración guardada." },
+  exportarPdf: { pt: "Exportar PDF", en: "Export PDF", es: "Exportar PDF" },
+  exportarExcel: { pt: "Exportar Excel", en: "Export Excel", es: "Exportar Excel" },
+  gerando: { pt: "Gerando...", en: "Generating...", es: "Generando..." },
+  relatorioSubtitulo: { pt: "Vendas do dia {data}", en: "Sales on {data}", es: "Ventas del día {data}" },
+  colCategoria: { pt: "Categoria", en: "Category", es: "Categoría" },
+  colSubNicho: { pt: "Sub-nicho", en: "Sub-niche", es: "Sub-nicho" },
+  colProduto: { pt: "Produto", en: "Product", es: "Producto" },
+  colVendido: { pt: "Vendido", en: "Sold", es: "Vendido" },
+  colPrejuizo: { pt: "Prejuízo", en: "Loss", es: "Pérdida" },
+  itensSemCustoResumo: { pt: "Itens sem custo cadastrado", en: "Items without a registered cost", es: "Ítems sin costo registrado" },
 
   totalVendidoHoje: { pt: "Total vendido hoje", en: "Total sold today", es: "Total vendido hoy" },
   numeroVendas: { pt: "Nº de vendas", en: "No. of sales", es: "N.° de ventas" },
@@ -274,6 +285,7 @@ export default function RetaguardaPage() {
   const [movimentacaoExcluindo, setMovimentacaoExcluindo] = useState<MovimentacaoCaixa | null>(null);
   const [excluindoMovimentacao, setExcluindoMovimentacao] = useState(false);
 
+  const [exportando, setExportando] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
   function mostrarToast(msg: string, tipo: "ok" | "erro" = "ok") {
     setToast({ msg, tipo });
@@ -450,6 +462,45 @@ export default function RetaguardaPage() {
     carregarTurnosAbertos();
   }
 
+  // Exportar (PDF ou Excel): vendas do dia por produto e os indicadores. Lucro só sai se o dono
+  // escolheu vê-lo em Configurar — o relatório nunca mostra mais do que a tela.
+  async function exportar(formato: "pdf" | "excel") {
+    const verLucro = !!config?.verLucro;
+    const dia = hojeLocal();
+    const prejuizoPorProduto = new Map<string, number>();
+    for (const p of prejuizos) prejuizoPorProduto.set(p.produtoNome, (prejuizoPorProduto.get(p.produtoNome) ?? 0) + p.prejuizoUnitario * p.quantidade);
+    setExportando(true);
+    try {
+      await (formato === "excel" ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: t("titulo", lang),
+        subtitulo: t("relatorioSubtitulo", lang, { data: new Date(`${dia}T00:00:00`).toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR") }),
+        colunas: [
+          { header: t("colCategoria", lang), key: "categoria", width: 2 },
+          { header: t("colSubNicho", lang), key: "subNicho", width: 2 },
+          { header: t("colProduto", lang), key: "produto", width: 3.5 },
+          { header: t("colQtd", lang), key: "qtd", width: 0.8, align: "right" },
+          { header: t("colVendido", lang), key: "vendido", width: 1.6, align: "right" },
+          ...(verLucro ? [{ header: t("colLucro", lang), key: "lucro", width: 1.6, align: "right" as const }] : []),
+          ...(prejuizos.length > 0 ? [{ header: t("colPrejuizo", lang), key: "prejuizo", width: 1.6, align: "right" as const }] : []),
+        ],
+        linhas: [...produtosVendidos]
+          .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.subNicho.localeCompare(b.subNicho) || b.valorVendido - a.valorVendido)
+          .map((p) => ({
+            categoria: p.categoria, subNicho: p.subNicho, produto: p.produtoNome, qtd: String(p.quantidade), vendido: moeda(p.valorVendido),
+            lucro: moeda(p.lucroReal), prejuizo: prejuizoPorProduto.has(p.produtoNome) ? moeda(prejuizoPorProduto.get(p.produtoNome)) : "—",
+          })),
+        resumo: [
+          { label: t("totalVendidoHoje", lang), valor: moeda(resumo?.totalVendido ?? 0) },
+          { label: t("numeroVendas", lang), valor: String(resumo?.qtdVendas ?? 0) },
+          { label: t("ticketMedio", lang), valor: moeda(resumo?.ticketMedio ?? 0) },
+          ...(verLucro ? [{ label: t("lucroRealHoje", lang), valor: moeda(resumo?.lucroReal ?? 0) }] : []),
+          ...(resumo?.itensSemCusto ? [{ label: t("itensSemCustoResumo", lang), valor: String(resumo.itensSemCusto) }] : []),
+        ],
+        nomeArquivo: `axioma-retaguarda-caixa-${dia}.pdf`,
+      }, (m) => mostrarToast(m, "erro"), lang);
+    } finally { setExportando(false); }
+  }
+
   if (carregandoAcesso) {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv/venda">
@@ -475,10 +526,26 @@ export default function RetaguardaPage() {
       titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv/venda"
       botaoExtra={
         configuradoLocal ? (
-          <BotaoSecundario onClick={() => setAssistenteAberto(true)}>
-            <Settings size={14} />
-            {t("configurar", lang)}
-          </BotaoSecundario>
+          <>
+            {produtosVendidos.length > 0 && (
+              <>
+                <button onClick={() => void exportar("pdf")} disabled={exportando} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}>
+                  <Download size={14} />
+                  {exportando ? t("gerando", lang) : t("exportarPdf", lang)}
+                </button>
+                <button onClick={() => void exportar("excel")} disabled={exportando} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold disabled:opacity-60"
+                  style={{ background: "#101b3d", color: "#fff", border: "1px solid rgba(46,204,155,0.35)" }}>
+                  <Sheet size={14} />
+                  {exportando ? t("gerando", lang) : t("exportarExcel", lang)}
+                </button>
+              </>
+            )}
+            <BotaoSecundario onClick={() => setAssistenteAberto(true)}>
+              <Settings size={14} />
+              {t("configurar", lang)}
+            </BotaoSecundario>
+          </>
         ) : undefined
       }
     >

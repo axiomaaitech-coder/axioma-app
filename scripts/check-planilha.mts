@@ -1,6 +1,10 @@
 // Excel dos módulos (gerarExcelTabela): valor em reais vira número, o resto fica como está. Rodar: npx tsx scripts/check-planilha.mts
 import assert from 'node:assert/strict'
-const { valorPlanilha: v } = await import('../lib/gerarPdfTabela')
+const { valorPlanilha: v, nomePdf } = await import('../lib/gerarPdfTabela')
+
+assert.equal(nomePdf('tesouraria-2026-11-04'), 'tesouraria-2026-11-04.pdf', 'sem terminação ganha .pdf')
+assert.equal(nomePdf('axioma-receitas.pdf'), 'axioma-receitas.pdf', 'com terminação fica igual')
+assert.equal(nomePdf('RELATORIO.PDF'), 'RELATORIO.PDF', 'maiúscula não duplica')
 
 const nbsp = ' ' // toLocaleString('pt-BR', { currency: 'BRL' }) usa espaço fixo depois do R$
 assert.equal(v(`R$${nbsp}1.234,56`), 1234.56)

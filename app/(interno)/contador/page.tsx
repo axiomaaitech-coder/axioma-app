@@ -18,6 +18,8 @@ import {
 import { fBRL2, entradasEvidencia } from '../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../components/ThemeToggle'
+import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
+import { hojeISO } from '../../../lib/datas'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,6 +99,7 @@ export default function ContadorPage() {
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [mensagem, setMensagem] = useState<string | null>(null)
   const [shareAberto, setShareAberto] = useState(false)
+  const [exportando, setExportando] = useState(false)
 
   const carregar = useCallback(async (empId: string) => {
     setDescobertas(await listarDescobertas(empId))
@@ -159,12 +162,40 @@ export default function ContadorPage() {
     { emoji: '🧠', label: L('Descobertas da Axioma', "Axioma's Findings", 'Hallazgos de Axioma'), valor: contagem.totalAbertas, cor: AZULC, filtro: null },
   ]
 
+  // Exportar (PDF ou Excel): a lista que está na tela (com o filtro escolhido) e os totais dos cartões
+  const exportar = async (formato: 'pdf' | 'excel') => {
+    setExportando(true); setMensagem(null)
+    try {
+      await (formato === 'excel' ? gerarExcelTabela : gerarPdfTabela)({
+        titulo: L('Contador — Descobertas', 'Accountant — Findings', 'Contador — Hallazgos'),
+        subtitulo: new Date(`${hojeISO()}T00:00:00`).toLocaleDateString(localeData),
+        colunas: [
+          { header: L('Prioridade', 'Priority', 'Prioridad'), key: 'prioridade', width: 1.2 },
+          { header: L('Descoberta', 'Finding', 'Hallazgo'), key: 'titulo', width: 3 },
+          { header: L('Detalhe', 'Detail', 'Detalle'), key: 'descricao', width: 3.5 },
+          { header: L('Tipo', 'Type', 'Tipo'), key: 'tipo', width: 1.5 },
+          { header: L('Impacto', 'Impact', 'Impacto'), key: 'impacto', width: 1.6, align: 'right' },
+          { header: L('Confiança', 'Confidence', 'Confianza'), key: 'confianca', width: 1.3 },
+          { header: L('Status', 'Status', 'Estado'), key: 'status', width: 1.2 },
+        ],
+        linhas: visiveis.map((d) => ({
+          prioridade: d.prioridade, titulo: d.titulo, descricao: d.descricao ?? '', tipo: LABEL_TIPO[d.tipo][lang],
+          impacto: d.impacto_estimado != null ? `R$ ${fBRL2(Number(d.impacto_estimado))}` : '—', confianca: LABEL_CONFIANCA[d.confianca][lang], status: LABEL_STATUS[d.status][lang],
+        })),
+        resumo: TILES.map((x) => ({ label: x.label, valor: String(x.valor) })),
+        nomeArquivo: `axioma-contador-descobertas-${hojeISO()}.pdf`,
+      }, setMensagem, lang)
+    } finally { setExportando(false) }
+  }
+  const podeExportar = !loading && visiveis.length > 0
+
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Contador', 'Accountant', 'Contador')}
       subtitulo={L('O que a Axioma descobriu sozinha nos seus números — não é balanço, é status de inteligência.', "What Axioma found on its own in your numbers — not a balance sheet, an intelligence status.", 'Lo que Axioma descubrió sola en sus números — no es un balance, es un estado de inteligencia.')}
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      onExportarPDF={podeExportar ? () => void exportar('pdf') : undefined} onExportarExcel={podeExportar ? () => void exportar('excel') : undefined} exportando={exportando}
       botaoExtra={
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
