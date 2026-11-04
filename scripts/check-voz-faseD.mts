@@ -44,7 +44,7 @@ globalThis.fetch = (async (_u: unknown, init?: { body?: string }) => {
   return new Response(JSON.stringify(respostas[corpos.length - 1] ?? { choices: [{ message: { content: 'fim' } }] }))
 }) as typeof fetch
 const pedido = (id: string, nome: string, args = '{}') => ({ id, type: 'function', function: { name: nome, arguments: args } })
-const base = { supabase: {} as never, empresaId: '11111111-1111-4111-8111-111111111111', fuso: 'America/Sao_Paulo' }
+const base = { supabase: {} as never, empresaId: '11111111-1111-4111-8111-111111111111', papel: 'dono', fuso: 'America/Sao_Paulo' }
 
 respostas = [{ choices: [{ message: { content: null, tool_calls: [pedido('1', 'ferramenta_x')] } }] }, { choices: [{ message: { content: 'ok' } }] }]
 let reg: import('../lib/ia/motor').RegistroFerramenta[] = []

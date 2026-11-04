@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
   // Regra testada em lib/ia/rotaMotor.ts (scripts/check-voz-faseD.mts): acesso (RLS) → papel → cobra → motor → devolve se falhar.
   // Operador (PDV) não enxerga dado financeiro (RLS empresas_do_usuario_operacional): sem a trava de papel
   // a IA leria tudo vazio e responderia "sua empresa não tem receita". Empresa alheia: 404 sem cobrar.
+  // Papel lido aqui no servidor pela sessão: cada porta do motor confere (lib/ia/portas). O navegador não opina.
+  let papelSessao: string | null = null
   const res = await processarPerguntaMotor({ usuario: user.id, empresaId, pergunta, lang }, {
     podeUsar: podeUsarIAFinanceira,
     acesso: async (id) => {
@@ -60,12 +62,13 @@ export async function POST(request: NextRequest) {
     papel: async (id) => {
       const { data, error } = await comRetentativa(() => supabase.from('empresa_usuarios').select('papel').eq('empresa_id', id).eq('user_id', user.id).maybeSingle())
       if (error) throw new Error(error.message)
-      return (data?.papel as string | undefined) ?? null
+      papelSessao = (data?.papel as string | undefined) ?? null
+      return papelSessao
     },
     // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
     consumir: (id) => consumirIA(supabase, id, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai'),
     devolver: (consumoId) => devolverIA(supabase, consumoId),
-    perguntar: (soGratuito) => perguntarAoMotor({ supabase, empresaId, pergunta, historico, tela, lang, contextoTela, soGratuito }),
+    perguntar: (soGratuito) => perguntarAoMotor({ supabase, empresaId, papel: papelSessao, pergunta, historico, tela, lang, contextoTela, soGratuito }),
   })
 
   if (res.status !== 200) {
@@ -85,10 +88,10 @@ export async function POST(request: NextRequest) {
     empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
     parametros: { tela: tela ?? null, conversa_id: conversaId, correlacao, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
       // Fase D: o que foi consultado (nome, ok/vazio/erro, ms), se a pergunta exigia dado e se respondeu sem consultar
-      exige_consulta: r.exigeConsulta, ferramentas: r.ferramentas, memorias_usadas: r.memorias, memoria_falhou: r.memoriaFalhou, sugeriu_memoria: !!r.sugestaoMemoria, sem_consulta_exigida: r.semConsultaExigida, latencia_ms: Date.now() - inicio, cobrado: res.cobrado,
+      exige_consulta: r.exigeConsulta, confiabilidade: r.confiabilidade, ferramentas: r.ferramentas, memorias_usadas: r.memorias, memoria_falhou: r.memoriaFalhou, sugeriu_memoria: !!r.sugestaoMemoria, sem_consulta_exigida: r.semConsultaExigida, latencia_ms: Date.now() - inicio, cobrado: res.cobrado,
       tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
       tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
   }))
   // verificacao: acréscimo compatível (quem lê só resposta/nivel segue igual); a voz usa para a ressalva
-  return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, sugestao_memoria: r.sugestaoMemoria, relatorio: r.relatorio, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor } })
+  return NextResponse.json({ resposta: r.resposta, nivel: r.nivel, escalou: r.escalou, correlacao, assinatura: r.resposta ? assinarResposta(empresaId, r.resposta) : null, sugestao_memoria: r.sugestaoMemoria, relatorio: r.relatorio, verificacao: { nao_conferidos: r.valoresNaoConferidos, sem_fonte_servidor: r.valoresSemFonteServidor }, confiabilidade: r.confiabilidade })
 }

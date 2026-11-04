@@ -33,7 +33,7 @@ globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {
 }) as typeof fetch
 process.env.OPENAI_API_KEY = 'teste'
 const pedido = (id: string, nome = 'ferramenta_inexistente', args = '{}') => ({ id, type: 'function', function: { name: nome, arguments: args } })
-const consulta = { supabase: {} as never, empresaId: '11111111-1111-4111-8111-111111111111', fuso: 'America/Sao_Paulo' }
+const consulta = { supabase: {} as never, empresaId: '11111111-1111-4111-8111-111111111111', papel: 'dono', fuso: 'America/Sao_Paulo' }
 
 // a) pede ferramenta 2x igual na mesma rodada e depois responde
 roteiro = [

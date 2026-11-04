@@ -23,6 +23,7 @@ import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoE
 import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusContextoMundo'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
+import { passarPelaPorta, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
 import { linhaIdentidade } from './identidade'
@@ -397,10 +398,11 @@ async function chamarOpenAI(sistema: string, msgs: MensagemHistorico[], modelo: 
 // 2) Cada consulta fica registrada (nome, ok/vazio/erro, ms) — vai para a auditoria, sem conteúdo.
 // 3) Avisos fixos (não dependem do modelo) entram no FIM da resposta quando: a consulta falhou, a
 //    consulta exigida não aconteceu, ou há R$ que não existe em nada que o servidor leu.
-export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'erro'; ms: number }
+export { statusDaSaida }
+export type { RegistroFerramenta }
 // relatorio: pedido do último relatório gerado pela ferramenta (a tela mostra "Abrir relatório e PDF")
 export type PedidoRelatorioMotor = { tipo: string; periodo: string; inicio: string | null; fim: string | null; comparar: boolean }
-export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
+export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
 const RE_PEDE_DADO = /\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
@@ -414,25 +416,11 @@ export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] =
   return !!anterior && RE_CONTINUACAO.test(p) && RE_PEDE_DADO.test(anterior.content)
 }
 
-export function statusDaSaida(saida: string): RegistroFerramenta['status'] {
-  if (saida.startsWith('{"erro"')) return 'erro'
-  try {
-    const j = JSON.parse(saida) as { itens?: unknown[]; meses?: { total: number }[]; sem_movimento?: boolean; estado?: string; registros?: number }
-    // Contrato padrão do motor financeiro (lib/financeiro/contrato): estado explícito
-    if (j.estado === 'erro' || j.estado === 'indisponivel') return 'erro'
-    if (j.sem_movimento === true) return 'vazio'
-    if (j.estado && typeof j.registros === 'number' && j.registros === 0) return 'vazio'
-    if (Array.isArray(j.itens) && j.itens.length === 0) return 'vazio'
-    if (Array.isArray(j.meses) && j.meses.every((m) => !m.total)) return 'vazio'
-  } catch { return 'erro' }
-  return 'ok'
-}
-
 async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Record<string, unknown>): Promise<string> {
   const t0 = Date.now()
-  const saida = await executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso)
+  const { saida, motivo } = await passarPelaPorta({ empresaId: c.empresaId, papel: c.papel, nome, executar: () => executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso) })
   const status = statusDaSaida(saida)
-  c.registro?.push({ nome, status, ms: Date.now() - t0 })
+  c.registro?.push({ nome, status, ms: Date.now() - t0, ...(motivo ? { motivo } : {}) })
   if (nome === 'relatorio' && status !== 'erro') { try { c.relatorio = (JSON.parse(saida) as { pedido?: PedidoRelatorioMotor }).pedido ?? null } catch { /* sem pedido */ } }
   return saida
 }
@@ -459,6 +447,11 @@ const AVISO_SEM_CONSULTA: Record<Idioma, string> = {
   en: "Note: the detailed lookup could not be done right now; this answer used only the company summary. Check the module screen before deciding.",
   es: 'Observación: la consulta detallada no pudo hacerse ahora; esta respuesta usó solo el resumen de la empresa. Revise la pantalla del módulo antes de decidir.',
 }
+const AVISO_SEM_PERMISSAO: Record<Idioma, (o: string) => string> = {
+  pt: (o) => `Observação: o seu papel nesta Empresa não dá acesso a: ${o}. Peça ao dono ou a um administrador.`,
+  en: (o) => `Note: your role in this Company does not give access to: ${o}. Ask the owner or an administrator.`,
+  es: (o) => `Observación: su función en esta Empresa no da acceso a: ${o}. Pida al dueño o a un administrador.`,
+}
 export const AVISO_NAO_CONFERIDO: Record<Idioma, string> = {
   pt: 'Atenção: algum valor desta resposta não foi encontrado nos dados consultados. Confira na tela antes de decidir.',
   en: 'Note: some amount in this answer was not found in the checked data. Check it on screen before deciding.',
@@ -467,9 +460,11 @@ export const AVISO_NAO_CONFERIDO: Record<Idioma, string> = {
 // Avisos determinísticos no fim da resposta (o texto do modelo não é alterado)
 export function avisosDaResposta(p: { lang: Idioma; exige: boolean; registro: RegistroFerramenta[]; naoConferidos: number }): string[] {
   const avisos: string[] = []
-  const falhas = [...new Set(p.registro.filter((r) => r.status === 'erro').map((r) => NOME_FERRAMENTA[r.nome]?.[p.lang] ?? r.nome))]
+  const nomes = (s: RegistroFerramenta['status']) => [...new Set(p.registro.filter((r) => r.status === s).map((r) => NOME_FERRAMENTA[r.nome]?.[p.lang] ?? r.nome))]
+  const falhas = nomes('erro'), negadas = nomes('negado')
   if (falhas.length) avisos.push(AVISO_FALHA[p.lang](falhas.join(', ')))
-  if (p.exige && !p.registro.some((r) => r.status !== 'erro') && !falhas.length) avisos.push(AVISO_SEM_CONSULTA[p.lang])
+  if (negadas.length) avisos.push(AVISO_SEM_PERMISSAO[p.lang](negadas.join(', ')))
+  if (p.exige && !p.registro.some(consultaTrouxeDado) && !falhas.length && !negadas.length) avisos.push(AVISO_SEM_CONSULTA[p.lang])
   if (p.naoConferidos > 0) avisos.push(AVISO_NAO_CONFERIDO[p.lang])
   return avisos
 }
@@ -620,6 +615,7 @@ export type RespostaMotor = {
   exigeConsulta: boolean // a pergunta pedia dado detalhado
   ferramentas: RegistroFerramenta[] // o que foi consultado (nome, ok/vazio/erro, ms) — sem conteúdo
   semConsultaExigida: boolean // respondeu pergunta de dado SEM nenhuma consulta bem-sucedida (aviso entra no texto)
+  confiabilidade: Confiabilidade // completo, parcial, inconsistente ou indisponível: decidido por código, nunca pelo modelo
   sugestaoMemoria: SugestaoMemoria | null // a IA sugere lembrar algo (a pessoa confirma na tela)
   memorias: number // quantas memórias confirmadas foram usadas
   memoriaFalhou: boolean
@@ -659,7 +655,7 @@ export function avisarRelatorioConcluido(texto: string, lang: Idioma): string {
 }
 
 export async function perguntarAoMotor(args: {
-  supabase: SupabaseClient; empresaId: string; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
+  supabase: SupabaseClient; empresaId: string; papel: string | null; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
   contextoTela?: string // números e formato pedidos pela tela de origem (ex.: dados do DAS no MEI)
   soGratuito?: boolean // empresa sem saldo de IA: responde só pelo Gemini gratuito (nada é descontado)
 }): Promise<RespostaMotor> {
@@ -695,7 +691,7 @@ export async function perguntarAoMotor(args: {
   // Fase D: pergunta (ou continuação) que pede dado detalhado obriga a consultar; tudo que foi consultado fica registrado
   const exige = exigeConsulta(pergunta, args.historico ?? [])
   const registro: RegistroFerramenta[] = []
-  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, fuso: retrato.fuso, registro, exige }
+  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, papel: args.papel, fuso: retrato.fuso, registro, exige }
 
   // Gemini gratuito com as mesmas ferramentas (3ª IA / modo sem saldo)
   const executarGemini = async (n: Nivel) => {
@@ -749,14 +745,15 @@ export async function perguntarAoMotor(args: {
   // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
   // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.
   const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${memoria.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0
-  // Avisos fixos no fim (consulta que falhou, consulta exigida que não aconteceu, valor não encontrado)
-  const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
   // Relatório na conversa (todas as IAs): pediu relatório/PDF e a IA não montou → o sistema monta o MESMO relatório
   // da tela. Montado (pela IA ou pelo sistema) → frase de recusa sai e entra "Seu relatório está concluído…".
   if (r.texto && !consulta.relatorio && pediuRelatorio(pergunta)) await consultarFerramenta(consulta, 'relatorio', pedidoRelatorioDaPergunta(pergunta, args.tela))
   if (r.texto && consulta.relatorio) r.texto = avisarRelatorioConcluido(r.texto, lang)
+  // Avisos fixos no fim (consulta que falhou ou sem permissão, consulta exigida que não aconteceu, valor não encontrado)
+  const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
   const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
   return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
-    exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some((x) => x.status !== 'erro'),
+    exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some(consultaTrouxeDado),
+    confiabilidade: confiabilidadeDaResposta({ respondeu: !!r.texto, exige, registro, naoConferidos: naoConferidos.length }),
     sugestaoMemoria: resposta ? sugestaoMemoria : null, memorias: memoria.quantidade, memoriaFalhou: memoria.falhou, relatorio: resposta ? consulta.relatorio ?? null : null }
 }

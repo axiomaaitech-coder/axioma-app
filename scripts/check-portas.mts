@@ -1,0 +1,89 @@
+// Portas da Central Intelligence (Etapa 2): papel no servidor, tempo limite, disjuntor e confiabilidade. Rodar: npx tsx scripts/check-portas.mts
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
+const { PORTAS, passarPelaPorta, statusDaSaida, confiabilidadeDaResposta } = await import('../lib/ia/portas')
+const { FERRAMENTAS } = await import('../lib/ia/ferramentas')
+const { PAPEIS_FINANCEIROS } = await import('../lib/financeiro/semantica')
+const M = await import('../lib/ia/motor')
+
+// Toda ferramenta tem porta e toda porta tem ferramenta: nada entra por fora
+assert.deepEqual(Object.keys(PORTAS).sort(), FERRAMENTAS.map((f) => f.name).sort())
+for (const [nome, p] of Object.entries(PORTAS)) {
+  assert.ok(p.modulo, `${nome}: sem módulo`)
+  assert.ok(p.tempoMs > 0 && p.tempoMs <= 60000, `${nome}: tempo fora do razoável (a rota tem 120 s)`)
+  assert.ok(!p.papeis.includes('operador'), `${nome}: operador de caixa não vê dado financeiro`)
+}
+const motor = readFileSync('lib/ia/motor.ts', 'utf8')
+assert.equal(motor.match(/executarFerramenta\(/g)?.length, 1, 'o motor só executa ferramenta em um lugar')
+assert.ok(/passarPelaPorta\(\{[^}]*executar: \(\) => executarFerramenta\(/.test(motor), 'esse lugar passa pela porta')
+assert.ok(readFileSync('app/api/ia/motor/route.ts', 'utf8').includes('papel: papelSessao'), 'o papel vem da sessão no servidor, nunca do navegador')
+
+const E = '11111111-1111-4111-8111-111111111111', OK = JSON.stringify({ itens: [{ a: 1 }] })
+const ERRO = JSON.stringify({ erro: 'não foi possível consultar agora: banco fora' })
+let chamadas = 0
+const exec = (s: string) => async () => { chamadas++; return s }
+
+// ─── Papel ───
+for (const papel of [...PAPEIS_FINANCEIROS, null]) assert.equal((await passarPelaPorta({ empresaId: E, papel, nome: 'dividas', executar: exec(OK) })).saida, OK, `${papel} entra`)
+for (const papel of ['operador', 'inventado', '']) {
+  chamadas = 0
+  const r = await passarPelaPorta({ empresaId: E, papel, nome: 'dividas', executar: exec(OK) })
+  assert.equal(statusDaSaida(r.saida), 'negado', `${papel} não entra`)
+  assert.equal(chamadas, 0, 'negado não chega a ler o banco')
+  assert.match(r.saida, /não estime/)
+}
+for (const nome of ['ferramenta_x', 'constructor', '__proto__']) assert.equal(statusDaSaida((await passarPelaPorta({ empresaId: E, papel: 'dono', nome, executar: exec(OK) })).saida), 'erro', `${nome} sem porta`)
+
+// ─── Tempo limite: vira falha explícita, nunca zero ───
+const lenta = await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'custos', tempoMs: 5, executar: () => new Promise((ok) => setTimeout(() => ok(OK), 200)) })
+assert.equal(lenta.motivo, 'tempo'); assert.equal(statusDaSaida(lenta.saida), 'erro'); assert.match(lenta.saida, /não significa que o valor seja zero/)
+const quebrou = await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'dre', executar: async () => { throw new Error('caiu') } })
+assert.equal(statusDaSaida(quebrou.saida), 'erro', 'exceção vira falha, não derruba a resposta')
+
+// ─── Disjuntor: 3 falhas seguidas suspendem 1 minuto, só desta empresa e desta porta ───
+let t = 1000; const agora = () => t
+const tentar = (empresaId = E, nome = 'titulos', s = ERRO) => passarPelaPorta({ empresaId, papel: 'dono', nome, executar: exec(s), agora })
+chamadas = 0
+for (let i = 0; i < 3; i++) assert.equal((await tentar()).motivo, undefined, `falha ${i + 1} ainda tenta`)
+assert.equal(chamadas, 3)
+const suspensa = await tentar()
+assert.equal(suspensa.motivo, 'suspensa'); assert.equal(chamadas, 3, 'suspensa não chega a ler o banco'); assert.match(suspensa.saida, /não significa que o valor seja zero/)
+assert.equal((await tentar('22222222-2222-4222-8222-222222222222')).motivo, undefined, 'outra Empresa não é afetada')
+assert.equal((await tentar(E, 'faturamento')).motivo, undefined, 'outra porta não é afetada')
+t += 61000
+assert.equal((await tentar(E, 'titulos', OK)).saida, OK, 'depois do minuto tenta de novo e volta')
+for (let i = 0; i < 2; i++) await tentar(E, 'titulos')
+await tentar(E, 'titulos', OK) // acerto zera a contagem
+for (let i = 0; i < 2; i++) await tentar(E, 'titulos')
+assert.equal((await tentar(E, 'titulos', OK)).saida, OK, 'falhas com acerto no meio não suspendem')
+for (const s of [JSON.stringify({ itens: [] }), JSON.stringify({ erro: 'período inválido' })]) for (let i = 0; i < 4; i++) assert.equal((await tentar(E, 'dividas', s)).motivo, undefined, 'vazio e pedido inválido não abrem o disjuntor')
+
+// ─── Estados ───
+assert.equal(statusDaSaida(JSON.stringify({ estado: 'parcial', registros: 3 })), 'parcial')
+assert.equal(statusDaSaida(JSON.stringify({ estado: 'verificado', registros: 3 })), 'ok')
+assert.equal(statusDaSaida(JSON.stringify({ estado: 'parcial', registros: 0 })), 'vazio')
+
+// ─── Confiabilidade ───
+const reg = (...s: ('ok' | 'vazio' | 'parcial' | 'erro' | 'negado')[]) => s.map((status) => ({ nome: 'x', status, ms: 1 }))
+const c = (x: Partial<Parameters<typeof confiabilidadeDaResposta>[0]>) => confiabilidadeDaResposta({ respondeu: true, exige: true, registro: reg('ok'), naoConferidos: 0, ...x })
+assert.equal(c({}), 'completo')
+assert.equal(c({ registro: reg('vazio') }), 'completo', '"não há registros" é resposta completa')
+assert.equal(c({ exige: false, registro: [] }), 'completo', 'pergunta geral')
+assert.equal(c({ registro: reg('ok', 'erro') }), 'parcial')
+assert.equal(c({ registro: reg('parcial') }), 'parcial')
+assert.equal(c({ registro: reg('ok', 'negado') }), 'parcial')
+assert.equal(c({ naoConferidos: 1 }), 'inconsistente')
+assert.equal(c({ registro: reg('erro') }), 'indisponivel')
+assert.equal(c({ registro: [] }), 'indisponivel', 'pedia dado e respondeu só pelo resumo')
+assert.equal(c({ registro: reg('negado') }), 'indisponivel')
+assert.equal(c({ respondeu: false }), 'indisponivel')
+
+// ─── Avisos nos 3 idiomas ───
+for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give access/], ['es', /no da acceso/]] as const) {
+  const av = M.avisosDaResposta({ lang, exige: true, registro: [{ nome: 'dividas', status: 'negado', ms: 0 }], naoConferidos: 0 })
+  assert.match(av.join(' '), re)
+  assert.equal(av.length, 1, 'negado não soma aviso de consulta que falhou')
+}
+console.log('check-portas: papel, tempo limite, disjuntor e confiabilidade, tudo certo ✔')
