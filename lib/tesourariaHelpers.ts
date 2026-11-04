@@ -8,6 +8,7 @@ import { comRetentativa } from "./antiFalha";
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto, topConcentracao } from "./cfoCore";
 import { carregarKpisEstoque } from "./estoqueHelpers";
@@ -113,8 +114,9 @@ export type PosicaoCaixa = {
   falhou: boolean; // leitura falhou mesmo com retentativa: os totais acima NÃO são o caixa real
 };
 
-export async function obterPosicaoCaixa(empresaId: string, data: string, reservaMinima: number): Promise<PosicaoCaixa> {
-  const { data: linhas, error } = await comRetentativa(() => supabase.rpc("tesouraria_posicao", { p_empresa_id: empresaId, p_data: data }));
+// `db`: no servidor (portas da IA) vai o cliente do usuário; a conta é a mesma da tela.
+export async function obterPosicaoCaixa(empresaId: string, data: string, reservaMinima: number, db: SupabaseClient = supabase): Promise<PosicaoCaixa> {
+  const { data: linhas, error } = await comRetentativa(() => db.rpc("tesouraria_posicao", { p_empresa_id: empresaId, p_data: data }));
   if (error) avisarFalhaLeitura("tesouraria_posicao", new Error(error.message));
   const l = (linhas as LinhaPosicao[]) || [];
   const somaTipo = (t: string) => l.filter((x) => x.tipo_liquidez === t).reduce((s, x) => s + Number(x.saldo), 0);
@@ -178,6 +180,7 @@ export type FluxoProjetadoResultado = {
   fracaoAtrasoAR: number; // 0..1
   amostraAtrasoAP: number;
   amostraAtrasoAR: number;
+  falhou: boolean; // algum horizonte ou o histórico de atraso não veio: a projeção NÃO é a real
 };
 
 // Blend otimista/base/estressado isolado do horizonte em si — extraído pra
@@ -218,11 +221,11 @@ export function montarBlendFluxoProjetado(
   };
 }
 
-export async function obterFluxoProjetado(empresaId: string, reservaMinima: number): Promise<FluxoProjetadoResultado> {
+export async function obterFluxoProjetado(empresaId: string, reservaMinima: number, db: SupabaseClient = supabase): Promise<FluxoProjetadoResultado> {
   const [rpcResultados, rCpPagas, rCrRecebidas] = await Promise.all([
-    Promise.all(HORIZONTES_TESOURARIA.map((dias) => supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias }))),
-    lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
-    lerTodas(() => supabase.from("contas_receber").select("valor, data_vencimento, data_recebimento").eq("empresa_id", empresaId).eq("status", "recebido").order("id")),
+    Promise.all(HORIZONTES_TESOURARIA.map((dias) => comRetentativa(() => db.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias })))),
+    lerTodas(() => db.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago").order("id")),
+    lerTodas(() => db.from("contas_receber").select("valor, data_vencimento, data_recebimento").eq("empresa_id", empresaId).eq("status", "recebido").order("id")),
   ]);
 
   // Histórico de atraso sem leitura não é "sem atraso": registra e avisa a tela (o fator cai no padrão)
@@ -242,7 +245,8 @@ export async function obterFluxoProjetado(empresaId: string, reservaMinima: numb
     };
   });
 
-  return { pontos, fatorAtrasoAP, fracaoAtrasoAR, amostraAtrasoAP, amostraAtrasoAR };
+  const falhou = rpcResultados.some((r) => !!r.error) || !!rCpPagas.error || !!rCrRecebidas.error;
+  return { pontos, fatorAtrasoAP, fracaoAtrasoAR, amostraAtrasoAP, amostraAtrasoAR, falhou };
 }
 
 // Um horizonte avulso fora dos 4 padrão (HORIZONTES_TESOURARIA) — mesma RPC

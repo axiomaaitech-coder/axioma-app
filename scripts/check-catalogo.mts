@@ -7,7 +7,7 @@ const { resultado, falhou } = await import('../lib/financeiro/contrato')
 assert.equal(new Set(INDICADORES.map((i) => i.id)).size, INDICADORES.length, 'id repetido no catálogo')
 
 // As ferramentas que a IA realmente tem (o nome que o catálogo cita precisa existir)
-const ferramentas = ['lib/ia/ferramentas.ts', 'lib/financeiro/ferramentasFinanceiras.ts', 'lib/vencidos/ferramentaIA.ts'].map((a) => readFileSync(a, 'utf8')).join('\n')
+const ferramentas = ['lib/ia/ferramentas.ts', 'lib/financeiro/ferramentasFinanceiras.ts', 'lib/vencidos/ferramentaIA.ts', 'lib/financeiro/ferramentasGestao.ts'].map((a) => readFileSync(a, 'utf8')).join('\n')
 
 for (const i of INDICADORES) {
   assert.ok(i.definicao.length > 10, `${i.id}: sem definição`)

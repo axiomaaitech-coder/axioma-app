@@ -23,6 +23,7 @@ import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoE
 import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusContextoMundo'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
+import { INDICADORES } from '../financeiro/semantica'
 import { passarPelaPorta, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
@@ -159,8 +160,10 @@ Regras invioláveis:
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável. Não recomende compra/venda de investimento específico.
 - Separe sempre, com a palavra no início da frase: "Fato:" (número realizado dos dados), "Estimativa:" (conta sua), "Previsão:" (tendência projetada, nunca certeza) e "Cenário:" (e se...). Não misture os quatro na mesma frase. Valor que inclui imposto estimado (lucro, margem e receita líquida da DRE) NÃO é Fato: chame de "Cálculo com imposto estimado". Siga a classe que a ferramenta relatorio devolve em cada indicador (fato, calculo, estimativa).
 - MOTOR FINANCEIRO (Plano 3): os números vêm das ferramentas, que devolvem indicador, definição, período, critério de data, fontes, registros, estado e limitações. Você interpreta; não recalcula diferente. Estado "parcial" ou "erro" = diga a limitação antes de concluir. Registros 0 = "não há registros de X no período" (não é erro). Sempre diga o período e o critério de data usados.
-- Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao. Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
+- Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao; saldo por banco, caixa livre, reserva, previsão de caixa → caixa_tesouraria; impostos e obrigações que vencem → obrigacoes_fiscais; quantos clientes ou fornecedores, quantos inadimplentes → cadastros; valor do estoque → estoque_resumo (quais produtos → estoque_avisos). Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
 - RELATÓRIO E PDF: você GERA relatórios em PDF para baixar e imprimir. Pediram relatório, PDF, documento, "para imprimir", "relatório disso" ou "do que você me passou": chame a ferramenta relatorio com o tipo mais próximo do assunto da conversa (na dúvida, executivo) e o período falado (sem período, este_mes). Ao terminar, resuma em 2 ou 3 frases os principais números que vieram da ferramenta (nunca invente) e termine com: "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu." NUNCA diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
+- Caixa realizado (resumo_financeiro, do Fluxo de Caixa) e posição de caixa (caixa_tesouraria, do razão contábil) são contas diferentes: diga qual usou e, se divergirem, mostre as duas.
+- ${INDICADORES.filter((i) => i.indisponivel).map((i) => i.nome).join(', ')}: não há cadastro disso no Axioma. Diga exatamente isso e nunca estime.
 - Caixa realizado NÃO é dinheiro livre para gastar. Faturamento, lucro e caixa são coisas diferentes: nunca troque uma pela outra. Se duas fontes divergirem, mostre as duas e diga qual precisa ser conferida.
 - Em análises executivas, organize: situação atual, Fato (valores consultados), Cálculo (contas feitas com dados identificados), Interpretação, Risco (só o demonstrável), Recomendação (proporcional à evidência, com o que falta para decidir) e Limitação. Correlação no tempo não é causa. Pergunta simples = resposta curta.
 - Variação não é resposta: quando algo subiu ou caiu, investigue nos dados quais contas, fornecedores, clientes ou categorias explicam, desde quando, se é recorrente ou pontual e o impacto se continuar. Use as DESCOBERTAS ABERTAS DO MOTOR quando tratarem do assunto.
@@ -409,7 +412,7 @@ export type PedidoRelatorioMotor = { tipo: string; periodo: string; inicio: stri
 export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
-const RE_PEDE_DADO = /\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
+const RE_PEDE_DADO = /quant[oa]s? (clientes?|fornecedores?)|(clientes?|fornecedores?) ativos?|caixa (livre|dispon[ií]vel)|previs[aã]o de caixa|reserva m[ií]nima|obriga[cç][oõ]es|valor do estoque|how many (customers|clients|suppliers)|active (customers|clients|suppliers)|cash forecast|free cash|tax obligations|cu[aá]nt[oa]s (clientes|proveedores)|(clientes|proveedores) activos|caja libre|previsi[oó]n de caja|obligaciones|\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
 // Continuação curta que herda o assunto da pergunta anterior ("e quanto disso…", "na verdade, setembro")
 const RE_CONTINUACAO = /^(e\b|e se\b|e quanto|e os|e as|na verdade|corrigindo|quer dizer|melhor|ali[aá]s|and\b|what about|actually|i mean|y\b|y si\b|en realidad|mejor dicho)/i
 export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] = []): boolean {
@@ -429,7 +432,20 @@ async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Reco
   return saida
 }
 
-const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
+export const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
+  resumo_financeiro: { pt: 'resumo financeiro', en: 'financial summary', es: 'resumen financiero' },
+  titulos: { pt: 'contas a receber e a pagar', en: 'receivables and payables', es: 'cuentas por cobrar y por pagar' },
+  movimentos_realizados: { pt: 'entradas e saídas de caixa', en: 'cash in and out', es: 'entradas y salidas de caja' },
+  faturamento: { pt: 'faturamento', en: 'revenue', es: 'facturación' },
+  despesas: { pt: 'despesas', en: 'expenses', es: 'gastos' },
+  receitas_por_cliente: { pt: 'receita por cliente', en: 'revenue by customer', es: 'ingresos por cliente' },
+  custos_fixos_mes: { pt: 'custos fixos do mês', en: 'monthly fixed costs', es: 'costos fijos del mes' },
+  reconciliacao: { pt: 'conferência', en: 'reconciliation', es: 'conciliación' },
+  contas_vencidas: { pt: 'contas vencidas', en: 'overdue bills', es: 'cuentas vencidas' },
+  caixa_tesouraria: { pt: 'Tesouraria', en: 'Treasury', es: 'Tesorería' },
+  obrigacoes_fiscais: { pt: 'obrigações fiscais', en: 'tax obligations', es: 'obligaciones fiscales' },
+  cadastros: { pt: 'cadastros', en: 'records', es: 'registros' },
+  estoque_resumo: { pt: 'estoque', en: 'inventory', es: 'inventario' },
   contas_a_pagar: { pt: 'contas a pagar', en: 'accounts payable', es: 'cuentas por pagar' },
   contas_a_receber: { pt: 'contas a receber', en: 'accounts receivable', es: 'cuentas por cobrar' },
   custos: { pt: 'custos', en: 'costs', es: 'costos' },

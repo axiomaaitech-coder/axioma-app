@@ -80,6 +80,9 @@ assert.equal(c({ registro: [] }), 'indisponivel', 'pedia dado e respondeu só pe
 assert.equal(c({ registro: reg('negado') }), 'indisponivel')
 assert.equal(c({ respondeu: false }), 'indisponivel')
 
+// Aviso nunca mostra nome técnico: toda porta tem nome nos 3 idiomas
+for (const nome of Object.keys(PORTAS)) assert.ok(M.NOME_FERRAMENTA[nome]?.pt && M.NOME_FERRAMENTA[nome]?.en && M.NOME_FERRAMENTA[nome]?.es, `${nome} sem nome no aviso`)
+
 // ─── Avisos nos 3 idiomas ───
 for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give access/], ['es', /no da acceso/]] as const) {
   const av = M.avisosDaResposta({ lang, exige: true, registro: [{ nome: 'dividas', status: 'negado', ms: 0 }], naoConferidos: 0 })

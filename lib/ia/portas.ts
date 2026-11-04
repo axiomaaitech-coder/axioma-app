@@ -22,6 +22,7 @@ export const PORTAS: Record<string, Porta> = {
   contas_a_pagar: porta('Contas a Pagar'), contas_a_receber: porta('Contas a Receber'), custos: porta('Custos Fixos e Variáveis'),
   receitas_por_mes: porta('Receitas'), estoque_avisos: porta('Estoque'), dividas: porta('Endividamento'),
   maiores_fornecedores: porta('Fornecedores'), maiores_devedores: porta('Inadimplência'), dre: porta('DRE', PESADA),
+  caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'),
 }
 
 // papel null = dono sem linha em empresa_usuarios (o acesso à empresa já foi conferido pela RLS na rota)
