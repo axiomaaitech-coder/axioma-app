@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { createClient } from '../supabase/client'
 import { comRetentativa } from '../antiFalha'
+import { lerTodas } from '../lerTodas'
 import * as Sentry from '@sentry/nextjs'
 import { reportarFalhaLeitura } from '../erroUiHelpers'
 import { hojeISO, somarDiasISO } from '../datas'
@@ -89,18 +90,18 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
   const sb = opcoes.sb ?? createClient()
   const hoje = opcoes.hoje ?? hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
   const [cr, cp, casos, prom, cfg, legal, hist, negoc, contatos] = await Promise.all([
-    comRetentativa(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
-    comRetentativa(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').limit(5000)),
-    comRetentativa(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).limit(5000)),
-    comRetentativa(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).is('excluido_em', null).limit(5000)),
+    lerTodas(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').order('id')),
+    lerTodas(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').order('id')),
+    lerTodas(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).order('id')),
+    lerTodas(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).is('excluido_em', null).order('id')),
     comRetentativa(() => sb.from('vencido_config').select('faixas, parametros').eq('empresa_id', empresaId).maybeSingle()),
     parametrosLegais(sb),
     // evolução da carteira vencida: foto diária já gravada pela previsão (horizonte 7 = uma linha por dia)
     comRetentativa(() => sb.from('vencido_previsao').select('data_base, saldo_base').eq('empresa_id', empresaId).eq('horizonte_dias', 7).order('data_base', { ascending: false }).limit(180)),
     // negociação em andamento = proposta sem decisão
-    comRetentativa(() => sb.from('vencido_evento').select('caso_id, tipo, id, dados').eq('empresa_id', empresaId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).limit(5000)),
+    lerTodas(() => sb.from('vencido_evento').select('caso_id, tipo, id, dados').eq('empresa_id', empresaId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).order('id')),
     // último contato de cobrança de cada conta (o mais recente primeiro; lixeira fora)
-    comRetentativa(() => sb.from('cobranca_interacoes').select('conta_id, data, canal').eq('empresa_id', empresaId).is('excluido_em', null).order('data', { ascending: false }).limit(5000)),
+    lerTodas(() => sb.from('cobranca_interacoes').select('id, conta_id, data, canal').eq('empresa_id', empresaId).is('excluido_em', null).order('data', { ascending: false }).order('id')),
   ])
   const avisos: string[] = []
   for (const [nome, r] of [['contas a receber', cr], ['contas a pagar', cp]] as const) if (r.error) reportarFalhaLeitura(`vencidos:${nome}`, new Error(r.error.message))

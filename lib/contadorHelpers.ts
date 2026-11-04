@@ -461,10 +461,10 @@ type DadosProativos = {
 async function carregarDadosProativos(empresaId: string, contasPagar: ContaPagar[]): Promise<DadosProativos> {
   const hoje = hojeISO();
   const [cv, rc, cf, cr] = await Promise.all([
-    supabase.from("custos_variaveis").select("data, valor, categoria, origem_tabela, origem_id, descricao, centro_custo_id").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
-    supabase.from("receitas").select("data, valor, status").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).limit(5000),
-    soVigentes(supabase.from("custos_fixos").select("valor_mensal, centro_custo_id").eq("empresa_id", empresaId)).limit(1000),
-    supabase.from("contas_receber").select("id, cliente_id, valor, valor_recebido, valor_desconto, data_vencimento, status").eq("empresa_id", empresaId).not("status", "in", "(recebido,cancelado,cancelada)").limit(5000),
+    lerTodas(() => supabase.from("custos_variaveis").select("data, valor, categoria, origem_tabela, origem_id, descricao, centro_custo_id").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).order("id")),
+    lerTodas(() => supabase.from("receitas").select("data, valor, status").eq("empresa_id", empresaId).gte("data", diaMenos(hoje, 120)).order("id")),
+    lerTodas(() => soVigentes(supabase.from("custos_fixos").select("valor_mensal, centro_custo_id").eq("empresa_id", empresaId)).order("id")),
+    lerTodas(() => supabase.from("contas_receber").select("id, cliente_id, valor, valor_recebido, valor_desconto, data_vencimento, status").eq("empresa_id", empresaId).not("status", "in", "(recebido,cancelado,cancelada)").order("id")),
   ]);
   [cv, rc, cf, cr].forEach((r, i) => { if (r.error) reportarFalhaEscrita(["custos_variaveis", "receitas", "custos_fixos", "contas_receber"][i], "select (cfo proativo)", r.error.message); });
   const receber = (cr.data || []) as DadosProativos["receber"];

@@ -10,7 +10,7 @@
 
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
-import { exigirLeitura } from "./erroUiHelpers";
+import { exigirLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -128,11 +128,11 @@ export async function listarProdutosPdv(empresaId: string, filtro: FiltroProduto
 // nunca a fonte vw_produtos_seguro do operador (esta tela não é dele).
 // ============================================================================
 export async function listarTodosProdutosPdv(empresaId: string): Promise<ProdutoPdv[]> {
-  const { data, error } = await supabase.from("produtos").select(COLUNAS_SEGURAS)
+  const { data, error } = await lerTodas(() => supabase.from("produtos").select(COLUNAS_SEGURAS)
     .eq("empresa_id", empresaId).eq("status", "ativo")
-    .order("nome", { ascending: true }).limit(5000);
-  if (error) return [];
-  return (data as unknown as ProdutoPdv[]) || [];
+    .order("nome", { ascending: true }).order("id"));
+  if (error) avisarFalhaLeitura("pdv:listarTodosProdutos", new Error(error.message));
+  return data as unknown as ProdutoPdv[];
 }
 
 // ============================================================================

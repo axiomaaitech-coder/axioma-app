@@ -18,6 +18,7 @@ import { paginaDaFonte } from "./nexusFontesLinks";
 import { calcularFreshness, calcularSaudeFonte, fonteEmPausa, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
 import { RESERVA_BCE, usarReserva } from "./nexusLeitoresFontes";
 import { registrarLeitura } from "./erroUiHelpers";
+import { lerTodas } from "./lerTodas";
 export type { FreshnessStatus };
 
 export type PontoSerie = { data: string; valor: number };
@@ -379,7 +380,7 @@ export async function obterPlacarJose(): Promise<PlacarJose> {
 
 // Placar em texto pro chat do José (mesma régua do painel — lib/nexusPrevisoes.ts).
 export async function obterResumoPlacar(): Promise<string> {
-  const { data, error } = await supabase.from("nexus_previsao").select("serie_codigo, horizonte_dias, status").in("status", ["acertou", "errou"]).limit(5000);
+  const { data, error } = await lerTodas(() => supabase.from("nexus_previsao").select("serie_codigo, horizonte_dias, status").in("status", ["acertou", "errou"]).order("id"));
   if (error) return "- placar indisponível";
   return resumirPlacar(data ?? []);
 }

@@ -4,6 +4,7 @@
 // indicadores em 30 e 90 dias; aqui grava (valor de partida vem do banco,
 // nunca da IA) e, no cron diário, confere as vencidas com o dado oficial.
 // ═══════════════════════════════════════════════════════════════
+import { lerTodas } from './lerTodas'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import * as Sentry from '@sentry/nextjs'
 
@@ -94,9 +95,9 @@ export async function conferirPrevisoes(supabase: SupabaseClient, hoje = new Dat
     // Uma consulta só pros pontos de todas as séries envolvidas (sem N+1).
     const codigos = [...new Set(abertas.map((p) => p.serie_codigo as string))]
     const desde = abertas.map((p) => p.data_base as string).sort()[0]
-    const { data: pontos, error: erroPontos } = await supabase.from('nexus_economic_series').select('serie_codigo, valor, data_referencia')
+    const { data: pontos, error: erroPontos } = await lerTodas<{ serie_codigo: string; valor: number | null; data_referencia: string }>(() => supabase.from('nexus_economic_series').select('serie_codigo, valor, data_referencia')
       .in('serie_codigo', codigos).gt('data_referencia', desde).lte('data_referencia', dataHoje)
-      .order('data_referencia', { ascending: false }).limit(5000)
+      .order('data_referencia', { ascending: false }).order('id'))
     if (erroPontos) throw new Error(erroPontos.message)
     let conferidas = 0
     const falhas: string[] = []
@@ -148,7 +149,7 @@ export function resumirPlacar(linhas: { serie_codigo: string; horizonte_dias: nu
 // ponytail: agrega no app (tabela pequena, ~12 linhas/semana); virar RPC com
 // GROUP BY se passar de alguns milhares de previsões conferidas.
 export async function textoPlacar(supabase: SupabaseClient): Promise<string> {
-  const { data, error } = await supabase.from('nexus_previsao').select('serie_codigo, horizonte_dias, status').in('status', ['acertou', 'errou']).limit(5000)
+  const { data, error } = await lerTodas(() => supabase.from('nexus_previsao').select('serie_codigo, horizonte_dias, status').in('status', ['acertou', 'errou']).order('id'))
   if (error) return '- placar indisponível'
   return resumirPlacar(data ?? [])
 }

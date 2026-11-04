@@ -231,6 +231,10 @@ function Paginacao({ pagina, total, onMudar, et }: { pagina: number; total: numb
 
 const UNIDADES = ["UN", "CX", "KG", "L", "PC", "PAR", "M", "M2", "M3"];
 
+// O campo datetime-local mostra e devolve hora LOCAL, e o salvar já converte como local. Com a hora universal
+// aqui, a movimentação nova nascia 3 horas no futuro e cada edição somava mais 3 horas.
+const paraCampoDataHora = (d: string | Date) => { const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16) };
+
 export default function EstoquePage() {
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
@@ -806,9 +810,9 @@ export default function EstoquePage() {
   // ================= MOVIMENTAÇÕES =================
   function abrirModalMovimentacao(mov?: MovimentacaoComProduto) {
     setMovEditando(mov || null);
-    setFormMov(mov ? { ...mov, data_hora: mov.data_hora.slice(0, 16) } : {
+    setFormMov(mov ? { ...mov, data_hora: paraCampoDataHora(mov.data_hora) } : {
       tipo: "entrada", quantidade: 1, status_recebimento: "confirmada", destino_saldo: "disponivel",
-      data_hora: new Date().toISOString().slice(0, 16),
+      data_hora: paraCampoDataHora(new Date()),
     });
     setBuscaProdutoMov("");
     setResultadosProdutoMov([]);

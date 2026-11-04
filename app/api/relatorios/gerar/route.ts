@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { podeUsarIAFinanceira } from '@/lib/ia/motor'
 import { comRetentativa } from '@/lib/antiFalha'
+import { lerTodas } from '@/lib/lerTodas'
 import { fusoDaEmpresa } from '@/lib/datas'
 import { gerarRelatorio, validarPedido } from '@/lib/financeiro/relatorios'
 import { chaveRelatorio, limiteRelatorios, podeGerarRelatorio } from '@/lib/planos'
@@ -55,8 +56,8 @@ export async function POST(request: NextRequest) {
   const s = sit.data as { plano?: string; teste?: boolean; ilimitada?: boolean; ciclo_inicio?: string }
   const limite = limiteRelatorios(s)
   if (Number.isFinite(limite)) {
-    const usados = await comRetentativa(() => supabase.from('nexus_audit_log').select('parametros').eq('empresa_id', empresaId).eq('acao', 'relatorio.gerar')
-      .gte('created_at', s.ciclo_inicio ?? new Date(0).toISOString()).limit(2000))
+    const usados = await lerTodas(() => supabase.from('nexus_audit_log').select('parametros').eq('empresa_id', empresaId).eq('acao', 'relatorio.gerar')
+      .gte('created_at', s.ciclo_inicio ?? new Date(0).toISOString()).order('id'))
     if (usados.error) return NextResponse.json({ error: 'falha_leitura' }, { status: 503 })
     const feitas = new Set(((usados.data ?? []) as { parametros: { chave?: string } | null }[]).map((u) => u.parametros?.chave).filter((c): c is string => !!c))
     if (!podeGerarRelatorio(feitas, chave, limite)) return NextResponse.json({ error: 'limite_relatorios', mensagem: LIMITE(limite)[lang], limite, usados: feitas.size }, { status: 429 })

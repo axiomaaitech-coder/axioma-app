@@ -8,13 +8,14 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
+import { lerTodas } from './lerTodas'
 
 export async function montarContextoMundo(supabase: SupabaseClient): Promise<string> {
   const desde30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const desde3 = new Date(Date.now() - 3 * 86400000).toISOString()
 
   const lidas = await Promise.all([
-    supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').gte('data_referencia', new Date(Date.now() - 140 * 86400000).toISOString().slice(0, 10)).order('data_referencia', { ascending: true }).limit(2000),
+    lerTodas(() => supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').gte('data_referencia', new Date(Date.now() - 140 * 86400000).toISOString().slice(0, 10)).order('data_referencia', { ascending: true }).order('id')),
     supabase.from('nexus_global_event').select('title, description, natureza, published_at, joseph_analise').gte('published_at', desde30).order('published_at', { ascending: false }).limit(15),
     supabase.from('nexus_news').select('title, publication_date, canal, canonical_url, nexus_source(source_name)').gte('publication_date', desde3).or(`canal.is.null,canal.neq.${CANAL_GEOPOLITICA}`).order('publication_date', { ascending: false }).limit(14),
     // GDELT separado: senão as manchetes de geopolítica (muitas) tomam o lugar das brasileiras.
