@@ -65,6 +65,10 @@ const OPENAI_FORTE = 'gpt-4o'
 // empresa está sem saldo de IA no plano (não desconta nada). Chave: GEMINI_API_KEY (a mesma da voz).
 type ProvedorCompat = { nome: 'openai' | 'gemini'; url: string; chave: string }
 const GEMINI_MODELO = () => process.env.GEMINI_MOTOR_MODELO || 'gemini-3-flash-preview'
+// Modelo sobrecarregado (503) não pode deixar a pergunta sem resposta: tenta os estáveis indicados pelo Google
+// (ai.google.dev, deprecations, conferido em 2026-11-04). O limite de tempo cabe nos 120 s da rota.
+const GEMINI_RESERVAS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite']
+const GEMINI_TEMPO_TENTATIVA_MS = 30000, GEMINI_LIMITE_RESERVA_MS = 70000
 const provedorGemini = (): ProvedorCompat | null => process.env.GEMINI_API_KEY
   ? { nome: 'gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', chave: process.env.GEMINI_API_KEY } : null
 
@@ -483,26 +487,42 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
   const gemini = p.nome === 'gemini'
   const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
   const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
+  let modeloAtual = modelo
+  const filaGemini = gemini ? GEMINI_RESERVAS.filter((m) => m !== modelo) : []
+  const inicio = Date.now()
   // Promessa guardada ANTES de esperar: dois pedidos iguais na mesma rodada (em paralelo) leem uma vez só
   const jaLidos = new Map<string, Promise<string>>()
   let chamadas = 0
   try {
     for (let rodada = 0; rodada <= MAX_CONSULTAS; rodada++) {
       const ultima = rodada === MAX_CONSULTAS || chamadas >= MAX_CHAMADAS_FERRAMENTA
-      const res = await fetch(p.url, {
-        method: 'POST', signal: AbortSignal.timeout(45000),
+      const postar = () => fetch(p.url, {
+        method: 'POST', signal: AbortSignal.timeout(gemini ? GEMINI_TEMPO_TENTATIVA_MS : 45000),
         headers: { Authorization: `Bearer ${p.chave}`, 'Content-Type': 'application/json' },
         // Pergunta que exige dado: na 1ª rodada o modelo é OBRIGADO a consultar (required)
-        body: JSON.stringify({ model: modelo, ...(gemini ? { max_tokens: 3000 } : { max_completion_tokens: 3000 }), messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
+        body: JSON.stringify({ model: modeloAtual, ...(gemini ? { max_tokens: 3000 } : { max_completion_tokens: 3000 }), messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
       })
-      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error(`[motor-ia] ${p.nome} ferramentas`, modelo, res.status, corpo); if (p.nome === 'openai') marcarSemCredito('openai', res.status, corpo); return { texto: null, dadosConsultados } }
+      let res: Response | null = null
+      while (!res) {
+        const podeTrocar = filaGemini.length > 0 && Date.now() - inicio < GEMINI_LIMITE_RESERVA_MS
+        try {
+          const r = await postar()
+          if (r.ok || !podeTrocar || ![404, 429, 500, 503, 504].includes(r.status)) res = r
+          else console.error(`[motor-ia] gemini ${modeloAtual} ${r.status}: tentando a reserva`)
+        } catch (err) {
+          if (!podeTrocar) throw err
+          console.error(`[motor-ia] gemini ${modeloAtual} rede: tentando a reserva`, err instanceof Error ? err.message : err)
+        }
+        if (!res) modeloAtual = filaGemini.shift()!
+      }
+      if (!res.ok) { const corpo = (await res.text()).slice(0, 300); console.error(`[motor-ia] ${p.nome} ferramentas`, modeloAtual, res.status, corpo); if (p.nome === 'openai') marcarSemCredito('openai', res.status, corpo); return { texto: null, dadosConsultados } }
       const dados = await res.json()
-      somarUso(uso, modelo, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
+      somarUso(uso, modeloAtual, dados?.usage?.prompt_tokens, dados?.usage?.completion_tokens)
       const msg = dados?.choices?.[0]?.message as MsgOpenAI | undefined
       const pedidos = msg?.tool_calls ?? []
       if (!pedidos.length || ultima) {
         const texto = typeof msg?.content === 'string' ? msg.content.trim() : ''
-        return { texto: texto || null, dadosConsultados }
+        return { texto: texto || null, dadosConsultados, modelo: modeloAtual }
       }
       conversa.push({ role: 'assistant', content: msg?.content ?? null, tool_calls: pedidos })
       const resultados = await Promise.all(pedidos.map(async (p) => {
@@ -531,7 +551,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
 // última, tool_choice "none" obriga a responder com o que já tem. O conteúdo de
 // cada resposta volta inteiro no histórico (blocos de raciocínio inclusive).
 const MAX_CONSULTAS = 4
-type ConsultaClaude = { texto: string | null; dadosConsultados: string[] }
+type ConsultaClaude = { texto: string | null; dadosConsultados: string[]; modelo?: string }
 async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: MensagemHistorico[], nivel: Nivel, consulta: ConsultaMotor, uso?: Uso): Promise<ConsultaClaude> {
   const dadosConsultados: string[] = []
   if (!process.env.ANTHROPIC_API_KEY || semCredito('anthropic')) return { texto: null, dadosConsultados }
@@ -698,7 +718,7 @@ export async function perguntarAoMotor(args: {
     const sistema = montarSistema(ctx, n, lang)
     const enviados = sistema.fixo.length + sistema.empresa.length + msgs.reduce((t, m) => t + m.content.length, 0)
     const c = await chamarOpenAIComFerramentas(`${sistema.fixo}\n\n${sistema.empresa}`, msgs, GEMINI_MODELO(), consulta, uso, provedorGemini())
-    return { texto: c.texto, provedor: 'gemini' as const, modelo: GEMINI_MODELO(), enviados: enviados + c.dadosConsultados.join('').length, consultas: c.dadosConsultados }
+    return { texto: c.texto, provedor: 'gemini' as const, modelo: c.modelo ?? GEMINI_MODELO(), enviados: enviados + c.dadosConsultados.join('').length, consultas: c.dadosConsultados }
   }
   const executar = async (n: Nivel): Promise<{ texto: string | null; provedor: 'openai' | 'anthropic' | 'gemini'; modelo: string; enviados: number; consultas?: string[] }> => {
     const sistema = montarSistema(ctx, n, lang)

@@ -46,3 +46,7 @@
 
 ## Disjuntor de saldo das IAs (2026-11-03)
 Quando a OpenAI ou a Anthropic responde "sem crédito" (insufficient_quota / no credits / credit balance), o motor (`lib/ia/motor.ts`, `marcarSemCredito`/`semCredito`) deixa aquele provedor de lado por 10 minutos e vai direto para a reserva (Gemini gratuito, com as mesmas ferramentas). Antes ele tentava cada modelo de novo a cada pergunta — no teste do Elias (Contas Vencidas, 03/11 15:04) foram 4 tentativas na OpenAI sem crédito antes da resposta. Erro comum e limite por minuto não desligam; passados 10 minutos ele testa de novo sozinho. Teste: `npx tsx scripts/check-ia-motor.mts`.
+
+## Reserva do Gemini (2026-11-04)
+
+Com OpenAI e Anthropic sem crédito, a resposta depende do Gemini gratuito. Se o modelo principal responde 404, 429, 500, 503 ou 504, ou estoura 30 s, o motor tenta `gemini-3.6-flash` e depois `gemini-3.5-flash-lite`, enquanto a pergunta estiver abaixo de 70 s. Causa: 503 do modelo em testes deixou duas perguntas seguidas sem resposta. Teste em `scripts/check-portas.mts`.

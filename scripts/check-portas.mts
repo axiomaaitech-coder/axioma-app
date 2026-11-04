@@ -86,4 +86,35 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   assert.match(av.join(' '), re)
   assert.equal(av.length, 1, 'negado não soma aviso de consulta que falhou')
 }
-console.log('check-portas: papel, tempo limite, disjuntor e confiabilidade, tudo certo ✔')
+// ─── Reserva do Gemini: modelo sobrecarregado não deixa a pergunta sem resposta ───
+{
+  const prov = { nome: 'gemini' as const, url: 'https://gemini.teste', chave: 'k' }
+  const consulta = { supabase: {} as never, empresaId: E, papel: 'dono', fuso: 'America/Sao_Paulo' }
+  const original = globalThis.fetch, erroOriginal = console.error
+  console.error = () => {}
+  const ok = (t: string) => new Response(JSON.stringify({ choices: [{ message: { content: t } }] }))
+  const rodar = async (roteiro: (Response | Error)[]) => {
+    const modelos: string[] = []
+    globalThis.fetch = (async (_u: unknown, init?: { body?: string }) => {
+      modelos.push(JSON.parse(String(init?.body)).model)
+      const x = roteiro.shift() ?? ok('sobrou')
+      if (x instanceof Error) throw x
+      return x
+    }) as typeof fetch
+    const r = await M.chamarOpenAIComFerramentas('s', [{ role: 'user', content: 'p' }], 'gemini-3-flash-preview', consulta, undefined, prov)
+    return { r, modelos }
+  }
+  const erro = (s: number) => new Response('{}', { status: s })
+  let x = await rodar([ok('oi')])
+  assert.deepEqual(x.modelos, ['gemini-3-flash-preview'], 'sem falha não troca')
+  x = await rodar([erro(503), ok('oi')])
+  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3.6-flash', 2], '503 vai para o estável')
+  x = await rodar([new Error('timeout'), erro(429), ok('oi')])
+  assert.deepEqual([x.r.texto, x.r.modelo, x.modelos.length], ['oi', 'gemini-3.5-flash-lite', 3], 'tempo esgotado e limite também')
+  x = await rodar([erro(503), erro(503), erro(503)])
+  assert.deepEqual([x.r.texto, x.modelos.length], [null, 3], 'todos fora: desiste, sem repetir para sempre')
+  x = await rodar([erro(400)])
+  assert.deepEqual([x.r.texto, x.modelos.length], [null, 1], 'pedido inválido não troca de modelo')
+  globalThis.fetch = original; console.error = erroOriginal
+}
+console.log('check-portas: papel, tempo limite, disjuntor, confiabilidade e reserva do Gemini, tudo certo ✔')
