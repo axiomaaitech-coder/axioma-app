@@ -21,6 +21,7 @@ export type ResultadoFinanceiro<T = unknown> = {
   detalhes?: T                      // listas, agrupamentos, comparações
   limitacoes: string[]              // o que pode mudar a conclusão
   ref: string                       // referência para rastrear (indicador + período + critério)
+  consultado_em: string             // quando a consulta foi feita (ISO, UTC): sem isso não dá para saber se o número é de agora
 }
 
 // Centavos: soma em inteiros para não acumular erro de ponto flutuante (0,1 + 0,2)
@@ -28,13 +29,13 @@ export const centavos = (v: unknown) => Math.round((Number(v) || 0) * 100)
 export const reais = (c: number) => c / 100
 export const somaReais = (valores: unknown[]) => reais(valores.reduce<number>((s, v) => s + centavos(v), 0))
 
-export function resultado<T>(p: Omit<ResultadoFinanceiro<T>, 'moeda' | 'ref' | 'periodo'> & { periodo: Periodo | null }): ResultadoFinanceiro<T> {
+export function resultado<T>(p: Omit<ResultadoFinanceiro<T>, 'moeda' | 'ref' | 'periodo' | 'consultado_em'> & { periodo: Periodo | null }): ResultadoFinanceiro<T> {
   const per = p.periodo ? { inicio: p.periodo.inicio, fim: p.periodo.fim, rotulo: p.periodo.rotulo, parcial: p.periodo.parcial } : null
   const limitacoes = [...p.limitacoes]
   if (per?.parcial) limitacoes.push('período ainda em andamento: valor parcial, não comparável a período fechado')
-  return { ...p, moeda: 'BRL', periodo: per, limitacoes, ref: `${p.indicador}|${per ? `${per.inicio}..${per.fim}` : 'sem período'}|${p.criterio_data}` }
+  return { ...p, moeda: 'BRL', periodo: per, limitacoes, consultado_em: new Date().toISOString(), ref: `${p.indicador}|${per ? `${per.inicio}..${per.fim}` : 'sem período'}|${p.criterio_data}` }
 }
 export const falhou = (indicador: string, motivo: string): ResultadoFinanceiro => ({
   indicador, definicao: '', estado: 'erro', valor: null, unidade: 'BRL', moeda: 'BRL', periodo: null, criterio_data: '', fontes: [], registros: 0,
-  limitacoes: [`não foi possível consultar agora: ${motivo}`], ref: `${indicador}|erro`,
+  limitacoes: [`não foi possível consultar agora: ${motivo}`], ref: `${indicador}|erro`, consultado_em: new Date().toISOString(),
 })

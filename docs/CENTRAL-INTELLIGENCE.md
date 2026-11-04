@@ -51,6 +51,10 @@ Pedido do Elias ("AXIOMA CENTRAL INTELLIGENCE"). Regra do pedido: auditar, apres
 5. **Agentes:** cada tela usa só as portas da sua finalidade (ex.: IA Tributária não abre a porta de clientes).
 6. **Testes:** os 12 cenários do pedido. O cenário 1 (RH) responde "indisponível — o Axioma não tem cadastro de funcionários".
 
+## Andamento
+
+- **Etapa 1 feita (2026-11-04, aprovada pelo Elias):** `lib/financeiro/semantica.ts` com módulo dono, rota e papel em cada indicador, 14 indicadores novos e `funcionarios`, `folha` e `fornecedor_deve` marcados como indisponíveis; `consultado_em` no contrato; teste `scripts/check-catalogo.mts`. O catálogo ainda não muda o que a IA responde: as portas e a conferência de papel são as Etapas 2 e 3.
+
 ## Decisões do Elias
 
 - **RH:** criar um módulo de RH (funcionários e folha) é um módulo novo e grande, fora desta arquitetura. Até lá, a IA responde que não há dado.

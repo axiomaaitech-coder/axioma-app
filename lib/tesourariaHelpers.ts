@@ -115,7 +115,7 @@ export type PosicaoCaixa = {
 
 export async function obterPosicaoCaixa(empresaId: string, data: string, reservaMinima: number): Promise<PosicaoCaixa> {
   const { data: linhas, error } = await comRetentativa(() => supabase.rpc("tesouraria_posicao", { p_empresa_id: empresaId, p_data: data }));
-  if (error) reportarFalhaEscrita("tesouraria_posicao", "rpc select", error.message);
+  if (error) avisarFalhaLeitura("tesouraria_posicao", new Error(error.message));
   const l = (linhas as LinhaPosicao[]) || [];
   const somaTipo = (t: string) => l.filter((x) => x.tipo_liquidez === t).reduce((s, x) => s + Number(x.saldo), 0);
   const totalDisponivel = somaTipo("disponivel");
@@ -228,7 +228,7 @@ export async function obterFluxoProjetado(empresaId: string, reservaMinima: numb
   // Histórico de atraso sem leitura não é "sem atraso": registra e avisa a tela (o fator cai no padrão)
   const [{ data: cpPagas }, { data: crRecebidas }] = avisarSeFalhou([rCpPagas, rCrRecebidas] as const, "tesouraria:historicoAtraso");
   rpcResultados.forEach((r, i) => {
-    if (r.error) reportarFalhaEscrita("tesouraria_fluxo_projetado", `rpc select (${HORIZONTES_TESOURARIA[i]}d)`, r.error.message);
+    if (r.error) avisarFalhaLeitura(`tesouraria_fluxo_projetado:${HORIZONTES_TESOURARIA[i]}d`, new Error(r.error.message));
   });
 
   const { fator: fatorAtrasoAP, amostra: amostraAtrasoAP } = calcularFatorAtrasoHistorico((cpPagas as ContaPagaParaFatorAtraso[]) || []);
@@ -253,7 +253,7 @@ export async function obterPontoFluxoProjetadoAvulso(
   empresaId: string, dias: number, reservaMinima: number, fatorAtrasoAP: number, fracaoAtrasoAR: number
 ): Promise<{ horizonteDias: number } & ReturnType<typeof montarBlendFluxoProjetado>> {
   const { data, error } = await supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias });
-  if (error) reportarFalhaEscrita("tesouraria_fluxo_projetado", `rpc select (${dias}d avulso)`, error.message);
+  if (error) avisarFalhaLeitura(`tesouraria_fluxo_projetado:${dias}d`, new Error(error.message));
   const linha = (data as { saldo_atual: number; entradas_previstas: number; saidas_previstas: number }[] | null)?.[0];
   return {
     horizonteDias: dias,
