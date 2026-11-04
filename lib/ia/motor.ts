@@ -126,9 +126,15 @@ export function triagemPorRegra(pergunta: string, qtdManuais: number): Nivel | n
 // ─── 3. CONFERÊNCIA DOS NÚMEROS (sem IA) ───
 // Todo "R$ X" citado precisa existir no retrato (±1%) ou estar marcado como
 // estimativa/meta/cálculo. Devolve os valores que não bateram.
-const RE_REAIS = /R\$\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|R\$\s?-?\d+(?:,\d{1,2})?/g
+// Aceita o formato brasileiro (R$ 1.234,56) e o americano das respostas em inglês (R$ 1,234.56), que antes era lido como R$ 1,23
+const RE_REAIS = /R\$\s?-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|R\$\s?-?\d+\.\d{1,2}(?!\d)|R\$\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|R\$\s?-?\d+(?:,\d{1,2})?/g
 const RE_MARCA_ESTIMATIVA = /estim|aprox|cerca de|por volta|~|≈|meta|objetivo|economia de|potencial|at[eé]|entre|se |caso|simula|projet|hipot|a medir|estimat|approx|around|target|goal|up to|meta|objetivo|aproximad/i
-export const lerReais = (t: string) => Number(t.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.'))
+export function lerReais(t: string): number {
+  const s = t.replace(/R\$\s?/, '')
+  if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) return Number(s.replace(/,/g, ''))
+  if (/^-?\d+\.\d{1,2}$/.test(s)) return Number(s)
+  return Number(s.replace(/\./g, '').replace(',', '.'))
+}
 export function conferirNumeros(resposta: string, textoBase: string): string[] {
   const conhecidos = [...textoBase.matchAll(RE_REAIS)].map((m) => Math.abs(lerReais(m[0])))
   const ruins: string[] = []

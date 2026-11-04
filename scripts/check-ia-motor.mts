@@ -36,6 +36,12 @@ const base = 'Receita R$ 50.000/mês · custo fixo R$ 12.345/mês'
 assert.deepEqual(conferirNumeros('Sua receita é R$ 50.000 e o fixo R$ 12.345.', base), [])
 assert.deepEqual(conferirNumeros('Seu lucro foi R$ 99.999.', base), ['R$ 99.999'])
 assert.deepEqual(conferirNumeros('Economia estimada de R$ 1.234 por mês.', base), [])
+// Resposta em inglês usa R$ 1,234.56: antes era lida como R$ 1,23 e todo valor certo virava aviso falso
+assert.deepEqual(conferirNumeros('Your revenue is R$ 50,000.00 and fixed costs R$ 12,345.', base), [], 'formato americano certo não é marcado')
+assert.deepEqual(conferirNumeros('Your profit was R$ 99,999.00.', base), ['R$ 99,999.00'], 'valor inventado em inglês continua marcado')
+assert.deepEqual(conferirNumeros('Your fixed cost is R$ 12345.00.', base), [], 'sem separador de milhar')
+assert.deepEqual(conferirNumeros('A receita é R$ 50.000,00. O fixo é R$ 12.345,00.', base), [], 'formato brasileiro segue igual')
+assert.deepEqual(conferirNumeros('Pagou R$ 5.000. Depois mais R$ 7.', 'R$ 5.000 e R$ 7'), [], 'ponto final da frase não vira decimal')
 // Valores vindos das ferramentas de consulta (números puros) passam na conferência
 const { reaisDasConsultas } = await import('../lib/ia/motor')
 const consulta = reaisDasConsultas(['{"itens":[{"saldo":4321.5}]}'])
