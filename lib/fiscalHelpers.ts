@@ -32,7 +32,7 @@ import {
   type AtividadeFiscal as AtividadeFiscalPresuncao, type AlertaReforma,
 } from "./iaTributariaHelpers";
 import { hojeISO, isoDia } from "./datas";
-import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
+import { exigirLeitura, registrarLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,8 +248,16 @@ export type ObrigacaoProxima = {
 
 export async function obterObrigacoesProximas(empresaId: string, dias = 60): Promise<ObrigacaoProxima[]> {
   const { data, error } = await supabase.rpc("fiscal_obrigacoes_proximas", { p_empresa_id: empresaId, p_dias: dias });
-  if (error) { reportarFalhaEscrita("fiscal_obrigacoes_proximas", "rpc", error.message); return []; }
-  return (data as ObrigacaoProxima[]) || [];
+  if (error) { avisarFalhaLeitura("fiscal_obrigacoes_proximas", new Error(error.message)); return []; }
+  return obrigacoesEmAberto((data as LinhaObrigacaoBanco[]) || []);
+}
+
+// O banco devolve o valor como `valor` (a tela lia valor_estimado e mostrava sempre "—") e deixa passar
+// paga e dispensada (ele só exclui 'enviada' e 'confirmada'): obrigação quitada não pode aparecer em aberto nem como atrasada.
+type LinhaObrigacaoBanco = Omit<ObrigacaoProxima, "valor_estimado" | "risco"> & { valor: number | null };
+export function obrigacoesEmAberto(linhas: LinhaObrigacaoBanco[]): ObrigacaoProxima[] {
+  return linhas.filter((o) => o.status !== "paga" && o.status !== "dispensada")
+    .map(({ valor, ...o }) => ({ ...o, risco: null, valor_estimado: valor }));
 }
 
 export type CorRisco = "atrasada" | "urgente" | "atencao" | "folga";

@@ -27,7 +27,7 @@ const pt: DocumentoAxioma = {
     { p: 'Dois cartões com os pontos que mais afetam empresas pequenas (IBS/CBS substituindo PIS, COFINS, ISS e ICMS; Simples mantido; cashback para famílias do CadÚnico; Imposto Seletivo sobre fumígenos, bebidas alcoólicas e açucaradas, veículos e outros). **Fonte: EC 132/2023 e LC 214/2025**, com a data da conferência; as alíquotas finais ainda dependem de lei.' },
 
     { h1: 'Calendário de Obrigações' },
-    { p: 'Lista de todas as obrigações já geradas para o seu regime, com **Vencimento**, **Valor** e **Status**.' },
+    { p: 'Lista das obrigações **em aberto** do seu regime, com **Vencimento**, **Valor** e **Status**. A que você marca como paga ou dispensada sai da lista.' },
     { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
       ['**Marcar como paga**', 'Atualiza o status na hora ("Atualizado.").'],
       ['**Marcar como dispensada**', 'Para obrigação que não se aplica ao seu caso.'],
@@ -67,7 +67,7 @@ const en: DocumentoAxioma = {
     { p: 'Two cards with the points that most affect small companies (IBS/CBS replacing PIS, COFINS, ISS and ICMS; Simples kept; cashback for CadÚnico families; Selective Tax on tobacco, alcoholic and sugary drinks, vehicles and others). **Source: Constitutional Amendment 132/2023 and LC 214/2025**, with the check date; final rates still depend on law.' },
 
     { h1: 'Obligations Calendar' },
-    { p: 'List of all obligations already generated for your regime, with **Due date**, **Amount** and **Status**.' },
+    { p: 'List of the **open** obligations for your regime, with **Due date**, **Amount** and **Status**. One you mark as paid or waived leaves the list.' },
     { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
       ['**Mark as paid**', 'Updates the status right away ("Updated.").'],
       ['**Mark as waived**', 'For an obligation that does not apply to your case.'],
@@ -107,7 +107,7 @@ const es: DocumentoAxioma = {
     { p: 'Dos tarjetas con los puntos que más afectan a las empresas pequeñas (IBS/CBS reemplazando PIS, COFINS, ISS e ICMS; Simples mantenido; cashback para familias del CadÚnico; Impuesto Selectivo sobre tabaco, bebidas alcohólicas y azucaradas, vehículos y otros). **Fuente: EC 132/2023 y LC 214/2025**, con la fecha de verificación; las alícuotas finales aún dependen de ley.' },
 
     { h1: 'Calendario de Obligaciones' },
-    { p: 'Lista de todas las obligaciones ya generadas para su régimen, con **Vencimiento**, **Valor** y **Estado**.' },
+    { p: 'Lista de las obligaciones **abiertas** de su régimen, con **Vencimiento**, **Valor** y **Estado**. La que usted marca como pagada o dispensada sale de la lista.' },
     { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
       ['**Marcar como pagada**', 'Actualiza el estado al instante ("Actualizado.").'],
       ['**Marcar como dispensada**', 'Para una obligación que no aplica a su caso.'],
