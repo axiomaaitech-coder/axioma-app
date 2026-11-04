@@ -265,3 +265,19 @@ console.log('check-financeiro: tudo certo ✔')
   if (fBRL2(1783443.6) !== '1.783.443,60') throw new Error('formato de reais')
   console.log('check-financeiro concentração e formato: ok')
 }
+
+// Venda à noite conta no dia certo (horário vem em UTC) e a Conferência não dobra pagamento já lançado
+{
+  const { pdvRealizadoAte } = await import('../lib/caixaSaldo')
+  const v = (finalizada_em: string, extra = {}) => ({ valor_total: 100, status: 'finalizada', forma_pagamento: 'dinheiro', finalizada_em, criado_em: null, cancelada_em: null, ...extra })
+  if (pdvRealizadoAte([v('2026-11-05T01:30:00Z')], '2026-11-04') !== 100) throw new Error('venda às 22h30 de Brasília é de hoje')
+  if (pdvRealizadoAte([v('2026-11-05T03:30:00Z')], '2026-11-04') !== 0) throw new Error('venda de amanhã não entra')
+  if (pdvRealizadoAte([v('2026-11-04T12:00:00Z', { forma_pagamento: 'credito' })], '2026-11-04') !== 0) throw new Error('crédito não é caixa')
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'; process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
+  const { razaoJaCobre } = await import('../lib/conferenciaHelpers')
+  if (!razaoJaCobre(9800, 0, 9800)) throw new Error('pagamento antigo sem rastro já está no razão: não lançar de novo')
+  if (!razaoJaCobre(92840, 42840, 50000)) throw new Error('parte antiga já no razão')
+  if (razaoJaCobre(0, 0, 9800)) throw new Error('nada no razão: precisa lançar')
+  if (razaoJaCobre(42840, 42840, 50000)) throw new Error('razão só tem o que o rastro explica: precisa lançar o resto')
+  console.log('check-financeiro venda à noite e Conferência sem dobrar: ok')
+}

@@ -222,6 +222,7 @@ async function jaLancado(eventoId: string): Promise<boolean> {
 }
 
 async function executarContabilidade(r: Rastreio): Promise<Resultado> {
+  if (r.payload.pular?.includes("contabilidade")) return { status: "nao_aplica" };
   const origem = { modulo: r.origem_tabela, tabela: r.origem_tabela, id: r.origem_id };
   // 1) Desconto concedido na quitação (receber): refaz o reconhecimento pelo líquido.
   if (r.payload.desconto) {

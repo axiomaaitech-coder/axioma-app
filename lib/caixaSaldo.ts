@@ -4,14 +4,17 @@
 // pagas na hora (crédito é previsão de repasse, não saldo). Recebe o cliente do Supabase (tela ou servidor).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lerTodas } from "./lerTodas";
+import { hojeISO } from "./datas";
 
 type Venda = { valor_total: number | null; status: string | null; forma_pagamento: string | null; finalizada_em: string | null; criado_em: string | null; cancelada_em: string | null };
 
 // Pura: soma das vendas do PDV que já viraram dinheiro em caixa até "hoje".
-export function pdvRealizadoAte(vendas: Venda[], hoje: string): number {
+// O horário vem em UTC: o dia é o do fuso da empresa (venda depois das 21h ficava fora do caixa até virar o dia).
+export function pdvRealizadoAte(vendas: Venda[], hoje: string, fuso = "America/Sao_Paulo"): number {
   return vendas.reduce((s, v) => {
     if (v.cancelada_em || v.status !== "finalizada" || v.forma_pagamento === "credito") return s;
-    const dia = String(v.finalizada_em || v.criado_em || "").slice(0, 10);
+    const quando = v.finalizada_em || v.criado_em;
+    const dia = quando ? hojeISO(new Date(quando), fuso) : "";
     return dia && dia <= hoje ? s + (Number(v.valor_total) || 0) : s;
   }, 0);
 }

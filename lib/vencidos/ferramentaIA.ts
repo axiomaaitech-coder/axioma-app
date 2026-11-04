@@ -21,13 +21,13 @@ export const FERRAMENTA_VENCIDOS = {
 }
 
 // Caixa pela Tesouraria com o cliente do servidor (mesma RPC e mesma reserva mínima da tela Tesouraria)
-const tesourariaServidor = (sb: SupabaseClient): LerTesouraria => async (empresaId, hoje) => {
+export const tesourariaServidor = (sb: SupabaseClient): LerTesouraria => async (empresaId, hoje) => {
   const [cfg, pos] = await Promise.all([
     sb.from('tesouraria_config').select('reserva_minima').eq('empresa_id', empresaId).maybeSingle(),
     sb.rpc('tesouraria_posicao', { p_empresa_id: empresaId, p_data: hoje }),
   ])
   const linhas = (pos.data as { tipo_liquidez: string; saldo: number }[] | null) ?? []
-  return { caixa: linhas.filter((l) => l.tipo_liquidez === 'disponivel').reduce((s, l) => s + Number(l.saldo), 0), reserva: Number(cfg.data?.reserva_minima ?? 0), giro: null, falhou: !!pos.error }
+  return { caixa: linhas.filter((l) => l.tipo_liquidez === 'disponivel').reduce((s, l) => s + Number(l.saldo), 0), reserva: Number(cfg.data?.reserva_minima ?? 0), giro: null, falhou: !!pos.error || !!cfg.error }
 }
 
 export async function consultarVencidosIA(sb: SupabaseClient, empresaId: string, input: Record<string, unknown>, hoje: string) {

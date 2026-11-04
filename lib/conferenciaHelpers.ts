@@ -22,6 +22,24 @@ const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proc
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const TOLERANCIA = 0.01;
 
+// Pagamentos de contas a pagar já lançados no razão, por conta (baixa em Fornecedores, sem contar os estornados).
+// null = não foi possível ler: a tela segue sem essa informação e o reprocessamento se recusa a rodar,
+// porque sem saber o que já foi lançado poderia dobrar o pagamento.
+async function pagamentosNoRazao(empresaId: string, contaId?: string): Promise<Map<string, number> | null> {
+  const { data, error } = await lerTodas(() => {
+    const q = supabase.from("lancamento_contabil_partida").select("valor, plano_de_contas!inner(codigo), lancamento_contabil!inner(origem_id, origem_tabela, descricao, estornado_por_id, empresa_id)")
+      .eq("lancamento_contabil.empresa_id", empresaId).eq("lancamento_contabil.origem_tabela", "contas_pagar").eq("lancamento_contabil.descricao", "Pagamento de conta a pagar")
+      .is("lancamento_contabil.estornado_por_id", null).eq("plano_de_contas.codigo", "3.01").eq("tipo", "debito");
+    return (contaId ? q.eq("lancamento_contabil.origem_id", contaId) : q).order("id");
+  });
+  if (error) { avisarFalhaLeitura("conferencia:pagamentosNoRazao", new Error(error.message)); return null; }
+  const m = new Map<string, number>();
+  for (const p of data as unknown as { valor: number; lancamento_contabil: { origem_id: string } }[]) m.set(p.lancamento_contabil.origem_id, r2((m.get(p.lancamento_contabil.origem_id) ?? 0) + Number(p.valor)));
+  return m;
+}
+// O que está no razão além do que os rastros já explicam cobre o que falta? Então a contabilidade já tem esse dinheiro.
+export const razaoJaCobre = (noRazao: number, rastreado: number, falta: number) => r2(noRazao - rastreado) >= r2(falta) - TOLERANCIA;
+
 export type Par = { a: number; b: number; diferenca: number; ok: boolean };
 const par = (a: number, b: number): Par => ({ a: r2(a), b: r2(b), diferenca: r2(a - b), ok: Math.abs(a - b) <= TOLERANCIA });
 
@@ -98,19 +116,21 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
   const casos: CasoReprocessar[] = [];
   const fmt = (v: number) => v.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { style: "currency", currency: "BRL" });
   const rastreado = rastreadoPorConta(rastro.filter((r) => r.origem_tabela === "contas_pagar" && (r.tipo === "ap_pagamento" || r.tipo === "ap_estorno")));
+  const noRazao = await pagamentosNoRazao(empresaId);
   for (const c of cp.data as { id: string; descricao: string; valor_pago: number; data_pagamento: string | null; mei_obrigacao_id: string | null }[]) {
     if (c.mei_obrigacao_id) continue; // DAS tem motor próprio
     const falta = r2(Number(c.valor_pago) - (rastreado.get(c.id) ?? 0));
     if (falta <= TOLERANCIA) continue;
     const semNada = !rastreado.has(c.id);
     const parecido = fluxo.find((x) => x.tipo === "saida" && !x.origem_tabela && Math.abs(Number(x.valor) - falta) <= TOLERANCIA && x.data === c.data_pagamento);
+    const jaNoRazao = !!noRazao && razaoJaCobre(noRazao.get(c.id) ?? 0, rastreado.get(c.id) ?? 0, falta);
     casos.push({
       codigo: semNada ? "D3" : "D4", id: c.id, tabela: "contas_pagar", descricao: c.descricao, data: c.data_pagamento,
       antes: L(`Pago ${fmt(Number(c.valor_pago))}; chegou ao Fluxo/Contabilidade ${fmt(rastreado.get(c.id) ?? 0)}`, `Paid ${fmt(Number(c.valor_pago))}; reached Cash Flow/Accounting ${fmt(rastreado.get(c.id) ?? 0)}`, `Pagado ${fmt(Number(c.valor_pago))}; llegó al Flujo/Contabilidad ${fmt(rastreado.get(c.id) ?? 0)}`),
       depois: L(`Registrar no motor o pagamento que falta: ${fmt(falta)} em ${c.data_pagamento ?? "—"}`, `Record the missing payment in the engine: ${fmt(falta)} on ${c.data_pagamento ?? "—"}`, `Registrar en el motor el pago que falta: ${fmt(falta)} el ${c.data_pagamento ?? "—"}`),
       impacto: [
         { modulo: L("Fluxo de Caixa", "Cash Flow", "Flujo de Caja"), efeito: L(`+1 saída realizada de ${fmt(falta)}`, `+1 actual outflow of ${fmt(falta)}`, `+1 salida realizada de ${fmt(falta)}`) },
-        { modulo: L("Contabilidade", "Accounting", "Contabilidad"), efeito: L(`baixa de ${fmt(falta)} em Fornecedores (3.01) contra Caixa/Banco`, `${fmt(falta)} settlement in Suppliers (3.01) against Cash/Bank`, `baja de ${fmt(falta)} en Proveedores (3.01) contra Caja/Banco`) },
+        { modulo: L("Contabilidade", "Accounting", "Contabilidad"), efeito: jaNoRazao ? L("nenhum (este pagamento já está lançado)", "none (this payment is already posted)", "ninguno (este pago ya está registrado)") : L(`baixa de ${fmt(falta)} em Fornecedores (3.01) contra Caixa/Banco`, `${fmt(falta)} settlement in Suppliers (3.01) against Cash/Bank`, `baja de ${fmt(falta)} en Proveedores (3.01) contra Caja/Banco`) },
         { modulo: "DRE", efeito: L("nenhum (a DRE por competência já conta a conta pela emissão)", "none (accrual P&L already counts the bill by issue date)", "ninguno (el EERR por devengo ya cuenta la cuenta por emisión)") },
       ],
       risco: parecido ? L(`Já existe no Fluxo uma saída manual de ${fmt(Number(parecido.valor))} no mesmo dia ("${parecido.descricao}") — pode ser o mesmo dinheiro.`, `There is already a manual outflow of ${fmt(Number(parecido.valor))} on the same day ("${parecido.descricao}") — it may be the same money.`, `Ya existe una salida manual de ${fmt(Number(parecido.valor))} el mismo día ("${parecido.descricao}") — puede ser el mismo dinero.`) : null,
@@ -170,12 +190,16 @@ export async function reprocessarCaso(
     const falta = r2(Number(c.valor_pago) - (rastreadoPorConta(rs || []).get(caso.id) ?? 0));
     if (falta <= TOLERANCIA) return { jaResolvido: true };
     const data = (c.data_pagamento as string) || hojeISO();
+    // O razão já tem este pagamento (lançado antes de existir o rastro): lançar de novo dobraria a saída do banco.
+    const lidos = await pagamentosNoRazao(empresaId, caso.id);
+    if (!lidos) return { erro: "não foi possível conferir a contabilidade agora; tente de novo em instantes" };
+    const pularDestinos = [...(pular ?? []), ...(razaoJaCobre(lidos.get(caso.id) ?? 0, rastreadoPorConta(rs || []).get(caso.id) ?? 0, falta) ? (["contabilidade"] as const) : [])];
     const r = await registrarMovimentacao({
       empresaId, tipo: "ap_pagamento", origemTabela: "contas_pagar", origemId: caso.id, valor: falta, data, aguardar: true,
       payload: {
         descricao: c.descricao as string, contraparte: ((c.fornecedores as unknown as { nome?: string } | null)?.nome) ?? null, contraparte_id: (c.fornecedor_id as string) ?? null,
         categoria: (c.categoria as string) ?? null, centro_custo_id: (c.centro_custo_id as string) ?? null, forma: (c.forma_pagamento as string) ?? null,
-        custo_fixo_id: (c.custo_fixo_id as string) ?? null, proveniencia, pular: pular ?? null, evento_tipo: "AP_PAID",
+        custo_fixo_id: (c.custo_fixo_id as string) ?? null, proveniencia, pular: pularDestinos.length ? pularDestinos : null, evento_tipo: "AP_PAID",
         evento_payload: { conta_id: caso.id, valor_pago: Number(c.valor_pago), data_pagamento: data, forma_pagamento: c.forma_pagamento ?? null, valor_incremento: falta, valor_encargos: 0 },
       },
     });
