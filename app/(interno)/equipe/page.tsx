@@ -36,7 +36,7 @@ const VERDE = '#34d399'
 const VERMELHO = '#f87171'
 const AMBAR = '#2ecc9b'
 const AZUL = '#2ecc9b'
-const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" }
+const FONTE_EXEC = { fontFamily: "var(--font-geist-sans), Arial, sans-serif" }
 
 // Link do convite sempre no domínio próprio (nunca o endereço da Vercel)
 const SITE = 'https://axiomaai.com.br'

@@ -18,8 +18,8 @@ export default function AvisoDuplicidade({ aviso, temaClaro, onBloquear, onLanca
   const certa = aviso?.veredicto === 'duplicata'
   return (
     <Modal open={!!aviso && aviso.veredicto !== 'segue'} onClose={onBloquear}>
-      <CanvasBox cor={certa ? '#f87171' : '#f59e0b'} fundo={temaClaro ? '#f6f7c4' : undefined}>
-        <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: certa ? '#f87171' : '#f59e0b' }}>AXIOMA AI.TECH</p>
+      <CanvasBox cor={certa ? '#f87171' : (temaClaro ? '#b45309' : '#2ecc9b')} fundo={temaClaro ? '#f6f7c4' : undefined}>
+        <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: certa ? '#f87171' : (temaClaro ? '#b45309' : '#2ecc9b') }}>AXIOMA AI.TECH</p>
         <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: texto }}>
           {certa ? <ShieldCheck size={18} /> : <AlertTriangle size={18} />}
           {certa ? L('Duplicata bloqueada', 'Duplicate blocked', 'Duplicado bloqueado') : L('Suspeita de duplicata', 'Possible duplicate', 'Sospecha de duplicado')}

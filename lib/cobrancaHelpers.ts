@@ -80,7 +80,8 @@ export async function listarInteracoes(empresaId: string, contaId?: string): Pro
 
 // Todos os contatos de um cliente (dossiê de Contas Vencidas), lixeira fora
 export async function listarInteracoesCliente(empresaId: string, clienteId: string): Promise<CobrancaInteracao[]> {
-  const { data } = await supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).eq("cliente_id", clienteId).is("excluido_em", null).order("data", { ascending: false }).limit(200);
+  const { data, error } = await supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).eq("cliente_id", clienteId).is("excluido_em", null).order("data", { ascending: false }).limit(200);
+  if (error) avisarFalhaLeitura("cobranca:interacoesCliente", new Error(error.message));
   return data || [];
 }
 

@@ -831,7 +831,7 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
                     <div className="text-base px-3 py-2 rounded-lg max-w-[85%]"
                       style={m.role === "user"
                         ? { background: tokens.acaoBg, color: tokens.acaoTexto }
-                        : { background: "#eef4ff", border: "1px solid #dbeafe", color: "#0f172a" }}>
+                        : { background: "rgba(245,238,220,0.7)", border: "1px solid rgba(16,27,61,0.12)", color: "#101b3d" }}>
                       {m.content}
                     </div>
                   </div>

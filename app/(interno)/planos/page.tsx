@@ -115,14 +115,14 @@ export default function Planos() {
   return (
     <div className="relative min-h-screen overflow-auto" style={{ background: PAG_BG }}>
       <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(46,204,155,0.08) 0%, transparent 60%)',
       }} />
 
       <div className="relative z-10 px-4 py-12 md:py-16">
 
         {/* Header */}
         <div className="flex flex-col items-center mb-12 md:mb-16">
-          <div className="text-xs font-black tracking-[0.4em] uppercase mb-3" style={{ color: '#6ab0ff' }}>
+          <div className="text-xs font-black tracking-[0.4em] uppercase mb-3" style={{ color: '#2ecc9b' }}>
             AXIOMA AI.TECH
           </div>
 

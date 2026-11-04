@@ -33,7 +33,7 @@ type RastroRow = {
 type Explicacao = { rastreio_id: string; explicacao: string; acao: string }
 
 const PALETA = {
-  dark: { VERDE: '#2ecc9b', VERMELHO: '#f87171', AMBAR: '#fbbf24', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
+  dark: { VERDE: '#2ecc9b', VERMELHO: '#f87171', AMBAR: '#c8d3e0', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
   xms: { VERDE: '#0f7d5c', VERMELHO: '#d93848', AMBAR: '#b45309', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(255,255,255,0.5)', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 

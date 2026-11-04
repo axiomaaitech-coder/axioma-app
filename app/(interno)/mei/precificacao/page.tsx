@@ -41,7 +41,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#2ecc9b', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#2ecc9b', ROXO: '#2ecc9b', NEUTRO: '#a3b1c2', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', NEUTRO: '#6b7280', CAMPO_BG: '#ffffff', PAINEL_BG: 'rgba(255,255,255,0.5)', POCO_BG: 'rgba(255,255,255,0.5)' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#101b3d', NEUTRO: '#6b7280', CAMPO_BG: '#ffffff', PAINEL_BG: 'rgba(255,255,255,0.5)', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
 type Modo = 'hora' | 'projeto' | 'produto'

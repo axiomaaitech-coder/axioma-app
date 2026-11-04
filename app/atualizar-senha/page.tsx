@@ -140,7 +140,7 @@ export default function AtualizarSenha() {
         {(['pt','en','es'] as const).map((l) => (
           <button key={l} onClick={() => setIdioma(l)}
             className="text-xs px-3 py-1 rounded-full font-bold transition-all"
-            style={{background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#6ab0ff' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)'}}>
+            style={{background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#2ecc9b' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)'}}>
             {l === 'pt' ? '🇧🇷 PT' : l === 'en' ? '🇺🇸 EN' : '🇪🇸 ES'}
           </button>
         ))}
@@ -220,7 +220,7 @@ export default function AtualizarSenha() {
 
           <button onClick={handleAtualizar} disabled={carregando || !sessaoPronta}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
-            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: (carregando || !sessaoPronta) ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
+            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', opacity: (carregando || !sessaoPronta) ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
             {carregando
               ? (idioma === 'pt' ? 'Atualizando...' : idioma === 'en' ? 'Updating...' : 'Actualizando...')
               : (idioma === 'pt' ? 'Atualizar Senha' : idioma === 'en' ? 'Update Password' : 'Actualizar Contraseña')}

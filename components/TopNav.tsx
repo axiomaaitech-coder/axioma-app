@@ -18,7 +18,7 @@ const supabase = createBrowserClient(
 const grupos = [
   {
     label: { pt: "🟡 MEI", en: "🟡 MEI", es: "🟡 MEI" },
-    cor: "#d4af37",
+    cor: "#2ecc9b",
     corBg: "rgba(46,204,155,0.12)",
     destaque: true,
     itens: [
@@ -34,8 +34,8 @@ const grupos = [
   },
   {
     label: { pt: "💰 Financeiro", en: "💰 Financial", es: "💰 Financiero" },
-    cor: "#3b6fd4",
-    corBg: "rgba(163,177,194,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Receitas", en: "Revenue", es: "Ingresos" }, path: "/receitas", emoji: "💵" },
       { label: { pt: "Custos Fixos", en: "Fixed Costs", es: "Costos Fijos" }, path: "/custos-fixos", emoji: "📌" },
@@ -49,8 +49,8 @@ const grupos = [
   },
   {
     label: { pt: "📒 Contabilidade", en: "📒 Accounting", es: "📒 Contabilidad" },
-    cor: "#14b8a6",
-    corBg: "rgba(20,184,166,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Contador", en: "Accountant", es: "Contador" }, path: "/contador", emoji: "🧠" },
       { label: { pt: "Fiscal", en: "Tax", es: "Fiscal" }, path: "/fiscal", emoji: "📜" },
@@ -63,8 +63,8 @@ const grupos = [
   },
   {
     label: { pt: "📈 Crescimento", en: "📈 Growth", es: "📈 Crecimiento" },
-    cor: "#34d399",
-    corBg: "rgba(52,211,153,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Metas", en: "Goals", es: "Metas" }, path: "/metas", emoji: "🎯" },
       { label: { pt: "Investimentos", en: "Investments", es: "Inversiones" }, path: "/investimentos", emoji: "💎" },
@@ -74,8 +74,8 @@ const grupos = [
   },
   {
     label: { pt: "👥 Comercial", en: "👥 Commercial", es: "👥 Comercial" },
-    cor: "#f59e0b",
-    corBg: "rgba(245,158,11,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Clientes", en: "Clients", es: "Clientes" }, path: "/clientes", emoji: "🤝" },
       { label: { pt: "Fornecedores", en: "Suppliers", es: "Proveedores" }, path: "/fornecedores", emoji: "🏭" },
@@ -88,7 +88,7 @@ const grupos = [
   },
   {
     label: { pt: "🏢 Gestão", en: "🏢 Management", es: "🏢 Gestión" },
-    cor: "#a78bfa",
+    cor: "#2ecc9b",
     corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Centros de Custo", en: "Cost Centers", es: "Centros de Costo" }, path: "/centros-custo", emoji: "🗂️" },
@@ -99,8 +99,8 @@ const grupos = [
   },
   {
     label: { pt: "🤖 IA Premium", en: "🤖 AI Premium", es: "🤖 IA Premium" },
-    cor: "#f472b6",
-    corBg: "rgba(244,114,182,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "IA Financeira", en: "Financial AI", es: "IA Financiera" }, path: "/ia-financeira", emoji: "🧠" },
       { label: { pt: "IA Tributária", en: "Tax AI", es: "IA Tributaria" }, path: "/ia-tributaria", emoji: "🏛️" },
@@ -108,8 +108,8 @@ const grupos = [
   },
   {
     label: { pt: "⚙️ Config", en: "⚙️ Settings", es: "⚙️ Config" },
-    cor: "#6ab0ff",
-    corBg: "rgba(106,176,255,0.12)",
+    cor: "#2ecc9b",
+    corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Empresa", en: "Company", es: "Empresa" }, path: "/empresa", emoji: "🏛️" },
       { label: { pt: "Planos", en: "Plans", es: "Planes" }, path: "/planos", emoji: "🚀" },
@@ -128,7 +128,7 @@ type Idioma = "pt" | "en" | "es";
 const pdvModulo = {
   label: { pt: "🛒 PDV", en: "🛒 PDV", es: "🛒 PDV" },
   path: "/pdv",
-  cor: "#00ff88",
+  cor: "#2ecc9b",
 };
 
 // Nexus — inteligência transversal (atravessa a empresa toda), por isso é
@@ -138,7 +138,7 @@ const pdvModulo = {
 const nexusModulo = {
   label: { pt: "🌐 Nexus", en: "🌐 Nexus", es: "🌐 Nexus" },
   path: "/nexus",
-  cor: "#22d3ee",
+  cor: "#2ecc9b",
 };
 
 export default function TopNav() {
@@ -460,7 +460,7 @@ export default function TopNav() {
           background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
           borderBottom: "1px solid rgba(163,177,194,0.25)",
           backdropFilter: "blur(20px)",
-          boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(106,176,255,0.08)",
+          boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(46,204,155,0.08)",
         }}
       >
         {/* Logo */}
@@ -471,7 +471,7 @@ export default function TopNav() {
           className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3 shrink-0"
           style={{ borderRight: "1px solid rgba(163,177,194,0.2)" }}
         >
-          <div style={{ filter: "drop-shadow(0 0 12px rgba(106,176,255,0.7))" }}>
+          <div style={{ filter: "drop-shadow(0 0 12px rgba(46,204,155,0.7))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={28} height={28} className="object-contain" />
           </div>
           <div>
@@ -542,7 +542,7 @@ export default function TopNav() {
                             <span className="text-sm font-medium">{item.label[lang]}</span>
                             {item.path === "/open-finance" && !itemAtivo && (
                               <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
-                                style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 12, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                style={{ background: "rgba(46,204,155,0.2)", color: "#2ecc9b", fontSize: 12, border: "1px solid rgba(46,204,155,0.3)" }}>
                                 NOVO
                               </span>
                             )}
@@ -576,7 +576,7 @@ export default function TopNav() {
         }}
       >
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-2.5 cursor-pointer" onClick={() => navegar(destinoLogo)}>
-          <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
+          <div style={{ filter: "drop-shadow(0 0 10px rgba(46,204,155,0.6))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={30} height={30} className="object-contain" />
           </div>
           <div>
@@ -601,8 +601,8 @@ export default function TopNav() {
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(163,177,194,0.15)", border: "1px solid rgba(163,177,194,0.3)" }}>
             <AnimatePresence mode="wait">
               {menuMobile
-                ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><X size={18} style={{ color: "#6ab0ff" }} /></motion.div>
-                : <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Menu size={18} style={{ color: "#6ab0ff" }} /></motion.div>
+                ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><X size={18} style={{ color: "#2ecc9b" }} /></motion.div>
+                : <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Menu size={18} style={{ color: "#2ecc9b" }} /></motion.div>
               }
             </AnimatePresence>
           </motion.button>
@@ -634,7 +634,7 @@ export default function TopNav() {
                 {!isOperador && (
                   <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
-                    style={{ background: pathname === "/dashboard" ? "rgba(163,177,194,0.2)" : "rgba(163,177,194,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(163,177,194,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
+                    style={{ background: pathname === "/dashboard" ? "rgba(163,177,194,0.2)" : "rgba(163,177,194,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(163,177,194,0.1)", color: pathname === "/dashboard" ? "#2ecc9b" : "#5a7a9a" }}>
                     <span>🏠</span>
                     <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
                   </motion.button>
@@ -656,7 +656,7 @@ export default function TopNav() {
                         style={{
                           background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(46,204,155,0.06)" : "rgba(163,177,194,0.04)",
                           border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(163,177,194,0.08)",
-                          color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
+                          color: ativo || aberto ? grupo.cor : ehMei ? "#2ecc9b" : "#5a7a9a",
                         }}>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm">{grupo.label[lang]}</span>
@@ -680,7 +680,7 @@ export default function TopNav() {
                                     <span className="text-sm font-medium">{item.label[lang]}</span>
                                     {item.path === "/open-finance" && !itemAtivo && (
                                       <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
-                                        style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 12, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                        style={{ background: "rgba(46,204,155,0.2)", color: "#2ecc9b", fontSize: 12, border: "1px solid rgba(46,204,155,0.3)" }}>
                                         NOVO
                                       </span>
                                     )}

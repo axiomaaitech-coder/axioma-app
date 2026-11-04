@@ -1031,7 +1031,7 @@ export default function Metas() {
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={salvar} disabled={salvando}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                      style={{ background: `linear-gradient(135deg, #4c1d95, ${ct(CORES.roxo)})`, color: "#fff" }}>
+                      style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                       {salvando ? "..." : txt.salvar}
                     </motion.button>
                   </div>

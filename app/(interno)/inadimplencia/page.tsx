@@ -70,7 +70,7 @@ const supabase = createBrowserClient(
 // árvore do data-theme e as CSS var não chegariam nele.
 // ============================================================================
 const PALETA = {
-  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#2ecc9b', VERDE: '#34d399', AZUL: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)' },
+  dark: { INDIGO: '#2ecc9b', SAFIRA: '#0f7d5c', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#2ecc9b', VERDE: '#34d399', AZUL: '#2ecc9b', CINZA: '#a3b1c2', BG_CARD: 'rgba(10,22,40,0.8)' },
   // INDIGO/SAFIRA são identidade decorativa do Escuro - no Claro colapsam
   // pra verde-menta oficial (tema-tokens.md §1.1), igual toda outra cor de
   // marca/módulo. AMBAR usa o âmbar aprovado (#f5a623), não o marrom

@@ -42,7 +42,7 @@ const PALETA = {
   // ROXO não é cor da nossa paleta padrão — no Claro vira azul-marinho
   // (chart-2 do tema-tokens.md), reservado pra classificação estrutural
   // (previsão/cenário), nunca decorativo solto.
-  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#101b3d', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', PAINEL_BG3: '#f6f7c4', MODAL_BG: '#f6f7c4' },
+  xms: { VERMELHO: '#ff5a6b', LARANJA: '#b45309', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#101b3d', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', PAINEL_BG3: '#f6f7c4', MODAL_BG: '#f6f7c4' },
 } as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {
@@ -331,9 +331,9 @@ export default function FiscalPage() {
                     <tr style={{ color: CINZA, background: 'var(--axi-surface)' }}>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Prioridade', 'Priority', 'Prioridad')}</th>
                       <th className="text-left py-2 px-3 font-semibold">{L('Descoberta', 'Finding', 'Hallazgo')}</th>
-                      <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden sm:table-cell">{L('Tipo', 'Type', 'Tipo')}</th>
-                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap hidden md:table-cell">{L('Impacto', 'Impact', 'Impacto')}</th>
-                      <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden lg:table-cell">{L('Confiança', 'Confidence', 'Confianza')}</th>
+                      <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Tipo', 'Type', 'Tipo')}</th>
+                      <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">{L('Impacto', 'Impact', 'Impacto')}</th>
+                      <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Confiança', 'Confidence', 'Confianza')}</th>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Status', 'Status', 'Estado')}</th>
                     </tr>
                   </thead>
@@ -346,11 +346,11 @@ export default function FiscalPage() {
                           </span>
                         </td>
                         <td className="py-2.5 px-3" style={{ color: TEXTO }}>{d.titulo}</td>
-                        <td className="py-2.5 px-3 whitespace-nowrap hidden sm:table-cell" style={{ color: COR_TIPO[d.tipo] }}>{LABEL_TIPO[d.tipo][lang]}</td>
-                        <td className="text-right py-2.5 px-3 whitespace-nowrap hidden md:table-cell" style={{ color: TEXTO }}>
+                        <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: COR_TIPO[d.tipo] }}>{LABEL_TIPO[d.tipo][lang]}</td>
+                        <td className="text-right py-2.5 px-3 whitespace-nowrap" style={{ color: TEXTO }}>
                           {d.impacto_estimado != null ? `R$ ${fBRL2(Number(d.impacto_estimado))}` : '—'}
                         </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap hidden lg:table-cell">
+                        <td className="py-2.5 px-3 whitespace-nowrap">
                           <span style={{ color: COR_CONFIANCA[d.confianca] }}>{LABEL_CONFIANCA[d.confianca][lang]}</span>
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: d.status === 'aberto' ? TEXTO : CINZA }}>{LABEL_STATUS[d.status][lang]}</td>

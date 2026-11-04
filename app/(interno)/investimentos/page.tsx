@@ -784,7 +784,7 @@ export default function Investimentos() {
                   {resultadosAlocacao.map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap axi-card-premium3d axi-card-faixa" style={{ background: r.prioridade === 1 ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${r.prioridade === 1 ? OURO_BADGE_BORDA : "rgba(255,255,255,0.06)"}` }}>
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? corOuro : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#1a1400" : ct("#94a3b8") }}>{r.prioridade}</span>
+                        <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? corOuro : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#0a1628" : ct("#94a3b8") }}>{r.prioridade}</span>
                         <p className="text-xs md:text-[13px] font-medium truncate" style={{ color: ct("#e2e8f0") }}>{montarNarrativaAlocacao(lang, r)}</p>
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: r.risco === "alto" ? "rgba(239,68,68,0.15)" : r.risco === "medio" ? "rgba(234,179,8,0.15)" : "rgba(16,185,129,0.15)", color: r.risco === "alto" ? ct(CORES.vermelho) : r.risco === "medio" ? ct(CORES.amarelo) : ct(CORES.verde) }}>
                           {r.risco === "alto" ? cx.invRiscoAlto : r.risco === "medio" ? cx.invRiscoMedio : cx.invRiscoBaixo}

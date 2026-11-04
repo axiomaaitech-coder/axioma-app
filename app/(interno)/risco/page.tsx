@@ -18,7 +18,7 @@ import { avaliarRiscos, notaGeral, nivelDaNota, prazoMedioDias, mesesDeCaixa, ty
 import { gerarPdfTabela, gerarExcelTabela } from '../../../lib/gerarPdfTabela'
 
 const PALETA = {
-  dark: { OK: '#2ecc9b', ATENCAO: '#fbbf24', RISCO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
+  dark: { OK: '#2ecc9b', ATENCAO: '#c8d3e0', RISCO: '#f87171', CINZA: '#a3b1c2', TEXTO: '#e6edf5', PAINEL_BG: 'rgba(10,20,36,0.7)', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
   xms: { OK: '#0f7a5a', ATENCAO: '#101b3d', RISCO: '#d93848', CINZA: '#374151', TEXTO: '#101b3d', PAINEL_BG: '#f6f7c4', ANINHADA: 'rgba(245,238,220,0.7)', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 
@@ -139,7 +139,7 @@ export default function RiscoPage() {
               <div key={i.chave} className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa flex flex-col gap-2" style={painel}>
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-semibold">{i.titulo}</p>
-                  <Link href={i.rota} title={L('Abrir o módulo deste risco', 'Open the module of this risk', 'Abrir el módulo de este riesgo')} className="text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap hover:brightness-110" style={{ background: cor(i.nivel), color: '#ffffff' }}>
+                  <Link href={i.rota} title={L('Abrir o módulo deste risco', 'Open the module of this risk', 'Abrir el módulo de este riesgo')} className="text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap hover:brightness-110" style={{ background: cor(i.nivel), color: i.nivel === 'atencao' && !temaClaro ? '#101b3d' : '#ffffff' }}>
                     {i.nota == null ? rotulo(i.nivel) : `${i.nota} · ${rotulo(i.nivel)}`} →
                   </Link>
                 </div>

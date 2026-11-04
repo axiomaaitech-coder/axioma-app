@@ -94,7 +94,7 @@ export default function Cadastro() {
           </p>
           <button onClick={() => router.push('/')}
             className="w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase"
-            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
+            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
             {idioma === 'pt' ? 'Ir para o Login' : idioma === 'en' ? 'Go to Login' : 'Ir al Login'}
           </button>
         </div>
@@ -112,7 +112,7 @@ export default function Cadastro() {
         {(['pt', 'en', 'es'] as const).map((l) => (
           <button key={l} onClick={() => setIdioma(l)}
             className="text-xs px-3 py-1 rounded-full font-bold transition-all"
-            style={{ background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#6ab0ff' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)' }}>
+            style={{ background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#2ecc9b' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)' }}>
             {l === 'pt' ? '🇧🇷 PT' : l === 'en' ? '🇺🇸 EN' : '🇪🇸 ES'}
           </button>
         ))}
@@ -223,13 +223,13 @@ export default function Cadastro() {
           {turnstile.elemento}
           <button onClick={handleCadastro} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
-            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
+            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
             {carregando ? (idioma === 'pt' ? 'Criando...' : 'Creating...') : (idioma === 'pt' ? 'Criar Conta' : idioma === 'en' ? 'Create Account' : 'Crear Cuenta')}
           </button>
 
           <p className="text-center text-xs mt-2" style={{ color: '#3a5a8a' }}>
             {idioma === 'pt' ? 'Ja tem conta?' : idioma === 'en' ? 'Already have an account?' : 'Ya tienes cuenta?'}{' '}
-            <a href="/" className="font-bold" style={{ color: '#6ab0ff' }}>
+            <a href="/" className="font-bold" style={{ color: '#2ecc9b' }}>
               {idioma === 'pt' ? 'Entrar' : idioma === 'en' ? 'Sign in' : 'Iniciar sesion'}
             </a>
           </p>

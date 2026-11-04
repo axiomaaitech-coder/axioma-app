@@ -1090,7 +1090,7 @@ export default function EstoquePage() {
               <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoFornecedor}</p>
               {composicaoFornecedor.length > 0 ? (
                 <ReactECharts style={{ height: 260 }} option={optBarrasH(
-                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), ct(BRONZE), "#d4a017", undefined, temaClaro
+                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), ct(BRONZE), "#7fe3c3", undefined, temaClaro
                 )} />
               ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosFornecedor}</p>}
             </CanvasBox>

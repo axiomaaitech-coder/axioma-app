@@ -575,7 +575,7 @@ export default function Precificacao() {
         {!temDados ? (
           <CanvasBox cor={COR_PRC} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
-              <Tag size={48} style={{ color: temaClaro ? "#a8b0bc" : "#4a3a10" }} className="mb-4" />
+              <Tag size={48} style={{ color: temaClaro ? "#a8b0bc" : "#a3b1c2" }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.prcNenhumProduto}</p>
             </div>
           </CanvasBox>

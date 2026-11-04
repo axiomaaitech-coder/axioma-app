@@ -81,7 +81,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
     } finally { setGerandoPdf(false) }
   }
 
-  const corPrioridade = (p: string) => (p === "alta" ? cNeg : p === "media" ? (claro ? "#965f00" : "#f0b45a") : cSuave)
+  const corPrioridade = (p: string) => (p === "alta" ? cNeg : p === "media" ? (claro ? "#b45309" : "#c8d3e0") : cSuave)
 
   return (
     <div id="relatorio-cfo" className="mb-5">
@@ -152,7 +152,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
               {rel.empresa.nome}{rel.periodo ? ` — ${rel.periodo.rotulo}` : ""}{rel.comparado_com ? ` — ${L("comparado com", "compared with", "comparado con")} ${rel.comparado_com}` : ""}
             </p>
             <p className="text-xs mt-0.5" style={{ color: cSuave }}>{L("Gerado em", "Generated on", "Generado el")} {dataHoraNoFuso(rel.gerado_em, rel.fuso, lang)}</p>
-            <p className="text-xs font-semibold mt-2" style={{ color: rel.estado === "verificado" ? cValor : (claro ? "#965f00" : "#f0b45a") }}>
+            <p className="text-xs font-semibold mt-2" style={{ color: rel.estado === "verificado" ? cValor : (claro ? "#b45309" : "#c8d3e0") }}>
               {L("Situação dos dados", "Data status", "Situación de los datos")}: {rotuloEstado(rel.estado, lang)}
             </p>
 

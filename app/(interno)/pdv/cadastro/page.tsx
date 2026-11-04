@@ -28,7 +28,6 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 // Botões de ação (Salvar) usam tokens.acaoBg/acaoTexto — verde só sobrevive
 // no tema escuro (ver components/PdvLayout.tsx). Âmbar continua fixo nos
 // dois temas: é cor de status (sugestão/alerta), não identidade.
-const AMBAR = "#f5b942";
 
 const txt = {
   titulo: { pt: "PDV — Cadastro", en: "POS — Registration", es: "PDV — Registro" },
@@ -393,7 +392,7 @@ function PDVCadastroInner() {
                 emEdicao={false} camposSubNicho={subNichoSel?.campos || []}
               />
               {subNichoEhServico(nichoSel, subNichoSel) && (
-                <p className="text-xs mb-4" style={{ color: AMBAR }}>{t("massaIndisponivelServico", lang)}</p>
+                <AvisoMassaServico lang={lang} />
               )}
             </>
           )}
@@ -462,6 +461,11 @@ function SeletorNicho({ lang, nichoSel, categoriaSel, subNichoSel, onNicho, onCa
         opcoes={(categoriaSel?.subNichos || []).map((s) => ({ value: s.value, label: s.label[lang] }))} desabilitado={!categoriaSel} />
     </div>
   );
+}
+
+function AvisoMassaServico({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return <p className="text-xs mb-4" style={{ color: tokens.acento }}>{t("massaIndisponivelServico", lang)}</p>;
 }
 
 function TextoEscolhaNicho({ lang }: { lang: Lang }) {
@@ -536,12 +540,12 @@ function BipagemMassa({
         {cartaoPendente && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="p-4 rounded-xl space-y-3 axi-card-premium3d axi-card-faixa" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-            <p className="text-xs font-semibold" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.cardTexto }}>
+            <p className="text-xs font-semibold" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? tokens.acento : tokens.cardTexto }}>
               {cartaoPendente.nome && cartaoPendente.categoria ? t("precoParaSalvar", lang) : t("faltaCompletar", lang)}
             </p>
 
             {origemPendente === "cosmos" && <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: tokens.cardTexto }}><CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}</div>}
-            {origemPendente === "ia" && <div className="flex items-center gap-1.5 text-xs" style={{ color: AMBAR }}><Sparkles size={13} /> {t("sugeridoIA", lang)}</div>}
+            {origemPendente === "ia" && <div className="flex items-center gap-1.5 text-xs" style={{ color: tokens.acento }}><Sparkles size={13} /> {t("sugeridoIA", lang)}</div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Campo emCard label={t("campoNome", lang)} value={cartaoPendente.nome} onChange={(v) => onChangeCartao("nome", v)} sugerido={camposSugeridosPendente.has("nome")} lista={buscarSugestoesSemente(subNichoSel?.value, cartaoPendente.nome || "")} />
@@ -556,7 +560,7 @@ function BipagemMassa({
 
             {!cartaoPendente.nome && (
               <button onClick={onDispararIa} disabled={consultandoIa}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,185,66,0.15)", color: AMBAR }}>
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
                 {consultandoIa ? <Loader2 className="animate-spin" size={13} /> : <Sparkles size={13} />} {t("buscarSugestaoIA", lang)}
               </button>
             )}

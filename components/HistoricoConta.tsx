@@ -24,7 +24,7 @@ type Evento = { id: string; tipo: string; payload: Record<string, unknown> | nul
 type Rastro = { evento_id: string | null; status: string; rastreio_destino: { destino: string; status: string }[] }
 
 const PALETA = {
-  dark: { FUNDO: '#0b1626', TEXTO: '#e6edf5', CINZA: '#a3b1c2', VERDE: '#2ecc9b', VERMELHO: '#f87171', AMBAR: '#fbbf24', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
+  dark: { FUNDO: '#0b1626', TEXTO: '#e6edf5', CINZA: '#a3b1c2', VERDE: '#2ecc9b', VERMELHO: '#f87171', AMBAR: '#c8d3e0', ANINHADA: 'rgba(2,8,16,0.5)', BORDA: 'rgba(255,255,255,0.08)' },
   xms: { FUNDO: '#f6f7c4', TEXTO: '#101b3d', CINZA: '#374151', VERDE: '#0f7d5c', VERMELHO: '#d93848', AMBAR: '#b45309', ANINHADA: 'rgba(255,255,255,0.5)', BORDA: 'rgba(16,27,61,0.12)' },
 } as const
 

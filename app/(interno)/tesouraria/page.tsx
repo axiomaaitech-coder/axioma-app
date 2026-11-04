@@ -36,7 +36,7 @@ const PALETA = {
   // puro (regra 13, nunca o azul-acinzentado antigo).
   // ROXO não é cor da nossa paleta padrão — no Claro vira verde-menta
   // (mesmo destino de AZUL/AZULC aqui: decorativo = verde, nunca roxo).
-  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', PAINEL_BG: '#f6f7c4' },
+  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#b45309', VERMELHO: '#ff5a6b', ROXO: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', PAINEL_BG: '#f6f7c4' },
 } as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']

@@ -140,7 +140,7 @@ export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desati
 
   // Cápsula viva (classes .axv* em app/globals.css, cores do tema-tokens.md)
   const Icone = estado === "gravando" ? Square : estado === "transcrevendo" || estado === "permissao" ? Loader2 : estado === "concluido" ? Check : Mic;
-  const corMsg = estado === "erro" ? (temaClaro ? "#b42318" : "#fca5a5") : temaClaro ? "#101b3d" : "#cfe0fa";
+  const corMsg = estado === "erro" ? (temaClaro ? "#b42318" : "#fca5a5") : temaClaro ? "#101b3d" : "#e6edf5";
   const rotulo = estado === "gravando" ? t("curtoOuvindo") : estado === "transcrevendo" ? t("curtoEscrevendo") : estado === "permissao" ? t("curtoPermissao") : estado === "concluido" ? t("curtoPronto") : estado === "erro" ? t("curtoTentar") : t("curtoFalar");
   // 5 barras que seguem o volume da voz (alturas desencontradas para parecer um equalizador)
   const forca = Math.min(1, nivel * 7);
@@ -150,7 +150,7 @@ export default function BotaoVoz({ lang, tela, onTexto, empresaId, claro, desati
     <span className="relative inline-flex items-center gap-1.5 shrink-0">
       {estado === "gravando" && (
         <button type="button" onClick={cancelar} aria-label={t("cancelar")} title={t("cancelar")}
-          className="axv-cancelar" style={{ color: temaClaro ? "#101b3d" : "#cfe0fa" }}>
+          className="axv-cancelar" style={{ color: temaClaro ? "#101b3d" : "#e6edf5" }}>
           <X size={14} aria-hidden />
         </button>
       )}

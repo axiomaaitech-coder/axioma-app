@@ -77,7 +77,7 @@ function useCampoEstilos() {
   return {
     inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
     selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.2)"}`, color: claro ? "#101b3d" : "#e6edf5" },
-    labelStyle: { color: claro ? "#2ecc9b" : "#d4a017" },
+    labelStyle: { color: claro ? "#2ecc9b" : "#2ecc9b" },
     erroStyle: { color: claro ? "#ff5a6b" : "#f87171" },
   };
 }

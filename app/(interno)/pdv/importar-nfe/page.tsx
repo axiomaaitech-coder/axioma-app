@@ -19,7 +19,6 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 // Botões de ação usam tokens.acaoBg/acaoTexto (verde só sobrevive no tema
 // escuro, ver components/PdvLayout.tsx). Âmbar segue fixo: é cor de status.
-const AMBAR = "#f5b942";
 
 const txt = {
   titulo: { pt: "PDV — Importar XML da NF-e", en: "POS — Import NF-e XML", es: "PDV — Importar XML de NF-e" },
@@ -488,7 +487,7 @@ function FornecedorCard({ lang, info }: { lang: Lang; info: { existente: Fornece
         <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("fornecedorTitulo", lang)}</p>
         <p className="text-sm" style={{ color: tokens.cardTexto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
       </div>
-      <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: info.existente ? "rgba(255,255,255,0.18)" : "rgba(245,185,66,0.15)", color: info.existente ? tokens.cardTexto : AMBAR }}>
+      <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: info.existente ? "rgba(255,255,255,0.18)" : tokens.acentoSuaveBg, color: info.existente ? tokens.cardTexto : tokens.acento }}>
         {info.existente ? t("fornecedorExistente", lang) : t("fornecedorNovo", lang)}
       </span>
     </div>
@@ -509,7 +508,7 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
       {qtdNovosSemCategoria > 0 && (
         <button onClick={onClassificar} disabled={classificando}
           className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60"
-          style={{ background: "rgba(245,185,66,0.15)", color: AMBAR }}>
+          style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
           {classificando ? <Loader2 className="animate-spin" size={15} /> : <Sparkles size={15} />} {classificando ? t("classificando", lang) : t("classificarAutomatico", lang)}
         </button>
       )}
@@ -556,10 +555,10 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <input type="checkbox" checked={item.incluir} onChange={(e) => onAtualizar("incluir", e.target.checked)} className="w-4 h-4 rounded shrink-0" />
-          <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: item.status === "novo" ? "rgba(245,185,66,0.18)" : "rgba(255,255,255,0.18)", color: item.status === "novo" ? AMBAR : tokens.cardTexto }}>
+          <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: item.status === "novo" ? tokens.acentoSuaveBg : "rgba(255,255,255,0.18)", color: item.status === "novo" ? tokens.acento : tokens.cardTexto }}>
             {item.status === "novo" ? t("statusNovo", lang) : t("statusExistente", lang)}
           </span>
-          {item.sugeridoIA && <span className="flex items-center gap-1 text-xs" style={{ color: AMBAR }}><Sparkles size={11} /> {t("sugestaoAutomaticaBadge", lang)}</span>}
+          {item.sugeridoIA && <span className="flex items-center gap-1 text-xs" style={{ color: tokens.acento }}><Sparkles size={11} /> {t("sugestaoAutomaticaBadge", lang)}</span>}
         </div>
         <Package size={15} style={{ color: tokens.cardTexto, opacity: 0.75 }} />
       </div>

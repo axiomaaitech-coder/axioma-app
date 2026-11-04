@@ -1266,7 +1266,7 @@ export default function CentrosCustoPage() {
                 placeholder={idioma === "pt" ? "Pergunte sobre seus centros de custo..." : idioma === "es" ? "Pregunte sobre sus centros de costo..." : "Ask about your cost centers..."}
                 className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
               <button onClick={() => enviarMensagemCopiloto(chatInput)} disabled={chatCarregando}
-                className="px-4 py-3 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: "linear-gradient(135deg, #5b21b6, #2ecc9b)", color: "#fff" }}>
+                className="px-4 py-3 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
                 {idioma === "pt" ? "Enviar" : idioma === "es" ? "Enviar" : "Send"}
               </button>
             </div>
@@ -1575,7 +1575,7 @@ export default function CentrosCustoPage() {
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRateio}
               disabled={processandoRateio || !origemSelecionada || Math.abs(restanteRateio) > 0.5}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
-              style={{ background: "linear-gradient(135deg, #5b21b6, #2ecc9b)", color: "#fff" }}>
+              style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
               {processandoRateio ? "..." : (idioma === "pt" ? "Aplicar Rateio" : idioma === "es" ? "Aplicar Distribución" : "Apply")}
             </motion.button>
           </div>
@@ -1619,7 +1619,7 @@ export default function CentrosCustoPage() {
             <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(46,204,155,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarPlano} disabled={salvandoPlano || !planoTitulo.trim()}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
-              style={{ background: "linear-gradient(135deg, #5b21b6, #2ecc9b)", color: "#fff" }}>
+              style={{ background: "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>
               {salvandoPlano ? "..." : (idioma === "pt" ? "Salvar Plano" : idioma === "es" ? "Guardar Plan" : "Save Plan")}
             </motion.button>
           </div>

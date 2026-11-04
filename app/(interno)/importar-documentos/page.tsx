@@ -2946,7 +2946,7 @@ function HistoricoBlock(props: any) {
                     {/* Metadados */}
                     <div className="rounded-lg p-3 text-xs space-y-1 axi-card-premium3d axi-card-faixa" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(46,204,155,0.1)") }}>
                       <p style={{ color: ct("#5a7a9a") }}>
-                        Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 12 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
+                        Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "var(--font-geist-mono), monospace", fontSize: 12 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
                       </p>
                       {item.tipo_arquivo && <p style={{ color: ct("#5a7a9a") }}>Formato: <span style={{ color: ct("#c8d8f0") }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
                       {item.tamanho_bytes > 0 && <p style={{ color: ct("#5a7a9a") }}>Tamanho: <span style={{ color: ct("#c8d8f0") }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}

@@ -28,7 +28,7 @@ const PALETA = {
     BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', THEAD_BG: 'rgba(255,255,255,0.03)', EMPTY_BG: 'rgba(10,20,36,0.5)',
   },
   xms: {
-    VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d',
+    VERMELHO: '#ff5a6b', LARANJA: '#b45309', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d',
     BTN_BG: 'rgba(16,27,61,0.08)', BORDA: 'rgba(16,27,61,0.12)', BORDA_SUAVE: 'rgba(16,27,61,0.08)', THEAD_BG: 'rgba(16,27,61,0.05)', EMPTY_BG: 'rgba(255,255,255,0.5)',
   },
 } as const
@@ -136,7 +136,7 @@ export default function FiscalObrigacoesPage() {
         <>
           <button onClick={() => router.push('/fiscal')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(163,177,194,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            style={{ background: '#101b3d', color: '#ffffff', border: '1px solid rgba(46,204,155,0.35)' }}>
             <ArrowLeft size={15} />{L('Voltar ao Fiscal', 'Back to Tax', 'Volver a Fiscal')}
           </button>
           <ThemeToggle />
@@ -177,8 +177,8 @@ export default function FiscalObrigacoesPage() {
                   <tr style={{ color: CINZA, background: THEAD_BG }}>
                     <th className="text-left py-2 px-3 font-semibold whitespace-nowrap"></th>
                     <th className="text-left py-2 px-3 font-semibold">{L('Obrigação', 'Obligation', 'Obligación')}</th>
-                    <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden sm:table-cell">{L('Vencimento', 'Due Date', 'Vencimiento')}</th>
-                    <th className="text-right py-2 px-3 font-semibold whitespace-nowrap hidden md:table-cell">{L('Valor', 'Amount', 'Valor')}</th>
+                    <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Vencimento', 'Due Date', 'Vencimiento')}</th>
+                    <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">{L('Valor', 'Amount', 'Valor')}</th>
                     <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Status', 'Status', 'Estado')}</th>
                     <th className="text-right py-2 px-3 font-semibold whitespace-nowrap">{L('Ações', 'Actions', 'Acciones')}</th>
                   </tr>
@@ -194,13 +194,13 @@ export default function FiscalObrigacoesPage() {
                           <p className="font-semibold">{o.nome}</p>
                           <p className="text-xs" style={{ color: CINZA }}>{o.tipo}</p>
                         </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap hidden sm:table-cell" style={{ color: TEXTO }}>
+                        <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: TEXTO }}>
                           {new Date(o.data_vencimento + 'T00:00:00').toLocaleDateString(localeData)}
                           <span className="ml-1.5 text-xs font-bold" style={{ color: COR_RISCO[risco] }}>
                             ({risco === 'atrasada' ? L('atrasada', 'overdue', 'atrasada') : `${o.dias_restantes}d`})
                           </span>
                         </td>
-                        <td className="text-right py-2.5 px-3 whitespace-nowrap hidden md:table-cell" style={{ color: TEXTO }}>
+                        <td className="text-right py-2.5 px-3 whitespace-nowrap" style={{ color: TEXTO }}>
                           {o.valor_estimado != null && o.valor_estimado > 0 ? `R$ ${fBRL2(Number(o.valor_estimado))}` : '—'}
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap" style={{ color: resolvida ? CINZA : COR_RISCO[risco] }}>

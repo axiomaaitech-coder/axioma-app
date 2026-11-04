@@ -1898,7 +1898,7 @@ export default function ContasReceber() {
                       </div>
                       <div className="flex gap-2">
                         <input value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
-                        <button onClick={salvarCompromisso} disabled={salvandoCobranca || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: OURO, color: temaClaro ? '#fff' : '#1a1400' }}>{L('Salvar', 'Save', 'Guardar')}</button>
+                        <button onClick={salvarCompromisso} disabled={salvandoCobranca || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: temaClaro ? OURO : '#0f7d5c', color: '#fff' }}>{L('Salvar', 'Save', 'Guardar')}</button>
                       </div>
                       <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
                         {compsConta.length === 0 ? (
@@ -1967,7 +1967,7 @@ export default function ContasReceber() {
                     <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${OURO}, #b8942c)`, color: temaClaro ? '#fff' : '#1a1400' }}>
+                      style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #0a4f3b, #0f7d5c)', color: '#fff' }}>
                       {L('Salvar Etapa', 'Save Step', 'Guardar Etapa')}
                     </motion.button>
                   </div>

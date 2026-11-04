@@ -66,7 +66,7 @@ export default function LoginPage() {
         {(['pt', 'en', 'es'] as const).map((l) => (
           <button key={l} onClick={() => setIdioma(l)}
             className="text-xs px-3 py-1 rounded-full font-bold transition-all"
-            style={{ background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#6ab0ff' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)' }}>
+            style={{ background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#2ecc9b' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)' }}>
             {l === 'pt' ? '🇧🇷 PT' : l === 'en' ? '🇺🇸 EN' : '🇪🇸 ES'}
           </button>
         ))}
@@ -141,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex justify-end">
-            <a href="/recuperar-senha" className="text-xs" style={{ color: '#6ab0ff' }}>
+            <a href="/recuperar-senha" className="text-xs" style={{ color: '#2ecc9b' }}>
               {idioma === 'pt' ? 'Esqueceu a senha?' : idioma === 'en' ? 'Forgot password?' : 'Olvido su contrasena?'}
             </a>
           </div>
@@ -155,13 +155,13 @@ export default function LoginPage() {
           {turnstile.elemento}
           <button onClick={handleLogin} disabled={loading}
             className="w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105 mt-2"
-            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: loading ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
+            style={{ background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', opacity: loading ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)' }}>
             {loading ? (idioma === 'pt' ? 'Entrando...' : idioma === 'en' ? 'Signing in...' : 'Entrando...') : (idioma === 'pt' ? 'Entrar' : idioma === 'en' ? 'Sign In' : 'Iniciar Sesion')}
           </button>
 
           <p className="text-center text-xs mt-2" style={{ color: '#3a5a8a' }}>
             {idioma === 'pt' ? 'Nao tem conta?' : idioma === 'en' ? 'No account yet?' : 'No tienes cuenta?'}{' '}
-            <a href="/cadastro" className="font-bold" style={{ color: '#6ab0ff' }}>
+            <a href="/cadastro" className="font-bold" style={{ color: '#2ecc9b' }}>
               {idioma === 'pt' ? 'Criar conta' : idioma === 'en' ? 'Sign up' : 'Registrarse'}
             </a>
           </p>

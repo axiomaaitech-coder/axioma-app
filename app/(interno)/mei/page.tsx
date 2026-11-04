@@ -448,7 +448,7 @@ export default function PainelMEI() {
                 { label: mx.cofreDas, valor: cofre.das, cor: VERMELHO },
                 { label: mx.cofreIrpf, valor: cofre.irpfReserva, cor: AMBAR },
                 { label: mx.cofreCompromissos, valor: cofre.compromissos, cor: AZUL },
-                { label: `${mx.cofreReserva} (${cofre.reservaEmergenciaPctUsado.toFixed(0)}%)`, valor: cofre.reservaEmergencia, cor: '#a78bfa' },
+                { label: `${mx.cofreReserva} (${cofre.reservaEmergenciaPctUsado.toFixed(0)}%)`, valor: cofre.reservaEmergencia, cor: temaClaro ? '#122b54' : '#c8d3e0' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG ?? `${item.cor}08`, border: `1px solid ${NESTED_BORDA ?? item.cor + '20'}` }}>
                   <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
@@ -478,7 +478,7 @@ export default function PainelMEI() {
                   { name: mx.cofreDas, value: Math.max(0, cofre.das), color: temaClaro ? '#101b3d' : VERMELHO },
                   { name: mx.cofreIrpf, value: Math.max(0, cofre.irpfReserva), color: temaClaro ? '#6b7280' : AMBAR },
                   { name: mx.cofreCompromissos, value: Math.max(0, cofre.compromissos), color: temaClaro ? '#2ecc9b' : AZUL },
-                  { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: temaClaro ? '#122b54' : '#a78bfa' },
+                  { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: temaClaro ? '#122b54' : '#c8d3e0' },
                   { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: temaClaro ? '#0f7a5a' : VERDE },
                 ],
                 OURO, mx.cofreTitulo, temaClaro
@@ -597,7 +597,7 @@ export default function PainelMEI() {
             <ReactECharts style={{ height: 220 }} notMerge option={optBarrasV(
               evolucaoMensal.map(p => p.entrou),
               evolucaoMensal.map(p => p.mes),
-              temaClaro ? '#0f7a5a' : OURO, temaClaro ? '#0f7a5a' : '#f0d878',
+              temaClaro ? '#0f7a5a' : OURO, temaClaro ? '#0f7a5a' : '#7fe3c3',
               temaClaro ? undefined : evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null)),
               temaClaro
             )} />

@@ -65,7 +65,7 @@ export default function RecuperarSenha() {
           </p>
           <a href="/"
             className="w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase text-center block"
-            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
+            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
             {idioma === 'pt' ? 'Voltar ao Login' : idioma === 'en' ? 'Back to Login' : 'Volver al Login'}
           </a>
         </div>
@@ -83,7 +83,7 @@ export default function RecuperarSenha() {
         {(['pt','en','es'] as const).map((l) => (
           <button key={l} onClick={() => setIdioma(l)}
             className="text-xs px-3 py-1 rounded-full font-bold transition-all"
-            style={{background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#6ab0ff' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)'}}>
+            style={{background: idioma === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: idioma === l ? '#2ecc9b' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)'}}>
             {l === 'pt' ? '🇧🇷 PT' : l === 'en' ? '🇺🇸 EN' : '🇪🇸 ES'}
           </button>
         ))}
@@ -136,14 +136,14 @@ export default function RecuperarSenha() {
           {turnstile.elemento}
           <button onClick={handleRecuperar} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
-            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
+            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #0a4f3b 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
             {carregando
               ? (idioma === 'pt' ? 'Enviando...' : idioma === 'en' ? 'Sending...' : 'Enviando...')
               : (idioma === 'pt' ? '🔐 Enviar Link de Redefinição' : idioma === 'en' ? '🔐 Send Reset Link' : '🔐 Enviar Enlace')}
           </button>
 
           <p className="text-center text-xs mt-2">
-            <a href="/" className="font-bold" style={{color: '#6ab0ff'}}>
+            <a href="/" className="font-bold" style={{color: '#2ecc9b'}}>
               {idioma === 'pt' ? '← Voltar ao login' : idioma === 'en' ? '← Back to login' : '← Volver al login'}
             </a>
           </p>

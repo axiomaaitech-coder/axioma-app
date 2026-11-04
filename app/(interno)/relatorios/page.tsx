@@ -678,7 +678,7 @@ export default function Relatorios() {
                 <tr style={{ borderBottom: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(46,204,155,0.2)" }}>
                   <th className="text-left py-2 px-2 text-xs uppercase" style={{ color: ct("#5a7a9a") }}></th>
                   <th className="text-right py-2 px-2 text-xs uppercase" style={{ color: ct("#5a7a9a") }}>Valor</th>
-                  <th className="text-right py-2 px-2 text-xs uppercase hidden sm:table-cell" style={{ color: ct("#5a7a9a") }}>{tt.pctReceita}</th>
+                  <th className="text-right py-2 px-2 text-xs uppercase" style={{ color: ct("#5a7a9a") }}>{tt.pctReceita}</th>
                 </tr>
               </thead>
               <tbody>
@@ -699,7 +699,7 @@ export default function Relatorios() {
                     }}>
                       {formatBRL(item.valor)}
                     </td>
-                    <td className="py-2.5 px-2 text-right hidden sm:table-cell" style={{ color: ct("#5a7a9a") }}>
+                    <td className="py-2.5 px-2 text-right" style={{ color: ct("#5a7a9a") }}>
                       {item.pct.toFixed(1)}%
                     </td>
                   </tr>

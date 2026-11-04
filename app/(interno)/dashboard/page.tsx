@@ -123,7 +123,7 @@ const T = {
 };
 
 // Cores exatas da referência (roxa/azul/cyan/rosa/verde)
-const COR = { roxo: "#2ecc9b", indigo: "#2ecc9b", azul: "#2ecc9b", cyan: "#2ecc9b", teal: "#2ecc9b", rosa: "#2ecc9b", verde: "#10b981", laranja: "#2ecc9b", vermelho: "#ef4444", amarelo: "#eab308" };
+const COR = { roxo: "#2ecc9b", indigo: "#2ecc9b", azul: "#2ecc9b", cyan: "#2ecc9b", teal: "#2ecc9b", rosa: "#2ecc9b", verde: "#34d399", laranja: "#2ecc9b", vermelho: "#ef4444", amarelo: "#2ecc9b" };
 
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function fBRL2(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0); }
@@ -272,7 +272,7 @@ export default function DashboardPage() {
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">💼</span>
               <div>
-                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
+                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dfTitulo}
                 </h2>
                 <p className="text-xs md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dfSub}</p>
@@ -293,7 +293,7 @@ export default function DashboardPage() {
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">🚀</span>
               <div>
-                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
+                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dcTitulo}
                 </h2>
                 <p className="text-xs md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dcSub}</p>

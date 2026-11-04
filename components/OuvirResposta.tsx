@@ -65,7 +65,7 @@ export default function OuvirResposta({ texto, lang, assinatura, ressalva = fals
 
   const ativo = minha !== "parado";
   const Icone = minha === "carregando" ? Loader2 : minha === "falando" ? Square : Volume2;
-  const cor = temaClaro ? "#101b3d" : "#cfe0fa";
+  const cor = temaClaro ? "#101b3d" : "#e6edf5";
   return (
     <span className="inline-flex flex-col items-start gap-1 mt-2">
       <button type="button" onClick={ativo ? pararFala : ouvir} title={t("dica")} aria-label={ativo ? t("parar") : t("dica")} aria-pressed={minha === "falando"}
