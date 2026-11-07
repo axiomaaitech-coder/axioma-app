@@ -67,7 +67,7 @@ export function telaPodePedirRelatorio(tela: string | null | undefined, tipo: un
   const tipos = tela.startsWith('mei-') ? RELATORIOS_MEI : Object.hasOwn(RELATORIOS_POR_TELA, tela) ? RELATORIOS_POR_TELA[tela] : null
   return tipos ? tipos.includes(String(tipo)) : true
 }
-const foraDaArea = (assunto: string) => JSON.stringify({ negado: true, erro: `${assunto} existe no Axioma, mas não é consultado nesta tela. Diga exatamente isso, indique a IA Financeira para esse assunto, não diga que o dado não existe e não estime nenhum valor.` })
+const foraDaArea = (assunto: string) => JSON.stringify({ negado: true, erro: `${assunto} existe no Axioma, mas não é consultado nesta tela. Responda à pessoa que esse assunto é visto na IA Financeira (menu IA Premium), não diga que o dado não existe e não estime nenhum valor.` })
 
 // papel null = dono sem linha em empresa_usuarios (o acesso à empresa já foi conferido pela RLS na rota)
 export const papelPodeUsarPorta = (p: Porta, papel: string | null) => p.papeis.includes(papel ?? 'dono')
