@@ -25,4 +25,8 @@ assert.equal(entrada.length, 2); assert.equal(soma(entrada), 1000); assert.equal
 
 // Sem total: não cria nada
 assert.deepEqual(planoContasDaNota({ ...base, valorTotal: 0, parcelas: [], pagamentos: [] }), [])
+// Venda do PDV em dinheiro entra no Caixa, não em Bancos (o PDV grava a forma em minúsculo)
+const { codigoContaRecebimento } = await import('../lib/contabilidadeConsumidor')
+assert.equal(codigoContaRecebimento('dinheiro'), '1.01'); assert.equal(codigoContaRecebimento('Dinheiro'), '1.01')
+assert.equal(codigoContaRecebimento('pix'), '1.02'); assert.equal(codigoContaRecebimento('credito'), '1.02')
 console.log('check-nfe-conta: ok')

@@ -215,7 +215,10 @@ const FORMA_RECEBIMENTO_PARA_CODIGO: Record<string, string> = {
   "Transferência": "1.02",
   "Cartão de Débito": "1.02",
   "Cartão de Crédito": "1.02",
+  // O PDV grava a forma em código minúsculo: sem estas chaves, venda em dinheiro caía em Bancos e não em Caixa.
+  "dinheiro": "1.01", "pix": "1.02", "debito": "1.02", "credito": "1.02",
 };
+export const codigoContaRecebimento = (forma: string | null | undefined) => FORMA_RECEBIMENTO_PARA_CODIGO[forma ?? ""] ?? CODIGO_ATIVO_PADRAO;
 
 // Contexto de um processamento: evento a carimbar nos lançamentos + falhas do caminho.
 type CtxContabil = { eventoId?: string | null; falhas: string[] };
@@ -474,7 +477,7 @@ async function gerarLancamentoVenda(
 ): Promise<void> {
   if (!(valorTotal > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
-  const codigoAtivo = FORMA_RECEBIMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
+  const codigoAtivo = codigoContaRecebimento(formaPagamento);
   const contaAtivoId = contas[codigoAtivo];
   if (!contaAtivoId) {
     falha(ctx, "plano_de_contas", "resolver conta do de-para (SALE_CREATED)", `código ${codigoAtivo} não encontrado na empresa ${empresaId}`);
