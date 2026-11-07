@@ -41,9 +41,15 @@ export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]): Promis
     let comQr = false;
     if (codigo) {
       try {
-        // Resolução alta: 160 px ampliados saíam com os quadradinhos serrilhados na impressão.
-        const qrDataUrl = await QRCode.toDataURL(codigo, { margin: 0, width: 600, errorCorrectionLevel: "M" });
-        pdf.addImage(qrDataUrl, "PNG", x + 2.5, y + 2.5, 26, 26);
+        // Desenhado como vetor: nítido em qualquer impressora e leve (como imagem, 100 etiquetas passavam de 100 MB).
+        const { modules } = QRCode.create(codigo, { errorCorrectionLevel: "M" });
+        const lado = 26 / modules.size;
+        pdf.setFillColor(0, 0, 0);
+        for (let l = 0; l < modules.size; l++) {
+          for (let c = 0; c < modules.size; c++) {
+            if (modules.get(l, c)) pdf.rect(x + 2.5 + c * lado, y + 2.5 + l * lado, lado, lado, "F");
+          }
+        }
         comQr = true;
       } catch {
         // cai no aviso abaixo: a etiqueta sai sem QR e a tela diz qual produto
