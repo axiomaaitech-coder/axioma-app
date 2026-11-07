@@ -24,7 +24,7 @@ import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusContextoMundo'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 import { INDICADORES } from '../financeiro/semantica'
-import { passarPelaPorta, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
+import { passarPelaPorta, portasDaTela, telaPodeUsarPorta, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
 import { linhaIdentidade } from './identidade'
@@ -200,9 +200,10 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
   const hoje = hojeISO(new Date(), ctx.retrato.fuso)
   const regras = /TRIBUT|MEI|SIMPLES|IMPOST/i.test(ctx.manuais) || /tribut|\bmei\b|\bdas\b|fiscal|simples/i.test(ctx.tela ?? '') ? `\n\n${textoRegrasOficiais(hoje)}` : ''
   const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
+  const area = portasDaTela(ctx.telaId) ? '\n\nNESTA TELA você só tem as ferramentas ligadas ao assunto dela. Pedido de outro assunto (sem ferramenta aqui): diga que esse dado não é consultado nesta tela, indique a IA Financeira e nunca estime.' : ''
   return {
     fixo: `${linhaIdentidade(ctx.telaId)}\n${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
-    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${ctx.memoria ? `\n\n${ctx.memoria}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
+    empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${area}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${ctx.memoria ? `\n\n${ctx.memoria}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
   }
 }
 
@@ -416,7 +417,7 @@ export { statusDaSaida }
 export type { RegistroFerramenta }
 // relatorio: pedido do último relatório gerado pela ferramenta (a tela mostra "Abrir relatório e PDF")
 export type PedidoRelatorioMotor = { tipo: string; periodo: string; inicio: string | null; fim: string | null; comparar: boolean }
-export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
+export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; tela?: string | null; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
 const RE_PEDE_DADO = /quant[oa]s? (clientes?|fornecedores?)|(clientes?|fornecedores?) ativos?|caixa (livre|dispon[ií]vel)|previs[aã]o de caixa|reserva m[ií]nima|obriga[cç][oõ]es|valor do estoque|how many (customers|clients|suppliers)|active (customers|clients|suppliers)|cash forecast|free cash|tax obligations|cu[aá]nt[oa]s (clientes|proveedores)|(clientes|proveedores) activos|caja libre|previsi[oó]n de caja|obligaciones|\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
@@ -432,7 +433,7 @@ export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] =
 
 async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Record<string, unknown>): Promise<string> {
   const t0 = Date.now()
-  const { saida, motivo } = await passarPelaPorta({ empresaId: c.empresaId, papel: c.papel, nome, executar: () => executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso) })
+  const { saida, motivo } = await passarPelaPorta({ empresaId: c.empresaId, papel: c.papel, nome, tela: c.tela, entrada, executar: () => executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso) })
   const status = statusDaSaida(saida)
   c.registro?.push({ nome, status, ms: Date.now() - t0, ...(motivo ? { motivo } : {}) })
   if (nome === 'relatorio' && status !== 'erro') { try { c.relatorio = (JSON.parse(saida) as { pedido?: PedidoRelatorioMotor }).pedido ?? null } catch { /* sem pedido */ } }
@@ -508,7 +509,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
   const p = prov ?? (process.env.OPENAI_API_KEY ? { nome: 'openai' as const, url: 'https://api.openai.com/v1/chat/completions', chave: process.env.OPENAI_API_KEY } : null)
   if (!p || (p.nome === 'openai' && semCredito('openai'))) return { texto: null, dadosConsultados }
   const gemini = p.nome === 'gemini'
-  const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
+  const tools = FERRAMENTAS.filter((f) => telaPodeUsarPorta(consulta.tela, f.name)).map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
   const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
   let modeloAtual = modelo
   const filaGemini = gemini ? GEMINI_RESERVAS.filter((m) => m !== modelo) : []
@@ -587,7 +588,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
         model: cfg.modelo, max_tokens: 16000,
         betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', // recusa do modelo → a Anthropic reroda em outro modelo
         output_config: { effort: cfg.esforco ?? 'medium' },
-        tools: FERRAMENTAS,
+        tools: FERRAMENTAS.filter((f) => telaPodeUsarPorta(consulta.tela, f.name)),
         tool_choice: { type: rodada === MAX_CONSULTAS ? 'none' : consulta.exige && rodada === 0 ? 'any' : 'auto' },
         system: [
           { type: 'text', text: sistema.fixo, cache_control: { type: 'ephemeral' } },
@@ -737,7 +738,7 @@ export async function perguntarAoMotor(args: {
   // Fase D: pergunta (ou continuação) que pede dado detalhado obriga a consultar; tudo que foi consultado fica registrado
   const exige = exigeConsulta(pergunta, args.historico ?? [])
   const registro: RegistroFerramenta[] = []
-  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, papel: args.papel, fuso: retrato.fuso, registro, exige }
+  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, papel: args.papel, tela: args.tela ?? null, fuso: retrato.fuso, registro, exige }
 
   // Gemini gratuito com as mesmas ferramentas (3ª IA / modo sem saldo)
   const executarGemini = async (n: Nivel) => {

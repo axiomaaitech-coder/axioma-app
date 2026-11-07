@@ -20,6 +20,7 @@ assert.equal(motor.match(/executarFerramenta\(/g)?.length, 1, 'o motor só execu
 assert.ok(/passarPelaPorta\(\{[^}]*executar: \(\) => executarFerramenta\(/.test(motor), 'esse lugar passa pela porta')
 assert.ok(readFileSync('app/api/ia/motor/route.ts', 'utf8').includes('papel: papelSessao'), 'o papel vem da sessão no servidor, nunca do navegador')
 
+const portasMod = await import('../lib/ia/portas')
 const E = '11111111-1111-4111-8111-111111111111', OK = JSON.stringify({ itens: [{ a: 1 }] })
 const ERRO = JSON.stringify({ erro: 'não foi possível consultar agora: banco fora' })
 let chamadas = 0
@@ -120,4 +121,30 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   assert.deepEqual([x.r.texto, x.modelos.length], [null, 1], 'pedido inválido não troca de modelo')
   globalThis.fetch = original; console.error = erroOriginal
 }
+// ─── Etapa 5: cada tela só com as portas da sua finalidade ───
+{
+  const { portasDaTela, telaPodeUsarPorta, telaPodePedirRelatorio } = portasMod
+  for (const tela of ['ia-tributaria', 'contas-pagar', 'contas-receber', 'contas-vencidas', 'clientes', 'centros-custo', 'tesouraria', 'pdv', 'importar-documentos', 'mei-ia-advisor', 'mei-das']) {
+    const lista = portasDaTela(tela); assert.ok(lista?.length, `${tela}: sem portas`)
+    for (const n of lista!) assert.ok(Object.hasOwn(PORTAS, n), `${tela}: porta inexistente ${n}`)
+    assert.ok(lista!.includes('relatorio') && lista!.includes('resumo_financeiro'), `${tela}: visão geral e relatório valem em toda tela`)
+  }
+  assert.equal(telaPodeUsarPorta('ia-tributaria', 'cadastros'), false, 'IA Tributária não abre clientes')
+  assert.equal(telaPodeUsarPorta('ia-tributaria', 'obrigacoes_fiscais'), true)
+  assert.equal(telaPodeUsarPorta('mei-das', 'obrigacoes_fiscais'), true); assert.equal(telaPodeUsarPorta('mei-das', 'cadastros'), false)
+  assert.equal(telaPodeUsarPorta('pdv', 'dividas'), false)
+  for (const tela of ['ia-financeira', 'relatorios', 'nexus', 'tela-nova', null, undefined, 'constructor']) { assert.equal(portasDaTela(tela), null, `${tela}: vê todas`); assert.equal(telaPodeUsarPorta(tela, 'cadastros'), true) }
+  assert.equal(telaPodePedirRelatorio('ia-tributaria', 'contas_receber'), false, 'relatório de clientes não sai pela IA Tributária'); assert.equal(telaPodePedirRelatorio('ia-tributaria', 'tributario'), true)
+  assert.equal(telaPodePedirRelatorio('ia-financeira', 'contas_receber'), true)
+  chamadas = 0
+  const fora = await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'cadastros', tela: 'ia-tributaria', executar: exec(OK) })
+  assert.equal(chamadas, 0, 'fora da área nem lê o banco'); assert.ok(JSON.parse(fora.saida).negado && /IA Financeira/.test(fora.saida), 'orienta para onde ir')
+  const relFora = await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'relatorio', tela: 'ia-tributaria', entrada: { tipo: 'contas_receber' }, executar: exec(OK) })
+  assert.equal(chamadas, 0); assert.ok(JSON.parse(relFora.saida).negado)
+  assert.equal((await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'relatorio', tela: 'ia-tributaria', entrada: { tipo: 'tributario' }, executar: exec(OK) })).saida, OK)
+  assert.ok(JSON.parse((await passarPelaPorta({ empresaId: E, papel: 'operador', nome: 'dividas', tela: 'ia-financeira', executar: exec(OK) })).saida).negado, 'tela nunca libera o que o papel barra')
+  assert.equal(motor.match(/FERRAMENTAS\.filter\(\(f\) => telaPodeUsarPorta\(consulta\.tela, f\.name\)\)/g)?.length, 2, 'os provedores recebem só as ferramentas da tela')
+  console.log('OK — Etapa 5: cada tela só com as portas da sua finalidade')
+}
+
 console.log('check-portas: papel, tempo limite, disjuntor, confiabilidade e reserva do Gemini, tudo certo ✔')

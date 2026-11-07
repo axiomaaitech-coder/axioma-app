@@ -25,6 +25,49 @@ export const PORTAS: Record<string, Porta> = {
   caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'),
 }
 
+// ─── Etapa 5: cada tela consulta só o que é da sua finalidade. Quem protege o dado é o papel lido no servidor; a tela vem
+// do navegador e serve para manter a IA no assunto. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
+const BASE = ['resumo_financeiro', 'relatorio']
+const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais']
+const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais']
+const A_RECEBER = ['titulos', 'contas_a_receber', 'maiores_devedores', 'receitas_por_cliente', 'faturamento', 'cadastros']
+const COBRANCA = ['contas_vencidas', 'caixa_tesouraria', 'movimentos_realizados', 'reconciliacao']
+const PORTAS_POR_TELA: Record<string, readonly string[]> = {
+  'ia-tributaria': TRIBUTARIO,
+  'contas-pagar': [...BASE, ...A_PAGAR, ...COBRANCA],
+  'contas-receber': [...BASE, ...A_RECEBER, ...COBRANCA],
+  'contas-vencidas': [...BASE, ...A_PAGAR, ...A_RECEBER, ...COBRANCA],
+  clientes: [...BASE, 'cadastros', 'receitas_por_cliente', 'maiores_devedores', 'contas_a_receber', 'titulos', 'contas_vencidas'],
+  'centros-custo': [...BASE, 'custos', 'custos_fixos_mes', 'despesas', 'dre', 'maiores_fornecedores'],
+  tesouraria: [...BASE, 'caixa_tesouraria', 'movimentos_realizados', 'titulos', 'contas_a_pagar', 'contas_a_receber', 'dividas', 'obrigacoes_fiscais', 'contas_vencidas'],
+  pdv: [...BASE, 'estoque_avisos', 'estoque_resumo', 'faturamento', 'cadastros'],
+  'importar-documentos': [...BASE, 'contas_a_pagar', 'titulos', 'custos', 'despesas', 'maiores_fornecedores', 'cadastros', 'reconciliacao'],
+}
+const PORTAS_MEI = [...TRIBUTARIO, 'titulos', 'contas_a_pagar', 'contas_a_receber', 'movimentos_realizados', 'dividas', 'caixa_tesouraria']
+// A porta de relatórios abre vários assuntos: sem isto, a IA Tributária montaria o relatório de clientes.
+const RELATORIOS_POR_TELA: Record<string, readonly string[]> = {
+  'ia-tributaria': ['tributario', 'dre', 'executivo'], 'contas-pagar': ['contas_pagar', 'contas_vencidas', 'despesas', 'fluxo_caixa', 'executivo'],
+  'contas-receber': ['contas_receber', 'contas_vencidas', 'receitas', 'fluxo_caixa', 'executivo'], 'contas-vencidas': ['contas_vencidas', 'contas_receber', 'contas_pagar', 'fluxo_caixa', 'executivo'],
+  clientes: ['contas_receber', 'contas_vencidas', 'receitas', 'executivo'], 'centros-custo': ['despesas', 'dre', 'executivo'],
+  tesouraria: ['fluxo_caixa', 'contas_receber', 'contas_pagar', 'contas_vencidas', 'endividamento', 'executivo'], pdv: ['pdv', 'receitas', 'executivo'],
+  'importar-documentos': ['contas_pagar', 'despesas', 'conciliacao', 'executivo'],
+}
+const RELATORIOS_MEI = ['tributario', 'dre', 'fluxo_caixa', 'contas_receber', 'contas_pagar', 'receitas', 'despesas', 'executivo']
+
+// Pura: as portas da tela, ou null quando ela vê todas.
+export function portasDaTela(tela?: string | null): readonly string[] | null {
+  if (!tela) return null
+  if (tela.startsWith('mei-')) return PORTAS_MEI
+  return Object.hasOwn(PORTAS_POR_TELA, tela) ? PORTAS_POR_TELA[tela] : null
+}
+export const telaPodeUsarPorta = (tela: string | null | undefined, nome: string) => portasDaTela(tela)?.includes(nome) ?? true
+export function telaPodePedirRelatorio(tela: string | null | undefined, tipo: unknown): boolean {
+  if (!tela) return true
+  const tipos = tela.startsWith('mei-') ? RELATORIOS_MEI : Object.hasOwn(RELATORIOS_POR_TELA, tela) ? RELATORIOS_POR_TELA[tela] : null
+  return tipos ? tipos.includes(String(tipo)) : true
+}
+const foraDaArea = (assunto: string) => JSON.stringify({ negado: true, erro: `${assunto} não é consultado nesta tela. Diga isso, indique a IA Financeira para esse assunto e não estime nenhum valor.` })
+
 // papel null = dono sem linha em empresa_usuarios (o acesso à empresa já foi conferido pela RLS na rota)
 export const papelPodeUsarPorta = (p: Porta, papel: string | null) => p.papeis.includes(papel ?? 'dono')
 
@@ -61,11 +104,13 @@ function comTempo(executar: () => Promise<string>, ms: number): Promise<string |
   return Promise.race([executar(), limite]).finally(() => clearTimeout(timer))
 }
 
-export async function passarPelaPorta(p: { empresaId: string; papel: string | null; nome: string; executar: () => Promise<string>; agora?: () => number; tempoMs?: number }): Promise<{ saida: string; motivo?: RegistroFerramenta['motivo'] }> {
+export async function passarPelaPorta(p: { empresaId: string; papel: string | null; nome: string; tela?: string | null; entrada?: Record<string, unknown>; executar: () => Promise<string>; agora?: () => number; tempoMs?: number }): Promise<{ saida: string; motivo?: RegistroFerramenta['motivo'] }> {
   const agora = p.agora ?? Date.now
   const def = Object.hasOwn(PORTAS, p.nome) ? PORTAS[p.nome] : undefined
   if (!def) return { saida: JSON.stringify({ erro: `ferramenta desconhecida: ${p.nome}` }) }
   if (!papelPodeUsarPorta(def, p.papel)) return { saida: JSON.stringify({ negado: true, erro: `O papel desta pessoa não dá acesso a ${def.modulo}. Diga isso e não estime nenhum valor desse assunto.` }) }
+  if (!telaPodeUsarPorta(p.tela, p.nome)) return { saida: foraDaArea(def.modulo) }
+  if (p.nome === 'relatorio' && !telaPodePedirRelatorio(p.tela, p.entrada?.tipo)) return { saida: foraDaArea('Este relatório') }
 
   const chave = `${p.empresaId}:${p.nome}`
   const d = disjuntores.get(chave)
