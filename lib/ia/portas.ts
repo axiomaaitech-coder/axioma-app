@@ -22,7 +22,7 @@ export const PORTAS: Record<string, Porta> = {
   contas_a_pagar: porta('Contas a Pagar'), contas_a_receber: porta('Contas a Receber'), custos: porta('Custos Fixos e Variáveis'),
   receitas_por_mes: porta('Receitas'), estoque_avisos: porta('Estoque'), dividas: porta('Endividamento'),
   maiores_fornecedores: porta('Fornecedores'), maiores_devedores: porta('Inadimplência'), dre: porta('DRE', PESADA),
-  caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'),
+  caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'), compras_pedidos: porta('Pedidos de Compra'), pdv_resumo: porta('PDV'),
 }
 
 // ─── Etapa 5: cada tela consulta só o que é da sua finalidade. Quem protege o dado é o papel lido no servidor; a tela vem
@@ -30,7 +30,7 @@ export const PORTAS: Record<string, Porta> = {
 // ele concluía que o dado não existia ("não há cadastro de clientes"); a recusa vem da porta, com o motivo certo. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
 const BASE = ['resumo_financeiro', 'relatorio']
 const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais']
-const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais']
+const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais', 'compras_pedidos']
 const A_RECEBER = ['titulos', 'contas_a_receber', 'maiores_devedores', 'receitas_por_cliente', 'faturamento', 'cadastros']
 const COBRANCA = ['contas_vencidas', 'caixa_tesouraria', 'movimentos_realizados', 'reconciliacao']
 const PORTAS_POR_TELA: Record<string, readonly string[]> = {
@@ -41,8 +41,8 @@ const PORTAS_POR_TELA: Record<string, readonly string[]> = {
   clientes: [...BASE, 'cadastros', 'receitas_por_cliente', 'maiores_devedores', 'contas_a_receber', 'titulos', 'contas_vencidas'],
   'centros-custo': [...BASE, 'custos', 'custos_fixos_mes', 'despesas', 'dre', 'maiores_fornecedores'],
   tesouraria: [...BASE, 'caixa_tesouraria', 'movimentos_realizados', 'titulos', 'contas_a_pagar', 'contas_a_receber', 'dividas', 'obrigacoes_fiscais', 'contas_vencidas'],
-  pdv: [...BASE, 'estoque_avisos', 'estoque_resumo', 'faturamento', 'cadastros'],
-  'importar-documentos': [...BASE, 'contas_a_pagar', 'titulos', 'custos', 'despesas', 'maiores_fornecedores', 'cadastros', 'reconciliacao'],
+  pdv: [...BASE, 'pdv_resumo', 'estoque_avisos', 'estoque_resumo', 'faturamento', 'cadastros'],
+  'importar-documentos': [...BASE, 'contas_a_pagar', 'titulos', 'custos', 'despesas', 'maiores_fornecedores', 'cadastros', 'reconciliacao', 'compras_pedidos'],
 }
 const PORTAS_MEI = [...TRIBUTARIO, 'titulos', 'contas_a_pagar', 'contas_a_receber', 'movimentos_realizados', 'dividas', 'caixa_tesouraria']
 // A porta de relatórios abre vários assuntos: sem isto, a IA Tributária montaria o relatório de clientes.

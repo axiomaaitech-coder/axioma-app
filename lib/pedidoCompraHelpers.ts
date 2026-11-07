@@ -5,7 +5,7 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { normalizarTexto } from "./cfoCore";
-import { exigirLeitura } from "./erroUiHelpers";
+import { avisarFalhaLeitura, exigirLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +66,7 @@ export async function listarPedidosCompra(empresaId: string, filtroStatus?: stri
     .eq("empresa_id", empresaId).order("criado_em", { ascending: false });
   if (filtroStatus) q = q.eq("status", filtroStatus);
   const { data, error } = await q;
+  if (error) avisarFalhaLeitura("pedidoCompra:listar", new Error(error.message)); // falha não é "nenhum pedido"
   if (error || !data) return [];
   return data.map((p: any) => ({
     id: p.id, fornecedor_id: p.fornecedor_id, numero: p.numero, status: p.status,
@@ -79,6 +80,7 @@ export async function listarItensPedido(empresaId: string, pedidoCompraId: strin
     .select("id, descricao, codigo_fornecedor, ean, ncm, unidade, quantidade, valor_unitario, valor_total")
     .eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId)
     .order("criado_em", { ascending: true });
+  if (error) avisarFalhaLeitura("pedidoCompra:itens", new Error(error.message));
   if (error || !data) return [];
   return data as PedidoCompraItem[];
 }

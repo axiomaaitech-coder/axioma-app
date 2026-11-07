@@ -26,6 +26,7 @@ function banco(b: Banco) {
       eq(c: string, v: unknown) { if (c === 'empresa_id') empresa = v; filtros.push((l) => l[c] === v); return q },
       lt(c: string, v: string) { filtros.push((l) => String(l[c]) < v); return q },
       lte(c: string, v: string) { filtros.push((l) => String(l[c]) <= v); return q },
+      gte(c: string, v: string) { filtros.push((l) => String(l[c]) >= v); return q },
       maybeSingle() { const r = res(); return Promise.resolve({ data: r.data?.[0] ?? null, error: r.error }) },
       range(de: number, ate: number) { const r = res(); return Promise.resolve(r.data ? { data: r.data.slice(de, ate + 1), error: null } : r) },
     }
@@ -167,6 +168,40 @@ assert.ok(consultas.length > 10)
   assert.equal(eventoDaMovimentacao({ tipo: 'ajuste', destino_saldo: 'disponivel' }), 'STOCK_ADJUSTMENT'); assert.equal(eventoDaMovimentacao({ tipo: 'ajuste', destino_saldo: 'reservado' }), null)
   assert.equal(eventoDaMovimentacao({ tipo: 'perda' }), 'STOCK_LOSS'); assert.equal(eventoDaMovimentacao({ tipo: 'saida', origem: 'pdv' }), null)
   console.log('OK — cartão sai do caixa na fatura; entrada de estoque lança conforme foi paga')
+}
+
+// ─── Compras e PDV (etapa de fechamento das portas) ───
+{
+  const pedidos = [
+    { id: 'p1', empresa_id: E, numero: '10', status: 'aberto', valor_total: 1000.5, data_emissao: '2026-11-01', fornecedores: { nome: 'Forn A' } },
+    { id: 'p2', empresa_id: E, numero: '11', status: 'parcial', valor_total: 200, data_emissao: '2026-11-02', fornecedores: [{ nome: 'Forn B' }] },
+    { id: 'p3', empresa_id: E, numero: '12', status: 'faturado', valor_total: 700, data_emissao: '2026-10-01', fornecedores: null },
+    { id: 'p4', empresa_id: E, numero: '13', status: 'cancelado', valor_total: 900, data_emissao: '2026-10-01', fornecedores: null },
+    { id: 'px', empresa_id: OUTRA, numero: '99', status: 'aberto', valor_total: 99999, data_emissao: '2026-11-01', fornecedores: { nome: 'Outra' } },
+  ]
+  const { r, d } = await rodar({ tab: { pedido_compra: pedidos } }, 'compras_pedidos')
+  assert.equal(r.valor, 1200.5, 'só o que ainda vai gerar nota, sem outra Empresa'); assert.equal(r.estado, 'verificado'); assert.equal(d.em_aberto as unknown as number, 2)
+  assert.ok(!JSON.stringify(r).includes('99999') && !JSON.stringify(r).includes('Outra'), 'nada da outra Empresa')
+  assert.ok(r.limitacoes.some((l) => /não é dívida/.test(l)), 'pedido não é dívida')
+  assert.deepEqual((d.maiores_em_aberto as unknown as { fornecedor: string }[]).map((p) => p.fornecedor), ['Forn A', 'Forn B'])
+  const erro = await rodar({ falhaTab: ['pedido_compra'] }, 'compras_pedidos'); assert.equal(erro.r.estado, 'erro', 'falha nunca vira zero'); assert.equal(erro.r.valor, null)
+
+  const vendas = [
+    { empresa_id: E, status: 'finalizada', forma_pagamento: 'pix', valor_total: 100.1, criado_em: '2026-11-03T15:00:00Z', finalizada_em: '2026-11-03T15:00:00Z', cancelada_em: null },
+    { empresa_id: E, status: 'finalizada', forma_pagamento: 'credito', valor_total: 50.2, criado_em: '2026-11-04T01:00:00Z', finalizada_em: '2026-11-04T01:00:00Z', cancelada_em: null },
+    { empresa_id: E, status: 'cancelada', forma_pagamento: 'pix', valor_total: 30, criado_em: '2026-11-03T15:00:00Z', finalizada_em: null, cancelada_em: '2026-11-03T16:00:00Z' },
+    { empresa_id: E, status: 'aberta', forma_pagamento: null, valor_total: 11, criado_em: '2026-11-03T15:00:00Z', finalizada_em: null, cancelada_em: null },
+    { empresa_id: E, status: 'finalizada', forma_pagamento: 'pix', valor_total: 500, criado_em: '2026-11-05T15:00:00Z', finalizada_em: '2026-11-05T15:00:00Z', cancelada_em: null },
+    { empresa_id: OUTRA, status: 'finalizada', forma_pagamento: 'pix', valor_total: 99999, criado_em: '2026-11-03T15:00:00Z', finalizada_em: '2026-11-03T15:00:00Z', cancelada_em: null },
+  ]
+  const entrada = { periodo: 'personalizado', inicio: '2026-11-03', fim: '2026-11-03' }
+  const v = await rodar({ tab: { venda: vendas, turno_caixa: [{ id: 't1', empresa_id: E, status: 'aberto' }, { id: 't2', empresa_id: E, status: 'fechado' }] } }, 'pdv_resumo', entrada)
+  assert.equal(v.r.valor, 150.3, 'venda às 22h do dia 3 conta no dia 3; cancelada, aberta e outra Empresa fora')
+  assert.equal(v.d.vendas as unknown as number, 2); assert.equal(v.d.ticket_medio as unknown as number, 75.15); assert.equal(v.d.caixas_abertos as unknown as number, 1)
+  assert.deepEqual(v.d.canceladas as unknown, { qtd: 1, valor: 30 }); assert.deepEqual(v.d.por_forma as unknown, { pix: 100.1, credito: 50.2 })
+  const vz = await rodar({ tab: { venda: [], turno_caixa: [] } }, 'pdv_resumo', entrada); assert.equal(vz.r.valor, 0); assert.equal(vz.d.ticket_medio as unknown, null, 'sem venda não divide por zero')
+  const vErro = await rodar({ tab: { venda: vendas }, falhaTab: ['venda'] }, 'pdv_resumo', entrada); assert.equal(vErro.r.estado, 'erro'); assert.equal(vErro.r.valor, null)
+  console.log('OK — portas de Compras e PDV: mesmas regras, só a Empresa pedida, falha nunca vira zero')
 }
 
 console.log('check-gestao: Tesouraria, Fiscal, Cadastros e Estoque, tudo certo ✔')
