@@ -458,7 +458,7 @@ export function useCadastroProdutoPdv(args: {
       if (!produtoEditando && produtoId && (form.atributos_nicho || {})[CHAVE_PERECIVEL] && loteInicial.numero_lote.trim() && qtdLote > 0) {
         await criarMovimentacao(empresaId, userId, {
           produto_id: produtoId, tipo: "entrada", quantidade: qtdLote,
-          custo_unitario: form.preco_custo || null, status_recebimento: "confirmada",
+          custo_unitario: form.preco_custo || null, status_recebimento: "confirmada", pagamento: { modo: "estoque_inicial" },
           lote: { numero_lote: loteInicial.numero_lote.trim(), data_validade: loteInicial.data_validade || undefined },
         });
       }

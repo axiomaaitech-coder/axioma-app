@@ -1,4 +1,5 @@
 "use client";
+import type { PagamentoEntrada } from "../../../lib/regrasPagamento";
 import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import {
   Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Share2, ScanBarcode,
@@ -27,6 +28,7 @@ import {
   type ItemRentabilidade, type FornecedorComparativo, type AlertaReposicao, type ContagemSegmento,
   PAGE_SIZE, listarProdutos, criarProduto, atualizarProduto, excluirProduto, buscarProdutoPorCodigo,
   listarMovimentacoes, criarMovimentacao, atualizarMovimentacao, excluirMovimentacao, confirmarRecebimento,
+  type AvisoEntrada,
   listarLotesProduto, sugerirConsumoFefo,
   carregarAvisosEstoque, carregarAvisosValidade, carregarKpisEstoque,
   carregarComposicaoPorCategoria, carregarComposicaoPorFornecedor, carregarEvolucaoEstoque,
@@ -352,6 +354,9 @@ export default function EstoquePage() {
   const [filtroTipoMov, setFiltroTipoMov] = useState<TipoMovimentacao | "todos">("todos");
   const [modalMovAberto, setModalMovAberto] = useState(false);
   const [movEditando, setMovEditando] = useState<MovimentacaoComProduto | null>(null);
+  // Como a entrada foi paga: sem escolher não salva, porque a resposta decide se sai dinheiro do caixa.
+  const [pagEntrada, setPagEntrada] = useState({ modo: "", forma: "PIX", vencimento: "", fornecedor_id: "" });
+  const [confirmandoMov, setConfirmandoMov] = useState<MovimentacaoComProduto | null>(null);
   const [formMov, setFormMov] = useState<any>({});
   const [salvandoMov, setSalvandoMov] = useState(false);
   const [buscaProdutoMov, setBuscaProdutoMov] = useState("");
@@ -695,6 +700,7 @@ export default function EstoquePage() {
           quantidade: qtdLote,
           custo_unitario: loteInicial.custo_unitario ? Number(loteInicial.custo_unitario) : (formProduto.preco_custo || null),
           status_recebimento: "confirmada",
+          pagamento: { modo: "estoque_inicial" }, // primeira carga de um produto novo: não é compra
           lote: {
             numero_lote: loteInicial.numero_lote.trim(),
             data_fabricacao: loteInicial.data_fabricacao || undefined,
@@ -817,6 +823,7 @@ export default function EstoquePage() {
       tipo: "entrada", quantidade: 1, status_recebimento: "confirmada", destino_saldo: "disponivel",
       data_hora: paraCampoDataHora(new Date()),
     });
+    setPagEntrada({ modo: "", forma: "PIX", vencimento: "", fornecedor_id: "" });
     setBuscaProdutoMov("");
     setResultadosProdutoMov([]);
     setProdutoSelecionadoMov(null);
@@ -852,6 +859,41 @@ export default function EstoquePage() {
     else mostrarToast(et.toastCodigoNaoEncontrado, "info");
   });
 
+  const LP = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  // Confere a resposta "como foi paga?" e devolve o pagamento; null = faltou algo (o aviso já apareceu).
+  function pagamentoDaTela(custo: number | null | undefined): PagamentoEntrada | null {
+    if (pagEntrada.modo === "estoque_inicial") return { modo: "estoque_inicial" };
+    if (pagEntrada.modo !== "pago" && pagEntrada.modo !== "a_prazo") { mostrarToast(LP("Diga como esta entrada foi paga.", "Say how this entry was paid.", "Indique cómo se pagó esta entrada."), "erro"); return null; }
+    if (!(Number(custo) > 0)) { mostrarToast(LP("Informe o custo unitário para lançar o valor pago.", "Enter the unit cost to record the amount paid.", "Indique el costo unitario para registrar el valor pagado."), "erro"); return null; }
+    if (pagEntrada.modo === "pago") return { modo: "pago", forma: pagEntrada.forma };
+    if (!pagEntrada.vencimento) { mostrarToast(LP("Informe o vencimento da conta a pagar.", "Enter the due date of the bill.", "Indique el vencimiento de la cuenta por pagar."), "erro"); return null; }
+    return { modo: "a_prazo", vencimento: pagEntrada.vencimento, fornecedor_id: pagEntrada.fornecedor_id || null };
+  }
+  const textoAvisoEntrada = (aviso: AvisoEntrada) => aviso === "conta_pagar"
+    ? LP("Entrada salva, mas a conta a pagar não foi criada. Crie em Contas a Pagar.", "Entry saved, but the bill was not created. Create it in Payables.", "Entrada guardada, pero la cuenta por pagar no se creó. Créela en Cuentas por Pagar.")
+    : LP("Entrada salva, mas a saída não entrou no Fluxo de Caixa. Lance em Fluxo de Caixa.", "Entry saved, but the outflow did not reach Cash Flow. Enter it in Cash Flow.", "Entrada guardada, pero la salida no llegó al Flujo de Caja. Regístrela en Flujo de Caja.");
+  const camposPagamento = (
+    <div className="space-y-3">
+      <CampoSelect label={LP("Como esta entrada foi paga?", "How was this entry paid?", "¿Cómo se pagó esta entrada?")} value={pagEntrada.modo} onChange={(v) => setPagEntrada((p) => ({ ...p, modo: v }))} placeholder={LP("Selecione", "Select", "Seleccione")}
+        opcoes={[
+          { value: "pago", label: LP("Pago agora", "Paid now", "Pagado ahora") },
+          { value: "a_prazo", label: LP("A prazo (cria conta a pagar)", "On credit (creates a bill)", "A plazo (crea cuenta por pagar)") },
+          { value: "estoque_inicial", label: LP("Estoque inicial (não saiu dinheiro)", "Opening stock (no money left)", "Stock inicial (no salió dinero)") },
+        ]} />
+      {pagEntrada.modo === "pago" && (
+        <CampoSelect label={LP("Forma de pagamento", "Payment method", "Forma de pago")} value={pagEntrada.forma} onChange={(v) => setPagEntrada((p) => ({ ...p, forma: v }))}
+          opcoes={["PIX", "Boleto", "Transferência", "Dinheiro", "Cartão de Débito", "Cartão de Crédito"].map((x) => ({ value: x, label: x }))} />
+      )}
+      {pagEntrada.modo === "a_prazo" && (
+        <div className="grid grid-cols-2 gap-3">
+          <Campo label={LP("Vencimento", "Due date", "Vencimiento")} tipo="date" value={pagEntrada.vencimento} onChange={(v) => setPagEntrada((p) => ({ ...p, vencimento: v }))} />
+          <CampoSelect label={LP("Fornecedor (opcional)", "Supplier (optional)", "Proveedor (opcional)")} value={pagEntrada.fornecedor_id} onChange={(v) => setPagEntrada((p) => ({ ...p, fornecedor_id: v }))} placeholder={LP("Sem fornecedor", "No supplier", "Sin proveedor")}
+            opcoes={fornecedoresDrop.map((x) => ({ value: x.id, label: x.nome }))} />
+        </div>
+      )}
+    </div>
+  );
+
   async function salvarMovimentacao() {
     if (!empresaId || !userId) { mostrarToast(lang === "en" ? "No active company — reload the page and try again." : lang === "es" ? "Ninguna empresa activa — recargue la página e intente de nuevo." : "Nenhuma empresa ativa — recarregue a página e tente de novo.", "erro"); return; }
     if (!formMov.produto_id) { mostrarToast(et.toastSelecioneProduto, "erro"); return; }
@@ -869,7 +911,11 @@ export default function EstoquePage() {
         if (erro) { mostrarToast(erro, "erro"); return; }
         mostrarToast(et.toastMovAtualizada);
       } else {
-        const { erro } = await criarMovimentacao(empresaId, userId, {
+        const perguntaPagamento = formMov.tipo === "entrada" && (formMov.status_recebimento || "confirmada") === "confirmada";
+        const pagamento = perguntaPagamento ? pagamentoDaTela(formMov.custo_unitario ? Number(formMov.custo_unitario) : null) : undefined;
+        if (pagamento === null) return;
+        const { erro, aviso } = await criarMovimentacao(empresaId, userId, {
+          pagamento: pagamento ?? undefined,
           produto_id: formMov.produto_id, tipo: formMov.tipo, quantidade: Number(formMov.quantidade),
           custo_unitario: formMov.custo_unitario ? Number(formMov.custo_unitario) : null,
           status_recebimento: formMov.status_recebimento, destino_saldo: formMov.destino_saldo,
@@ -879,7 +925,7 @@ export default function EstoquePage() {
           lote_id: formMov.tipo === "saida" ? (formMov.lote_id || fefoSugestao[0]?.lote.id || null) : undefined,
         });
         if (erro) { mostrarToast(erro, "erro"); return; }
-        mostrarToast(et.toastMovSalva);
+        if (aviso) mostrarToast(textoAvisoEntrada(aviso), "erro"); else mostrarToast(et.toastMovSalva);
       }
       setModalMovAberto(false);
       carregarMovimentacoes();
@@ -897,11 +943,20 @@ export default function EstoquePage() {
     carregarMovimentacoes();
   }
 
-  async function confirmarRecebimentoHandler(id: string) {
-    const { erro } = await confirmarRecebimento(id);
-    if (erro) { mostrarToast(erro, "erro"); return; }
-    mostrarToast(et.toastRecebimentoConfirmado);
-    carregarMovimentacoes();
+  async function confirmarRecebimentoHandler() {
+    if (!confirmandoMov || !empresaId || !userId) return;
+    const pagamento = pagamentoDaTela(confirmandoMov.custo_unitario);
+    if (!pagamento) return;
+    setSalvandoMov(true);
+    try {
+      const { erro, aviso } = await confirmarRecebimento(confirmandoMov.id, empresaId, userId, pagamento);
+      if (erro) { mostrarToast(erro, "erro"); return; }
+      if (aviso) mostrarToast(textoAvisoEntrada(aviso), "erro"); else mostrarToast(et.toastRecebimentoConfirmado);
+      setConfirmandoMov(null);
+      carregarMovimentacoes();
+    } finally {
+      setSalvandoMov(false);
+    }
   }
 
   const fefoSugestao = formMov.tipo === "saida" && lotesProdutoMov.length > 0 && formMov.quantidade
@@ -1298,7 +1353,7 @@ export default function EstoquePage() {
                         <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
                         <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
-                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>
+                            <button onClick={() => { setPagEntrada({ modo: "", forma: "PIX", vencimento: "", fornecedor_id: "" }); setConfirmandoMov(m); }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(46,204,155,0.15)", color: ATENCAO_CT }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
                             </button>
                           ) : (
@@ -1967,6 +2022,8 @@ export default function EstoquePage() {
               opcoes={[{ value: "confirmada", label: et.opcaoConfirmada }, { value: "em_transito", label: et.opcaoEmTransito }]} />
           )}
 
+          {!movEditando && formMov.tipo === "entrada" && (formMov.status_recebimento || "confirmada") === "confirmada" && camposPagamento}
+
           {(formMov.tipo === "ajuste" || formMov.tipo === "inventario") && (
             <CampoSelect label={et.campoOndeAplicarAjuste} value={formMov.destino_saldo || "disponivel"} onChange={(v) => setFormMov((f: any) => ({ ...f, destino_saldo: v }))}
               opcoes={[{ value: "disponivel", label: et.opcaoDisponivel }, { value: "reservado", label: et.opcaoReservado }]} />
@@ -1998,6 +2055,18 @@ export default function EstoquePage() {
           <div className="flex gap-2 pt-2">
             <button onClick={() => setModalMovAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
             <button onClick={salvarMovimentacao} disabled={salvandoMov} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
+              {salvandoMov ? et.salvando : et.salvar}
+            </button>
+          </div>
+        </div>
+      </ModalPremium>
+
+      <ModalPremium aberto={!!confirmandoMov} onFechar={() => setConfirmandoMov(null)} titulo={et.emTransitoConfirmar}>
+        <div className="space-y-4">
+          {camposPagamento}
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => setConfirmandoMov(null)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0") }}>{LP("Cancelar", "Cancel", "Cancelar")}</button>
+            <button onClick={confirmarRecebimentoHandler} disabled={salvandoMov} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
               {salvandoMov ? et.salvando : et.salvar}
             </button>
           </div>

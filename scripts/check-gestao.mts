@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 // Portas de gestão (Central Intelligence, Etapa 3): mesmas contas das telas, só a Empresa pedida, falha nunca vira zero. Rodar: npx tsx scripts/check-gestao.mts
 import assert from 'node:assert/strict'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
@@ -116,4 +117,35 @@ assert.equal((await rodar({ falhaTab: ['vw_estoque_kpis'] }, 'estoque_resumo')).
 // ─── Toda leitura de tabela é da Empresa pedida ───
 for (const c of consultas) assert.equal(c.empresa, E, `${c.t} sem filtro de Empresa`)
 assert.ok(consultas.length > 10)
+// ═══ Decisões do Elias 2026-11-06: cartão sai do caixa na fatura; entrada de estoque diz como foi paga ═══
+{
+  const { codigoCreditoEntradaEstoque } = await import('../lib/contabilidadeConsumidor')
+  const { saiDoCaixaAgora } = await import('../lib/regrasPagamento')
+  const { naturezaPorTexto, NATUREZAS_FLUXO } = await import('../lib/rastreio/lancamentoManual')
+  const { saldoCartaoAPagar } = await import('../lib/caixaSaldo')
+  assert.equal(codigoCreditoEntradaEstoque({ modo: 'estoque_inicial' }), '5.02', 'estoque inicial não tira do caixa')
+  assert.equal(codigoCreditoEntradaEstoque({ modo: 'pago', forma: 'Dinheiro' }), '1.01')
+  assert.equal(codigoCreditoEntradaEstoque({ modo: 'pago', forma: 'PIX' }), '1.02')
+  assert.equal(codigoCreditoEntradaEstoque({ modo: 'pago', forma: 'Cartão de Crédito' }), '3.06', 'cartão vira dívida')
+  assert.equal(codigoCreditoEntradaEstoque(null), '1.02', 'evento antigo segue como foi gravado')
+  assert.equal(saiDoCaixaAgora('Cartão de Crédito'), false); assert.equal(saiDoCaixaAgora('Cartão de Débito'), true); assert.equal(saiDoCaixaAgora(null), true)
+  assert.equal(naturezaPorTexto('Pagamento fatura cartao', false), 'pag_cartao'); assert.equal(naturezaPorTexto('Fatura recebida', true), null, 'entrada não é pagamento de fatura')
+  assert.equal(NATUREZAS_FLUXO.find((n) => n.natureza === 'pag_cartao')?.entrada, false)
+  // Saldo do cartão: compras menos faturas pagas; falha de leitura aparece, não vira zero calado
+  const banco = (linhas: unknown[] | null, error: { message: string } | null = null) => {
+    const q: Record<string, unknown> = {}
+    for (const m of ['select', 'eq', 'order']) q[m] = () => q
+    q.range = () => Promise.resolve({ data: linhas, error })
+    return { from: () => q } as never
+  }
+  assert.equal((await saldoCartaoAPagar(banco([{ tipo: 'credito', valor: 500 }, { tipo: 'debito', valor: 120.5 }]), 'e')).saldo, 379.5)
+  assert.ok((await saldoCartaoAPagar(banco(null, { message: 'permission denied' }), 'e')).erro, 'erro chega à tela')
+  // Ligações que só existem no código: Fluxo, Conferência e Estoque usam a mesma regra
+  const le = (c: string) => readFileSync(c, 'utf8')
+  assert.ok(le('lib/rastreio/motor.ts').includes('!saiDoCaixaAgora(r.payload.forma)'), 'motor não leva cartão ao Fluxo')
+  assert.ok(le('lib/conferenciaHelpers.ts').includes('saiDoCaixaAgora(c.forma_pagamento)'), 'Conferência compara só o que saiu do caixa')
+  assert.ok(le('lib/estoqueHelpers.ts').includes('mov.pagamento ?? { modo: "estoque_inicial" }'), 'sem resposta nunca tira do caixa')
+  console.log('OK — cartão sai do caixa na fatura; entrada de estoque lança conforme foi paga')
+}
+
 console.log('check-gestao: Tesouraria, Fiscal, Cadastros e Estoque, tudo certo ✔')

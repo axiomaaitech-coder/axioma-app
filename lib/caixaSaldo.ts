@@ -29,3 +29,12 @@ export async function saldoCaixaRealizado(db: SupabaseClient, empresaId: string,
   const saldo = Math.round((fluxo + pdvRealizadoAte((vd.data || []) as Venda[], hoje)) * 100) / 100;
   return { saldo, erro: fc.error?.message || vd.error?.message };
 }
+
+// Quanto foi comprado no cartão de crédito e ainda não saiu do caixa: saldo da conta 3.06 na Contabilidade.
+export async function saldoCartaoAPagar(db: SupabaseClient, empresaId: string): Promise<{ saldo: number; erro?: string }> {
+  const { data, error } = await lerTodas(() => db.from("lancamento_contabil_partida").select("tipo, valor, plano_de_contas!inner(codigo)")
+    .eq("empresa_id", empresaId).eq("plano_de_contas.codigo", "3.06").order("id"));
+  const linhas = (data || []) as unknown as { tipo: string; valor: number }[];
+  const saldo = linhas.reduce((s, l) => s + (l.tipo === "credito" ? 1 : -1) * (Number(l.valor) || 0), 0);
+  return { saldo: Math.round(saldo * 100) / 100, erro: error?.message };
+}

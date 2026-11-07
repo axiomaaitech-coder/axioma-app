@@ -1,6 +1,6 @@
 ﻿"use client";
 import { soVigentes } from "../../../lib/custoFixoVigente";
-import { saldoCaixaRealizado } from "../../../lib/caixaSaldo";
+import { saldoCaixaRealizado, saldoCartaoAPagar } from "../../../lib/caixaSaldo";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Sparkles, Zap, ShieldAlert, MessageSquareText } from "lucide-react";
@@ -152,6 +152,7 @@ export default function FluxoCaixa() {
   const [contasPagarRows, setContasPagarRows] = useState<any[]>([]);
   const [custosFixosRows, setCustosFixosRows] = useState<any[]>([]);
   const [saldoReal, setSaldoReal] = useState<number | null>(null);
+  const [saldoCartao, setSaldoCartao] = useState(0);
   const [dividasRows, setDividasRows] = useState<any[]>([]);
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
@@ -196,6 +197,9 @@ export default function FluxoCaixa() {
     if (pdv.erro) showToast(L("Vendas do PDV não carregaram — o caixa pode estar incompleto.", "PDV sales did not load — cash may be incomplete.", "Las ventas del PDV no cargaron — la caja puede estar incompleta."), "erro");
     setContasReceberRows(cr || []);
     setContasPagarRows(cp || []);
+    const cartao = await saldoCartaoAPagar(supabase, empresaId);
+    if (cartao.erro) showToast(L("O saldo do cartão a pagar não carregou.", "The card balance did not load.", "El saldo de la tarjeta no cargó."), "erro");
+    setSaldoCartao(cartao.erro ? 0 : cartao.saldo);
     setCustosFixosRows(cf || []);
     setDividasRows(dv || []);
     setCarregando(false);
@@ -557,6 +561,20 @@ export default function FluxoCaixa() {
               </div>
               <style>{`.marquee-fc{animation:marqueeFc 30s linear infinite}@keyframes marqueeFc{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-fc:hover{animation-play-state:paused}`}</style>
             </div>
+
+            {/* CARTÃO DE CRÉDITO: comprado, ainda não saiu do caixa */}
+            {saldoCartao > 0.005 && (
+              <div className={`rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(46,204,155,0.2)" }}>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "var(--axi-text-primary)" }}>{L("Cartão de crédito a pagar", "Credit card to pay", "Tarjeta de crédito por pagar")}: R$ {saldoCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L("Compras no cartão ainda não saíram do caixa. Saem quando você paga a fatura.", "Card purchases have not left cash yet. They leave when you pay the bill.", "Las compras con tarjeta aún no salieron de caja. Salen cuando paga la factura.")}</p>
+                </div>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { setEditando(null); setNovo({ descricao: L("Pagamento da fatura do cartão", "Credit card bill payment", "Pago de la factura de tarjeta"), tipo: "saida", valor: String(saldoCartao), data: hojeISO(), status: "realizado", natureza: "pag_cartao" }); setModalAberto(true); }}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold shrink-0" style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
+                  {L("Pagar fatura", "Pay bill", "Pagar factura")} ›
+                </motion.button>
+              </div>
+            )}
 
             {/* NARRATIVA */}
             {narrativaSaldo && (

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '13 - Fluxo de Caixa.docx',
   titulo: 'Manual 13 — Fluxo de Caixa',
   subtitulo: 'O dinheiro de verdade: o que entrou, o que saiu, quanto há hoje e quanto haverá',
-  info: ['Menu: Financeiro → Fluxo de Caixa  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Fluxo de Caixa  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Mostra o **dinheiro de verdade**: entradas e saídas realizadas, o **saldo de caixa hoje** e a **previsão** das próximas semanas, juntando sozinho o que vem de Contas a Receber, Contas a Pagar, Custos Fixos, Dívidas e vendas do PDV. O ponto mais importante é o **Alerta de Ruptura de Caixa**: avisa com antecedência se o dinheiro vai faltar.' },
@@ -53,15 +53,16 @@ const pt: DocumentoAxioma = {
     { h1: 'Passo a passo: lançar uma movimentação' },
     { numerada: [
       'Clique em **+ Novo Lançamento**.',
-      'Escolha **Entrada** ou **Saída**, a **Natureza** — Receita, Custo/Despesa, Aporte de sócio, Empréstimo recebido, Pagamento de empréstimo, Retirada de sócio, Transferência entre contas ou Aplicação/resgate — e preencha descrição, valor e data.',
+      'Escolha **Entrada** ou **Saída**, a **Natureza** — Receita, Custo/Despesa, Aporte de sócio, Empréstimo recebido, Pagamento de empréstimo, Pagamento de fatura do cartão, Retirada de sócio, Transferência entre contas ou Aplicação/resgate — e preencha descrição, valor e data.',
       'Status: **Realizado** se o dinheiro já se moveu; **Previsto** se ainda vai.',
       'Clique em **Salvar**.',
     ] },
     { tabela: { colunas: ['Natureza', 'Onde mais aparece'], larguras: [3000, 6026], linhas: [
       ['Receita / Custo', 'Contabilidade e DRE (é resultado).'],
-      ['Aporte, Empréstimo, Pagamento de empréstimo, Retirada', 'Só Contabilidade (mexe no caixa, não é lucro nem prejuízo).'],
+      ['Aporte, Empréstimo, Pagamento de empréstimo, Pagamento de fatura do cartão, Retirada', 'Só Contabilidade (mexe no caixa, não é lucro nem prejuízo).'],
       ['Transferência / Aplicação', 'Só o caixa: o dinheiro mudou de lugar dentro da empresa.'],
     ] } },
+    { p: '**Cartão de crédito:** conta paga no cartão de crédito não sai do caixa na hora, porque vira dívida. O cartão **Cartão de crédito a pagar** mostra quanto falta; clique em **Pagar fatura** quando pagar, e só aí o dinheiro sai do caixa.' },
     { alerta: 'Viu o **Alerta de Ruptura de Caixa**? Aja logo: antecipe recebimentos, renegocie pagamentos ou reforce o caixa. Quanto antes, mais opções.' },
     { nota: 'Quando a conexão bancária (Open Finance) estiver ativa, o extrato do banco entra sozinho e o caixa fica ainda mais fiel.' },
 
@@ -74,7 +75,7 @@ const en: DocumentoAxioma = {
   arquivo: '13 - Cash Flow.docx',
   titulo: 'Manual 13 — Cash Flow',
   subtitulo: 'Real money: what came in, what went out, how much there is today and how much there will be',
-  info: ['Menu: Financial → Cash Flow  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
+  info: ['Menu: Financial → Cash Flow  •  Axioma AI.Tech user manual  •  Version 2.3 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Shows **real money**: actual inflows and outflows, **today\'s cash balance** and the **forecast** for the coming weeks, automatically combining Receivables, Payables, Fixed Costs, Debts and POS sales. The key feature is the **Cash Shortfall Alert**: it warns in advance if money will run out.' },
@@ -122,15 +123,16 @@ const en: DocumentoAxioma = {
     { h1: 'Step by step: entering a movement' },
     { numerada: [
       'Click **+ New Entry**.',
-      'Choose **Inflow** or **Outflow**, the **Nature** — Revenue, Cost/Expense, Partner contribution, Loan received, Loan payment, Partner withdrawal, Transfer between accounts or Investment/redemption — and fill in description, amount and date.',
+      'Choose **Inflow** or **Outflow**, the **Nature** — Revenue, Cost/Expense, Partner contribution, Loan received, Loan payment, Credit card bill payment, Partner withdrawal, Transfer between accounts or Investment/redemption — and fill in description, amount and date.',
       'Status: **Actual** if the money already moved; **Forecast** if it is still to come.',
       'Click **Save**.',
     ] },
     { tabela: { colunas: ['Nature', 'Where else it shows'], larguras: [3000, 6026], linhas: [
       ['Revenue / Cost', 'Accounting and the P&L (it is a result).'],
-      ['Contribution, Loan, Loan payment, Withdrawal', 'Accounting only (moves cash, not profit or loss).'],
+      ['Contribution, Loan, Loan payment, Credit card bill payment, Withdrawal', 'Accounting only (moves cash, not profit or loss).'],
       ['Transfer / Investment', 'Cash only: money moved within the company.'],
     ] } },
+    { p: '**Credit card:** a bill paid by credit card does not leave cash right away, because it becomes a debt. The **Credit card to pay** card shows what is owed; click **Pay bill** when you pay it, and only then the money leaves cash.' },
     { alerta: 'Seeing the **Cash Shortfall Alert**? Act quickly: bring receipts forward, renegotiate payments or reinforce cash. The sooner, the more options.' },
     { nota: 'Once the bank connection (Open Finance) is active, the bank statement comes in automatically and cash becomes even more accurate.' },
 
@@ -143,7 +145,7 @@ const es: DocumentoAxioma = {
   arquivo: '13 - Flujo de Caja.docx',
   titulo: 'Manual 13 — Flujo de Caja',
   subtitulo: 'El dinero real: lo que entró, lo que salió, cuánto hay hoy y cuánto habrá',
-  info: ['Menú: Financiero → Flujo de Caja  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
+  info: ['Menú: Financiero → Flujo de Caja  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Muestra el **dinero real**: entradas y salidas realizadas, el **saldo de caja hoy** y la **previsión** de las próximas semanas, juntando solo lo que viene de Cuentas por Cobrar, Cuentas por Pagar, Costos Fijos, Deudas y ventas del PDV. Lo más importante es la **Alerta de Ruptura de Caja**: avisa con anticipación si va a faltar dinero.' },
@@ -191,15 +193,16 @@ const es: DocumentoAxioma = {
     { h1: 'Paso a paso: registrar un movimiento' },
     { numerada: [
       'Haga clic en **+ Nuevo Registro**.',
-      'Elija **Entrada** o **Salida**, la **Naturaleza** — Ingreso, Costo/Gasto, Aporte de socio, Préstamo recibido, Pago de préstamo, Retiro de socio, Transferencia entre cuentas o Inversión/rescate — y complete descripción, valor y fecha.',
+      'Elija **Entrada** o **Salida**, la **Naturaleza** — Ingreso, Costo/Gasto, Aporte de socio, Préstamo recibido, Pago de préstamo, Pago de factura de tarjeta, Retiro de socio, Transferencia entre cuentas o Inversión/rescate — y complete descripción, valor y fecha.',
       'Estado: **Realizado** si el dinero ya se movió; **Previsto** si aún va a moverse.',
       'Haga clic en **Guardar**.',
     ] },
     { tabela: { colunas: ['Naturaleza', 'Dónde más aparece'], larguras: [3000, 6026], linhas: [
       ['Ingreso / Costo', 'Contabilidad y Estado de Resultados (es resultado).'],
-      ['Aporte, Préstamo, Pago de préstamo, Retiro', 'Solo Contabilidad (mueve la caja, no es ganancia ni pérdida).'],
+      ['Aporte, Préstamo, Pago de préstamo, Pago de factura de tarjeta, Retiro', 'Solo Contabilidad (mueve la caja, no es ganancia ni pérdida).'],
       ['Transferencia / Inversión', 'Solo la caja: el dinero cambió de lugar dentro de la empresa.'],
     ] } },
+    { p: '**Tarjeta de crédito:** una cuenta pagada con tarjeta de crédito no sale de caja enseguida, porque se vuelve deuda. La tarjeta **Tarjeta de crédito por pagar** muestra cuánto falta; haga clic en **Pagar factura** cuando la pague, y solo entonces el dinero sale de caja.' },
     { alerta: '¿Vio la **Alerta de Ruptura de Caja**? Actúe rápido: adelante cobros, renegocie pagos o refuerce la caja. Cuanto antes, más opciones.' },
     { nota: 'Cuando la conexión bancaria (Open Finance) esté activa, el extracto del banco entra solo y la caja queda aún más fiel.' },
 

@@ -21,6 +21,7 @@ import * as Sentry from "@sentry/nextjs";
 import { publicarEvento } from "../eventFabricHelpers";
 import { processarEventoContabil } from "../contabilidadeConsumidor";
 import { exigirLeitura } from "../erroUiHelpers";
+import { saiDoCaixaAgora } from "../regrasPagamento";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -270,6 +271,8 @@ async function executarFluxoCaixa(r: Rastreio): Promise<Resultado> {
   // Lançado no próprio Fluxo de Caixa: já está lá.
   if (r.tipo === "manual" && r.origem_tabela === "fluxo_caixa") return { status: "nao_aplica" };
   const entrada = r.tipo === "ar_recebimento" || (r.tipo === "manual" && ["receita", "aporte", "emprestimo"].includes(r.payload.natureza ?? ""));
+  // Pago no cartão de crédito: virou dívida, o dinheiro só sai do caixa quando a fatura é paga.
+  if (!entrada && !saiDoCaixaAgora(r.payload.forma)) return { status: "nao_aplica" };
   const quem = r.payload.contraparte ? ` — ${r.payload.contraparte}` : "";
   const { error } = await supabase.from("fluxo_caixa").insert({
     empresa_id: r.empresa_id, user_id: r.usuario_id, rastreio_id: r.id,

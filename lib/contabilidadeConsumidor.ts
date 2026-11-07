@@ -173,6 +173,14 @@ const FORMA_PAGAMENTO_PARA_CODIGO: Record<string, string> = {
   "Cartão de Crédito": "3.06",
 };
 const CODIGO_ATIVO_PADRAO = "1.02"; // forma de pagamento fora do enum conhecido
+const CODIGO_CARTAO_A_PAGAR = "3.06";
+const CODIGO_SALDO_INICIAL = "5.02"; // estoque que já existia: contrapartida no patrimônio, nenhum dinheiro saiu
+
+// De onde sai o valor de uma entrada manual de estoque. Evento antigo, sem essa informação, segue no banco como foi gravado.
+export function codigoCreditoEntradaEstoque(pagamento?: { modo?: string; forma?: string | null } | null): string {
+  if (pagamento?.modo === "estoque_inicial") return CODIGO_SALDO_INICIAL;
+  return FORMA_PAGAMENTO_PARA_CODIGO[pagamento?.forma ?? ""] ?? CODIGO_ATIVO_PADRAO;
+}
 
 // Mapa de RECEBIMENTO — a empresa recebendo (SALE_CREATED, AR_RECEIVED).
 // Único ponto de diferença do mapa de pagamento: "Cartão de Crédito" aqui é
@@ -295,6 +303,7 @@ async function estornarLancamentosPorOrigem(
 //   aporte   → D Caixa/Bancos           C 5.01 Capital Social
 //   emprestimo → D Caixa/Bancos         C 3.05 Empréstimos (curto prazo)
 //   pag_emprestimo → D 3.05             C Caixa/Bancos
+//   pag_cartao → D 3.06 Cartão a Pagar  C Caixa/Bancos (nunca o próprio cartão)
 //   retirada → D 5.02 Lucros Acumulados C Caixa/Bancos
 //   transferencia → nada (dinheiro mudou de lugar dentro da empresa)
 // ============================================================================
@@ -314,11 +323,12 @@ async function gerarLancamentoManual(
   const contas = await mapaContasPorCodigo(empresaId);
   const forma = (p.forma as string | null) ?? "";
   const entra = natureza === "receita" || natureza === "aporte" || natureza === "emprestimo";
-  const codigoAtivo = (entra ? FORMA_RECEBIMENTO_PARA_CODIGO[forma] : FORMA_PAGAMENTO_PARA_CODIGO[forma]) ?? CODIGO_ATIVO_PADRAO;
+  const codigoForma = (entra ? FORMA_RECEBIMENTO_PARA_CODIGO[forma] : FORMA_PAGAMENTO_PARA_CODIGO[forma]) ?? CODIGO_ATIVO_PADRAO;
+  const codigoAtivo = natureza === "pag_cartao" && codigoForma === CODIGO_CARTAO_A_PAGAR ? CODIGO_ATIVO_PADRAO : codigoForma;
   const categoria = (p.categoria as string | null) ?? "";
   const codigoContra = natureza === "receita" ? (CATEGORIA_RECEITA_MANUAL[categoria] ?? CATEGORIA_RECEITA_PARA_CODIGO[categoria] ?? CODIGO_RECEITA_PADRAO)
     : natureza === "custo" ? (CATEGORIA_CUSTO_MANUAL[categoria] ?? CATEGORIA_PARA_CODIGO[categoria as CategoriaDespesa] ?? CODIGO_DESPESA_PADRAO)
-    : natureza === "aporte" ? "5.01" : natureza === "retirada" ? "5.02" : "3.05";
+    : natureza === "aporte" ? "5.01" : natureza === "retirada" ? "5.02" : natureza === "pag_cartao" ? CODIGO_CARTAO_A_PAGAR : "3.05";
   const contaAtivoId = contas[codigoAtivo];
   const contaContraId = contas[codigoContra];
   if (!contaAtivoId || !contaContraId) {
@@ -563,6 +573,7 @@ async function gerarEntradaEstoqueManual(
   quantidade: number,
   custoUnitario: number | null | undefined,
   dataMovimento: string,
+  pagamento: { modo?: string; forma?: string | null } | null | undefined,
   ctx?: CtxContabil,
 ): Promise<void> {
   const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
@@ -570,9 +581,10 @@ async function gerarEntradaEstoqueManual(
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
   const contaEstoquesId = contas[CODIGO_ESTOQUES];
-  const contaAtivoId = contas[CODIGO_ATIVO_PADRAO];
+  const codigoCredito = codigoCreditoEntradaEstoque(pagamento);
+  const contaAtivoId = contas[codigoCredito];
   if (!contaEstoquesId || !contaAtivoId) {
-    falha(ctx, "plano_de_contas", "resolver conta do de-para (STOCK_ENTRY_MANUAL)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_ATIVO_PADRAO} não encontrado na empresa ${empresaId}`);
+    falha(ctx, "plano_de_contas", "resolver conta do de-para (STOCK_ENTRY_MANUAL)", `código ${CODIGO_ESTOQUES} ou ${codigoCredito} não encontrado na empresa ${empresaId}`);
     return;
   }
   const partidas: PartidaContabilInput[] = [
@@ -825,7 +837,12 @@ export async function processarEventoContabil(
       case "STOCK_ENTRY_MANUAL": {
         await gerarEntradaEstoqueManual(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
-          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(), ctx);
+          payload.custo_unitario as number | null, (payload.data_movimento as string) || (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
+          payload.pagamento as { modo?: string; forma?: string | null } | null, ctx);
+        break;
+      }
+      case "STOCK_MOVEMENT_DELETED": {
+        await estornarLancamentosPorOrigem(empresaId, "estoque_movimentacoes", origemId, "Estorno por exclusão de movimentação de estoque", ctx);
         break;
       }
       case "STOCK_ADJUSTMENT": {

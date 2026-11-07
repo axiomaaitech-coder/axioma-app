@@ -16,6 +16,7 @@ import { registrarMovimentacao } from "./rastreio/motor";
 import { registrarLancamentoManual } from "./rastreio/lancamentoManual";
 import { criarContaReceber } from "./recebimentoHelpers";
 import { hojeISO } from "./datas";
+import { saiDoCaixaAgora } from "./regrasPagamento";
 import { registrarLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -82,7 +83,7 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
     carregarBaseDRE(empresaId, inicio, fim),
     lerTodas(() => supabase.from("lancamento_contabil_partida").select("valor, tipo, plano_de_contas!inner(codigo), lancamento_contabil!inner(data, empresa_id)")
       .eq("lancamento_contabil.empresa_id", empresaId).gte("lancamento_contabil.data", inicio).lte("lancamento_contabil.data", fim).order("id")),
-    lerTodas(() => supabase.from("contas_pagar").select("id, descricao, valor_pago, data_pagamento, status, mei_obrigacao_id").eq("empresa_id", empresaId).gt("valor_pago", 0).order("id")),
+    lerTodas(() => supabase.from("contas_pagar").select("id, descricao, valor_pago, data_pagamento, status, mei_obrigacao_id, forma_pagamento").eq("empresa_id", empresaId).gt("valor_pago", 0).order("id")),
     lerTodas(() => supabase.from("contas_receber").select("id, descricao, valor_recebido, data_recebimento").eq("empresa_id", empresaId).gt("valor_recebido", 0).order("id")),
     lerTodas(() => supabase.from("fluxo_caixa").select("id, tipo, valor, data, status, descricao, origem_tabela, origem_id").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
     lerTodas(() => supabase.from("rastreio_movimentacao").select("id, origem_tabela, origem_id, tipo, valor").eq("empresa_id", empresaId).order("id")),
@@ -100,7 +101,8 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
     const i = `${mes}-01`, f = `${mes}-31`;
     const receitaDre = somaNoPeriodo(base.receitas, i, f) - somaNoPeriodo(base.devolucoes, i, f);
     const custoDre = somaNoPeriodo(base.custos, i, f) + custoFixoDoMes(base.custosFixos, mes);
-    const pago = (cp.data as { valor_pago: number; data_pagamento: string | null }[]).filter((c) => c.data_pagamento && c.data_pagamento >= i && c.data_pagamento <= f).reduce((s, c) => s + Number(c.valor_pago), 0);
+    // Pago no cartão não vai ao Fluxo na hora: entra na conta só o que saiu do caixa.
+    const pago = (cp.data as { valor_pago: number; data_pagamento: string | null; forma_pagamento: string | null }[]).filter((c) => saiDoCaixaAgora(c.forma_pagamento) && c.data_pagamento && c.data_pagamento >= i && c.data_pagamento <= f).reduce((s, c) => s + Number(c.valor_pago), 0);
     const recebido = (cr.data as { valor_recebido: number; data_recebimento: string | null }[]).filter((c) => c.data_recebimento && c.data_recebimento >= i && c.data_recebimento <= f).reduce((s, c) => s + Number(c.valor_recebido), 0);
     const fluxoDe = (tabela: string, tipo: string) => fluxo.filter((x) => x.origem_tabela === tabela && x.tipo === tipo && x.data >= i && x.data <= f).reduce((s, x) => s + Number(x.valor), 0);
     return {
@@ -117,7 +119,7 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
   const fmt = (v: number) => v.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { style: "currency", currency: "BRL" });
   const rastreado = rastreadoPorConta(rastro.filter((r) => r.origem_tabela === "contas_pagar" && (r.tipo === "ap_pagamento" || r.tipo === "ap_estorno")));
   const noRazao = await pagamentosNoRazao(empresaId);
-  for (const c of cp.data as { id: string; descricao: string; valor_pago: number; data_pagamento: string | null; mei_obrigacao_id: string | null }[]) {
+  for (const c of cp.data as { id: string; descricao: string; valor_pago: number; data_pagamento: string | null; mei_obrigacao_id: string | null; forma_pagamento: string | null }[]) {
     if (c.mei_obrigacao_id) continue; // DAS tem motor próprio
     const falta = r2(Number(c.valor_pago) - (rastreado.get(c.id) ?? 0));
     if (falta <= TOLERANCIA) continue;
@@ -129,7 +131,7 @@ export async function carregarConferencia(empresaId: string, inicio: string, fim
       antes: L(`Pago ${fmt(Number(c.valor_pago))}; chegou ao Fluxo/Contabilidade ${fmt(rastreado.get(c.id) ?? 0)}`, `Paid ${fmt(Number(c.valor_pago))}; reached Cash Flow/Accounting ${fmt(rastreado.get(c.id) ?? 0)}`, `Pagado ${fmt(Number(c.valor_pago))}; llegó al Flujo/Contabilidad ${fmt(rastreado.get(c.id) ?? 0)}`),
       depois: L(`Registrar no motor o pagamento que falta: ${fmt(falta)} em ${c.data_pagamento ?? "—"}`, `Record the missing payment in the engine: ${fmt(falta)} on ${c.data_pagamento ?? "—"}`, `Registrar en el motor el pago que falta: ${fmt(falta)} el ${c.data_pagamento ?? "—"}`),
       impacto: [
-        { modulo: L("Fluxo de Caixa", "Cash Flow", "Flujo de Caja"), efeito: L(`+1 saída realizada de ${fmt(falta)}`, `+1 actual outflow of ${fmt(falta)}`, `+1 salida realizada de ${fmt(falta)}`) },
+        { modulo: L("Fluxo de Caixa", "Cash Flow", "Flujo de Caja"), efeito: saiDoCaixaAgora(c.forma_pagamento) ? L(`+1 saída realizada de ${fmt(falta)}`, `+1 actual outflow of ${fmt(falta)}`, `+1 salida realizada de ${fmt(falta)}`) : L("nenhum agora (pago no cartão: sai do caixa na fatura)", "none now (paid by card: leaves cash with the bill)", "ninguno ahora (pagado con tarjeta: sale de caja con la factura)") },
         { modulo: L("Contabilidade", "Accounting", "Contabilidad"), efeito: jaNoRazao ? L("nenhum (este pagamento já está lançado)", "none (this payment is already posted)", "ninguno (este pago ya está registrado)") : L(`baixa de ${fmt(falta)} em Fornecedores (3.01) contra Caixa/Banco`, `${fmt(falta)} settlement in Suppliers (3.01) against Cash/Bank`, `baja de ${fmt(falta)} en Proveedores (3.01) contra Caja/Banco`) },
         { modulo: "DRE", efeito: L("nenhum (a DRE por competência já conta a conta pela emissão)", "none (accrual P&L already counts the bill by issue date)", "ninguno (el EERR por devengo ya cuenta la cuenta por emisión)") },
       ],

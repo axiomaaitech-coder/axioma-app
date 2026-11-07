@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '29 - Comercial - Estoque.docx',
   titulo: 'Manual 29 — Estoque',
   subtitulo: 'Saldo, custo médio, validade e centro de avisos',
-  info: ['Menu: Comercial → Estoque  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: Comercial → Estoque  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Controla os produtos, as entradas e saídas, o custo médio e a validade dos lotes. Avisa sobre ruptura, estoque baixo, capital parado e produtos vencendo, e sugere o que repor e o que promover. É integrado ao PDV e às notas fiscais de compra.' },
@@ -50,6 +50,7 @@ const pt: DocumentoAxioma = {
     { nota: 'O **segmento padrão** da empresa e os até 3 **campos personalizados** valem para a empresa inteira: só o **proprietário** pode mudá-los. Se outra pessoa tentar, o Axioma avisa e não grava.' },
     { h1: 'Passo a passo: movimentação' },
     { p: 'Clique em **+ Nova Movimentação**, escolha o produto e o **Tipo**: Entrada, Saída, Transferência, Perda, Ajuste, Inventário ou Devolução. Informe quantidade, custo unitário, situação (confirmada ou em trânsito), lote e validade (o Axioma sugere o lote que vence primeiro, regra FEFO), documento e motivo.' },
+    { p: '**Como esta entrada foi paga?** Toda entrada confirmada pergunta: **Pago agora** (escolha a forma; sai do caixa, e no cartão de crédito sai só ao pagar a fatura), **A prazo** (cria a conta em Contas a Pagar com o vencimento informado) ou **Estoque inicial** (produto que você já tinha; não sai dinheiro). Entrada em trânsito pergunta ao confirmar o recebimento. Excluir a movimentação desfaz o que ela lançou na Contabilidade e no Fluxo; a conta a pagar, se houver, é excluída em Contas a Pagar.' },
     { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
       ['✏️ Lápis', 'Edita o produto ou a movimentação.'],
       ['🗑️ Lixeira', 'Pede motivo (pelo menos 5 letras) e e-mail e senha de um supervisor (Proprietário, Sócio ou Administrador). Produto com movimentação não é apagado: vira inativo, para manter o histórico. Produto com venda registrada não pode ser excluído.'],
@@ -63,7 +64,7 @@ const en: DocumentoAxioma = {
   arquivo: '29 - Commercial - Inventory.docx',
   titulo: 'Manual 29 — Inventory',
   subtitulo: 'Balance, average cost, expiration and alerts center',
-  info: ['Menu: Commercial → Inventory  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: Commercial → Inventory  •  Axioma AI.Tech user manual  •  Version 2.2 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Controls products, stock in and out, average cost and batch expiration. Warns about stockouts, low stock, idle capital and expiring products, and suggests what to restock and what to promote. It is integrated with the POS and purchase invoices.' },
@@ -108,6 +109,7 @@ const en: DocumentoAxioma = {
     { nota: 'The company’s **default segment** and up to 3 **custom fields** apply to the whole company: only the **owner** can change them. If someone else tries, Axioma warns and does not save.' },
     { h1: 'Step by step: movement' },
     { p: 'Click **+ New Movement**, choose the product and the **Type**: In, Out, Transfer, Loss, Adjustment, Count or Return. Enter quantity, unit cost, status (confirmed or in transit), batch and expiration (Axioma suggests the batch that expires first, FEFO rule), document and reason.' },
+    { p: '**How was this entry paid?** Every confirmed entry asks: **Paid now** (choose the method; it leaves cash, and with a credit card only when the bill is paid), **On credit** (creates the bill in Payables with the due date you enter) or **Opening stock** (a product you already had; no money leaves). An in-transit entry asks when you confirm receipt. Deleting the movement undoes what it posted to Accounting and Cash Flow; the bill, if any, is deleted in Payables.' },
     { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
       ['✏️ Pencil', 'Edits the product or the movement.'],
       ['🗑️ Trash', 'Asks for a reason (at least 5 letters) and the email and password of a supervisor (Owner, Partner or Administrator). A product with movements is not deleted: it becomes inactive, to keep the history. A product with a recorded sale cannot be deleted.'],
@@ -121,7 +123,7 @@ const es: DocumentoAxioma = {
   arquivo: '29 - Comercial - Inventario.docx',
   titulo: 'Manual 29 — Inventario',
   subtitulo: 'Saldo, costo promedio, vencimiento y centro de avisos',
-  info: ['Menú: Comercial → Inventario  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: Comercial → Inventario  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Controla los productos, las entradas y salidas, el costo promedio y el vencimiento de los lotes. Avisa sobre quiebre de stock, stock bajo, capital inmovilizado y productos por vencer, y sugiere qué reponer y qué promocionar. Está integrado al PDV y a las facturas de compra.' },
@@ -166,6 +168,7 @@ const es: DocumentoAxioma = {
     { nota: 'El **segmento estándar** de la empresa y los hasta 3 **campos personalizados** valen para toda la empresa: solo el **propietario** puede cambiarlos. Si otra persona lo intenta, Axioma avisa y no guarda.' },
     { h1: 'Paso a paso: movimiento' },
     { p: 'Haga clic en **+ Nuevo Movimiento**, elija el producto y el **Tipo**: Entrada, Salida, Transferencia, Pérdida, Ajuste, Inventario o Devolución. Informe cantidad, costo unitario, situación (confirmada o en tránsito), lote y vencimiento (Axioma sugiere el lote que vence primero, regla FEFO), documento y motivo.' },
+    { p: '**¿Cómo se pagó esta entrada?** Toda entrada confirmada pregunta: **Pagado ahora** (elija la forma; sale de caja, y con tarjeta de crédito solo al pagar la factura), **A plazo** (crea la cuenta en Cuentas por Pagar con el vencimiento indicado) o **Stock inicial** (producto que ya tenía; no sale dinero). Una entrada en tránsito pregunta al confirmar la recepción. Eliminar el movimiento deshace lo que registró en Contabilidad y Flujo; la cuenta por pagar, si existe, se elimina en Cuentas por Pagar.' },
     { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
       ['✏️ Lápiz', 'Edita el producto o el movimiento.'],
       ['🗑️ Papelera', 'Pide motivo (al menos 5 letras) y correo y contraseña de un supervisor (Propietario, Socio o Administrador). Un producto con movimientos no se borra: pasa a inactivo, para mantener el historial. Un producto con venta registrada no se puede eliminar.'],
