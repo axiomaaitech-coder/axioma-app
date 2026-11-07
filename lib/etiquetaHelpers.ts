@@ -45,9 +45,15 @@ export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]): Promis
         const { modules } = QRCode.create(codigo, { errorCorrectionLevel: "M" });
         const lado = 26 / modules.size;
         pdf.setFillColor(0, 0, 0);
+        // Quadrados vizinhos viram um bloco só e levemente sobrepostos: sem isso apareciam linhas brancas entre eles.
+        const emenda = 0.04;
         for (let l = 0; l < modules.size; l++) {
           for (let c = 0; c < modules.size; c++) {
-            if (modules.get(l, c)) pdf.rect(x + 2.5 + c * lado, y + 2.5 + l * lado, lado, lado, "F");
+            if (!modules.get(l, c)) continue;
+            let fim = c;
+            while (fim + 1 < modules.size && modules.get(l, fim + 1)) fim++;
+            pdf.rect(x + 2.5 + c * lado, y + 2.5 + l * lado, (fim - c + 1) * lado, lado + (l + 1 < modules.size ? emenda : 0), "F");
+            c = fim;
           }
         }
         comQr = true;
