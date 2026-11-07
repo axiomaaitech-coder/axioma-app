@@ -16,8 +16,9 @@ export type Lancamento = {
 };
 
 // ---------- FORMATADORES ----------
+// Sempre com centavos: sem eles R$ 6,90 aparecia como R$ 7 e a soma da tela não fechava com as parcelas.
 export const fBRL = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
 export const fBRL2 = (n: number) =>
   (n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

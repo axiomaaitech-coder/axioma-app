@@ -126,11 +126,12 @@ export function triagemPorRegra(pergunta: string, qtdManuais: number): Nivel | n
 }
 
 // ─── 3. CONFERÊNCIA DOS NÚMEROS (sem IA) ───
-// Todo "R$ X" citado precisa existir no retrato (até R$ 1 de diferença) ou estar marcado como
+// Todo "R$ X" citado precisa existir exatamente no retrato ou estar marcado como
 // estimativa/meta/cálculo. Devolve os valores que não bateram.
 // Aceita o formato brasileiro (R$ 1.234,56) e o americano das respostas em inglês (R$ 1,234.56), que antes era lido como R$ 1,23
 const RE_REAIS = /R\$\s?-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|R\$\s?-?\d+\.\d{1,2}(?!\d)|R\$\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|R\$\s?-?\d+(?:,\d{1,2})?/g
-const RE_MARCA_ESTIMATIVA = /estim|aprox|cerca de|por volta|~|≈|meta|objetivo|economia de|potencial|at[eé]|entre|se |caso|simula|projet|hipot|a medir|estimat|approx|around|target|goal|up to|meta|objetivo|aproximad/i
+// Só o que a própria frase declara como não sendo fato. Antes bastava ter "se ", "até", "entre" ou "meta" (até dentro de "base" ou "metade") para o valor escapar da conferência.
+const RE_MARCA_ESTIMATIVA = /(?<![\p{L}])(estimativa|estimad[oa]s?|estimated?|estimaci[oó]n|aproximad\p{L}*|approximately|simula\p{L}*|proje[cç]\p{L}*|projected|previs[aã]o|previsi[oó]n|forecast|cen[aá]rio|escenario|scenario|hip[oó]tese|hypothetical|hip[oó]tesis)(?![\p{L}])/iu
 export function lerReais(t: string): number {
   const s = t.replace(/R\$\s?/, '')
   if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) return Number(s.replace(/,/g, ''))
@@ -145,8 +146,9 @@ export function conferirNumeros(resposta: string, textoBase: string): string[] {
     for (const m of frase.matchAll(RE_REAIS)) {
       const v = Math.abs(lerReais(m[0]))
       if (!Number.isFinite(v) || v < 1) continue
-      // Até R$ 1 de folga, só para arredondamento de centavos. Os antigos 1% deixavam passar R$ 27.800 no lugar de R$ 27.600.
-      if (!conhecidos.some((k) => Math.abs(k - v) <= 1)) ruins.push(m[0])
+      // Valor com centavos tem de ser exato; sem centavos, só o arredondamento para o real mais próximo. Sem margem percentual.
+      const folga = /[.,]\d{1,2}$/.test(m[0]) ? 0.005 : 0.5
+      if (!conhecidos.some((k) => Math.abs(k - v) <= folga)) ruins.push(m[0])
     }
   }
   return ruins
@@ -172,6 +174,7 @@ Regras invioláveis:
 - Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, contas_vencidas, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao; saldo por banco, caixa livre, reserva, previsão de caixa → caixa_tesouraria; impostos e obrigações que vencem → obrigacoes_fiscais; quantos clientes ou fornecedores, quantos inadimplentes → cadastros; valor do estoque → estoque_resumo (quais produtos → estoque_avisos); compras encomendadas → compras_pedidos (pedido não é dívida); vendas do caixa → pdv_resumo. Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
 - RELATÓRIO E PDF: você GERA relatórios em PDF para baixar e imprimir. Pediram relatório, PDF, documento, "para imprimir", "relatório disso" ou "do que você me passou": chame a ferramenta relatorio com o tipo mais próximo do assunto da conversa (na dúvida, executivo) e o período falado (sem período, este_mes). Ao terminar, resuma em 2 ou 3 frases os principais números que vieram da ferramenta (nunca invente) e termine com: "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu." NUNCA diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
 - Compra paga no cartão de crédito vira dívida e só sai do caixa quando a fatura é paga. Entrada de estoque paga agora sai do caixa; a prazo vira conta a pagar; estoque inicial não mexe no caixa.
+- Valor em dinheiro: copie exatamente como a ferramenta devolveu, com centavos. Nunca arredonde, nunca some nem subtraia de cabeça: total que a ferramenta não trouxe, consulte de novo ou diga que não tem.
 - Pediu "a receber" ou "a pagar" sem dizer qual: mostre separados em aberto, vencido e a vencer, e diga o critério. Não escolha um deles sozinho.
 - Caixa realizado (resumo_financeiro, do Fluxo de Caixa) e posição de caixa (caixa_tesouraria, do razão contábil) são contas diferentes: diga qual usou e, se divergirem, mostre as duas.
 - ${INDICADORES.filter((i) => i.indisponivel).map((i) => i.nome).join(', ')}: não há cadastro disso no Axioma. Diga exatamente isso e nunca estime.

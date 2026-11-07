@@ -36,7 +36,11 @@ const base = 'Receita R$ 50.000/mês · custo fixo R$ 12.345/mês'
 assert.deepEqual(conferirNumeros('Sua receita é R$ 50.000 e o fixo R$ 12.345.', base), [])
 assert.deepEqual(conferirNumeros('Seu lucro foi R$ 99.999.', base), ['R$ 99.999'])
 assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.800,00.', 'R$ 27.600,00'), ['R$ 27.800,00'], 'valor errado perto do certo não passa')
-assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.600.', 'R$ 27.600,40'), [], 'arredondar centavos não é erro')
+assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.600.', 'R$ 27.600,40'), [], 'sem centavos, só o arredondamento para o real mais próximo')
+assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.601.', 'R$ 27.600,40'), ['R$ 27.601'], 'um real a mais é erro')
+assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.600,41.', 'R$ 27.600,40'), ['R$ 27.600,41'], 'com centavos, tem de ser exato')
+for (const f of ['A base é R$ 99.999.', 'Se a empresa tem R$ 99.999.', 'O saldo até hoje é R$ 99.999.', 'A meta foi R$ 99.999.', 'Ficou entre os clientes R$ 99.999.', 'Metade é R$ 99.999.']) assert.deepEqual(conferirNumeros(f, base), ['R$ 99.999'], `palavra comum não escapa: ${f}`)
+for (const f of ['Estimativa: R$ 99.999 em 30 dias.', 'Previsão de R$ 99.999.', 'Cenário: R$ 99.999.']) assert.deepEqual(conferirNumeros(f, base), [], `declarado como não fato: ${f}`)
 assert.deepEqual(conferirNumeros('Economia estimada de R$ 1.234 por mês.', base), [])
 // Resposta em inglês usa R$ 1,234.56: antes era lida como R$ 1,23 e todo valor certo virava aviso falso
 assert.deepEqual(conferirNumeros('Your revenue is R$ 50,000.00 and fixed costs R$ 12,345.', base), [], 'formato americano certo não é marcado')
