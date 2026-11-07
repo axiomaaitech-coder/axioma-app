@@ -1164,7 +1164,9 @@ export default function EstoquePage() {
               <ReactECharts style={{ height: 260 }} option={optBarrasComparativo(
                 evolucao.map((e) => e.entradas_qtd), evolucao.map((e) => e.saidas_qtd),
                 evolucao.map((e) => fData(e.periodo, lang, { month: "short", year: "2-digit" })),
-                POSITIVO_CT, NEGATIVO_CT, et.tipoEntrada, et.tipoSaida, temaClaro
+                POSITIVO_CT, NEGATIVO_CT, et.tipoEntrada, et.tipoSaida, temaClaro,
+                // quantidade, não dinheiro: antes 6 mil unidades apareciam como "R$ 6k"
+                { eixo: (n) => n.toLocaleString(lang === "en" ? "en-US" : "pt-BR"), valor: (n) => `${n.toLocaleString(lang === "en" ? "en-US" : "pt-BR")} ${LP("unid.", "units", "unid.")}` }
               )} />
             ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosEvolucao}</p>}
           </CanvasBox>

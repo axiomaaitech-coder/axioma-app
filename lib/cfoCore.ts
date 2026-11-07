@@ -537,6 +537,8 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
 export function optBarrasComparativo(
   dadosA: number[], dadosB: number[], labels: string[],
   corA: string, corB: string, nomeA: string, nomeB: string, temaClaro?: boolean,
+  // Padrão é dinheiro; quem mostra outra medida (ex.: unidades do Estoque) passa o próprio formato.
+  formato: { eixo: (n: number) => string; valor: (n: number) => string } = { eixo: fK, valor: fBRL },
 ) {
   const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
   return {
@@ -544,16 +546,16 @@ export function optBarrasComparativo(
     grid: { left: 52, right: 16, top: 40, bottom: 28, containLabel: false },
     legend: { top: 0, right: 0, itemWidth: 11, itemHeight: 11, icon: "circle", textStyle: { color: eixoCor, fontSize: 12, fontWeight: 600 } },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corA, axisPointer: { type: "shadow" },
-      formatter: (ps: any[]) => `<b>${ps[0].name}</b><br/>` + ps.map((p) => `<span style="color:${p.color}">${p.seriesName}</span>: <b>${fBRL(p.value)}</b>`).join("<br/>") },
+      formatter: (ps: any[]) => `<b>${ps[0].name}</b><br/>` + ps.map((p) => `<span style="color:${p.color}">${p.seriesName}</span>: <b>${formato.valor(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
       axisLabel: { color: eixoCor, fontSize: 12, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
-      axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => fK(v) } },
+      axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => formato.eixo(v) } },
     series: [
-      { name: nomeA, type: "bar", barGap: "10%", itemStyle: { color: corA, borderRadius: [6, 6, 0, 0] }, data: dadosA },
-      { name: nomeB, type: "bar", itemStyle: { color: corB, borderRadius: [6, 6, 0, 0] }, data: dadosB },
+      { name: nomeA, type: "bar", barGap: "10%", barMaxWidth: 44, itemStyle: { color: corA, borderRadius: [6, 6, 0, 0] }, data: dadosA },
+      { name: nomeB, type: "bar", barMaxWidth: 44, itemStyle: { color: corB, borderRadius: [6, 6, 0, 0] }, data: dadosB },
     ],
   };
 }

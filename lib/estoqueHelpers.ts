@@ -10,7 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import { lerTodas } from "./lerTodas";
 import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, somarMesesISO } from "./datas";
 import { saiDoCaixaAgora, type PagamentoEntrada } from "./regrasPagamento";
 
 const supabase = createBrowserClient(
@@ -584,16 +584,27 @@ export async function carregarComposicaoPorFornecedor(empresaId: string): Promis
   return (data || []).map((d: any) => ({ chave: d.fornecedor_nome || "—", valor_total: Number(d.valor_total || 0), quantidade_total: Number(d.quantidade_total || 0) }));
 }
 
+// Pura: todos os meses do período, em ordem, com zero nos meses sem movimento. Sem nenhum movimento devolve
+// vazio (a tela mostra o aviso). Antes só os meses com dados apareciam: "últimos 6 meses" podia virar 2 barras enormes.
+export function completarMeses(linhas: EvolucaoMes[], meses: number, hoje: string): EvolucaoMes[] {
+  if (!linhas.length) return [];
+  const inicio = `${hoje.slice(0, 7)}-01`;
+  const porMes = new Map(linhas.map((l) => [String(l.periodo).slice(0, 7), l]));
+  return Array.from({ length: meses }, (_, i) => {
+    const periodo = somarMesesISO(inicio, i - meses + 1);
+    return porMes.get(periodo.slice(0, 7)) ?? { periodo, entradas_qtd: 0, saidas_qtd: 0, entradas_valor: 0, saidas_valor: 0 };
+  });
+}
+
 export async function carregarEvolucaoEstoque(empresaId: string, meses: number = 6): Promise<EvolucaoMes[]> {
-  const desde = new Date();
-  desde.setMonth(desde.getMonth() - (meses - 1));
-  const desdeIso = new Date(desde.getFullYear(), desde.getMonth(), 1).toISOString();
-  const { data, error } = await supabase.from("vw_estoque_evolucao").select("*").eq("empresa_id", empresaId).gte("periodo", desdeIso).order("periodo", { ascending: true });
+  const hoje = hojeISO();
+  const desde = somarMesesISO(`${hoje.slice(0, 7)}-01`, 1 - meses);
+  const { data, error } = await supabase.from("vw_estoque_evolucao").select("*").eq("empresa_id", empresaId).gte("periodo", desde).order("periodo", { ascending: true });
   marcarFalhaLeitura("evolucao", error);
-  return (data || []).map((d: any) => ({
+  return completarMeses((data || []).map((d: any) => ({
     periodo: d.periodo, entradas_qtd: Number(d.entradas_qtd || 0), saidas_qtd: Number(d.saidas_qtd || 0),
     entradas_valor: Number(d.entradas_valor || 0), saidas_valor: Number(d.saidas_valor || 0),
-  }));
+  })), meses, hoje);
 }
 
 // ============================================================================

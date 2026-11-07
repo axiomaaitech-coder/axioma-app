@@ -145,6 +145,13 @@ assert.ok(consultas.length > 10)
   assert.ok(le('lib/rastreio/motor.ts').includes('!saiDoCaixaAgora(r.payload.forma)'), 'motor não leva cartão ao Fluxo')
   assert.ok(le('lib/conferenciaHelpers.ts').includes('saiDoCaixaAgora(c.forma_pagamento)'), 'Conferência compara só o que saiu do caixa')
   assert.ok(le('lib/estoqueHelpers.ts').includes('mov.pagamento ?? { modo: "estoque_inicial" }'), 'sem resposta nunca tira do caixa')
+  const { completarMeses } = await import('../lib/estoqueHelpers')
+  const out = { periodo: '2026-10-01', entradas_qtd: 5900, saidas_qtd: 3, entradas_valor: 0, saidas_valor: 0 }
+  const seis = completarMeses([out], 6, '2026-11-06')
+  assert.deepEqual(seis.map((m) => m.periodo), ['2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01', '2026-10-01', '2026-11-01'], 'sempre os 6 meses')
+  assert.equal(seis[4].entradas_qtd, 5900); assert.equal(seis[5].entradas_qtd, 0)
+  assert.deepEqual(completarMeses([], 6, '2026-11-06'), [], 'sem movimento: aviso, não gráfico vazio')
+  assert.equal(completarMeses([out], 6, '2027-01-31')[0].periodo, '2026-08-01', 'virada de ano e fim de mês')
   console.log('OK — cartão sai do caixa na fatura; entrada de estoque lança conforme foi paga')
 }
 
