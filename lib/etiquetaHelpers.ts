@@ -45,15 +45,20 @@ export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]): Promis
         const { modules } = QRCode.create(codigo, { errorCorrectionLevel: "M" });
         const lado = 26 / modules.size;
         pdf.setFillColor(0, 0, 0);
-        // Quadrados vizinhos viram um bloco só e levemente sobrepostos: sem isso apareciam linhas brancas entre eles.
-        const emenda = 0.04;
-        for (let l = 0; l < modules.size; l++) {
-          for (let c = 0; c < modules.size; c++) {
-            if (!modules.get(l, c)) continue;
-            let fim = c;
-            while (fim + 1 < modules.size && modules.get(l, fim + 1)) fim++;
-            pdf.rect(x + 2.5 + c * lado, y + 2.5 + l * lado, (fim - c + 1) * lado, lado + (l + 1 < modules.size ? emenda : 0), "F");
-            c = fim;
+        // Blocos nos dois sentidos: um cobre a emenda do outro. Quadrado a quadrado apareciam linhas brancas entre eles.
+        const n = modules.size, x0 = x + 2.5, y0 = y + 2.5;
+        for (let a = 0; a < n; a++) {
+          for (const deitado of [true, false]) {
+            const cheio = (i: number) => (deitado ? modules.get(a, i) : modules.get(i, a));
+            for (let i = 0; i < n; i++) {
+              if (!cheio(i)) continue;
+              let fim = i;
+              while (fim + 1 < n && cheio(fim + 1)) fim++;
+              const tam = (fim - i + 1) * lado;
+              if (deitado) pdf.rect(x0 + i * lado, y0 + a * lado, tam, lado, "F");
+              else pdf.rect(x0 + a * lado, y0 + i * lado, lado, tam, "F");
+              i = fim;
+            }
           }
         }
         comQr = true;
