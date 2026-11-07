@@ -371,6 +371,17 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   const coleta = R.avisoColeta([{ nome: 'b', estado: 'verificado', consultado_em: '2026-11-07T13:00:05Z' }, { nome: 'a', estado: 'verificado', consultado_em: '2026-11-07T13:00:01Z' }], FUSO, 'pt')
   assert.ok(/não em um único instante/.test(coleta[0]), 'sem fotografia única, o relatório diz'); assert.ok(e.limitacoes.some((l) => /único instante/.test(l)), 'relatório com várias fontes traz o aviso')
   for (const l of ['en', 'es'] as const) assert.ok(!/único instante: lançamento/.test(R.avisoColeta([{ nome: 'b', estado: 'verificado', consultado_em: '2026-11-07T13:00:05Z' }, { nome: 'a', estado: 'verificado', consultado_em: '2026-11-07T13:00:01Z' }], FUSO, l)[0]))
+  // Filtros: cliente, fornecedor e situação
+  const A1 = '11111111-1111-4111-8111-aaaaaaaaaaaa'
+  assert.deepEqual([R.validarPedido({ tipo: 'contas_receber', periodo: 'este_mes', contraparte_id: A1, situacao: 'vencido' })!.contraparte_id, R.validarPedido({ tipo: 'contas_receber', periodo: 'este_mes', contraparte_id: A1, situacao: 'vencido' })!.situacao], [A1, 'vencido'])
+  assert.equal(R.validarPedido({ tipo: 'contas_receber', periodo: 'este_mes', contraparte_id: "x' or 1=1", situacao: 'qualquer' })!.contraparte_id, null, 'id que não é UUID vira sem filtro')
+  assert.equal(R.validarPedido({ tipo: 'contas_receber', periodo: 'este_mes', situacao: 'qualquer' })!.situacao, null)
+  assert.equal(R.validarPedido({ tipo: 'dre', periodo: 'este_mes', contraparte_id: A1, situacao: 'vencido' })!.contraparte_id, null, 'filtro só nos relatórios de contas')
+  const soVenc = await gerar('contas_receber', { situacao: 'vencido' })
+  assert.equal(ind(soVenc, 'A receber vencido')?.valor, 1400); assert.equal(ind(soVenc, 'A receber em aberto')?.valor ?? 1400, 1400, 'a vencer não entra no filtro de vencidas')
+  assert.ok(soVenc.limitacoes.some((l) => /Filtro aplicado: só vencidos/.test(l)), 'relatório avisa o filtro'); assert.ok(!ind(soVenc, 'Recebido no período (caixa)'), 'total recebido é da Empresa: sai com filtro'); assert.ok(ind(await gerar('contas_receber', {}), 'Recebido no período (caixa)'), 'sem filtro ele aparece')
+  const aVenc = await gerar('contas_receber', { situacao: 'a_vencer' }); assert.equal(ind(aVenc, 'A receber vencido')?.valor, 0, 'só a vencer: nada vencido')
+  const semFiltro = await gerar('contas_receber', {}); assert.ok(!semFiltro.limitacoes.some((l) => /Filtro aplicado/.test(l)))
   ok('Etapa 4: relatório de Contas Vencidas e fontes com horário')
 }
 

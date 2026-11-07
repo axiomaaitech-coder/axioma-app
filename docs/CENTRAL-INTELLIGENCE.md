@@ -61,6 +61,32 @@ Pedido do Elias ("AXIOMA CENTRAL INTELLIGENCE"). Regra do pedido: auditar, apres
 - **Etapa 5 feita (2026-11-07, aprovada pelo Elias):** `PORTAS_POR_TELA` em `lib/ia/portas.ts`. A porta recusa o que não é da tela, sem ler o banco, e diz que o dado existe e onde consultar. O modelo continua vendo todas as ferramentas: no teste ao vivo, sem elas, afirmou que não havia cadastro de clientes. A porta de relatórios confere também o tipo. IA Financeira, Relatórios e Nexus veem todas. A tela vem do navegador e serve para manter a IA no assunto; quem protege o dado continua sendo o papel lido no servidor.
 - **Limite conhecido:** o disjuntor vive em cada servidor, então em outro servidor a contagem recomeça.
 
+- **Fechamento da fase (2026-11-07):** portas `compras_pedidos` e `pdv_resumo`. Plano de consulta em `lib/ia/planoConsulta.ts`: intenções, portas, o que é de outra tela, o que não existe e se dá para consultar em paralelo; vai para a auditoria e é comparado com o que foi consultado. Pergunta sem sujeito ("quanto temos?") recebe pedido de esclarecimento, sem usar IA e sem gastar saldo. Cancelamento: a pessoa saiu da tela, para de consultar e de chamar a IA. Consolidação em `lib/ia/consolidacao.ts`: horário da coleta, origem, moeda, período e divergência (caixa do Fluxo × Tesouraria; PDV maior que faturamento), sempre mostrando as duas fontes. Relatório avisa quando as fontes foram lidas em sequência e aceita filtro por cliente, fornecedor e situação nos relatórios de contas.
+- **Testes dos 12 cenários:** `scripts/check-cenarios.mts`.
+
+## Inventário dos agentes (auditado em 2026-11-07)
+
+| Agente | Como consulta | Situação |
+|---|---|---|
+| IA Financeira, Relatórios | Motor, todas as portas | Na camada central |
+| IA Tributária, MEI Advisor e telas do MEI | Motor, portas da finalidade | Na camada central |
+| ZIA de Contas a Pagar, Tesouraria e Clientes | Motor, com regras se a IA falhar | Na camada central |
+| Conversa por voz | Chama o motor com a sessão da pessoa | Na camada central |
+| José (Nexus) | Dados do mundo; empresa só pelo motor | Na camada central |
+| Fiscal, Contador, Fornecedores | Regras sobre dados da tela, sem IA | Fora por não usarem IA |
+| Ajuda do cadastro do PDV | OpenAI direto, sem dado financeiro | Fora por não ler dado da empresa |
+
+O retrato da empresa (`lib/ia/retratoEmpresa.ts`) é lido fora das portas, com a sessão da pessoa, depois de a rota conferir o papel: é o resumo que toda resposta recebe.
+
+## O que ainda não existe
+
+- **Módulo de RH:** é a próxima fase. Até lá, funcionários e folha respondem "não há dado", e os cenários 1, 6 e 7 foram testados nessa condição.
+- **Fornecedor que deve à empresa:** não há registro.
+- **Fotografia única do banco:** as fontes são lidas em sequência; o relatório avisa e mostra os horários.
+- **Pergunta na auditoria:** hoje guarda tela, plano e consultas, sem o texto da pergunta. Aguarda decisão do Elias.
+- **Filtro por filial e departamento:** o Axioma não tem esses cadastros.
+- **Relatório em segundo plano:** só se algum passar de ~30 s (decisão do Elias).
+
 ## Decisões do Elias
 
 - **RH:** criar um módulo de RH (funcionários e folha) é um módulo novo e grande, fora desta arquitetura. Até lá, a IA responde que não há dado.

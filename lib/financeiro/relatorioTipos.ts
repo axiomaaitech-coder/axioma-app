@@ -21,7 +21,9 @@ export type Achado = { titulo: string; evidencia: string; tipo: 'fato' | 'calcul
 
 // Cada consulta usada no relatório: de onde veio, se veio inteira e a que horas foi lida
 export type FonteConsultada = { nome: string; estado: EstadoResultado; consultado_em: string }
-export type PedidoRelatorio = { tipo: TipoRelatorio; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean; lang?: Lang }
+export type SituacaoTitulo = 'vencido' | 'a_vencer'
+// contraparte_id e situacao: só nos relatórios de contas a receber e a pagar
+export type PedidoRelatorio = { tipo: TipoRelatorio; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean; lang?: Lang; contraparte_id?: string | null; situacao?: SituacaoTitulo | null }
 export type Relatorio = {
   tipo: TipoRelatorio; titulo: string; lang: Lang
   empresa: { nome: string; documento: string | null }

@@ -12,7 +12,7 @@ import { lerTodas } from '../lerTodas'
 import { diaDoTimestamp } from '../dreCompetencia'
 import { saldoCaixaRealizado } from '../caixaSaldo'
 import { consultarDRE } from '../ia/ferramentaDre'
-import { executarFerramentaFinanceira } from './ferramentasFinanceiras'
+import { executarFerramentaFinanceira, filtrarTitulos } from './ferramentasFinanceiras'
 import { diasEntre, periodoAnterior, resolverPeriodo, type Periodo } from './periodos'
 import { comparar, saldoPagar, saldoReceber, type TituloPagar, type TituloReceber } from './calculos'
 import { centavos, reais, type EstadoResultado, type ResultadoFinanceiro } from './contrato'
@@ -358,13 +358,15 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
 
   if (tipo === 'contas_receber' || tipo === 'contas_pagar') {
     const receber = tipo === 'contas_receber'
+    const filtro = { contraparte_id: pedido.contraparte_id ?? null, situacao: pedido.situacao ?? null }
+    const filtrado = !!(filtro.contraparte_id || filtro.situacao)
     const [pos, noPer, mov, linhas] = await Promise.all([
-      F('titulos', { tipo: receber ? 'receber' : 'pagar', periodo: 'tudo', inicio: null, fim: null }),
-      F('titulos', { tipo: receber ? 'receber' : 'pagar', ...args }),
+      F('titulos', { tipo: receber ? 'receber' : 'pagar', periodo: 'tudo', inicio: null, fim: null, ...filtro }),
+      F('titulos', { tipo: receber ? 'receber' : 'pagar', ...args, ...filtro }),
       F('movimentos_realizados', { ...args, comparar: false }),
       receber
-        ? ler(lerTodas(() => ctx.supabase.from('contas_receber').select('id, valor, valor_recebido, valor_desconto, taxa_multa, taxa_juros, data_vencimento, status').eq('empresa_id', ctx.empresaId).order('id')))
-        : ler(lerTodas(() => ctx.supabase.from('contas_pagar').select('id, valor_total, valor_pago, data_vencimento, status').eq('empresa_id', ctx.empresaId).order('id'))),
+        ? ler(lerTodas(() => ctx.supabase.from('contas_receber').select('id, valor, valor_recebido, valor_desconto, taxa_multa, taxa_juros, data_vencimento, status, cliente_id').eq('empresa_id', ctx.empresaId).order('id')))
+        : ler(lerTodas(() => ctx.supabase.from('contas_pagar').select('id, valor_total, valor_pago, data_vencimento, status, fornecedor_id').eq('empresa_id', ctx.empresaId).order('id'))),
     ])
     C.leitura([receber ? 'contas_receber' : 'contas_pagar'], linhas != null, `aging|${receber ? 'receber' : 'pagar'}|${hoje}`)
     const d = pos?.detalhes as { aberto: number; aberto_atualizado?: number; vencido: number; a_vencer: number; titulos_abertos: number; titulos_vencidos: number; maiores: { cliente?: string | null; fornecedor?: string | null; descricao: string | null; saldo: number; vencimento: string | null; dias_atraso?: number; vencida?: boolean }[] } | undefined
@@ -377,12 +379,18 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
       ind(L(lang, '% vencido', '% overdue', '% vencido'), d ? pctDe(d.vencido, d.aberto) : null, 'PCT', 'calculo'),
       ind(L(lang, 'Títulos vencidos', 'Overdue items', 'Títulos vencidos'), d?.titulos_vencidos, 'QTD', 'fato'),
       ind(L(lang, 'Vencendo no período', 'Due in the period', 'Venciendo en el período'), noPer?.valor, 'BRL', 'calculo'),
-      ind(receber ? tx(lang, 'recebido') : tx(lang, 'pago'), receber ? md?.recebido_clientes : md?.pago_fornecedores, 'BRL', 'calculo'),
+      // O total recebido ou pago é da Empresa inteira: com filtro ele enganaria
+      ...(filtrado ? [] : [ind(receber ? tx(lang, 'recebido') : tx(lang, 'pago'), receber ? md?.recebido_clientes : md?.pago_fornecedores, 'BRL', 'calculo')]),
     ] })
+    if (filtrado) {
+      const nome = filtro.contraparte_id ? await Promise.resolve(ctx.supabase.from(receber ? 'clientes' : 'fornecedores').select('nome').eq('id', filtro.contraparte_id).eq('empresa_id', ctx.empresaId).maybeSingle()).then((r) => (r.data as { nome?: string } | null)?.nome ?? null, () => null) : null
+      const sit = filtro.situacao === 'vencido' ? L(lang, 'só vencidos', 'overdue only', 'solo vencidos') : filtro.situacao === 'a_vencer' ? L(lang, 'só a vencer', 'not yet due only', 'solo por vencer') : null
+      C.limitar(L(lang, 'Filtro aplicado', 'Filter applied', 'Filtro aplicado') + `: ${[filtro.contraparte_id ? nome ?? L(lang, 'contraparte selecionada', 'selected party', 'contraparte seleccionada') : null, sit].filter(Boolean).join(', ')}. ` + L(lang, 'Os valores não representam a Empresa inteira.', 'Amounts do not represent the whole Company.', 'Los valores no representan a toda la Empresa.'))
+    }
     if (linhas) {
       const itens = receber
-        ? (linhas as TituloReceber[]).filter((c) => !/cancel/i.test(String(c.status))).map((c) => { const s = saldoReceber(c, hoje); return { dias: s.dias, saldo: s.principal } }).filter((i) => i.saldo > 0)
-        : (linhas as TituloPagar[]).filter((c) => !/cancel/i.test(String(c.status))).map((c) => ({ dias: c.data_vencimento && c.data_vencimento < hoje ? diasEntre(c.data_vencimento, hoje) - 1 : 0, saldo: saldoPagar(c) })).filter((i) => i.saldo > 0)
+        ? filtrarTitulos(linhas as TituloReceber[], 'cliente_id', filtro, hoje).filter((c) => !/cancel/i.test(String(c.status))).map((c) => { const s = saldoReceber(c, hoje); return { dias: s.dias, saldo: s.principal } }).filter((i) => i.saldo > 0)
+        : filtrarTitulos(linhas as TituloPagar[], 'fornecedor_id', filtro, hoje).filter((c) => !/cancel/i.test(String(c.status))).map((c) => ({ dias: c.data_vencimento && c.data_vencimento < hoje ? diasEntre(c.data_vencimento, hoje) - 1 : 0, saldo: saldoPagar(c) })).filter((i) => i.saldo > 0)
       const a = aging(itens, lang)
       secoes.push(tabela('aging', L(lang, 'Posição por atraso (hoje)', 'Position by delay (today)', 'Posición por atraso (hoy)'), [[tx(lang, 'faixa'), 'texto'], [tx(lang, 'quantidade'), 'numero'], [tx(lang, 'saldo'), 'moeda'], [tx(lang, 'participacao'), 'pct']], a.linhas, lang, ['Total', a.qtd, a.total, a.qtd ? 100 : 0]))
     }
@@ -615,7 +623,11 @@ export function validarPedido(c: unknown): PedidoRelatorio | null {
   const periodo = (PERIODOS_RELATORIO as readonly string[]).includes(String(o.periodo)) ? String(o.periodo) : 'este_mes'
   const data = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
   const lang = o.lang === 'en' || o.lang === 'es' ? o.lang : 'pt'
-  return { tipo: o.tipo as TipoRelatorio, periodo, inicio: periodo === 'personalizado' ? data(o.inicio) : null, fim: periodo === 'personalizado' ? data(o.fim) : null, comparar: o.comparar === true, lang }
+  // Filtro só onde ele existe; id que não é UUID ou situação desconhecida viram "sem filtro"
+  const titulos = o.tipo === 'contas_receber' || o.tipo === 'contas_pagar'
+  const contraparte_id = titulos && typeof o.contraparte_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(o.contraparte_id) ? o.contraparte_id : null
+  const situacao = titulos && (o.situacao === 'vencido' || o.situacao === 'a_vencer') ? o.situacao : null
+  return { tipo: o.tipo as TipoRelatorio, periodo, inicio: periodo === 'personalizado' ? data(o.inicio) : null, fim: periodo === 'personalizado' ? data(o.fim) : null, comparar: o.comparar === true, lang, contraparte_id, situacao }
 }
 
 // ─── Ferramenta do motor (José e chats): o MESMO relatório, resumido para a IA ler, + o pedido para a tela ───

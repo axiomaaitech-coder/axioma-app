@@ -6,11 +6,14 @@ import { useEffect, useState } from "react";
 import { CanvasBox } from "./CanvasBox";
 import AvisoAxioma from "./AvisoAxioma";
 import { TIPOS_RELATORIO, type Relatorio, type TipoRelatorio } from "../lib/financeiro/relatorioTipos";
+import { createBrowserClient } from "../lib/supabaseBrowser";
+import { lerTodas } from "../lib/lerTodas";
+import { avisarFalhaLeitura } from "../lib/erroUiHelpers";
 import { dataHoraNoFuso, fmtCelula, formatarIndicador, nomePeriodo, rotuloClasse, rotuloConfianca, rotuloEstado, rotuloPrioridade, tituloRelatorio, tx } from "../lib/financeiro/relatorioTextos";
 
 type Lang = "pt" | "en" | "es";
 const PERIODOS = ["este_mes", "mes_anterior", "esta_semana", "semana_anterior", "ultimos_30_dias", "este_trimestre", "trimestre_anterior", "este_ano", "ano_anterior", "ultimos_12_meses", "personalizado"];
-export type PedidoTela = { tipo: TipoRelatorio; periodo: string; inicio: string | null; fim: string | null; comparar: boolean };
+export type PedidoTela = { tipo: TipoRelatorio; periodo: string; inicio: string | null; fim: string | null; comparar: boolean; contraparte_id?: string | null; situacao?: string | null };
 
 // Link para abrir esta tela já com o relatório pedido no chat (José, IA Financeira, Relatórios)
 export const linkRelatorio = (p: PedidoTela) =>
@@ -29,6 +32,23 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
   const [rel, setRel] = useState<Relatorio | null>(null);
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [pedidoUrl, setPedidoUrl] = useState<PedidoTela | null>(null);
+  // Filtros dos relatórios de contas: quem e se já venceu
+  const [contraparte, setContraparte] = useState("");
+  const [situacao, setSituacao] = useState("");
+  const [contrapartes, setContrapartes] = useState<{ id: string; nome: string }[]>([]);
+  const filtraTitulos = tipo === "contas_receber" || tipo === "contas_pagar";
+  useEffect(() => {
+    setContraparte(""); setContrapartes([]);
+    if (!filtraTitulos || !empresaId) return;
+    let vivo = true;
+    const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    lerTodas(() => sb.from(tipo === "contas_receber" ? "clientes" : "fornecedores").select("id, nome").eq("empresa_id", empresaId).order("nome").order("id")).then(({ data, error }) => {
+      if (!vivo) return;
+      if (error) avisarFalhaLeitura("relatorios:contrapartes", new Error(error.message)); // lista vazia por falha não pode parecer "ninguém cadastrado"
+      setContrapartes((data ?? []) as { id: string; nome: string }[]);
+    });
+    return () => { vivo = false };
+  }, [tipo, empresaId, filtraTitulos]);
 
   // Cores: Escuro = fundação; Claro = navy + menta escuro, caixa aninhada bege, campo branco
   const cTexto = claro ? "#101b3d" : "#c8d8f0", cSuave = claro ? "#4a5a74" : "#5a7a9a", cValor = claro ? "#0f7a5a" : "#2ecc9b", cNeg = claro ? "#b02a2a" : "#f87171";
@@ -50,7 +70,7 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoUrl, empresaId]);
 
-  async function gerar(p: PedidoTela = { tipo, periodo, inicio: inicio || null, fim: fim || null, comparar }) {
+  async function gerar(p: PedidoTela = { tipo, periodo, inicio: inicio || null, fim: fim || null, comparar, contraparte_id: filtraTitulos ? contraparte || null : null, situacao: filtraTitulos ? situacao || null : null }) {
     if (!empresaId) { setErro(L("Escolha a Empresa ativa antes de gerar o relatório.", "Choose the active Company before generating the report.", "Elija la Empresa activa antes de generar el informe.")); return }
     if (p.periodo === "personalizado" && (!p.inicio || !p.fim)) { setErro(L("Preencha a data inicial e a final.", "Fill in the start and end dates.", "Complete la fecha inicial y la final.")); return }
     setCarregando(true); setErro(null)
@@ -99,6 +119,23 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
               {TIPOS_RELATORIO.map((t) => <option key={t} value={t}>{tituloRelatorio(t, lang)}</option>)}
             </select>
           </label>
+          {filtraTitulos && (<>
+            <label className="text-xs flex flex-col gap-1" style={{ color: cSuave }}>
+              {tipo === "contas_receber" ? L("Cliente", "Customer", "Cliente") : L("Fornecedor", "Supplier", "Proveedor")}
+              <select value={contraparte} onChange={(e) => setContraparte(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={campo}>
+                <option value="">{L("Todos", "All", "Todos")}</option>
+                {contrapartes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </label>
+            <label className="text-xs flex flex-col gap-1" style={{ color: cSuave }}>
+              {L("Situação", "Status", "Situación")}
+              <select value={situacao} onChange={(e) => setSituacao(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={campo}>
+                <option value="">{L("Todas em aberto", "All open", "Todas abiertas")}</option>
+                <option value="vencido">{L("Só vencidas", "Overdue only", "Solo vencidas")}</option>
+                <option value="a_vencer">{L("Só a vencer", "Not yet due only", "Solo por vencer")}</option>
+              </select>
+            </label>
+          </>)}
           <label className="text-xs flex flex-col gap-1" style={{ color: cSuave }}>
             {L("Período", "Period", "Período")}
             <select value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={campo}>

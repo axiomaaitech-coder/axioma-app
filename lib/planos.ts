@@ -67,6 +67,6 @@ export const ORDEM_PLANOS: PlanoId[] = ['starter', 'pro', 'business', 'enterpris
 // o mesmo relatório (mesmo tipo, período e comparação) não gasta outro. IA ilimitada = sem limite; sem plano = o do teste.
 export const limiteRelatorios = (s: { plano?: unknown; teste?: boolean; ilimitada?: boolean }) =>
   s.ilimitada ? Infinity : s.teste ? TESTE.relatorios : ehPlano(s.plano) ? PLANOS[s.plano].relatorios : TESTE.relatorios
-export const chaveRelatorio = (p: { tipo: string; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean }) =>
-  `${p.tipo}|${p.periodo}|${p.inicio ?? ''}|${p.fim ?? ''}|${p.comparar ? 1 : 0}`
+export const chaveRelatorio = (p: { tipo: string; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean; contraparte_id?: string | null; situacao?: string | null }) =>
+  `${p.tipo}|${p.periodo}|${p.inicio ?? ''}|${p.fim ?? ''}|${p.comparar ? 1 : 0}${p.contraparte_id || p.situacao ? `|${p.contraparte_id ?? ''}|${p.situacao ?? ''}` : ''}`
 export const podeGerarRelatorio = (usadas: Set<string>, chave: string, limite: number) => usadas.has(chave) || usadas.size < limite

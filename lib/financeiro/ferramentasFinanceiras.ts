@@ -43,6 +43,15 @@ export const FERRAMENTAS_FINANCEIRAS: Ferramenta[] = [
 export const NOMES_FERRAMENTAS_FINANCEIRAS = new Set(FERRAMENTAS_FINANCEIRAS.map((f) => f.name))
 
 type Ctx = { supabase: SupabaseClient; empresaId: string; fuso: string }
+// Filtro dos relatórios (não faz parte da ferramenta da IA): quem é a contraparte e se já venceu. Pura.
+export function filtrarTitulos<T extends { data_vencimento?: string | null }>(l: T[], campo: 'cliente_id' | 'fornecedor_id', f: { contraparte_id?: unknown; situacao?: unknown }, hoje: string): T[] {
+  return l.filter((c) => {
+    if (f.contraparte_id && (c as Record<string, unknown>)[campo] !== f.contraparte_id) return false
+    if (f.situacao === 'vencido') return !!c.data_vencimento && c.data_vencimento < hoje
+    if (f.situacao === 'a_vencer') return !c.data_vencimento || c.data_vencimento >= hoje
+    return true
+  })
+}
 const pedirPeriodo = (input: Record<string, unknown>, hoje: string): Periodo | { erro: string } =>
   resolverPeriodo(String(input.periodo ?? 'este_mes'), hoje, { inicio: input.inicio as string | undefined, fim: input.fim as string | undefined })
 async function ler<T>(nome: string, p: PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
@@ -75,7 +84,7 @@ export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input
       case 'titulos': {
         const p = pedirPeriodo({ periodo: 'tudo', ...input }, hoje); if ('erro' in p) return falhou('titulos', p.erro)
         if (input.tipo === 'pagar') {
-          const l = await ler('contas_pagar', lerTodas(() => supabase.from('contas_pagar').select(pagarCols).eq('empresa_id', empresaId).order('id'))) as TituloPagar[]
+          const l = filtrarTitulos(await ler('contas_pagar', lerTodas(() => supabase.from('contas_pagar').select(pagarCols).eq('empresa_id', empresaId).order('id'))) as TituloPagar[], 'fornecedor_id', input, hoje)
           const faixa = p.nome === 'tudo' ? undefined : p
           const t = totalizarPagar(l, hoje, faixa)
           const abertos = l.filter((c) => !/cancel/i.test(String(c.status)) && saldoPagar(c) > 0 && (!faixa || (c.data_vencimento && c.data_vencimento >= faixa.inicio && c.data_vencimento <= faixa.fim))).sort((a, b) => saldoPagar(b) - saldoPagar(a)).slice(0, 15)
@@ -84,7 +93,7 @@ export async function executarFerramentaFinanceira(ctx: Ctx, nome: string, input
             fontes: ['contas_pagar', 'fornecedores'], registros: t.titulos_abertos, limitacoes: [],
             detalhes: { ...t, hoje, maiores: abertos.map((c) => ({ fornecedor: forn.get(String(c.fornecedor_id)) ?? null, descricao: c.descricao, saldo: saldoPagar(c), vencimento: c.data_vencimento, vencida: !!c.data_vencimento && c.data_vencimento < hoje })) } })
         }
-        const l = await ler('contas_receber', lerTodas(() => supabase.from('contas_receber').select(receberCols).eq('empresa_id', empresaId).order('id'))) as TituloReceber[]
+        const l = filtrarTitulos(await ler('contas_receber', lerTodas(() => supabase.from('contas_receber').select(receberCols).eq('empresa_id', empresaId).order('id'))) as TituloReceber[], 'cliente_id', input, hoje)
         const faixa = p.nome === 'tudo' ? undefined : p
         const t = totalizarReceber(l, hoje, faixa)
         const abertos = l.filter((c) => !/cancel/i.test(String(c.status)) && saldoReceber(c, hoje).principal > 0 && (!faixa || (c.data_vencimento && c.data_vencimento >= faixa.inicio && c.data_vencimento <= faixa.fim))).sort((a, b) => saldoReceber(b, hoje).principal - saldoReceber(a, hoje).principal).slice(0, 15)
