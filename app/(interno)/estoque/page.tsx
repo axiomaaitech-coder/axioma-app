@@ -19,7 +19,7 @@ import { fBRL, fBRL2, fData, optBarrasComparativo, optRosca, optBarrasH, corTema
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
-import { registrarLeitura } from "../../../lib/erroUiHelpers";
+import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
   type Produto, type MovimentacaoComProduto, type EstoqueLote, type AvisoEstoque, type AvisoValidade,
@@ -27,6 +27,7 @@ import {
   type CampoPersonalizadoEmpresa, type ItemGiro, type ItemCurvaABC, type ItemCapitalImobilizado,
   type ItemRentabilidade, type FornecedorComparativo, type AlertaReposicao, type ContagemSegmento,
   PAGE_SIZE, listarProdutos, criarProduto, atualizarProduto, excluirProduto, buscarProdutoPorCodigo,
+  garantirCodigosEtiqueta,
   listarMovimentacoes, criarMovimentacao, atualizarMovimentacao, excluirMovimentacao, confirmarRecebimento,
   type AvisoEntrada,
   listarLotesProduto, sugerirConsumoFefo,
@@ -781,11 +782,19 @@ export default function EstoquePage() {
   }
 
   async function handleGerarEtiquetas() {
-    const alvo = produtosSelecionados.size > 0 ? produtos.filter((p) => produtosSelecionados.has(p.id)) : produtos;
-    if (alvo.length === 0) return;
+    if (!empresaId) return;
     setGerandoEtiquetas(true);
     try {
-      await gerarEtiquetasPDF(alvo);
+      // Sem seleção vale o catálogo inteiro: antes saía só a página aberta, sem avisar.
+      const base = produtosSelecionados.size > 0 ? produtos.filter((p) => produtosSelecionados.has(p.id)) : await listarTodosProdutos(empresaId);
+      if (base.length === 0) return;
+      const alvo = await garantirCodigosEtiqueta(empresaId, base);
+      const { semCodigo, semPreco } = await gerarEtiquetasPDF(alvo);
+      if (alvo.some((p, i) => p.codigo_interno !== base[i].codigo_interno)) carregarProdutos();
+      if (semCodigo.length) mostrarToast(LP(`Etiqueta sem QR Code: ${semCodigo.join(", ")}. Confira o código do produto.`, `Label without QR Code: ${semCodigo.join(", ")}. Check the product code.`, `Etiqueta sin código QR: ${semCodigo.join(", ")}. Revise el código del producto.`), "erro");
+      else if (semPreco.length) mostrarToast(LP(`Etiqueta sem preço: ${semPreco.join(", ")}. Preencha o preço de venda.`, `Label without price: ${semPreco.join(", ")}. Fill in the sale price.`, `Etiqueta sin precio: ${semPreco.join(", ")}. Complete el precio de venta.`), "erro");
+    } catch (e) {
+      mostrarToast(tratarFalhaExportacao("estoque:etiquetas", e, lang), "erro");
     } finally {
       setGerandoEtiquetas(false);
     }

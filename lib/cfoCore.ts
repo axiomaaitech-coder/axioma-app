@@ -511,12 +511,12 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
   const gradientePadrao = { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] };
   return {
     backgroundColor: "transparent", animationDuration: 900,
-    grid: { left: 8, right: 56, top: 12, bottom: 12, containLabel: true },
+    grid: { left: 20, right: 56, top: 12, bottom: 12, containLabel: true }, // folga: a letra em negrito passava da medida e o início do nome era cortado
     tooltip: { ...tipBase, trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     yAxis: { type: "category", data: labels, inverse: true,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 12, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 12, fontWeight: 700, width: 170, overflow: "break", lineHeight: 15 } }, // nome longo quebra a linha, nunca corta
     xAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => fK(v) } },

@@ -246,6 +246,28 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
   return { dados: data || [], total: count || 0 };
 }
 
+// Pura: os próximos códigos numéricos, depois do maior já usado pela Empresa. Código com letras não entra na conta.
+export function proximosCodigos(existentes: (string | null | undefined)[], quantos: number): string[] {
+  const maior = existentes.reduce((m, c) => (/^\d{1,12}$/.test(c ?? "") ? Math.max(m, Number(c)) : m), 100000);
+  return Array.from({ length: quantos }, (_, i) => String(maior + i + 1));
+}
+
+// Etiqueta precisa de um número que o caixa encontre. Produto sem nenhum código recebe o próximo código interno.
+// Devolve a lista com os códigos novos; quem não gravou segue sem código e a tela avisa.
+export async function garantirCodigosEtiqueta<T extends { id: string; codigo_interno?: string | null; codigo_barras?: string | null; sku?: string | null }>(empresaId: string, produtos: T[]): Promise<T[]> {
+  const faltam = produtos.filter((p) => !p.codigo_barras && !p.codigo_interno);
+  if (!faltam.length) return produtos;
+  const usados = await exigirLeitura(() => lerTodas(() => supabase.from("produtos").select("codigo_interno").eq("empresa_id", empresaId).not("codigo_interno", "is", null).order("id")), "estoque:codigosEtiqueta");
+  const novos = proximosCodigos((usados as { codigo_interno: string | null }[]).map((u) => u.codigo_interno), faltam.length);
+  const gravados = new Map<string, string>();
+  for (let i = 0; i < faltam.length; i++) {
+    const { data, error } = await supabase.from("produtos").update({ codigo_interno: novos[i] }).eq("id", faltam[i].id).eq("empresa_id", empresaId).select("id");
+    if (error || !data?.length) reportarFalhaEscrita("produtos", "update (código da etiqueta)", error?.message || "0 linhas afetadas (RLS?)");
+    else gravados.set(faltam[i].id, novos[i]);
+  }
+  return produtos.map((p) => (gravados.has(p.id) ? { ...p, codigo_interno: gravados.get(p.id)! } : p));
+}
+
 export async function buscarProdutoPorCodigo(empresaId: string, codigo: string): Promise<Produto | null> {
   const data = await registrarLeitura(() => supabase.from("produtos").select("*").eq("empresa_id", empresaId)
     .or(`codigo_barras.eq.${codigo},codigo_interno.eq.${codigo},sku.eq.${codigo}`).limit(1).maybeSingle(), "estoqueHelpers:247");

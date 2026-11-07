@@ -1,7 +1,7 @@
-// 🦅 AXIOMA AI.TECH - Etiquetas de Produto (código de barras/QR) do Estoque
+// 🦅 AXIOMA AI.TECH - Etiquetas de Produto (QR Code com o código) do Estoque
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
-import { fBRL } from "./cfoCore";
+import { fBRL2 } from "./cfoCore";
 
 export type ProdutoParaEtiqueta = {
   nome: string;
@@ -11,13 +11,22 @@ export type ProdutoParaEtiqueta = {
   preco_sugerido?: number | null;
 };
 
-// Grade compatível com etiqueta adesiva padrão 3 colunas × 7 linhas (tipo Pimaco 6180) em A4.
-export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]) {
+// O que saiu incompleto: a tela avisa, a etiqueta nunca falha calada.
+export type ResultadoEtiquetas = { semCodigo: string[]; semPreco: string[] };
+
+// Preço com centavos: o formato curto arredondava (R$ 6,90 saía como R$ 7).
+export const precoEtiqueta = (preco: number) => `R$ ${fBRL2(preco)}`;
+// O QR guarda o mesmo código que o leitor do caixa procura. Nome do produto no QR não é encontrado por ninguém.
+export const codigoEtiqueta = (p: ProdutoParaEtiqueta) => p.codigo_barras || p.codigo_interno || "";
+
+// Grade de 3 colunas × 7 linhas (etiqueta de 63,5 × 38,1 mm) em A4.
+export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]): Promise<ResultadoEtiquetas> {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const margin = 7;
   const labelW = 63.5, labelH = 38.1;
   const cols = 3, rows = 7;
   let col = 0, row = 0;
+  const resultado: ResultadoEtiquetas = { semCodigo: [], semPreco: [] };
 
   for (const p of produtos) {
     if (row >= rows) { row = 0; col = 0; pdf.addPage(); }
@@ -28,36 +37,48 @@ export async function gerarEtiquetasPDF(produtos: ProdutoParaEtiqueta[]) {
     pdf.setLineWidth(0.1);
     pdf.rect(x, y, labelW, labelH);
 
-    const codigo = p.codigo_barras || p.codigo_interno || p.nome;
-    try {
-      const qrDataUrl = await QRCode.toDataURL(codigo, { margin: 0, width: 160 });
-      pdf.addImage(qrDataUrl, "PNG", x + 2, y + 2, 26, 26);
-    } catch {
-      // ponytail: se a geração do QR falhar (código vazio/inválido), a etiqueta
-      // ainda sai com nome/preço — só sem o QR.
+    const codigo = codigoEtiqueta(p);
+    let comQr = false;
+    if (codigo) {
+      try {
+        // Resolução alta: 160 px ampliados saíam com os quadradinhos serrilhados na impressão.
+        const qrDataUrl = await QRCode.toDataURL(codigo, { margin: 0, width: 600, errorCorrectionLevel: "M" });
+        pdf.addImage(qrDataUrl, "PNG", x + 2.5, y + 2.5, 26, 26);
+        comQr = true;
+      } catch {
+        // cai no aviso abaixo: a etiqueta sai sem QR e a tela diz qual produto
+      }
+    }
+    if (!comQr) resultado.semCodigo.push(p.nome);
+
+    // Número legível embaixo do QR: confere com o cadastro e pode ser digitado se o leitor falhar.
+    if (codigo) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(codigo.length > 14 ? 7 : 9);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(codigo, x + 15.5, y + 33, { align: "center", maxWidth: 29 });
     }
 
-    pdf.setTextColor(0, 0, 0);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
-    pdf.text(p.nome.length > 30 ? p.nome.slice(0, 29) + "…" : p.nome, x + 30, y + 8, { maxWidth: labelW - 32 });
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(7);
-    pdf.setTextColor(90, 90, 90);
-    if (p.codigo_interno) pdf.text(p.codigo_interno, x + 30, y + 13);
+    pdf.setFontSize(9);
+    pdf.setTextColor(0, 0, 0);
+    const linhas = pdf.splitTextToSize(p.nome, labelW - 33) as string[];
+    const nomeEtiqueta = linhas.slice(0, 3);
+    if (linhas.length > 3) nomeEtiqueta[2] = `${nomeEtiqueta[2].trimEnd()}…`; // nome maior que a etiqueta: mostra que continua
+    pdf.text(nomeEtiqueta, x + 31, y + 7);
 
     const preco = p.preco_venda ?? p.preco_sugerido;
     if (preco != null) {
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(fBRL(preco), x + 30, y + 22);
-    }
+      const textoPreco = precoEtiqueta(Number(preco));
+      pdf.setFontSize(textoPreco.length > 11 ? 12 : 15); // preço grande não passa da etiqueta
+      pdf.text(textoPreco, x + 31, y + 30);
+    } else resultado.semPreco.push(p.nome);
 
     col++;
     if (col >= cols) { col = 0; row++; }
   }
 
   pdf.save("axioma-estoque-etiquetas.pdf");
+  return resultado;
 }

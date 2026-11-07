@@ -49,6 +49,7 @@ const pt: DocumentoAxioma = {
     ] },
     { nota: 'O **segmento padrão** da empresa e os até 3 **campos personalizados** valem para a empresa inteira: só o **proprietário** pode mudá-los. Se outra pessoa tentar, o Axioma avisa e não grava.' },
     { h1: 'Passo a passo: movimentação' },
+    { p: '**Gerar Etiquetas:** cada etiqueta traz o QR Code e o mesmo número escrito embaixo, o nome e o preço com centavos. Produto sem código recebe o próximo código interno, que fica salvo no cadastro e é o que o leitor do caixa encontra. Sem selecionar nada, saem as etiquetas de todos os produtos.' },
     { p: 'Clique em **+ Nova Movimentação**, escolha o produto e o **Tipo**: Entrada, Saída, Transferência, Perda, Ajuste, Inventário ou Devolução. Informe quantidade, custo unitário, situação (confirmada ou em trânsito), lote e validade (o Axioma sugere o lote que vence primeiro, regra FEFO), documento e motivo.' },
     { p: '**Como esta entrada foi paga?** Toda entrada confirmada pergunta: **Pago agora** (escolha a forma; sai do caixa, e no cartão de crédito sai só ao pagar a fatura), **A prazo** (cria a conta em Contas a Pagar com o vencimento informado) ou **Estoque inicial** (produto que você já tinha; não sai dinheiro). Entrada em trânsito pergunta ao confirmar o recebimento. Excluir a movimentação desfaz o que ela lançou na Contabilidade e no Fluxo; a conta a pagar, se houver, é excluída em Contas a Pagar.' },
     { tabela: { colunas: ['Botão', 'O que faz'], larguras: [2800, 6226], linhas: [
@@ -108,6 +109,7 @@ const en: DocumentoAxioma = {
     ] },
     { nota: 'The company’s **default segment** and up to 3 **custom fields** apply to the whole company: only the **owner** can change them. If someone else tries, Axioma warns and does not save.' },
     { h1: 'Step by step: movement' },
+    { p: '**Generate Labels:** each label has the QR Code with the same number written below it, the name and the price with cents. A product with no code gets the next internal code, saved in its record, which is what the checkout scanner finds. With nothing selected, labels come out for all products.' },
     { p: 'Click **+ New Movement**, choose the product and the **Type**: In, Out, Transfer, Loss, Adjustment, Count or Return. Enter quantity, unit cost, status (confirmed or in transit), batch and expiration (Axioma suggests the batch that expires first, FEFO rule), document and reason.' },
     { p: '**How was this entry paid?** Every confirmed entry asks: **Paid now** (choose the method; it leaves cash, and with a credit card only when the bill is paid), **On credit** (creates the bill in Payables with the due date you enter) or **Opening stock** (a product you already had; no money leaves). An in-transit entry asks when you confirm receipt. Deleting the movement undoes what it posted to Accounting and Cash Flow; the bill, if any, is deleted in Payables.' },
     { tabela: { colunas: ['Button', 'What it does'], larguras: [2800, 6226], linhas: [
@@ -167,6 +169,7 @@ const es: DocumentoAxioma = {
     ] },
     { nota: 'El **segmento estándar** de la empresa y los hasta 3 **campos personalizados** valen para toda la empresa: solo el **propietario** puede cambiarlos. Si otra persona lo intenta, Axioma avisa y no guarda.' },
     { h1: 'Paso a paso: movimiento' },
+    { p: '**Generar Etiquetas:** cada etiqueta trae el código QR con el mismo número escrito debajo, el nombre y el precio con centavos. El producto sin código recibe el siguiente código interno, guardado en su registro, que es lo que encuentra el lector de la caja. Sin seleccionar nada, salen las etiquetas de todos los productos.' },
     { p: 'Haga clic en **+ Nuevo Movimiento**, elija el producto y el **Tipo**: Entrada, Salida, Transferencia, Pérdida, Ajuste, Inventario o Devolución. Informe cantidad, costo unitario, situación (confirmada o en tránsito), lote y vencimiento (Axioma sugiere el lote que vence primero, regla FEFO), documento y motivo.' },
     { p: '**¿Cómo se pagó esta entrada?** Toda entrada confirmada pregunta: **Pagado ahora** (elija la forma; sale de caja, y con tarjeta de crédito solo al pagar la factura), **A plazo** (crea la cuenta en Cuentas por Pagar con el vencimiento indicado) o **Stock inicial** (producto que ya tenía; no sale dinero). Una entrada en tránsito pregunta al confirmar la recepción. Eliminar el movimiento deshace lo que registró en Contabilidad y Flujo; la cuenta por pagar, si existe, se elimina en Cuentas por Pagar.' },
     { tabela: { colunas: ['Botón', 'Qué hace'], larguras: [2800, 6226], linhas: [
