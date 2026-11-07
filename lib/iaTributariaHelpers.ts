@@ -335,9 +335,9 @@ export function simularRegimes(dados: DadosFiscais, atividadeInformada?: Ativida
     imposto_anual: r2(lp.total * 12),
     aliquota_efetiva: parseFloat(lp.aliquotaEfetivaPct.toFixed(2)),
     economia_vs_atual: semIcms ? 0 : r2((impostoAtual - lp.total) * 12), parcial: semIcms,
-    detalhamento: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunção: ${lp.atividade === "servicos" ? "Serviços 32%" : lp.atividade === "comercio_industria" ? "Comércio/Indústria 8%" : "Revenda de combustível 1,6%"}${lp.atividadePresumida ? " (não confirmada — confirme a atividade da empresa)" : ""}.`,
-    detalhamento_en: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presumption: ${lp.atividade === "servicos" ? "Services 32%" : lp.atividade === "comercio_industria" ? "Trade/Industry 8%" : "Fuel resale 1.6%"}${lp.atividadePresumida ? " (unconfirmed — confirm the company's activity)" : ""}.`,
-    detalhamento_es: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunción: ${lp.atividade === "servicos" ? "Servicios 32%" : lp.atividade === "comercio_industria" ? "Comercio/Industria 8%" : "Reventa de combustible 1,6%"}${lp.atividadePresumida ? " (no confirmada — confirme la actividad de la empresa)" : ""}.`,
+    detalhamento: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunção: ${lp.atividade === "servicos" ? "Serviços 32%" : lp.atividade === "comercio_industria" ? "Comércio/Indústria 8%" : "Revenda de combustível 1,6%"}${lp.atividadePresumida ? " (não confirmada — confirme a atividade da empresa)" : ""}.${semIcms ? AVISO_ICMS.pt : ""}`,
+    detalhamento_en: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presumption: ${lp.atividade === "servicos" ? "Services 32%" : lp.atividade === "comercio_industria" ? "Trade/Industry 8%" : "Fuel resale 1.6%"}${lp.atividadePresumida ? " (unconfirmed — confirm the company's activity)" : ""}.${semIcms ? AVISO_ICMS.en : ""}`,
+    detalhamento_es: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunción: ${lp.atividade === "servicos" ? "Servicios 32%" : lp.atividade === "comercio_industria" ? "Comercio/Industria 8%" : "Reventa de combustible 1,6%"}${lp.atividadePresumida ? " (no confirmada — confirme la actividad de la empresa)" : ""}.${semIcms ? AVISO_ICMS.es : ""}`,
     elegivel: presumidoElegivel,
   });
 
@@ -358,7 +358,8 @@ export function simularRegimes(dados: DadosFiscais, atividadeInformada?: Ativida
     elegivel: true,
   });
 
-  return resultados.sort((a, b) => a.imposto_mensal - b.imposto_mensal);
+  // Primeiro o que pode ser escolhido e comparado; dentro disso, do menor imposto para o maior.
+  return resultados.sort((a, b) => Number(!a.elegivel) - Number(!b.elegivel) || Number(!!a.parcial) - Number(!!b.parcial) || a.imposto_mensal - b.imposto_mensal);
 }
 
 // Exportada para reuso no DRE (calcula a dedução/imposto real da empresa a partir

@@ -16,8 +16,7 @@ import {
   carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
   calcularEconomiaTributaria, gerarAlertasReforma, gerarDiagnosticoFiscal,
   respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
-  type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma, type AtividadeFiscal,
-} from "../../../lib/iaTributariaHelpers";
+  type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma, type AtividadeFiscal, presuncaoDaAtividade } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
@@ -274,6 +273,10 @@ export default function IATributariaPage() {
       const sf = calcularScoreFiscal(d);
 
       setDados(d); setAlertasReforma(alertas);
+      // A tela parte do cadastro da empresa: sem isto, avisava "presumindo Serviços" com a atividade já cadastrada.
+      const atividadeCadastrada = presuncaoDaAtividade(d.atividade_fiscal);
+      if (atividadeCadastrada) setAtividadeFiscal(atividadeCadastrada);
+      if (d.aliquota_iss_pct != null) setIssMunicipalPct(String(d.aliquota_iss_pct));
 
       // Histórico/boas-vindas: decide o motor de conversas (conversa salva > histórico antigo > boas-vindas)
     } catch (err) { showToast(tratarFalhaCarregamento("ia-tributaria.carregarTudo", err, lang), "erro"); }
@@ -520,7 +523,7 @@ export default function IATributariaPage() {
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.regime_label}</p>
                         <div className="flex gap-2 mt-1">
                           {isAtual && <span className="text-xs px-2 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
-                          {i === 0 && s.elegivel && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
+                          {i === 0 && s.elegivel && !s.parcial && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
                           {!s.elegivel && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.inelegivel}</span>}
                         </div>
                       </div>

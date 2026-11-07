@@ -516,6 +516,7 @@ export default function IAFinanceiraPage() {
       {!carregando && snap && score360 && (
         <div className="mb-4">
           <LetreiroExecutivo cor="#101b3d" itens={[
+            `${lang === "en" ? "Reference month" : lang === "es" ? "Mes de referencia" : "Mês de referência"}: ${snap.periodo}`,
             { texto: "🚀 AXIOMA AI.TECH", destaque: true },
             `Score 360°: ${score360.total}/100`,
             `${(lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita")}: ${formatBRL(snap.receita_bruta)}`,

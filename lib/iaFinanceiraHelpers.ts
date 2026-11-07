@@ -3,6 +3,7 @@
 // Funciona com dados reais do Supabase. Chat via Claude API (ou regras se API indisponível).
 
 import { lerTodas } from "./lerTodas";
+import { carregarBaseDRE, type BaseDRE } from "./dreCompetencia";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
@@ -120,38 +121,51 @@ export type BenchmarkSetor = {
 
 export async function carregarSnapshot(userId: string, empresaId: string | null): Promise<SnapshotFinanceiro> {
   const hoje = new Date();
-  const mesAtual = hoje.getMonth() + 1;
-  const anoAtual = hoje.getFullYear();
-  const inicio = isoDia(new Date(anoAtual, mesAtual - 1, 1));
-  const fim = isoDia(new Date(anoAtual, mesAtual, 0));
+  const mesCorrente = hoje.getMonth() + 1;
+  const anoCorrente = hoje.getFullYear();
+  const fimCorrente = isoDia(new Date(anoCorrente, mesCorrente, 0));
+  const fimFechado = isoDia(new Date(anoCorrente, mesCorrente - 1, 0));
+  const inicioSerie = isoDia(new Date(anoCorrente, mesCorrente - 7, 1));
   const hojeStr = isoDia(hoje);
 
   // Buscar dados em paralelo
   const [
-    { data: receitas, error: e1 },
-    { data: custosVar, error: e2 },
+    base,
     { data: custosFix, error: e3 },
     { data: contasRec, error: e4 },
     { data: contasPag, error: e5 },
     { data: dividas, error: e6 },
-    { data: empresa },
+    { data: empresa, error: e7 },
   ] = await Promise.all([
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
-    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    // Mesma base da DRE: receitas, contas a receber por competência e vendas do PDV, sem contar duas vezes.
+    empresaId ? carregarBaseDRE(empresaId, inicioSerie, fimCorrente) : Promise.resolve({ receitas: [], custos: [], falhou: false } as Pick<BaseDRE, "receitas" | "custos" | "falhou">),
     empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
     empresaId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [], error: null }),
     empresaId ? lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId).order("id")) : Promise.resolve({ data: [], error: null }),
     // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
     // uma tabela órfã com schema diferente, nunca alimentada pela UI.
     empresaId ? supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
-    empresaId ? supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+    empresaId ? supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
 
   // Leitura que falha lança erro: a tela avisa em vez de dar nota/plano com zero no lugar do dado.
-  const eLeitura = e1 || e2 || e3 || e4 || e5 || e6;
+  if (base.falhou) throw new Error("[ia-financeira] leitura da base da DRE falhou");
+  const eLeitura = e3 || e4 || e5 || e6 || e7;
   if (eLeitura) throw new Error(`[ia-financeira] leitura falhou: ${eLeitura.message}`);
-  const receita_bruta = (receitas || []).reduce((s, r) => s + Number(r.valor || 0), 0);
-  const custos_variaveis = (custosVar || []).reduce((s, r) => s + Number(r.valor || 0), 0);
+  // Mês de referência: o último fechado. O mês em curso ainda está incompleto e, com o custo fixo inteiro contra a
+  // receita de poucos dias, mostraria prejuízo que não existe. Sem nenhum mês fechado, o corrente é o único dado.
+  const somar = (ls: { valor: number }[]) => ls.reduce((t, l) => t + Number(l.valor || 0), 0);
+  const noPeriodo = <T extends { data: string }>(ls: T[], ini: string, f: string) => ls.filter((l) => l.data >= ini && l.data <= f);
+  const temFechado = base.receitas.some((r) => r.data <= fimFechado) || base.custos.some((r) => r.data <= fimFechado);
+  const refFim = temFechado ? new Date(anoCorrente, mesCorrente - 1, 0) : new Date(anoCorrente, mesCorrente, 0);
+  const mesAtual = refFim.getMonth() + 1;
+  const anoAtual = refFim.getFullYear();
+  const inicio = isoDia(new Date(anoAtual, mesAtual - 1, 1));
+  const fim = isoDia(refFim);
+  const receitas = noPeriodo(base.receitas, inicio, fim);
+  const custosVar = noPeriodo(base.custos, inicio, fim);
+  const receita_bruta = somar(receitas);
+  const custos_variaveis = somar(custosVar);
   const custos_fixos = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);
   const custos_totais = custos_variaveis + custos_fixos;
   const lucro_bruto = receita_bruta - custos_variaveis;
@@ -180,14 +194,8 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
     const d = new Date(anoAtual, mesAtual - 1 - i, 1);
     const mInicio = isoDia(d);
     const mFim = isoDia(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-    const [rRec, rCv] = empresaId ? await Promise.all([
-      lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
-      lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim).order("id")),
-    ]) : [{ data: [], error: null }, { data: [], error: null }];
-    if (rRec.error || rCv.error) throw new Error(`[ia-financeira] evolução 6m: ${(rRec.error || rCv.error)!.message}`);
-    const mRec = rRec.data as { valor: number }[]; const mCv = rCv.data as { valor: number }[];
-    receitas6m.push((mRec || []).reduce((s, r) => s + Number(r.valor || 0), 0));
-    custos6m.push((mCv || []).reduce((s, r) => s + Number(r.valor || 0), 0) + custos_fixos);
+    receitas6m.push(somar(noPeriodo(base.receitas, mInicio, mFim)));
+    custos6m.push(somar(noPeriodo(base.custos, mInicio, mFim)) + custos_fixos);
   }
 
   const qtd_lancamentos = (receitas || []).length;
