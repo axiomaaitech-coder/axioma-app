@@ -93,6 +93,26 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // desfaz a operação principal, que já aconteceu de verdade antes desta
 // função ser chamada.
 // ============================================================================
+// Para quem precisa AVISAR a pessoa: espera o lançamento e devolve se deu certo. A falha também vai ao monitoramento.
+export async function publicarEventoAguardando(
+  empresaId: string,
+  tipo: TipoEvento,
+  payload: Record<string, unknown>,
+  origem: OrigemEvento,
+): Promise<{ erro?: string }> {
+  try {
+    const { id: eventoId, erro } = await publicarEvento(empresaId, tipo, payload, origem);
+    if (erro || !eventoId) { reportarFalhaEscrita("eventos_negocio", "publicarEvento", erro || "sem id"); return { erro: erro || "evento não gravado" }; }
+    const r = await processarEventoContabil(tipo, empresaId, origem, payload, { eventoId });
+    if (r.erro) reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, r.erro);
+    return r;
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, motivo);
+    return { erro: motivo };
+  }
+}
+
 export async function publicarEventoNaoBloqueante(
   empresaId: string | null | undefined,
   tipo: TipoEvento,
@@ -839,6 +859,15 @@ export async function processarEventoContabil(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
           payload.custo_unitario as number | null, (payload.data_movimento as string) || (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
           payload.pagamento as { modo?: string; forma?: string | null } | null, ctx);
+        break;
+      }
+      case "STOCK_MOVEMENT_UPDATED": {
+        // Lançamento não se altera: estorna o anterior e lança de novo, nesta ordem, no mesmo evento.
+        await estornarLancamentosPorOrigem(empresaId, "estoque_movimentacoes", origemId, "Estorno por edição de movimentação de estoque", ctx);
+        const novo = payload.novo as { evento: string; produto_id: string; quantidade: number; custo_unitario: number | null; data_movimento: string; pagamento?: { modo?: string; forma?: string | null } | null } | null;
+        if (novo?.evento === "STOCK_ENTRY_MANUAL") await gerarEntradaEstoqueManual(empresaId, origemId, novo.produto_id, Number(novo.quantidade) || 0, novo.custo_unitario, novo.data_movimento, novo.pagamento, ctx);
+        else if (novo?.evento === "STOCK_ADJUSTMENT") await gerarAjusteEstoque(empresaId, origemId, novo.produto_id, Number(novo.quantidade) || 0, novo.custo_unitario, novo.data_movimento, ctx);
+        else if (novo?.evento === "STOCK_LOSS") await gerarPerdaEstoque(empresaId, origemId, novo.produto_id, Number(novo.quantidade) || 0, novo.custo_unitario, novo.data_movimento, ctx);
         break;
       }
       case "STOCK_MOVEMENT_DELETED": {

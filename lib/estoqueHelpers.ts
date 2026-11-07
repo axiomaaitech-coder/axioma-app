@@ -7,7 +7,7 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as XLSX from "xlsx";
 import { exportarPlanilha } from "./exportarPlanilha";
 import * as Sentry from "@sentry/nextjs";
-import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
+import { publicarEventoAguardando, publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import { lerTodas } from "./lerTodas";
 import { exigirLeitura, registrarLeitura } from "./erroUiHelpers";
 import { hojeISO, somarMesesISO } from "./datas";
@@ -392,7 +392,7 @@ export type NovaMovimentacao = {
 };
 
 // O que não chegou ao financeiro depois de a entrada estar salva: a tela avisa, nunca passa calado.
-export type AvisoEntrada = "conta_pagar" | "fluxo";
+export type AvisoEntrada = "conta_pagar" | "fluxo" | "contabilidade";
 
 // Entrada manual: a pergunta "como foi paga?" decide para onde o valor vai.
 //   pago agora      → Contabilidade (Estoques contra Caixa/Banco/Cartão) + saída no Fluxo (cartão: só na fatura)
@@ -418,7 +418,7 @@ async function lancarEntradaEstoque(
     }, { origem: "estoque" });
     return r.erro ? "conta_pagar" : undefined;
   }
-  publicarEventoNaoBloqueante(empresaId, "STOCK_ENTRY_MANUAL",
+  const contabil = await publicarEventoAguardando(empresaId, "STOCK_ENTRY_MANUAL",
     { produto_id: m.produto_id, quantidade: m.quantidade, custo_unitario: m.custo_unitario ?? null, data_hora: dataHora, data_movimento: dia, motivo: m.motivo ?? null, pagamento },
     { modulo: "estoque", tabela: "estoque_movimentacoes", id: movId });
   if (pagamento.modo === "pago" && saiDoCaixaAgora(pagamento.forma)) {
@@ -428,7 +428,7 @@ async function lancarEntradaEstoque(
     });
     if (error) { reportarFalhaEscrita("fluxo_caixa", "insert (compra de estoque)", error.message); return "fluxo"; }
   }
-  return undefined;
+  return contabil.erro ? "contabilidade" : undefined;
 }
 
 export async function criarMovimentacao(empresaId: string, userId: string, mov: NovaMovimentacao): Promise<{ id?: string; erro?: string; aviso?: AvisoEntrada }> {
@@ -469,10 +469,7 @@ export async function criarMovimentacao(empresaId: string, userId: string, mov: 
   const origemMov = mov.origem ?? "manual";
   const statusRecebimento = mov.status_recebimento ?? "confirmada";
   const destinoSaldo = mov.destino_saldo ?? "disponivel";
-  let tipoEventoEstoque: "STOCK_ENTRY_MANUAL" | "STOCK_ADJUSTMENT" | "STOCK_LOSS" | null = null;
-  if (mov.tipo === "entrada" && origemMov === "manual" && statusRecebimento === "confirmada") tipoEventoEstoque = "STOCK_ENTRY_MANUAL";
-  else if ((mov.tipo === "ajuste" || mov.tipo === "inventario") && destinoSaldo === "disponivel") tipoEventoEstoque = "STOCK_ADJUSTMENT";
-  else if (mov.tipo === "perda") tipoEventoEstoque = "STOCK_LOSS";
+  const tipoEventoEstoque = eventoDaMovimentacao({ tipo: mov.tipo, origem: origemMov, status_recebimento: statusRecebimento, destino_saldo: destinoSaldo });
   if (tipoEventoEstoque === "STOCK_ENTRY_MANUAL") {
     const aviso = await lancarEntradaEstoque(empresaId, userId, data.id, mov, mov.pagamento ?? { modo: "estoque_inicial" });
     return { id: data.id, aviso };
@@ -485,15 +482,55 @@ export async function criarMovimentacao(empresaId: string, userId: string, mov: 
   return { id: data.id };
 }
 
-export async function atualizarMovimentacao(id: string, dados: Partial<NovaMovimentacao>): Promise<{ erro?: string }> {
-  const { lote, ...resto } = dados;
-  const { data, error } = await supabase.from("estoque_movimentacoes").update(resto).eq("id", id).select("id");
+// Pura: qual lançamento contábil esta movimentação gera. Mesma regra de quem cria e de quem edita.
+export type EventoEstoque = "STOCK_ENTRY_MANUAL" | "STOCK_ADJUSTMENT" | "STOCK_LOSS";
+export function eventoDaMovimentacao(m: { tipo?: string | null; origem?: string | null; status_recebimento?: string | null; destino_saldo?: string | null }): EventoEstoque | null {
+  if (m.tipo === "entrada" && (m.origem ?? "manual") === "manual" && (m.status_recebimento ?? "confirmada") === "confirmada") return "STOCK_ENTRY_MANUAL";
+  if ((m.tipo === "ajuste" || m.tipo === "inventario") && (m.destino_saldo ?? "disponivel") === "disponivel") return "STOCK_ADJUSTMENT";
+  if (m.tipo === "perda") return "STOCK_LOSS";
+  return null;
+}
+
+// Editar quantidade, custo, data, tipo ou situação também corrige a Contabilidade e o Fluxo (antes só mudava o estoque).
+// aviso "conta_pagar_manual": a entrada foi a prazo; o valor da conta se ajusta em Contas a Pagar, com a alçada de lá.
+export async function atualizarMovimentacao(id: string, dados: Partial<NovaMovimentacao>, pagamento?: PagamentoEntrada): Promise<{ erro?: string; aviso?: AvisoEntrada | "conta_pagar_manual" }> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { lote, pagamento: _p, ...resto } = dados;
+  const { data: antes, error: eAntes } = await supabase.from("estoque_movimentacoes").select("empresa_id, user_id, produto_id, tipo, origem, quantidade, custo_unitario, status_recebimento, destino_saldo, data_hora, motivo").eq("id", id).maybeSingle();
+  if (eAntes || !antes) { const motivo = eAntes?.message || "movimentação não encontrada"; reportarFalhaEscrita("estoque_movimentacoes", "ler antes de editar", motivo); return { erro: motivo }; }
+  const { data, error } = await supabase.from("estoque_movimentacoes").update(resto).eq("id", id).select("id, produto_id, tipo, origem, quantidade, custo_unitario, status_recebimento, destino_saldo, data_hora, motivo");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("estoque_movimentacoes", "update", motivo);
     return { erro: motivo };
   }
-  return {};
+  const depois = data[0];
+  const eventoAntes = eventoDaMovimentacao(antes), eventoDepois = eventoDaMovimentacao(depois);
+  const mudou = (["produto_id", "quantidade", "custo_unitario", "data_hora"] as const).some((c) => String(antes[c] ?? "") !== String(depois[c] ?? "") && (c !== "data_hora" || new Date(antes[c]).getTime() !== new Date(depois[c]).getTime())) || eventoAntes !== eventoDepois;
+  if (!mudou || (!eventoAntes && !eventoDepois)) return {};
+
+  // Em trânsito chegando pela edição: é a primeira vez que vai ao financeiro, igual a confirmar o recebimento.
+  if (!eventoAntes && eventoDepois === "STOCK_ENTRY_MANUAL") {
+    return { aviso: await lancarEntradaEstoque(antes.empresa_id, antes.user_id ?? "", id, depois, pagamento ?? { modo: "estoque_inicial" }) };
+  }
+  // Como esta movimentação foi lançada: fica no último evento dela
+  const { data: eventos, error: eEv } = await supabase.from("eventos_negocio").select("tipo, payload").eq("empresa_id", antes.empresa_id).eq("origem_tabela", "estoque_movimentacoes").eq("origem_id", id).order("criado_em", { ascending: false }).limit(1);
+  if (eEv) { reportarFalhaEscrita("eventos_negocio", "ler lançamento da movimentação", eEv.message); return { aviso: "fluxo" }; }
+  const ultimo = eventos?.[0] as { tipo: string; payload: { pagamento?: PagamentoEntrada | null; novo?: { pagamento?: PagamentoEntrada | null } | null } } | undefined;
+  // Entrada confirmada sem nenhum lançamento = foi a prazo: quem carrega o valor é a conta a pagar
+  if (eventoAntes === "STOCK_ENTRY_MANUAL" && !ultimo) return { aviso: "conta_pagar_manual" };
+  const pagAnterior = ultimo?.payload?.novo?.pagamento ?? ultimo?.payload?.pagamento ?? null;
+  const dia = hojeISO(new Date(depois.data_hora));
+  const contabil = await publicarEventoAguardando(antes.empresa_id, "STOCK_MOVEMENT_UPDATED", {
+    novo: eventoDepois ? { evento: eventoDepois, produto_id: depois.produto_id, quantidade: depois.quantidade, custo_unitario: depois.custo_unitario, data_movimento: dia, pagamento: pagAnterior } : null,
+  }, { modulo: "estoque", tabela: "estoque_movimentacoes", id });
+  // A saída no Fluxo acompanha; se deixou de ser entrada confirmada, sai do Fluxo
+  const fluxo = supabase.from("fluxo_caixa");
+  const { error: eFluxo } = eventoDepois === "STOCK_ENTRY_MANUAL"
+    ? await fluxo.update({ valor: Math.round(Number(depois.quantidade) * Number(depois.custo_unitario || 0) * 100) / 100, data: dia }).eq("empresa_id", antes.empresa_id).eq("origem_tabela", "estoque_movimentacoes").eq("origem_id", id)
+    : await fluxo.delete().eq("empresa_id", antes.empresa_id).eq("origem_tabela", "estoque_movimentacoes").eq("origem_id", id);
+  if (eFluxo) { reportarFalhaEscrita("fluxo_caixa", "acompanhar edição de movimentação", eFluxo.message); return { aviso: "fluxo" }; }
+  return contabil.erro ? { aviso: "contabilidade" } : {};
 }
 
 export async function excluirMovimentacao(id: string): Promise<{ erro?: string }> {
@@ -505,10 +542,10 @@ export async function excluirMovimentacao(id: string): Promise<{ erro?: string }
   }
   // A movimentação saiu: o que ela deixou na Contabilidade e no Fluxo sai junto (antes ficava lá para sempre).
   const empresaId = data[0].empresa_id as string;
-  publicarEventoNaoBloqueante(empresaId, "STOCK_MOVEMENT_DELETED", { movimentacao_id: id }, { modulo: "estoque", tabela: "estoque_movimentacoes", id });
+  const contabil = await publicarEventoAguardando(empresaId, "STOCK_MOVEMENT_DELETED", { movimentacao_id: id }, { modulo: "estoque", tabela: "estoque_movimentacoes", id });
   const { error: eFluxo } = await supabase.from("fluxo_caixa").delete().eq("empresa_id", empresaId).eq("origem_tabela", "estoque_movimentacoes").eq("origem_id", id);
   if (eFluxo) { reportarFalhaEscrita("fluxo_caixa", "delete (compra de estoque)", eFluxo.message); return { erro: eFluxo.message }; }
-  return {};
+  return contabil.erro ? { erro: `movimentação excluída, mas a Contabilidade não foi corrigida: ${contabil.erro}` } : {};
 }
 
 // Em trânsito só vira estoque ao chegar: é aqui que a compra chega ao financeiro (antes nunca chegava à Contabilidade).

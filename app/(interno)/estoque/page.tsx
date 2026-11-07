@@ -880,6 +880,7 @@ export default function EstoquePage() {
   }
   const textoAvisoEntrada = (aviso: AvisoEntrada) => aviso === "conta_pagar"
     ? LP("Entrada salva, mas a conta a pagar não foi criada. Crie em Contas a Pagar.", "Entry saved, but the bill was not created. Create it in Payables.", "Entrada guardada, pero la cuenta por pagar no se creó. Créela en Cuentas por Pagar.")
+    : aviso === "contabilidade" ? LP("Movimentação salva, mas a Contabilidade não foi atualizada. Confira em Contabilidade → Razão.", "Movement saved, but Accounting was not updated. Check Accounting → Ledger.", "Movimiento guardado, pero Contabilidad no se actualizó. Revise Contabilidad → Mayor.")
     : LP("Entrada salva, mas a saída não entrou no Fluxo de Caixa. Lance em Fluxo de Caixa.", "Entry saved, but the outflow did not reach Cash Flow. Enter it in Cash Flow.", "Entrada guardada, pero la salida no llegó al Flujo de Caja. Regístrela en Flujo de Caja.");
   const camposPagamento = (
     <div className="space-y-3">
@@ -910,15 +911,21 @@ export default function EstoquePage() {
     setSalvandoMov(true);
     try {
       if (movEditando) {
-        const { erro } = await atualizarMovimentacao(movEditando.id, {
+        // Em trânsito virando confirmada pela edição: chegou agora, então pergunta como foi paga
+        const chegando = movEditando.tipo === "entrada" && movEditando.status_recebimento === "em_transito" && formMov.status_recebimento === "confirmada";
+        const pagamentoEdicao = chegando ? pagamentoDaTela(formMov.custo_unitario ? Number(formMov.custo_unitario) : null) : undefined;
+        if (pagamentoEdicao === null) return;
+        const { erro, aviso } = await atualizarMovimentacao(movEditando.id, {
           tipo: formMov.tipo, quantidade: Number(formMov.quantidade),
           custo_unitario: formMov.custo_unitario ? Number(formMov.custo_unitario) : null,
           status_recebimento: formMov.status_recebimento, destino_saldo: formMov.destino_saldo,
           motivo: formMov.motivo, documento_ref: formMov.documento_ref,
           data_hora: formMov.data_hora ? new Date(formMov.data_hora).toISOString() : undefined,
-        });
+        }, pagamentoEdicao);
         if (erro) { mostrarToast(erro, "erro"); return; }
-        mostrarToast(et.toastMovAtualizada);
+        if (aviso === "conta_pagar_manual") mostrarToast(LP("Movimentação salva. Esta entrada foi a prazo: ajuste o valor também em Contas a Pagar.", "Movement saved. This entry was on credit: also adjust the amount in Payables.", "Movimiento guardado. Esta entrada fue a plazo: ajuste el valor también en Cuentas por Pagar."), "info");
+        else if (aviso) mostrarToast(textoAvisoEntrada(aviso), "erro");
+        else mostrarToast(et.toastMovAtualizada);
       } else {
         const perguntaPagamento = formMov.tipo === "entrada" && (formMov.status_recebimento || "confirmada") === "confirmada";
         const pagamento = perguntaPagamento ? pagamentoDaTela(formMov.custo_unitario ? Number(formMov.custo_unitario) : null) : undefined;
@@ -2033,7 +2040,7 @@ export default function EstoquePage() {
               opcoes={[{ value: "confirmada", label: et.opcaoConfirmada }, { value: "em_transito", label: et.opcaoEmTransito }]} />
           )}
 
-          {!movEditando && formMov.tipo === "entrada" && (formMov.status_recebimento || "confirmada") === "confirmada" && camposPagamento}
+          {formMov.tipo === "entrada" && (formMov.status_recebimento || "confirmada") === "confirmada" && (!movEditando || movEditando.status_recebimento === "em_transito") && camposPagamento}
 
           {(formMov.tipo === "ajuste" || formMov.tipo === "inventario") && (
             <CampoSelect label={et.campoOndeAplicarAjuste} value={formMov.destino_saldo || "disponivel"} onChange={(v) => setFormMov((f: any) => ({ ...f, destino_saldo: v }))}

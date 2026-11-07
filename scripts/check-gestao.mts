@@ -160,6 +160,12 @@ assert.ok(consultas.length > 10)
   assert.equal(codigoEtiqueta({ nome: 'Arroz' }), '', 'nome nunca vai para o QR')
   assert.equal(codigoEtiqueta({ nome: 'Arroz', codigo_interno: '100001' }), '100001')
   assert.equal(codigoEtiqueta({ nome: 'Arroz', codigo_interno: '100001', codigo_barras: '789' }), '789', 'código de barras vem primeiro')
+  const { eventoDaMovimentacao } = await import('../lib/estoqueHelpers')
+  assert.equal(eventoDaMovimentacao({ tipo: 'entrada', origem: 'manual', status_recebimento: 'confirmada' }), 'STOCK_ENTRY_MANUAL')
+  assert.equal(eventoDaMovimentacao({ tipo: 'entrada', origem: 'manual', status_recebimento: 'em_transito' }), null, 'em trânsito ainda não é financeiro')
+  assert.equal(eventoDaMovimentacao({ tipo: 'entrada', origem: 'nfe', status_recebimento: 'confirmada' }), null, 'NF-e já vem da conta a pagar')
+  assert.equal(eventoDaMovimentacao({ tipo: 'ajuste', destino_saldo: 'disponivel' }), 'STOCK_ADJUSTMENT'); assert.equal(eventoDaMovimentacao({ tipo: 'ajuste', destino_saldo: 'reservado' }), null)
+  assert.equal(eventoDaMovimentacao({ tipo: 'perda' }), 'STOCK_LOSS'); assert.equal(eventoDaMovimentacao({ tipo: 'saida', origem: 'pdv' }), null)
   console.log('OK — cartão sai do caixa na fatura; entrada de estoque lança conforme foi paga')
 }
 

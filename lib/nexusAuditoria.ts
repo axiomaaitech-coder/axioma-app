@@ -5,6 +5,7 @@
 // feito (quem, quando, qual empresa, qual IA, quanto dado foi enviado) —
 // nunca o conteúdo dos números da empresa nem a pergunta completa.
 // ═══════════════════════════════════════════════════════════════
+import * as Sentry from '@sentry/nextjs'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { DIAS_GUARDA_PLANO, DIAS_GUARDA_PAINEL, DIAS_GUARDA_AUDITORIA, DIAS_LIXEIRA_HISTORICO_AP, DIAS_LIXEIRA_TERMOS, dataLimite } from './nexusRetencao'
 
@@ -28,12 +29,15 @@ export type RegistroAuditoria = {
 // Melhor-esforço: falha de auditoria é logada, mas nunca derruba a resposta ao usuário.
 export async function registrarAuditoria(r: RegistroAuditoria): Promise<void> {
   const supabase = clienteServico()
-  if (!supabase) { console.error('[auditoria] SUPABASE_SERVICE_ROLE_KEY ausente — registro não gravado', r.acao); return }
+  if (!supabase) { console.error('[auditoria] SUPABASE_SERVICE_ROLE_KEY ausente — registro não gravado', r.acao); Sentry.captureException(new Error(`[auditoria] sem chave do servidor: ${r.acao} não gravado`)); return }
   const { error } = await supabase.from('nexus_audit_log').insert({
     empresa_id: r.empresaId, ator: r.ator, acao: r.acao, entidade: r.entidade ?? null, entidade_id: r.entidadeId ?? null,
     parametros: r.parametros ?? null, resultado: r.resultado ?? null, versao_motor: r.versaoMotor ?? null,
   })
-  if (error) console.error('[auditoria] falha ao gravar', r.acao, error.message)
+  if (error) {
+    console.error('[auditoria] falha ao gravar', r.acao, error.message)
+    Sentry.captureException(new Error(`[auditoria] falha ao gravar ${r.acao}: ${error.message}`))
+  }
 }
 
 // Apaga o que passou do prazo de guarda (roda no cron diário). Cada tabela isolada.
