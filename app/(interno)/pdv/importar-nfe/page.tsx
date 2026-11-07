@@ -15,6 +15,7 @@ import {
   buscarVinculoFornecedor, salvarVinculoFornecedor, converterFardoParaUnidade, precoComMargem, type FornecedorMinimo,
 } from "../../../../lib/pdvNfeHelpers";
 import { conferirNfe } from "../../../../lib/matchEngineHelpers";
+import { criarContasDaNota, type DadosCobrancaNota } from "../../../../lib/pdvNfeHelpers";
 import AvisoAxioma from "../../../../components/AvisoAxioma";
 
 // Botões de ação usam tokens.acaoBg/acaoTexto (verde só sobrevive no tema
@@ -66,6 +67,11 @@ const txt = {
   confirmarImportacao: { pt: "Confirmar e Gravar", en: "Confirm and Save", es: "Confirmar y Guardar" },
   gravando: { pt: "Gravando…", en: "Saving…", es: "Guardando…" },
   faltaCategoriaSubnicho: { pt: "Todo item novo incluído precisa de categoria, sub-nicho e preço de venda.", en: "Every included new item needs a category, sub-niche and sale price.", es: "Cada ítem nuevo incluido necesita categoría, sub-nicho y precio de venta." },
+  avisoConta: { pt: "Ao confirmar, a nota também cria a conta a pagar, com os vencimentos e pagamentos do próprio XML, e entra em Estoques contra Fornecedores na Contabilidade.", en: "On confirming, the invoice also creates the bill, with the due dates and payments from the XML itself, and is booked as Inventory against Suppliers in Accounting.", es: "Al confirmar, la factura también crea la cuenta por pagar, con los vencimientos y pagos del propio XML, y entra en Existencias contra Proveedores en Contabilidad." },
+  contaCriada: { pt: "{n} conta(s) a pagar criada(s) em Contas a Pagar.", en: "{n} bill(s) created in Accounts Payable.", es: "{n} cuenta(s) por pagar creada(s) en Cuentas por Pagar." },
+  contaExistente: { pt: "Esta nota já tinha conta a pagar. Nenhuma outra foi criada.", en: "This invoice already had a bill. No other was created.", es: "Esta factura ya tenía cuenta por pagar. No se creó otra." },
+  contaParcial: { pt: "Nem todos os itens entraram no estoque, então a conta a pagar não foi criada sozinha: o sistema não sabe como classificar o restante. Lance em Contas a Pagar, usando Importar XML.", en: "Not all items entered inventory, so the bill was not created automatically: the system cannot tell how to classify the rest. Enter it in Accounts Payable, using Import XML.", es: "No todos los ítems entraron en existencias, por eso la cuenta por pagar no se creó sola: el sistema no sabe cómo clasificar el resto. Regístrela en Cuentas por Pagar, usando Importar XML." },
+  contaErro: { pt: "O estoque foi gravado, mas a conta a pagar não foi criada. Lance em Contas a Pagar, usando Importar XML.", en: "Inventory was saved, but the bill was not created. Enter it in Accounts Payable, using Import XML.", es: "Las existencias se guardaron, pero la cuenta por pagar no se creó. Regístrela en Cuentas por Pagar, usando Importar XML." },
   resumoSucesso: { pt: "{n} item(ns) gravado(s) com sucesso.", en: "{n} item(s) saved successfully.", es: "{n} ítem(s) guardado(s) con éxito." },
   resumoFalhas: { pt: "{n} item(ns) falharam — veja os detalhes abaixo.", en: "{n} item(s) failed — see details below.", es: "{n} ítem(s) fallaron — vea los detalles abajo." },
   importarOutra: { pt: "Importar outra nota", en: "Import another invoice", es: "Importar otra factura" },
@@ -130,7 +136,8 @@ export default function PDVImportarNFe() {
   const [fornecedorInfo, setFornecedorInfo] = useState<{ existente: FornecedorMinimo | null; cnpj: string; razaoSocial?: string; fantasia?: string } | null>(null);
   const [itens, setItens] = useState<ItemConferencia[] | null>(null);
   const [margemPct, setMargemPct] = useState("");
-  const [resumo, setResumo] = useState<{ sucesso: number; falhas: string[] } | null>(null);
+  const [resumo, setResumo] = useState<{ sucesso: number; falhas: string[]; conta?: string } | null>(null);
+  const [cobrancaNota, setCobrancaNota] = useState<DadosCobrancaNota | null>(null);
   const inputArquivoRef = useRef<HTMLInputElement>(null);
 
   async function handleArquivo(file: File) {
@@ -151,6 +158,11 @@ export default function PDVImportarNFe() {
       setChaveAcesso(chave);
       setNumeroNf(resultado.metadados.numero_nf ? String(resultado.metadados.numero_nf) : undefined);
       setValorTotalNota(resultado.metadados.valor_total);
+      setCobrancaNota({
+        numeroNf: resultado.metadados.numero_nf ? String(resultado.metadados.numero_nf) : undefined, razaoSocial: resultado.metadados.razao_social,
+        valorTotal: resultado.metadados.valor_total, dataEmissao: resultado.metadados.data_emissao,
+        parcelas: resultado.metadados.parcelas ?? [], pagamentos: resultado.metadados.pagamentos ?? [],
+      });
 
       const cnpjEmit = String(resultado.metadados.cnpj_emitente || "").replace(/\D/g, "");
       const existente = cnpjEmit ? await buscarFornecedorPorCnpj(empresaId, cnpjEmit) : null;
@@ -331,7 +343,13 @@ export default function PDVImportarNFe() {
         sucesso++;
       }
 
-      setResumo({ sucesso, falhas });
+      // Conta a pagar só com a nota inteira no estoque: com item de fora, parte do valor pode ser despesa, e classificar seria chute.
+      let conta: string = t("contaParcial", lang);
+      if (falhas.length === 0 && itens.every((it) => it.incluir) && cobrancaNota) {
+        const r = await criarContasDaNota(empresaId, userId, chaveAcesso, fornecedorId ?? null, cobrancaNota).catch(() => ({ criadas: 0, jaExistia: false, erro: "leitura" }));
+        conta = r.erro ? t("contaErro", lang) : r.jaExistia ? t("contaExistente", lang) : t("contaCriada", lang, { n: r.criadas });
+      } else if (falhas.length > 0) conta = t("contaErro", lang);
+      setResumo({ sucesso, falhas, conta });
       // Conferência roda sob demanda, junto do próprio salvar — o resultado
       // geral (ok/exceção) sai no toast; o detalhe fica na aba Conferência de
       // Notas, em Contas a Pagar.
@@ -348,7 +366,7 @@ export default function PDVImportarNFe() {
   }
 
   function reiniciar() {
-    setItens(null); setChaveAcesso(null); setNumeroNf(undefined); setValorTotalNota(undefined); setFornecedorInfo(null);
+    setCobrancaNota(null); setItens(null); setChaveAcesso(null); setNumeroNf(undefined); setValorTotalNota(undefined); setFornecedorInfo(null);
     setErroArquivo(null); setResumo(null); setMargemPct("");
     if (inputArquivoRef.current) inputArquivoRef.current.value = "";
   }
@@ -391,7 +409,10 @@ export default function PDVImportarNFe() {
           {resolvendoItens && <SpinnerResolvendoItens lang={lang} />}
 
           {fornecedorInfo && itens && !resolvendoItens && (
-            <FornecedorCard lang={lang} info={fornecedorInfo} />
+            <>
+              <FornecedorCard lang={lang} info={fornecedorInfo} />
+              <AvisoContaNota lang={lang} />
+            </>
           )}
 
           {itens && !resolvendoItens && nichoSel && (
@@ -621,12 +642,18 @@ function CampoSelect({ label, value, onChange, opcoes, disabled }: { label: stri
   );
 }
 
-function ResumoFinal({ lang, resumo, onImportarOutra }: { lang: Lang; resumo: { sucesso: number; falhas: string[] }; onImportarOutra: () => void }) {
+function AvisoContaNota({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return <p className="text-xs mt-2" style={{ color: tokens.textoSecundario }}>{t("avisoConta", lang)}</p>;
+}
+
+function ResumoFinal({ lang, resumo, onImportarOutra }: { lang: Lang; resumo: { sucesso: number; falhas: string[]; conta?: string }; onImportarOutra: () => void }) {
   const { tokens } = useTemaPdv();
   return (
     <div className="text-center py-10 space-y-4">
       <CheckCircle2 size={40} style={{ color: tokens.acento, margin: "0 auto" }} />
       <p className="text-sm font-semibold" style={{ color: tokens.texto }}>{t("resumoSucesso", lang, { n: resumo.sucesso })}</p>
+      {resumo.conta && <p className="text-sm max-w-md mx-auto" style={{ color: tokens.textoSecundario }}>{resumo.conta}</p>}
       {resumo.falhas.length > 0 && (
         <div className="text-left max-w-md mx-auto p-4 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
           <p className="text-xs font-semibold mb-2" style={{ color: "#fca5a5" }}>{t("resumoFalhas", lang, { n: resumo.falhas.length })}</p>

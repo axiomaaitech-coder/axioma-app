@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '42 - PDV - Ponto de Venda.docx',
   titulo: 'Manual 42 — PDV (Ponto de Venda)',
   subtitulo: 'Catálogo, frente de caixa, fechamento e retaguarda',
-  info: ['Menu: PDV (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (outubro de 2026)'],
+  info: ['Menu: PDV (barra superior)  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'O PDV é o caixa da loja dentro do Axioma: cadastra produtos, vende, baixa o estoque, emite o cupom e fecha o caixa. Cada venda já entra nas receitas, no estoque, no saldo de caixa e nos indicadores, sem digitar de novo.' },
@@ -22,6 +22,7 @@ const pt: DocumentoAxioma = {
     ] },
 
     { h1: 'Importar XML da NF-e (compra)' },
+    { p: 'Com **todos os itens incluídos**, ao confirmar a nota o Axioma cria a **conta a pagar** com os vencimentos e pagamentos do próprio XML e lança **Estoques contra Fornecedores** na Contabilidade. Sem forma de pagamento no XML, a conta fica em aberto. Se algum item ficar de fora ou a nota já tiver conta, a tela avisa; com item de fora, lance em **Contas a Pagar → Importar XML**.' },
     { numerada: [
       'Escolha o nicho da nota e envie o arquivo **.xml**.',
       'O fornecedor é reconhecido (ou será cadastrado automaticamente ao confirmar).',
@@ -68,7 +69,7 @@ const en: DocumentoAxioma = {
   arquivo: '42 - POS - Point of Sale.docx',
   titulo: 'Manual 42 — POS (Point of Sale)',
   subtitulo: 'Catalog, checkout, closing and back office',
-  info: ['Menu: POS (top bar)  •  Axioma AI.Tech user manual  •  Version 2.1 (October 2026)'],
+  info: ['Menu: POS (top bar)  •  Axioma AI.Tech user manual  •  Version 2.2 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'The POS is the store’s cash register inside Axioma: it registers products, sells, lowers inventory, issues the receipt and closes the register. Each sale goes straight into revenue, inventory, the cash balance and the indicators, with no retyping.' },
@@ -85,6 +86,7 @@ const en: DocumentoAxioma = {
     ] },
 
     { h1: 'Import NF-e XML (purchase)' },
+    { p: 'With **all items included**, confirming the invoice makes Axioma create the **bill** with the due dates and payments from the XML itself and book **Inventory against Suppliers** in Accounting. With no payment method in the XML, the bill stays open. If an item is left out or the invoice already has a bill, the screen says so; with an item left out, enter it in **Accounts Payable → Import XML**.' },
     { numerada: [
       'Choose the invoice’s niche and upload the **.xml** file.',
       'The supplier is recognized (or will be registered automatically when you confirm).',
@@ -131,7 +133,7 @@ const es: DocumentoAxioma = {
   arquivo: '42 - PDV - Punto de Venta.docx',
   titulo: 'Manual 42 — PDV (Punto de Venta)',
   subtitulo: 'Catálogo, caja, cierre y trastienda',
-  info: ['Menú: PDV (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (octubre de 2026)'],
+  info: ['Menú: PDV (barra superior)  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'El PDV es la caja de la tienda dentro de Axioma: registra productos, vende, descuenta el inventario, emite el ticket y cierra la caja. Cada venta entra directo en los ingresos, el inventario, el saldo de caja y los indicadores, sin escribir de nuevo.' },
@@ -148,6 +150,7 @@ const es: DocumentoAxioma = {
     ] },
 
     { h1: 'Importar XML de la NF-e (compra)' },
+    { p: 'Con **todos los ítems incluidos**, al confirmar la factura Axioma crea la **cuenta por pagar** con los vencimientos y pagos del propio XML y registra **Existencias contra Proveedores** en Contabilidad. Sin forma de pago en el XML, la cuenta queda abierta. Si algún ítem queda fuera o la factura ya tiene cuenta, la pantalla avisa; con ítem fuera, regístrela en **Cuentas por Pagar → Importar XML**.' },
     { numerada: [
       'Elija el nicho de la factura y suba el archivo **.xml**.',
       'El proveedor se reconoce (o se registrará automáticamente al confirmar).',

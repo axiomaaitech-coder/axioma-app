@@ -7,7 +7,7 @@
 import { lerTodas } from "./lerTodas";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
-import type { ItemNFe } from "./importarParsers";
+import type { ItemNFe, ParcelaNFe, PagamentoNFe } from "./importarParsers";
 import { vincularItensAoPedidoAberto } from "./pedidoCompraHelpers";
 import { exigirLeitura } from "./erroUiHelpers";
 
@@ -199,4 +199,49 @@ export function converterFardoParaUnidade(qtdFardos: number, unidadesPorFardo: n
 // salvar depois de ver o número (nunca grava sozinho).
 export function precoComMargem(custo: number, margemPct: number): number {
   return custo * (1 + margemPct / 100);
+}
+
+// ============================================================================
+// CONTA A PAGAR DA NOTA: tudo sai do XML (duplicatas, vencimentos, pagamentos). Nada é presumido.
+// Com duplicatas: 1 conta por duplicata. Sem duplicatas: 1 conta do total, já paga na parte que a nota diz quitada.
+// A soma das contas é sempre o total da nota.
+// ============================================================================
+export type DadosCobrancaNota = { numeroNf?: string; razaoSocial?: string; valorTotal?: number; dataEmissao?: string; parcelas: ParcelaNFe[]; pagamentos: PagamentoNFe[] };
+export type ContaDaNota = { descricao: string; valor_total: number; data_vencimento: string | null; forma: string | null; pago?: { valor: number; data: string; forma: string } };
+const centavos2 = (v: number) => Math.round(v * 100) / 100;
+
+export function planoContasDaNota(n: DadosCobrancaNota): ContaDaNota[] {
+  const total = centavos2(Number(n.valorTotal) || 0);
+  if (!(total > 0)) return [];
+  const nome = `NF ${n.numeroNf || "?"} - ${n.razaoSocial || ""}`.trim();
+  const emissao = n.dataEmissao ? n.dataEmissao.slice(0, 10) : null;
+  const forma = [...new Set(n.pagamentos.map((p) => p.meio))].join(" + ") || null;
+  const quitado = centavos2(n.pagamentos.filter((p) => p.quitado).reduce((t, p) => t + p.valor, 0));
+  const pago = (valor: number) => (quitado > 0 && emissao ? { valor: centavos2(Math.min(valor, quitado)), data: emissao, forma: forma || "Outros" } : undefined);
+  if (n.parcelas.length === 0) return [{ descricao: nome, valor_total: total, data_vencimento: emissao, forma, pago: pago(total) }];
+  const contas: ContaDaNota[] = n.parcelas.map((p, i) => ({
+    descricao: `${nome} (parcela ${i + 1}/${n.parcelas.length}${p.numero ? ` · dup. ${p.numero}` : ""})`,
+    valor_total: centavos2(p.valor), data_vencimento: p.vencimento || emissao, forma,
+  }));
+  const entrada = centavos2(total - contas.reduce((t, x) => t + x.valor_total, 0));
+  if (entrada > 0) contas.unshift({ descricao: `${nome} (entrada)`, valor_total: entrada, data_vencimento: emissao, forma, pago: pago(entrada) });
+  return contas;
+}
+
+export async function criarContasDaNota(empresaId: string, userId: string, chaveAcesso: string, fornecedorId: string | null, n: DadosCobrancaNota): Promise<{ criadas: number; jaExistia?: boolean; erro?: string }> {
+  const existentes = await exigirLeitura(() => supabase.from("contas_pagar").select("id").eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).limit(1), "pdvNfeHelpers:contasDaNota");
+  if ((existentes as unknown[] | null)?.length) return { criadas: 0, jaExistia: true };
+  // Carregado aqui, como na entrada manual: Contas a Pagar não precisa do PDV para nada além desta compra.
+  const { criarContaPagar } = await import("./contasPagarHelpers");
+  let criadas = 0;
+  for (const conta of planoContasDaNota(n)) {
+    const r = await criarContaPagar(userId, empresaId, {
+      descricao: conta.descricao, categoria: "Produtos", fornecedor_id: fornecedorId, valor_total: conta.valor_total,
+      data_emissao: n.dataEmissao ? n.dataEmissao.slice(0, 10) : null, data_vencimento: conta.data_vencimento, forma_pagamento: conta.forma,
+      numero_nota: n.numeroNf || null, chave_acesso: chaveAcesso,
+    } as never, { origem: "estoque", pagoNaOrigem: conta.pago, proveniencia: { chave_acesso: chaveAcesso, documento: n.numeroNf ?? null } });
+    if (r.erro && !r.duplicada) return { criadas, erro: r.erro };
+    if (r.id) criadas++;
+  }
+  return { criadas };
 }
