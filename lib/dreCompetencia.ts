@@ -24,7 +24,7 @@ import { hojeISO } from "./datas";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-export type OrigemItem = "receita_manual" | "conta_receber" | "pdv" | "pdv_cancelada" | "custo_manual" | "custo_nota" | "conta_pagar";
+export type OrigemItem = "receita_manual" | "conta_receber" | "pdv" | "pdv_cancelada" | "custo_manual" | "custo_nota" | "conta_pagar" | "cmv";
 export type ItemDRE = { valor: number; data: string; categoria?: string; descricao?: string; origem: OrigemItem; id: string };
 export type CustoFixoVigencia = { id: string; valor_mensal: number; inicio: string; fim: string | null; descricao?: string; categoria?: string };
 
@@ -80,7 +80,9 @@ function contasComCustoDaNota(contas: LinhaContaPagar[], custos: LinhaCustoVar[]
   return new Set(contas.filter((c) => lancadas.has(c.id) || gruposLancados.has(chaveDe(c))).map((c) => c.id));
 }
 
-export function itensCusto(custos: LinhaCustoVar[], contas: LinhaContaPagar[]): ItemDRE[] {
+// comprasEstoque: contas a pagar que a Contabilidade lançou em Estoques (compra de mercadoria). Não são custo do mês:
+// a mercadoria vira custo só quando é vendida (cmv, do lançamento da venda). Antes a compra a prazo contava como custo.
+export function itensCusto(custos: LinhaCustoVar[], contas: LinhaContaPagar[], comprasEstoque: Set<string> = new Set(), cmv: { id: string; valor: number; data: string }[] = []): ItemDRE[] {
   const out: ItemDRE[] = [];
   for (const c of custos) {
     if (c.origem_tabela === "contas_pagar" && c.rastreio_id) continue; // nasceu do pagamento: a conta a pagar já conta
@@ -88,12 +90,21 @@ export function itensCusto(custos: LinhaCustoVar[], contas: LinhaContaPagar[]): 
   }
   const daNota = contasComCustoDaNota(contas, custos);
   for (const c of contas) {
-    if (CANCELADA.includes(String(c.status || "")) || c.custo_fixo_id || c.mei_obrigacao_id || c.categoria === "Impostos" || daNota.has(c.id)) continue;
+    if (CANCELADA.includes(String(c.status || "")) || c.custo_fixo_id || c.mei_obrigacao_id || c.categoria === "Impostos" || daNota.has(c.id) || comprasEstoque.has(c.id)) continue;
     const data = c.data_emissao || c.data_vencimento;
     if (!data) continue;
     out.push({ id: c.id, valor: Number(c.valor_total) || 0, data, categoria: c.categoria ?? undefined, descricao: c.descricao ?? undefined, origem: "conta_pagar" });
   }
+  for (const m of cmv) out.push({ id: m.id, valor: m.valor, data: m.data, categoria: "CMV", descricao: "Custo da mercadoria vendida", origem: "cmv" });
   return out;
+}
+
+// Juro estimado das dívidas: só a partir do mês em que a dívida existe (antes, um empréstimo de novembro gerava juro em outubro).
+export type DividaJuros = { valor_total: number; valor_pago: number; taxa_juros: number; created_at?: string | null };
+export function jurosEstimadosNoPeriodo(divs: DividaJuros[], inicio: string, fim: string): number {
+  return r2(mesesEntre(inicio, fim).reduce((t, mes) => t + divs
+    .filter((d) => !d.created_at || mesDe(d.created_at) <= mes)
+    .reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)) * (Number(d.taxa_juros || 0) / 100), 0), 0));
 }
 
 // Custo fixo só nos meses em que vigorava e nunca depois do mês atual.
@@ -125,7 +136,7 @@ export type BaseDRE = {
 export async function carregarBaseDRE(empresaId: string, inicio: string, fim: string, cliente: typeof supabase = supabase): Promise<BaseDRE> {
   const supabase = cliente
   const premissas: string[] = [];
-  const [rec, cr, vd, cv, cp, cf, juros] = await Promise.all([
+  const [rec, cr, vd, cv, cp, cf, juros, estoque] = await Promise.all([
     lerTodas(() => supabase.from("receitas").select("id, valor, data, categoria, descricao, origem_tabela").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),
     lerTodas(() => supabase.from("contas_receber").select("id, valor, valor_desconto, status, competencia, data_emissao, data_vencimento, categoria, descricao").eq("empresa_id", empresaId).order("id")),
     lerTodas(() => supabase.from("venda").select("id, valor_total, status, finalizada_em, criado_em, cancelada_em").eq("empresa_id", empresaId).gte("criado_em", `${inicio}T00:00:00-03:00`).order("id")),
@@ -134,11 +145,19 @@ export async function carregarBaseDRE(empresaId: string, inicio: string, fim: st
     supabase.from("custos_fixos").select("*").eq("empresa_id", empresaId),
     lerTodas(() => supabase.from("lancamento_contabil_partida").select("valor, tipo, plano_de_contas!inner(codigo), lancamento_contabil!inner(data, empresa_id)")
       .eq("plano_de_contas.codigo", "9.01").eq("lancamento_contabil.empresa_id", empresaId).gte("lancamento_contabil.data", inicio).lte("lancamento_contabil.data", fim).order("id")),
+    // Da Contabilidade: compras a prazo lançadas em Estoques (1.05) e custo das vendas (7.01) — a mesma conta do razão.
+    lerTodas(() => supabase.from("lancamento_contabil_partida").select("id, valor, tipo, plano_de_contas!inner(codigo), lancamento_contabil!inner(data, empresa_id, origem_tabela, origem_id, estornado_por_id)")
+      .in("plano_de_contas.codigo", ["1.05", "7.01"]).eq("tipo", "debito").in("lancamento_contabil.origem_tabela", ["contas_pagar", "venda"])
+      .eq("lancamento_contabil.empresa_id", empresaId).gte("lancamento_contabil.data", inicio).lte("lancamento_contabil.data", fim).order("id")),
   ]);
-  const erros = [rec.error, cr.error, vd.error, cv.error, cp.error, cf.error, juros.error].filter(Boolean);
+  const erros = [rec.error, cr.error, vd.error, cv.error, cp.error, cf.error, juros.error, estoque.error].filter(Boolean);
   for (const e of erros) Sentry.captureException(new Error(`[DRE competência] leitura: ${e!.message}`));
   const { receitas, devolucoes } = itensReceita(rec.data as LinhaReceita[], cr.data as LinhaContaReceber[], vd.data as LinhaVenda[]);
-  const custos = itensCusto(cv.data as LinhaCustoVar[], cp.data as LinhaContaPagar[]);
+  type PartidaEstoque = { id: string; valor: number; plano_de_contas: { codigo: string }; lancamento_contabil: { data: string; origem_tabela: string; origem_id: string; estornado_por_id: string | null } };
+  const partidas = ((estoque.data || []) as unknown as PartidaEstoque[]).filter((p) => !p.lancamento_contabil.estornado_por_id);
+  const comprasEstoque = new Set(partidas.filter((p) => p.plano_de_contas.codigo === "1.05" && p.lancamento_contabil.origem_tabela === "contas_pagar").map((p) => String(p.lancamento_contabil.origem_id)));
+  const cmv = partidas.filter((p) => p.plano_de_contas.codigo === "7.01" && p.lancamento_contabil.origem_tabela === "venda").map((p) => ({ id: p.id, valor: Number(p.valor) || 0, data: p.lancamento_contabil.data }));
+  const custos = itensCusto(cv.data as LinhaCustoVar[], cp.data as LinhaContaPagar[], comprasEstoque, cmv);
   // Vigência do custo fixo: início = data_inicio (se a coluna existir) ou o dia do cadastro.
   const custosFixos: CustoFixoVigencia[] = ((cf.data || []) as Record<string, unknown>[]).map((c) => ({
     id: String(c.id), valor_mensal: Number(c.valor_mensal) || 0, descricao: c.descricao as string, categoria: c.categoria as string,

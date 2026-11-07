@@ -31,7 +31,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
 import { impostoDaEmpresa, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
-import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, lerVendasPdv, lancamentosPdvFluxo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
+import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, jurosEstimadosNoPeriodo, lerVendasPdv, lancamentosPdvFluxo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
@@ -85,7 +85,7 @@ function mesesNoPeriodo(periodo: Periodo): number {
 
 type ReceitaRow = { valor: number; data: string; categoria: string };
 type CustoVarRow = { descricao: string; valor: number; data: string; categoria: string };
-type DividaRow = { valor_total: number; valor_pago: number; parcelas: number; taxa_juros: number };
+type DividaRow = { valor_total: number; valor_pago: number; parcelas: number; taxa_juros: number; created_at?: string | null };
 type FluxoCaixaRow = { tipo: string; valor: number; data: string; status: string };
 type ContaReceberRow = { valor: number; valor_recebido: number; status: string; data_vencimento: string };
 type HistoricoRow = {
@@ -183,7 +183,7 @@ export default function DREPage() {
       // Base por COMPETÊNCIA: receitas + contas a receber + PDV, custos + contas a pagar, custo fixo por vigência, juros pagos.
       empId ? carregarBaseDRE(empId, inicioHist, periodo.fim) : Promise.resolve(null),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
-      empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros, created_at").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
@@ -265,9 +265,10 @@ export default function DREPage() {
   // ESTIMADOS das dívidas (saldo × taxa) — mostrados separados na tela.
   const jurosPagosAtual = somaNoPeriodo(jurosPagosRows, periodo.inicio, periodo.fim);
   const jurosPagosAnt = somaNoPeriodo(jurosPagosRows, periodoAnt.inicio, periodoAnt.fim);
-  const jurosEstimadosAtual = despesasFinanceirasMensal * meses;
+  // Juro estimado só a partir do mês em que cada dívida existe.
+  const jurosEstimadosAtual = jurosEstimadosNoPeriodo(dividasRows, periodo.inicio, periodo.fim);
   const despesasFinanceirasAtual = jurosPagosAtual + jurosEstimadosAtual;
-  const despesasFinanceirasAnt = jurosPagosAnt + despesasFinanceirasMensal * mesesAnt;
+  const despesasFinanceirasAnt = jurosPagosAnt + jurosEstimadosNoPeriodo(dividasRows, periodoAnt.inicio, periodoAnt.fim);
   const anexoInfo = anexoSimplesDaAtividade(atividadeFiscal);
   const ehSimples = regimeTributario.toLowerCase().includes("simples");
 
@@ -296,7 +297,7 @@ export default function DREPage() {
     devolucoes: somaNoPeriodo(devolucoesRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
     custoVariavel: serieCustoVarHist[i]?.value || 0,
     custoFixo: custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? ""),
-    despesasFinanceiras: despesasFinanceirasMensal + somaNoPeriodo(jurosPagosRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
+    despesasFinanceiras: jurosEstimadosNoPeriodo(dividasRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-01`) + somaNoPeriodo(jurosPagosRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
   }));
   const serieEbitdaHist = serieDREHist.map(dd => dd.ebitda.valor);
   const serieLucroLiquidoHist = serieDREHist.map(dd => dd.lucroLiquido.valor);

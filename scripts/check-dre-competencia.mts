@@ -80,3 +80,13 @@ const rast = cf.rastreadoPorConta([{ origem_id: 'p1', tipo: 'ap_pagamento', valo
 assert.equal(rast.get('p1'), 92840)
 assert.equal(rast.get('p2'), 0)
 console.log('check-dre-competencia OK')
+
+// Compra lançada em Estoques não é custo do mês; custo da venda (CMV) é. Juro só a partir do mês da dívida.
+const comEstoque = d.itensCusto([], [{ id: 'cpE', valor_total: 8262.5, data_emissao: '2026-10-06' }, { id: 'cpX', valor_total: 100, data_emissao: '2026-10-06' }], new Set(['cpE']), [{ id: 'v1', valor: 289.5, data: '2026-11-07' }])
+assert.deepEqual(comEstoque.map((c) => [c.id, c.valor, c.origem]), [['cpX', 100, 'conta_pagar'], ['v1', 289.5, 'cmv']])
+const divNov = [{ valor_total: 60000, valor_pago: 0, taxa_juros: 1.5, created_at: '2026-11-07T10:00:00Z' }]
+assert.equal(d.jurosEstimadosNoPeriodo(divNov, '2026-10-01', '2026-10-31'), 0)
+assert.equal(d.jurosEstimadosNoPeriodo(divNov, '2026-11-01', '2026-11-30'), 900)
+assert.equal(d.jurosEstimadosNoPeriodo(divNov, '2026-10-01', '2026-12-31'), 1800)
+console.log('OK — compra em estoque fora do custo, CMV dentro, juro a partir do mês da dívida')
+

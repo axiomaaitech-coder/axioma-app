@@ -6,7 +6,7 @@
 // dívidas. Só leitura, cliente do usuário (RLS). Antes não existia e a IA dizia que não tinha DRE.
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { carregarBaseDRE, custoFixoNoPeriodo, mesesEntre, somaNoPeriodo, type BaseDRE } from '../dreCompetencia'
+import { carregarBaseDRE, custoFixoNoPeriodo, mesesEntre, somaNoPeriodo, type BaseDRE, jurosEstimadosNoPeriodo } from '../dreCompetencia'
 import { impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL } from '../iaTributariaHelpers'
 import { hojeISO } from '../datas'
 
@@ -38,7 +38,7 @@ const porCategoria = (itens: Item[], inicio: string, fim: string, limite = 8) =>
 // tela Relatórios (DRE do mês, evolução 12 meses, distribuição de custos) e o resumo que a IA lê.
 // A base precisa começar 12 meses antes do fim (receita de 12 meses do Simples).
 export type EmpresaDre = { regime_tributario?: string | null; atividade_fiscal?: string | null; aliquota_iss_pct?: number | null; mei_dados?: unknown }
-export type DividaDre = { valor_total: number; valor_pago: number; taxa_juros: number }
+export type DividaDre = { valor_total: number; valor_pago: number; taxa_juros: number; created_at?: string | null }
 export function calcularDre(base: BaseDRE, e: EmpresaDre | null, divs: DividaDre[], inicio: string, fim: string) {
   const meses = mesesEntre(inicio, fim).length
   const receitaBruta = somaNoPeriodo(base.receitas, inicio, fim)
@@ -51,8 +51,7 @@ export function calcularDre(base: BaseDRE, e: EmpresaDre | null, divs: DividaDre
   const impostoMes = impostoDaEmpresa(e, rb12, receitaBruta / meses, (receitaBruta - devolucoes - custosVariaveis - custosFixos) / meses)
   const deducoes = r2(impostoMes * meses)
   const jurosPagos = somaNoPeriodo(base.jurosPagos, inicio, fim)
-  const jurosMensais = divs.reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)) * (Number(d.taxa_juros || 0) / 100), 0)
-  const jurosEstimados = r2(jurosMensais * meses)
+  const jurosEstimados = jurosEstimadosNoPeriodo(divs, inicio, fim)
   const receitaLiquida = r2(receitaBruta - devolucoes - deducoes)
   const margem = r2(receitaLiquida - custosVariaveis)
   const resultadoOperacional = r2(margem - custosFixos)
@@ -69,7 +68,7 @@ export async function consultarDRE(supabase: SupabaseClient, empresaId: string, 
   const [base, emp, divs] = await Promise.all([
     carregarBaseDRE(empresaId, inicio12(p.fim.slice(0, 7)) < p.inicio ? inicio12(p.fim.slice(0, 7)) : p.inicio, p.fim, supabase as never),
     supabase.from('empresas').select(COLUNAS_EMPRESA_FISCAL).eq('id', empresaId).maybeSingle(),
-    supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId),
+    supabase.from('dividas').select('valor_total, valor_pago, taxa_juros, created_at').eq('empresa_id', empresaId),
   ])
   if (base.falhou || emp.error || divs.error) return { erro: 'não foi possível consultar a DRE agora (leitura falhou)' }
   const d = calcularDre(base, emp.data as EmpresaDre | null, (divs.data ?? []) as DividaDre[], p.inicio, p.fim)

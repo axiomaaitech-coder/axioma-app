@@ -114,7 +114,7 @@ async function lerBaseDre(empresaId: string, inicio: string, fim: string) {
   const [base, emp, divs] = await Promise.all([
     carregarBaseDRE(empresaId, inicio, fim, supabase as never),
     supabase.from("empresas").select("regime_tributario, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
-    supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
+    supabase.from("dividas").select("valor_total, valor_pago, taxa_juros, created_at").eq("empresa_id", empresaId),
   ]);
   if (base.falhou) throw new Error("[relatorios] base da DRE: leitura falhou");
   if (emp.error) throw new Error(`[relatorios] empresa: ${emp.error.message}`);
