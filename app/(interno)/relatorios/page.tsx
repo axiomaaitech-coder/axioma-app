@@ -1,4 +1,5 @@
 "use client";
+import { hojeISO } from "../../../lib/datas";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
 import { copiarTexto } from "../../../lib/copiar";
@@ -266,7 +267,8 @@ export default function Relatorios() {
         carregarKPIs(empId, periodo, dreNovo, lang),
       ]);
       const score = calcularScoreCFO(kpisNovos, lang);
-      const insightsNovos = gerarInsights(dreNovo, evNovo, kpisNovos, distNovo, score, lang);
+      const hojeStr = hojeISO();
+      const insightsNovos = gerarInsights(dreNovo, evNovo, kpisNovos, distNovo, score, lang, periodo.fim >= hojeStr ? Number(hojeStr.slice(8, 10)) : null);
 
       setDre(dreNovo);
       setEvolucao(evNovo);

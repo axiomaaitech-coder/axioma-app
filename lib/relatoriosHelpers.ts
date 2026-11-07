@@ -499,18 +499,29 @@ export function gerarInsights(
   kpis: KPI[],
   distribuicao: CategoriaCusto[],
   scoreCFO: { score: number; nivel: string },
-  lang: Lang3 = "pt"
+  lang: Lang3 = "pt",
+  diaEmAndamento: number | null = null, // mês ainda aberto: dia de hoje. Comparar com mês fechado geraria alarme falso.
 ): Insight[] {
   const insights: Insight[] = [];
+  if (diaEmAndamento != null) {
+    insights.push({
+      tipo: "atencao",
+      titulo: tr(lang, "Mês em andamento", "Month in progress", "Mes en curso"),
+      texto: tr(lang, `Os números vão até o dia ${diaEmAndamento}. Score, margem, queda de receita e endividamento só são avaliados no fechamento, para não comparar dias com um mês inteiro. Para um mês completo, escolha o mês anterior.`,
+        `Figures run through day ${diaEmAndamento}. Score, margin, revenue drop and indebtedness are only assessed at month-end, so days are not compared with a full month. For a complete month, choose the previous month.`,
+        `Las cifras van hasta el día ${diaEmAndamento}. Score, margen, caída de ingresos y endeudamiento solo se evalúan al cierre, para no comparar días con un mes entero. Para un mes completo, elija el mes anterior.`),
+    });
+  }
+  const mesFechado = diaEmAndamento == null;
 
   // ---- Insight de saúde geral ----
-  if (scoreCFO.score >= 80) {
+  if (mesFechado && scoreCFO.score >= 80) {
     insights.push({
       tipo: "positivo",
       titulo: tr(lang, "Saúde financeira excelente", "Excellent financial health", "Salud financiera excelente"),
       texto: tr(lang, `Seu Score CFO é ${scoreCFO.score}/100 (${scoreCFO.nivel}). Mantenha os indicadores que estão acima da meta.`, `Your CFO Score is ${scoreCFO.score}/100 (${scoreCFO.nivel}). Keep the indicators that are above target.`, `Su Score CFO es ${scoreCFO.score}/100 (${scoreCFO.nivel}). Mantenga los indicadores que están por encima de la meta.`),
     });
-  } else if (scoreCFO.score < 40) {
+  } else if (mesFechado && scoreCFO.score < 40) {
     insights.push({
       tipo: "alerta",
       titulo: tr(lang, "Saúde financeira em alerta", "Financial health on alert", "Salud financiera en alerta"),
@@ -519,7 +530,7 @@ export function gerarInsights(
   }
 
   // ---- Crescimento MoM ----
-  if (evolucao.length >= 2) {
+  if (mesFechado && evolucao.length >= 2) {
     const atual = evolucao[evolucao.length - 1];
     const anterior = evolucao[evolucao.length - 2];
     if (anterior.receita > 0) {
@@ -543,17 +554,17 @@ export function gerarInsights(
   }
 
   // ---- Margem líquida ----
-  if (dre.pct_lucro_liquido < 0) {
+  if (mesFechado && dre.pct_lucro_liquido < 0) {
     insights.push({
       tipo: "alerta",
       titulo: tr(lang, "Operando no prejuízo", "Operating at a loss", "Operando con pérdida"),
       texto: tr(lang, `Você está com margem líquida negativa (${dre.pct_lucro_liquido.toFixed(1)}%). Revise custos e precificação urgentemente.`, `Your net margin is negative (${dre.pct_lucro_liquido.toFixed(1)}%). Review costs and pricing urgently.`, `Su margen neto es negativo (${dre.pct_lucro_liquido.toFixed(1)}%). Revise costos y precios con urgencia.`),
     });
-  } else if (dre.pct_lucro_liquido >= 20) {
+  } else if (mesFechado && dre.pct_lucro_liquido >= 20) {
     insights.push({
       tipo: "positivo",
       titulo: tr(lang, "Margem líquida saudável", "Healthy net margin", "Margen neto saludable"),
-      texto: tr(lang, `Lucro líquido de ${dre.pct_lucro_liquido.toFixed(1)}% sobre receita está acima do benchmark de 15% para PMEs brasileiras.`, `Net profit of ${dre.pct_lucro_liquido.toFixed(1)}% of revenue is above the 15% benchmark for Brazilian SMEs.`, `Una utilidad neta de ${dre.pct_lucro_liquido.toFixed(1)}% sobre ingresos está por encima del benchmark de 15% para pymes brasileñas.`),
+      texto: tr(lang, `Lucro líquido de ${dre.pct_lucro_liquido.toFixed(1)}% sobre a receita no período.`, `Net profit of ${dre.pct_lucro_liquido.toFixed(1)}% of revenue in the period.`, `Utilidad neta de ${dre.pct_lucro_liquido.toFixed(1)}% sobre los ingresos en el período.`),
     });
   }
 
@@ -594,7 +605,7 @@ export function gerarInsights(
 
   // ---- Endividamento alto ----
   const div = kpis.find((k) => k.chave === "endividamento");
-  if (div && div.valor_num >= 70) {
+  if (mesFechado && div && div.valor_num >= 70) {
     insights.push({
       tipo: "alerta",
       titulo: tr(lang, "Endividamento elevado", "High indebtedness", "Endeudamiento elevado"),
