@@ -241,6 +241,8 @@ export default function RelatorioCFO({ empresaId, lang, claro }: { empresaId: st
             <details className="mt-5">
               <summary className="text-sm font-bold cursor-pointer" style={{ color: cTexto }}>{tx(lang, "metodologia")}</summary>
               <p className="text-xs mt-2" style={{ color: cSuave }}>{L("Fontes no Axioma", "Sources in Axioma", "Fuentes en Axioma")}: {rel.fontes.join(", ")}.</p>
+              <p className="text-xs font-semibold mt-2" style={{ color: cTexto }}>{L("Situação e horário de cada fonte", "Status and time of each source", "Situación y hora de cada fuente")}</p>
+              <ul className="space-y-1 text-xs list-disc pl-5 mt-1" style={{ color: cSuave }}>{rel.fontes_consultadas.map((f) => <li key={f.nome}>{f.nome}: {rotuloEstado(f.estado, lang)} · {dataHoraNoFuso(f.consultado_em, rel.fuso, lang)}</li>)}</ul>
               <ul className="space-y-1 text-xs list-disc pl-5 mt-1" style={{ color: cSuave }}>{rel.metodologia.map((s, i) => <li key={i}>{s}</li>)}</ul>
               <p className="text-xs mt-2 break-all" style={{ color: cSuave }}>{L("Referências das consultas", "Query references", "Referencias de las consultas")}: {rel.refs.join(" · ")}</p>
             </details>

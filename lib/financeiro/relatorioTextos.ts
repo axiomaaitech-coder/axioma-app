@@ -15,6 +15,7 @@ const D = {
   titulo_tributario: ['Tributos e Obrigações', 'Taxes and Obligations', 'Tributos y Obligaciones'],
   titulo_pdv: ['PDV e Operação Comercial', 'POS and Sales Operation', 'PDV y Operación Comercial'],
   titulo_conciliacao: ['Conciliação e Consistência dos Dados', 'Data Reconciliation and Consistency', 'Conciliación y Consistencia de Datos'],
+  titulo_contas_vencidas: ['Contas Vencidas', 'Overdue Bills', 'Cuentas Vencidas'],
   resumo: ['Resumo executivo', 'Executive summary', 'Resumen ejecutivo'],
   indicadores: ['Indicadores principais', 'Key indicators', 'Indicadores principales'],
   riscos: ['Riscos e pontos de atenção', 'Risks and attention points', 'Riesgos y puntos de atención'],

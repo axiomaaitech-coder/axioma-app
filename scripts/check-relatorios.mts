@@ -26,7 +26,7 @@ function bancoFalso(tabelas: Record<string, Linha[]>, falhar: string[] = []) {
   class Q {
     private f: ((l: Linha) => boolean)[] = []
     constructor(private t: string) {}
-    select() { return this } order() { return this } limit() { return this }
+    select() { return this } order() { return this } limit() { return this } is() { return this } not() { return this } or() { return this } lt(c: string, v: string) { this.f.push((l) => l[c] != null && String(l[c]) < v); return this }
     eq(c: string, v: unknown) { if (!c.includes('.')) this.f.push((l) => l[c] === v); return this }
     gte(c: string, v: string) { this.f.push((l) => String(l[c] ?? '') >= String(v).slice(0, 10)); return this }
     lte(c: string, v: string) { this.f.push((l) => l[c] != null && String(l[c]) <= v); return this }
@@ -36,7 +36,7 @@ function bancoFalso(tabelas: Record<string, Linha[]>, falhar: string[] = []) {
     maybeSingle() { const r = this.res(); return Promise.resolve({ data: r.data?.[0] ?? null, error: r.error }) }
     then(ok: (v: unknown) => unknown, ko?: (e: unknown) => unknown) { return Promise.resolve(this.res()).then(ok, ko) }
   }
-  return { db: { from: (t: string) => new Q(t) } as never, consultas }
+  return { db: { from: (t: string) => new Q(t), rpc: (nome: string) => Promise.resolve(falhar.includes(nome) ? { data: null, error: { message: 'timeout' } } : { data: [], error: null }) } as never, consultas }
 }
 const A = '11111111-1111-4111-8111-111111111111', B = '22222222-2222-4222-8222-222222222222', C = '33333333-3333-4333-8333-333333333333'
 const tab: Record<string, Linha[]> = {
@@ -48,7 +48,7 @@ const tab: Record<string, Linha[]> = {
     { id: 'rb', empresa_id: B, valor: 99999, data: d(5), status: 'recebido' }],
   contas_receber: [
     // liquidação PARCIAL: 2000 − 100 desconto − 500 recebidos = 1400 em aberto, vencida há 40 dias
-    { id: 'cr1', empresa_id: A, valor: 2000, valor_desconto: 100, valor_recebido: 500, data_emissao: d(10), data_vencimento: somarDiasISO(hoje, -40), data_recebimento: d(12), status: 'parcial', cliente_id: 'c1' },
+    { id: 'cr1', empresa_id: A, valor: 2000, valor_desconto: 100, valor_recebido: 500, data_emissao: d(10), data_vencimento: somarDiasISO(hoje, -40), data_recebimento: d(12), status: 'parcial', cliente_id: 'c1', clientes: { nome: 'Cliente Um' } },
     { id: 'cr2', empresa_id: A, valor: 800, valor_recebido: 0, data_emissao: d(15), data_vencimento: somarDiasISO(hoje, 10), status: 'pendente', cliente_id: 'c2' },
     { id: 'cr3', empresa_id: A, valor: 5000, valor_recebido: 0, data_emissao: d(15), data_vencimento: somarDiasISO(hoje, 10), status: 'cancelado', cliente_id: 'c2' },
     { id: 'crb', empresa_id: B, valor: 77777, valor_recebido: 0, data_emissao: d(3), data_vencimento: somarDiasISO(hoje, -3), status: 'pendente', cliente_id: 'cb' },
@@ -151,7 +151,9 @@ ok('21 os 11 relatórios geram em pt/en/es com números idênticos e textos trad
 {
   const E = P.resolverPeriodo('este_mes', hoje) as { inicio: string; fim: string }
   if (E.fim > hoje) {
-    const t3 = { ...tab, receitas: [...tab.receitas, { id: 'h1', empresa_id: A, valor: 1000, data: hoje }, { id: 'h2', empresa_id: A, valor: 700, data: E.fim }] }
+    // h0: base no mesmo trecho do mês anterior. Sem ela, no dia 1º não há base e o relatório, certo, não mostra comparação.
+    const { somarMesesISO } = await import('../lib/datas')
+    const t3 = { ...tab, receitas: [...tab.receitas, { id: 'h0', empresa_id: A, valor: 400, data: somarMesesISO(hoje, -1) }, { id: 'h1', empresa_id: A, valor: 1000, data: hoje }, { id: 'h2', empresa_id: A, valor: 700, data: E.fim }] }
     const r = await gerar('executivo', { periodo: 'este_mes', comparar: true }, ctxA([], t3))
     const f = ind(r, 'Faturamento (competência)')!
     assert.ok((f.valor ?? 0) >= 1700, 'valor do mês inteiro inclui o lançamento com data futura')
@@ -317,6 +319,53 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   assert.ok(rota.includes("'limite_relatorios'") && rota.includes('status: 429') && rota.includes('parametros: { chave,'), 'rota barra com 429 e grava a chave na auditoria')
   assert.ok(/ia_situacao[\s\S]*falha_leitura[\s\S]*nexus_audit_log[\s\S]*falha_leitura/.test(rota), 'falha de leitura do plano ou da contagem = 503, nunca passa calado')
   console.log('OK — limite de relatórios por plano: 3/10/40/100/300, pedido repetido não conta, falha de leitura = 503')
+}
+
+// ═══ Central Intelligence, Etapa 4: relatório de Contas Vencidas e fontes com horário ═══
+{
+  const v = await gerar('contas_vencidas', { comparar: true })
+  assert.equal(v.titulo, 'Contas Vencidas'); assert.equal(v.comparado_com, null, 'posição de hoje não compara')
+  const iv = (rotulo: string) => ind(v, rotulo)?.valor
+  assert.equal(iv('A receber vencido'), 1400, '2000 − 100 de desconto − 500 recebidos; a vencer, cancelado e outra Empresa fora')
+  assert.equal(iv('A pagar vencido'), 400, '600 − 200 pagos')
+  assert.ok(v.secoes.some((s) => s.titulo === 'Atraso por faixa'), 'mesmas seções da tela')
+  const contas = v.secoes.find((s) => s.titulo === 'A receber vencidas') as Extract<Rel['secoes'][number], { tipo: 'tabela' }>
+  assert.equal(contas.linhas.length, 1); assert.equal(contas.linhas[0][0], 'Cliente Um')
+  assert.ok(JSON.stringify(v).includes('Cliente Um') && !JSON.stringify(v).includes('Cliente da Outra Empresa'), 'nada da outra Empresa')
+  assert.ok(v.achados.some((x) => x.titulo === 'Valores vencidos a receber'), 'regras de risco funcionam')
+  const nomes = v.fontes_consultadas.map((f) => f.nome)
+  assert.ok(nomes.includes('Contas a Receber') && nomes.includes('Contas a Pagar'))
+  for (const f of v.fontes_consultadas) { assert.equal(f.estado, 'verificado'); assert.match(f.consultado_em, /^\d{4}-\d{2}-\d{2}T/) }
+  const r = await R.gerarRelatorio(ctxA(['contas_receber']), R.validarPedido({ tipo: 'contas_vencidas', periodo: 'este_mes', lang: 'pt' })!)
+  assert.ok('erro' in r, 'leitura que falha não vira relatório zerado')
+  for (const lang of ['en', 'es']) { const x = await gerar('contas_vencidas', { lang }); assert.ok(x.titulo !== 'Contas Vencidas'); assert.ok(!x.secoes.some((s) => s.titulo === 'Atraso por faixa'), `seções em ${lang}`); assert.ok(!x.limitacoes.some((l) => l.includes('posição de hoje')), `limitação em ${lang}`) }
+  // Toda fonte com situação e horário, em qualquer relatório, e o pior estado vence
+  const e = await gerar('executivo', {}); assert.ok(e.fontes_consultadas.length >= 3)
+  const parcial = await R.gerarRelatorio(ctxA(['custos_variaveis']), R.validarPedido({ tipo: 'executivo', periodo: 'mes_anterior', lang: 'pt' })!) as Rel
+  assert.ok(parcial.fontes_consultadas.some((f) => f.estado === 'erro'), 'fonte que falhou aparece como falha')
+  const { pedidoRelatorioDaPergunta } = await import('../lib/ia/motor')
+  assert.equal(pedidoRelatorioDaPergunta('Me manda um relatório das contas vencidas').tipo, 'contas_vencidas')
+  assert.equal(pedidoRelatorioDaPergunta('Relatório do contas a receber').tipo, 'contas_receber')
+  for (const frase of ['relatório de vencidos', 'relatório do que está vencido', 'overdue report', 'informe de vencidos']) assert.equal(pedidoRelatorioDaPergunta(frase).tipo, 'contas_vencidas', frase)
+  for (const frase of ['relatório das contas a receber vencidas', 'overdue receivables report', 'informe de cuentas por cobrar vencidas']) assert.equal(pedidoRelatorioDaPergunta(frase).tipo, 'contas_receber', frase)
+  for (const frase of ['relatório das contas a pagar vencidas', 'relatório de fornecedores vencidos', 'overdue payables report']) assert.equal(pedidoRelatorioDaPergunta(frase).tipo, 'contas_pagar', frase)
+  assert.equal(pedidoRelatorioDaPergunta('quero um relatório disso', 'contas-vencidas').tipo, 'contas_vencidas', 'na tela Contas Vencidas, o assunto é vencidos')
+  const eEn = await gerar('executivo', { lang: 'en' }); assert.ok(!eEn.fontes_consultadas.some((f) => f.nome === 'DRE'), 'fonte traduzida em en')
+  const eEs = await gerar('executivo', { lang: 'es' }); assert.ok(!eEs.fontes_consultadas.some((f) => f.nome === 'DRE'), 'fonte traduzida em es')
+  // Nenhum relatório, em nenhum idioma, com fonte sem horário válido; PDF de vencidos com os mesmos valores e sem lixo
+  for (const tipo of [...TODOS, 'contas_vencidas']) for (const lang of ['pt', 'en', 'es']) {
+    const x = await gerar(tipo, { lang })
+    assert.ok(x.fontes_consultadas.length > 0, `${tipo}/${lang}: sem fonte`)
+    for (const f of x.fontes_consultadas) assert.ok(!Number.isNaN(Date.parse(f.consultado_em)), `${tipo}/${lang}: horário inválido em ${f.nome}`)
+    assert.ok(!/undefined|NaN|Invalid Date|\[object/.test(JSON.stringify(x)), `${tipo}/${lang}: lixo no relatório`)
+    assert.equal(new Set(x.fontes_consultadas.map((f) => f.nome)).size, x.fontes_consultadas.length, `${tipo}/${lang}: fonte repetida`)
+  }
+  for (const lang of ['pt', 'en', 'es']) {
+    const x = await gerar('contas_vencidas', { lang })
+    const texto = textoPdf(x)
+    assert.ok(!/undefined|NaN|Invalid Date/.test(texto), `PDF ${lang}: lixo no texto`)
+  }
+  ok('Etapa 4: relatório de Contas Vencidas e fontes com horário')
 }
 
 console.log('check-relatorios: tudo certo ✔')

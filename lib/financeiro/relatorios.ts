@@ -16,7 +16,7 @@ import { executarFerramentaFinanceira } from './ferramentasFinanceiras'
 import { diasEntre, periodoAnterior, resolverPeriodo, type Periodo } from './periodos'
 import { comparar, saldoPagar, saldoReceber, type TituloPagar, type TituloReceber } from './calculos'
 import { centavos, reais, type EstadoResultado, type ResultadoFinanceiro } from './contrato'
-import { TIPOS_RELATORIO, type Achado, type Indicador, type Lang, type PedidoRelatorio, type Relatorio, type Secao, type TipoColuna, type TipoRelatorio } from './relatorioTipos'
+import { TIPOS_RELATORIO, type Achado, type FonteConsultada, type Indicador, type Lang, type PedidoRelatorio, type Relatorio, type Secao, type TipoColuna, type TipoRelatorio } from './relatorioTipos'
 import { L, fmtData, fmtMoeda, fmtPct, nomeFonte, rotuloPeriodo, tituloRelatorio, tx } from './relatorioTextos'
 
 export type CtxRelatorio = { supabase: SupabaseClient; empresaId: string; fuso: string }
@@ -47,6 +47,13 @@ type Numeros = Partial<{
 // ─── Coletor: estado, fontes, referências e limitações de cada consulta usada ───
 function coletor(lang: Lang) {
   const estados: EstadoResultado[] = [], fontes = new Set<string>(), refs: string[] = [], lim: string[] = []
+  // Mesma fonte lida mais de uma vez: fica o pior estado e o horário mais recente
+  const consultas = new Map<string, FonteConsultada>()
+  const PESO: Record<EstadoResultado, number> = { nao_aplicavel: 0, verificado: 1, parcial: 2, indisponivel: 3, erro: 4 }
+  const anotar = (nome: string, estado: EstadoResultado, consultado_em: string) => {
+    const c = consultas.get(nome)
+    consultas.set(nome, { nome, estado: c && PESO[c.estado] > PESO[estado] ? c.estado : estado, consultado_em: c && c.consultado_em > consultado_em ? c.consultado_em : consultado_em })
+  }
   const nomeConsulta = (n: string) => ({
     faturamento: L(lang, 'faturamento', 'revenue', 'facturación'), despesas: L(lang, 'despesas', 'expenses', 'gastos'), movimentos_realizados: L(lang, 'recebimentos e pagamentos', 'receipts and payments', 'cobros y pagos'),
     resumo_financeiro: L(lang, 'posição de hoje', "today's position", 'posición de hoy'), titulos: L(lang, 'contas a receber/pagar', 'receivables/payables', 'cuentas por cobrar/pagar'),
@@ -55,12 +62,13 @@ function coletor(lang: Lang) {
   } as Record<string, string>)[n] ?? n
   return {
     usar(nome: string, r: RF): RF | null {
-      estados.push(r.estado); refs.push(r.ref); r.fontes.forEach((f) => fontes.add(f))
+      estados.push(r.estado); refs.push(r.ref); r.fontes.forEach((f) => fontes.add(f)); anotar(nomeConsulta(nome), r.estado, r.consultado_em)
       if (r.estado === 'erro' || r.estado === 'indisponivel') { lim.push(L(lang, `Não foi possível consultar ${nomeConsulta(nome)} agora: esse dado ficou de fora (não é zero).`, `Could not query ${nomeConsulta(nome)} now: this data was left out (it is not zero).`, `No fue posible consultar ${nomeConsulta(nome)} ahora: ese dato quedó fuera (no es cero).`)); return null }
       return r
     },
     dre(d: Dre | null, ref: string, rotulo?: string): Dre | null {
       refs.push(`dre|${ref}`); fontes.add('DRE por competência')
+      anotar(L(lang, 'DRE', 'Income statement', 'Estado de resultados'), !d ? 'erro' : d.estado === 'parcial' ? 'parcial' : 'verificado', new Date().toISOString())
       if (!d) { estados.push('erro'); lim.push(L(lang, `Não foi possível consultar a DRE${rotulo ? ` (${rotulo})` : ''} agora: lucro e margem ficaram de fora.`, `Could not query the income statement${rotulo ? ` (${rotulo})` : ''} now: profit and margin were left out.`, `No fue posible consultar el estado de resultados${rotulo ? ` (${rotulo})` : ''} ahora: utilidad y margen quedaron fuera.`)); return null }
       estados.push(d.estado === 'parcial' ? 'parcial' : 'verificado')
       if (d.sem_movimento) this.limitar(L(lang, `Sem receitas nem custos registrados de ${d.periodo.de} a ${d.periodo.ate}: a DRE não tem dados para mostrar resultado (não significa lucro zero).`, `No revenue or costs recorded from ${d.periodo.de} to ${d.periodo.ate}: the income statement has no data to show a result (it does not mean zero profit).`, `Sin ingresos ni costos registrados de ${d.periodo.de} a ${d.periodo.ate}: el estado de resultados no tiene datos para mostrar resultado (no significa utilidad cero).`))
@@ -68,6 +76,7 @@ function coletor(lang: Lang) {
     },
     leitura(tabelas: string[], ok: boolean, ref: string) {
       refs.push(ref); tabelas.forEach((t) => fontes.add(t)); estados.push(ok ? 'verificado' : 'erro')
+      tabelas.forEach((t) => anotar(nomeFonte(t, lang), ok ? 'verificado' : 'erro', new Date().toISOString()))
       if (!ok) lim.push(L(lang, `A leitura de ${tabelas.map((t) => nomeFonte(t, lang)).join(', ')} falhou agora: esse dado ficou de fora (não é zero).`, `Reading ${tabelas.map((t) => nomeFonte(t, lang)).join(', ')} failed now: this data was left out (it is not zero).`, `La lectura de ${tabelas.map((t) => nomeFonte(t, lang)).join(', ')} falló ahora: ese dato quedó fuera (no es cero).`))
     },
     limitar(t: string) { if (!lim.includes(t)) lim.push(t) },
@@ -75,7 +84,7 @@ function coletor(lang: Lang) {
       const ok = estados.filter((e) => e === 'verificado' || e === 'nao_aplicavel').length
       const ruins = estados.filter((e) => e === 'erro' || e === 'indisponivel').length
       const estado: EstadoResultado = estados.length && ruins === estados.length ? 'erro' : ruins || estados.includes('parcial') ? 'parcial' : ok ? 'verificado' : 'indisponivel'
-      return { estado, fontes: [...new Set([...fontes].map((f) => nomeFonte(f, lang)))], refs, limitacoes: lim }
+      return { estado, fontes: [...new Set([...fontes].map((f) => nomeFonte(f, lang)))], refs, limitacoes: lim, consultas: [...consultas.values()] }
     },
   }
 }
@@ -216,7 +225,7 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
   if ('erro' in per) return { erro: L(lang, 'Período inválido: confira as datas de início e fim.', 'Invalid period: check the start and end dates.', 'Período inválido: verifique las fechas de inicio y fin.') }
   if (diasEntre(per.inicio, per.fim) > MAX_DIAS) return { erro: L(lang, 'Escolha um período de até 24 meses.', 'Choose a period of up to 24 months.', 'Elija un período de hasta 24 meses.') }
   const p: Periodo = per
-  const ant = pedido.comparar ? periodoAnterior(p, hoje) : null
+  const ant = pedido.comparar && pedido.tipo !== 'contas_vencidas' ? periodoAnterior(p, hoje) : null // vencidos é posição de hoje: não compara
   const C = coletor(lang)
   const args = { periodo: p.nome, inicio: p.nome === 'personalizado' ? p.inicio : null, fim: p.nome === 'personalizado' ? p.fim : null }
   const F = async (nome: string, input: Record<string, unknown>) => C.usar(nome, await executarFerramentaFinanceira(ctx, nome, input))
@@ -545,10 +554,36 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     C.limitar(L(lang, 'Mesmo valor sozinho não é tratado como duplicidade. A conferência só aponta: corrigir ou excluir é feito na tela de origem, com aprovação de supervisor.', 'Same amount alone is not treated as a duplicate. The check only flags: fixing or deleting is done on the source screen, with supervisor approval.', 'El mismo valor solo no se trata como duplicidad. La verificación solo señala: corregir o eliminar se hace en la pantalla de origen, con aprobación de supervisor.'))
   }
 
+  if (tipo === 'contas_vencidas') {
+    // Mesma análise e mesmas seções da tela Contas Vencidas (lib/vencidos): nada recalculado aqui. Carrega sob demanda.
+    const { carregarAnaliseVencidos } = await import('../vencidos/dados')
+    const { tesourariaServidor } = await import('../vencidos/ferramentaIA')
+    const { filtrosIniciais, resumoPainel } = await import('../vencidos/painel')
+    const { montarRelatorio } = await import('../vencidos/relatorio')
+    const a = await carregarAnaliseVencidos(ctx.empresaId, { sb: ctx.supabase, hoje, tesouraria: tesourariaServidor(ctx.supabase) }).catch(() => null)
+    C.leitura(['contas_receber', 'contas_pagar'], !!a && !a.falhou, `contas_vencidas|${hoje}`)
+    if (a && !a.falhou) {
+      if (a.avisos.length) C.limitar(L(lang, `Parte dos dados de cobrança não pôde ser lida: ${a.avisos.join('; ')}.`, 'Part of the collection data could not be read: disputes, promises or the legal rate may be missing.', 'Parte de los datos de cobranza no pudo leerse: pueden faltar disputas, promesas o la tasa legal.'))
+      const r = resumoPainel(a, filtrosIniciais(p.inicio, p.fim))
+      n.receberVencido = r.totalReceber; n.receberAberto = r.totalReceber + (r.agingReceber.aVencer?.saldo ?? 0)
+      n.pagarVencido = r.totalPagar; n.pagarAberto = r.totalPagar + (r.agingPagar.aVencer?.saldo ?? 0)
+      secoes.push({ id: 'indicadores', titulo: tx(lang, 'indicadores'), tipo: 'indicadores', itens: [
+        ind(tx(lang, 'a_receber_vencido'), r.totalReceber, 'BRL', 'calculo'), ind(tx(lang, 'a_pagar_vencido'), r.totalPagar, 'BRL', 'calculo'),
+        ind(L(lang, 'Valor em risco', 'Amount at risk', 'Valor en riesgo'), r.valorEmRisco, 'BRL', 'estimativa'),
+        ind(L(lang, 'Previsão de recebimento em 30 dias', 'Expected collection in 30 days', 'Previsión de cobro en 30 días'), r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor, 'BRL', 'estimativa'),
+      ] })
+      montarRelatorio(a, r, lang, (v) => fmtMoeda(v, lang), (d) => fmtData(d, lang)).filter((s) => s.linhas.length).forEach((s, i) => {
+        const colunas = Object.keys(s.linhas[0])
+        secoes.push(tabela(`vencidos_${i}`, s.nome, colunas.map((c) => [c, 'texto'] as [string, TipoColuna]), s.linhas.map((l) => colunas.map((c) => l[c])), lang))
+      })
+      C.limitar(L(lang, 'Os vencidos são a posição de hoje; o período escolhido vale só para o valor recuperado. Previsão e valor em risco são estimativas, e promessa não é dinheiro em caixa.', 'Overdue amounts are today\'s position; the chosen period only applies to the recovered amount. Forecast and amount at risk are estimates, and a promise is not cash.', 'Los vencidos son la posición de hoy; el período elegido vale solo para el valor recuperado. La previsión y el valor en riesgo son estimaciones, y una promesa no es dinero en caja.'))
+    }
+  }
+
   // Empresa (nome e documento) — leitura com RLS; falha não derruba o relatório
   const emp = await Promise.resolve(ctx.supabase.from('empresas').select('nome, nome_fantasia, razao_social, cnpj').eq('id', ctx.empresaId).maybeSingle()).catch(() => ({ data: null }))
   const e = (emp as { data: { nome?: string; nome_fantasia?: string | null; razao_social?: string | null; cnpj?: string | null } | null }).data
-  if (p.parcial) C.limitar(L(lang, 'O período ainda não terminou: os valores são parciais e não se comparam a um período fechado.', 'The period has not ended yet: values are partial and not comparable to a closed period.', 'El período aún no terminó: los valores son parciales y no se comparan con un período cerrado.'))
+  if (p.parcial && tipo !== 'contas_vencidas') C.limitar(L(lang, 'O período ainda não terminou: os valores são parciais e não se comparam a um período fechado.', 'The period has not ended yet: values are partial and not comparable to a closed period.', 'El período aún no terminó: los valores son parciales y no se comparan con un período cerrado.'))
   const achados = achadosPorRegras(n, lang)
   const fim = C.fim()
   if (fim.estado === 'erro') return { erro: L(lang, 'Não foi possível consultar os dados agora. Tente de novo em instantes.', 'Could not query the data now. Try again in a moment.', 'No fue posible consultar los datos ahora. Intente de nuevo en instantes.') }
@@ -558,7 +593,7 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     periodo: { inicio: p.inicio, fim: p.fim, rotulo: rotuloPeriodo(p.nome, p.inicio, p.fim, lang), parcial: p.parcial },
     comparado_com: ant ? rotuloPeriodo('anterior', ant.inicio, ant.fim, lang) : null,
     gerado_em: new Date().toISOString(), fuso: ctx.fuso, estado: fim.estado,
-    resumo: resumoDe(n, lang), secoes, achados, limitacoes: fim.limitacoes, fontes: fim.fontes, metodologia: metodologiaBase(lang), refs: fim.refs,
+    resumo: resumoDe(n, lang), secoes, achados, limitacoes: fim.limitacoes, fontes: fim.fontes, fontes_consultadas: fim.consultas, metodologia: metodologiaBase(lang), refs: fim.refs,
   }
 }
 
@@ -594,7 +629,7 @@ export async function relatorioParaIA(ctx: CtxRelatorio, input: Record<string, u
     indicador: `relatorio_${r.tipo}`, estado: r.estado, titulo: r.titulo, periodo: r.periodo, comparado_com: r.comparado_com, resumo: r.resumo,
     indicadores: r.secoes.flatMap((s) => (s.tipo === 'indicadores' ? s.itens.map((i) => ({ rotulo: i.rotulo, valor: i.valor, unidade: i.unidade, classe: i.classe, anterior: i.anterior, variacao_pct: i.variacao_pct, nota: i.nota })) : [])),
     tabelas: r.secoes.flatMap((s) => (s.tipo === 'tabela' ? [{ titulo: s.titulo, colunas: s.colunas.map((c) => c.rotulo), linhas: s.linhas.slice(0, 8), total: s.total ?? null, mais_linhas: Math.max(0, s.linhas.length - 8) }] : [])),
-    achados: r.achados, limitacoes: r.limitacoes, fontes: r.fontes, refs: r.refs,
+    achados: r.achados, limitacoes: r.limitacoes, fontes: r.fontes, fontes_consultadas: r.fontes_consultadas, refs: r.refs,
     pedido: { tipo: pedido.tipo, periodo: pedido.periodo, inicio: pedido.inicio, fim: pedido.fim, comparar: pedido.comparar },
   }
 }

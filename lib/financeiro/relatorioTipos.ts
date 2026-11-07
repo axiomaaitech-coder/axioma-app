@@ -5,7 +5,7 @@
 import type { EstadoResultado } from './contrato'
 
 export type Lang = 'pt' | 'en' | 'es'
-export const TIPOS_RELATORIO = ['executivo', 'dre', 'fluxo_caixa', 'contas_receber', 'contas_pagar', 'receitas', 'despesas', 'endividamento', 'tributario', 'pdv', 'conciliacao'] as const
+export const TIPOS_RELATORIO = ['executivo', 'dre', 'fluxo_caixa', 'contas_receber', 'contas_pagar', 'receitas', 'despesas', 'endividamento', 'tributario', 'pdv', 'conciliacao', 'contas_vencidas'] as const
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number]
 // Fato = observado nos registros; Cálculo = fórmula validada; Estimativa = premissa declarada
 export type Classe = 'fato' | 'calculo' | 'estimativa'
@@ -19,6 +19,8 @@ export type Secao =
 // Achado = risco/atenção com evidência; recomendação separada e proporcional à evidência
 export type Achado = { titulo: string; evidencia: string; tipo: 'fato' | 'calculo' | 'interpretacao' | 'hipotese'; prioridade: 'alta' | 'media' | 'baixa'; confianca: 'alta' | 'media' | 'baixa'; recomendacao?: string }
 
+// Cada consulta usada no relatório: de onde veio, se veio inteira e a que horas foi lida
+export type FonteConsultada = { nome: string; estado: EstadoResultado; consultado_em: string }
 export type PedidoRelatorio = { tipo: TipoRelatorio; periodo: string; inicio?: string | null; fim?: string | null; comparar?: boolean; lang?: Lang }
 export type Relatorio = {
   tipo: TipoRelatorio; titulo: string; lang: Lang
@@ -33,6 +35,7 @@ export type Relatorio = {
   achados: Achado[]
   limitacoes: string[]
   fontes: string[]
+  fontes_consultadas: FonteConsultada[]
   metodologia: string[]
   refs: string[]               // referências das consultas (rastreio)
 }

@@ -166,7 +166,7 @@ Regras invioláveis:
 - Nunca afirme certeza sobre o futuro; fale em cenário mais provável. Não recomende compra/venda de investimento específico.
 - Separe sempre, com a palavra no início da frase: "Fato:" (número realizado dos dados), "Estimativa:" (conta sua), "Previsão:" (tendência projetada, nunca certeza) e "Cenário:" (e se...). Não misture os quatro na mesma frase. Escreva essas palavras no idioma da resposta (inglês: Fact, Estimate, Forecast, Scenario; espanhol: Hecho, Estimación, Previsión, Escenario). Valor que inclui imposto estimado (lucro, margem e receita líquida da DRE) NÃO é Fato: chame de "Cálculo com imposto estimado". Siga a classe que a ferramenta relatorio devolve em cada indicador (fato, calculo, estimativa).
 - MOTOR FINANCEIRO (Plano 3): os números vêm das ferramentas, que devolvem indicador, definição, período, critério de data, fontes, registros, estado e limitações. Você interpreta; não recalcula diferente. Estado "parcial" ou "erro" = diga a limitação antes de concluir. Registros 0 = "não há registros de X no período" (não é erro). Sempre diga o período e o critério de data usados.
-- Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao; saldo por banco, caixa livre, reserva, previsão de caixa → caixa_tesouraria; impostos e obrigações que vencem → obrigacoes_fiscais; quantos clientes ou fornecedores, quantos inadimplentes → cadastros; valor do estoque → estoque_resumo (quais produtos → estoque_avisos). Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
+- Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, contas_vencidas, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao; saldo por banco, caixa livre, reserva, previsão de caixa → caixa_tesouraria; impostos e obrigações que vencem → obrigacoes_fiscais; quantos clientes ou fornecedores, quantos inadimplentes → cadastros; valor do estoque → estoque_resumo (quais produtos → estoque_avisos). Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
 - RELATÓRIO E PDF: você GERA relatórios em PDF para baixar e imprimir. Pediram relatório, PDF, documento, "para imprimir", "relatório disso" ou "do que você me passou": chame a ferramenta relatorio com o tipo mais próximo do assunto da conversa (na dúvida, executivo) e o período falado (sem período, este_mes). Ao terminar, resuma em 2 ou 3 frases os principais números que vieram da ferramenta (nunca invente) e termine com: "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu." NUNCA diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
 - Caixa realizado (resumo_financeiro, do Fluxo de Caixa) e posição de caixa (caixa_tesouraria, do razão contábil) são contas diferentes: diga qual usou e, se divergirem, mostre as duas.
 - ${INDICADORES.filter((i) => i.indisponivel).map((i) => i.nome).join(', ')}: não há cadastro disso no Axioma. Diga exatamente isso e nunca estime.
@@ -669,16 +669,19 @@ const RE_PEDE_RELATORIO = /relat[oó]rio|\bpdf\b|imprimir|impress[aã]o|report|i
 export const pediuRelatorio = (p: string) => RE_PEDE_RELATORIO.test(p)
 export function pedidoRelatorioDaPergunta(p: string, tela?: string): Record<string, unknown> {
   const t = p.toLowerCase()
-  const tipo = /\bdre\b|lucro|resultado|margem|income statement|estado de resultados/.test(t) ? 'dre'
+  // Vencidos sem dizer o lado (receber ou pagar) = relatório que mostra os dois
+  const tipo = /vencid|overdue/.test(t) && !/receber|receivable|cobrar|pagar|payable|fornecedor|supplier|proveedor/.test(t) ? 'contas_vencidas'
+    : /\bdre\b|lucro|resultado|margem|income statement|estado de resultados/.test(t) ? 'dre'
     : /fluxo|caixa|tesouraria|cash/.test(t) ? 'fluxo_caixa'
-    : /receber|inadimpl|devedor|cobran/.test(t) ? 'contas_receber'
-    : /pagar|fornecedor|vencid/.test(t) ? 'contas_pagar'
+    : /receber|receivable|cobrar|inadimpl|devedor|cobran/.test(t) ? 'contas_receber'
+    : /pagar|payable|fornecedor|supplier|proveedor|vencid/.test(t) ? 'contas_pagar'
     : /despesa|custo|gasto|expense/.test(t) ? 'despesas'
     : /receita|faturamento|vend|revenue|ingreso/.test(t) ? 'receitas'
     : /d[ií]vida|endivid|empr[eé]stimo|debt|deuda/.test(t) ? 'endividamento'
     : /imposto|tribut|\bdas\b|\btax/.test(t) || tela === 'ia-tributaria' ? 'tributario'
     : /\bpdv\b|sangria/.test(t) ? 'pdv'
-    : /concilia|duplic|inconsist/.test(t) ? 'conciliacao' : 'executivo'
+    : /concilia|duplic|inconsist/.test(t) ? 'conciliacao'
+    : tela === 'contas-vencidas' ? 'contas_vencidas' : 'executivo'
   const periodo = /m[eê]s passado|m[eê]s anterior|[uú]ltimo m[eê]s|last month|mes pasado/.test(t) ? 'mes_anterior'
     : /trimestre (passado|anterior)/.test(t) ? 'trimestre_anterior' : /trimestre|quarter/.test(t) ? 'este_trimestre'
     : /ano (passado|anterior)|last year|año pasado/.test(t) ? 'ano_anterior' : /12 meses|doze meses/.test(t) ? 'ultimos_12_meses'

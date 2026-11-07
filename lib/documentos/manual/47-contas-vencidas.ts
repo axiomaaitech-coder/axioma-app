@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '47 - Contas Vencidas.docx',
   titulo: 'Manual 47 — Contas Vencidas',
   subtitulo: 'O que está atrasado, a pagar e a receber, numa tela só — e o caminho para resolver',
-  info: ['Menu: Comercial → Contas Vencidas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (novembro de 2026)'],
+  info: ['Menu: Comercial → Contas Vencidas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Junta numa tela só tudo o que **passou do vencimento e ainda tem saldo**: as contas que a Empresa deve pagar e as que tem a receber. Serve para decidir rápido o que pagar primeiro e quem cobrar. A tela só mostra — o pagamento, o recebimento e a cobrança continuam nas telas de origem.' },
@@ -167,7 +167,7 @@ const pt: DocumentoAxioma = {
     { p: 'Todos da Equipe veem Contas Vencidas. **Registrar contato, promessa, negociação, divergência e marcar alerta como tratado** é para dono, sócio, administrador e financeiro; leitor e contábil só consultam. **Regras do piloto e faixas de atraso** só dono, sócio ou administrador mudam. Ninguém apaga de vez: o que sai vai para a lixeira de 60 dias, e o histórico nunca é apagado nem alterado.' },
 
     { h1: 'Relatório de Contas Vencidas' },
-    { p: 'O cartão **Relatório de Contas Vencidas** (acima do Piloto automático) gera um arquivo com tudo o que está na tela, já com o período e os filtros escolhidos: resumo (totais, recuperado, valor em risco, promessas, divergências e previsão), atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas (vencimento, dias, saldo, total atualizado, nota de risco e próxima ação). **Relatório PDF** baixa o documento para enviar ou imprimir; **Relatório Excel** baixa uma planilha com uma aba para cada parte.' },
+    { p: 'O cartão **Relatório de Contas Vencidas** (acima do Piloto automático) gera um arquivo com tudo o que está na tela, já com o período e os filtros escolhidos: resumo (totais, recuperado, valor em risco, promessas, divergências e previsão), atraso por faixa, ações de hoje, alertas e as contas a receber e a pagar vencidas (vencimento, dias, saldo, total atualizado, nota de risco e próxima ação). **Relatório PDF** baixa o documento para enviar ou imprimir; **Relatório Excel** baixa uma planilha com uma aba para cada parte. O mesmo relatório também sai pela tela **Relatórios** (Gestão → Relatórios → Contas Vencidas) e pedindo na conversa, por exemplo "relatório de vencidos": os números são os mesmos, sem os filtros desta tela, e cada fonte aparece com a situação e o horário da leitura.' },
 
     { h1: 'Piloto automático — ações de hoje' },
     { p: 'Fica acima da Central de alertas e lista o que precisa ser feito hoje, pela ordem de urgência: **Fornecedor essencial vencido**, **Promessa descumprida**, **Divergência parada** (prazo vencido ou 15 dias sem atualização), **Sem contato há 15 dias** (mais de 30 dias de atraso), **Confirmar promessa** (promessa no prazo sem contato há 3 dias) e **Lembrete de início** (venceu há até 7 dias sem lembrete). Cada linha mostra o nome, o saldo, os dias de atraso e o que fazer. **Nada é enviado sozinho**: **Abrir ›** leva até a conta com a mensagem sugerida já escolhida; a ação sai da lista quando o contato é registrado. **Regras do piloto** liga ou desliga cada regra para a Empresa toda (só dono, sócio ou administrador). Promessa que vence sem pagamento entra sozinha no histórico da conta, uma vez só.' },
@@ -218,7 +218,7 @@ const en: DocumentoAxioma = {
   arquivo: '47 - Overdue Bills.docx',
   titulo: 'Manual 47 — Overdue Bills',
   subtitulo: 'What is late, payable and receivable, on one screen — and the way to solve it',
-  info: ['Menu: Commercial → Overdue Bills  •  Axioma AI.Tech user manual  •  Version 2.0 (November 2026)'],
+  info: ['Menu: Commercial → Overdue Bills  •  Axioma AI.Tech user manual  •  Version 2.1 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together on one screen everything that is **past due and still has a balance**: the bills the Company must pay and the ones it has to receive. It helps decide quickly what to pay first and whom to collect from. The screen only shows — paying, receiving and collecting stay on the source screens.' },
@@ -380,7 +380,7 @@ const en: DocumentoAxioma = {
     { p: 'Everyone on the Team sees Overdue Bills. **Recording contacts, promises, negotiations, disputes and marking alerts as handled** is for the owner, partner, admin and finance; viewer and accounting only look. **Autopilot rules and overdue ranges** can only be changed by the owner, partner or admin. Nobody deletes permanently: removed items go to the 60-day trash, and the history is never deleted or changed.' },
 
     { h1: 'Overdue Bills Report' },
-    { p: 'The **Overdue Bills Report** card (above the Autopilot) creates a file with everything on the screen, using the chosen period and filters: summary (totals, recovered, amount at risk, promises, disputes and forecast), overdue by range, today’s actions, alerts and overdue receivables and payables (due date, days, balance, updated total, risk score and next action). **PDF report** downloads the document to send or print; **Excel report** downloads a spreadsheet with one tab per part.' },
+    { p: 'The **Overdue Bills Report** card (above the Autopilot) creates a file with everything on the screen, using the chosen period and filters: summary (totals, recovered, amount at risk, promises, disputes and forecast), overdue by range, today’s actions, alerts and overdue receivables and payables (due date, days, balance, updated total, risk score and next action). **PDF report** downloads the document to send or print; **Excel report** downloads a spreadsheet with one tab per part. The same report is also available on the **Reports** screen (Management → Reports → Overdue Bills) and by asking in the conversation, for example "overdue report": the numbers are the same, without this screen’s filters, and each source shows its status and the time it was read.' },
 
     { h1: 'Autopilot — today’s actions' },
     { p: 'Sits above the Alert center and lists what needs doing today, by urgency: **Essential supplier overdue**, **Broken promise**, **Stalled dispute** (deadline passed or 15 days without update), **No contact for 15 days** (over 30 days overdue), **Confirm promise** (promise on time with no contact for 3 days) and **Early reminder** (overdue up to 7 days with no reminder). Each line shows the name, balance, days overdue and what to do. **Nothing is sent on its own**: **Open ›** takes you to the bill with the suggested message already chosen; the action leaves the list once the contact is recorded. **Autopilot rules** turns each rule on or off for the whole Company (owner, partner or admin only). A promise that expires unpaid goes into the bill’s history automatically, only once.' },
@@ -431,7 +431,7 @@ const es: DocumentoAxioma = {
   arquivo: '47 - Cuentas Vencidas.docx',
   titulo: 'Manual 47 — Cuentas Vencidas',
   subtitulo: 'Lo que está atrasado, por pagar y por cobrar, en una sola pantalla — y el camino para resolverlo',
-  info: ['Menú: Comercial → Cuentas Vencidas  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (noviembre de 2026)'],
+  info: ['Menú: Comercial → Cuentas Vencidas  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne en una sola pantalla todo lo que **pasó del vencimiento y aún tiene saldo**: las cuentas que la Empresa debe pagar y las que tiene por cobrar. Sirve para decidir rápido qué pagar primero y a quién cobrar. La pantalla solo muestra — el pago, el cobro y la gestión de cobranza siguen en las pantallas de origen.' },
@@ -593,7 +593,7 @@ const es: DocumentoAxioma = {
     { p: 'Todo el Equipo ve Cuentas Vencidas. **Registrar contacto, promesa, negociación, divergencia y marcar alerta como tratada** es para dueño, socio, administrador y financiero; lector y contable solo consultan. **Reglas del piloto y rangos de atraso** solo los cambian dueño, socio o administrador. Nadie borra para siempre: lo que sale va a la papelera de 60 días, y el historial nunca se borra ni se altera.' },
 
     { h1: 'Informe de Cuentas Vencidas' },
-    { p: 'La tarjeta **Informe de Cuentas Vencidas** (sobre el Piloto automático) genera un archivo con todo lo que está en pantalla, con el período y los filtros elegidos: resumen (totales, recuperado, valor en riesgo, promesas, divergencias y previsión), atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas (vencimiento, días, saldo, total actualizado, nota de riesgo y próxima acción). **Informe PDF** descarga el documento para enviar o imprimir; **Informe Excel** descarga una planilla con una pestaña por cada parte.' },
+    { p: 'La tarjeta **Informe de Cuentas Vencidas** (sobre el Piloto automático) genera un archivo con todo lo que está en pantalla, con el período y los filtros elegidos: resumen (totales, recuperado, valor en riesgo, promesas, divergencias y previsión), atraso por rango, acciones de hoy, alertas y las cuentas por cobrar y por pagar vencidas (vencimiento, días, saldo, total actualizado, nota de riesgo y próxima acción). **Informe PDF** descarga el documento para enviar o imprimir; **Informe Excel** descarga una planilla con una pestaña por cada parte. El mismo informe también sale por la pantalla **Informes** (Gestión → Informes → Cuentas Vencidas) y pidiéndolo en la conversación, por ejemplo "informe de vencidos": los números son los mismos, sin los filtros de esta pantalla, y cada fuente aparece con la situación y la hora de la lectura.' },
 
     { h1: 'Piloto automático — acciones de hoy' },
     { p: 'Está sobre la Central de alertas y lista lo que hay que hacer hoy, por urgencia: **Proveedor esencial vencido**, **Promesa incumplida**, **Divergencia detenida** (plazo vencido o 15 días sin actualización), **Sin contacto hace 15 días** (más de 30 días de atraso), **Confirmar promesa** (promesa en plazo sin contacto hace 3 días) y **Recordatorio inicial** (venció hace hasta 7 días sin recordatorio). Cada línea muestra el nombre, el saldo, los días de atraso y qué hacer. **Nada se envía solo**: **Abrir ›** lleva a la cuenta con el mensaje sugerido ya elegido; la acción sale de la lista cuando se registra el contacto. **Reglas del piloto** activa o desactiva cada regla para toda la Empresa (solo dueño, socio o administrador). La promesa que vence sin pago entra sola en el historial de la cuenta, una sola vez.' },
