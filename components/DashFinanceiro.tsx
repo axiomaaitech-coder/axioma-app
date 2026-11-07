@@ -6,6 +6,8 @@ import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling, serieCores } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import { lerTodas } from "../lib/lerTodas";
+import { carregarBaseDRE } from "../lib/dreCompetencia";
+import { saldoCaixaRealizado, saldoCartaoAPagar } from "../lib/caixaSaldo";
 import { hojeISO } from "../lib/datas";
 import { avisarFalhaLeitura, reportarFalhaLeitura } from "../lib/erroUiHelpers";
 import { fBRL, fK, tip, tipClaro, EIXO, barrasV, rosca } from "../lib/dashGraficos";
@@ -158,25 +160,26 @@ export default function DashFinanceiro() {
 
       // lerTodas: o Supabase devolve no máximo 1000 linhas por pedido — sem isso os totais
       // de uma empresa com muito movimento sairiam menores, sem aviso.
-      const res = await Promise.all([
-        lerTodas(() => supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", doze).order("id")),
+      // Receita e custo pela MESMA base da DRE (competência, com contas a receber e PDV); caixa e cartão pelas
+      // mesmas funções da Tesouraria e da IA. Antes o Dashboard mostrava outra receita, outro caixa e dívida sem o cartão.
+      const [base, cf, dv, caixa, cartao] = await Promise.all([
+        carregarBaseDRE(empresaId, doze, fimMes, supabase as never),
         lerTodas(() => soVigentes(supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId)).order("id")),
-        lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", doze).order("id")),
         lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId).order("id")),
-        // Saldo em caixa = mesma regra do Fluxo de Caixa e da IA: só o que já entrou/saiu de verdade.
-        lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor").eq("empresa_id", empresaId).eq("status", "realizado").order("id")),
+        saldoCaixaRealizado(supabase as never, empresaId, hoje),
+        saldoCartaoAPagar(supabase as never, empresaId),
       ]);
       if (!ativo) return;
-      const falha = res.find((r) => r.error)?.error;
+      const falha = cf.error || dv.error || (base.falhou ? { message: "base da DRE" } : null) || (caixa.erro ? { message: caixa.erro } : null) || (cartao.erro ? { message: cartao.erro } : null);
       // Falha não pode parecer "R$ 0,00 de verdade": registra e mostra o aviso de dado incompleto na tela
       if (falha) avisarFalhaLeitura("dashFinanceiro", falha);
-      const [{ data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: dividas }, { data: fluxo }] = res;
+      const receitas12m = base.receitas, custosVar12m = base.custos, custosFix = cf.data, dividas = dv.data;
       const doMes = (r: any) => r.data >= inicioMes && r.data <= fimMes;
 
       const receitaTotal = receitas12m.filter(doMes).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
       const custosFixosTotal = custosFix.reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
       const custosVarMes = custosVar12m.filter(doMes).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
-      const saldoCaixa = fluxo.reduce((s: number, r: any) => s + (r.tipo === "entrada" ? 1 : -1) * Number(r.valor || 0), 0);
+      const saldoCaixa = caixa.saldo;
 
       const catReceita = new Map<string, number>();
       receitas12m.forEach((r: any) => { const k = r.categoria || "—"; catReceita.set(k, (catReceita.get(k) || 0) + Number(r.valor || 0)); });
@@ -188,13 +191,14 @@ export default function DashFinanceiro() {
 
       const custosVarSerie = serieRolling(custosVar12m.map((r: any) => ({ valor: r.valor, data: r.data })), 12).map(b => b.value);
 
-      const dividaTotal = dividas.reduce((s: number, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
+      // Cartão de crédito a pagar também é dívida até a fatura ser paga
+      const dividaTotal = dividas.reduce((s: number, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0) + Math.max(0, cartao.saldo);
       const dividaPaga = dividas.reduce((s: number, d: any) => s + Number(d.valor_pago || 0), 0);
 
       setReal({
         receitaTotal, receitaCategorias, custosFixosTotal, custosFixosCategorias,
         custosVarMes, custosVarSerie, saldoCaixa,
-        dividaTotal, dividaPaga, temDivida: dividas.length > 0,
+        dividaTotal, dividaPaga, temDivida: dividas.length > 0 || cartao.saldo > 0,
       });
     })();
     return () => { ativo = false; };
