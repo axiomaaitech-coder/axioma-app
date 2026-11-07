@@ -126,7 +126,7 @@ export function triagemPorRegra(pergunta: string, qtdManuais: number): Nivel | n
 }
 
 // ─── 3. CONFERÊNCIA DOS NÚMEROS (sem IA) ───
-// Todo "R$ X" citado precisa existir no retrato (±1%) ou estar marcado como
+// Todo "R$ X" citado precisa existir no retrato (até R$ 1 de diferença) ou estar marcado como
 // estimativa/meta/cálculo. Devolve os valores que não bateram.
 // Aceita o formato brasileiro (R$ 1.234,56) e o americano das respostas em inglês (R$ 1,234.56), que antes era lido como R$ 1,23
 const RE_REAIS = /R\$\s?-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|R\$\s?-?\d+\.\d{1,2}(?!\d)|R\$\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|R\$\s?-?\d+(?:,\d{1,2})?/g
@@ -145,7 +145,8 @@ export function conferirNumeros(resposta: string, textoBase: string): string[] {
     for (const m of frase.matchAll(RE_REAIS)) {
       const v = Math.abs(lerReais(m[0]))
       if (!Number.isFinite(v) || v < 1) continue
-      if (!conhecidos.some((k) => Math.abs(k - v) <= Math.max(1, k * 0.01))) ruins.push(m[0])
+      // Até R$ 1 de folga, só para arredondamento de centavos. Os antigos 1% deixavam passar R$ 27.800 no lugar de R$ 27.600.
+      if (!conhecidos.some((k) => Math.abs(k - v) <= 1)) ruins.push(m[0])
     }
   }
   return ruins
