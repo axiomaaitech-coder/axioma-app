@@ -113,7 +113,7 @@ function exigir<T>(r: { data: T | null; error: { message: string } | null }, con
 async function lerBaseDre(empresaId: string, inicio: string, fim: string) {
   const [base, emp, divs] = await Promise.all([
     carregarBaseDRE(empresaId, inicio, fim, supabase as never),
-    supabase.from("empresas").select("regime_tributario, atividade_fiscal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
+    supabase.from("empresas").select("regime_tributario, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle(),
     supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
   ]);
   if (base.falhou) throw new Error("[relatorios] base da DRE: leitura falhou");
@@ -183,9 +183,9 @@ export async function carregarEvolucao12Meses(
       mes: mesesPorLang(lang)[mes - 1] || nomeMesPt(mes),
       ano,
       mes_num: mes,
-      receita: Math.round(receita),
-      custos: Math.round(custos),
-      lucro: Math.round(lucro),
+      receita: Math.round(receita * 100) / 100,
+      custos: Math.round(custos * 100) / 100,
+      lucro: Math.round(lucro * 100) / 100,
       margem: parseFloat(margem.toFixed(1)),
     });
   }
@@ -231,7 +231,7 @@ export async function carregarDistribuicaoCustos(
 // ============================================================================
 
 function formatBRL(n: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 }
 
 function formatPct(n: number): string {

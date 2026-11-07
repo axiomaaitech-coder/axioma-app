@@ -19,7 +19,7 @@ import { gerarPdfRelatorio } from '../../../lib/gerarPdfRelatorio'
 
 type Lang = 'pt' | 'en' | 'es'
 type Nome3 = [string, string, string]
-const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
+const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)
 
 const HORIZONTES: { id: HorizontePlano; emoji: string; titulo: Nome3; sub: Nome3 }[] = [
   { id: '1-3', emoji: '🌱', titulo: ['1 a 3 anos', '1 to 3 years', '1 a 3 años'], sub: ['Sobreviver e se fortalecer', 'Survive and get stronger', 'Sobrevivir y fortalecerse'] },

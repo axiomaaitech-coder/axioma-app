@@ -148,7 +148,10 @@ export async function criarContaReceber(
   userId: string, empresaId: string, dados: Linha,
   opcoes?: { recebidoNaOrigem?: number; modulo?: string; proveniencia?: Record<string, string | number | null> },
 ): Promise<{ id?: string; erro?: string; avisoRecebimento?: string; semColunasOpcionais?: boolean }> {
-  const total = Number(dados.valor) || 0;
+  // Conta sem valor, negativa ou com fração de centavo não entra; desconto fica entre zero e o valor da conta.
+  const total = r2(Number(dados.valor) || 0);
+  if (!(total > 0)) return { erro: "valor_invalido" };
+  if (dados.valor_desconto != null) dados = { ...dados, valor_desconto: Math.min(total, Math.max(0, r2(Number(dados.valor_desconto) || 0))) };
   const status = statusEfetivo(null, total, 0, (dados.data_vencimento as string) ?? null, "recebido");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { valor_recebido: _a, data_recebimento: _b, status: _c, ...resto } = dados;
@@ -187,7 +190,9 @@ export async function editarContaReceber(id: string, dados: Linha, modulo = "con
   const { data: antes, error: erroAntes } = await supabase.from("contas_receber")
     .select("valor, valor_recebido, status, categoria, data_vencimento").eq("id", id).maybeSingle();
   if (erroAntes || !antes) return { erro: erroAntes?.message || "conta_nao_encontrada" };
-  const total = Number(dados.valor ?? antes.valor) || 0;
+  const total = r2(Number(dados.valor ?? antes.valor) || 0);
+  if (!(total > 0)) return { erro: "valor_invalido" };
+  if (dados.valor_desconto != null) dados = { ...dados, valor_desconto: Math.min(total, Math.max(0, r2(Number(dados.valor_desconto) || 0))) };
   const recebido = Number(antes.valor_recebido) || 0;
   if (total + 0.005 < recebido) return { erro: "abaixo_do_recebido" };
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

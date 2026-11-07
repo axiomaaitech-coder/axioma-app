@@ -393,10 +393,12 @@ async function gerarReconhecimentoDespesa(
   dataCompetencia: string,
   centroCustoId?: string | null,
   ctx?: CtxContabil,
+  compraDeEstoque = false,
 ): Promise<void> {
   if (!(valor > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
-  const codigoDespesa = CATEGORIA_PARA_CODIGO[categoria as CategoriaDespesa] ?? CODIGO_DESPESA_PADRAO;
+  // Mercadoria comprada para o estoque é ativo: vira custo só na venda (SALE_CREATED). Como despesa, o custo contaria 2 vezes.
+  const codigoDespesa = compraDeEstoque ? CODIGO_ESTOQUES : CATEGORIA_PARA_CODIGO[categoria as CategoriaDespesa] ?? CODIGO_DESPESA_PADRAO;
   const contaDespesaId = contas[codigoDespesa];
   const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
   if (!contaDespesaId || !contaFornecedoresId) {
@@ -759,7 +761,7 @@ export async function processarEventoContabil(
         await gerarReconhecimentoDespesa(
           empresaId, origemId, payload.categoria as string | null,
           Number(payload.valor) || 0, payload.descricao as string | null, dataCompetencia,
-          payload.centro_custo_id as string | null, ctx);
+          payload.centro_custo_id as string | null, ctx, payload.compra_estoque === true);
         break;
       }
       case "AP_PAID": {
@@ -796,12 +798,19 @@ export async function processarEventoContabil(
         const contas = await mapaContasPorCodigo(empresaId);
         const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
         if (!contaFornecedoresId) break;
+        // Compra de estoque continua no Estoque depois da edição: a conta de origem vem do lançamento que já existe.
+        const lancs = await exigirLeitura(() => supabase.from("lancamento_contabil").select("id").eq("empresa_id", empresaId).eq("origem_tabela", "contas_pagar").eq("origem_id", origemId), "contabilidadeConsumidor:AP_UPDATED");
+        const idsLanc = ((lancs as { id: string }[] | null) ?? []).map((l) => l.id);
+        const partidasEstoque = idsLanc.length > 0 && contas[CODIGO_ESTOQUES]
+          ? await exigirLeitura(() => supabase.from("lancamento_contabil_partida").select("id").in("lancamento_id", idsLanc).eq("conta_id", contas[CODIGO_ESTOQUES]).eq("tipo", "debito").limit(1), "contabilidadeConsumidor:AP_UPDATED:estoque")
+          : null;
+        const noEstoque = ((partidasEstoque as unknown[] | null) ?? []).length > 0;
         await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por edição (valor/categoria alterados)", ctx);
         const dataCompetencia = (payload.data_emissao_depois as string) || hojeISO();
         await gerarReconhecimentoDespesa(
           empresaId, origemId, payload.categoria_depois as string | null,
           Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
-          payload.centro_custo_id_depois as string | null, ctx);
+          payload.centro_custo_id_depois as string | null, ctx, noEstoque);
         break;
       }
       case "AR_CREATED": {

@@ -29,7 +29,7 @@ import {
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
@@ -99,8 +99,7 @@ type CtxMeta = {
   despesasFinanceirasMensal: number;
   fluxo: { tipo: string; valor: number; data: string; status: string }[];
   clientes: { status: string; created_at: string }[];
-  regimeTributario: string;
-  categoriaMei: string | null; // MEI: DAS da categoria certa
+  empresaFiscal: EmpresaFiscal | null; // imposto pelo cadastro da empresa
   saldoCaixaHoje: number | null; // saldo único (lib/caixaSaldo) — igual Fluxo, Painel de Risco e IA
 };
 
@@ -137,7 +136,7 @@ function valorMetrica(tipo: TipoMeta, ate: string, dataInicioFluxo: string, ctx:
       const despFin = ctx.despesasFinanceirasMensal * meses;
       const rb12 = ctx.receitas.filter(r => r.data >= inicioRolling12(ate) && r.data <= ate).reduce((s, r) => s + r.valor, 0);
       const receitaMensalMedia = receitaBruta / meses;
-      const imposto = calcularImpostoRegime(ctx.regimeTributario, rb12, receitaMensalMedia, undefined, undefined, ctx.categoriaMei) * meses;
+      const imposto = impostoDaEmpresa(ctx.empresaFiscal, rb12, receitaMensalMedia) * meses;
       const dre = montarDRE({ receitaBruta, deducoes: imposto, custoVariavel: custoVar, custoFixo, despesasFinanceiras: despFin });
       if (tipo === "lucro") return { valor: dre.lucroLiquido.valor, raciocinio: raciocinioFluxo(lang, itensReceita.length, origemLabels.lucro, dataInicioFluxo, ate) };
       return { valor: dre.margemLiquidaPct, raciocinio: raciocinioNivel(lang, origemLabels.margem, ate) };
@@ -187,7 +186,7 @@ function serieHistoricaMetrica(tipo: TipoMeta, ctx: CtxMeta, ate: string, mesesJ
       const custoVarSerie = serieRolling(ctx.custosVar, mesesJanela, ate).map(b => b.value);
       const rb12 = ctx.receitas.filter(r => r.data >= inicioRolling12(ate) && r.data <= ate).reduce((s, r) => s + r.valor, 0);
       const mediaMensalAtual = receitaSerie.reduce((a, b) => a + b, 0) / (receitaSerie.length || 1);
-      const aliquota = mediaMensalAtual > 0 ? calcularImpostoRegime(ctx.regimeTributario, rb12, mediaMensalAtual, undefined, undefined, ctx.categoriaMei) / mediaMensalAtual : 0;
+      const aliquota = mediaMensalAtual > 0 ? impostoDaEmpresa(ctx.empresaFiscal, rb12, mediaMensalAtual) / mediaMensalAtual : 0;
       const lucroSerie = receitaSerie.map((r, i) => r - (custoVarSerie[i] || 0) - ctx.custoFixoMensalTotal - ctx.despesasFinanceirasMensal - r * aliquota);
       return tipo === "lucro" ? lucroSerie : lucroSerie.map((l, i) => receitaSerie[i] > 0 ? (l / receitaSerie[i]) * 100 : 0);
     }
@@ -292,6 +291,7 @@ export default function Metas() {
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; data: string; status: string }[]>([]);
   const [clientesRows, setClientesRows] = useState<{ status: string; created_at: string }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null)
 
   const txt = {
@@ -332,7 +332,7 @@ export default function Metas() {
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
       empresaId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
-      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empresaId ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerEmp }], "metas:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -352,8 +352,7 @@ export default function Metas() {
       custosVar: (cv || []).map(c => ({ valor: Number(c.valor || 0), data: c.data })),
       custoFixoMensalTotal, despesasFinanceirasMensal,
       dividas: dv || [], fluxo: fc || [], clientes: cli || [],
-      regimeTributario: emp?.regime_tributario || "",
-      categoriaMei: categoriaMeiDaEmpresa(emp),
+      empresaFiscal: emp as EmpresaFiscal | null,
       saldoCaixaHoje: sc.erro ? null : sc.saldo,
     };
 
@@ -399,7 +398,7 @@ export default function Metas() {
     setFluxoCaixaRows(fc || []);
     setClientesRows(cli || []);
     setSaldoCaixaHoje(sc.erro ? null : sc.saldo);
-    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
+    setRegimeTributario(emp?.regime_tributario || ""); setEmpresaFiscal(emp as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -408,7 +407,7 @@ export default function Metas() {
     custosVar: custosVarRows.map(c => ({ valor: Number(c.valor || 0), data: c.data })),
     custoFixoMensalTotal: custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0),
     despesasFinanceirasMensal: dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0),
-    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, regimeTributario, categoriaMei, saldoCaixaHoje,
+    dividas: dividasRows, fluxo: fluxoCaixaRows, clientes: clientesRows, empresaFiscal, saldoCaixaHoje,
   };
   const origemLabels: Record<TipoMeta, string> = {
     faturamento: t.receitas?.titulo || "Receitas", lucro: cx.dreLucroLiquido, margem: cx.dreMargemLiquida,

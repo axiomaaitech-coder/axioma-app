@@ -32,7 +32,7 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import { cfoT } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import {
   TIPOS_DOCUMENTO_FORNECEDOR,
   listarContatos, criarContato, atualizarContato, excluirContato,
@@ -792,6 +792,7 @@ export default function Fornecedores() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [caixaDisponivelSim, setCaixaDisponivelSim] = useState(0);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [tipoCenario, setTipoCenario] = useState<"troca" | "preco" | "prazo" | "cambio" | "perda" | "novo">("preco");
@@ -901,7 +902,7 @@ export default function Fornecedores() {
       empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
       // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Simulações, Painel de Risco e IA.
       empId ? saldoCaixaRealizado(supabase, empId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
-      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empId ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerEmp2 }], "fornecedores:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -918,7 +919,7 @@ export default function Fornecedores() {
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
     setCaixaDisponivelSim(sc.saldo);
-    setRegimeTributario(emp2?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp2));
+    setRegimeTributario(emp2?.regime_tributario || ""); setEmpresaFiscal(emp2 as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp2));
     setCarregando(false);
   };
 
@@ -1322,7 +1323,10 @@ export default function Fornecedores() {
   const fecharModalConta = () => { setModalConta(false); setEditandoConta(null); setNc({ ...contaVazia }); };
 
   const salvarConta = async () => {
-    if (!nc.descricao || !nc.valor_total) return;
+    if (!nc.descricao || !(parseFloat(nc.valor_total) > 0)) {
+      showToast(lang === "en" ? "Fill in description and an amount above zero." : lang === "es" ? "Complete descripción y un valor mayor que cero." : "Preencha a descrição e um valor maior que zero.", "erro");
+      return;
+    }
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoConta(false); return; }
@@ -1703,7 +1707,7 @@ export default function Fornecedores() {
   const custoFixoMensalTotal = custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
   const dividaTotalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
-  const impostoMensalEstimadoSim = calcularImpostoRegime(regimeTributario, receitaBruta12m, receitaMensalMedia, undefined, undefined, categoriaMei);
+  const impostoMensalEstimadoSim = impostoDaEmpresa(empresaFiscal, receitaBruta12m, receitaMensalMedia);
   const aliquotaEfetivaPctSim = receitaMensalMedia > 0 ? (impostoMensalEstimadoSim / receitaMensalMedia) * 100 : 0;
   // caixaDisponivelSim: saldo único carregado em carregarDados.
   const temDadosSimulador = receitaMensalMedia > 0 || custoFixoMensalTotal > 0 || custoVariavelMensalMedia > 0;

@@ -38,7 +38,7 @@ import {
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
@@ -160,6 +160,7 @@ export default function Investimentos() {
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
   const [saldoCaixa, setSaldoCaixa] = useState<number | null>(null);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
   const [macro, setMacro] = useState<IndicadoresMacro | null>(null);
 
@@ -226,7 +227,7 @@ export default function Investimentos() {
       empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
       // Todo o histórico realizado — mesma definição de "caixa disponível" do Fluxo de Caixa.
       empresaIdAtiva ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaIdAtiva).order("id")) : Promise.resolve({ data: [], error: null }),
-      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empresaIdAtiva ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerFc }, { error: eLerEmp }], "investimentos:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -241,7 +242,7 @@ export default function Investimentos() {
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
     setFluxoCaixaRows(fc || []);
-    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
+    setRegimeTributario(emp?.regime_tributario || ""); setEmpresaFiscal(emp as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -336,7 +337,7 @@ export default function Investimentos() {
   const despesasFinanceirasMensal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
   const inicioRb12 = inicioRolling12(periodo.fim);
   const rb12 = receitasItens.filter((r) => r.data >= inicioRb12 && r.data <= periodo.fim).reduce((s, r) => s + r.valor, 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, categoriaMei);
+  const impostoMensalEstimado = impostoDaEmpresa(empresaFiscal, rb12, receitaMensalMedia);
   const dreEstimado = montarDRE({
     receitaBruta: receitaBrutaPeriodo, deducoes: impostoMensalEstimado * meses,
     custoVariavel: custoVarPeriodo, custoFixo: custoFixoMensalTotal * meses, despesasFinanceiras: despesasFinanceirasMensal * meses,

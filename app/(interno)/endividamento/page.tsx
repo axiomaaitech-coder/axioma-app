@@ -26,7 +26,7 @@ import {
   cfoT, montarNarrativaMuro, montarNarrativaRunwayDivida, montarConselhoDivida,
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
@@ -127,6 +127,7 @@ export default function Endividamento() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; data: string; status: string }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
@@ -154,7 +155,7 @@ export default function Endividamento() {
       empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
-      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empId ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerEmp }], "endividamento:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -170,7 +171,7 @@ export default function Endividamento() {
     setCustosFixosRows(((cf || []) as { valor_mensal: number; data_inicio?: string | null; data_fim?: string | null }[]).filter((c) => (!c.data_inicio || c.data_inicio <= hojeCf) && (!c.data_fim || c.data_fim >= hojeCf)));
     setCustosVarRows(cv || []);
     setFluxoCaixaRows(fc || []);
-    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
+    setRegimeTributario(emp?.regime_tributario || ""); setEmpresaFiscal(emp as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -309,7 +310,7 @@ export default function Endividamento() {
 
   const inicioRb12 = inicioRolling12(periodo.fim);
   const rb12 = receitasItens.filter(r => r.data >= inicioRb12 && r.data <= periodo.fim).reduce((s, r) => s + r.valor, 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, categoriaMei);
+  const impostoMensalEstimado = impostoDaEmpresa(empresaFiscal, rb12, receitaMensalMedia);
 
   // EBITDA reaproveitado do núcleo do DRE — mesma fonte de verdade, zero lógica duplicada.
   const dreEstimado = montarDRE({

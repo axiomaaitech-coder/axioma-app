@@ -26,7 +26,7 @@ import {
 type Lang = 'pt' | 'en' | 'es'
 type Nome3 = [string, string, string]
 
-const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
+const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)
 const HORIZONTES = [12, 36, 60, 120]
 
 // Campos do "E se...?" — choque (o que muda na economia) e exposição (quanto

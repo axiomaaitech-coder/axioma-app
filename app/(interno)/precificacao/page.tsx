@@ -35,7 +35,7 @@ import {
 } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, isoDia } from "../../../lib/datas";
@@ -109,6 +109,7 @@ export default function Precificacao() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
   const [, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
@@ -211,7 +212,7 @@ export default function Precificacao() {
       empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
-      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empresaIdAtiva ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerEmp }], "precificacao:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -220,7 +221,7 @@ export default function Precificacao() {
     if (eLeitura) { showToast(idioma === "en" ? "Some data did not load — products, competitors or indicators may be incomplete. Reload the page." : idioma === "es" ? "Parte de los datos no cargó — productos, competidores o indicadores pueden estar incompletos. Recargue la página." : "Parte dos dados não carregou — produtos, concorrentes ou indicadores podem estar incompletos. Recarregue a página.", "erro"); reportarFalhaEscrita("precificacao", "leitura", eLeitura.message); }
     setProdutos(prod || []); setConcorrentes(conc || []); setDecisoes(dec || []);
     setReceitasRows(rec || []); setCustosFixosRows(cf || []); setCustosVarRows(cv || []); setDividasRows(dv || []);
-    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
+    setRegimeTributario(emp?.regime_tributario || ""); setEmpresaFiscal(emp as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   }
 
@@ -304,7 +305,7 @@ export default function Precificacao() {
   const dividaTotal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
   const receitaBrutaAnual = receitasItens.reduce((s, r) => s + r.valor, 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAnual, receitaMensalMedia, undefined, undefined, categoriaMei);
+  const impostoMensalEstimado = impostoDaEmpresa(empresaFiscal, receitaBrutaAnual, receitaMensalMedia);
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
   const dreAtual = montarDRE({
     receitaBruta: receitaMensalMedia, deducoes: receitaMensalMedia * (aliquotaEfetivaPct / 100),

@@ -298,7 +298,7 @@ export function detectarAlertasInadimplencia(
 ): AlertaCobranca[] {
   const base = detectarAlertasCobranca(lang, carteira, contas, ranking, compromissos).filter((a) => a.tipo !== "proximos");
   const extras: AlertaCobranca[] = [];
-  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
   const totalVencido = aging.reduce((s, f) => s + f.valor, 0);
   const faixaRecente = aging.find((f) => f.chave === "d30");
@@ -345,7 +345,7 @@ export function gerarSinaisPrevencao(
 ): CardExplicativo[] {
   const base = gerarParecerCobranca(lang, carteira, contas, ranking);
   const extras: CardExplicativo[] = [];
-  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   const hojeStr = hojeISO();
   const em15dias = new Date(); em15dias.setDate(em15dias.getDate() + 15);
   const em15diasStr = isoDia(em15dias);

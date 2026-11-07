@@ -47,7 +47,7 @@ function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {
 }
 type Msg = { id?: string; role: 'user' | 'assistant'; content: string; assinatura?: string; ressalva?: boolean; relatorio?: PedidoTela | null; nota?: string | null }
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
-const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
+const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)
 const MAX_HISTORICO = 10
 
 const SUGESTOES: [string, string, string][] = [

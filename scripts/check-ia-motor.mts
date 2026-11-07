@@ -5,7 +5,7 @@ import type { NumerosRetrato } from '../lib/ia/retratoEmpresa'
 // O cálculo de imposto cria o cliente do Supabase ao carregar: valores falsos bastam (nada aqui acessa a rede).
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { triagemPorRegra, conferirNumeros, semCredito, marcarSemCredito } = await import('../lib/ia/motor')
+const { triagemPorRegra, conferirNumeros, conferirPercentuais, semCredito, marcarSemCredito } = await import('../lib/ia/motor')
 const { setorDaEmpresa, SETORES } = await import('../lib/ia/setores')
 const { escolherManuais } = await import('../lib/ia/manuais')
 const { detectarAlertas } = await import('../lib/ia/retratoEmpresa')
@@ -42,6 +42,22 @@ assert.deepEqual(conferirNumeros('A Alicerce deve R$ 27.600,41.', 'R$ 27.600,40'
 for (const f of ['A base é R$ 99.999.', 'Se a empresa tem R$ 99.999.', 'O saldo até hoje é R$ 99.999.', 'A meta foi R$ 99.999.', 'Ficou entre os clientes R$ 99.999.', 'Metade é R$ 99.999.']) assert.deepEqual(conferirNumeros(f, base), ['R$ 99.999'], `palavra comum não escapa: ${f}`)
 for (const f of ['Estimativa: R$ 99.999 em 30 dias.', 'Previsão de R$ 99.999.', 'Cenário: R$ 99.999.']) assert.deepEqual(conferirNumeros(f, base), [], `declarado como não fato: ${f}`)
 assert.deepEqual(conferirNumeros('Economia estimada de R$ 1.234 por mês.', base), [])
+// Valor abreviado e sem símbolo não escapam
+assert.deepEqual(conferirNumeros('O saldo é R$ 72 mil.', 'R$ 72,00'), ['R$ 72 mil'], 'R$ 72 mil não é R$ 72')
+assert.deepEqual(conferirNumeros('O saldo é R$ 72 mil.', 'R$ 71.300,00'), ['R$ 72 mil'], 'abreviar não pode mudar o valor')
+assert.deepEqual(conferirNumeros('O saldo é R$ 72 mil.', 'R$ 72.000,00'), [])
+assert.deepEqual(conferirNumeros('Deve R$ 1,2 milhão.', 'R$ 1.200.000,00'), [])
+assert.deepEqual(conferirNumeros('A receber: 71.300,00.', 'R$ 71.300,00'), [])
+assert.deepEqual(conferirNumeros('A receber: 71.900,00.', 'R$ 71.300,00'), ['71.900,00'])
+assert.deepEqual(conferirNumeros('Faltam 500 reais.', 'R$ 400,00'), ['500'])
+assert.deepEqual(conferirNumeros('Foram 12,50 kg e 1.500 caixas.', 'R$ 1,00'), [], 'quantidade não é dinheiro')
+// Percentual: tem de estar nos dados ou sair da conta entre dois valores deles
+const basePct = 'Receita R$ 200.000,00, custo R$ 50.000,00, margem 37,5%'
+assert.deepEqual(conferirPercentuais('A margem é 37,5%.', basePct), [])
+assert.deepEqual(conferirPercentuais('O custo é 25% da receita.', basePct), [], 'parte ÷ total')
+assert.deepEqual(conferirPercentuais('O custo é 25,0% da receita.', basePct), [])
+assert.deepEqual(conferirPercentuais('A margem é 41,3%.', basePct), ['41,3%'], 'percentual sem origem')
+assert.deepEqual(conferirPercentuais('Estimativa: 41,3% em 30 dias.', basePct), [], 'declarado como estimativa')
 // Resposta em inglês usa R$ 1,234.56: antes era lida como R$ 1,23 e todo valor certo virava aviso falso
 assert.deepEqual(conferirNumeros('Your revenue is R$ 50,000.00 and fixed costs R$ 12,345.', base), [], 'formato americano certo não é marcado')
 assert.deepEqual(conferirNumeros('Your profit was R$ 99,999.00.', base), ['R$ 99,999.00'], 'valor inventado em inglês continua marcado')

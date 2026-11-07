@@ -355,7 +355,7 @@ export function nomeTipoSinal(lang: Idioma3, tipo: TipoSinalCliente): string {
 
 export function montarNarrativaSinal(lang: Idioma3, sinal: SinalCliente): string {
   const d = sinal.detalhe;
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   switch (sinal.tipo) {
     case "premium":
       return lang === "en" ? `${sinal.clienteNome} scores ${d.ivca}/1000 with a ticket above the portfolio average — top-tier asset.`
@@ -400,7 +400,7 @@ const PAPEL: Record<Idioma3, Record<string, string>> = {
 };
 
 export function montarConselhoExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[]): ConselhoExecutivo {
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   const p = PAPEL[lang];
   const riscos = sinais.filter((x) => x.severidade === "risco").length;
   const cards: CardEspecialista[] = [
@@ -422,7 +422,7 @@ export function montarConselhoExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca:
 export type EventoTimeline = { data: string; tipo: "cadastro" | "emissao" | "recebimento" | "vencido" | "contato" | "estagio"; texto: string };
 
 export function montarTimelineCliente(lang: Idioma3, s: ClienteSnapshot): EventoTimeline[] {
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   const eventos: EventoTimeline[] = [];
   if (s.cliente.created_at) {
     eventos.push({
@@ -570,7 +570,7 @@ export type ParecerExecutivo = {
 };
 
 export function montarParecerExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[]): ParecerExecutivo {
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   const sub = (chave: string) => ivca.subscores.find((x) => x.chave === chave)?.valor ?? 50;
   const positivos = sinais.filter((x) => x.severidade === "positivo");
   const riscos = sinais.filter((x) => x.severidade === "risco");
@@ -641,7 +641,7 @@ export function probabilidadeInadimplenciaConta(riscoClienteSubscore: number): n
 export type PrevisaoFaturamento = { valorProjetado: number; confianca: "baixa" | "media" | "alta"; texto: string };
 
 export function previsaoFaturamentoCliente(lang: Idioma3, s: ClienteSnapshot): PrevisaoFaturamento {
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   if (s.valorTresMesesAnteriores <= 0) {
     const base = s.valorUltimos3Meses / 3;
     return {
@@ -746,7 +746,7 @@ export function montarPromptZIA(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, s
 
 export function respostaZIAPorRegras(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[], pergunta: string): string {
   const p = pergunta.toLowerCase();
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   if (p.includes("risco") || p.includes("risk") || p.includes("riesgo")) {
     const risco = sinais.find((x) => x.severidade === "risco");
     return risco ? montarNarrativaSinal(lang, risco) : (lang === "en" ? "No active risk signal for this client." : lang === "es" ? "Sin señal de riesgo activa para este cliente." : "Nenhum sinal de risco ativo para este cliente.");

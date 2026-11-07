@@ -119,7 +119,9 @@ export async function criarContaPagar(
   userId: string, empresaId: string | null, dados: Partial<ContaPagar>,
   opcoes?: { pagoNaOrigem?: { valor: number; data: string; forma: string }; origem?: string; proveniencia?: Record<string, string | number | null>; dispensarAprovacao?: boolean },
 ): Promise<{ id?: string; erro?: string; duplicada?: boolean; avisoAprovacao?: string; avisoBaixa?: string }> {
-  const total = Number(dados.valor_total) || 0;
+  // Conta sem valor, negativa ou com fração de centavo não entra: distorce saldo, DRE e contabilidade.
+  const total = Math.round((Number(dados.valor_total) || 0) * 100) / 100;
+  if (!(total > 0)) return { erro: "valor_invalido" };
   const status = calcStatus(total, 0, dados.data_vencimento);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { valor_pago: _ignorado, data_pagamento: _ignorada, ...resto } = dados;
@@ -146,7 +148,7 @@ export async function criarContaPagar(
         // categoria/descricao/data_emissao: usados pelo Accounting Core pra reconhecer
         // a despesa na conta certa, na data certa.
         categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
-        centro_custo_id: dados.centro_custo_id ?? null, proveniencia: opcoes?.proveniencia ?? null,
+        centro_custo_id: dados.centro_custo_id ?? null, proveniencia: opcoes?.proveniencia ?? null, compra_estoque: opcoes?.origem === "estoque",
       },
     },
   });
@@ -170,7 +172,8 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
     .select("valor_total, valor_pago, status, categoria, descricao, data_emissao, data_vencimento, centro_custo_id").eq("id", id).maybeSingle();
   if (erroAntes || !antes) return { erro: erroAntes?.message || "conta_nao_encontrada" };
 
-  const total = Number(dados.valor_total ?? antes.valor_total) || 0;
+  const total = Math.round((Number(dados.valor_total ?? antes.valor_total) || 0) * 100) / 100;
+  if (!(total > 0)) return { erro: "valor_invalido" };
   const pago = Number(antes.valor_pago) || 0;
   if (total + 0.005 < pago) return { erro: "abaixo_do_pago" };
   const workflow = antes.status === "aguardando_aprovacao" || antes.status === "cancelado" || antes.status === "cancelada";

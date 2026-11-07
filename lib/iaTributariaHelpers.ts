@@ -15,6 +15,8 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
 function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
@@ -28,10 +30,11 @@ export type DadosFiscais = {
   receita_bruta_mensal: number;
   custos_fixos_mensal: number;
   custos_variaveis_mensal: number;
-  folha_pagamento_mensal: number; // estimativa: custos_fixos * 0.4
   lucro_bruto_mensal: number;
   regime_atual: string;
   categoria_mei?: string | null; // MEI: categoria (o DAS muda: Serviços, Comércio, Transporte...)
+  atividade_fiscal?: string | null; // Config → Fiscal: define o anexo do Simples e a presunção
+  aliquota_iss_pct?: number | null;
   setor: string;
   cnae: string;
   obrigacoes_pendentes: number;
@@ -40,6 +43,7 @@ export type DadosFiscais = {
 };
 
 export type SimulacaoRegime = {
+  parcial?: boolean; // comércio/indústria fora do Simples: falta ICMS/IPI, então não entra como "o melhor regime"
   regime: string;
   regime_label: string;
   imposto_mensal: number;
@@ -99,7 +103,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
     empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
     empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
     empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
-    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
   ]);
 
@@ -110,7 +114,6 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const receita_bruta_mensal = (recMes || []).reduce((s, r) => s + Number(r.valor || 0), 0);
   const custos_fixos_mensal = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);
   const custos_variaveis_mensal = (custosVar || []).reduce((s, r) => s + Number(r.valor || 0), 0);
-  const folha_pagamento_mensal = Math.round(custos_fixos_mensal * 0.4); // estimativa
   const lucro_bruto_mensal = receita_bruta_mensal - custos_variaveis_mensal;
 
   const hojeStr = isoDia(hoje);
@@ -119,14 +122,15 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const vencidas = pendentes.filter((o: any) => o.data_vencimento && o.data_vencimento < hojeStr);
 
   return {
-    receita_bruta_12m: Math.round(receita_bruta_12m),
-    receita_bruta_mensal: Math.round(receita_bruta_mensal),
-    custos_fixos_mensal: Math.round(custos_fixos_mensal),
-    custos_variaveis_mensal: Math.round(custos_variaveis_mensal),
-    folha_pagamento_mensal,
-    lucro_bruto_mensal: Math.round(lucro_bruto_mensal),
+    receita_bruta_12m: r2(receita_bruta_12m),
+    receita_bruta_mensal: r2(receita_bruta_mensal),
+    custos_fixos_mensal: r2(custos_fixos_mensal),
+    custos_variaveis_mensal: r2(custos_variaveis_mensal),
+    lucro_bruto_mensal: r2(lucro_bruto_mensal),
     regime_atual: empresa?.regime_tributario || "",
     categoria_mei: categoriaMeiDaEmpresa(empresa),
+    atividade_fiscal: (empresa as { atividade_fiscal?: string | null } | null)?.atividade_fiscal ?? null,
+    aliquota_iss_pct: (empresa as { aliquota_iss_pct?: number | null } | null)?.aliquota_iss_pct ?? null,
     setor: empresa?.setor || "",
     cnae: empresa?.cnae_principal || "",
     obrigacoes_pendentes: pendentes.length,
@@ -164,6 +168,18 @@ export const PRESUNCAO_POR_ATIVIDADE: Record<AtividadeFiscal, number> = {
   revenda_combustivel: 0.016,
 };
 
+// CSLL tem percentual próprio (Lei 9.249/95, art. 20): 12% no comércio/indústria, não os 8% do IRPJ.
+export const PRESUNCAO_CSLL_POR_ATIVIDADE: Record<AtividadeFiscal, number> = {
+  comercio_industria: 0.12,
+  servicos: 0.32,
+  revenda_combustivel: 0.12,
+};
+// LC 224/2025, art. 4º, § 5º: presunção 10% maior só na parte da receita acima de R$ 5 milhões no ano,
+// proporcional ao período de apuração. Aqui o período é o mês. CSLL vale desde 01/04/2026, conforme a nonagesimal.
+// ponytail: aplica a regra de hoje também a períodos antigos da tela; separar por data se a DRE de 2025 precisar da regra antiga.
+const LIMITE_MENSAL_PRESUNCAO_MAIOR = 5000000 / 12;
+const receitaComAcrescimoPresuncao = (rb: number) => Math.min(rb, LIMITE_MENSAL_PRESUNCAO_MAIOR) + Math.max(0, rb - LIMITE_MENSAL_PRESUNCAO_MAIOR) * 1.1;
+
 const ATIVIDADE_FISCAL_DEFAULT: AtividadeFiscal = "servicos";
 const ISS_MUNICIPAL_DEFAULT_PCT = 5; // teto legal comum — mesma referência que já existia antes, agora explícita e sinalizada
 
@@ -193,10 +209,12 @@ export function calcularLucroPresumido(
   const issPresumido = ehServico && (aliquotaIssMunicipalPct === undefined || aliquotaIssMunicipalPct === null);
   const issPct = ehServico ? (aliquotaIssMunicipalPct ?? ISS_MUNICIPAL_DEFAULT_PCT) : 0;
 
-  const basePresumida = rb * PRESUNCAO_POR_ATIVIDADE[atividadeReal];
-  const limiteMensalAdicional = 60000 / 3; // R$60mil/trimestre aproximado por mês
+  const receitaAjustada = receitaComAcrescimoPresuncao(rb);
+  const basePresumida = receitaAjustada * PRESUNCAO_POR_ATIVIDADE[atividadeReal];
+  const baseCsll = receitaAjustada * PRESUNCAO_CSLL_POR_ATIVIDADE[atividadeReal];
+  const limiteMensalAdicional = 60000 / 3; // adicional de R$ 60 mil por trimestre, proporcional ao mês
   const irpj = basePresumida * 0.15 + (aplicarAdicionalTrimestral ? Math.max(0, basePresumida - limiteMensalAdicional) * 0.10 : 0);
-  const csll = basePresumida * 0.09;
+  const csll = baseCsll * 0.09;
   const pis = rb * 0.0065;
   const cofins = rb * 0.03;
   const iss = rb * (issPct / 100);
@@ -211,17 +229,57 @@ export function calcularLucroPresumido(
   };
 }
 
+// Lucro Real: IRPJ e CSLL sobre o lucro do período. Sem o lucro à mão, usa a base da estimativa mensal da lei
+// (Lei 9.430/96, art. 2º: mesmos percentuais de presunção). PIS/COFINS não cumulativos, sem descontar créditos.
+export function calcularLucroReal(receitaMensal: number, lucroMensal?: number | null, atividade?: AtividadeFiscal, aliquotaIssMunicipalPct?: number) {
+  const rb = Math.max(0, receitaMensal || 0);
+  const atividadeReal = atividade || ATIVIDADE_FISCAL_DEFAULT;
+  const baseIrpj = lucroMensal != null ? Math.max(0, lucroMensal) : rb * PRESUNCAO_POR_ATIVIDADE[atividadeReal];
+  const baseCsll = lucroMensal != null ? Math.max(0, lucroMensal) : rb * PRESUNCAO_CSLL_POR_ATIVIDADE[atividadeReal];
+  const irpj = baseIrpj * 0.15 + Math.max(0, baseIrpj - 20000) * 0.10;
+  const csll = baseCsll * 0.09;
+  const pis = rb * 0.0165;
+  const cofins = rb * 0.076;
+  const iss = atividadeReal === "servicos" ? rb * ((aliquotaIssMunicipalPct ?? ISS_MUNICIPAL_DEFAULT_PCT) / 100) : 0;
+  const total = irpj + csll + pis + cofins + iss;
+  return { base: baseIrpj, irpj, csll, pis, cofins, iss, total, aliquotaEfetivaPct: rb > 0 ? (total / rb) * 100 : 0 };
+}
+
+export function presuncaoDaAtividade(a: string | null | undefined): AtividadeFiscal | undefined {
+  if (a === "comercio" || a === "industria") return "comercio_industria";
+  if (a === "servico" || a === "misto") return "servicos"; // misto sem regra própria: base maior, a mais conservadora
+  return undefined;
+}
+
+export type EmpresaFiscal = { regime_tributario?: string | null; atividade_fiscal?: string | null; aliquota_iss_pct?: number | null; mei_dados?: unknown };
+export const COLUNAS_EMPRESA_FISCAL = "regime_tributario, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)";
+
+// Imposto da empresa pelo cadastro dela: toda tela usa esta conta, para nenhum módulo mostrar um imposto diferente de outro.
+export function impostoDaEmpresa(e: EmpresaFiscal | null | undefined, rb12: number, rbMes: number, lucroMensal?: number | null): number {
+  return calcularImpostoRegime(
+    e?.regime_tributario || "", rb12, rbMes, presuncaoDaAtividade(e?.atividade_fiscal), e?.aliquota_iss_pct ?? undefined,
+    categoriaMeiDaEmpresa(e), anexoSimplesDaAtividade(e?.atividade_fiscal).anexo, lucroMensal,
+  );
+}
+
 // ============================================================================
 // SIMULADOR DE REGIME TRIBUTÁRIO
 // ============================================================================
 
-export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal, aliquotaIssMunicipalPct?: number): SimulacaoRegime[] {
+export function simularRegimes(dados: DadosFiscais, atividadeInformada?: AtividadeFiscal, issInformado?: number): SimulacaoRegime[] {
+  const atividade = atividadeInformada ?? presuncaoDaAtividade(dados.atividade_fiscal);
+  const aliquotaIssMunicipalPct = issInformado ?? dados.aliquota_iss_pct ?? undefined;
+  const anexoSimples = anexoSimplesDaAtividade(dados.atividade_fiscal).anexo;
+  const lucroMensal = dados.lucro_bruto_mensal - dados.custos_fixos_mensal;
+  // Comércio/indústria: Simples já traz ICMS no DAS; Presumido e Real não. Sem ICMS na conta, não comparar nem chamar de "economia".
+  const semIcms = atividade === "comercio_industria";
+  const AVISO_ICMS = { pt: " Não inclui ICMS/IPI, que variam por estado e produto.", en: " Does not include ICMS/IPI, which vary by state and product.", es: " No incluye ICMS/IPI, que varían por estado y producto." };
   const rb12 = dados.receita_bruta_12m || dados.receita_bruta_mensal * 12;
   const rbMes = dados.receita_bruta_mensal;
   const resultados: SimulacaoRegime[] = [];
 
   // Cálculo imposto atual (estimativa)
-  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, undefined, undefined, dados.categoria_mei);
+  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, atividade, aliquotaIssMunicipalPct, dados.categoria_mei, anexoSimples, lucroMensal);
 
   // 1. MEI
   // Limite legal hoje é R$ 81 mil/ano (LIMITE_ANUAL_MEI). Antes dizia R$ 144K — recomendava
@@ -231,10 +289,10 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
   const meiMensal = dasMensalPorCategoria(dados.categoria_mei || "Serviços"); // fonte única: lib/meiHelpers.ts
   resultados.push({
     regime: "mei", regime_label: "MEI",
-    imposto_mensal: Math.round(meiMensal),
-    imposto_anual: Math.round(meiMensal * 12),
+    imposto_mensal: r2(meiMensal),
+    imposto_anual: r2(meiMensal * 12),
     aliquota_efetiva: rbMes > 0 ? parseFloat(((meiMensal / rbMes) * 100).toFixed(2)) : 0,
-    economia_vs_atual: Math.round((impostoAtual - meiMensal) * 12),
+    economia_vs_atual: r2((impostoAtual - meiMensal) * 12),
     detalhamento: `DAS fixo R$ ${fBRL2(meiMensal)}/mês. Limite: R$ ${limiteMei.toLocaleString("pt-BR")}/ano. Até 1 funcionário.`,
     detalhamento_en: `Fixed DAS R$ ${fBRL2(meiMensal)}/month. Limit: R$ ${limiteMei.toLocaleString("en-US")}/year. Up to 1 employee.`,
     detalhamento_es: `DAS fijo R$ ${fBRL2(meiMensal)}/mes. Límite: R$ ${limiteMei.toLocaleString("es-ES")}/año. Hasta 1 empleado.`,
@@ -244,14 +302,14 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
 
   // 2. Simples Nacional
   const simplesElegivel = rb12 <= 4800000;
-  const simplesAliquota = calcularAliquotaSimples(rb12, "III"); // padrão serviços
+  const simplesAliquota = calcularAliquotaSimples(rb12, anexoSimples);
   const simplesMensal = rbMes * (simplesAliquota / 100);
   resultados.push({
     regime: "simples", regime_label: "Simples Nacional",
-    imposto_mensal: Math.round(simplesMensal),
-    imposto_anual: Math.round(simplesMensal * 12),
+    imposto_mensal: r2(simplesMensal),
+    imposto_anual: r2(simplesMensal * 12),
     aliquota_efetiva: parseFloat(simplesAliquota.toFixed(2)),
-    economia_vs_atual: Math.round((impostoAtual - simplesMensal) * 12),
+    economia_vs_atual: r2((impostoAtual - simplesMensal) * 12),
     detalhamento: `Alíquota efetiva ${simplesAliquota.toFixed(2)}%. DAS único. Limite: R$ 4,8M/ano.`,
     detalhamento_en: `Effective rate ${simplesAliquota.toFixed(2)}%. Single DAS. Limit: R$ 4.8M/year.`,
     detalhamento_es: `Alícuota efectiva ${simplesAliquota.toFixed(2)}%. DAS único. Límite: R$ 4,8M/año.`,
@@ -265,35 +323,30 @@ export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal,
   const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
   resultados.push({
     regime: "presumido", regime_label: "Lucro Presumido",
-    imposto_mensal: Math.round(lp.total),
-    imposto_anual: Math.round(lp.total * 12),
+    imposto_mensal: r2(lp.total),
+    imposto_anual: r2(lp.total * 12),
     aliquota_efetiva: parseFloat(lp.aliquotaEfetivaPct.toFixed(2)),
-    economia_vs_atual: Math.round((impostoAtual - lp.total) * 12),
-    detalhamento: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presunção: ${lp.atividade === "servicos" ? "Serviços 32%" : lp.atividade === "comercio_industria" ? "Comércio/Indústria 8%" : "Revenda de combustível 1,6%"}${lp.atividadePresumida ? " (não confirmada — confirme a atividade da empresa)" : ""}.`,
-    detalhamento_en: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presumption: ${lp.atividade === "servicos" ? "Services 32%" : lp.atividade === "comercio_industria" ? "Trade/Industry 8%" : "Fuel resale 1.6%"}${lp.atividadePresumida ? " (unconfirmed — confirm the company's activity)" : ""}.`,
-    detalhamento_es: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presunción: ${lp.atividade === "servicos" ? "Servicios 32%" : lp.atividade === "comercio_industria" ? "Comercio/Industria 8%" : "Reventa de combustible 1,6%"}${lp.atividadePresumida ? " (no confirmada — confirme la actividad de la empresa)" : ""}.`,
+    economia_vs_atual: semIcms ? 0 : r2((impostoAtual - lp.total) * 12), parcial: semIcms,
+    detalhamento: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunção: ${lp.atividade === "servicos" ? "Serviços 32%" : lp.atividade === "comercio_industria" ? "Comércio/Indústria 8%" : "Revenda de combustível 1,6%"}${lp.atividadePresumida ? " (não confirmada — confirme a atividade da empresa)" : ""}.`,
+    detalhamento_en: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presumption: ${lp.atividade === "servicos" ? "Services 32%" : lp.atividade === "comercio_industria" ? "Trade/Industry 8%" : "Fuel resale 1.6%"}${lp.atividadePresumida ? " (unconfirmed — confirm the company's activity)" : ""}.`,
+    detalhamento_es: `IRPJ ${fBRL2(lp.irpj)} + CSLL ${fBRL2(lp.csll)} + PIS ${fBRL2(lp.pis)} + COFINS ${fBRL2(lp.cofins)}${lp.iss > 0 ? ` + ISS ${fBRL2(lp.iss)}` : ""}. Presunción: ${lp.atividade === "servicos" ? "Servicios 32%" : lp.atividade === "comercio_industria" ? "Comercio/Industria 8%" : "Reventa de combustible 1,6%"}${lp.atividadePresumida ? " (no confirmada — confirme la actividad de la empresa)" : ""}.`,
     elegivel: presumidoElegivel,
   });
 
   // 4. Lucro Real
-  const lucroReal = dados.lucro_bruto_mensal - dados.custos_fixos_mensal;
-  const baseReal = Math.max(0, lucroReal);
-  const irpjReal = baseReal * 0.15 + Math.max(0, baseReal - 20000) * 0.10; // adicional 10% acima de 20k
-  const csllReal = baseReal * 0.09;
-  const pisReal = rbMes * 0.0165; // não-cumulativo
-  const cofinsReal = rbMes * 0.076;
-  const issReal = rbMes * 0.05;
-  const realMensal = irpjReal + csllReal + pisReal + cofinsReal + issReal;
-  const aliqReal = rbMes > 0 ? (realMensal / rbMes) * 100 : 0;
+  const lr = calcularLucroReal(rbMes, lucroMensal, atividade, aliquotaIssMunicipalPct);
+  const realMensal = lr.total;
+  const baseReal = lr.base;
+  const aliqReal = lr.aliquotaEfetivaPct;
   resultados.push({
     regime: "real", regime_label: "Lucro Real",
-    imposto_mensal: Math.round(realMensal),
-    imposto_anual: Math.round(realMensal * 12),
+    imposto_mensal: r2(realMensal),
+    imposto_anual: r2(realMensal * 12),
     aliquota_efetiva: parseFloat(aliqReal.toFixed(2)),
-    economia_vs_atual: Math.round((impostoAtual - realMensal) * 12),
-    detalhamento: `Base: lucro real R$ ${baseReal.toLocaleString("pt-BR")}. PIS/COFINS não-cumulativo (créditos dedutíveis).`,
-    detalhamento_en: `Base: actual profit R$ ${baseReal.toLocaleString("pt-BR")}. Non-cumulative PIS/COFINS (deductible credits).`,
-    detalhamento_es: `Base: lucro real R$ ${baseReal.toLocaleString("pt-BR")}. PIS/COFINS no acumulativo (créditos deducibles).`,
+    economia_vs_atual: semIcms ? 0 : r2((impostoAtual - realMensal) * 12), parcial: semIcms,
+    detalhamento: `Base: lucro real R$ ${fBRL2(baseReal)}. PIS/COFINS não cumulativo, ainda sem descontar créditos.${semIcms ? AVISO_ICMS.pt : ""}`,
+    detalhamento_en: `Base: actual profit R$ ${fBRL2(baseReal)}. Non-cumulative PIS/COFINS, before deducting credits.${semIcms ? AVISO_ICMS.en : ""}`,
+    detalhamento_es: `Base: lucro real R$ ${fBRL2(baseReal)}. PIS/COFINS no acumulativo, sin descontar créditos todavía.${semIcms ? AVISO_ICMS.es : ""}`,
     elegivel: true,
   });
 
@@ -310,6 +363,7 @@ export function calcularImpostoRegime(
   aliquotaIssMunicipalPct?: number,
   categoriaMei?: string | null, // MEI: DAS da categoria (Serviços/Comércio/Indústria/Transporte...) — antes era sempre Serviços
   anexoSimples = "III",          // Simples: anexo pela atividade (anexoSimplesDaAtividade) — antes era sempre III
+  lucroMensal?: number | null,   // Lucro Real: lucro do período; sem ele, a base da estimativa mensal da lei
 ): number {
   const r = (regime || "").toLowerCase();
   if (r === "mei") return dasMensalPorCategoria(categoriaMei || "Serviços");
@@ -323,9 +377,9 @@ export function calcularImpostoRegime(
   // código antigo já assumia, mas agora com o adicional trimestral
   // aplicado corretamente e a mesma fórmula do simulador/carga real.
   if (r.includes("presumido")) return calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct).total;
-  if (r.includes("real")) return rbMes * 0.15;
+  if (r.includes("real")) return calcularLucroReal(rbMes, lucroMensal, atividade, aliquotaIssMunicipalPct).total;
   // Sem regime: estima como simples
-  const aliq = calcularAliquotaSimples(rb12, "III");
+  const aliq = calcularAliquotaSimples(rb12, anexoSimples);
   return rbMes * (aliq / 100);
 }
 
@@ -348,6 +402,12 @@ export function calcularAliquotaSimples(rb12: number, anexo: string): number {
       { max: 720000, aliq: 13.5, ded: 17640 }, { max: 1800000, aliq: 16, ded: 35640 },
       { max: 3600000, aliq: 21, ded: 125640 }, { max: 4800000, aliq: 33, ded: 648000 },
     ],
+    // Anexo IV: limpeza, vigilância, obras. CPP é paga à parte e não está nesta alíquota.
+    "IV": [
+      { max: 180000, aliq: 4.5, ded: 0 }, { max: 360000, aliq: 9, ded: 8100 },
+      { max: 720000, aliq: 10.2, ded: 12420 }, { max: 1800000, aliq: 14, ded: 39780 },
+      { max: 3600000, aliq: 22, ded: 183780 }, { max: 4800000, aliq: 33, ded: 828000 },
+    ],
     "V": [
       { max: 180000, aliq: 15.5, ded: 0 }, { max: 360000, aliq: 18, ded: 4500 },
       { max: 720000, aliq: 19.5, ded: 9900 }, { max: 1800000, aliq: 20.5, ded: 17100 },
@@ -363,7 +423,9 @@ export function calcularAliquotaSimples(rb12: number, anexo: string): number {
       return Math.max(0, aliqEfetiva);
     }
   }
-  return tabela[tabela.length - 1].aliq;
+  // Acima do teto a empresa sai do Simples; a conta segue a última faixa, com a parcela a deduzir, para não saltar de valor.
+  const ultima = tabela[tabela.length - 1];
+  return ((rb12 * ultima.aliq / 100) - ultima.ded) / rb12 * 100;
 }
 
 // ============================================================================
@@ -372,8 +434,8 @@ export function calcularAliquotaSimples(rb12: number, anexo: string): number {
 
 export function calcularCargaTributaria(
   dados: DadosFiscais,
-  atividade?: AtividadeFiscal,
-  aliquotaIssMunicipalPct?: number,
+  atividadeInformada?: AtividadeFiscal,
+  issInformado?: number,
 ): {
   carga_pct: number; imposto_mensal: number; imposto_anual: number;
   composicao: { nome: string; valor: number; pct: number }[];
@@ -381,6 +443,8 @@ export function calcularCargaTributaria(
   const rbMes = dados.receita_bruta_mensal;
   const rb12 = dados.receita_bruta_12m || rbMes * 12;
   const regime = (dados.regime_atual || "").toLowerCase();
+  const atividade = atividadeInformada ?? presuncaoDaAtividade(dados.atividade_fiscal);
+  const aliquotaIssMunicipalPct = issInformado ?? dados.aliquota_iss_pct ?? undefined;
 
   let composicao: { nome: string; valor: number; pct: number }[] = [];
 
@@ -388,25 +452,35 @@ export function calcularCargaTributaria(
     const dasMei = dasMensalPorCategoria(dados.categoria_mei || "Serviços");
     composicao = [{ nome: "DAS MEI", valor: dasMei, pct: rbMes > 0 ? (dasMei / rbMes) * 100 : 0 }];
   } else if (regime.includes("simples")) {
-    const aliq = calcularAliquotaSimples(rb12, "III");
+    const aliq = calcularAliquotaSimples(rb12, anexoSimplesDaAtividade(dados.atividade_fiscal).anexo);
     const das = rbMes * (aliq / 100);
-    composicao = [{ nome: "DAS Simples", valor: Math.round(das), pct: aliq }];
+    composicao = [{ nome: "DAS Simples", valor: r2(das), pct: aliq }];
   } else if (regime.includes("presumido")) {
     // Fonte canônica calcularLucroPresumido — mesma regra do simulador
     // (presunção por atividade + adicional trimestral + ISS parametrizado).
     const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
     const pct = (v: number) => (rbMes > 0 ? parseFloat(((v / rbMes) * 100).toFixed(2)) : 0);
     composicao = [
-      { nome: "IRPJ", valor: Math.round(lp.irpj), pct: pct(lp.irpj) },
-      { nome: "CSLL", valor: Math.round(lp.csll), pct: pct(lp.csll) },
-      { nome: "PIS", valor: Math.round(lp.pis), pct: 0.65 },
-      { nome: "COFINS", valor: Math.round(lp.cofins), pct: 3 },
-      ...(lp.iss > 0 ? [{ nome: "ISS", valor: Math.round(lp.iss), pct: pct(lp.iss) }] : []),
+      { nome: "IRPJ", valor: r2(lp.irpj), pct: pct(lp.irpj) },
+      { nome: "CSLL", valor: r2(lp.csll), pct: pct(lp.csll) },
+      { nome: "PIS", valor: r2(lp.pis), pct: 0.65 },
+      { nome: "COFINS", valor: r2(lp.cofins), pct: 3 },
+      ...(lp.iss > 0 ? [{ nome: "ISS", valor: r2(lp.iss), pct: pct(lp.iss) }] : []),
+    ];
+  } else if (regime.includes("real")) {
+    const lr = calcularLucroReal(rbMes, dados.lucro_bruto_mensal - dados.custos_fixos_mensal, atividade, aliquotaIssMunicipalPct);
+    const pct = (v: number) => (rbMes > 0 ? parseFloat(((v / rbMes) * 100).toFixed(2)) : 0);
+    composicao = [
+      { nome: "IRPJ", valor: r2(lr.irpj), pct: pct(lr.irpj) },
+      { nome: "CSLL", valor: r2(lr.csll), pct: pct(lr.csll) },
+      { nome: "PIS", valor: r2(lr.pis), pct: 1.65 },
+      { nome: "COFINS", valor: r2(lr.cofins), pct: 7.6 },
+      ...(lr.iss > 0 ? [{ nome: "ISS", valor: r2(lr.iss), pct: pct(lr.iss) }] : []),
     ];
   } else {
-    const aliq = calcularAliquotaSimples(rb12, "III");
+    const aliq = calcularAliquotaSimples(rb12, anexoSimplesDaAtividade(dados.atividade_fiscal).anexo);
     const das = rbMes * (aliq / 100);
-    composicao = [{ nome: "Estimado (Simples)", valor: Math.round(das), pct: aliq }];
+    composicao = [{ nome: "Estimado (Simples)", valor: r2(das), pct: aliq }];
   }
 
   const total = composicao.reduce((s, c) => s + c.valor, 0);
@@ -414,8 +488,8 @@ export function calcularCargaTributaria(
 
   return {
     carga_pct: parseFloat(carga_pct.toFixed(2)),
-    imposto_mensal: Math.round(total),
-    imposto_anual: Math.round(total * 12),
+    imposto_mensal: r2(total),
+    imposto_anual: r2(total * 12),
     composicao,
   };
 }
@@ -457,7 +531,7 @@ export function calcularScoreFiscal(dados: DadosFiscais): ScoreFiscal {
 function verificarRegimeOtimizado(dados: DadosFiscais): boolean {
   if (!dados.regime_atual || dados.receita_bruta_mensal <= 0) return false;
   const sims = simularRegimes(dados);
-  const melhor = sims.filter(s => s.elegivel)[0];
+  const melhor = sims.filter(s => s.elegivel && !s.parcial)[0];
   return melhor ? melhor.regime === dados.regime_atual.toLowerCase() : false;
 }
 
@@ -471,7 +545,7 @@ export function calcularEconomiaTributaria(dados: DadosFiscais): {
   acoes: { titulo: string; titulo_en: string; titulo_es: string; economia: string }[];
 } {
   const sims = simularRegimes(dados);
-  const melhor = sims.filter(s => s.elegivel)[0];
+  const melhor = sims.filter(s => s.elegivel && !s.parcial)[0];
   const carga = calcularCargaTributaria(dados);
 
   const economia_mensal = melhor ? Math.max(0, carga.imposto_mensal - melhor.imposto_mensal) : 0;
@@ -483,25 +557,9 @@ export function calcularEconomiaTributaria(dados: DadosFiscais): {
       titulo: `Migrar para ${melhor.regime_label}`,
       titulo_en: `Migrate to ${melhor.regime_label}`,
       titulo_es: `Migrar a ${melhor.regime_label}`,
-      economia: `R$ ${economia_mensal.toLocaleString("pt-BR")}/mês`,
+      economia: `R$ ${fBRL2(economia_mensal)}/mês`,
     });
   }
-
-  if (dados.regime_atual && !dados.regime_atual.toLowerCase().includes("simples") && dados.receita_bruta_12m <= 4800000) {
-    acoes.push({
-      titulo: "Avaliar enquadramento no Simples Nacional",
-      titulo_en: "Evaluate Simples Nacional eligibility",
-      titulo_es: "Evaluar encuadramiento en Simples Nacional",
-      economia: "Até 30% menos impostos",
-    });
-  }
-
-  acoes.push({
-    titulo: "Revisar deduções não aproveitadas",
-    titulo_en: "Review unused deductions",
-    titulo_es: "Revisar deducciones no aprovechadas",
-    economia: "2-5% da receita",
-  });
 
   return {
     economia_mensal,
@@ -566,7 +624,7 @@ export function gerarAlertasReforma(): AlertaReforma[] {
 // ============================================================================
 
 export function gerarDiagnosticoFiscal(dados: DadosFiscais, scoreFiscal: ScoreFiscal, carga: any, economia: any, idioma: string): string {
-  const formatBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+  const formatBRL = (n: number) => `R$ ${fBRL2(n)}`;
 
   if (dados.receita_bruta_mensal === 0) {
     if (idioma === "en") return "No financial data for fiscal analysis. Register revenues to generate the tax diagnosis.";
@@ -624,7 +682,7 @@ export function gerarDiagnosticoFiscal(dados: DadosFiscais, scoreFiscal: ScoreFi
 
 export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: ScoreFiscal, carga: any, pergunta: string, idioma: string): string {
   const p = pergunta.toLowerCase();
-  const formatBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+  const formatBRL = (n: number) => `R$ ${fBRL2(n)}`;
 
   if (dados.receita_bruta_mensal === 0) {
     if (idioma === "en") return "I don't have financial data yet. Register revenues to activate tax analysis.";
@@ -634,13 +692,13 @@ export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: Sc
 
   if (p.includes("regime") || p.includes("régimen") || p.includes("melhor") || p.includes("best")) {
     const sims = simularRegimes(dados);
-    const melhor = sims.filter(s => s.elegivel)[0];
+    const melhor = sims.filter(s => s.elegivel && !s.parcial)[0];
     if (idioma === "en") return `Based on your revenue of ${formatBRL(dados.receita_bruta_12m)}/year, the most advantageous regime is ${melhor?.regime_label || "Simples Nacional"} with effective rate of ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrating would save approximately ${formatBRL(melhor.economia_vs_atual)}/year.` : "You're already in the optimal regime."} Estimate based on the rules in effect as of ${new Date().toLocaleDateString("en-US")}.`;
     return `Com base na sua receita de ${formatBRL(dados.receita_bruta_12m)}/ano, o regime mais vantajoso é ${melhor?.regime_label || "Simples Nacional"} com alíquota efetiva de ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrar economizaria aproximadamente ${formatBRL(melhor.economia_vs_atual)}/ano.` : "Você já está no regime otimizado."} Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString("pt-BR")}.`;
   }
 
   if (p.includes("carga") || p.includes("imposto") || p.includes("tax") || p.includes("quanto")) {
-    if (idioma === "en") return `Your current tax burden is ${carga.carga_pct.toFixed(1)}% of revenue, which means R$ ${carga.imposto_mensal.toLocaleString("pt-BR")}/month or R$ ${carga.imposto_anual.toLocaleString("pt-BR")}/year.`;
+    if (idioma === "en") return `Your current tax burden is ${carga.carga_pct.toFixed(1)}% of revenue, which means R$ ${fBRL2(carga.imposto_mensal)}/month or R$ ${fBRL2(carga.imposto_anual)}/year.`;
     return `Sua carga tributária atual é ${carga.carga_pct.toFixed(1)}% da receita, equivalente a ${formatBRL(carga.imposto_mensal)}/mês ou ${formatBRL(carga.imposto_anual)}/ano. Composição: ${carga.composicao.map((c: any) => `${c.nome}: ${formatBRL(c.valor)}`).join(", ")}.`;
   }
 
@@ -650,8 +708,8 @@ export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: Sc
   }
 
   if (p.includes("das") || p.includes("calcular") || p.includes("calculate")) {
-    const aliq = calcularAliquotaSimples(dados.receita_bruta_12m, "III");
-    const das = Math.round(dados.receita_bruta_mensal * (aliq / 100));
+    const aliq = calcularAliquotaSimples(dados.receita_bruta_12m, anexoSimplesDaAtividade(dados.atividade_fiscal).anexo);
+    const das = r2(dados.receita_bruta_mensal * (aliq / 100));
     if (idioma === "en") return `DAS calculation: Revenue ${formatBRL(dados.receita_bruta_mensal)} × effective rate ${aliq.toFixed(2)}% = ${formatBRL(das)}/month. Due on the 20th of the following month.`;
     return `Cálculo do DAS: Receita ${formatBRL(dados.receita_bruta_mensal)} × alíquota efetiva ${aliq.toFixed(2)}% = ${formatBRL(das)}/mês. Vencimento: dia 20 do mês seguinte. Faturamento 12M: ${formatBRL(dados.receita_bruta_12m)}.`;
   }

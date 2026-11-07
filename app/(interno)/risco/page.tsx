@@ -68,7 +68,7 @@ export default function RiscoPage() {
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
   const metricas = (() => {
     if (!num) return []
-    const brl = (v: number) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    const brl = (v: number) => v.toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
     const dias = (d: number | null) => (d == null ? '—' : L(`${d} dias`, `${d} days`, `${d} días`))
     const saidaMensal = num.custoFixoMensal + num.custoVariavelMensal + num.impostoMensal + num.jurosMensal
     const aguenta = mesesDeCaixa(num.caixa, saidaMensal)

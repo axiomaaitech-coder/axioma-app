@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { carregarBaseDRE, custoFixoNoPeriodo, mesesEntre, somaNoPeriodo, type BaseDRE } from '../dreCompetencia'
-import { anexoSimplesDaAtividade, calcularImpostoRegime, categoriaMeiDaEmpresa } from '../iaTributariaHelpers'
+import { impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL } from '../iaTributariaHelpers'
 import { hojeISO } from '../datas'
 
 const r2 = (v: number) => Math.round(v * 100) / 100
@@ -37,7 +37,7 @@ const porCategoria = (itens: Item[], inicio: string, fim: string, limite = 8) =>
 // Conta da DRE de um período a partir da base já lida — ÚNICA para a IA, o Relatório CFO, a parte antiga da
 // tela Relatórios (DRE do mês, evolução 12 meses, distribuição de custos) e o resumo que a IA lê.
 // A base precisa começar 12 meses antes do fim (receita de 12 meses do Simples).
-export type EmpresaDre = { regime_tributario?: string | null; atividade_fiscal?: string | null; mei_dados?: unknown }
+export type EmpresaDre = { regime_tributario?: string | null; atividade_fiscal?: string | null; aliquota_iss_pct?: number | null; mei_dados?: unknown }
 export type DividaDre = { valor_total: number; valor_pago: number; taxa_juros: number }
 export function calcularDre(base: BaseDRE, e: EmpresaDre | null, divs: DividaDre[], inicio: string, fim: string) {
   const meses = mesesEntre(inicio, fim).length
@@ -47,9 +47,8 @@ export function calcularDre(base: BaseDRE, e: EmpresaDre | null, divs: DividaDre
   const custosFixos = custoFixoNoPeriodo(base.custosFixos, inicio, fim)
   const rb12 = somaNoPeriodo(base.receitas, inicio12(fim.slice(0, 7)), fim)
   const regime = e?.regime_tributario || ''
-  const ehMei = regime.toLowerCase() === 'mei'
   // Mesma função de imposto da tela DRE e da IA Tributária (MEI: DAS da categoria por mês)
-  const impostoMes = calcularImpostoRegime(regime, rb12, receitaBruta / meses, undefined, undefined, ehMei ? categoriaMeiDaEmpresa(e as never) : undefined, anexoSimplesDaAtividade(e?.atividade_fiscal).anexo)
+  const impostoMes = impostoDaEmpresa(e, rb12, receitaBruta / meses, (receitaBruta - devolucoes - custosVariaveis - custosFixos) / meses)
   const deducoes = r2(impostoMes * meses)
   const jurosPagos = somaNoPeriodo(base.jurosPagos, inicio, fim)
   const jurosMensais = divs.reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)) * (Number(d.taxa_juros || 0) / 100), 0)
@@ -69,7 +68,7 @@ export async function consultarDRE(supabase: SupabaseClient, empresaId: string, 
   if ('erro' in p) return { erro: p.erro }
   const [base, emp, divs] = await Promise.all([
     carregarBaseDRE(empresaId, inicio12(p.fim.slice(0, 7)) < p.inicio ? inicio12(p.fim.slice(0, 7)) : p.inicio, p.fim, supabase as never),
-    supabase.from('empresas').select('regime_tributario, atividade_fiscal, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
+    supabase.from('empresas').select(COLUNAS_EMPRESA_FISCAL).eq('id', empresaId).maybeSingle(),
     supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId),
   ])
   if (base.falhou || emp.error || divs.error) return { erro: 'não foi possível consultar a DRE agora (leitura falhou)' }

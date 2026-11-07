@@ -29,8 +29,7 @@ import {
 } from "./contadorHelpers";
 import {
   carregarDadosFiscais, calcularImpostoRegime, calcularEconomiaTributaria, gerarAlertasReforma,
-  type AtividadeFiscal as AtividadeFiscalPresuncao, type AlertaReforma,
-} from "./iaTributariaHelpers";
+  type AtividadeFiscal as AtividadeFiscalPresuncao, type AlertaReforma, presuncaoDaAtividade, anexoSimplesDaAtividade } from "./iaTributariaHelpers";
 import { hojeISO, isoDia } from "./datas";
 import { exigirLeitura, registrarLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
 
@@ -222,9 +221,7 @@ export async function salvarConfigFiscal(
 // "misto" sem regra própria de presunção cai em serviços (mais conservador:
 // alíquota de presunção maior), documentado aqui pra não virar mistério.
 export function atividadeFiscalParaPresuncao(a: AtividadeFiscalConfig | null): AtividadeFiscalPresuncao | undefined {
-  if (a === "comercio" || a === "industria") return "comercio_industria";
-  if (a === "servico" || a === "misto") return "servicos";
-  return undefined;
+  return presuncaoDaAtividade(a);
 }
 
 // ============================================================================
@@ -377,7 +374,8 @@ async function regraDivergenciaImposto(
   const atividade = atividadeFiscalParaPresuncao(config?.atividade_fiscal || null);
   const impostoCalculado = calcularImpostoRegime(
     dadosFiscais.regime_atual, dadosFiscais.receita_bruta_12m, dadosFiscais.receita_bruta_mensal,
-    atividade, config?.aliquota_iss_pct ?? undefined, dadosFiscais.categoria_mei
+    atividade, config?.aliquota_iss_pct ?? undefined, dadosFiscais.categoria_mei, anexoSimplesDaAtividade(config?.atividade_fiscal).anexo,
+    dadosFiscais.lucro_bruto_mensal - dadosFiscais.custos_fixos_mensal
   );
   const valorCadastrado = Number(maisRecente.valor_estimado || 0);
   if (impostoCalculado <= 0 || valorCadastrado <= 0) return 0;

@@ -29,7 +29,7 @@ import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
 import Paginacao, { usePagina } from '../../../components/Paginacao'
 import { saldoCaixaRealizado } from '../../../lib/caixaSaldo'
 import { lerTodas } from '../../../lib/lerTodas'
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from '../../../lib/iaTributariaHelpers'
+import { categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from '../../../lib/iaTributariaHelpers';
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
   rankingScoreAxiomaCliente, scoreMedioCarteiraAxiomaCliente,
@@ -218,6 +218,7 @@ export default function ContasReceber() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([])
   const [caixaDisponivel, setCaixaDisponivel] = useState(0)
   const [regimeTributario, setRegimeTributario] = useState('')
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [deltaInadimplenciaPct, setDeltaInadimplenciaPct] = useState('2')
@@ -240,8 +241,8 @@ export default function ContasReceber() {
     const empId = await obterEmpresaAtiva()
     setEmpresaId(empId)
     if (empId) {
-      const empresa = await exigirLeitura(() => supabase.from('empresas').select('regime_tributario, mei_dados(categoria_mei)').eq('id', empId).maybeSingle(), "contas-receber:241")
-      setRegimeTributario(empresa?.regime_tributario || ''); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
+      const empresa = await exigirLeitura(() => supabase.from('empresas').select(COLUNAS_EMPRESA_FISCAL).eq('id', empId).maybeSingle(), "contas-receber:241")
+      setRegimeTributario(empresa?.regime_tributario || ''); setEmpresaFiscal(empresa as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(empresa))
     }
     const [
       { data: cli, error: eCli }, { data: cc, error: eCc }, { data: ct, error: eCt }, compromissosData, etapasData,
@@ -368,8 +369,8 @@ export default function ContasReceber() {
   async function salvar() {
     // Mesmo bug silencioso já corrigido em Precificação/Metas: este guard
     // voltava em `return` mudo, sem indicar o que faltou preencher.
-    if (!nc.descricao || !nc.valor || !nc.data_vencimento) {
-      setErroSalvar(L('Preencha descrição, valor e data de vencimento antes de salvar.', 'Fill in description, amount and due date before saving.', 'Complete descripción, valor y fecha de vencimiento antes de guardar.'))
+    if (!nc.descricao || !(parseFloat(nc.valor) > 0) || !nc.data_vencimento) {
+      setErroSalvar(L('Preencha descrição, valor maior que zero e data de vencimento antes de salvar.', 'Fill in description, an amount above zero and due date before saving.', 'Complete descripción, valor mayor que cero y fecha de vencimiento antes de guardar.'))
       return
     }
     setSalvando(true); setErroSalvar('')
@@ -773,7 +774,7 @@ export default function ContasReceber() {
   const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
   const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12
   const despesasFinanceirasMensalAtual = dividasRows.reduce((s, d) => s + Math.max(0, (Number(d.valor_total) || 0) - (Number(d.valor_pago) || 0)) * ((Number(d.taxa_juros) || 0) / 100), 0)
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual, undefined, undefined, categoriaMei)
+  const impostoMensalEstimado = impostoDaEmpresa(empresaFiscal, receitaBrutaAno, receitaMensalAtual)
   const aliquotaEfetivaPct = receitaMensalAtual > 0 ? (impostoMensalEstimado / receitaMensalAtual) * 100 : 0
   const temDadosSimulador = receitaMensalAtual > 0
 

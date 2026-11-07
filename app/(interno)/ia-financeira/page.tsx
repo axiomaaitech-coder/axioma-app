@@ -266,7 +266,7 @@ const T = {
 const tooltipStyle = { background: "rgba(2,8,16,0.97)", border: "1px solid rgba(46,204,155,0.3)", borderRadius: "12px", color: "#c8d8f0", fontSize: "12px" };
 
 function formatBRL(n: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 }
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function formatBRL2(n: number): string {
@@ -849,7 +849,7 @@ export default function IAFinanceiraPage() {
                           <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{acaoTitulo(a)}</p>
                           <p className="text-xs mt-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{acaoDesc(a)}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {a.impacto_estimado}</span>
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {lang === "en" ? a.impacto_en : lang === "es" ? a.impacto_es : a.impacto_estimado}</span>
                           </div>
                         </div>
                       </div>

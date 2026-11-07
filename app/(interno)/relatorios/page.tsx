@@ -196,7 +196,7 @@ const tooltipStyle = {
 };
 
 function formatBRL(n: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 }
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function formatBRL2(n: number): string {

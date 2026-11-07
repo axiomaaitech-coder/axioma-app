@@ -138,17 +138,60 @@ export function lerReais(t: string): number {
   if (/^-?\d+\.\d{1,2}$/.test(s)) return Number(s)
   return Number(s.replace(/\./g, '').replace(',', '.'))
 }
+// Dinheiro escrito sem "R$": "71.300,00" e "71.300 reais". Quantidade e percentual ficam de fora.
+const RE_REAIS_SEM_SIMBOLO = /(?<!R\$\s?-?)(?<![\d.,$])\d{1,3}(?:\.\d{3})+,\d{2}(?![\d%])|(?<!R\$\s?-?)(?<![\d.,$])\d+(?:[.,]\d+)*(?=\s?(?:reais|real)(?![\p{L}]))/giu
+// "R$ 72 mil" vale 72.000: lido como R$ 72, passaria se existisse um R$ 72 qualquer nos dados
+function multiplicadorEscrito(depois: string): number {
+  if (/^\s?(mil|k)(?![\p{L}])/iu.test(depois)) return 1e3
+  if (/^\s?(milh(ão|ões|ao|oes)|million|millones|millón|mi)(?![\p{L}])/iu.test(depois)) return 1e6
+  if (/^\s?(bilh(ão|ões|ao|oes)|billion|billones|billón|bi)(?![\p{L}])/iu.test(depois)) return 1e9
+  return 1
+}
+function valoresDoTexto(texto: string): { bruto: string; valor: number; centavos: boolean }[] {
+  const lista = [...texto.matchAll(RE_REAIS), ...texto.matchAll(RE_REAIS_SEM_SIMBOLO)]
+  return lista.map((m) => {
+    const fim = (m.index ?? 0) + m[0].length
+    const mult = multiplicadorEscrito(texto.slice(fim, fim + 12))
+    return { bruto: mult > 1 ? texto.slice(m.index ?? 0, fim + (texto.slice(fim, fim + 12).match(/^\s?\p{L}+/u)?.[0].length ?? 0)) : m[0], valor: Math.abs(lerReais(m[0])) * mult, centavos: mult === 1 && /[.,]\d{1,2}$/.test(m[0]) }
+  })
+}
+const frasesDeFato = (resposta: string) => resposta.split(/(?<=[.!?\n])\s+/).filter((f) => !RE_MARCA_ESTIMATIVA.test(f))
+
 export function conferirNumeros(resposta: string, textoBase: string): string[] {
-  const conhecidos = [...textoBase.matchAll(RE_REAIS)].map((m) => Math.abs(lerReais(m[0])))
+  const conhecidos = valoresDoTexto(textoBase).map((v) => v.valor)
   const ruins: string[] = []
-  for (const frase of resposta.split(/(?<=[.!?\n])\s+/)) {
-    if (RE_MARCA_ESTIMATIVA.test(frase)) continue
-    for (const m of frase.matchAll(RE_REAIS)) {
-      const v = Math.abs(lerReais(m[0]))
-      if (!Number.isFinite(v) || v < 1) continue
+  for (const frase of frasesDeFato(resposta)) {
+    for (const v of valoresDoTexto(frase)) {
+      if (!Number.isFinite(v.valor) || v.valor < 1) continue
       // Valor com centavos tem de ser exato; sem centavos, só o arredondamento para o real mais próximo. Sem margem percentual.
-      const folga = /[.,]\d{1,2}$/.test(m[0]) ? 0.005 : 0.5
-      if (!conhecidos.some((k) => Math.abs(k - v) <= folga)) ruins.push(m[0])
+      const folga = v.centavos ? 0.005 : 0.5
+      if (!conhecidos.some((k) => Math.abs(k - v.valor) <= folga)) ruins.push(v.bruto)
+    }
+  }
+  return ruins
+}
+
+// Percentual citado como fato precisa estar nos dados ou sair da conta entre dois valores deles (parte ÷ total, ou variação).
+// Tolerância: só o arredondamento das casas que a resposta mostrou.
+// ponytail: confere que a conta existe, não que seja a conta do assunto da frase; os testes ao vivo cobrem o assunto.
+const RE_PERCENTUAL = /-?\d+(?:[.,]\d+)?\s?%/g
+const lerPct = (t: string) => Math.abs(Number(t.replace(/\s?%/, '').replace(',', '.')))
+const MAX_VALORES_RAZAO = 150
+export function conferirPercentuais(resposta: string, textoBase: string): string[] {
+  const pctBase = [...textoBase.matchAll(RE_PERCENTUAL)].map((m) => lerPct(m[0]))
+  // Os campos numéricos das ferramentas chegam como valores: uma margem de 23,45 vem como número, sem o "%"
+  const numeros = valoresDoTexto(textoBase).map((v) => v.valor).filter((v) => Number.isFinite(v) && v > 0)
+  const valores = [...new Set(numeros)].slice(0, MAX_VALORES_RAZAO)
+  const ruins: string[] = []
+  for (const frase of frasesDeFato(resposta)) {
+    for (const m of frase.matchAll(RE_PERCENTUAL)) {
+      const p = lerPct(m[0])
+      if (p === 0 || p === 100) continue
+      const casas = m[0].match(/[.,](\d+)/)?.[1].length ?? 0
+      const folga = 0.5 / 10 ** casas + 1e-9
+      const perto = (x: number) => Math.abs(x - p) <= folga
+      if (pctBase.some(perto) || numeros.some(perto)) continue
+      if (!valores.some((a) => valores.some((b) => a !== b && (perto((a / b) * 100) || perto(Math.abs(a - b) / b * 100))))) ruins.push(m[0].trim())
     }
   }
   return ruins
@@ -811,7 +854,7 @@ export async function perguntarAoMotor(args: {
   if (r.texto) { const x = extrairSugestao(r.texto, areaDaTela(args.tela)); r.texto = x.texto || null; sugestaoMemoria = x.sugestao }
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
   const reaisConsultas = reaisDasConsultas(r.consultas ?? [])
-  const naoConferidos = r.texto ? conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`) : []
+  const naoConferidos = r.texto ? [...conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`), ...conferirPercentuais(r.texto, `${textoConferencia}\n${reaisConsultas}`)] : []
   // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
   // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.
   const semFonteServidor = r.texto ? contarSemFonteServidor(r.texto, `${retrato.texto}\n${memoria.texto}\n${mundo ?? ''}\n${reaisConsultas}`, naoConferidos.length) : 0

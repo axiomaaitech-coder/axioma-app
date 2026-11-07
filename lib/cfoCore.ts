@@ -24,7 +24,7 @@ export const fBRL2 = (n: number) =>
   (n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const fK = (n: number) =>
-  Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toFixed(0)}k` : `R$ ${Math.round(n)}`;
+  Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : fBRL(n);
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
@@ -257,9 +257,9 @@ export function projecaoSaldoComCenarios(
 
     saldo += entradasSemana - saidasSemana;
     labels.push(`${inicioSem.getDate()}/${inicioSem.getMonth() + 1}`);
-    previsto.push(Math.round(saldo));
-    otimista.push(Math.round(saldo * (1 + bandaPct / 100)));
-    pessimista.push(Math.round(saldo * (1 - bandaPct / 100)));
+    previsto.push(Math.round(saldo * 100) / 100);
+    otimista.push(Math.round(saldo * (1 + bandaPct / 100) * 100) / 100);
+    pessimista.push(Math.round(saldo * (1 - bandaPct / 100) * 100) / 100);
   }
 
   return { labels, previsto, otimista, pessimista };
@@ -1474,7 +1474,7 @@ export function projetarQuitacao(
 
   if (cenario === "avalanche") carteira = [...carteira].sort((a, b) => b.taxa - a.taxa);
 
-  const pontos: PontoQuitacao[] = [{ mes: 0, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0)) }];
+  const pontos: PontoQuitacao[] = [{ mes: 0, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0) * 100) / 100 }];
 
   for (let mes = 1; mes <= horizonteMeses; mes++) {
     let folga = cenario === "avalanche" ? folgaExtraMensal : 0;
@@ -1485,7 +1485,7 @@ export function projetarQuitacao(
       if (folga > 0) folga = Math.max(0, folga - Math.max(0, pagamento - c.parcelaBase));
       return { ...c, saldo: Math.max(0, c.saldo + juros - pagamento) };
     });
-    pontos.push({ mes, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0)) });
+    pontos.push({ mes, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0) * 100) / 100 });
     if (carteira.every((c) => c.saldo <= 0)) break;
   }
   return pontos;

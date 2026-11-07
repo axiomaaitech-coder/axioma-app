@@ -10,8 +10,8 @@
 // dos módulos Financeiro), eixos/legendas #374151, tooltip branco.
 // ═══════════════════════════════════════════════════════════════
 
-export const fBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
-export const fK = (n: number) => Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toFixed(0)}k` : `R$ ${Math.round(n)}`;
+export const fBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+export const fK = (n: number) => Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : fBRL(n);
 
 export const tip = {
   backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14],

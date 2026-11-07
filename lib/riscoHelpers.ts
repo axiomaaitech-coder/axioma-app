@@ -20,7 +20,7 @@ export const nivelDaNota = (n: number | null): NivelRisco => (n == null ? "sem_d
 
 export function avaliarRiscos(x: NumerosRetrato, lang: Idioma3): ItemRisco[] {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
-  const brl = (v: number) => v.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const brl = (v: number) => v.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const pct = (v: number) => `${v.toFixed(0)}%`;
   const item = (chave: ChaveRisco, nota: number | null, titulo: string, explicacao: string, rota: string): ItemRisco =>
     ({ chave, nota, nivel: nivelDaNota(nota), titulo, explicacao, rota });

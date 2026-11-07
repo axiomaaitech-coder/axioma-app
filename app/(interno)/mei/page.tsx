@@ -282,7 +282,7 @@ export default function PainelMEI() {
 
   // ---- Consequência do estouro (reaproveita o motor de regimes da IA Tributária) ----
   const impostoAtualMensal = dasMensalPorCategoria(categoriaMei)
-  const impostoMEMensal = faturamentoAnual > 0 ? calcularImpostoRegime('simples', faturamentoAnual, faturamentoAnual / 12) : 0
+  const impostoMEMensal = faturamentoAnual > 0 ? calcularImpostoRegime('simples', faturamentoAnual, faturamentoAnual / 12, undefined, undefined, undefined, /ind[uú]stria/i.test(categoriaMei || '') ? 'II' : /com[eé]rcio/i.test(categoriaMei || '') ? 'I' : 'III') : 0
 
   // ---- Cofre Inteligente (Fase 2) — "o que é seu de verdade" ----
   // Gancho de IA: a explicação de cada fatia é texto fixo por regra hoje;

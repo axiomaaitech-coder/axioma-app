@@ -342,7 +342,7 @@ export function detectarAlertasCobranca(
 
   const pendentes = contas.filter((c) => c.status !== "recebido");
   const totalPendente = pendentes.reduce((s, c) => s + Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)), 0);
-  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
 
   // 1. Recebimentos próximos
   const proximos = pendentes.filter((c) => c.data_vencimento >= hojeStr && c.data_vencimento <= em3diasStr);
@@ -449,7 +449,7 @@ export function gerarParecerCobranca(
   contas: ContaRow[],
   ranking: { s: ClienteSnapshot; score: ScoreAxiomaCliente }[],
 ): CardExplicativo[] {
-  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
   const cards: CardExplicativo[] = [];
   if (ranking.length === 0) return cards;
 

@@ -555,7 +555,7 @@ export default function ClientesPage() {
   }
 
   async function salvarConta() {
-    if (!formConta.descricao.trim() || !formConta.valor || !formConta.vencimento) {
+    if (!formConta.descricao.trim() || !(parseFloat(formConta.valor) > 0) || !formConta.vencimento) {
       showToast(lang === "en" ? "Fill in description, amount and due date before saving." : lang === "es" ? "Complete descripción, valor y vencimiento antes de guardar." : "Preencha descrição, valor e vencimento antes de salvar.", "erro");
       return;
     }

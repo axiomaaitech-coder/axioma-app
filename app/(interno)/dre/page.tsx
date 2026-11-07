@@ -30,7 +30,7 @@ import {
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
-import { calcularImpostoRegime, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
+import { impostoDaEmpresa, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
 import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, lerVendasPdv, lancamentosPdvFluxo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
@@ -151,6 +151,7 @@ export default function DREPage() {
   const [jurosPagosRows, setJurosPagosRows] = useState<{ valor: number; data: string }[]>([]);
   const [premissasDRE, setPremissasDRE] = useState<string[]>([]);
   const [atividadeFiscal, setAtividadeFiscal] = useState<string | null>(null);
+  const [aliquotaIss, setAliquotaIss] = useState<number | null>(null);
   const [dividasRows, setDividasRows] = useState<DividaRow[]>([]);
   const [fluxoCaixaRows, setFluxoCaixaRows] = useState<FluxoCaixaRow[]>([]);
   const [contasReceberRows, setContasReceberRows] = useState<ContaReceberRow[]>([]);
@@ -187,7 +188,7 @@ export default function DREPage() {
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
       empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [], error: null }),
-      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal, aliquota_iss_pct").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
       // Caixa do PDV na Ponte Lucro × Caixa (mesma leitura do Fluxo de Caixa).
       empId ? lerVendasPdv(empId, periodo.inicio, periodo.fim) : Promise.resolve({ data: [], error: null }),
     ]);
@@ -205,6 +206,7 @@ export default function DREPage() {
     setContasReceberRows(cr || []);
     setRegimeTributario(emp?.regime_tributario || "");
     setAtividadeFiscal((emp as { atividade_fiscal?: string | null } | null)?.atividade_fiscal ?? null);
+    setAliquotaIss((emp as { aliquota_iss_pct?: number | null } | null)?.aliquota_iss_pct ?? null);
     if (empId && (emp?.regime_tributario || "").toLowerCase() === "mei") {
       const [das, mei] = await Promise.all([
         lerDASParaDRE(empId, inicioHist, periodo.fim),
@@ -270,13 +272,14 @@ export default function DREPage() {
   const ehSimples = regimeTributario.toLowerCase().includes("simples");
 
   // Imposto real pelo regime tributário da empresa (IA Tributária) — nunca mais um % fixo chutado.
+  const empresaFiscal = { regime_tributario: regimeTributario, atividade_fiscal: atividadeFiscal, aliquota_iss_pct: aliquotaIss };
   const inicioRb12 = inicioRolling12(periodo.fim);
   const rb12 = somaValor(receitasItens.filter(r => r.data >= inicioRb12 && r.data <= periodo.fim));
   const receitaMensalMedia = receitaBrutaAtual / meses;
   // MEI: DAS real da competência (já com a categoria e o salário mínimo de cada ano). Antes era
   // "DAS de Serviços × meses" pra todo MEI — caminhoneiro aparecia pagando R$86 em vez de R$195.
-  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, undefined, anexoInfo.anexo) * meses;
-  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, receitaMensalMedia, undefined, undefined, undefined, anexoInfo.anexo) * mesesAnt; // aproximação: mesma alíquota efetiva do período atual
+  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, receitaMensalMedia, (receitaBrutaAtual - devolucoesAtual - custoVarAtual - custoFixoAtual) / meses) * meses;
+  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, somaValor(receitasItens.filter(r => r.data >= inicioRolling12(periodoAnt.fim) && r.data <= periodoAnt.fim)), receitaBrutaAnt / mesesAnt, (receitaBrutaAnt - devolucoesAnt - custoVarAnt - custoFixoAnt) / mesesAnt) * mesesAnt;
   const impostoMensalEstimado = deducoesAtual / meses;
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
@@ -289,7 +292,7 @@ export default function DREPage() {
   const competenciasSerie = competenciasNoPeriodo(inicioRolling12(periodo.fim), periodo.fim); // mesma ordem dos buckets (mais antigo primeiro)
   const serieDREHist: DRE[] = serieReceitaHist.map((b, i) => montarDRE({
     receitaBruta: b.value,
-    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : calcularImpostoRegime(regimeTributario, rb12, b.value, undefined, undefined, undefined, anexoInfo.anexo),
+    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, b.value, b.value - (serieCustoVarHist[i]?.value || 0) - custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? "")),
     devolucoes: somaNoPeriodo(devolucoesRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
     custoVariavel: serieCustoVarHist[i]?.value || 0,
     custoFixo: custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? ""),

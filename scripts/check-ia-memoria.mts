@@ -47,7 +47,7 @@ console.log('OK — texto para o motor: confirmadas, validade, correções com p
 // ─── Motor, rota, gravação e telas ───
 const motor = readFileSync('lib/ia/motor.ts', 'utf8')
 assert.ok(motor.includes('${REGRA_SUGERIR_MEMORIA}'), 'regra de sugerir no prompt')
-assert.ok(motor.indexOf('extrairSugestao(r.texto, areaDaTela') < motor.indexOf('const naoConferidos = r.texto ? conferirNumeros'), 'marcador sai ANTES da conferência final')
+assert.ok(motor.indexOf('extrairSugestao(r.texto, areaDaTela') < motor.indexOf('const naoConferidos = r.texto ?'), 'marcador sai ANTES da conferência final')
 assert.ok(motor.includes("conferirNumeros(extrairSugestao(r.texto, 'geral').texto"), 'escalada da rotina ignora o valor da sugestão de memória')
 assert.ok(motor.includes('carregarMemoria(args.supabase, args.empresaId'), 'memória lida com o cliente do usuário (RLS)')
 assert.match(M.REGRA_SUGERIR_MEMORIA, /nunca para senha, documento pessoal ou dado de terceiros/)

@@ -8,6 +8,9 @@ import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { isoDia } from "./datas";
 import { registrarLeitura } from "./erroUiHelpers";
+import { fBRL2 } from "./cfoCore";
+
+const r2 = (v: number) => Math.round(v * 100) / 100;
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +37,7 @@ export type SnapshotFinanceiro = {
   margem_liquida: number;
   contas_receber: number;
   contas_pagar: number;
+  total_vencido: number;
   inadimplencia_pct: number;
   total_receitas_6m: number[];
   total_custos_6m: number[];
@@ -94,6 +98,8 @@ export type AcaoSugerida = {
   descricao_en: string;
   descricao_es: string;
   impacto_estimado: string;
+  impacto_en: string;
+  impacto_es: string;
   categoria: "custo" | "receita" | "cobranca" | "fiscal" | "gestao";
 };
 
@@ -155,14 +161,16 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
 
   // Contas a receber/pagar abertas
   const crAberto = (contasRec || []).filter(r => r.status !== "recebido");
-  const cpAberto = (contasPag || []).filter(r => r.status !== "pago");
+  const cpAberto = (contasPag || []).filter(r => r.status !== "pago" && !/cancel/i.test(String(r.status)));
   const contas_receber = crAberto.reduce((s, r) => s + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0);
   const contas_pagar = cpAberto.reduce((s, r) => s + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
 
   // Inadimplência
-  const totalRec = (contasRec || []).reduce((s, r) => s + Number(r.valor || 0), 0);
-  const vencidos = (contasRec || []).filter(r => r.status !== "recebido" && r.data_vencimento && r.data_vencimento < hojeStr);
-  const totalVencido = vencidos.reduce((s, r) => s + Number(r.valor || 0), 0);
+  // Cancelada não é dívida; recebida em parte só conta pelo que falta.
+  const naoCanceladas = (contasRec || []).filter(r => !/cancel/i.test(String(r.status)));
+  const totalRec = naoCanceladas.reduce((s, r) => s + Number(r.valor || 0), 0);
+  const vencidos = naoCanceladas.filter(r => r.status !== "recebido" && r.data_vencimento && r.data_vencimento < hojeStr);
+  const totalVencido = vencidos.reduce((s, r) => s + Math.max(0, Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0);
   const inadimplencia_pct = totalRec > 0 ? (totalVencido / totalRec) * 100 : 0;
 
   // Evolução últimos 6 meses
@@ -188,22 +196,23 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
 
   return {
     periodo: `${String(mesAtual).padStart(2, "0")}/${anoAtual}`,
-    receita_bruta: Math.round(receita_bruta),
-    custos_fixos: Math.round(custos_fixos),
-    custos_variaveis: Math.round(custos_variaveis),
-    custos_totais: Math.round(custos_totais),
-    lucro_bruto: Math.round(lucro_bruto),
-    lucro_liquido: Math.round(lucro_liquido),
+    receita_bruta: r2(receita_bruta),
+    custos_fixos: r2(custos_fixos),
+    custos_variaveis: r2(custos_variaveis),
+    custos_totais: r2(custos_totais),
+    lucro_bruto: r2(lucro_bruto),
+    lucro_liquido: r2(lucro_liquido),
     margem_bruta: parseFloat(margem_bruta.toFixed(1)),
     margem_liquida: parseFloat(margem_liquida.toFixed(1)),
-    contas_receber: Math.round(contas_receber),
-    contas_pagar: Math.round(contas_pagar),
+    contas_receber: r2(contas_receber),
+    contas_pagar: r2(contas_pagar),
+    total_vencido: r2(totalVencido),
     inadimplencia_pct: parseFloat(inadimplencia_pct.toFixed(1)),
     total_receitas_6m: receitas6m,
     total_custos_6m: custos6m,
     qtd_lancamentos,
-    ticket_medio: Math.round(ticket_medio),
-    endividamento_total: Math.round(endividamento_total),
+    ticket_medio: r2(ticket_medio),
+    endividamento_total: r2(endividamento_total),
     setor: empresa?.setor || empresa?.cnae_principal || "Geral",
     regime: empresa?.regime_tributario || "",
   };
@@ -415,9 +424,9 @@ export function detectarAnomalias(snap: SnapshotFinanceiro, bench: BenchmarkSeto
       titulo: `Inadimplência em ${snap.inadimplencia_pct.toFixed(1)}%`,
       titulo_en: `Delinquency at ${snap.inadimplencia_pct.toFixed(1)}%`,
       titulo_es: `Morosidad en ${snap.inadimplencia_pct.toFixed(1)}%`,
-      descricao: "Ative a régua de cobrança no módulo Inadimplência. Cobranças em 3 fases reduzem até 60% da inadimplência.",
-      descricao_en: "Activate collection pipeline in the Delinquency module. 3-phase collections reduce delinquency by up to 60%.",
-      descricao_es: "Active la gestión de cobros en el módulo Morosidad. Cobros en 3 fases reducen hasta 60%.",
+      descricao: "Ative a régua de cobrança no módulo Inadimplência. Cobre em 3 fases: lembrete, cobrança formal e negociação.",
+      descricao_en: "Activate collection pipeline in the Delinquency module. Collect in 3 phases: reminder, formal notice and negotiation.",
+      descricao_es: "Active la gestión de cobros en el módulo Morosidad. Cobre en 3 fases: recordatorio, cobro formal y negociación.",
     });
   }
 
@@ -485,9 +494,9 @@ export function gerarProjecoes(snap: SnapshotFinanceiro): Projecao[] {
 
   for (let i = 1; i <= 6; i++) {
     const mesIdx = (mesAtual + i) % 12;
-    const otimista = Math.round(base * Math.pow(1 + taxaMensal * 1.5, i));
-    const realista = Math.round(base * Math.pow(1 + taxaMensal, i));
-    const pessimista = Math.round(base * Math.pow(1 + taxaMensal * 0.3, i));
+    const otimista = r2(base * Math.pow(1 + taxaMensal * 1.5, i));
+    const realista = r2(base * Math.pow(1 + taxaMensal, i));
+    const pessimista = r2(base * Math.pow(1 + taxaMensal * 0.3, i));
     projecoes.push({
       mes: meses[mesIdx],
       otimista: Math.max(0, otimista),
@@ -528,7 +537,7 @@ export function simularWhatIf(
   }
 
   const lucro_antes = snap.lucro_liquido;
-  const lucro_depois = Math.round(novaReceita - novosCustosFixos - novosCustosVar);
+  const lucro_depois = r2(novaReceita - novosCustosFixos - novosCustosVar);
   const margem_antes = snap.margem_liquida;
   const margem_depois = novaReceita > 0 ? parseFloat(((lucro_depois / novaReceita) * 100).toFixed(1)) : 0;
 
@@ -550,10 +559,12 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     acoes.push({
       prioridade: prioridade++,
       titulo: "Reverter prejuízo operacional", titulo_en: "Reverse operating loss", titulo_es: "Revertir pérdida operativa",
-      descricao: "Analise as 3 maiores categorias de custo e busque reduzir 15-20%. Em paralelo, revise a precificação dos produtos/serviços principais.",
-      descricao_en: "Analyze top 3 cost categories and reduce 15-20%. In parallel, review pricing of main products/services.",
-      descricao_es: "Analice las 3 mayores categorías de costo y reduzca 15-20%. En paralelo, revise la precificación.",
-      impacto_estimado: `+R$ ${Math.abs(snap.lucro_liquido).toLocaleString("pt-BR")}/mês`,
+      descricao: "Analise as 3 maiores categorias de custo e veja quanto dá para reduzir até cobrir o prejuízo. Em paralelo, revise a precificação dos produtos/serviços principais.",
+      descricao_en: "Analyze the top 3 cost categories and see how much can be cut to cover the loss. In parallel, review pricing of main products/services.",
+      descricao_es: "Analice las 3 mayores categorías de costo y vea cuánto reducir hasta cubrir la pérdida. En paralelo, revise la precificación.",
+      impacto_estimado: `Prejuízo atual: R$ ${fBRL2(Math.abs(snap.lucro_liquido))}/mês`,
+      impacto_en: `Current loss: R$ ${fBRL2(Math.abs(snap.lucro_liquido))}/month`,
+      impacto_es: `Pérdida actual: R$ ${fBRL2(Math.abs(snap.lucro_liquido))}/mes`,
       categoria: "custo",
     });
   }
@@ -562,10 +573,12 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     acoes.push({
       prioridade: prioridade++,
       titulo: "Ativar régua de cobrança", titulo_en: "Activate collection pipeline", titulo_es: "Activar gestión de cobros",
-      descricao: "Configure 3 fases: lembrete amigável (D-3), cobrança formal (D+7), negociação (D+15). Reduza inadimplência em até 60%.",
-      descricao_en: "Set up 3 phases: friendly reminder (D-3), formal notice (D+7), negotiation (D+15). Reduce delinquency by up to 60%.",
-      descricao_es: "Configure 3 fases: recordatorio amigable (D-3), cobro formal (D+7), negociación (D+15). Reduzca morosidad hasta 60%.",
-      impacto_estimado: `Recuperar R$ ${Math.round(snap.contas_receber * snap.inadimplencia_pct / 100 * 0.6).toLocaleString("pt-BR")}`,
+      descricao: "Configure 3 fases: lembrete amigável (D-3), cobrança formal (D+7), negociação (D+15).",
+      descricao_en: "Set up 3 phases: friendly reminder (D-3), formal notice (D+7), negotiation (D+15).",
+      descricao_es: "Configure 3 fases: recordatorio amigable (D-3), cobro formal (D+7), negociación (D+15).",
+      impacto_estimado: `Em atraso: R$ ${fBRL2(snap.total_vencido)}`,
+      impacto_en: `Overdue: R$ ${fBRL2(snap.total_vencido)}`,
+      impacto_es: `Vencido: R$ ${fBRL2(snap.total_vencido)}`,
       categoria: "cobranca",
     });
   }
@@ -574,10 +587,12 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     acoes.push({
       prioridade: prioridade++,
       titulo: "Renegociar custos fixos", titulo_en: "Renegotiate fixed costs", titulo_es: "Renegociar costos fijos",
-      descricao: "Custos fixos representam mais de 40% da receita. Renegocie aluguel, seguros e contratos recorrentes. Meta: reduzir 10-15%.",
-      descricao_en: "Fixed costs exceed 40% of revenue. Renegotiate rent, insurance and recurring contracts. Target: 10-15% reduction.",
-      descricao_es: "Costos fijos superan 40% de ingresos. Renegocie alquiler, seguros y contratos. Meta: reducir 10-15%.",
-      impacto_estimado: `Economia R$ ${Math.round(snap.custos_fixos * 0.12).toLocaleString("pt-BR")}/mês`,
+      descricao: "Custos fixos representam mais de 40% da receita. Renegocie aluguel, seguros e contratos recorrentes.",
+      descricao_en: "Fixed costs exceed 40% of revenue. Renegotiate rent, insurance and recurring contracts.",
+      descricao_es: "Costos fijos superan 40% de ingresos. Renegocie alquiler, seguros y contratos.",
+      impacto_estimado: `Cada 10% reduzidos: R$ ${fBRL2(snap.custos_fixos * 0.1)}/mês`,
+      impacto_en: `Each 10% cut: R$ ${fBRL2(snap.custos_fixos * 0.1)}/month`,
+      impacto_es: `Cada 10% reducido: R$ ${fBRL2(snap.custos_fixos * 0.1)}/mes`,
       categoria: "custo",
     });
   }
@@ -586,10 +601,12 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     acoes.push({
       prioridade: prioridade++,
       titulo: "Investir em crescimento", titulo_en: "Invest in growth", titulo_es: "Invertir en crecimiento",
-      descricao: "Receita estagnada ou em queda. Diversifique canais de venda, lance promoções e invista em marketing digital (2-5% da receita).",
-      descricao_en: "Revenue stagnant or declining. Diversify sales channels, launch promotions and invest in digital marketing (2-5% of revenue).",
-      descricao_es: "Ingresos estancados o en caída. Diversifique canales, lance promociones e invierta en marketing (2-5% de ingresos).",
-      impacto_estimado: `Meta: +${Math.round(snap.receita_bruta * 0.1).toLocaleString("pt-BR")}/mês`,
+      descricao: "Receita estagnada ou em queda. Diversifique canais de venda, lance promoções e invista em marketing digital.",
+      descricao_en: "Revenue stagnant or declining. Diversify sales channels, launch promotions and invest in digital marketing.",
+      descricao_es: "Ingresos estancados o en caída. Diversifique canales, lance promociones e invierta en marketing.",
+      impacto_estimado: `Cada 10% a mais: +R$ ${fBRL2(snap.receita_bruta * 0.1)}/mês`,
+      impacto_en: `Each extra 10%: +R$ ${fBRL2(snap.receita_bruta * 0.1)}/month`,
+      impacto_es: `Cada 10% adicional: +R$ ${fBRL2(snap.receita_bruta * 0.1)}/mes`,
       categoria: "receita",
     });
   }
@@ -601,7 +618,9 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
       descricao: "Use a IA Tributária para simular se Simples Nacional seria mais vantajoso para o seu faturamento atual.",
       descricao_en: "Use Tax AI to simulate if Simples Nacional would be more advantageous for your current revenue.",
       descricao_es: "Use la IA Tributaria para simular si Simples Nacional sería más ventajoso para su facturación.",
-      impacto_estimado: "Potencial 5-15% economia fiscal",
+      impacto_estimado: "Compare os regimes na IA Tributária",
+      impacto_en: "Compare regimes in Tax AI",
+      impacto_es: "Compare regímenes en la IA Tributaria",
       categoria: "fiscal",
     });
   }
@@ -621,6 +640,8 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
       titulo: `Tratar: ${a.titulo}`, titulo_en: `Address: ${a.titulo_en}`, titulo_es: `Atender: ${a.titulo_es}`,
       descricao: a.descricao, descricao_en: a.descricao_en, descricao_es: a.descricao_es,
       impacto_estimado: a.metrica ?? "a medir",
+      impacto_en: a.metrica ?? "to be measured",
+      impacto_es: a.metrica ?? "por medir",
       categoria: CATEGORIA_ANOMALIA[a.tipo],
     });
   }
@@ -630,10 +651,12 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
     acoes.push({
       prioridade: prioridade++,
       titulo: "Monitorar KPIs semanalmente", titulo_en: "Monitor KPIs weekly", titulo_es: "Monitorear KPIs semanalmente",
-      descricao: "Acompanhe receita, margem e fluxo de caixa toda semana. Empresas que monitoram KPIs crescem 25% mais rápido.",
-      descricao_en: "Track revenue, margin and cash flow weekly. Companies that monitor KPIs grow 25% faster.",
-      descricao_es: "Siga ingresos, margen y flujo de caja semanalmente. Empresas que monitorean KPIs crecen 25% más rápido.",
-      impacto_estimado: "+25% decisões assertivas",
+      descricao: "Acompanhe receita, margem e fluxo de caixa toda semana.",
+      descricao_en: "Track revenue, margin and cash flow weekly.",
+      descricao_es: "Siga ingresos, margen y flujo de caja semanalmente.",
+      impacto_estimado: "Sem valor estimado",
+      impacto_en: "No estimated value",
+      impacto_es: "Sin valor estimado",
       categoria: "gestao",
     });
   }

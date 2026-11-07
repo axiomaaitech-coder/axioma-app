@@ -1466,7 +1466,7 @@ export default function ContasPagarPage() {
   async function salvarConta() {
     // Mesmo bug silencioso da varredura (Precificação/Metas/Contas a Receber/
     // Inadimplência/MEI Faturamento): este guard voltava em `return` mudo.
-    if (!nc.descricao || !nc.valor_total || !nc.data_vencimento || !userId) {
+    if (!nc.descricao || !(parseFloat(nc.valor_total) > 0) || !nc.data_vencimento || !userId) {
       showToast(L("Preencha descrição, valor total e data de vencimento antes de salvar.", "Fill in description, total amount and due date before saving.", "Complete descripción, valor total y fecha de vencimiento antes de guardar."), "erro");
       return;
     }

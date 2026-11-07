@@ -670,7 +670,7 @@ export function oportunidadesConsolidacao(fornecedores: FornecedorRow[], contas:
     linhas.sort((a, b) => a.ticketMedio - b.ticketMedio);
     const maisBarato = linhas[0];
     const economiaEstimada = linhas.slice(1).reduce((s, l) => s + Math.max(0, (l.ticketMedio - maisBarato.ticketMedio) * l.qtdCompras), 0);
-    grupos.push({ categoria, fornecedores: linhas, economiaEstimada: Math.round(economiaEstimada) });
+    grupos.push({ categoria, fornecedores: linhas, economiaEstimada: Math.round(economiaEstimada * 100) / 100 });
   });
   return grupos.sort((a, b) => b.economiaEstimada - a.economiaEstimada);
 }

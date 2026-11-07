@@ -34,7 +34,7 @@ import {
   montarNarrativaSensibilidade, montarNarrativaMonteCarlo, montarNarrativaRiscoRuptura,
   montarNarrativaOportunidadeCenario, montarNarrativaRegimeTributario, nomeDriverSensibilidade,
 } from "../../../lib/cfoTextos";
-import { calcularImpostoRegime, categoriaMeiDaEmpresa } from "../../../lib/iaTributariaHelpers";
+import { calcularImpostoRegime, categoriaMeiDaEmpresa, impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, type EmpresaFiscal } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../components/AvisoAxioma";
@@ -102,6 +102,7 @@ export default function Simulacoes() {
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
   const [caixaDisponivel, setCaixaDisponivel] = useState(0);
   const [regimeTributario, setRegimeTributario] = useState("");
+  const [empresaFiscal, setEmpresaFiscal] = useState<EmpresaFiscal | null>(null);
   const [categoriaMei, setCategoriaMei] = useState<string | null>(null) // MEI: DAS da categoria certa
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("ultimos_12_meses");
@@ -147,7 +148,7 @@ export default function Simulacoes() {
       // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Investimentos, Painel de Risco e IA.
       empresaId ? saldoCaixaRealizado(supabase, empresaId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
       // Regime da empresa ABERTA (antes: a 1ª empresa do usuário — quem tem 2 empresas via o imposto da outra).
-      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      empresaId ? supabase.from("empresas").select(COLUNAS_EMPRESA_FISCAL).eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
     avisarSeFalhou([{ error: eLerEmp }], "simulacoes:leitura"); // dado que não veio não pode parecer vazio de verdade
 
@@ -159,7 +160,7 @@ export default function Simulacoes() {
     setCustosVarRows(cv || []);
     setDividasRows(dv || []);
     setCaixaDisponivel(sc.saldo);
-    setRegimeTributario(emp?.regime_tributario || ""); setCategoriaMei(categoriaMeiDaEmpresa(emp));
+    setRegimeTributario(emp?.regime_tributario || ""); setEmpresaFiscal(emp as EmpresaFiscal | null); setCategoriaMei(categoriaMeiDaEmpresa(emp));
     setCarregando(false);
   };
 
@@ -174,7 +175,7 @@ export default function Simulacoes() {
 
   const dividaTotal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
   const despesasFinanceirasMensal = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
-  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaPeriodo, receitaMensalMedia, undefined, undefined, categoriaMei);
+  const impostoMensalEstimado = impostoDaEmpresa(empresaFiscal, receitaBrutaPeriodo, receitaMensalMedia);
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
   // caixaDisponivel: saldo único carregado em carregarTudo.
@@ -246,7 +247,7 @@ export default function Simulacoes() {
     const custoVariavelSimulado = custoVariavelMensalMedia * (1 + choque.custoVariavelPct / 100);
     const custoFixoSimulado = custoFixoBase * (1 + choque.custoFixoPct / 100);
     const tributario: ResultadoTributario[] = (["simples nacional", "presumido", "real"] as RegimeSimulado[]).map((regime) => {
-      const impostoMensal = calcularImpostoRegime(regime, receitaSimulada * 12, receitaSimulada, undefined, undefined, categoriaMei);
+      const impostoMensal = impostoDaEmpresa({ ...empresaFiscal, regime_tributario: regime }, receitaSimulada * 12, receitaSimulada);
       const dre = montarDRE({
         receitaBruta: receitaSimulada, deducoes: impostoMensal,
         custoVariavel: custoVariavelSimulado, custoFixo: custoFixoSimulado, despesasFinanceiras: despesasFinanceirasMensal,

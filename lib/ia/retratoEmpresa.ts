@@ -14,7 +14,7 @@ import { soVigentes } from '../custoFixoVigente'
 import { saldoCaixaRealizado } from '../caixaSaldo'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
-import { calcularImpostoRegime, simularRegimes, categoriaMeiDaEmpresa } from '../iaTributariaHelpers'
+import { impostoDaEmpresa, simularRegimes, categoriaMeiDaEmpresa, type EmpresaFiscal } from '../iaTributariaHelpers'
 import { setorDaEmpresa, type Setor } from './setores'
 import { nomeSerie } from '../nexusEventDetector'
 import { hojeISO, fusoDaEmpresa } from '../datas'
@@ -55,6 +55,7 @@ export type Retrato = {
   nome: string
   fuso: string // fuso da empresa (lib/datas.ts)
   regime: string | null
+  fiscal: { atividade_fiscal: string | null; aliquota_iss_pct: number | null; categoria_mei: string | null }
   porte: string | null
   cnae: string | null
   setor: Setor | null
@@ -68,7 +69,7 @@ export type Retrato = {
 type Linha = Record<string, unknown>
 const n = (v: unknown) => Number(v || 0)
 const soma = (ls: Linha[], c: string) => ls.reduce((t, l) => t + n(l[c]), 0)
-export const fBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v || 0)
+export const fBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0)
 const pct = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)}%`)
 
 // Maiores itens por nome (custos/receitas), pra IA citar PELO NOME.
@@ -88,7 +89,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const [aBR, mBR, dBR] = hojeBR.split('-').map(Number)
   const inicio12 = iso(new Date(Date.UTC(aBR - 1, mBR - 1, dBR)))
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
-    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
+    supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, atividade_fiscal, aliquota_iss_pct, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
     lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
     lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId), hojeBR).order('id')),
     lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
@@ -125,7 +126,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const custoFixoMensal = soma(L(cf), 'valor_mensal')
   const custoVariavelMensal = soma(L(cv), 'valor') / 12
   const regime = (e.regime_tributario as string | null) || null
-  const impostoMensal = receitaMensal > 0 ? calcularImpostoRegime(regime || '', receita12, receitaMensal, undefined, undefined, categoriaMeiDaEmpresa(e)) : 0
+  const impostoMensal = receitaMensal > 0 ? impostoDaEmpresa(e as EmpresaFiscal, receita12, receitaMensal, receitaMensal - custoVariavelMensal - custoFixoMensal) : 0
   const aliquotaEfetivaPct = receitaMensal > 0 ? (impostoMensal / receitaMensal) * 100 : 0
 
   const dividas = L(dv)
@@ -193,7 +194,7 @@ DÍVIDAS: ${dividas.map((d) => `${d.descricao || 'dívida'} saldo ${fBRL(saldoDi
 ALERTAS DA SITUAÇÃO: ${alertas.join(' | ') || 'nenhum'}
 DESCOBERTAS ABERTAS DO MOTOR (com evidência; confiança indicada): ${descobertas || 'nenhuma'}`
 
-  return { empresaId, nome, regime, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso, leiturasFalhas }
+  return { empresaId, nome, regime, fiscal: { atividade_fiscal: (e.atividade_fiscal as string | null) ?? null, aliquota_iss_pct: (e.aliquota_iss_pct as number | null) ?? null, categoria_mei: categoriaMeiDaEmpresa(e) }, porte: (e.porte as string | null) ?? null, cnae, setor, numeros, alertas, temDados, texto, fuso, leiturasFalhas }
 }
 
 // Situação da empresa em frases (ordem = prioridade). Regras fixas e explicáveis.
@@ -234,11 +235,10 @@ export function textoFiscal(r: Retrato): string {
   const sims = simularRegimes({
     receita_bruta_12m: x.receitaMensal * 12, receita_bruta_mensal: x.receitaMensal,
     custos_fixos_mensal: x.custoFixoMensal, custos_variaveis_mensal: x.custoVariavelMensal,
-    folha_pagamento_mensal: x.custoFixoMensal * 0.4, // mesma estimativa da tela IA Tributária
     lucro_bruto_mensal: x.receitaMensal - x.custoVariavelMensal,
-    regime_atual: r.regime ?? '', setor: r.setor?.id ?? '', cnae: r.cnae ?? '',
+    regime_atual: r.regime ?? '', setor: r.setor?.id ?? '', cnae: r.cnae ?? '', ...r.fiscal,
     obrigacoes_pendentes: 0, obrigacoes_vencidas: x.obrigacoesAtrasadas, total_obrigacoes: 0,
   })
-  const linhas = sims.map((s) => `${s.regime_label}: ${fBRL(s.imposto_mensal)}/mês (${s.aliquota_efetiva.toFixed(1)}%)${s.elegivel ? '' : ` — não elegível: ${s.motivo_inelegivel ?? ''}`}${s.elegivel && s.economia_vs_atual > 0 ? ` — economia estimada de ${fBRL(s.economia_vs_atual)}/ano vs atual` : ''}`)
-  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${hojeISO(new Date(), r.fuso)}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
+  const linhas = sims.map((s) => `${s.regime_label}: ${fBRL(s.imposto_mensal)}/mês (${s.aliquota_efetiva.toFixed(1)}%)${s.parcial ? ' sem ICMS/IPI, não compare com o Simples' : ''}${s.elegivel ? '' : ` — não elegível: ${s.motivo_inelegivel ?? ''}`}${s.elegivel && s.economia_vs_atual > 0 ? ` — economia estimada de ${fBRL(s.economia_vs_atual)}/ano vs atual` : ''}`)
+  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${hojeISO(new Date(), r.fuso)}; Reforma Tributária em transição 2026-2033, pode mudar):\n- ${linhas.join('\n- ')}`
 }
