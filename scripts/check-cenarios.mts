@@ -2,6 +2,7 @@
 // Banco simulado, sem IA de verdade: confere o que o SERVIDOR faz. As mesmas perguntas foram feitas ao vivo no site.
 // Onde o Axioma ainda não tem o módulo (RH), o esperado hoje é "não há dado", nunca um número; o cenário muda quando o RH existir.
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
 const { executarFerramentaFinanceira } = await import('../lib/financeiro/ferramentasFinanceiras')
@@ -129,7 +130,8 @@ const executivo = async (falhar: string[] = [], t = tab) => R.gerarRelatorio(ctx
   const r = await titulos('receber'); assert.ok(!JSON.stringify(r).includes('Alheio') && !JSON.stringify(r).includes('77777'), 'nada da outra Empresa')
   const pedidoOutra = R.validarPedido({ tipo: 'executivo', periodo: 'este_mes', lang: 'pt', empresa_id: OUTRA })!
   assert.ok(!('empresa_id' in pedidoOutra), 'empresa vem da sessão no servidor, nunca do pedido')
-  ok(8, 'segurança: operador barrado, ferramenta inventada recusada e outra Empresa invisível')
+  assert.ok(readFileSync('app/api/ia/motor/route.ts', 'utf8').includes("acao: 'ia.motor.bloqueado'"), 'tentativa registrada')
+  ok(8, 'segurança: operador barrado, ferramenta inventada recusada, outra Empresa invisível e tentativa registrada')
 }
 // ─── 9. Duplicidade ───
 {

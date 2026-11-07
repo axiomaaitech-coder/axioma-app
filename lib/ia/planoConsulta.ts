@@ -52,8 +52,14 @@ export function planejarConsulta(pergunta: string, tela?: string | null): PlanoC
   }
 }
 
+// Mesma informação por outra porta: não é consulta que faltou
+const EQUIVALENTES: Record<string, string[]> = {
+  titulos: ['contas_a_receber', 'contas_a_pagar', 'contas_vencidas', 'relatorio'], faturamento: ['dre', 'relatorio'], despesas: ['dre', 'custos', 'relatorio'],
+  dre: ['relatorio'], resumo_financeiro: ['relatorio'], caixa_tesouraria: ['relatorio'], estoque_resumo: ['estoque_avisos'],
+}
 // O que estava no plano e não foi consultado. Só para auditoria: a resposta pode ter vindo do retrato da empresa.
-export const portasNaoConsultadas = (plano: PlanoConsulta, consultadas: string[]) => plano.portas.filter((n) => !consultadas.includes(n))
+export const portasNaoConsultadas = (plano: PlanoConsulta, consultadas: string[]) =>
+  plano.portas.filter((n) => !consultadas.includes(n) && !(EQUIVALENTES[n] ?? []).some((e) => consultadas.includes(e)))
 
 // ─── Pergunta sem sujeito: qualquer número seria um chute. Só quando vem sozinha, sem conversa antes. ───
 const AMBIGUAS = /^(quanto (eu )?(tenho|temos)|qual (e |eh )?(o )?(meu |nosso )?(saldo|valor|total)|(meu |nosso |o )?saldo|quanto (e|da)|how much (do )?(i|we) have|what is (the|my|our) (balance|total)|cuanto (tengo|tenemos)|cual es (el|mi|nuestro) saldo)[\s?.!]*$/

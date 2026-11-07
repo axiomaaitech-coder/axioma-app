@@ -165,6 +165,8 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   assert.deepEqual(foraTrib.portas, []); assert.deepEqual(foraTrib.fora_da_tela, ['cadastros'], 'o plano registra o que é de outra tela')
   for (const n of P.planejarConsulta('caixa faturamento despesa lucro imposto estoque divida vencido relatorio pdv pedido de compra quantos clientes a receber situacao geral').portas) assert.ok(Object.hasOwn(PORTAS, n), `plano citou porta inexistente: ${n}`)
   assert.deepEqual(P.portasNaoConsultadas(tres, ['faturamento']), ['dre', 'estoque_resumo'])
+  assert.deepEqual(P.portasNaoConsultadas(dois, ['contas_a_receber']), [], 'mesma informação por outra porta não é falta')
+  assert.ok(readFileSync('app/api/ia/motor/route.ts', 'utf8').includes("acao: 'ia.motor.bloqueado'"), 'tentativa barrada fica registrada')
   // Ambígua
   for (const t of ['Quanto temos?', 'quanto eu tenho', 'Qual é o saldo?', 'saldo', 'How much do we have?', '¿Cuánto tenemos?'.replace('¿', '')]) assert.equal(P.perguntaAmbigua(t, false), true, t)
   for (const t of ['Quanto temos a receber?', 'Qual o saldo em caixa?', 'Quanto tenho em estoque?', 'Qual o valor do DAS?']) assert.equal(P.perguntaAmbigua(t, false), false, t)

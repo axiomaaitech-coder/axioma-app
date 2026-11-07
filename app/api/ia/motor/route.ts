@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
   })
 
   if (res.status !== 200) {
+    // Tentativa barrada (sem papel ou empresa que não é da pessoa) fica registrada, sem a pergunta
+    if (res.status === 403 || res.status === 404) after(() => registrarAuditoria({ empresaId: res.status === 403 ? empresaId : null, ator: user.id, acao: 'ia.motor.bloqueado', entidade: 'motor-ia', versaoMotor: 'motor-ia-1', parametros: { motivo: res.erro, status: res.status, empresa_pedida: empresaId, tela: tela ?? null, correlacao } }))
     if (res.status === 403) return NextResponse.json({ error: 'sem_acesso_financeiro', mensagem: SEM_ACESSO[lang] }, { status: 403 })
     if (res.status === 402) return NextResponse.json({ error: 'sem_saldo_ia', motivo: res.motivo, mensagem: mensagemSemSaldo(res.motivo ?? 'sem_saldo', lang) }, { status: 402 })
     if (res.status === 404) return NextResponse.json({ error: 'empresa nao encontrada' }, { status: 404 })
