@@ -367,6 +367,10 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
   }
   assert.ok(ind(v, 'Valor em risco')?.nota?.includes('sem histórico'), 'R$ 0,00 sem histórico precisa do aviso')
   assert.ok(!JSON.stringify(v).includes('1 contas'), 'singular certo')
+  assert.equal(R.avisoColeta([{ nome: 'a', estado: 'verificado', consultado_em: '2026-11-07T13:00:00Z' }], FUSO, 'pt').length, 0, 'uma fonte só não precisa do aviso')
+  const coleta = R.avisoColeta([{ nome: 'b', estado: 'verificado', consultado_em: '2026-11-07T13:00:05Z' }, { nome: 'a', estado: 'verificado', consultado_em: '2026-11-07T13:00:01Z' }], FUSO, 'pt')
+  assert.ok(/não em um único instante/.test(coleta[0]), 'sem fotografia única, o relatório diz'); assert.ok(e.limitacoes.some((l) => /único instante/.test(l)), 'relatório com várias fontes traz o aviso')
+  for (const l of ['en', 'es'] as const) assert.ok(!/único instante: lançamento/.test(R.avisoColeta([{ nome: 'b', estado: 'verificado', consultado_em: '2026-11-07T13:00:05Z' }, { nome: 'a', estado: 'verificado', consultado_em: '2026-11-07T13:00:01Z' }], FUSO, l)[0]))
   ok('Etapa 4: relatório de Contas Vencidas e fontes com horário')
 }
 

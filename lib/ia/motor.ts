@@ -24,7 +24,9 @@ import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusContextoMundo'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 import { INDICADORES } from '../financeiro/semantica'
-import { passarPelaPorta, portasDaTela, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
+import { planejarConsulta, portasNaoConsultadas, perguntaAmbigua, PEDIDO_ESCLARECIMENTO, type PlanoConsulta } from './planoConsulta'
+import { avisosDaConsolidacao, comOrigem, consolidar, type Consolidacao, type SaidaConsulta } from './consolidacao'
+import { PORTAS, passarPelaPorta, portasDaTela, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
 import { linhaIdentidade } from './identidade'
@@ -169,6 +171,7 @@ Regras invioláveis:
 - Escolha a ferramenta pelo significado: visão geral → resumo_financeiro; "vence esta semana/vencidas/quem deve/a quem devo" → titulos (com o período); dinheiro que entrou/saiu → movimentos_realizados (caixa); faturamento → faturamento (competência, igual à DRE; "receitas lançadas" é outra coisa e você diz qual usou); despesas → despesas; custos fixos de um mês → custos_fixos_mes; lucro, margem, DRE → dre; pedido para GERAR/MONTAR relatório, DRE "gerada", PDF ou documento → relatorio (tipo certo: executivo, dre, fluxo_caixa, contas_receber, contas_pagar, contas_vencidas, receitas, despesas, endividamento, tributario, pdv, conciliacao), que traz os mesmos números da tela e do PDF e faz aparecer o botão "Abrir relatório e PDF"; por cliente → receitas_por_cliente; duplicidade/inconsistência → reconciliacao; saldo por banco, caixa livre, reserva, previsão de caixa → caixa_tesouraria; impostos e obrigações que vencem → obrigacoes_fiscais; quantos clientes ou fornecedores, quantos inadimplentes → cadastros; valor do estoque → estoque_resumo (quais produtos → estoque_avisos); compras encomendadas → compras_pedidos (pedido não é dívida); vendas do caixa → pdv_resumo. Comparação pedida → comparar=true; sem base no período anterior = diga que não há base.
 - RELATÓRIO E PDF: você GERA relatórios em PDF para baixar e imprimir. Pediram relatório, PDF, documento, "para imprimir", "relatório disso" ou "do que você me passou": chame a ferramenta relatorio com o tipo mais próximo do assunto da conversa (na dúvida, executivo) e o período falado (sem período, este_mes). Ao terminar, resuma em 2 ou 3 frases os principais números que vieram da ferramenta (nunca invente) e termine com: "Seu relatório está feito e está aí embaixo, em PDF, com todas as informações que você pediu." NUNCA diga que não pode criar, gerar ou enviar PDF, arquivo ou relatório.
 - Compra paga no cartão de crédito vira dívida e só sai do caixa quando a fatura é paga. Entrada de estoque paga agora sai do caixa; a prazo vira conta a pagar; estoque inicial não mexe no caixa.
+- Pediu "a receber" ou "a pagar" sem dizer qual: mostre separados em aberto, vencido e a vencer, e diga o critério. Não escolha um deles sozinho.
 - Caixa realizado (resumo_financeiro, do Fluxo de Caixa) e posição de caixa (caixa_tesouraria, do razão contábil) são contas diferentes: diga qual usou e, se divergirem, mostre as duas.
 - ${INDICADORES.filter((i) => i.indisponivel).map((i) => i.nome).join(', ')}: não há cadastro disso no Axioma. Diga exatamente isso e nunca estime.
 - Caixa realizado NÃO é dinheiro livre para gastar. Faturamento, lucro e caixa são coisas diferentes: nunca troque uma pela outra. Se duas fontes divergirem, mostre as duas e diga qual precisa ser conferida.
@@ -417,7 +420,7 @@ export { statusDaSaida }
 export type { RegistroFerramenta }
 // relatorio: pedido do último relatório gerado pela ferramenta (a tela mostra "Abrir relatório e PDF")
 export type PedidoRelatorioMotor = { tipo: string; periodo: string; inicio: string | null; fim: string | null; comparar: boolean }
-export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; tela?: string | null; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
+export type ConsultaMotor = { supabase: SupabaseClient; empresaId: string; papel: string | null; tela?: string | null; sinal?: AbortSignal; saidas?: SaidaConsulta[]; fuso: string; registro?: RegistroFerramenta[]; exige?: boolean; relatorio?: PedidoRelatorioMotor | null }
 
 // Assuntos que só se respondem com o detalhe das tabelas (o retrato traz totais e médias, não isso)
 const RE_PEDE_DADO = /quant[oa]s? (clientes?|fornecedores?)|(clientes?|fornecedores?) ativos?|caixa (livre|dispon[ií]vel)|previs[aã]o de caixa|reserva m[ií]nima|obriga[cç][oõ]es|valor do estoque|how many (customers|clients|suppliers)|active (customers|clients|suppliers)|cash forecast|free cash|tax obligations|cu[aá]nt[oa]s (clientes|proveedores)|(clientes|proveedores) activos|caja libre|previsi[oó]n de caja|obligaciones|\bdre\b|lucro|margem|resultado|relat[oó]rio|demonstrativo|profit|income statement|ganancia|informe|receb|a receber|pagar|a pagar|vence|vencid|atras|inadimpl|devedor|(me|nos) dev(e|em)|deve(m)? (pra|para|a|à) (mim|empresa|n[oó]s)|quem (me |nos )?deve|clientes? (que )?(mais )?(me |nos )?dev|fornecedor|d[ií]vida|financiament|emprést|juros|estoque|ruptura|custo|despesa|gasto|faturament|receita|vend(a|eu|emos)|janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|semana|m[eê]s passado|este m[eê]s|receiv|payabl|overdue|due\b|supplier|vendor|debt|loan|inventor|stock|cost|expense|revenue|sales|january|february|march|april|may\b|june|july|august|september|october|november|december|this week|cobrar|cobran|proveedor|deuda|pr[eé]stamo|inventario|gasto|ingreso|ventas|enero|febrero|septiembre|octubre|noviembre|diciembre|esta semana/i
@@ -433,7 +436,9 @@ export function exigeConsulta(pergunta: string, historico: MensagemHistorico[] =
 
 async function consultarFerramenta(c: ConsultaMotor, nome: string, entrada: Record<string, unknown>): Promise<string> {
   const t0 = Date.now()
-  const { saida, motivo } = await passarPelaPorta({ empresaId: c.empresaId, papel: c.papel, nome, tela: c.tela, entrada, executar: () => executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso) })
+  const { saida: bruta, motivo } = await passarPelaPorta({ empresaId: c.empresaId, papel: c.papel, nome, tela: c.tela, entrada, sinal: c.sinal, executar: () => executarFerramenta(c.supabase, c.empresaId, nome, entrada, c.fuso) })
+  const saida = comOrigem(bruta, Object.hasOwn(PORTAS, nome) ? PORTAS[nome].modulo : undefined)
+  c.saidas?.push({ nome, saida })
   const status = statusDaSaida(saida)
   c.registro?.push({ nome, status, ms: Date.now() - t0, ...(motivo ? { motivo } : {}) })
   if (nome === 'relatorio' && status !== 'erro') { try { c.relatorio = (JSON.parse(saida) as { pedido?: PedidoRelatorioMotor }).pedido ?? null } catch { /* sem pedido */ } }
@@ -525,7 +530,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
     for (let rodada = 0; rodada <= MAX_CONSULTAS; rodada++) {
       const ultima = rodada === MAX_CONSULTAS || chamadas >= MAX_CHAMADAS_FERRAMENTA
       const postar = () => fetch(p.url, {
-        method: 'POST', signal: AbortSignal.timeout(gemini ? GEMINI_TEMPO_TENTATIVA_MS : 45000),
+        method: 'POST', signal: consulta.sinal ? AbortSignal.any([consulta.sinal, AbortSignal.timeout(gemini ? GEMINI_TEMPO_TENTATIVA_MS : 45000)]) : AbortSignal.timeout(gemini ? GEMINI_TEMPO_TENTATIVA_MS : 45000),
         headers: { Authorization: `Bearer ${p.chave}`, 'Content-Type': 'application/json' },
         // Pergunta que exige dado: na 1ª rodada o modelo é OBRIGADO a consultar (required)
         body: JSON.stringify({ model: modeloAtual, ...(gemini ? { max_tokens: 3000 } : { max_completion_tokens: 3000 }), messages: conversa, tools, tool_choice: ultima ? 'none' : consulta.exige && rodada === 0 ? 'required' : 'auto' }),
@@ -601,7 +606,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
         messages: conversa,
       }
       // `fallbacks` ainda não está nos tipos do SDK instalado — cast só aqui (mesmo padrão do plano do José).
-      const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming)
+      const r = await client.beta.messages.create(params as unknown as Anthropic.Beta.MessageCreateParamsNonStreaming, { signal: consulta.sinal })
       somarUso(uso, cfg.modelo, r.usage?.input_tokens ?? 0, r.usage?.output_tokens ?? 0, r.usage?.cache_read_input_tokens ?? 0, r.usage?.cache_creation_input_tokens ?? 0)
       if (r.stop_reason === 'refusal') return { texto: null, dadosConsultados }
       const pedidos = r.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use')
@@ -648,6 +653,8 @@ async function triagemPorIA(pergunta: string, uso?: Uso): Promise<Nivel> {
 }
 
 export type RespostaMotor = {
+  plano?: PlanoConsulta; portasNaoConsultadas?: string[]; consolidacao?: Consolidacao
+  semCusto?: boolean // respondeu sem usar IA (pedido de esclarecimento): não gasta saldo
   resposta: string | null // null = motor inteiro falhou → quem chamou usa as regras
   nivel: Nivel
   provedor: 'openai' | 'anthropic' | 'gemini' | null
@@ -709,9 +716,16 @@ export async function perguntarAoMotor(args: {
   supabase: SupabaseClient; empresaId: string; papel: string | null; pergunta: string; historico?: MensagemHistorico[]; tela?: string; lang?: Idioma; nivelMinimo?: Nivel
   contextoTela?: string // números e formato pedidos pela tela de origem (ex.: dados do DAS no MEI)
   soGratuito?: boolean // empresa sem saldo de IA: responde só pelo Gemini gratuito (nada é descontado)
+  sinal?: AbortSignal // a pessoa saiu da tela: para de consultar e de chamar a IA
 }): Promise<RespostaMotor> {
   const lang = args.lang ?? 'pt'
   const pergunta = args.pergunta.trim().slice(0, 4000)
+  const plano = planejarConsulta(pergunta, args.tela)
+  // Pergunta sem sujeito ("quanto temos?"): qualquer número seria chute. Pergunta de volta, sem gastar IA.
+  if (perguntaAmbigua(pergunta, !!args.historico?.length)) {
+    return { triagem: 'regra', setor: null, resposta: PEDIDO_ESCLARECIMENTO[lang], nivel: 'rotina', provedor: null, modelo: null, escalou: false, valoresNaoConferidos: 0, valoresSemFonteServidor: 0, consultas: 0, caracteresEnviados: 0, uso: usoZerado(),
+      exigeConsulta: false, ferramentas: [], semConsultaExigida: false, confiabilidade: 'completo', sugestaoMemoria: null, memorias: 0, memoriaFalhou: false, relatorio: null, plano, portasNaoConsultadas: [], semCusto: true }
+  }
   const manuais = escolherManuais(pergunta, args.tela)
   const porRegra = triagemPorRegra(pergunta, manuais.length)
   const uso = usoZerado()
@@ -742,7 +756,8 @@ export async function perguntarAoMotor(args: {
   // Fase D: pergunta (ou continuação) que pede dado detalhado obriga a consultar; tudo que foi consultado fica registrado
   const exige = exigeConsulta(pergunta, args.historico ?? [])
   const registro: RegistroFerramenta[] = []
-  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, papel: args.papel, tela: args.tela ?? null, fuso: retrato.fuso, registro, exige }
+  const saidas: SaidaConsulta[] = []
+  const consulta: ConsultaMotor = { supabase: args.supabase, empresaId: args.empresaId, papel: args.papel, tela: args.tela ?? null, sinal: args.sinal, saidas, fuso: retrato.fuso, registro, exige }
 
   // Gemini gratuito com as mesmas ferramentas (3ª IA / modo sem saldo)
   const executarGemini = async (n: Nivel) => {
@@ -801,10 +816,13 @@ export async function perguntarAoMotor(args: {
   if (r.texto && !consulta.relatorio && pediuRelatorio(pergunta)) await consultarFerramenta(consulta, 'relatorio', pedidoRelatorioDaPergunta(pergunta, args.tela))
   if (r.texto && consulta.relatorio) r.texto = avisarRelatorioConcluido(r.texto, lang)
   // Avisos fixos no fim (consulta que falhou ou sem permissão, consulta exigida que não aconteceu, valor não encontrado)
-  const avisos = r.texto ? avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }) : []
+  const consolidacao = consolidar(saidas)
+  const avisos = r.texto ? [...avisosDaResposta({ lang, exige, registro, naoConferidos: naoConferidos.length }), ...avisosDaConsolidacao(consolidacao, lang)] : []
   const resposta = r.texto && avisos.length ? `${r.texto}\n\n${avisos.join('\n')}` : r.texto
   return { ...base, resposta, nivel, provedor: r.texto ? r.provedor : null, modelo: r.texto ? r.modelo : null, escalou, valoresNaoConferidos: naoConferidos.length, valoresSemFonteServidor: semFonteServidor, consultas: r.consultas?.length ?? 0, caracteresEnviados: r.enviados, uso,
     exigeConsulta: exige, ferramentas: registro, semConsultaExigida: !!r.texto && exige && !registro.some(consultaTrouxeDado),
-    confiabilidade: confiabilidadeDaResposta({ respondeu: !!r.texto, exige, registro, naoConferidos: naoConferidos.length }),
+    // Dois módulos discordando sobre a mesma coisa é inconsistência, igual a valor sem fonte
+    confiabilidade: confiabilidadeDaResposta({ respondeu: !!r.texto, exige, registro, naoConferidos: naoConferidos.length + consolidacao.divergencias.length }),
+    plano, portasNaoConsultadas: portasNaoConsultadas(plano, registro.map((x) => x.nome)), consolidacao,
     sugestaoMemoria: resposta ? sugestaoMemoria : null, memorias: memoria.quantidade, memoriaFalhou: memoria.falhou, relatorio: resposta ? consulta.relatorio ?? null : null }
 }

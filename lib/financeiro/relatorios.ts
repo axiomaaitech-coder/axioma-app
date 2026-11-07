@@ -17,7 +17,7 @@ import { diasEntre, periodoAnterior, resolverPeriodo, type Periodo } from './per
 import { comparar, saldoPagar, saldoReceber, type TituloPagar, type TituloReceber } from './calculos'
 import { centavos, reais, type EstadoResultado, type ResultadoFinanceiro } from './contrato'
 import { TIPOS_RELATORIO, type Achado, type FonteConsultada, type Indicador, type Lang, type PedidoRelatorio, type Relatorio, type Secao, type TipoColuna, type TipoRelatorio } from './relatorioTipos'
-import { L, fmtData, fmtMoeda, fmtPct, nomeFonte, rotuloPeriodo, tituloRelatorio, tx } from './relatorioTextos'
+import { L, dataHoraNoFuso, fmtData, fmtMoeda, fmtPct, nomeFonte, rotuloPeriodo, tituloRelatorio, tx } from './relatorioTextos'
 
 export type CtxRelatorio = { supabase: SupabaseClient; empresaId: string; fuso: string }
 type RF = ResultadoFinanceiro
@@ -43,6 +43,14 @@ type Numeros = Partial<{
   obrigVencidas: { qtd: number; valor: number }; difCaixa: { qtd: number; valor: number }; canceladas: { qtd: number; valor: number }
   vendas: { qtd: number; valor: number }; reconc: { confirmadas: number; possiveis: number; divergencias: number; insuficientes: number; total: number }
 }>
+
+// Várias fontes não são lidas no mesmo instante. Sem fotografia única, o relatório diz o intervalo da coleta.
+export function avisoColeta(consultas: FonteConsultada[], fuso: string, lang: Lang): string[] {
+  const horas = consultas.map((c) => c.consultado_em).sort()
+  if (horas.length < 2) return []
+  const de = dataHoraNoFuso(horas[0], fuso, lang), ate = dataHoraNoFuso(horas[horas.length - 1], fuso, lang)
+  return [L(lang, `Fontes lidas em sequência (de ${de} a ${ate}), não em um único instante: lançamento feito nesse intervalo pode aparecer em uma fonte e não em outra.`, `Sources read in sequence (from ${de} to ${ate}), not at a single moment: an entry made in that interval may show in one source and not another.`, `Fuentes leídas en secuencia (de ${de} a ${ate}), no en un único instante: un registro hecho en ese intervalo puede aparecer en una fuente y no en otra.`)]
+}
 
 // ─── Coletor: estado, fontes, referências e limitações de cada consulta usada ───
 function coletor(lang: Lang) {
@@ -595,7 +603,7 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     periodo: { inicio: p.inicio, fim: p.fim, rotulo: rotuloPeriodo(p.nome, p.inicio, p.fim, lang), parcial: p.parcial },
     comparado_com: ant ? rotuloPeriodo('anterior', ant.inicio, ant.fim, lang) : null,
     gerado_em: new Date().toISOString(), fuso: ctx.fuso, estado: fim.estado,
-    resumo: resumoDe(n, lang), secoes, achados, limitacoes: fim.limitacoes, fontes: fim.fontes, fontes_consultadas: fim.consultas, metodologia: metodologiaBase(lang), refs: fim.refs,
+    resumo: resumoDe(n, lang), secoes, achados, limitacoes: [...fim.limitacoes, ...avisoColeta(fim.consultas, ctx.fuso, lang)], fontes: fim.fontes, fontes_consultadas: fim.consultas, metodologia: metodologiaBase(lang), refs: fim.refs,
   }
 }
 

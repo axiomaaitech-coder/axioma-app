@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // Saldo de IA da empresa: gasta 1 antes de chamar a IA (telas de análise = Anthropic).
     consumir: (id) => consumirIA(supabase, id, TELAS_ANTHROPIC.has(tela ?? '') ? 'anthropic' : 'openai'),
     devolver: (consumoId) => devolverIA(supabase, consumoId),
-    perguntar: (soGratuito) => perguntarAoMotor({ supabase, empresaId, papel: papelSessao, pergunta, historico, tela, lang, contextoTela, soGratuito }),
+    perguntar: (soGratuito) => perguntarAoMotor({ supabase, empresaId, papel: papelSessao, pergunta, historico, tela, lang, contextoTela, soGratuito, sinal: request.signal }),
   })
 
   if (res.status !== 200) {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     empresaId, ator: user.id, acao: 'ia.motor', entidade: 'motor-ia', versaoMotor: 'motor-ia-1',
     parametros: { tela: tela ?? null, conversa_id: conversaId, correlacao, nivel: r.nivel, triagem: r.triagem, provedor: r.provedor, modelo: r.modelo, escalou: r.escalou, valores_nao_conferidos: r.valoresNaoConferidos, valores_sem_fonte_servidor: r.valoresSemFonteServidor, consultas: r.consultas, setor: r.setor, caracteres_enviados: r.caracteresEnviados, respondeu: !!r.resposta,
       // Fase D: o que foi consultado (nome, ok/vazio/erro, ms), se a pergunta exigia dado e se respondeu sem consultar
-      exige_consulta: r.exigeConsulta, confiabilidade: r.confiabilidade, ferramentas: r.ferramentas, memorias_usadas: r.memorias, memoria_falhou: r.memoriaFalhou, sugeriu_memoria: !!r.sugestaoMemoria, sem_consulta_exigida: r.semConsultaExigida, latencia_ms: Date.now() - inicio, cobrado: res.cobrado,
+      plano: r.plano, portas_nao_consultadas: r.portasNaoConsultadas, consolidacao: r.consolidacao, exige_consulta: r.exigeConsulta, confiabilidade: r.confiabilidade, ferramentas: r.ferramentas, memorias_usadas: r.memorias, memoria_falhou: r.memoriaFalhou, sugeriu_memoria: !!r.sugestaoMemoria, sem_consulta_exigida: r.semConsultaExigida, latencia_ms: Date.now() - inicio, cobrado: res.cobrado,
       tokens_entrada: r.uso.tokensEntrada, tokens_saida: r.uso.tokensSaida, tokens_cache_leitura: r.uso.tokensCacheLeitura, tokens_cache_escrita: r.uso.tokensCacheEscrita,
       tokens_openai: r.uso.tokensOpenAI, custo_usd_anthropic: Math.round(r.uso.custoUsdAnthropic * 1e6) / 1e6 },
   }))

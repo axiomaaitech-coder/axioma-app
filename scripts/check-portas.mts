@@ -150,4 +150,53 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   console.log('OK — Etapa 5: cada tela só com as portas da sua finalidade')
 }
 
+// ─── Plano de consulta, pergunta ambígua, cancelamento e consolidação ───
+{
+  const P = await import('../lib/ia/planoConsulta')
+  const C = await import('../lib/ia/consolidacao')
+  const planoRh = P.planejarConsulta('Quantos funcionários ativos temos?')
+  assert.deepEqual(planoRh.indisponiveis, ['funcionarios']); assert.deepEqual(planoRh.portas, [], 'nada do RH: nenhuma porta aberta à toa'); assert.equal(planoRh.execucao, 'nenhuma')
+  const dois = P.planejarConsulta('Quanto temos a receber e quanto temos a pagar?')
+  assert.deepEqual(dois.intencoes, ['a_receber', 'a_pagar']); assert.deepEqual(dois.portas, ['titulos'])
+  const tres = P.planejarConsulta('Qual o faturamento, o lucro e o estoque?')
+  assert.deepEqual(tres.portas, ['faturamento', 'dre', 'estoque_resumo']); assert.equal(tres.execucao, 'paralela')
+  assert.deepEqual(P.planejarConsulta('Qual é a nossa situação financeira geral?').portas, ['resumo_financeiro'], 'com ou sem acento')
+  const foraTrib = P.planejarConsulta('Quantos clientes eu tenho?', 'ia-tributaria')
+  assert.deepEqual(foraTrib.portas, []); assert.deepEqual(foraTrib.fora_da_tela, ['cadastros'], 'o plano registra o que é de outra tela')
+  for (const n of P.planejarConsulta('caixa faturamento despesa lucro imposto estoque divida vencido relatorio pdv pedido de compra quantos clientes a receber situacao geral').portas) assert.ok(Object.hasOwn(PORTAS, n), `plano citou porta inexistente: ${n}`)
+  assert.deepEqual(P.portasNaoConsultadas(tres, ['faturamento']), ['dre', 'estoque_resumo'])
+  // Ambígua
+  for (const t of ['Quanto temos?', 'quanto eu tenho', 'Qual é o saldo?', 'saldo', 'How much do we have?', '¿Cuánto tenemos?'.replace('¿', '')]) assert.equal(P.perguntaAmbigua(t, false), true, t)
+  for (const t of ['Quanto temos a receber?', 'Qual o saldo em caixa?', 'Quanto tenho em estoque?', 'Qual o valor do DAS?']) assert.equal(P.perguntaAmbigua(t, false), false, t)
+  assert.equal(P.perguntaAmbigua('e o saldo', true), false); assert.equal(P.perguntaAmbigua('saldo', true), false, 'na conversa, o assunto já está dado')
+  for (const l of ['pt', 'en', 'es'] as const) assert.ok(P.PEDIDO_ESCLARECIMENTO[l].length > 20)
+  const semIA = await M.perguntarAoMotor({ supabase: {} as never, empresaId: E, papel: 'dono', pergunta: 'Quanto temos?', lang: 'pt' })
+  assert.equal(semIA.resposta, P.PEDIDO_ESCLARECIMENTO.pt); assert.equal(semIA.semCusto, true, 'pergunta de volta sem gastar saldo'); assert.equal(semIA.provedor, null)
+  // Cancelada: nenhuma consulta abre
+  chamadas = 0; const ab = new AbortController(); ab.abort()
+  const canc = await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'dividas', sinal: ab.signal, executar: exec(OK) })
+  assert.equal(chamadas, 0); assert.equal(canc.motivo, 'cancelada')
+  // Consolidação
+  const res = (o: Record<string, unknown>) => JSON.stringify({ moeda: 'BRL', fontes: ['x'], consultado_em: '2026-11-07T10:00:00Z', estado: 'verificado', ...o })
+  const div = C.consolidar([
+    { nome: 'resumo_financeiro', saida: res({ indicador: 'resumo_financeiro', detalhes: { caixa_realizado: 100 }, consultado_em: '2026-11-07T10:00:01Z' }) },
+    { nome: 'caixa_tesouraria', saida: res({ indicador: 'caixa_posicao', detalhes: { disponivel: 150 }, consultado_em: '2026-11-07T10:00:03Z' }) },
+  ])
+  assert.equal(div.divergencias.length, 1); assert.deepEqual([div.divergencias[0].a, div.divergencias[0].b, div.divergencias[0].diferenca], [100, 150, 50], 'mostra os dois, não escolhe')
+  assert.deepEqual(div.coleta, { de: '2026-11-07T10:00:01Z', ate: '2026-11-07T10:00:03Z', fontes: 2 })
+  const av = C.avisosDaConsolidacao(div, 'pt'); assert.ok(/R\$ 100,00/.test(av[0]) && /R\$ 150,00/.test(av[0]))
+  for (const l of ['en', 'es'] as const) assert.ok(C.avisosDaConsolidacao(div, l)[0].length > 20 && !/Atenção: o caixa/.test(C.avisosDaConsolidacao(div, l)[0]))
+  assert.equal(C.consolidar([{ nome: 'resumo_financeiro', saida: res({ indicador: 'resumo_financeiro', detalhes: { caixa_realizado: 100 } }) }, { nome: 'caixa_tesouraria', saida: res({ indicador: 'caixa_posicao', detalhes: { disponivel: 100.005 } }) }]).divergencias.length, 0, 'igual até o centavo')
+  const per = { inicio: '2026-11-01', fim: '2026-11-30' }
+  assert.equal(C.consolidar([{ nome: 'faturamento', saida: res({ indicador: 'faturamento_competencia', valor: 100, periodo: per }) }, { nome: 'pdv_resumo', saida: res({ indicador: 'pdv_vendas', valor: 300, periodo: per }) }]).divergencias[0].assunto, 'pdv_maior_que_faturamento')
+  assert.equal(C.consolidar([{ nome: 'faturamento', saida: res({ indicador: 'faturamento_competencia', valor: 100, periodo: per }) }, { nome: 'pdv_resumo', saida: res({ indicador: 'pdv_vendas', valor: 300, periodo: { inicio: '2026-10-01', fim: '2026-10-31' } }) }]).divergencias.length, 0, 'períodos diferentes não se comparam')
+  // Origem: consulta antiga ganha módulo e horário; erro não vira dado; sem origem é apontado
+  assert.deepEqual(JSON.parse(C.comOrigem('{"itens":[1]}', 'Estoque', () => 'T')), { itens: [1], origem: { modulo: 'Estoque', consultado_em: 'T' } })
+  assert.equal(C.comOrigem('{"erro":"x"}', 'Estoque'), '{"erro":"x"}'); assert.equal(C.comOrigem('texto', 'Estoque'), 'texto')
+  assert.deepEqual(C.consolidar([{ nome: 'x', saida: '{"itens":[]}' }]).sem_origem, ['x']); assert.deepEqual(C.consolidar([{ nome: 'x', saida: C.comOrigem('{"itens":[]}', 'Estoque') }]).sem_origem, [])
+  assert.deepEqual(C.consolidar([{ nome: 'x', saida: '{"erro":"fora"}' }]).coleta, null, 'consulta que falhou não entra na coleta')
+  assert.equal(C.avisosDaConsolidacao(C.consolidar([{ nome: 'a', saida: res({ moeda: 'BRL' }) }, { nome: 'b', saida: res({ moeda: 'USD' }) }]), 'pt').length, 1, 'moedas diferentes avisam')
+  console.log('OK — plano de consulta, pergunta ambígua, cancelamento, origem e consolidação')
+}
+
 console.log('check-portas: papel, tempo limite, disjuntor, confiabilidade e reserva do Gemini, tudo certo ✔')

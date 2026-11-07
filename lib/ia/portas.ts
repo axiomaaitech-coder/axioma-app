@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { PAPEIS_FINANCEIROS } from '../financeiro/semantica'
 
-export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'parcial' | 'erro' | 'negado'; ms: number; motivo?: 'tempo' | 'suspensa' | 'fora_da_area' }
+export type RegistroFerramenta = { nome: string; status: 'ok' | 'vazio' | 'parcial' | 'erro' | 'negado'; ms: number; motivo?: 'tempo' | 'suspensa' | 'fora_da_area' | 'cancelada' }
 export type Porta = { modulo: string; papeis: readonly string[]; tempoMs: number }
 
 const NORMAL = 20000, PESADA = 40000 // a consulta mais lenta medida (relatório completo) leva segundos; o teto evita prender a resposta
@@ -105,13 +105,16 @@ function comTempo(executar: () => Promise<string>, ms: number): Promise<string |
   return Promise.race([executar(), limite]).finally(() => clearTimeout(timer))
 }
 
-export async function passarPelaPorta(p: { empresaId: string; papel: string | null; nome: string; tela?: string | null; entrada?: Record<string, unknown>; executar: () => Promise<string>; agora?: () => number; tempoMs?: number }): Promise<{ saida: string; motivo?: RegistroFerramenta['motivo'] }> {
+export async function passarPelaPorta(p: { empresaId: string; papel: string | null; nome: string; tela?: string | null; entrada?: Record<string, unknown>; sinal?: AbortSignal; executar: () => Promise<string>; agora?: () => number; tempoMs?: number }): Promise<{ saida: string; motivo?: RegistroFerramenta['motivo'] }> {
   const agora = p.agora ?? Date.now
   const def = Object.hasOwn(PORTAS, p.nome) ? PORTAS[p.nome] : undefined
   if (!def) return { saida: JSON.stringify({ erro: `ferramenta desconhecida: ${p.nome}` }) }
   if (!papelPodeUsarPorta(def, p.papel)) return { saida: JSON.stringify({ negado: true, erro: `O papel desta pessoa não dá acesso a ${def.modulo}. Diga isso e não estime nenhum valor desse assunto.` }) }
   if (!telaPodeUsarPorta(p.tela, p.nome)) return { saida: foraDaArea(def.modulo), motivo: 'fora_da_area' }
   if (p.nome === 'relatorio' && !telaPodePedirRelatorio(p.tela, p.entrada?.tipo)) return { saida: foraDaArea('Este relatório'), motivo: 'fora_da_area' }
+
+  // Quem perguntou saiu da tela: não abre mais nenhuma consulta
+  if (p.sinal?.aborted) return { saida: JSON.stringify({ erro: 'consulta cancelada: a pergunta foi interrompida' }), motivo: 'cancelada' }
 
   const chave = `${p.empresaId}:${p.nome}`
   const d = disjuntores.get(chave)

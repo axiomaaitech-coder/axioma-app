@@ -42,7 +42,7 @@ export async function processarPerguntaMotor(e: { usuario: string | null; empres
   }
   try {
     const r = await deps.perguntar()
-    if (!r.resposta) { await deps.devolver(saldo.id); return { status: 200, r, cobrado: false } } // IA não respondeu: não cobra
+    if (!r.resposta || r.semCusto) { await deps.devolver(saldo.id); return { status: 200, r, cobrado: false } } // IA não respondeu (ou nem foi chamada): não cobra
     return { status: 200, r, cobrado: true }
   } catch (err) {
     await deps.devolver(saldo.id)
