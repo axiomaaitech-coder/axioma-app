@@ -1,4 +1,5 @@
 'use client'
+import { avisarFalhaLeitura } from "../../../lib/erroUiHelpers";
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '../../../lib/supabaseBrowser'
@@ -363,7 +364,7 @@ export default function EquipePage() {
       const [papel, nivel] = await Promise.all([obterMeuPapel(id), obterMeuNivel(id, user.id)])
       setMeuPapel(papel)
       setMeuNivel(nivel)
-      fetch(`/api/convite?empresaId=${id}`).then((r) => r.json()).then((j) => { setPodeLiberar(!!j?.podeLiberar); setPapelLiberador(j?.meuPapel || '') }).catch(() => {})
+      fetch(`/api/convite?empresaId=${id}`).then((r) => { if (!r.ok) throw new Error(`convite ${r.status}`); return r.json() }).then((j) => { setPodeLiberar(!!j?.podeLiberar); setPapelLiberador(j?.meuPapel || '') }).catch((e) => avisarFalhaLeitura('equipe:permissoes', e))
       if ((nivel ?? 99) > 4) return
       await recarregarEquipe(id)
     } catch (err: any) {

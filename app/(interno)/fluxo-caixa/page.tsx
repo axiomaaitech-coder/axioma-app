@@ -12,7 +12,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { lerTodas } from "../../../lib/lerTodas";
 import { lerVendasPdv, lancamentosPdvFluxo } from "../../../lib/dreCompetencia";
 import { motion, AnimatePresence } from "framer-motion";
@@ -169,7 +169,7 @@ export default function FluxoCaixa() {
     const empresaId = await obterEmpresaAtiva();
     if (!empresaId) { setCarregando(false); return; }
 
-    const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }, pdv] = await Promise.all([
+    const [rFc, rCr, rCp, rCf, rDv, pdv] = await Promise.all([
       // lerTodas: o Supabase corta em 1000 linhas por pedido — empresa grande perdia lançamento
       lerTodas(() => supabase.from("fluxo_caixa").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
@@ -181,12 +181,14 @@ export default function FluxoCaixa() {
       // delas TAMBÉM quando pagas, pra saber que o custo fixo do mês já virou conta
       // a pagar e não duplicar a saída na projeção de custos fixos logo adiante.
       lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId).order("id")),
-      soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)),
-      supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("empresa_id", empresaId),
+      lerTodas(() => soVigentes(supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId)).order("id")),
+      lerTodas(() => supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("empresa_id", empresaId).order("id")),
       // Vendas do PDV: linhas só de leitura (a venda é a fonte; nada é gravado em fluxo_caixa).
       lerVendasPdv(empresaId, inicioJanelaHistorica(periodo.fim), fimJanelaFutura(periodo.fim)),
     ]);
 
+    // Leitura que falha não pode parecer R$ 0: registra e mostra o aviso de dado incompleto
+    const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }] = avisarSeFalhou([rFc, rCr, rCp, rCf, rDv] as const, "fluxoCaixa:carregar");
     setLancamentos([...(fc || []), ...lancamentosPdvFluxo(pdv.data)]);
     const sr = await saldoCaixaRealizado(supabase, empresaId, hojeISO());
     if (sr.erro) showToast(L("O saldo de caixa não carregou inteiro — confira mais tarde.", "The cash balance did not fully load — check again later.", "El saldo de caja no cargó entero — revise más tarde."), "erro");

@@ -10,7 +10,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -324,7 +324,7 @@ export default function Metas() {
 
     const empresaId = await obterEmpresaAtiva();
 
-    const [{ data: mt, error: eMt }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc, error: eFc }, { data: cli, error: eCli }, { data: emp }] = await Promise.all([
+    const [{ data: mt, error: eMt }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc, error: eFc }, { data: cli, error: eCli }, { data: emp, error: eLerEmp }] = await Promise.all([
       empresaId ? supabase.from("metas").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
       empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
@@ -332,8 +332,9 @@ export default function Metas() {
       empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
       empresaId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
-      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerEmp }], "metas:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura incompleta NUNCA vira número gravado: avisa e não sincroniza valor_atual/status.
     const sc = empresaId ? await saldoCaixaRealizado(supabase, empresaId, hoje) : { saldo: 0, erro: undefined as string | undefined };

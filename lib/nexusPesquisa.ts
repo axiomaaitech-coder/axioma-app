@@ -16,6 +16,7 @@ import { jsonDoJose, usoZerado, type Uso } from './ia/motor'
 import { paginaDaFonte } from './nexusFontesLinks'
 import type { IdiomaJoseph } from './nexusJoseph'
 import { hojeISO } from './datas'
+import { avisarSeFalhou } from './erroUiHelpers'
 
 type Tema = { titulo: Record<IdiomaJoseph, string>; series: string[]; termos: string[] }
 
@@ -97,11 +98,13 @@ export async function pesquisarNexus(supabase: SupabaseClient, tema: string, lan
   if (!termos.length && !series.length) throw new Error('tema desconhecido')
 
   // ─── 2. Dado oficial (com fonte, página e hora da coleta) ───
-  const [{ data: fontes }, ...linhasSeries] = await Promise.all([
+  const respostasDados = await Promise.all([
     supabase.from('nexus_source').select('source_id, source_name'),
     ...series.map((c) => supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia, frequencia, retrieved_at, source_id')
       .eq('serie_codigo', c).order('data_referencia', { ascending: false }).limit(40)),
   ])
+  // Série que não veio some da resposta: precisa ficar registrado, não passar por "sem dado"
+  const [{ data: fontes }, ...linhasSeries] = avisarSeFalhou(respostasDados, 'nexusPesquisa:dados')
   const nomeFonte = (id: unknown) => (fontes ?? []).find((f) => f.source_id === id)?.source_name as string | undefined
   const dados: DadoPesquisa[] = linhasSeries.map((r) => {
     const ls = (r.data ?? []) as Record<string, unknown>[]

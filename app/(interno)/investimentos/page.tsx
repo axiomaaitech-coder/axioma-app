@@ -16,7 +16,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -215,7 +215,7 @@ export default function Investimentos() {
     const inicioHist = inicioJanela24m(periodo.fim);
     const empresaIdAtiva = await obterEmpresaAtiva();
 
-    const [{ data: inv, error: eInv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc }, { data: emp }] = await Promise.all([
+    const [{ data: inv, error: eInv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: fc, error: eLerFc }, { data: emp, error: eLerEmp }] = await Promise.all([
       empresaIdAtiva ? supabase.from("investimentos")
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
         .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
@@ -226,8 +226,9 @@ export default function Investimentos() {
       empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
       // Todo o histórico realizado — mesma definição de "caixa disponível" do Fluxo de Caixa.
       empresaIdAtiva ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaIdAtiva).order("id")) : Promise.resolve({ data: [], error: null }),
-      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
+      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerFc }, { error: eLerEmp }], "investimentos:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "sem investimentos": avisa. Caixa = saldo único (Fluxo, Painel de Risco, IA).
     if (eInv) { showToast(L("Não foi possível carregar os investimentos agora. Recarregue a página.", "Could not load investments now. Reload the page.", "No se pudieron cargar las inversiones ahora. Recargue la página."), "erro"); }

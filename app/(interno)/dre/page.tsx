@@ -10,7 +10,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao, exigirLeitura, registrarLeitura } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao, exigirLeitura, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -178,19 +178,20 @@ export default function DREPage() {
 
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
-    const [base, { data: dv }, { data: fc }, { data: cr }, { data: emp }, pdvCaixa] = await Promise.all([
+    const [base, { data: dv, error: eLerDv }, { data: fc, error: eLerFc }, { data: cr, error: eLerCr }, { data: emp, error: eLerEmp }, pdvCaixa] = await Promise.all([
       // Base por COMPETÊNCIA: receitas + contas a receber + PDV, custos + contas a pagar, custo fixo por vigência, juros pagos.
       empId ? carregarBaseDRE(empId, inicioHist, periodo.fim) : Promise.resolve(null),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
-      empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
-      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [] }),
+      empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
-      empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [] }),
-      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido").order("id")) : Promise.resolve({ data: [], error: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
       // Caixa do PDV na Ponte Lucro × Caixa (mesma leitura do Fluxo de Caixa).
-      empId ? lerVendasPdv(empId, periodo.inicio, periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? lerVendasPdv(empId, periodo.inicio, periodo.fim) : Promise.resolve({ data: [], error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerDv }, { error: eLerFc }, { error: eLerCr }, { error: eLerEmp }], "dre:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     setReceitasRows((base?.receitas || []).map((r) => ({ valor: r.valor, data: r.data, categoria: r.categoria || "" })));
     setCustosVarRows((base?.custos || []).map((c) => ({ valor: c.valor, data: c.data, categoria: c.categoria || "", descricao: c.descricao || "" })));

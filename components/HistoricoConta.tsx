@@ -55,13 +55,13 @@ export default function HistoricoConta({ tipo, contaId, onFechar }: { tipo: Tipo
     ;(async () => {
       setCarregando(true); setErro(false)
       try {
-        const [{ data: c, error: e1 }, { data: ev, error: e2 }, { data: ra }, { data: u }] = await Promise.all([
+        const [{ data: c, error: e1 }, { data: ev, error: e2 }, { data: ra, error: e3 }, { data: u }] = await Promise.all([
           supabase.from(tabela).select('*').eq('id', contaId).maybeSingle(),
           supabase.from('eventos_negocio').select('id, tipo, payload, usuario_id, criado_em').eq('origem_tabela', tabela).eq('origem_id', contaId).order('criado_em', { ascending: true }),
           supabase.from('rastreio_movimentacao').select('evento_id, status, rastreio_destino(destino, status)').eq('origem_tabela', tabela).eq('origem_id', contaId),
           supabase.auth.getUser(),
         ])
-        if (e1 || e2 || !c) throw new Error(e1?.message || e2?.message || 'conta não encontrada')
+        if (e1 || e2 || e3 || !c) throw new Error(e1?.message || e2?.message || e3?.message || 'conta não encontrada')
         const ct = c as Conta
         const idParte = (tipo === 'pagar' ? ct.fornecedor_id : ct.cliente_id) as string | null
         const [parte, cc] = await Promise.all([

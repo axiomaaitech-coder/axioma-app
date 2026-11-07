@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { bloqueado, registrarFalha, admin, conferirSenha, vinculo, papelLiberador, podeLiberar, usuarioLogado } from '@/lib/supervisorServidor'
 import * as Sentry from '@sentry/nextjs'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // Falha de gravação no servidor: log + Sentry com contexto (nunca calada).
 // varredura:service-role — toda gravação daqui usa admin() (sem RLS)
@@ -57,8 +58,8 @@ export async function GET(req: NextRequest) {
       .eq('empresa_id', empresaId).eq('situacao', 'aguardando_aprovacao').limit(20)
     if (eCvs) { falhaServidor('ler pedidos de entrada', eCvs.message, { empresaId }); return erro('generico', 500) }
     if (cvs?.length) {
-      const { data: tms } = await db.from('empresa_convite_termo').select('convite_id, nome, email, cpf')
-        .in('convite_id', cvs.map((c) => c.id)).is('apagado_em', null)
+      const tms = await exigirLeitura(() => db.from('empresa_convite_termo').select('convite_id, nome, email, cpf')
+        .in('convite_id', cvs.map((c) => c.id)).is('apagado_em', null), 'convite:tms')
       pendentes = cvs.map((c) => {
         const tm = tms?.find((x) => x.convite_id === c.id)
         const cpf = String(tm?.cpf || '')
@@ -184,7 +185,7 @@ async function aceitar(corpo: any, soConferir = false) {
   const nome = String(corpo.nome || '').trim().replace(/\s+/g, ' ')
   const cpf = String(corpo.cpf || '').replace(/\D/g, '')
 
-  const { data: cv } = await db.from('empresa_equipe').select('*').eq('token_convite', token).maybeSingle()
+  const cv = await exigirLeitura(() => db.from('empresa_equipe').select('*').eq('token_convite', token).maybeSingle(), 'convite:cv')
   if (!cv) return erro('invalido', 404)
   if (cv.situacao === 'aprovado' || cv.situacao === 'recusado' || cv.convite_aceito || (soConferir && cv.situacao === 'aguardando_aprovacao')) return erro('usado', 409)
   if (cv.expira_em && new Date(cv.expira_em) < new Date()) return erro('expirado', 410)
@@ -211,7 +212,7 @@ async function aceitar(corpo: any, soConferir = false) {
     return cv.user_id_convidado === userId ? NextResponse.json({ aguardando: true }) : erro('usado', 409)
   }
 
-  const { data: dono } = await db.from('empresas').select('id').eq('id', cv.empresa_id).eq('user_id', userId).maybeSingle()
+  const dono = await exigirLeitura(() => db.from('empresas').select('id').eq('id', cv.empresa_id).eq('user_id', userId).maybeSingle(), 'convite:dono')
   if (dono) return erro('ja_dono', 409)
 
   // Procedimento do Elias (2026-10-08): a pessoa confirma o e-mail e fica aguardando;
@@ -239,7 +240,7 @@ async function termo(corpo: any) {
   const user = await usuarioLogado()
   if (!user) return erro('login', 401)
   const db = admin()
-  const { data: tm } = await db.from('empresa_convite_termo').select('id, empresa_id, saiu_em').eq('id', String(corpo.termoId || '')).is('apagado_em', null).maybeSingle()
+  const tm = await exigirLeitura(() => db.from('empresa_convite_termo').select('id, empresa_id, saiu_em').eq('id', String(corpo.termoId || '')).is('apagado_em', null).maybeSingle(), 'convite:tm')
   if (!tm) return erro('invalido', 404)
   if (!(await podeLiberar(db, tm.empresa_id, user.id))) return erro('sem_permissao', 403)
   const agora = new Date().toISOString()
@@ -276,7 +277,7 @@ async function lixeiraConvite(corpo: any) {
     if (error) { console.error('[lixeira] listar:', error.message); return erro('generico', 500) }
     return NextResponse.json({ itens: data || [] })
   }
-  const { data: cv } = await db.from('empresa_equipe').select('id, empresa_id, situacao, convite_aceito, user_id_convidado, aceito_em, papel, acesso_dias').eq('id', String(corpo.conviteId || '')).maybeSingle()
+  const cv = await exigirLeitura(() => db.from('empresa_equipe').select('id, empresa_id, situacao, convite_aceito, user_id_convidado, aceito_em, papel, acesso_dias').eq('id', String(corpo.conviteId || '')).maybeSingle(), 'convite:cv')
   if (!cv) return erro('invalido', 404)
   if (!(await podeLiberar(db, cv.empresa_id, user.id))) return erro('sem_permissao', 403)
 
@@ -339,9 +340,9 @@ async function membroLixeira(corpo: any) {
   const alvo = String(corpo.alvoUserId || '')
   if (!alvo || alvo === user.id) return erro('sem_permissao', 403)
   if (!(await podeLiberar(db, empresaId, user.id))) return erro('sem_permissao', 403)
-  const { data: emp } = await db.from('empresas').select('user_id').eq('id', empresaId).maybeSingle()
+  const emp = await exigirLeitura(() => db.from('empresas').select('user_id').eq('id', empresaId).maybeSingle(), 'convite:emp')
   if (!emp || emp.user_id === alvo) return erro('proprietario', 403)
-  const { data: v } = await db.from('empresa_usuarios').select('id, papel, convite_id').eq('empresa_id', empresaId).eq('user_id', alvo).maybeSingle()
+  const v = await exigirLeitura(() => db.from('empresa_usuarios').select('id, papel, convite_id').eq('empresa_id', empresaId).eq('user_id', alvo).maybeSingle(), 'convite:v')
   if (!v || v.papel === 'dono') return erro('invalido', 404)
   // Leitura que falha não pode "rebaixar" o alvo: sem saber se é Sócio/CEO, um admin o suspenderia
   const { data: cv, error: eCv } = v.convite_id ? await db.from('empresa_equipe').select('id, relacao').eq('id', v.convite_id).maybeSingle() : { data: null, error: null }
@@ -369,7 +370,7 @@ async function decidir(corpo: any) {
   const user = await usuarioLogado()
   if (!user) return erro('login', 401)
   const db = admin()
-  const { data: cv } = await db.from('empresa_equipe').select('*').eq('id', String(corpo.conviteId || '')).maybeSingle()
+  const cv = await exigirLeitura(() => db.from('empresa_equipe').select('*').eq('id', String(corpo.conviteId || '')).maybeSingle(), 'convite:cv')
   if (!cv || cv.situacao !== 'aguardando_aprovacao' || !cv.user_id_convidado) return erro('invalido', 404)
   if (!(await podeLiberar(db, cv.empresa_id, user.id))) return erro('sem_permissao', 403)
   const agora = new Date().toISOString()

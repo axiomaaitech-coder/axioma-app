@@ -11,7 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -129,11 +129,12 @@ export default function Receitas() {
     if (!empresaId) { setCarregando(false); return; }
     setEmpresaIdAtivo(empresaId);
     setUserIdAtivo(user.id);
-    const [{ data, error }, { data: clientesData }, { data: centrosData }] = await Promise.all([
+    const [{ data, error }, { data: clientesData, error: eLerClientesData }, { data: centrosData, error: eLerCentrosData }] = await Promise.all([
       lerTodas(() => supabase.from("receitas").select("*").eq("empresa_id", empresaId).order("data", { ascending: false }).order("id")),
       supabase.from("clientes").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
       supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId),
     ]);
+    avisarSeFalhou([{ error: eLerClientesData }, { error: eLerCentrosData }], "receitas:leitura"); // dado que não veio não pode parecer vazio de verdade
     // Leitura falhou ≠ "não há receitas": avisa em vez de mostrar a lista vazia calada.
     if (error) { showToast(L("Não foi possível carregar as receitas agora. Recarregue a página.", "Could not load revenue now. Reload the page.", "No se pudieron cargar los ingresos ahora. Recargue la página."), "erro"); reportarFalhaEscrita("receitas", "leitura", error.message); }
     setReceitas(data || []);

@@ -4,6 +4,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { exigirLeitura } from './erroUiHelpers'
 
 // ponytail: limite de tentativas de senha em memória (por instância); vira tabela se aparecer abuso.
 const falhas = new Map<string, { n: number; ate: number }>()
@@ -30,8 +31,8 @@ export async function conferirSenha(email: string, senha: string, captchaToken?:
 }
 
 export async function vinculo(db: SupabaseClient, empresaId: string, userId: string) {
-  const { data } = await db.from('empresa_usuarios').select('papel, convite_id, acesso_expira_em, suspenso_em')
-    .eq('empresa_id', empresaId).eq('user_id', userId).maybeSingle()
+  const data = await exigirLeitura(() => db.from('empresa_usuarios').select('papel, convite_id, acesso_expira_em, suspenso_em')
+    .eq('empresa_id', empresaId).eq('user_id', userId).maybeSingle(), 'supervisor:data')
   // Suspenso (hierarquia da Equipe) ou prazo vencido = sem acesso
   if (!data || data.suspenso_em || (data.acesso_expira_em && new Date(data.acesso_expira_em) < new Date())) return null
   return data
@@ -39,13 +40,13 @@ export async function vinculo(db: SupabaseClient, empresaId: string, userId: str
 
 // CEO, Sócio ou Admin desta empresa (o supervisor). Devolve o papel real, lido do banco.
 export async function papelLiberador(db: SupabaseClient, empresaId: string, userId: string): Promise<'ceo' | 'socio' | 'admin' | null> {
-  const { data: emp } = await db.from('empresas').select('id').eq('id', empresaId).eq('user_id', userId).maybeSingle()
+  const emp = await exigirLeitura(() => db.from('empresas').select('id').eq('id', empresaId).eq('user_id', userId).maybeSingle(), 'supervisor:emp')
   if (emp) return 'ceo'
   const v = await vinculo(db, empresaId, userId)
   if (!v) return null
   if (v.papel === 'dono') return 'ceo'
   if (v.convite_id) {
-    const { data: cv } = await db.from('empresa_equipe').select('relacao').eq('id', v.convite_id).maybeSingle()
+    const cv = await exigirLeitura(() => db.from('empresa_equipe').select('relacao').eq('id', v.convite_id).maybeSingle(), 'supervisor:cv')
     if (cv?.relacao === 'socio' || cv?.relacao === 'ceo') return cv.relacao
   }
   return v.papel === 'admin' ? 'admin' : null

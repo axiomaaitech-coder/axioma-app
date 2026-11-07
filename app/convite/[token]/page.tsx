@@ -9,6 +9,7 @@ import { CheckCircle2, AlertCircle, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterConvitePorToken } from '../../../lib/empresaHelpers'
+import { reportarFalhaLeitura } from '../../../lib/erroUiHelpers'
 import { useTurnstile } from '../../../components/Turnstile'
 
 // Tela de quem RECEBE o convite (pedido do Elias, 2026-10-02): NUNCA passa
@@ -106,7 +107,8 @@ export default function AceitarConvite() {
   useEffect(() => {
     if (estado !== 'bemvindo') return
     (async () => {
-      await supabase.auth.updateUser({ data: { convite_token: null } }).catch(() => {})
+      const { error } = await supabase.auth.updateUser({ data: { convite_token: null } }).catch((e) => ({ error: e as Error }))
+      if (error) reportarFalhaLeitura('convite:limpar marca', error)
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado, token])

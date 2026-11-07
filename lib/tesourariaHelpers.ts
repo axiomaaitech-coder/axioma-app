@@ -721,11 +721,12 @@ export type CapitalDeGiro = {
 };
 
 export async function obterCapitalDeGiro(empresaId: string): Promise<CapitalDeGiro> {
-  const [{ data: crAbertas }, { data: cpAbertas }, kpisEstoque] = await Promise.all([
+  const [rCrAbertas, rCpAbertas, kpisEstoque] = await Promise.all([
     lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido").order("id")),
     lerTodas(() => supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId).neq("status", "pago").order("id")),
     carregarKpisEstoque(empresaId),
   ]);
+  const [{ data: crAbertas }, { data: cpAbertas }] = avisarSeFalhou([rCrAbertas, rCpAbertas] as const, "tesouraria:capitalDeGiro");
   const contasAReceberAberto = ((crAbertas as { valor: number; valor_recebido: number | null }[]) || [])
     .reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
   const contasAPagarAberto = ((cpAbertas as { valor_total: number; valor_pago: number | null }[]) || [])

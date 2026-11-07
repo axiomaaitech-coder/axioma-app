@@ -13,7 +13,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -138,7 +138,7 @@ export default function Simulacoes() {
 
     const inicioHist = inicioJanela12m(periodo.fim);
     const empresaId = await obterEmpresaAtiva();
-    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp }] = await Promise.all([
+    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp, error: eLerEmp }] = await Promise.all([
       empresaId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
       empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
@@ -147,8 +147,9 @@ export default function Simulacoes() {
       // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Investimentos, Painel de Risco e IA.
       empresaId ? saldoCaixaRealizado(supabase, empresaId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
       // Regime da empresa ABERTA (antes: a 1ª empresa do usuário — quem tem 2 empresas via o imposto da outra).
-      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerEmp }], "simulacoes:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "empresa sem dados": avisa que a simulação pode partir de números incompletos.
     const eBase = eRec?.message || eCf?.message || eCv?.message || eDv?.message || sc.erro;

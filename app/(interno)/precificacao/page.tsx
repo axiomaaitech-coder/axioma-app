@@ -14,7 +14,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -203,7 +203,7 @@ export default function Precificacao() {
 
     const empresaIdAtiva = await obterEmpresaAtiva();
 
-    const [{ data: prod, error: eProd }, { data: conc, error: eConc }, { data: dec, error: eDec }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: emp }] = await Promise.all([
+    const [{ data: prod, error: eProd }, { data: conc, error: eConc }, { data: dec, error: eDec }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, { data: emp, error: eLerEmp }] = await Promise.all([
       empresaIdAtiva ? supabase.from("precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("concorrentes").select("*").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("decisoes_precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: true }) : Promise.resolve({ data: [], error: null }),
@@ -211,8 +211,9 @@ export default function Precificacao() {
       empresaIdAtiva ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva)) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje).order("id")) : Promise.resolve({ data: [], error: null }),
       empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [], error: null }),
-      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
+      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerEmp }], "precificacao:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "sem produtos/sem dados": avisa em vez de mostrar números incompletos calados.
     const eLeitura = eProd || eConc || eDec || eRec || eCf || eCv || eDv;

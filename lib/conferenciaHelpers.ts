@@ -206,11 +206,12 @@ export async function reprocessarCaso(
     return { erro: r.erro };
   }
   if (caso.codigo === "D5") {
-    const [{ data: rec, error }, { data: ja }] = await Promise.all([
+    const [{ data: rec, error }, { data: ja, error: eJa }] = await Promise.all([
       supabase.from("receitas").select("id, descricao, valor, data, categoria, cliente_id, status").eq("id", caso.id).eq("empresa_id", empresaId).maybeSingle(),
       supabase.from("rastreio_movimentacao").select("id").eq("empresa_id", empresaId).eq("origem_tabela", "receitas").eq("origem_id", caso.id).limit(1),
     ]);
-    if (error || !rec) return { erro: error?.message || "receita não encontrada" };
+    if (eJa) return { erro: eJa.message }; // sem saber se já foi lançada, não lança: poderia contar duas vezes
+  if (error || !rec) return { erro: error?.message || "receita não encontrada" };
     if (ja?.length || rec.status !== "recebido") return { jaResolvido: true };
     return registrarLancamentoManual(empresaId, "receitas", {
       id: caso.id, descricao: rec.descricao as string, valor: Number(rec.valor), data: rec.data as string, natureza: "receita",

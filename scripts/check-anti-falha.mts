@@ -59,3 +59,15 @@ assert.equal(cli.ping(), 'x') // método continua ligado ao cliente real
 assert.equal(cli.checkout.sessions.criar(21), 42) // cadeia de propriedades (ex.: stripe.checkout.sessions.create)
 assert.equal(criados, 1) // criado uma vez só
 console.log('OK — cliente sob demanda: nada criado na montagem, métodos e cadeias funcionam, uma instância só')
+
+// 8) Vigia: leitura do banco sem olhar o erro não volta a entrar. Quem falha vira "não existe", "zero" ou "sem permissão".
+const { readdirSync, readFileSync, statSync } = await import('node:fs')
+const arquivos = (d: string): string[] => readdirSync(d).flatMap((n) => { const c = `${d}/${n}`; return statSync(c).isDirectory() ? arquivos(c) : /\.tsx?$/.test(n) ? [c] : [] })
+const semErro = /const \{ *data(: *\w+)? *\} *= *await (?!semFalha)[\w.()]*\.from\(/
+const lotePerdido = /const \[(?=[^\]]*\{ *data(?:: *(?!u\b)\w+)? *\})[^\]]*\] *= *await Promise\.all/ // { data: u } = sessão (auth), sem leitura de negócio
+const achados = ['app', 'lib', 'components'].flatMap(arquivos).flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((l, i) => (semErro.test(l) || lotePerdido.test(l) ? [`${f}:${i + 1}`] : [])))
+assert.deepEqual(achados, [], 'leitura do banco que ignora o erro')
+const webhook = readFileSync('app/api/stripe/webhook/route.ts', 'utf8')
+assert.ok(!webhook.includes('.catch(() => null)'), 'webhook não pode engolir falha da Stripe')
+assert.ok((webhook.match(/throw new Error\(/g) ?? []).length >= 7, 'erro do banco no webhook devolve 500 para a Stripe tentar de novo')
+console.log('OK — vigia: nenhuma leitura ignora o erro; webhook com nova tentativa da Stripe')

@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
     // mesmo usuário, num cenário multi-empresa/multi-tenant).
     let q = supabase.from('open_finance').select('item_id').eq('empresa_id', empresaId)
     if (itemIdFiltro) q = q.eq('item_id', itemIdFiltro)
-    const { data: itens } = await q
+    const { data: itens, error: eItens } = await q
+    if (eItens) throw new Error(`ler bancos conectados: ${eItens.message}`) // nunca responder "nenhum banco conectado" por falha de leitura
     if (!itens || itens.length === 0) {
       return NextResponse.json({ total: 0, message: 'Nenhum banco conectado' })
     }

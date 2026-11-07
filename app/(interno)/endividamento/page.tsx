@@ -10,7 +10,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -147,15 +147,16 @@ export default function Endividamento() {
     const inicioHist = inicioJanelaHistorica(periodo.fim);
     const empId = await obterEmpresaAtiva();
 
-    const [{ data: dv, error: eDv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: fc, error: eFc }, { data: emp }] = await Promise.all([
+    const [{ data: dv, error: eDv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: fc, error: eFc }, { data: emp, error: eLerEmp }] = await Promise.all([
       empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
-      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerEmp }], "endividamento:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "sem dívidas": avisa em vez de mostrar "endividamento sob controle".
     if (eDv) { showToast(L("Não foi possível carregar as dívidas agora. Recarregue a página.", "Could not load debts now. Reload the page.", "No se pudieron cargar las deudas ahora. Recargue la página."), "erro"); reportarFalhaEscrita("dividas", "leitura", eDv.message); }

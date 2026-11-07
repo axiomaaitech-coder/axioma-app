@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { bloqueado, registrarFalha, admin, conferirSenha, vinculo, podeLiberar, usuarioLogado } from '@/lib/supervisorServidor'
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // POST /api/autorizar-exclusao { empresaId, motivo, oQue, tabela, registroId, autorizador: { email, senha } }
 // Regra do Elias (2026-10-08): nenhum módulo apaga dado da empresa sem avisar e sem
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const db = admin()
   // Quem pede precisa ser da empresa (dono ou membro com acesso valendo).
-  const { data: dono } = await db.from('empresas').select('id').eq('id', empresaId).eq('user_id', user.id).maybeSingle()
+  const dono = await exigirLeitura(() => db.from('empresas').select('id').eq('id', empresaId).eq('user_id', user.id).maybeSingle(), 'autorizar-exclusao:dono')
   if (!dono && !(await vinculo(db, empresaId, user.id))) return erro('sem_permissao', 403)
 
   const chave = `excluir:${user.id}`

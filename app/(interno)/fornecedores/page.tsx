@@ -16,7 +16,7 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
@@ -894,15 +894,16 @@ export default function Fornecedores() {
     // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
     const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return isoDia(d); })();
-    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp2 }] = await Promise.all([
+    const [{ data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: dv, error: eDv }, sc, { data: emp2, error: eLerEmp2 }] = await Promise.all([
       empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId)) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
       // Saldo único (Fluxo de Caixa + PDV) — o mesmo número do Fluxo, Simulações, Painel de Risco e IA.
       empId ? saldoCaixaRealizado(supabase, empId, hojeISO()) : Promise.resolve({ saldo: 0, erro: undefined as string | undefined }),
-      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
+      empId ? supabase.from("empresas").select("regime_tributario, mei_dados(categoria_mei)").eq("id", empId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
+    avisarSeFalhou([{ error: eLerEmp2 }], "fornecedores:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "sem fornecedores/sem contas": avisa em vez de mostrar painéis incompletos calados.
     const eLeitura = eForn?.message || eCp?.message || eDocs?.message || eCtr?.message || eInt?.message || eRec?.message || eCf?.message || eCv?.message || eDv?.message || sc.erro;

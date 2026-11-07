@@ -50,3 +50,7 @@ Quando a OpenAI ou a Anthropic responde "sem crédito" (insufficient_quota / no 
 ## Reserva do Gemini (2026-11-04)
 
 Com OpenAI e Anthropic sem crédito, a resposta depende do Gemini gratuito. O modelo principal é o estável `gemini-3.6-flash`. Se ele responde 404, 429, 500, 503 ou 504, ou estoura 30 s, o motor tenta `gemini-3.5-flash-lite` e depois `gemini-3-flash-preview`, enquanto a pergunta estiver abaixo de 70 s. Causa: 503 do modelo em testes, antes o principal, deixou duas perguntas seguidas sem resposta e depois atrasava cada resposta em 30 s. Teste em `scripts/check-portas.mts`.
+
+## Varredura de leituras (2026-11-06)
+
+Leitura do banco sempre olha o erro. Permissão, convite e transferência usam `exigirLeitura` (tenta de novo e, persistindo, responde erro em vez de "sem permissão" ou "convite inválido"). Leitura em grupo que segue mesmo com falha usa `avisarSeFalhou`. O webhook da Stripe devolve 500 em erro real para a Stripe tentar de novo; 0 linhas só é registrado, sem nova tentativa. `scripts/check-anti-falha.mts` barra o padrão antigo.

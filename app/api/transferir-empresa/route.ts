@@ -6,6 +6,7 @@ import { bloqueado, registrarFalha, admin, conferirSenha, papelLiberador, usuari
 import { registrarAuditoria } from '@/lib/nexusAuditoria'
 import { checklistDe, docValido, type TipoOperacao, type TipoSocietario } from '@/lib/transferenciaEmpresa'
 import { hojeISO } from '@/lib/datas'
+import { exigirLeitura } from '@/lib/erroUiHelpers'
 
 // Transferir empresa (Elias, 2026-10-09) — passagem da empresa DE VERDADE (venda,
 // doação, sucessão, reorganização), diferente do botão da Equipe (que só passa o
@@ -38,12 +39,15 @@ type Db = ReturnType<typeof admin>
 // cancelada no Stripe e, quando acabar, o novo dono assina (o webhook liga a empresa a quem é dono).
 // Devolve até quando está pago (ISO) pra avisar o novo dono.
 async function encerrarAssinaturaDoCedente(db: Db, empresaId: string, cedenteId: string, transfId: string): Promise<string | null> {
-  const { data: emp } = await db.from('empresas').select('assinante_user_id, plano_ativo').eq('id', empresaId).maybeSingle()
+  const { data: emp, error: eEmp } = await db.from('empresas').select('assinante_user_id, plano_ativo').eq('id', empresaId).maybeSingle()
+  if (eEmp) { falhaServidor('ler assinatura do cedente', eEmp.message, { id: transfId, empresaId }); return null }
   if (!emp?.plano_ativo || emp.assinante_user_id !== cedenteId) return null
-  const [{ data: perfil }, { count }] = await Promise.all([
+  const [{ data: perfil, error: ePerfil }, { count, error: eCont }] = await Promise.all([
     db.from('perfis').select('stripe_subscription_id').eq('user_id', cedenteId).maybeSingle(),
     db.from('empresas').select('id', { count: 'exact', head: true }).eq('assinante_user_id', cedenteId).neq('id', empresaId),
   ])
+  // Sem essas leituras não dá para decidir se cancela: fica registrado para revisar, nunca passa calado
+  if (ePerfil || eCont) { falhaServidor('ler assinatura do cedente', (ePerfil ?? eCont)!.message, { id: transfId, empresaId }); return null }
   const subId = perfil?.stripe_subscription_id as string | undefined
   if (!subId || !process.env.STRIPE_SECRET_KEY) return null
   try {
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function ehProprietario(db: Db, empresaId: string, userId: string) {
-  const { data } = await db.from('empresas').select('id, nome, porte, natureza_juridica').eq('id', empresaId).eq('user_id', userId).maybeSingle()
+  const data = await exigirLeitura(() => db.from('empresas').select('id, nome, porte, natureza_juridica').eq('id', empresaId).eq('user_id', userId).maybeSingle(), 'transferir:data')
   return data
 }
 
@@ -148,7 +152,7 @@ async function criar(corpo: any) {
   // Documento: tem que ser do Cofre desta empresa
   const documentoId = txt(corpo.documentoId, 36)
   if (!UUID.test(documentoId)) return erro('documento')
-  const { data: docCofre } = await db.from('empresa_documentos').select('id').eq('id', documentoId).eq('empresa_id', empresaId).maybeSingle()
+  const docCofre = await exigirLeitura(() => db.from('empresa_documentos').select('id').eq('id', documentoId).eq('empresa_id', empresaId).maybeSingle(), 'transferir:docCofre')
   if (!docCofre) return erro('documento')
 
   // Senha do Proprietário (sessão esquecida aberta não transfere nada)
@@ -200,11 +204,11 @@ async function ver(corpo: any) {
   if (!UUID.test(token)) return erro('token', 404)
   const db = admin()
   await expirarVencidas(db, { token })
-  const { data: t } = await db.from('empresa_transferencias')
+  const t = await exigirLeitura(() => db.from('empresa_transferencias')
     .select('empresa_id, situacao, cedente_nome, cessionario_nome, cessionario_email, tipo_operacao, tipo_societario, junta_protocolo, junta_data, expira_em, cedente_fica_admin')
-    .eq('token', token).maybeSingle()
+    .eq('token', token).maybeSingle(), 'transferir:t')
   if (!t) return erro('token', 404)
-  const { data: emp } = await db.from('empresas').select('nome, cnpj').eq('id', t.empresa_id).maybeSingle()
+  const emp = await exigirLeitura(() => db.from('empresas').select('nome, cnpj').eq('id', t.empresa_id).maybeSingle(), 'transferir:emp')
   const user = await usuarioLogado()
   const { empresa_id: _e, ...resto } = t
   return NextResponse.json({ ...resto, empresa_nome: emp?.nome || '', empresa_cnpj: emp?.cnpj || '',
@@ -224,7 +228,7 @@ async function aceitar(corpo: any) {
   if (bloqueado(chave)) return erro('muitas_tentativas', 429)
   const db = admin()
   await expirarVencidas(db, { token })
-  const { data: t } = await db.from('empresa_transferencias').select('*').eq('token', token).maybeSingle()
+  const t = await exigirLeitura(() => db.from('empresa_transferencias').select('*').eq('token', token).maybeSingle(), 'transferir:t')
   if (!t) return erro('token', 404)
   if (t.situacao !== 'aguardando') return erro(t.situacao, 409)
   if (user.email.toLowerCase() !== t.cessionario_email) return erro('email_diferente', 403)
@@ -232,7 +236,7 @@ async function aceitar(corpo: any) {
   if (t.cessionario_doc.length === 11 && t.cessionario_doc !== cpf) { registrarFalha(chave); return erro('cpf_diferente', 403) }
 
   // 1) Quem pediu ainda é o dono? (nada mudou no meio do caminho)
-  const { data: aindaDono } = await db.from('empresas').select('id').eq('id', t.empresa_id).eq('user_id', t.cedente_user_id).maybeSingle()
+  const aindaDono = await exigirLeitura(() => db.from('empresas').select('id').eq('id', t.empresa_id).eq('user_id', t.cedente_user_id).maybeSingle(), 'transferir:aindaDono')
   if (!aindaDono) return erro('dono_mudou', 409)
   // 2) Novo dono na equipe, sem prazo (antes de rebaixar o antigo: trigger protege o último dono)
   const { error: eDono } = await db.from('empresa_usuarios').upsert(

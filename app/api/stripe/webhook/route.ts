@@ -14,7 +14,8 @@ const supabase = clienteServicoSobDemanda() // conexão criada no 1º uso (lib/s
 // falhar (erro real, ou 0 linhas por não achar o customer_id/user_id) e
 // isso NUNCA aparece pra ninguém em tempo real (é assíncrono, sem tela
 // esperando resposta) — sem isso, cliente pagou e o Axioma nunca liberou o
-// acesso, e ninguém saberia até o cliente reclamar.
+// acesso, e ninguém saberia até o cliente reclamar. Erro real do banco também
+// devolve 500 para a Stripe tentar de novo; repetir a mesma gravação não duplica nada.
 function logFalhaWebhook(tabela: string, operacao: string, motivo: string, contexto: Record<string, unknown>) {
   console.error(`[stripe webhook] Falha ao ${operacao} em ${tabela}: ${motivo}`, contexto)
   Sentry.captureException(new Error(`[stripe webhook] Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo, ...contexto } })
@@ -27,6 +28,7 @@ async function espelharNaEmpresa(userIds: string[], campos: Record<string, unkno
   const { data, error } = await supabase.from('empresas').update(campos).in('assinante_user_id', userIds).select('id')
   // 0 empresas = pagamento sem empresa para liberar/bloquear: precisa aparecer, não passar calado.
   if (error || !data?.length) logFalhaWebhook('empresas', `update plano (${evento})`, error?.message || '0 empresas encontradas', { userIds })
+  if (error) throw new Error(error.message)
 }
 
 export async function POST(request: NextRequest) {
@@ -61,15 +63,17 @@ export async function POST(request: NextRequest) {
             p_qtd: Number(session.metadata.quantidade), p_valor: session.amount_total ?? 0,
           })
           if (error) logFalhaWebhook('ia_recarga', 'creditar (checkout.session.completed)', error.message, { sessionId: session.id, empresaId: session.metadata.empresa_id })
+          if (error) throw new Error(error.message)
           break
         }
         const userId = session.metadata?.userId
         const plano = session.metadata?.plano
         if (userId && plano) {
           // Fim do teste grátis (a IA do teste vale só nos 3 primeiros dias — ia_situacao no banco).
+          // Falha aqui devolve 500 e a Stripe tenta de novo: gravar sem a data daria IA sem o limite do teste.
           let testeAte: string | null = null
           if (session.subscription) {
-            const sub = await stripe.subscriptions.retrieve(session.subscription as string).catch(() => null)
+            const sub = await stripe.subscriptions.retrieve(session.subscription as string)
             if (sub?.trial_end) testeAte = new Date(sub.trial_end * 1000).toISOString()
           }
           const { data, error } = await supabase.from('perfis').upsert({
@@ -82,6 +86,7 @@ export async function POST(request: NextRequest) {
           }, { onConflict: 'user_id' }).select('user_id')
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'upsert (checkout.session.completed)', error?.message || '0 linhas afetadas', { userId, plano })
+            if (error) throw new Error(error.message)
           }
           // Assinatura é da EMPRESA (Elias 2026-10-03): a(s) empresa(s) de quem assinou recebem o plano
           const { data: empAtivadas, error: eEmp } = await supabase.from('empresas')
@@ -89,6 +94,7 @@ export async function POST(request: NextRequest) {
             .or(`assinante_user_id.eq.${userId},user_id.eq.${userId}`) // + empresas de que ele é DONO (inclui a recebida por transferência)
             .select('id')
           if (eEmp || !empAtivadas?.length) logFalhaWebhook('empresas', 'update plano (checkout.session.completed)', eEmp?.message || '0 empresas encontradas', { userId, plano })
+          if (eEmp) throw new Error(eEmp.message)
         }
         break
       }
@@ -108,6 +114,7 @@ export async function POST(request: NextRequest) {
             .eq('stripe_customer_id', customerId).select('user_id')
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (invoice.paid)', error?.message || '0 linhas afetadas', { customerId, subscriptionId })
+            if (error) throw new Error(error.message)
           }
           await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano_ativo: true }, 'invoice.paid')
         }
@@ -127,6 +134,7 @@ export async function POST(request: NextRequest) {
             .eq('stripe_customer_id', customerId).select('user_id')
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (invoice.payment_failed)', error?.message || '0 linhas afetadas', { customerId })
+            if (error) throw new Error(error.message)
           }
           await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano_ativo: false }, 'invoice.payment_failed')
         }
@@ -154,6 +162,7 @@ export async function POST(request: NextRequest) {
             .eq('stripe_customer_id', customerId).select('user_id')
           if (error || !data || data.length === 0) {
             logFalhaWebhook('perfis', 'update (customer.subscription.deleted)', error?.message || '0 linhas afetadas', { customerId })
+            if (error) throw new Error(error.message)
           }
           await espelharNaEmpresa((data || []).map((d: { user_id: string }) => d.user_id), { plano: 'starter', plano_ativo: false }, 'customer.subscription.deleted')
         }

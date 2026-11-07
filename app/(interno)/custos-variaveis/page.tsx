@@ -11,7 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../lib/gerarPdfTabela";
-import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
+import { avisarSeFalhou, tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -142,7 +142,7 @@ export default function CustosVariaveis() {
 
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
-    const [{ data: cv, error: eCv }, { data: cf }, { data: rec }] = await Promise.all([
+    const [{ data: cv, error: eCv }, { data: cf, error: eLerCf }, { data: rec, error: eLerRec }] = await Promise.all([
       lerTodas(() => supabase.from("custos_variaveis").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }).order("id")),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
@@ -152,6 +152,7 @@ export default function CustosVariaveis() {
       lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("id")),
     ]);
+    avisarSeFalhou([{ error: eLerCf }, { error: eLerRec }], "custos-variaveis:leitura"); // dado que não veio não pode parecer vazio de verdade
 
     // Leitura falhou ≠ "não há custos": avisa em vez de mostrar a lista vazia calada.
     if (eCv) { showToast(L("Não foi possível carregar os custos variáveis agora. Recarregue a página.", "Could not load variable costs now. Reload the page.", "No se pudieron cargar los costos variables ahora. Recargue la página."), "erro"); reportarFalhaEscrita("custos_variaveis", "leitura", eCv.message); }

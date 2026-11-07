@@ -1,4 +1,4 @@
-import { reportarFalhaLeitura, exigirLeitura, registrarLeitura } from "./erroUiHelpers";
+import { reportarFalhaLeitura, exigirLeitura, registrarLeitura, avisarSeFalhou, avisarFalhaLeitura } from "./erroUiHelpers";
 // 🦅 AXIOMA AI.TECH - Helpers do Módulo Empresa
 // Integrações: BrasilAPI (CNPJ), ViaCEP (endereço)
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
@@ -686,10 +686,10 @@ export async function registrarAuditoria(params: {
   valorDepois?: any;
   descricao?: string;
 }): Promise<void> {
-  const [{ data: authData }, { data: emp }] = await Promise.all([
+  const [{ data: authData }, { data: emp }] = avisarSeFalhou(await Promise.all([
     supabase.auth.getUser(),
     supabase.from("empresas").select("nome, razao_social").eq("id", params.empresaId).maybeSingle(),
-  ]);
+  ] as const), "auditoria:autor");
   const autorEmail = authData?.user?.email || null;
   const autorNome =
     authData?.user?.user_metadata?.nome ||
@@ -1070,7 +1070,7 @@ export type ConviteLixeira = { id: string; nome: string | null; email_convidado:
 export async function listarLixeiraConvites(empresaId: string): Promise<ConviteLixeira[]> {
   const resp = await fetch("/api/convite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "lixeira_listar", empresaId }) });
   const r = await resp.json().catch(() => ({ erro: "generico" }));
-  if (r.erro) { reportarFalhaLeitura("equipe.lixeiraConvites", { message: String(r.erro) }); return []; }
+  if (r.erro) { avisarFalhaLeitura("equipe.lixeiraConvites", new Error(String(r.erro))); return []; }
   return r.itens || [];
 }
 export async function acaoLixeiraConvite(acao: "convite_lixeira" | "convite_recuperar" | "convite_apagar", conviteId: string, motivo?: string): Promise<{ erro?: string; codigo?: string }> {
