@@ -41,4 +41,10 @@ assert.equal(calcularCargaTributaria({ ...dados, regime_atual: 'lucro_real' }).c
 // Eixo de gráfico não pode arredondar a ponto de mudar o valor
 assert.equal(fK(1500), 'R$ 1,5k')
 assert.ok(fK(6.9).includes('6,90'))
+// Duas atividades: cada parte da receita no seu anexo (comércio 4%, serviço 6% na 1ª faixa)
+perto(impostoDaEmpresa({ regime_tributario: 'simples', atividade_fiscal: 'comercio' }, 98001.5, 98001.5, null, 6500.25), 4050.07)
+perto(impostoDaEmpresa({ regime_tributario: 'simples', atividade_fiscal: 'comercio' }, 98001.5, 98001.5, null, 0), 3920.06)
+// Presumido misto: comércio 8%/12% e serviço 32%/32%, ISS só no serviço
+perto(calcularLucroPresumido(100000, 'comercio_industria', 5, true, 20000).total, 80000 * 0.08 * 0.15 + 20000 * 0.32 * 0.15 + 80000 * 0.12 * 0.09 + 20000 * 0.32 * 0.09 + 650 + 3000 + 1000)
+perto(calcularLucroPresumido(100000, 'comercio_industria', 5, true, 0).total, 5930)
 console.log('check-impostos: ok')

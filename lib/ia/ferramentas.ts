@@ -11,6 +11,7 @@ import { hojeISO } from '../datas'
 import { lerTodas } from '../lerTodas'
 import { soVigentes } from '../custoFixoVigente'
 import { registrarLeitura } from '../erroUiHelpers'
+import { saldoCartaoAPagar } from '../caixaSaldo'
 import { consultarDRE } from './ferramentaDre'
 import { executarFerramentaFinanceira, FERRAMENTAS_FINANCEIRAS, NOMES_FERRAMENTAS_FINANCEIRAS } from '../financeiro/ferramentasFinanceiras'
 import { FERRAMENTA_RELATORIO, relatorioParaIA } from '../financeiro/relatorios'
@@ -39,7 +40,7 @@ export const FERRAMENTAS: Ferramenta[] = [
     input_schema: obj({ meses: { type: 'integer', description: 'Quantos meses (1 a 24).' } }) },
   { name: 'estoque_avisos', strict: true, description: 'Produtos ativos com aviso de estoque: ruptura (saldo ≤ 0), baixo_estoque, capital_parado (acima do máximo) ou custo_subindo.',
     input_schema: obj({ tipo: { type: 'string', enum: ['ruptura', 'baixo_estoque', 'capital_parado', 'custo_subindo'] }, limite }) },
-  { name: 'dividas', strict: true, description: 'Dívidas e financiamentos com saldo devedor, juros ao mês, parcelas e vencimento, maior juro primeiro (ordem de quitação avalanche).',
+  { name: 'dividas', strict: true, description: 'Dívidas e financiamentos com saldo devedor, juros ao mês, parcelas e vencimento, maior juro primeiro (ordem de quitação avalanche), e o saldo do cartão de crédito a pagar (compras no cartão ainda não pagas na fatura).',
     input_schema: obj({ limite }) },
   { name: 'maiores_fornecedores', strict: true, description: 'Fornecedores com mais valor em contas a pagar (total lançado e saldo em aberto), maiores primeiro.',
     input_schema: obj({ limite }) },
@@ -154,7 +155,11 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         const { data } = await q('dividas', 'descricao, tipo, valor_total, valor_pago, parcelas, vencimento, taxa_juros')
         const itens = ((data ?? []) as unknown as Linha[]).map((d) => ({ descricao: d.descricao, tipo: d.tipo ?? null, saldo: r2(Math.max(0, n(d.valor_total) - n(d.valor_pago))), juros_mes_pct: d.taxa_juros ?? null, parcelas: d.parcelas ?? null, vencimento: d.vencimento ?? null }))
           .filter((d) => d.saldo > 0).sort((a, b) => n(b.juros_mes_pct) - n(a.juros_mes_pct)).slice(0, lim(input.limite))
-        return JSON.stringify({ itens })
+        // Cartão de crédito é dívida até a fatura ser paga: fica na Contabilidade (3.06), não na tabela de dívidas.
+        // Sem isto a IA afirmava "não há dívida no cartão" com R$ 980,45 em aberto.
+        const cartao = await saldoCartaoAPagar(supabase, empresaId)
+        if (cartao.erro) throw new Error(`não foi possível consultar o cartão agora: ${cartao.erro}`)
+        return JSON.stringify({ itens, cartao_credito_a_pagar: r2(cartao.saldo), fonte_cartao: 'Contabilidade, conta 3.06 Cartão de Crédito a Pagar' })
       }
       case 'maiores_fornecedores': {
         const { data } = await q('contas_pagar', 'fornecedor_id, valor_total, valor_pago')

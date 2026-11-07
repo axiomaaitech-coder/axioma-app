@@ -35,6 +35,7 @@ export type DadosFiscais = {
   categoria_mei?: string | null; // MEI: categoria (o DAS muda: Serviços, Comércio, Transporte...)
   atividade_fiscal?: string | null; // Config → Fiscal: define o anexo do Simples e a presunção
   aliquota_iss_pct?: number | null;
+  receita_servicos_mensal?: number; // parte da receita mensal que é prestação de serviço (tributada no anexo/presunção de serviço)
   setor: string;
   cnae: string;
   obrigacoes_pendentes: number;
@@ -119,6 +120,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const primeira = recBase.reduce((m, r) => (r.data < m ? r.data : m), fimFechado);
   const mesesBase = semMesFechado ? 1 : Math.min(12, (Number(fimFechado.slice(0, 4)) - Number(primeira.slice(0, 4))) * 12 + Number(fimFechado.slice(5, 7)) - Number(primeira.slice(5, 7)) + 1);
   const receita_bruta_mensal = somar(recBase) / mesesBase;
+  const receita_servicos_mensal = somarReceitaServicos(recBase) / mesesBase;
   const receita_bruta_12m = mesesBase >= 12 ? somar(recBase) : receita_bruta_mensal * 12;
   const custos_fixos_mensal = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);
   const custos_variaveis_mensal = somar(custoBase) / mesesBase;
@@ -132,6 +134,7 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   return {
     receita_bruta_12m: r2(receita_bruta_12m),
     receita_bruta_mensal: r2(receita_bruta_mensal),
+    receita_servicos_mensal: r2(receita_servicos_mensal),
     custos_fixos_mensal: r2(custos_fixos_mensal),
     custos_variaveis_mensal: r2(custos_variaveis_mensal),
     lucro_bruto_mensal: r2(lucro_bruto_mensal),
@@ -189,6 +192,11 @@ const LIMITE_MENSAL_PRESUNCAO_MAIOR = 5000000 / 12;
 const receitaComAcrescimoPresuncao = (rb: number) => Math.min(rb, LIMITE_MENSAL_PRESUNCAO_MAIOR) + Math.max(0, rb - LIMITE_MENSAL_PRESUNCAO_MAIOR) * 1.1;
 
 const ATIVIDADE_FISCAL_DEFAULT: AtividadeFiscal = "servicos";
+
+// Receita de serviço pela categoria do lançamento: as mesmas que a Contabilidade leva para 6.02 (Receita de Serviços).
+export const CATEGORIAS_RECEITA_SERVICO = new Set(["Prestação de serviços", "Recorrentes", "Serviços", "Mensalidade", "Consultoria"]);
+export const somarReceitaServicos = (itens: { valor: number; categoria?: string | null }[]) =>
+  itens.reduce((t, i) => t + (CATEGORIAS_RECEITA_SERVICO.has(String(i.categoria ?? "")) ? Number(i.valor) || 0 : 0), 0);
 const ISS_MUNICIPAL_DEFAULT_PCT = 5; // teto legal comum — mesma referência que já existia antes, agora explícita e sinalizada
 
 export type ResultadoLucroPresumido = {
@@ -209,7 +217,22 @@ export function calcularLucroPresumido(
   atividade?: AtividadeFiscal,
   aliquotaIssMunicipalPct?: number,
   aplicarAdicionalTrimestral: boolean = true,
+  servicosMes?: number, // empresa de comércio/indústria com parte em serviço: cada parte com a sua presunção (Lei 9.249/95, art. 15 § 4º)
 ): ResultadoLucroPresumido {
+  const servicosParte = Math.min(Math.max(0, servicosMes || 0), Math.max(0, receitaMensal || 0));
+  if (servicosParte > 0 && atividade === "comercio_industria" && servicosParte < receitaMensal) {
+    const rbT = Math.max(0, receitaMensal || 0);
+    const issPctM = aliquotaIssMunicipalPct ?? ISS_MUNICIPAL_DEFAULT_PCT;
+    const fator = rbT > 0 ? receitaComAcrescimoPresuncao(rbT) / rbT : 1; // acréscimo da LC 224 distribuído proporcionalmente
+    const com = rbT - servicosParte;
+    const baseIr = fator * (com * PRESUNCAO_POR_ATIVIDADE.comercio_industria + servicosParte * PRESUNCAO_POR_ATIVIDADE.servicos);
+    const baseCs = fator * (com * PRESUNCAO_CSLL_POR_ATIVIDADE.comercio_industria + servicosParte * PRESUNCAO_CSLL_POR_ATIVIDADE.servicos);
+    const irpjM = baseIr * 0.15 + (aplicarAdicionalTrimestral ? Math.max(0, baseIr - 60000 / 3) * 0.10 : 0);
+    const csllM = baseCs * 0.09, pisM = rbT * 0.0065, cofinsM = rbT * 0.03, issM = servicosParte * (issPctM / 100);
+    const totalM = irpjM + csllM + pisM + cofinsM + issM;
+    return { irpj: irpjM, csll: csllM, pis: pisM, cofins: cofinsM, iss: issM, total: totalM, aliquotaEfetivaPct: rbT > 0 ? (totalM / rbT) * 100 : 0,
+      atividade: "comercio_industria", atividadePresumida: false, issPresumido: aliquotaIssMunicipalPct == null };
+  }
   const rb = Math.max(0, receitaMensal || 0);
   const atividadePresumida = !atividade;
   const atividadeReal = atividade || ATIVIDADE_FISCAL_DEFAULT;
@@ -263,10 +286,10 @@ export type EmpresaFiscal = { regime_tributario?: string | null; atividade_fisca
 export const COLUNAS_EMPRESA_FISCAL = "regime_tributario, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)";
 
 // Imposto da empresa pelo cadastro dela: toda tela usa esta conta, para nenhum módulo mostrar um imposto diferente de outro.
-export function impostoDaEmpresa(e: EmpresaFiscal | null | undefined, rb12: number, rbMes: number, lucroMensal?: number | null): number {
+export function impostoDaEmpresa(e: EmpresaFiscal | null | undefined, rb12: number, rbMes: number, lucroMensal?: number | null, servicosMes?: number): number {
   return calcularImpostoRegime(
     e?.regime_tributario || "", rb12, rbMes, presuncaoDaAtividade(e?.atividade_fiscal), e?.aliquota_iss_pct ?? undefined,
-    categoriaMeiDaEmpresa(e), anexoSimplesDaAtividade(e?.atividade_fiscal).anexo, lucroMensal,
+    categoriaMeiDaEmpresa(e), anexoSimplesDaAtividade(e?.atividade_fiscal).anexo, lucroMensal, servicosMes,
   );
 }
 
@@ -287,7 +310,8 @@ export function simularRegimes(dados: DadosFiscais, atividadeInformada?: Ativida
   const resultados: SimulacaoRegime[] = [];
 
   // Cálculo imposto atual (estimativa)
-  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, atividade, aliquotaIssMunicipalPct, dados.categoria_mei, anexoSimples, lucroMensal);
+  const servicosMes = dados.receita_servicos_mensal ?? 0;
+  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, atividade, aliquotaIssMunicipalPct, dados.categoria_mei, anexoSimples, lucroMensal, servicosMes);
 
   // 1. MEI
   // Limite legal hoje é R$ 81 mil/ano (LIMITE_ANUAL_MEI). Antes dizia R$ 144K — recomendava
@@ -311,7 +335,7 @@ export function simularRegimes(dados: DadosFiscais, atividadeInformada?: Ativida
   // 2. Simples Nacional
   const simplesElegivel = rb12 <= 4800000;
   const simplesAliquota = calcularAliquotaSimples(rb12, anexoSimples);
-  const simplesMensal = rbMes * (simplesAliquota / 100);
+  const simplesMensal = calcularImpostoRegime("simples", rb12, rbMes, atividade, aliquotaIssMunicipalPct, null, anexoSimples, null, servicosMes);
   resultados.push({
     regime: "simples", regime_label: "Simples Nacional",
     imposto_mensal: r2(simplesMensal),
@@ -328,7 +352,7 @@ export function simularRegimes(dados: DadosFiscais, atividadeInformada?: Ativida
   // 3. Lucro Presumido — fonte canônica calcularLucroPresumido (regra 2026:
   // presunção por atividade, adicional trimestral, ISS parametrizado).
   const presumidoElegivel = rb12 <= 78000000;
-  const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
+  const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct, true, servicosMes);
   resultados.push({
     regime: "presumido", regime_label: "Lucro Presumido",
     imposto_mensal: r2(lp.total),
@@ -373,9 +397,18 @@ export function calcularImpostoRegime(
   categoriaMei?: string | null, // MEI: DAS da categoria (Serviços/Comércio/Indústria/Transporte...) — antes era sempre Serviços
   anexoSimples = "III",          // Simples: anexo pela atividade (anexoSimplesDaAtividade) — antes era sempre III
   lucroMensal?: number | null,   // Lucro Real: lucro do período; sem ele, a base da estimativa mensal da lei
+  servicosMes?: number,          // parte da receita do mês que é serviço
 ): number {
   const r = (regime || "").toLowerCase();
   if (r === "mei") return dasMensalPorCategoria(categoriaMei || "Serviços");
+  // Simples com duas atividades: cada parte da receita no anexo dela, com a mesma RBT12 (LC 123/2006, art. 18, § 4º).
+  const serv = Math.min(Math.max(0, servicosMes || 0), Math.max(0, rbMes || 0));
+  if (r.includes("simples") && serv > 0 && serv < rbMes) {
+    const anexoComercio = anexoSimples === "II" ? "II" : "I";
+    const anexoServico = anexoSimples === "I" || anexoSimples === "II" ? "III" : anexoSimples;
+    return (rbMes - serv) * (calcularAliquotaSimples(rb12, anexoComercio) / 100) + serv * (calcularAliquotaSimples(rb12, anexoServico) / 100);
+  }
+  if (r.includes("simples") && serv > 0 && serv >= rbMes && (anexoSimples === "I" || anexoSimples === "II")) return rbMes * (calcularAliquotaSimples(rb12, "III") / 100);
   if (r.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, anexoSimples);
     return rbMes * (aliq / 100);
@@ -385,7 +418,7 @@ export function calcularImpostoRegime(
   // usa os mesmos defaults documentados (Serviços 32%, ISS 5%) que o
   // código antigo já assumia, mas agora com o adicional trimestral
   // aplicado corretamente e a mesma fórmula do simulador/carga real.
-  if (r.includes("presumido")) return calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct).total;
+  if (r.includes("presumido")) return calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct, true, serv).total;
   if (r.includes("real")) return calcularLucroReal(rbMes, lucroMensal, atividade, aliquotaIssMunicipalPct).total;
   // Sem regime: estima como simples
   const aliq = calcularAliquotaSimples(rb12, anexoSimples);
@@ -461,13 +494,12 @@ export function calcularCargaTributaria(
     const dasMei = dasMensalPorCategoria(dados.categoria_mei || "Serviços");
     composicao = [{ nome: "DAS MEI", valor: dasMei, pct: rbMes > 0 ? (dasMei / rbMes) * 100 : 0 }];
   } else if (regime.includes("simples")) {
-    const aliq = calcularAliquotaSimples(rb12, anexoSimplesDaAtividade(dados.atividade_fiscal).anexo);
-    const das = rbMes * (aliq / 100);
-    composicao = [{ nome: "DAS Simples", valor: r2(das), pct: aliq }];
+    const das = calcularImpostoRegime("simples", rb12, rbMes, atividade, aliquotaIssMunicipalPct, null, anexoSimplesDaAtividade(dados.atividade_fiscal).anexo, null, dados.receita_servicos_mensal ?? 0);
+    composicao = [{ nome: "DAS Simples", valor: r2(das), pct: rbMes > 0 ? parseFloat(((das / rbMes) * 100).toFixed(2)) : 0 }];
   } else if (regime.includes("presumido")) {
     // Fonte canônica calcularLucroPresumido — mesma regra do simulador
     // (presunção por atividade + adicional trimestral + ISS parametrizado).
-    const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
+    const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct, true, dados.receita_servicos_mensal ?? 0);
     const pct = (v: number) => (rbMes > 0 ? parseFloat(((v / rbMes) * 100).toFixed(2)) : 0);
     composicao = [
       { nome: "IRPJ", valor: r2(lp.irpj), pct: pct(lp.irpj) },

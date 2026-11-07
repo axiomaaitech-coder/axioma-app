@@ -30,7 +30,7 @@ import {
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
-import { impostoDaEmpresa, anexoSimplesDaAtividade } from "../../../lib/iaTributariaHelpers";
+import { impostoDaEmpresa, anexoSimplesDaAtividade, somarReceitaServicos } from "../../../lib/iaTributariaHelpers";
 import { carregarBaseDRE, custoFixoNoPeriodo, custoFixoDoMes, somaNoPeriodo, jurosEstimadosNoPeriodo, lerVendasPdv, lancamentosPdvFluxo, type CustoFixoVigencia } from "../../../lib/dreCompetencia";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
@@ -279,8 +279,8 @@ export default function DREPage() {
   const receitaMensalMedia = receitaBrutaAtual / meses;
   // MEI: DAS real da competência (já com a categoria e o salário mínimo de cada ano). Antes era
   // "DAS de Serviços × meses" pra todo MEI — caminhoneiro aparecia pagando R$86 em vez de R$195.
-  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, receitaMensalMedia, (receitaBrutaAtual - devolucoesAtual - custoVarAtual - custoFixoAtual) / meses) * meses;
-  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, somaValor(receitasItens.filter(r => r.data >= inicioRolling12(periodoAnt.fim) && r.data <= periodoAnt.fim)), receitaBrutaAnt / mesesAnt, (receitaBrutaAnt - devolucoesAnt - custoVarAnt - custoFixoAnt) / mesesAnt) * mesesAnt;
+  const deducoesAtual = dasMei ? deducoesMEI(dasMei.obrigacoes, periodo.inicio, periodo.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, receitaMensalMedia, (receitaBrutaAtual - devolucoesAtual - custoVarAtual - custoFixoAtual) / meses, somarReceitaServicos(receitasItens.filter(r => r.data >= periodo.inicio && r.data <= periodo.fim)) / meses) * meses;
+  const deducoesAnt = dasMei ? deducoesMEI(dasMei.obrigacoes, periodoAnt.inicio, periodoAnt.fim, dasMei.padrao) : impostoDaEmpresa(empresaFiscal, somaValor(receitasItens.filter(r => r.data >= inicioRolling12(periodoAnt.fim) && r.data <= periodoAnt.fim)), receitaBrutaAnt / mesesAnt, (receitaBrutaAnt - devolucoesAnt - custoVarAnt - custoFixoAnt) / mesesAnt, somarReceitaServicos(receitasItens.filter(r => r.data >= periodoAnt.inicio && r.data <= periodoAnt.fim)) / mesesAnt) * mesesAnt;
   const impostoMensalEstimado = deducoesAtual / meses;
   const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
 
@@ -293,7 +293,7 @@ export default function DREPage() {
   const competenciasSerie = competenciasNoPeriodo(inicioRolling12(periodo.fim), periodo.fim); // mesma ordem dos buckets (mais antigo primeiro)
   const serieDREHist: DRE[] = serieReceitaHist.map((b, i) => montarDRE({
     receitaBruta: b.value,
-    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, b.value, b.value - (serieCustoVarHist[i]?.value || 0) - custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? "")),
+    deducoes: dasMei ? dasDaCompetencia(dasMei.obrigacoes, competenciasSerie[i] ?? "", dasMei.padrao) : impostoDaEmpresa(empresaFiscal, rb12, b.value, b.value - (serieCustoVarHist[i]?.value || 0) - custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? ""), somarReceitaServicos(receitasItens.filter(r => r.data.startsWith(competenciasSerie[i] ?? "-")))),
     devolucoes: somaNoPeriodo(devolucoesRows, `${competenciasSerie[i]}-01`, `${competenciasSerie[i]}-31`),
     custoVariavel: serieCustoVarHist[i]?.value || 0,
     custoFixo: custoFixoDoMes(custosFixosVig, competenciasSerie[i] ?? ""),

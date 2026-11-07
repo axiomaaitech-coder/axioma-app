@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { carregarBaseDRE, custoFixoNoPeriodo, mesesEntre, somaNoPeriodo, type BaseDRE, jurosEstimadosNoPeriodo } from '../dreCompetencia'
-import { impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL } from '../iaTributariaHelpers'
+import { impostoDaEmpresa, COLUNAS_EMPRESA_FISCAL, somarReceitaServicos } from '../iaTributariaHelpers'
 import { hojeISO } from '../datas'
 
 const r2 = (v: number) => Math.round(v * 100) / 100
@@ -48,7 +48,8 @@ export function calcularDre(base: BaseDRE, e: EmpresaDre | null, divs: DividaDre
   const rb12 = somaNoPeriodo(base.receitas, inicio12(fim.slice(0, 7)), fim)
   const regime = e?.regime_tributario || ''
   // Mesma função de imposto da tela DRE e da IA Tributária (MEI: DAS da categoria por mês)
-  const impostoMes = impostoDaEmpresa(e, rb12, receitaBruta / meses, (receitaBruta - devolucoes - custosVariaveis - custosFixos) / meses)
+  const servicos = somarReceitaServicos(base.receitas.filter((r) => r.data >= inicio && r.data <= fim))
+  const impostoMes = impostoDaEmpresa(e, rb12, receitaBruta / meses, (receitaBruta - devolucoes - custosVariaveis - custosFixos) / meses, servicos / meses)
   const deducoes = r2(impostoMes * meses)
   const jurosPagos = somaNoPeriodo(base.jurosPagos, inicio, fim)
   const jurosEstimados = jurosEstimadosNoPeriodo(divs, inicio, fim)
