@@ -365,6 +365,8 @@ const textoPdf = (r: Rel) => Buffer.from(PDF.montarPdfRelatorio(r).output('array
     const texto = textoPdf(x)
     assert.ok(!/undefined|NaN|Invalid Date/.test(texto), `PDF ${lang}: lixo no texto`)
   }
+  assert.ok(ind(v, 'Valor em risco')?.nota?.includes('sem histórico'), 'R$ 0,00 sem histórico precisa do aviso')
+  assert.ok(!JSON.stringify(v).includes('1 contas'), 'singular certo')
   ok('Etapa 4: relatório de Contas Vencidas e fontes com horário')
 }
 

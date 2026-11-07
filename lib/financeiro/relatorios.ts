@@ -567,10 +567,12 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
       const r = resumoPainel(a, filtrosIniciais(p.inicio, p.fim))
       n.receberVencido = r.totalReceber; n.receberAberto = r.totalReceber + (r.agingReceber.aVencer?.saldo ?? 0)
       n.pagarVencido = r.totalPagar; n.pagarAberto = r.totalPagar + (r.agingPagar.aVencer?.saldo ?? 0)
+      // Conta sem histórico fica fora dessas duas estimativas: sem o aviso, o R$ 0,00 pareceria risco nenhum
+      const semHistorico = r.qtdSemScore ? L(lang, `não inclui ${fmtMoeda(r.semScore, lang)} sem histórico para medir`, `excludes ${fmtMoeda(r.semScore, lang)} without history to measure`, `no incluye ${fmtMoeda(r.semScore, lang)} sin historial para medir`) : undefined
       secoes.push({ id: 'indicadores', titulo: tx(lang, 'indicadores'), tipo: 'indicadores', itens: [
         ind(tx(lang, 'a_receber_vencido'), r.totalReceber, 'BRL', 'calculo'), ind(tx(lang, 'a_pagar_vencido'), r.totalPagar, 'BRL', 'calculo'),
-        ind(L(lang, 'Valor em risco', 'Amount at risk', 'Valor en riesgo'), r.valorEmRisco, 'BRL', 'estimativa'),
-        ind(L(lang, 'Previsão de recebimento em 30 dias', 'Expected collection in 30 days', 'Previsión de cobro en 30 días'), r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor, 'BRL', 'estimativa'),
+        ind(L(lang, 'Valor em risco', 'Amount at risk', 'Valor en riesgo'), r.valorEmRisco, 'BRL', 'estimativa', undefined, semHistorico),
+        ind(L(lang, 'Previsão de recebimento em 30 dias', 'Expected collection in 30 days', 'Previsión de cobro en 30 días'), r.previsao.horizontes.find((h) => h.horizonteDias === 30)?.valor, 'BRL', 'estimativa', undefined, semHistorico),
       ] })
       montarRelatorio(a, r, lang, (v) => fmtMoeda(v, lang), (d) => fmtData(d, lang)).filter((s) => s.linhas.length).forEach((s, i) => {
         const colunas = Object.keys(s.linhas[0])
