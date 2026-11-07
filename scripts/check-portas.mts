@@ -144,6 +144,9 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   assert.equal((await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'relatorio', tela: 'ia-tributaria', entrada: { tipo: 'tributario' }, executar: exec(OK) })).saida, OK)
   assert.ok(JSON.parse((await passarPelaPorta({ empresaId: E, papel: 'operador', nome: 'dividas', tela: 'ia-financeira', executar: exec(OK) })).saida).negado, 'tela nunca libera o que o papel barra')
   assert.equal(motor.match(/FERRAMENTAS\.filter\(\(f\) => telaPodeUsarPorta\(consulta\.tela, f\.name\)\)/g)?.length, 2, 'os provedores recebem só as ferramentas da tela')
+  assert.equal(fora.motivo, 'fora_da_area')
+  assert.deepEqual(M.avisosDaResposta({ lang: 'pt', exige: true, registro: [{ nome: 'cadastros', status: 'negado', ms: 1, motivo: 'fora_da_area' }], naoConferidos: 0 }), [], 'fora da área não diz sem permissão')
+  assert.equal(M.avisosDaResposta({ lang: 'pt', exige: false, registro: [{ nome: 'cadastros', status: 'negado', ms: 1 }], naoConferidos: 0 }).length, 1, 'papel barrado segue avisando')
   console.log('OK — Etapa 5: cada tela só com as portas da sua finalidade')
 }
 

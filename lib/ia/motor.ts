@@ -488,11 +488,13 @@ export const AVISO_NAO_CONFERIDO: Record<Idioma, string> = {
 // Avisos determinísticos no fim da resposta (o texto do modelo não é alterado)
 export function avisosDaResposta(p: { lang: Idioma; exige: boolean; registro: RegistroFerramenta[]; naoConferidos: number }): string[] {
   const avisos: string[] = []
-  const nomes = (s: RegistroFerramenta['status']) => [...new Set(p.registro.filter((r) => r.status === s).map((r) => NOME_FERRAMENTA[r.nome]?.[p.lang] ?? r.nome))]
+  // Fora da área da tela não é falta de permissão: a própria resposta já indica a IA Financeira.
+  const foraDaArea = p.registro.some((r) => r.motivo === 'fora_da_area')
+  const nomes = (s: RegistroFerramenta['status']) => [...new Set(p.registro.filter((r) => r.status === s && r.motivo !== 'fora_da_area').map((r) => NOME_FERRAMENTA[r.nome]?.[p.lang] ?? r.nome))]
   const falhas = nomes('erro'), negadas = nomes('negado')
   if (falhas.length) avisos.push(AVISO_FALHA[p.lang](falhas.join(', ')))
   if (negadas.length) avisos.push(AVISO_SEM_PERMISSAO[p.lang](negadas.join(', ')))
-  if (p.exige && !p.registro.some(consultaTrouxeDado) && !falhas.length && !negadas.length) avisos.push(AVISO_SEM_CONSULTA[p.lang])
+  if (p.exige && !foraDaArea && !p.registro.some(consultaTrouxeDado) && !falhas.length && !negadas.length) avisos.push(AVISO_SEM_CONSULTA[p.lang])
   if (p.naoConferidos > 0) avisos.push(AVISO_NAO_CONFERIDO[p.lang])
   return avisos
 }
