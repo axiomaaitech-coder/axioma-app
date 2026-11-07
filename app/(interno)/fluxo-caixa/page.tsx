@@ -361,7 +361,9 @@ export default function FluxoCaixa() {
 
   const desvioEntradas = desvioMedioPrevistoRealizado(entradasItens);
   const desvioSaidas = desvioMedioPrevistoRealizado(saidasItens);
-  const precisaoPrevisao = Math.max(0, 100 - Math.min(100, (Math.abs(desvioEntradas) + Math.abs(desvioSaidas)) / 2));
+  // Sem nenhum lançamento previsto para comparar com o realizado, não há precisão a medir: antes mostrava 100%.
+  const temPrevisao = [...entradasItens, ...saidasItens].some((i: { status?: string }) => i.status === "previsto");
+  const precisaoPrevisao: number | null = temPrevisao ? Math.max(0, 100 - Math.min(100, (Math.abs(desvioEntradas) + Math.abs(desvioSaidas)) / 2)) : null;
   const bandaCenario = Math.min(50, Math.max(5, (Math.abs(desvioEntradas) + Math.abs(desvioSaidas)) / 2));
 
   const narrativaSaldo = temDados ? montarNarrativaVariacao(lang, {
@@ -400,7 +402,7 @@ export default function FluxoCaixa() {
     { l: t.fluxoCaixa.totalSaidas, v: fBRL(comparativoSaidas.atual), c: ct(CORES.vermelho), i: "📉", delta: comparativoSaidas, invertido: true },
     { l: lang === "en" ? "Period Balance" : lang === "es" ? "Saldo del Período" : "Saldo do Período", v: fBRL(saldoPeriodoAtual), c: saldoPeriodoAtual >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "⚖️", delta: comparativoSaldo, invertido: false },
     { l: cx.rupturaCaixaTitulo, v: ruptura ? `${ruptura.diasRestantes}d` : "—", c: ruptura ? ct(CORES.vermelho) : ct(CORES.verde), i: "🚨", delta: null, invertido: false },
-    { l: cx.precisaoPrevisao, v: fPct(precisaoPrevisao), c: precisaoPrevisao >= 80 ? ct(CORES.verde) : precisaoPrevisao >= 60 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯", delta: null, invertido: false },
+    { l: cx.precisaoPrevisao, v: precisaoPrevisao == null ? "—" : fPct(precisaoPrevisao), c: precisaoPrevisao == null ? "var(--axi-text-secondary)" : precisaoPrevisao >= 80 ? ct(CORES.verde) : precisaoPrevisao >= 60 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯", delta: null, invertido: false },
   ];
   // destino de cada indicador acima (mesma ordem) — card nunca é só enfeite
   const DESTINOS_CFO = ["/tesouraria", "/receitas", "/custos-variaveis", "/tesouraria", "#ruptura-caixa", "#previstos-caixa"];
@@ -503,9 +505,9 @@ export default function FluxoCaixa() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
-            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
-            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtualReal.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}`, cor: saldoAtualReal >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtualReal >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
+            { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, cor: ct("#34d399"), Icon: TrendingUp, ir: "/receitas" },
+            { label: t.fluxoCaixa.totalSaidas, value: `R$ ${totalSaidas.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, cor: ct("#f87171"), Icon: TrendingDown, ir: "/custos-variaveis" },
+            { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtualReal.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, cor: saldoAtualReal >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtualReal >= 0 ? TrendingUp : AlertTriangle, ir: "/tesouraria" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => irParaDestino(card.ir, router)}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>

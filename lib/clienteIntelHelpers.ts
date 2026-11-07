@@ -200,7 +200,8 @@ export function montarSnapshotsCarteira(clientes: ClienteRow[], contas: ContaRow
   const qtdClientesAtivos = contarClientesAtivos(clientes);
   return {
     clientesSnapshot, valorTotalCarteira,
-    ticketMedioCarteira: clientesSnapshot.length > 0 ? valorTotalCarteira / clientesSnapshot.length : 0,
+    // Ticket médio = valor cobrado ÷ número de cobranças. Antes dividia pelo número de clientes cadastrados, inclusive os que nunca compraram.
+    ticketMedioCarteira: (() => { const n = clientesSnapshot.reduce((s, c) => s + c.qtdContas, 0); return n > 0 ? valorTotalCarteira / n : 0; })(),
     qtdClientesAtivos,
   };
 }
@@ -806,7 +807,8 @@ export function calcularScoreAxiomaCliente(s: ClienteSnapshot, carteira: Snapsho
     disputas: null, cancelamentos: null, renegociacoes: null,
   };
 
-  valores.pontualidade = s.pctPagoEmDia >= 0 ? clamp(s.pctPagoEmDia, 0, 100) : null;
+  // Sem nenhuma conta recebida não há pontualidade a medir: zero aqui marcava cliente novo como crítico.
+  valores.pontualidade = s.qtdContasRecebidas > 0 && s.pctPagoEmDia >= 0 ? clamp(s.pctPagoEmDia, 0, 100) : null;
 
   valores.risco = s.valorTotalCobrado > 0
     ? clamp(100 - (s.valorEmAtrasoAtual / s.valorTotalCobrado) * 100 - (s.estagioAtual ? PENALIDADE_ESTAGIO[s.estagioAtual] : 0), 0, 100)
@@ -845,7 +847,9 @@ export function calcularScoreAxiomaCliente(s: ClienteSnapshot, carteira: Snapsho
 }
 
 export function rankingScoreAxiomaCliente(carteira: SnapshotCarteira): { s: ClienteSnapshot; score: ScoreAxiomaCliente }[] {
+  // Cliente sem nenhuma cobrança não tem nota: daria "alto risco" a quem não deve nada.
   return carteira.clientesSnapshot
+    .filter((s) => s.qtdContas > 0)
     .map((s) => ({ s, score: calcularScoreAxiomaCliente(s, carteira) }))
     .sort((a, b) => b.score.total - a.score.total);
 }
@@ -951,7 +955,7 @@ export function calcularKpisRecebimento(
     indiceInadimplencia, indicePontualidade, dso,
     receitaPrevista: valorAVencer, receitaConfirmada: recebidoNoMes, receitaEmRisco: valorVencido,
     clientesEmAtraso, clientesCriticos,
-    ticketMedio: carteira.clientesSnapshot.length > 0 ? carteira.ticketMedioCarteira : null,
+    ticketMedio: carteira.ticketMedioCarteira > 0 ? carteira.ticketMedioCarteira : null,
     receitaRecorrente, receitaNaoRecorrente,
     scoreMedioCarteira: scoreMedio.amostraSuficiente ? scoreMedio.media : null,
   };
