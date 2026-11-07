@@ -291,7 +291,7 @@ export function calcularScore360(snap: SnapshotFinanceiro, bench: BenchmarkSetor
   const resilienciaScore = Math.round((scoreInadimplencia * 0.5 + scoreEndiv * 0.5));
 
   const formatPct = (n: number) => `${n.toFixed(1)}%`;
-  const formatBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+  const formatBRL = (n: number) => `R$ ${fBRL2(n)}`;
   const status = (v: number, ok: number, warn: number): "bom" | "atencao" | "critico" => v >= ok ? "bom" : v >= warn ? "atencao" : "critico";
 
   const dimensoes: Dimensao360[] = [
@@ -437,9 +437,9 @@ export function detectarAnomalias(snap: SnapshotFinanceiro, bench: BenchmarkSeto
       titulo: "Endividamento elevado",
       titulo_en: "High debt level",
       titulo_es: "Endeudamiento elevado",
-      descricao: `Dívida de R$ ${snap.endividamento_total.toLocaleString("pt-BR")} supera 3x a receita mensal. Renegocie condições.`,
-      descricao_en: `Debt of R$ ${snap.endividamento_total.toLocaleString("pt-BR")} exceeds 3x monthly revenue. Renegotiate terms.`,
-      descricao_es: `Deuda de R$ ${snap.endividamento_total.toLocaleString("pt-BR")} supera 3x los ingresos mensuales. Renegocie condiciones.`,
+      descricao: `Dívida de R$ ${fBRL2(snap.endividamento_total)} supera 3x a receita mensal. Renegocie condições.`,
+      descricao_en: `Debt of R$ ${fBRL2(snap.endividamento_total)} exceeds 3x monthly revenue. Renegotiate terms.`,
+      descricao_es: `Deuda de R$ ${fBRL2(snap.endividamento_total)} supera 3x los ingresos mensuales. Renegocie condiciones.`,
     });
   }
 
@@ -450,9 +450,9 @@ export function detectarAnomalias(snap: SnapshotFinanceiro, bench: BenchmarkSeto
       titulo: "Operando no prejuízo",
       titulo_en: "Operating at a loss",
       titulo_es: "Operando con pérdidas",
-      descricao: `Prejuízo de R$ ${Math.abs(snap.lucro_liquido).toLocaleString("pt-BR")} no período. Revise custos fixos e precificação urgentemente.`,
-      descricao_en: `Loss of R$ ${Math.abs(snap.lucro_liquido).toLocaleString("pt-BR")} in period. Urgently review fixed costs and pricing.`,
-      descricao_es: `Pérdida de R$ ${Math.abs(snap.lucro_liquido).toLocaleString("pt-BR")} en el período. Revise costos fijos y precios urgentemente.`,
+      descricao: `Prejuízo de R$ ${fBRL2(Math.abs(snap.lucro_liquido))} no período. Revise custos fixos e precificação urgentemente.`,
+      descricao_en: `Loss of R$ ${fBRL2(Math.abs(snap.lucro_liquido))} in period. Urgently review fixed costs and pricing.`,
+      descricao_es: `Pérdida de R$ ${fBRL2(Math.abs(snap.lucro_liquido))} en el período. Revise costos fijos y precios urgentemente.`,
     });
   }
 
@@ -669,7 +669,7 @@ export function gerarPlanoAcao(snap: SnapshotFinanceiro, score: Score360, anomal
 // ============================================================================
 
 export function gerarResumoNarrado(snap: SnapshotFinanceiro, score: Score360, bench: BenchmarkSetor | null, idioma: string): string {
-  const formatBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+  const formatBRL = (n: number) => `R$ ${fBRL2(n)}`;
   const b = bench;
 
   if (idioma === "en") {
@@ -729,7 +729,7 @@ export function gerarResumoNarrado(snap: SnapshotFinanceiro, score: Score360, be
 
 export function respostaPorRegras(snap: SnapshotFinanceiro, score: Score360, bench: BenchmarkSetor | null, pergunta: string, idioma: string): string {
   const p = pergunta.toLowerCase();
-  const formatBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+  const formatBRL = (n: number) => `R$ ${fBRL2(n)}`;
 
   // Sem dados
   if (snap.receita_bruta === 0 && snap.custos_totais === 0) {

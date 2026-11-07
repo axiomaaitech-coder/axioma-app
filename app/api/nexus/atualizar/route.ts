@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
@@ -33,7 +34,9 @@ export async function POST() {
   if (!url || !serviceRole) return NextResponse.json({ error: 'indisponivel' }, { status: 503 })
 
   // Última coleta = último sucesso do BCB (roda em toda coleta).
-  const { data: bcb } = await createClient(url, serviceRole).from('nexus_source').select('last_success').eq('source_name', 'BCB SGS').maybeSingle()
+  const { data: bcb, error: erroBcb } = await createClient(url, serviceRole).from('nexus_source').select('last_success').eq('source_name', 'BCB SGS').maybeSingle()
+  // Sem saber a última coleta, não coleta de novo a cada visita: a próxima tentativa decide.
+  if (erroBcb) { Sentry.captureException(new Error(`[nexus/atualizar] leitura da última coleta: ${erroBcb.message}`)); return NextResponse.json({ error: 'indisponivel' }, { status: 503 }) }
   const ultima = bcb?.last_success ? new Date(bcb.last_success as string).getTime() : 0
   if (Date.now() - ultima < INTERVALO_HORAS * 3600000) return NextResponse.json({ atualizou: false, ultima: bcb?.last_success ?? null })
 

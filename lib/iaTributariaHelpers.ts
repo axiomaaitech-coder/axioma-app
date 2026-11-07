@@ -2,7 +2,7 @@
 // Simulador de regime, Score Fiscal, carga tributária, economia estimada, reforma 2026.
 
 import { fBRL2 } from "./cfoCore";
-import { lerTodas } from "./lerTodas";
+import { carregarBaseDRE, type BaseDRE } from "./dreCompetencia";
 import { soVigentes } from "./custoFixoVigente";
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
@@ -85,35 +85,43 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
   const hoje = new Date();
   const mesAtual = hoje.getMonth() + 1;
   const anoAtual = hoje.getFullYear();
-  const inicio = isoDia(new Date(anoAtual, mesAtual - 1, 1));
   const fim = isoDia(new Date(anoAtual, mesAtual, 0));
-
-  // Últimos 12 meses
+  // RBT12: os 12 meses anteriores ao mês corrente (LC 123/2006, art. 18). O mês em curso ainda está incompleto.
+  const fimFechado = isoDia(new Date(anoAtual, mesAtual - 1, 0));
   const inicio12m = isoDia(new Date(anoAtual - 1, mesAtual - 1, 1));
 
   const [
-    { data: rec12m, error: e1 },
-    { data: recMes, error: e2 },
+    base,
     { data: custosFix, error: e3 },
-    { data: custosVar, error: e4 },
     { data: empresa, error: e5 },
-    { data: obrigacoes },
+    { data: obrigacoes, error: e6 },
   ] = await Promise.all([
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
-    empresaId ? lerTodas(() => supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
+    // Mesma base da DRE: receitas, contas a receber por competência e vendas do PDV, sem contar duas vezes.
+    empresaId ? carregarBaseDRE(empresaId, inicio12m, fim) : Promise.resolve({ receitas: [], custos: [], falhou: false } as Pick<BaseDRE, "receitas" | "custos" | "falhou">),
     empresaId ? soVigentes(supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId)) : Promise.resolve({ data: [], error: null }),
-    empresaId ? lerTodas(() => supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")) : Promise.resolve({ data: [], error: null }),
     empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal, atividade_fiscal, aliquota_iss_pct, mei_dados(categoria_mei)").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null, error: null }),
-    Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+    empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Leitura que falha lança erro: a tela avisa em vez de simular regime/economia com zero.
-  const eLeitura = e1 || e2 || e3 || e4 || e5;
+  if (base.falhou) throw new Error("[ia-tributaria] leitura da base da DRE falhou");
+  // Obrigações também: sem esta leitura, a tela daria pontos por "sem obrigações vencidas" sem saber.
+  const eLeitura = e3 || e5 || e6;
   if (eLeitura) throw new Error(`[ia-tributaria] leitura falhou: ${eLeitura.message}`);
-  const receita_bruta_12m = (rec12m || []).reduce((s, r) => s + Number(r.valor || 0), 0);
-  const receita_bruta_mensal = (recMes || []).reduce((s, r) => s + Number(r.valor || 0), 0);
+  const somar = (ls: { valor: number }[]) => ls.reduce((t, l) => t + Number(l.valor || 0), 0);
+  const recFechadas = base.receitas.filter((r) => r.data <= fimFechado);
+  const custoFechado = base.custos.filter((r) => r.data <= fimFechado);
+  // Empresa com menos de 12 meses: média dos meses desde a primeira receita, e RBT12 proporcional (LC 123/2006, art. 18, § 2º).
+  // Sem nenhum mês fechado, o mês corrente é o único dado que existe.
+  const semMesFechado = recFechadas.length === 0;
+  const recBase = semMesFechado ? base.receitas : recFechadas;
+  const custoBase = semMesFechado ? base.custos : custoFechado;
+  const primeira = recBase.reduce((m, r) => (r.data < m ? r.data : m), fimFechado);
+  const mesesBase = semMesFechado ? 1 : Math.min(12, (Number(fimFechado.slice(0, 4)) - Number(primeira.slice(0, 4))) * 12 + Number(fimFechado.slice(5, 7)) - Number(primeira.slice(5, 7)) + 1);
+  const receita_bruta_mensal = somar(recBase) / mesesBase;
+  const receita_bruta_12m = mesesBase >= 12 ? somar(recBase) : receita_bruta_mensal * 12;
   const custos_fixos_mensal = (custosFix || []).reduce((s, r) => s + Number(r.valor_mensal || 0), 0);
-  const custos_variaveis_mensal = (custosVar || []).reduce((s, r) => s + Number(r.valor || 0), 0);
+  const custos_variaveis_mensal = somar(custoBase) / mesesBase;
   const lucro_bruto_mensal = receita_bruta_mensal - custos_variaveis_mensal;
 
   const hojeStr = isoDia(hoje);

@@ -109,7 +109,7 @@ const { db: dbRetrato } = bancoFalso({
   receitas: { rows: [], error: { message: 'canceling statement due to statement timeout' } },
 })
 const ret = await montarRetrato(dbRetrato, 'emp-1')
-assert.deepEqual(ret.leiturasFalhas, ['receitas'])
+assert.deepEqual(ret.leiturasFalhas, ['receitas', 'custos variáveis'])
 assert.ok(ret.texto.includes('LEITURAS QUE FALHARAM AGORA') && ret.texto.includes('receitas'))
 assert.ok(ret.texto.includes('Lucro médio') && ret.texto.includes('não desconta contas a pagar'))
 const { db: dbOk } = bancoFalso({ empresas: { rows: [{ id: 'emp-1', nome_fantasia: 'Teste', uf: 'SP' }] } })

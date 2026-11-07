@@ -80,10 +80,12 @@ export type AnaliseVencidos = {
 export type LerTesouraria = (empresaId: string, hoje: string) => Promise<{ caixa: number; reserva: number; giro: number | null; falhou: boolean }>
 const tesourariaNavegador: LerTesouraria = async (empresaId, hoje) => {
   const t = await import('../tesourariaHelpers')
-  const cfgT = await t.obterConfigTesouraria(empresaId).catch(() => null)
+  // Reserva sem leitura não pode virar zero calado: o caixa livre pareceria maior do que é.
+  let reservaFalhou = false
+  const cfgT = await t.obterConfigTesouraria(empresaId).catch(() => { reservaFalhou = true; return null })
   const reserva = Number(cfgT?.reserva_minima ?? 0)
   const [posicao, giro] = await Promise.all([t.obterPosicaoCaixa(empresaId, hoje, reserva), t.obterCapitalDeGiro(empresaId).catch(() => null)])
-  return { caixa: posicao.totalDisponivel, reserva, giro: giro?.capitalDeGiro ?? null, falhou: posicao.falhou }
+  return { caixa: posicao.totalDisponivel, reserva, giro: giro?.capitalDeGiro ?? null, falhou: posicao.falhou || reservaFalhou }
 }
 
 export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: SupabaseClient; hoje?: string; tesouraria?: LerTesouraria } = {}): Promise<AnaliseVencidos> {

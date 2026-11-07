@@ -134,7 +134,7 @@ const PALETA = {
   dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#2ecc9b", AZULC: "#2ecc9b", ROXO: "#2ecc9b", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
   xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AMARELO: "#f5a623", AZULC: "#2ecc9b", ROXO: "#101b3d", CINZA: "#374151", TEXTO: "#101b3d", CAMPO_BG: "#ffffff", TOOLTIP_BG: "#ffffff" },
 } as const;
-function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR")}`; }
+function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function formatBRL2(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 

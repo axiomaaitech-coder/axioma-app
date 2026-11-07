@@ -11,6 +11,7 @@
 // somas pra RPC no banco quando algum cliente passar desse volume.
 // ═══════════════════════════════════════════════════════════════
 import { soVigentes } from '../custoFixoVigente'
+import { carregarBaseDRE } from '../dreCompetencia'
 import { saldoCaixaRealizado } from '../caixaSaldo'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
@@ -88,11 +89,13 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const hojeBR = hojeISO(hoje, 'America/Sao_Paulo')
   const [aBR, mBR, dBR] = hojeBR.split('-').map(Number)
   const inicio12 = iso(new Date(Date.UTC(aBR - 1, mBR - 1, dBR)))
+  // Mesma base da DRE: receita e custo não podem ser um número aqui e outro na tela DRE.
+  const baseDre = carregarBaseDRE(empresaId, inicio12, hojeBR, supabase as never).catch(() => null)
   const [emp, rec, cf, cv, dv, fc, cr, cp, est, obr, desc] = await Promise.all([
     supabase.from('empresas').select('nome_fantasia, razao_social, regime_tributario, atividade_fiscal, aliquota_iss_pct, porte, setor, cnae_principal, cnae_descricao, uf, cidade, mei_dados(categoria_mei)').eq('id', empresaId).maybeSingle(),
-    lerTodas(() => supabase.from('receitas').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
+    baseDre.then((b) => ({ data: b?.receitas ?? [], error: !b || b.falhou ? 'base da DRE' : null })),
     lerTodas(() => soVigentes(supabase.from('custos_fixos').select('descricao, categoria, valor_mensal').eq('empresa_id', empresaId), hojeBR).order('id')),
-    lerTodas(() => supabase.from('custos_variaveis').select('descricao, categoria, valor, data').eq('empresa_id', empresaId).gte('data', inicio12).order('id')),
+    baseDre.then((b) => ({ data: b?.custos ?? [], error: !b || b.falhou ? 'base da DRE' : null })),
     lerTodas(() => supabase.from('dividas').select('descricao, valor_total, valor_pago, taxa_juros').eq('empresa_id', empresaId).order('id')),
     // Caixa: conta única com o Fluxo de Caixa (realizado até hoje + PDV recebido) — lib/caixaSaldo.
     saldoCaixaRealizado(supabase, empresaId, hojeBR),
@@ -121,7 +124,7 @@ export async function montarRetrato(supabase: SupabaseClient, empresaId: string)
   const receitas6m = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(Date.UTC(aBR, mBR - 1 - 6 + i, 1))
     const chave = iso(d).slice(0, 7)
-    return Math.round(receitas.filter((r) => String(r.data).startsWith(chave)).reduce((t, r) => t + n(r.valor), 0))
+    return Math.round(receitas.filter((r) => String(r.data).startsWith(chave)).reduce((t, r) => t + n(r.valor), 0) * 100) / 100
   })
   const custoFixoMensal = soma(L(cf), 'valor_mensal')
   const custoVariavelMensal = soma(L(cv), 'valor') / 12

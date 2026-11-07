@@ -711,7 +711,7 @@ export default function FluxoCaixa() {
                         </span>
                       </td>
                       <td className="px-4 md:px-6 py-4 text-sm font-black" style={{ color: l.tipo === "entrada" ? ct("#34d399") : ct("#f87171") }}>
-                        {l.tipo === "entrada" ? "+" : "-"} R$ {l.valor.toLocaleString("pt-BR")}
+                        {l.tipo === "entrada" ? "+" : "-"} R$ {l.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 md:px-6 py-4">
                         <div className="flex gap-3">
