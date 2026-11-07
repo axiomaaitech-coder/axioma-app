@@ -233,7 +233,7 @@ export default function FluxoCaixa() {
       if (v.veredicto !== "segue") { setAvisoDup(v); setSalvando(false); return; }
     }
     const lancar = (id: string) => realizado
-      ? registrarLancamentoManual(empresaId, "fluxo_caixa", { id, descricao: payload.descricao, valor: payload.valor, data: payload.data, natureza: novo.natureza, categoria: payload.categoria })
+      ? registrarLancamentoManual(empresaId, "fluxo_caixa", { id, descricao: payload.descricao, valor: payload.valor, data: payload.data, natureza: novo.natureza, aguardar: novo.natureza === "pag_cartao", categoria: payload.categoria })
       : Promise.resolve({} as { erro?: string });
     const avisoMotor = L("Lançamento salvo, mas a Contabilidade/DRE não foi atualizada agora — o Guardião tenta de novo.", "Entry saved, but Accounting/P&L was not updated now — the Guardian will retry.", "Registro guardado, pero Contabilidad/Resultados no se actualizó ahora — el Guardián reintentará.");
     if (editando) {

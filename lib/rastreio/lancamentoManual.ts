@@ -30,6 +30,7 @@ export type LancamentoManual = {
   categoria?: string | null; centro_custo_id?: string | null; forma?: string | null; contraparte_id?: string | null;
   modulo?: string; // de qual tela veio (ex.: faturamento_mei)
   pular?: Destino[]; // porta que já tem esse dinheiro (reprocessamento da Conferência)
+  aguardar?: boolean; // a tela mostra um saldo que depende deste lançamento: só recarrega depois de ele terminar
 };
 
 // Natureza do lançamento do Fluxo de Caixa, guardada na própria coluna categoria.
@@ -80,7 +81,7 @@ export async function registrarLancamentoManual(empresaId: string, origem: Orige
     evento_tipo: "MANUAL_ENTRY_RECORDED",
     evento_payload: { natureza: d.natureza, valor: d.valor, categoria: d.categoria ?? null, forma: d.forma ?? null, data: d.data, descricao: d.descricao, centro_custo_id: d.centro_custo_id ?? null },
   };
-  const r = await registrarMovimentacao({ empresaId, tipo: "manual", origemTabela: origem, origemId: d.id, valor: d.valor, data: d.data, payload });
+  const r = await registrarMovimentacao({ empresaId, tipo: "manual", origemTabela: origem, origemId: d.id, valor: d.valor, data: d.data, payload, aguardar: d.aguardar });
   return { erro: r.erro };
 }
 
