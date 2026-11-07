@@ -590,7 +590,9 @@ export default function PdvVendaPage() {
     // Snapshot do cupom ANTES de limpar o carrinho — mesma lógica de
     // itensParaBaixa acima. Fica disponível pra impressão automática e pro
     // botão "Reimprimir" até a próxima venda ser finalizada.
-    setUltimoCupom({
+    // A impressão automática abre a janela do navegador, que trava a tela: o cupom só fica pronto
+    // DEPOIS da baixa de estoque. Antes, fechar a aba com a janela aberta deixava a venda sem baixa.
+    const cupomDaVenda: CupomVenda = {
       vendaId,
       criadoEm: new Date().toISOString(),
       operador: nomeOperador,
@@ -605,9 +607,7 @@ export default function PdvVendaPage() {
       totalAPagar: resultado.valorTotal ?? totalAPagar,
       formaPagamento, cpfNota: cpfLimpo,
       valorRecebido, troco,
-    });
-    setCupomJaImpresso(false);
-    cupomAutoImpressoRef.current = null;
+    };
 
     mostrarToast(t("vendaConcluida", lang, { valor: moeda(resultado.valorTotal) }), "ok");
     setCarrinho([]);
@@ -627,6 +627,9 @@ export default function PdvVendaPage() {
     const { falhas } = await baixarEstoqueVenda(empresaId, userId, vendaId, itensParaBaixa);
     await atualizarStatusBaixaEstoque(vendaId, falhas.length === 0 ? "concluido" : falhas.length === itensParaBaixa.length ? "pendente" : "parcial");
     setBaixandoEstoqueFlag(false);
+    setCupomJaImpresso(false);
+    cupomAutoImpressoRef.current = null;
+    setUltimoCupom(cupomDaVenda);
 
     if (falhas.length > 0) {
       setPendenciaBaixa({ vendaId, totalItens: itensParaBaixa.length, itensFalhos: falhas });
