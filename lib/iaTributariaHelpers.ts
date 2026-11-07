@@ -574,7 +574,8 @@ export function calcularEconomiaTributaria(dados: DadosFiscais): {
     economia_mensal,
     economia_anual: economia_mensal * 12,
     regime_atual: dados.regime_atual || "Não definido",
-    regime_ideal: melhor?.regime_label || "—",
+    // Sem ICMS/IPI nos outros regimes, não há como afirmar qual é o ideal.
+    regime_ideal: sims.some((x) => x.elegivel && x.parcial) ? "—" : melhor?.regime_label || "—",
     acoes,
   };
 }

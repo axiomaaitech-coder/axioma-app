@@ -171,6 +171,23 @@ export function conferirNumeros(resposta: string, textoBase: string): string[] {
   return ruins
 }
 
+// A IA às vezes arredonda: escreve R$ 56.450,00 quando o dado é R$ 56.450,28. Quando só um valor dos dados está a menos
+// de R$ 1, a frase é sobre ele: sai o valor exato. Valor mais distante continua inventado e vai para o aviso.
+export function corrigirCentavos(resposta: string, textoBase: string): string {
+  const conhecidos = [...new Set(valoresDoTexto(textoBase).map((v) => v.valor).filter((v) => Number.isFinite(v) && v >= 1))]
+  return resposta.split(/((?<=[.!?\n])\s+)/).map((frase) => RE_MARCA_ESTIMATIVA.test(frase) ? frase : frase.replace(RE_REAIS, (bruto: string, pos: number) => {
+    if (multiplicadorEscrito(frase.slice(pos + bruto.length, pos + bruto.length + 12)) > 1) return bruto
+    const v = Math.abs(lerReais(bruto))
+    if (!Number.isFinite(v) || v < 1) return bruto
+    const temCentavos = /[.,]\d{1,2}$/.test(bruto)
+    if (temCentavos && conhecidos.some((k) => Math.abs(k - v) < 0.005)) return bruto
+    const perto = conhecidos.filter((k) => Math.abs(k - v) < 1)
+    if (perto.length !== 1) return bruto
+    const local = /\d,\d{3}|\.\d{1,2}$/.test(bruto) ? 'en-US' : 'pt-BR'
+    return `R$ ${bruto.includes('-') ? '-' : ''}${perto[0].toLocaleString(local, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  })).join('')
+}
+
 // Percentual citado como fato precisa estar nos dados ou sair da conta entre dois valores deles (parte ÷ total, ou variação).
 // Tolerância: só o arredondamento das casas que a resposta mostrou.
 // ponytail: confere que a conta existe, não que seja a conta do assunto da frase; os testes ao vivo cobrem o assunto.
@@ -854,6 +871,7 @@ export async function perguntarAoMotor(args: {
   if (r.texto) { const x = extrairSugestao(r.texto, areaDaTela(args.tela)); r.texto = x.texto || null; sugestaoMemoria = x.sugestao }
   // Valores trazidos pelas ferramentas de consulta também contam como dado real.
   const reaisConsultas = reaisDasConsultas(r.consultas ?? [])
+  if (r.texto) r.texto = corrigirCentavos(r.texto, `${textoConferencia}\n${reaisConsultas}`)
   const naoConferidos = r.texto ? [...conferirNumeros(r.texto, `${textoConferencia}\n${reaisConsultas}`), ...conferirPercentuais(r.texto, `${textoConferencia}\n${reaisConsultas}`)] : []
   // Verificado de verdade = só o que o SERVIDOR leu (retrato, economia, ferramentas). Número que só
   // existe no contexto da tela ou no histórico veio do navegador: não conta como confirmado.

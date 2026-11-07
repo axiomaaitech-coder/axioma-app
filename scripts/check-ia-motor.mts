@@ -5,7 +5,7 @@ import type { NumerosRetrato } from '../lib/ia/retratoEmpresa'
 // O cálculo de imposto cria o cliente do Supabase ao carregar: valores falsos bastam (nada aqui acessa a rede).
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://teste.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'teste'
-const { triagemPorRegra, conferirNumeros, conferirPercentuais, semCredito, marcarSemCredito } = await import('../lib/ia/motor')
+const { triagemPorRegra, conferirNumeros, conferirPercentuais, corrigirCentavos, semCredito, marcarSemCredito } = await import('../lib/ia/motor')
 const { setorDaEmpresa, SETORES } = await import('../lib/ia/setores')
 const { escolherManuais } = await import('../lib/ia/manuais')
 const { detectarAlertas } = await import('../lib/ia/retratoEmpresa')
@@ -51,6 +51,16 @@ assert.deepEqual(conferirNumeros('A receber: 71.300,00.', 'R$ 71.300,00'), [])
 assert.deepEqual(conferirNumeros('A receber: 71.900,00.', 'R$ 71.300,00'), ['71.900,00'])
 assert.deepEqual(conferirNumeros('Faltam 500 reais.', 'R$ 400,00'), ['500'])
 assert.deepEqual(conferirNumeros('Foram 12,50 kg e 1.500 caixas.', 'R$ 1,00'), [], 'quantidade não é dinheiro')
+// Arredondamento da IA vira o valor exato dos dados; valor distante continua barrado
+assert.equal(corrigirCentavos('O lucro foi R$ 56.450,00.', 'R$ 56.450,28'), 'O lucro foi R$ 56.450,28.')
+assert.equal(corrigirCentavos('O lucro foi R$ 56.450.', 'R$ 56.450,28'), 'O lucro foi R$ 56.450,28.')
+assert.equal(corrigirCentavos('Profit was R$ 56,450.00.', 'R$ 56.450,28'), 'Profit was R$ 56,450.28.')
+assert.equal(corrigirCentavos('O lucro foi R$ 56.450,28.', 'R$ 56.450,28 R$ 56.450,90'), 'O lucro foi R$ 56.450,28.', 'exato fica')
+assert.equal(corrigirCentavos('O lucro foi R$ 56.450,50.', 'R$ 56.450,28 R$ 56.450,90'), 'O lucro foi R$ 56.450,50.', 'dois candidatos: não escolhe')
+assert.equal(corrigirCentavos('O lucro foi R$ 56.470,00.', 'R$ 56.450,28'), 'O lucro foi R$ 56.470,00.', 'distante não é arredondamento')
+assert.equal(corrigirCentavos('Estimativa: R$ 56.450,00.', 'R$ 56.450,28'), 'Estimativa: R$ 56.450,00.')
+assert.equal(corrigirCentavos('O saldo é R$ 72 mil.', 'R$ 72,50'), 'O saldo é R$ 72 mil.')
+assert.equal(corrigirCentavos('Linha um R$ 10,00.\nLinha dois R$ 20,00.', 'R$ 10,20 R$ 20,30'), 'Linha um R$ 10,20.\nLinha dois R$ 20,30.', 'mantém a quebra de linha')
 // Percentual: tem de estar nos dados ou sair da conta entre dois valores deles
 const basePct = 'Receita R$ 200.000,00, custo R$ 50.000,00, margem 37,5%'
 assert.deepEqual(conferirPercentuais('A margem é 37,5%.', basePct), [])

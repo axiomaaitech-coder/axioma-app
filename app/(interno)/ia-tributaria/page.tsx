@@ -507,7 +507,9 @@ export default function IATributariaPage() {
             <div className="space-y-3">
               <CanvasBox cor={ROXO} {...cartaoTema}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.simuladorTitulo}</p>
-                <p className="text-xs" style={{ color: TEXTO }}>{tt.simuladorDesc}</p>
+                <p className="text-xs" style={{ color: TEXTO }}>{simulacoes.some((x) => x.elegivel && x.parcial)
+                  ? (lang === "en" ? "Simulation with your real data. Lucro Presumido and Lucro Real do not include ICMS/IPI here, so they cannot be compared directly with Simples." : lang === "es" ? "Simulación con sus datos reales. Lucro Presumido y Lucro Real no incluyen ICMS/IPI aquí, por eso no se comparan directamente con el Simples." : "Simulação com seus dados reais. Lucro Presumido e Lucro Real estão sem ICMS/IPI, por isso não dá para comparar direto com o Simples.")
+                  : tt.simuladorDesc}</p>
               </CanvasBox>
               <ControleAtividadeFiscal
                 lang={lang} atividadeFiscal={atividadeFiscal} setAtividadeFiscal={setAtividadeFiscal}
@@ -523,7 +525,7 @@ export default function IATributariaPage() {
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.regime_label}</p>
                         <div className="flex gap-2 mt-1">
                           {isAtual && <span className="text-xs px-2 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(46,204,155,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
-                          {i === 0 && s.elegivel && !s.parcial && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
+                          {i === 0 && s.elegivel && !simulacoes.some((x) => x.elegivel && x.parcial) && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
                           {!s.elegivel && <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.inelegivel}</span>}
                         </div>
                       </div>
