@@ -24,7 +24,7 @@ import { escolherManuais, textoManual } from './manuais'
 import { montarContextoMundo } from '../nexusContextoMundo'
 import { FERRAMENTAS, executarFerramenta } from './ferramentas'
 import { INDICADORES } from '../financeiro/semantica'
-import { passarPelaPorta, portasDaTela, telaPodeUsarPorta, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
+import { passarPelaPorta, portasDaTela, statusDaSaida, confiabilidadeDaResposta, consultaTrouxeDado, type RegistroFerramenta, type Confiabilidade } from './portas'
 import { hojeISO } from '../datas'
 import { textoRegrasOficiais } from '../regrasOficiais'
 import { linhaIdentidade } from './identidade'
@@ -200,7 +200,7 @@ function montarSistema(ctx: Contexto, nivel: Nivel, lang: Idioma): { fixo: strin
   const hoje = hojeISO(new Date(), ctx.retrato.fuso)
   const regras = /TRIBUT|MEI|SIMPLES|IMPOST/i.test(ctx.manuais) || /tribut|\bmei\b|\bdas\b|fiscal|simples/i.test(ctx.tela ?? '') ? `\n\n${textoRegrasOficiais(hoje)}` : ''
   const tela = ctx.tela ? `\n\nINSTRUÇÕES E DADOS DESTA TELA (calculados pelo Axioma na tela de origem — siga o formato pedido aqui, sem violar as regras invioláveis):\n${ctx.tela}` : ''
-  const area = portasDaTela(ctx.telaId) ? '\n\nNESTA TELA você só tem as ferramentas ligadas ao assunto dela. Pedido de outro assunto (sem ferramenta aqui): diga que esse dado não é consultado nesta tela, indique a IA Financeira e nunca estime.' : ''
+  const area = portasDaTela(ctx.telaId) ? '\n\nESTA TELA cuida só do assunto dela. Para qualquer dado da empresa, chame a ferramenta do assunto antes de responder, mesmo que pareça de outra área: se ela disser que não é consultado aqui, repita isso e indique a IA Financeira. Nunca diga que o dado não existe sem ter consultado, e nunca estime.' : ''
   return {
     fixo: `${linhaIdentidade(ctx.telaId)}\n${REGRAS}${nivel === 'rotina' ? `\n${REGRA_ROTINA}` : ''}`,
     empresa: `${ctx.retrato.texto}\n${textoSetor(ctx.retrato.setor)}\n\nMANUAIS ESPECIALISTAS PARA ESTA PERGUNTA:\n${ctx.manuais}${regras}${area}${ctx.mundo ? `\n\nECONOMIA (Axioma Nexus — dados oficiais e manchetes marcadas como jornalísticas):\n${ctx.mundo}` : ''}${ctx.memoria ? `\n\n${ctx.memoria}` : ''}${tela}\n\nHoje: ${hoje}. Responda em ${NOME_IDIOMA[lang]}.`,
@@ -511,7 +511,7 @@ export async function chamarOpenAIComFerramentas(sistema: string, msgs: Mensagem
   const p = prov ?? (process.env.OPENAI_API_KEY ? { nome: 'openai' as const, url: 'https://api.openai.com/v1/chat/completions', chave: process.env.OPENAI_API_KEY } : null)
   if (!p || (p.nome === 'openai' && semCredito('openai'))) return { texto: null, dadosConsultados }
   const gemini = p.nome === 'gemini'
-  const tools = FERRAMENTAS.filter((f) => telaPodeUsarPorta(consulta.tela, f.name)).map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
+  const tools = FERRAMENTAS.map((f) => ({ type: 'function', function: { name: f.name, description: f.description, parameters: f.input_schema, ...(gemini ? {} : { strict: true }) } }))
   const conversa: MsgOpenAI[] = [{ role: 'system', content: sistema }, ...msgs]
   let modeloAtual = modelo
   const filaGemini = gemini ? GEMINI_RESERVAS.filter((m) => m !== modelo) : []
@@ -590,7 +590,7 @@ async function chamarClaude(sistema: { fixo: string; empresa: string }, msgs: Me
         model: cfg.modelo, max_tokens: 16000,
         betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default', // recusa do modelo → a Anthropic reroda em outro modelo
         output_config: { effort: cfg.esforco ?? 'medium' },
-        tools: FERRAMENTAS.filter((f) => telaPodeUsarPorta(consulta.tela, f.name)),
+        tools: FERRAMENTAS,
         tool_choice: { type: rodada === MAX_CONSULTAS ? 'none' : consulta.exige && rodada === 0 ? 'any' : 'auto' },
         system: [
           { type: 'text', text: sistema.fixo, cache_control: { type: 'ephemeral' } },

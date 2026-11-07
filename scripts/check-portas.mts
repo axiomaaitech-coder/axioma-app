@@ -143,7 +143,7 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   assert.equal(chamadas, 0); assert.ok(JSON.parse(relFora.saida).negado)
   assert.equal((await passarPelaPorta({ empresaId: E, papel: 'dono', nome: 'relatorio', tela: 'ia-tributaria', entrada: { tipo: 'tributario' }, executar: exec(OK) })).saida, OK)
   assert.ok(JSON.parse((await passarPelaPorta({ empresaId: E, papel: 'operador', nome: 'dividas', tela: 'ia-financeira', executar: exec(OK) })).saida).negado, 'tela nunca libera o que o papel barra')
-  assert.equal(motor.match(/FERRAMENTAS\.filter\(\(f\) => telaPodeUsarPorta\(consulta\.tela, f\.name\)\)/g)?.length, 2, 'os provedores recebem só as ferramentas da tela')
+  assert.ok(!/FERRAMENTAS\.filter/.test(motor), 'o modelo vê todas as ferramentas: sem elas, afirmava que o dado não existe'); assert.ok(/existe no Axioma/.test(fora.saida) && /não diga que o dado não existe/.test(fora.saida), 'a recusa não deixa negar o dado')
   assert.equal(fora.motivo, 'fora_da_area')
   assert.deepEqual(M.avisosDaResposta({ lang: 'pt', exige: true, registro: [{ nome: 'cadastros', status: 'negado', ms: 1, motivo: 'fora_da_area' }], naoConferidos: 0 }), [], 'fora da área não diz sem permissão')
   assert.equal(M.avisosDaResposta({ lang: 'pt', exige: false, registro: [{ nome: 'cadastros', status: 'negado', ms: 1 }], naoConferidos: 0 }).length, 1, 'papel barrado segue avisando')

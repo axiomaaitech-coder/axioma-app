@@ -26,7 +26,8 @@ export const PORTAS: Record<string, Porta> = {
 }
 
 // ─── Etapa 5: cada tela consulta só o que é da sua finalidade. Quem protege o dado é o papel lido no servidor; a tela vem
-// do navegador e serve para manter a IA no assunto. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
+// do navegador e serve para manter a IA no assunto. O modelo continua vendo todas as ferramentas: sem a ferramenta,
+// ele concluía que o dado não existia ("não há cadastro de clientes"); a recusa vem da porta, com o motivo certo. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
 const BASE = ['resumo_financeiro', 'relatorio']
 const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais']
 const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais']
@@ -66,7 +67,7 @@ export function telaPodePedirRelatorio(tela: string | null | undefined, tipo: un
   const tipos = tela.startsWith('mei-') ? RELATORIOS_MEI : Object.hasOwn(RELATORIOS_POR_TELA, tela) ? RELATORIOS_POR_TELA[tela] : null
   return tipos ? tipos.includes(String(tipo)) : true
 }
-const foraDaArea = (assunto: string) => JSON.stringify({ negado: true, erro: `${assunto} não é consultado nesta tela. Diga isso, indique a IA Financeira para esse assunto e não estime nenhum valor.` })
+const foraDaArea = (assunto: string) => JSON.stringify({ negado: true, erro: `${assunto} existe no Axioma, mas não é consultado nesta tela. Diga exatamente isso, indique a IA Financeira para esse assunto, não diga que o dado não existe e não estime nenhum valor.` })
 
 // papel null = dono sem linha em empresa_usuarios (o acesso à empresa já foi conferido pela RLS na rota)
 export const papelPodeUsarPorta = (p: Porta, papel: string | null) => p.papeis.includes(papel ?? 'dono')
