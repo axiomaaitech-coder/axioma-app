@@ -1,4 +1,5 @@
 "use client";
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useTurnstile, TURNSTILE_ATIVO } from "../../../../components/Turnstile";
 // 🦅 AXIOMA AI.TECH — PDV Fase 3: Frente de Caixa.
 // Redesenho (2026-08-16) — estrutura de PDV de supermercado real: entrada
@@ -525,7 +526,7 @@ export default function PdvVendaPage() {
 
   async function handleAbrirCaixa() {
     if (!empresaId || !caixaId || !userId) return;
-    const valor = Number(valorAberturaInput.replace(",", "."));
+    const valor = valorAberturaInput.trim() ? lerValorBR(valorAberturaInput) : 0;
     if (isNaN(valor) || valor < 0) { mostrarToast(t("fundoTrocoInvalido", lang), "erro"); return; }
 
     setAbrindoCaixaFlag(true);
@@ -765,7 +766,7 @@ export default function PdvVendaPage() {
 
   async function handleConfirmarPrecoManual() {
     if (!produtoParaPreco) return;
-    const preco = Number(precoManualInput.replace(",", "."));
+    const preco = lerValorBR(precoManualInput);
     if (!preco || preco <= 0 || isNaN(preco)) { mostrarToast(t("definirPrecoInvalido", lang), "erro"); return; }
 
     setDefinindoPreco(true);
@@ -849,7 +850,7 @@ export default function PdvVendaPage() {
   const desconto = 0;
   const totalAPagar = Math.max(subtotal - desconto, 0);
   const tributoAproximado = totalAPagar * PERCENTUAL_TRIBUTO_APROXIMADO;
-  const valorRecebido = Number(valorRecebidoInput.replace(",", ".")) || 0;
+  const valorRecebido = lerValorBR(valorRecebidoInput) || 0;
   const troco = valorRecebido - totalAPagar;
 
   const itemDestaque = carrinho.find((i) => i.produto.id === ultimoAdicionadoId) || null;
@@ -982,7 +983,7 @@ export default function PdvVendaPage() {
             lang={lang} produto={produtoParaPreco}
             precoInput={precoManualInput} onPrecoInput={setPrecoManualInput}
             onPrecoBlur={() => {
-              const n = Number(precoManualInput.replace(",", "."));
+              const n = lerValorBR(precoManualInput);
               if (precoManualInput.trim() !== "" && !isNaN(n)) setPrecoManualInput(n.toFixed(2).replace(".", ","));
             }}
             confirmando={definindoPreco}

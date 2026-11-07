@@ -72,3 +72,12 @@ const webhook = readFileSync('app/api/stripe/webhook/route.ts', 'utf8')
 assert.ok(!webhook.includes('.catch(() => null)'), 'webhook não pode engolir falha da Stripe')
 assert.ok((webhook.match(/throw new Error\(/g) ?? []).length >= 7, 'erro do banco no webhook devolve 500 para a Stripe tentar de novo')
 console.log('OK — vigia: nenhuma leitura ignora o erro; webhook com nova tentativa da Stripe')
+
+// 9) Valor digitado: ponto de milhar e vírgula, em um lugar só
+const { lerValorBR } = await import('../lib/valorBR')
+for (const [t, v] of [['1.500,00', 1500], ['1.500', 1500], ['1500', 1500], ['1500,5', 1500.5], ['1500.50', 1500.5], ['12.345.678,90', 12345678.9], ['6,90', 6.9], ['0,5', 0.5], ['1.5', 1.5], ['R$ 1.234,56', 1234.56], ['-1.500,00', -1500]] as const) assert.equal(lerValorBR(t), v, t)
+for (const t of ['', '   ', null, undefined, 'abc', '1,2,3']) assert.ok(Number.isNaN(lerValorBR(t)), String(t))
+const trocaSoVirgula = /(Number|parseFloat)\([\w.]+\.replace\(\s*["'],["'],\s*["']\.["']\s*\)\)/
+const fragil = arquivos('app').concat(arquivos('components')).flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((l, i) => (trocaSoVirgula.test(l) && !/estado\.display|aliquotaIss/.test(l) ? [`${f}:${i + 1}`] : [])))
+assert.deepEqual(fragil, [], 'campo de valor deve usar lerValorBR')
+console.log('OK — valor digitado: 1.500,00 e 1.500 são mil e quinhentos em todo campo')

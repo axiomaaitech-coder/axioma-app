@@ -1,4 +1,5 @@
 'use client'
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react'
@@ -210,13 +211,13 @@ export default function TesourariaSimuladorPage() {
                     <div>
                       <label className="text-xs" style={{ color: CINZA }}>{L('Valor (entra hoje)', 'Amount (in today)', 'Valor (entra hoy)')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaValor || ''} placeholder="0"
-                        onChange={(e) => setVar('novaDividaValor', Number(e.target.value.replace(',', '.')) || 0)}
+                        onChange={(e) => setVar('novaDividaValor', lerValorBR(e.target.value) || 0)}
                         className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaParcelaMensal || ''} placeholder="0"
-                        onChange={(e) => setVar('novaDividaParcelaMensal', Number(e.target.value.replace(',', '.')) || 0)}
+                        onChange={(e) => setVar('novaDividaParcelaMensal', lerValorBR(e.target.value) || 0)}
                         className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     </div>
                   </div>
@@ -226,7 +227,7 @@ export default function TesourariaSimuladorPage() {
                   <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>{L('Nova Contratação', 'New Hire', 'Nueva Contratación')}</p>
                   <label className="text-xs" style={{ color: CINZA }}>{L('Custo mensal', 'Monthly cost', 'Costo mensual')}</label>
                   <input type="text" inputMode="decimal" value={vars.novaContratacaoCustoMensal || ''} placeholder="0"
-                    onChange={(e) => setVar('novaContratacaoCustoMensal', Number(e.target.value.replace(',', '.')) || 0)}
+                    onChange={(e) => setVar('novaContratacaoCustoMensal', lerValorBR(e.target.value) || 0)}
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 </div>
               </div>

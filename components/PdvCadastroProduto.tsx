@@ -8,6 +8,7 @@
 // precificação (Etapa 2), as sugestões inteligentes (Etapa 3), o chat da
 // inteligência do Axioma (Etapa 4) e a proteção contra falha silenciosa no
 // salvamento vivem só aqui — corrigir num lugar corrige nos dois.
+import { lerValorBR } from "../lib/valorBR";
 import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
@@ -519,9 +520,7 @@ function formatarMoedaInput(v: number | null | undefined): string {
   return v.toFixed(2).replace(".", ",");
 }
 function parseMoedaInput(texto: string): number | null {
-  const limpo = texto.trim().replace(",", ".");
-  if (limpo === "") return null;
-  const n = Number(limpo);
+  const n = lerValorBR(texto);
   return isNaN(n) ? null : n;
 }
 

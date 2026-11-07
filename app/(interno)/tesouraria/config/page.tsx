@@ -1,4 +1,5 @@
 'use client'
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, Lock } from 'lucide-react'
@@ -80,7 +81,7 @@ export default function TesourariaConfigPage() {
 
   async function salvarConfig() {
     if (!empresaId) return
-    const reserva = Number(reservaMinima.replace(',', '.')) || 0
+    const reserva = lerValorBR(reservaMinima) || 0
     const dias = Math.max(1, Math.round(Number(diasAlerta) || 30))
     setSalvando(true)
     const r = await salvarConfigTesouraria(empresaId, reserva, dias)

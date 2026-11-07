@@ -10,6 +10,7 @@
 //
 // NÃO dá baixa de estoque nem grava venda de novo — só lê, soma e agrupa o
 // que finalizar_venda() + criarMovimentacao() já gravaram na hora da venda.
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useEffect, useReducer, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -445,7 +446,7 @@ export default function RetaguardaPage() {
 
   async function handleFecharTurno() {
     if (!turnoSelecionado || !config) return;
-    const valorContado = valorContadoInput.trim() ? Number(valorContadoInput.replace(",", ".")) : null;
+    const valorContado = valorContadoInput.trim() ? lerValorBR(valorContadoInput) : null;
     if (config.conferirGaveta && valorContado === null) {
       mostrarToast(t("erroValorContadoObrigatorio", lang), "erro");
       return;
@@ -1294,7 +1295,7 @@ function ModalMovimentacao({ lang, tipo, registrando, onConfirmar, onCancelar }:
   const [motivo, setMotivo] = useState("");
 
   function handleConfirmar() {
-    const valor = Number(valorInput.replace(",", "."));
+    const valor = lerValorBR(valorInput);
     if (!valor || valor <= 0 || isNaN(valor)) return;
     onConfirmar(valor, motivo.trim());
   }
@@ -1467,7 +1468,7 @@ function ModalEditarMovimentacao({ lang, movimentacao, salvando, onConfirmar, on
   const [motivo, setMotivo] = useState(movimentacao.motivo || "");
 
   function handleConfirmar() {
-    const valor = Number(valorInput.replace(",", "."));
+    const valor = lerValorBR(valorInput);
     if (!valor || valor <= 0 || isNaN(valor)) return;
     onConfirmar(valor, motivo.trim());
   }

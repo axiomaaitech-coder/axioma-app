@@ -1,4 +1,5 @@
 'use client'
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, Save, Lock, Undo2, ChevronDown, ChevronUp } from 'lucide-react'
@@ -107,10 +108,10 @@ export default function LancamentoManualPage() {
   function removerLinha(i: number) { setLinhas((prev) => (prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev)) }
   function limparForm() { setData(hojeISO()); setDescricao(''); setLinhas([linhaVazia('debito'), linhaVazia('credito')]) }
 
-  const totalDebito = linhas.filter((l) => l.tipo === 'debito').reduce((s, l) => s + (parseFloat(l.valor.replace(',', '.')) || 0), 0)
-  const totalCredito = linhas.filter((l) => l.tipo === 'credito').reduce((s, l) => s + (parseFloat(l.valor.replace(',', '.')) || 0), 0)
+  const totalDebito = linhas.filter((l) => l.tipo === 'debito').reduce((s, l) => s + (lerValorBR(l.valor) || 0), 0)
+  const totalCredito = linhas.filter((l) => l.tipo === 'credito').reduce((s, l) => s + (lerValorBR(l.valor) || 0), 0)
   const diferenca = Math.round((totalDebito - totalCredito) * 100) / 100
-  const linhasValidas = linhas.every((l) => l.contaId && parseFloat(l.valor.replace(',', '.')) > 0)
+  const linhasValidas = linhas.every((l) => l.contaId && lerValorBR(l.valor) > 0)
   const podeSalvar = podeEditar && !!descricao.trim() && !!data && linhasValidas && diferenca === 0 && totalDebito > 0
 
   async function salvar() {
@@ -120,7 +121,7 @@ export default function LancamentoManualPage() {
       return
     }
     setSalvando(true)
-    const partidas: PartidaContabilInput[] = linhas.map((l) => ({ contaId: l.contaId, tipo: l.tipo, valor: Math.round((parseFloat(l.valor.replace(',', '.')) || 0) * 100) / 100 }))
+    const partidas: PartidaContabilInput[] = linhas.map((l) => ({ contaId: l.contaId, tipo: l.tipo, valor: Math.round((lerValorBR(l.valor) || 0) * 100) / 100 }))
     const { erro } = await registrarLancamentoContabil(empresaId, data, descricao.trim(), partidas, { origemTabela: 'manual' })
     setSalvando(false)
     if (erro) {

@@ -1,4 +1,5 @@
 "use client";
+import { lerValorBR } from "../../../lib/valorBR";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { copiarTexto } from "../../../lib/copiar";
@@ -1368,7 +1369,7 @@ Use só os ids e valores de opção listados. Se não tiver como saber (ex.: com
     if (!linhaEditando || !userId || !empresaId) return;
     setSalvandoEdicao(true);
     try {
-      const valorNum = parseFloat(formEdicao.valor.replace(",", "."));
+      const valorNum = lerValorBR(formEdicao.valor);
       if (isNaN(valorNum)) {
         showToast("Valor inválido", "erro");
         setSalvandoEdicao(false);

@@ -10,6 +10,7 @@
 // linhas selecionadas cobre o caso de uso real; selecionar células de colunas de texto
 // (categoria, status) não teria leitura numérica de qualquer forma. Ampliar pra seleção
 // retangular de células se algum dia for pedido especificamente.
+import { lerValorBR } from "../lib/valorBR";
 import { useState, useMemo, useRef, useEffect } from "react";
 import ReactECharts from "echarts-for-react";
 import * as XLSX from "xlsx";
@@ -363,7 +364,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
         if (erro) { setErroEdicao(erro); return; }
         valorFinal = valor;
       } else {
-        const n = parseFloat(valorEdicao.replace(",", "."));
+        const n = lerValorBR(valorEdicao);
         if (isNaN(n)) { setErroEdicao(t.erroSalvar); return; }
         valorFinal = n;
       }

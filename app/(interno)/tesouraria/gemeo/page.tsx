@@ -1,4 +1,5 @@
 'use client'
+import { lerValorBR } from "../../../../lib/valorBR";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
@@ -108,8 +109,8 @@ export default function TesourariaGemeoPage() {
   // Digital Twin é o simulador num formato estratégico, não um cálculo novo.
   const variaveis: StressVariaveis = useMemo(() => {
     if (mudanca === 'receita30') return { ...STRESS_VARIAVEIS_NEUTRAS, receitaPct: 30 }
-    if (mudanca === 'emprestimo') return { ...STRESS_VARIAVEIS_NEUTRAS, novaDividaValor: Number(emprestimoValor.replace(',', '.')) || 0, novaDividaParcelaMensal: Number(emprestimoParcela.replace(',', '.')) || 0 }
-    if (mudanca === 'filial') return { ...STRESS_VARIAVEIS_NEUTRAS, investimentoInicial: Number(filialInvestimento.replace(',', '.')) || 0, novaContratacaoCustoMensal: Number(filialCustoMensal.replace(',', '.')) || 0 }
+    if (mudanca === 'emprestimo') return { ...STRESS_VARIAVEIS_NEUTRAS, novaDividaValor: lerValorBR(emprestimoValor) || 0, novaDividaParcelaMensal: lerValorBR(emprestimoParcela) || 0 }
+    if (mudanca === 'filial') return { ...STRESS_VARIAVEIS_NEUTRAS, investimentoInicial: lerValorBR(filialInvestimento) || 0, novaContratacaoCustoMensal: lerValorBR(filialCustoMensal) || 0 }
     return STRESS_VARIAVEIS_NEUTRAS
   }, [mudanca, emprestimoValor, emprestimoParcela, filialInvestimento, filialCustoMensal])
 
@@ -118,7 +119,7 @@ export default function TesourariaGemeoPage() {
     return calcularSimulacaoEstresse(fluxo, posicao, reservaMinima, variaveis)
   }, [fluxo, posicao, reservaMinima, variaveis])
 
-  const dividaDepois = dividaPendente + (mudanca === 'emprestimo' ? (Number(emprestimoValor.replace(',', '.')) || 0) : 0)
+  const dividaDepois = dividaPendente + (mudanca === 'emprestimo' ? (lerValorBR(emprestimoValor) || 0) : 0)
 
   // Duas séries num mesmo gráfico precisam de cores distintas — segue a
   // sequência oficial chart-1/chart-2 do tema-tokens.md em vez do ROXO
