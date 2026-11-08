@@ -23,6 +23,8 @@ const pt: DocumentoAxioma = {
       'Aba **Cargos** → nome, **CBO** (código oficial da ocupação, 6 dígitos), departamento, o que a pessoa faz, requisitos e as **competências** (técnicas ou comportamentais, obrigatórias ou desejáveis, nível de 1 a 5).',
     ] },
 
+    { h1: 'Colunas das tabelas' },
+    { lista: ['Tocar no **nome da coluna** ordena a lista (de novo, inverte).', 'O **ⓘ** ao lado abre um card explicando a coluna e a regra oficial (eSocial, CLT, LGPD).', 'Valor sublinhado leva ao destino: **CBO** abre a consulta oficial do Ministério do Trabalho, **CNAE** a do IBGE, **Departamento** e **Fica dentro de** abrem o departamento, **Centro de custo** abre o módulo Centros de Custo, **Tipo/FPAS**, **Classificação** e **Competências** mostram o texto oficial ou a lista; o nome abre o cadastro.', 'Em **Acessos do RH**, tocar no nome de cada liberação (Ver o RH, Editar, Dados pessoais, Salário, Saúde) mostra o que ela abre.'] },
     { h1: 'Botões de cada linha' },
     { lista: [
       '**Lápis**: corrige o cadastro. Nos cadastros do eSocial, só enquanto estiver como **Rascunho**.',
@@ -68,6 +70,8 @@ const en: DocumentoAxioma = {
       '**Departments** tab → create the areas. A department can sit inside another and be linked to a cost center and a branch.',
       '**Job titles** tab → name, **CBO** (official 6-digit occupation code), department, duties, requirements and **skills** (technical or behavioral, required or desirable, level 1 to 5).',
     ] },
+    { h1: 'Table columns' },
+    { lista: ['Tapping a **column name** sorts the list (again, reverses).', 'The **ⓘ** next to it opens a card explaining the column and the official rule (eSocial, CLT, LGPD).', 'Underlined values take you to the destination: **CBO** opens the Ministry of Labor official lookup, **CNAE** the IBGE one, **Department** and **Belongs to** open the department, **Cost center** opens Cost Centers, **Type/FPAS**, **Classification** and **Skills** show the official text or list; the name opens the record.', 'In **HR access**, tapping each grant name (View HR, Edit, Personal data, Salary, Health) shows what it unlocks.'] },
     { h1: 'Row buttons' },
     { lista: [
       '**Pencil**: edits the record. For eSocial records, only while it is a **Draft**.',
@@ -111,6 +115,8 @@ const es: DocumentoAxioma = {
       'Pestaña **Departamentos** → cree las áreas. Un departamento puede estar dentro de otro y vincularse a un centro de costo y a una sucursal.',
       'Pestaña **Cargos** → nombre, **CBO** (código oficial de ocupación, 6 dígitos), departamento, funciones, requisitos y **competencias** (técnicas o conductuales, obligatorias o deseables, nivel 1 a 5).',
     ] },
+    { h1: 'Columnas de las tablas' },
+    { lista: ['Tocar el **nombre de la columna** ordena la lista (de nuevo, invierte).', 'El **ⓘ** al lado abre una tarjeta que explica la columna y la regla oficial (eSocial, CLT, LGPD).', 'Valor subrayado lleva al destino: **CBO** abre la consulta oficial del Ministerio de Trabajo, **CNAE** la del IBGE, **Departamento** y **Está dentro de** abren el departamento, **Centro de costo** abre Centros de Costo, **Tipo/FPAS**, **Clasificación** y **Competencias** muestran el texto oficial o la lista; el nombre abre el registro.', 'En **Accesos de RR. HH.**, tocar el nombre de cada habilitación (Ver RR. HH., Editar, Datos personales, Salario, Salud) muestra lo que abre.'] },
     { h1: 'Botones de cada fila' },
     { lista: [
       '**Lápiz**: corrige el registro. En los registros del eSocial, solo mientras esté como **Borrador**.',

@@ -4,7 +4,8 @@
 // As regras do eSocial e as permissões estão no BANCO (docs/sql/RH-1..5); esta tela só mostra, pré-preenche
 // e traduz as recusas. Apagar = lixeira de 60 dias (o que já foi enviado ao eSocial não vai para a lixeira).
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Pencil, Trash2, X, Share2, RotateCcw, Plus, Wand2, ShieldCheck, CopyPlus, KeyRound } from "lucide-react";
+import { Pencil, Trash2, X, Share2, RotateCcw, Plus, Wand2, ShieldCheck, CopyPlus, KeyRound, Info as InfoIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Sentry from "@sentry/nextjs";
 import { useLanguage } from "../../../../lib/LanguageContext";
@@ -50,7 +51,11 @@ const SITUACAO: Opcao[] = [
 ];
 const AJUDA_VALIDADE = T("Mês em que estes dados passam a valer (AAAA-MM). Mudou algo? Crie uma nova validade — o histórico fica.", "Month these data take effect (YYYY-MM). Something changed? Create a new validity — history is kept.", "Mes en que estos datos entran en vigor (AAAA-MM). ¿Cambió algo? Cree una nueva vigencia — el historial se mantiene.");
 
-const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos: Campo[]; titulo: (l: Linha) => string; colunas: { r: string | Texto; v: (l: Linha, d: Dados, lang: Lang) => string }[] }[] = [
+// Cada coluna tem função: o nome ordena a lista, o ⓘ explica (com a base legal) e o valor leva ao destino.
+type Destino = { aba: Aba } | { rota: string } | { externo: string } | { editar: Linha } | { card: { titulo: string; linhas: string[] } };
+type Coluna = { r: string | Texto; v: (l: Linha, d: Dados, lang: Lang) => string; ajuda: Texto; ir?: (l: Linha, d: Dados, lang: Lang) => Destino | null };
+const AJUDA_VALE = T("O mês em que estes dados passam a valer para o eSocial. As tabelas do eSocial têm período de validade: quando algo muda, cria-se uma nova validade (botão de copiar nas Ações) e a anterior fica no histórico.", "The month these data take effect for eSocial. eSocial tables have validity periods: when something changes, create a new validity (copy button in Actions) and the previous one stays in history.", "El mes en que estos datos entran en vigor para eSocial. Las tablas de eSocial tienen período de vigencia: si algo cambia, se crea una nueva vigencia (botón de copiar en Acciones) y la anterior queda en el historial.");
+const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos: Campo[]; titulo: (l: Linha) => string; colunas: Coluna[] }[] = [
   {
     id: "empregador", tabela: "rh_empregador", versionada: true, nome: T("Empregador", "Employer", "Empleador"),
     titulo: (l) => `${l.nr_insc} · ${l.ini_valid}`,
@@ -83,9 +88,9 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "ind_acordo_isen_multa", r: T("Organismo internacional: acordo de isenção de multa", "International body: fine-exemption agreement", "Organismo internacional: acuerdo de exención de multa"), tipo: "select", num: true, avancado: true, opcoes: [{ v: "", l: "—" }, { v: "0", l: T("Sem acordo", "No agreement", "Sin acuerdo") }, { v: "1", l: T("Com acordo", "With agreement", "Con acuerdo") }] },
     ],
     colunas: [
-      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}` },
-      { r: T("Inscrição", "Registration", "Inscripción"), v: (l) => `${l.tp_insc === 2 ? "CPF" : "CNPJ"} ${l.nr_insc}` },
-      { r: T("Classificação", "Classification", "Clasificación"), v: (l, d, lang) => rotulo(d.tab08, l.class_trib, lang) },
+      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}`, ajuda: AJUDA_VALE },
+      { r: T("Inscrição", "Registration", "Inscripción"), v: (l) => `${l.tp_insc === 2 ? "CPF" : "CNPJ"} ${l.nr_insc}`, ajuda: T("Quem é o empregador no eSocial (evento S-1000): para empresa, só os 8 primeiros números do CNPJ (a raiz); para pessoa física, o CPF. Tocar abre o cadastro para conferir.", "Who the employer is in eSocial (event S-1000): for companies, only the first 8 CNPJ digits (the root); for individuals, the CPF. Tap to open the record.", "Quién es el empleador en eSocial (evento S-1000): para empresas, solo los 8 primeros números del CNPJ (la raíz); para personas físicas, el CPF. Toque para abrir el registro."), ir: (l) => ({ editar: l }) },
+      { r: T("Classificação", "Classification", "Clasificación"), v: (l, d, lang) => rotulo(d.tab08, l.class_trib, lang), ajuda: T("Classificação tributária da Tabela 08 do eSocial: diz como a Empresa contribui para a Previdência (Simples Nacional, lucro real/presumido, MEI, órgão público…). Errar aqui muda o cálculo dos encargos — confirme com o contador. Tocar mostra o texto oficial.", "eSocial Table 08 tax classification: how the company contributes to Social Security (Simples Nacional, real/presumed profit, MEI, public body…). A mistake changes payroll charges — confirm with the accountant. Tap to see the official text.", "Clasificación tributaria de la Tabla 08 de eSocial: cómo contribuye la empresa a la Seguridad Social (Simples Nacional, lucro real/presunto, MEI, órgano público…). Un error cambia las cargas — confirme con el contador. Toque para ver el texto oficial."), ir: (l, d, lang) => ({ card: { titulo: "Tabela 08 — eSocial", linhas: [rotulo(d.tab08, l.class_trib, lang)] } }) },
     ],
   },
   {
@@ -109,10 +114,10 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "pcd_nr_proc_jud", r: T("PCD: nº do processo judicial (só na matriz)", "Disability quota: lawsuit no. (head office only)", "PCD: nº de proceso judicial (solo en la matriz)"), tipo: "texto", avancado: true },
     ],
     colunas: [
-      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome },
-      { r: T("Inscrição", "Registration", "Inscripción"), v: (l) => `${({ 1: "CNPJ", 3: "CAEPF", 4: "CNO" } as Record<number, string>)[l.tp_insc] ?? ""} ${l.nr_insc}` },
-      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}` },
-      { r: "CNAE", v: (l) => l.cnae_prep },
+      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome, ajuda: T("Nome da filial (estabelecimento) dentro do Axioma. Tocar abre o cadastro.", "Branch (establishment) name inside Axioma. Tap to open the record.", "Nombre de la sucursal (establecimiento) en Axioma. Toque para abrir el registro."), ir: (l) => ({ editar: l }) },
+      { r: T("Inscrição", "Registration", "Inscripción"), v: (l) => `${({ 1: "CNPJ", 3: "CAEPF", 4: "CNO" } as Record<number, string>)[l.tp_insc] ?? ""} ${l.nr_insc}`, ajuda: T("Inscrição do estabelecimento no eSocial (evento S-1005): CNPJ completo da filial (mesma raiz de 8 números do empregador), CAEPF (pessoa física com empregados) ou CNO (obra de construção). Outra raiz de CNPJ é outra Empresa.", "Establishment registration in eSocial (event S-1005): the branch's full CNPJ (same 8-digit root as the employer), CAEPF (individual with employees) or CNO (construction site). A different CNPJ root is another company.", "Inscripción del establecimiento en eSocial (evento S-1005): CNPJ completo de la sucursal (misma raíz de 8 números del empleador), CAEPF (persona física con empleados) o CNO (obra). Otra raíz de CNPJ es otra empresa.") },
+      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}`, ajuda: AJUDA_VALE },
+      { r: "CNAE", v: (l) => l.cnae_prep, ajuda: T("Atividade econômica principal da filial (CNAE de 7 dígitos, IBGE). O eSocial usa para definir o grau de risco do trabalho (RAT). Tocar abre a consulta oficial do IBGE.", "The branch's main economic activity (7-digit CNAE, IBGE). eSocial uses it to set the work-risk level (RAT). Tap to open the official IBGE lookup.", "Actividad económica principal de la sucursal (CNAE de 7 dígitos, IBGE). eSocial la usa para definir el grado de riesgo laboral (RAT). Toque para abrir la consulta oficial del IBGE."), ir: (l) => (l.cnae_prep ? { externo: `https://concla.ibge.gov.br/busca-online-cnae.html?subclasse=${String(l.cnae_prep).replace(/\D/g, "")}&view=subclasse` } : null) },
     ],
   },
   {
@@ -137,10 +142,10 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "op_port_fap", r: T("Operador portuário: FAP", "Port operator: FAP", "Operador portuario: FAP"), tipo: "numero", avancado: true },
     ],
     colunas: [
-      { r: T("Código", "Code", "Código"), v: (l) => l.cod_lotacao },
-      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome },
-      { r: T("Tipo / FPAS", "Type / FPAS", "Tipo / FPAS"), v: (l) => `${l.tp_lotacao} · FPAS ${l.fpas} · ${l.cod_tercs}` },
-      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}` },
+      { r: T("Código", "Code", "Código"), v: (l) => l.cod_lotacao, ajuda: T("Código que a Empresa escolhe para a lotação tributária (evento S-1020 do eSocial). Cada pessoa no contrato fica ligada a uma lotação. Tocar abre o cadastro.", "Code the company chooses for the tax unit (eSocial event S-1020). Each person's contract is linked to one. Tap to open the record.", "Código que la empresa elige para la lotación tributaria (evento S-1020 de eSocial). Cada contrato queda vinculado a una. Toque para abrir el registro."), ir: (l) => ({ editar: l }) },
+      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome, ajuda: T("Nome da lotação dentro do Axioma (ex.: Sede, Obra Centro).", "Tax unit name inside Axioma (e.g. Head office, Downtown site).", "Nombre de la lotación en Axioma (ej.: Sede, Obra Centro).") },
+      { r: T("Tipo / FPAS", "Type / FPAS", "Tipo / FPAS"), v: (l) => `${l.tp_lotacao} · FPAS ${l.fpas} · ${l.cod_tercs}`, ajuda: T("Tipo da lotação (Tabela 10 do eSocial — o comum é 01, atividade da própria empresa), FPAS (Tabela 04 — define para quais fundos e entidades a Empresa contribui, como o Sistema S) e o código de Terceiros (Simples e MEI: 0000). Tocar mostra os textos oficiais.", "Tax unit type (eSocial Table 10 — usually 01, the company's own activity), FPAS (Table 04 — which funds and entities the company contributes to, such as the S System) and the third-party code (Simples and MEI: 0000). Tap to see the official texts.", "Tipo de lotación (Tabla 10 de eSocial — lo común es 01, actividad propia), FPAS (Tabla 04 — a qué fondos y entidades contribuye la empresa, como el Sistema S) y el código de Terceros (Simples y MEI: 0000). Toque para ver los textos oficiales."), ir: (l, d, lang) => ({ card: { titulo: "Tabela 10 · Tabela 04 — eSocial", linhas: [`${T("Tipo", "Type", "Tipo")[lang]}: ${rotulo(d.tab10, l.tp_lotacao, lang)}`, `FPAS: ${rotulo(d.fpas, l.fpas, lang)}`, `${T("Terceiros", "Third parties", "Terceros")[lang]}: ${l.cod_tercs}`] } }) },
+      { r: T("Vale de", "Valid from", "Vigente desde"), v: (l) => `${l.ini_valid}${l.fim_valid ? ` → ${l.fim_valid}` : ""}`, ajuda: AJUDA_VALE },
     ],
   },
   {
@@ -155,10 +160,10 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "ativo", r: T("Ativo", "Active", "Activo"), tipo: "bool" },
     ],
     colunas: [
-      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome },
-      { r: T("Fica dentro de", "Belongs to", "Está dentro de"), v: (l, d) => d.departamentos.find((x) => x.id === l.pai_id)?.nome ?? "—" },
-      { r: T("Centro de custo", "Cost center", "Centro de costo"), v: (l, d, lang) => (l.centro_custo_id ? rotulo(d.centros, l.centro_custo_id, lang) : "—") },
-      { r: T("Situação", "Status", "Situación"), v: (l, _d, lang) => (l.ativo ? { pt: "Ativo", en: "Active", es: "Activo" } : { pt: "Inativo", en: "Inactive", es: "Inactivo" })[lang] },
+      { r: T("Nome", "Name", "Nombre"), v: (l) => l.nome, ajuda: T("Área interna da Empresa (Comercial, Logística…). É usada no contrato de cada pessoa, no Painel do RH e nos relatórios. Tocar abre o cadastro.", "Internal area of the company (Sales, Logistics…). Used in each person's contract, the HR Panel and reports. Tap to open the record.", "Área interna de la empresa (Comercial, Logística…). Se usa en el contrato de cada persona, el Panel de RR. HH. y los informes. Toque para abrir el registro."), ir: (l) => ({ editar: l }) },
+      { r: T("Fica dentro de", "Belongs to", "Está dentro de"), v: (l, d) => d.departamentos.find((x) => x.id === l.pai_id)?.nome ?? "—", ajuda: T("O departamento acima deste no organograma (ex.: Vendas Online fica dentro de Comercial). O Axioma não deixa formar um ciclo. Tocar abre o departamento de cima.", "The department above this one in the org chart (e.g. Online Sales belongs to Sales). Axioma blocks loops. Tap to open the parent department.", "El departamento superior en el organigrama (ej.: Ventas Online está dentro de Comercial). Axioma no permite ciclos. Toque para abrir el departamento superior."), ir: (l, d) => { const p = d.departamentos.find((x) => x.id === l.pai_id); return p ? { editar: p } : null; } },
+      { r: T("Centro de custo", "Cost center", "Centro de costo"), v: (l, d, lang) => (l.centro_custo_id ? rotulo(d.centros, l.centro_custo_id, lang) : "—"), ajuda: T("Para onde vai o custo das pessoas deste departamento no Financeiro (rateio). Tocar abre o módulo Centros de Custo.", "Where this department's people cost goes in Finance (allocation). Tap to open Cost Centers.", "A dónde va el costo de las personas de este departamento en Finanzas (prorrateo). Toque para abrir Centros de Costo."), ir: (l) => (l.centro_custo_id ? { rota: "/centros-custo" } : null) },
+      { r: T("Situação", "Status", "Situación"), v: (l, _d, lang) => (l.ativo ? { pt: "Ativo", en: "Active", es: "Activo" } : { pt: "Inativo", en: "Inactive", es: "Inactivo" })[lang], ajuda: T("Inativo deixa de aparecer para escolha em contratos novos, mas o histórico de quem já está nele continua.", "Inactive stops showing as a choice in new contracts, but the history of people in it stays.", "Inactivo deja de aparecer para elegir en contratos nuevos, pero el historial de quien ya está en él se mantiene.") },
     ],
   },
   {
@@ -174,13 +179,40 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "ativo", r: T("Ativo", "Active", "Activo"), tipo: "bool" },
     ],
     colunas: [
-      { r: T("Cargo", "Job title", "Cargo"), v: (l) => l.nome },
-      { r: "CBO", v: (l) => l.cbo },
-      { r: T("Departamento", "Department", "Departamento"), v: (l, d) => d.departamentos.find((x) => x.id === l.departamento_id)?.nome ?? "—" },
-      { r: T("Competências", "Skills", "Competencias"), v: (l) => String((l.competencias ?? []).length) },
+      { r: T("Cargo", "Job title", "Cargo"), v: (l) => l.nome, ajuda: T("Nome do cargo na Empresa. É escolhido no contrato de cada pessoa. Tocar abre o cadastro (descrição, requisitos e competências).", "Job title in the company. Chosen in each person's contract. Tap to open the record (description, requirements and skills).", "Nombre del cargo en la empresa. Se elige en el contrato de cada persona. Toque para abrir el registro (descripción, requisitos y competencias)."), ir: (l) => ({ editar: l }) },
+      { r: "CBO", v: (l) => l.cbo, ajuda: T("Classificação Brasileira de Ocupações (Ministério do Trabalho, Portaria nº 397/2002). O eSocial exige o código de 6 dígitos na admissão (S-2200). Tocar abre a consulta oficial do Ministério do Trabalho.", "Brazilian Occupation Classification (Ministry of Labor, Ordinance 397/2002). eSocial requires the 6-digit code at hiring (S-2200). Tap to open the Ministry of Labor's official lookup.", "Clasificación Brasileña de Ocupaciones (Ministerio de Trabajo, Ordenanza 397/2002). eSocial exige el código de 6 dígitos en la admisión (S-2200). Toque para abrir la consulta oficial del Ministerio de Trabajo."), ir: () => ({ externo: "https://cbo.mte.gov.br/cbosite/pages/pesquisas/BuscaPorCodigo.jsf" }) },
+      { r: T("Departamento", "Department", "Departamento"), v: (l, d) => d.departamentos.find((x) => x.id === l.departamento_id)?.nome ?? "—", ajuda: T("Departamento onde o cargo fica. Tocar abre a aba Departamentos.", "Department the job title belongs to. Tap to open the Departments tab.", "Departamento donde está el cargo. Toque para abrir la pestaña Departamentos."), ir: (l) => (l.departamento_id ? { aba: "departamentos" } : null) },
+      { r: T("Competências", "Skills", "Competencias"), v: (l) => String((l.competencias ?? []).length), ajuda: T("Quantas competências o cargo exige (técnicas e comportamentais). Servem no recrutamento e na análise de lacunas da equipe. Tocar lista as competências.", "How many skills the job requires (technical and behavioral). Used in recruitment and team gap analysis. Tap to list them.", "Cuántas competencias exige el cargo (técnicas y de comportamiento). Sirven en el reclutamiento y el análisis de brechas. Toque para listarlas."), ir: (l, _d, lang) => ((l.competencias ?? []).length ? { card: { titulo: `${T("Competências", "Skills", "Competencias")[lang]} — ${l.nome}`, linhas: (l.competencias as Competencia[]).map((c) => `${c.nome} · ${c.tipo === "tecnica" ? T("técnica", "technical", "técnica")[lang] : T("comportamental", "behavioral", "de comportamiento")[lang]}${c.obrigatoria ? ` · ${T("obrigatória", "required", "obligatoria")[lang]}` : ""}`) } } : null) },
     ],
   },
 ];
+
+
+// Card de explicação (ⓘ das colunas e dos acessos) e de detalhe (tabelas oficiais, competências) — efeito padrão.
+type Info = { titulo: string; linhas: string[]; link?: { href: string; texto: string } };
+function CardInfo({ info, onFechar, temaClaro, lang }: { info: Info | null; onFechar: () => void; temaClaro: boolean; lang: Lang }) {
+  const verde = temaClaro ? "#0f7a5a" : "#2ecc9b";
+  return (
+    <AnimatePresence>
+      {info && (
+        <motion.div className="fixed inset-0 z-[80] flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.55)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onFechar}>
+          <motion.div role="dialog" aria-modal="true" aria-label={info.titulo} onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            className="w-full max-w-md rounded-2xl p-5 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.15)" : "rgba(46,204,155,0.3)"}`, borderTop: `4px solid ${verde}` }}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <p className="text-sm font-black" style={{ color: temaClaro ? "#101b3d" : "var(--axi-text-primary)", ...FONTE_EXEC }}>{info.titulo}</p>
+              <button onClick={onFechar} aria-label={lang === "en" ? "Close" : lang === "es" ? "Cerrar" : "Fechar"} style={{ color: temaClaro ? "#101b3d" : "var(--axi-text-secondary)" }}><X size={18} /></button>
+            </div>
+            <div className="space-y-2">{info.linhas.map((x, i) => <p key={i} className="text-sm" style={{ color: temaClaro ? "#1f2937" : "var(--axi-text-primary)" }}>{x}</p>)}</div>
+            {info.link && <a href={info.link.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-4 px-4 py-2 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #0b5f46, #0f7a5a)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }}>{info.link.texto} ↗</a>}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const AJUDA_ESOCIAL = T("Se este cadastro já foi enviado ao eSocial (o governo). Rascunho: ainda não foi — pode editar com o lápis. Enviado pelo contador: já está no governo — não se edita; para mudar algo, crie uma nova validade (eSocial, Decreto nº 8.373/2014).", "Whether this record was already sent to eSocial (the government). Draft: not yet — you can edit with the pencil. Sent by the accountant: already with the government — not editable; to change something, create a new validity (eSocial, Decree 8.373/2014).", "Si este registro ya se envió a eSocial (el gobierno). Borrador: aún no — puede editarlo con el lápiz. Enviado por el contador: ya está en el gobierno — no se edita; para cambiar algo, cree una nueva vigencia (eSocial, Decreto 8.373/2014).");
+const AJUDA_ACOES = T("Lápis: editar (só rascunho). Copiar: nova validade a partir de um mês (o anterior fica no histórico). Lixeira: guarda por 60 dias e pode recuperar — pede a autorização de um supervisor.", "Pencil: edit (draft only). Copy: new validity from a month (the previous stays in history). Trash: kept 60 days and recoverable — requires a supervisor's authorization.", "Lápiz: editar (solo borrador). Copiar: nueva vigencia desde un mes (la anterior queda en el historial). Papelera: se guarda 60 días y se puede recuperar — pide autorización de un supervisor.");
 
 // Campos de CNPJ/CPF: máscara enquanto digita. Inscrição do empregador/filial/lotação: CPF quando o tipo é CPF (2), senão CNPJ.
 const CAMPOS_DOC = new Set(["nr_insc", "cnpj_efr", "cnpj_resp", "contrat_nr_insc", "prop_nr_insc"]);
@@ -212,7 +244,10 @@ export default function RhEstruturaPage() {
   const BTN = temaClaro ? "linear-gradient(135deg, #0b5f46, #0f7a5a)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)";
   const NAVY = "#101b3d";
 
+  const router = useRouter();
   const [aba, setAba] = useState<Aba>("empregador");
+  const [info, setInfo] = useState<Info | null>(null);
+  const [ordem, setOrdem] = useState<{ col: number; asc: boolean } | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState<Linha | null>(null);
   const [pode, setPode] = useState({ ver: false, editar: false, gerir: false, carregado: false });
@@ -354,6 +389,19 @@ export default function RhEstruturaPage() {
 
   // Compartilhar / exportar — o que está na aba aberta
   const linhas = dados[aba];
+  // ordenar pela coluna tocada (texto e número, no idioma da tela)
+  const linhasVis = ordem && cfg.colunas[ordem.col] ? [...(verLixeira ? lixeira : linhas)].sort((a, b) => {
+    const c = cfg.colunas[ordem.col]; const r = c.v(a, dados, lang).localeCompare(c.v(b, dados, lang), lang, { numeric: true, sensitivity: "base" });
+    return ordem.asc ? r : -r;
+  }) : (verLixeira ? lixeira : linhas);
+  const irPara = (d: Destino) => {
+    if ("aba" in d) { setAba(d.aba); setOrdem(null); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if ("rota" in d) router.push(d.rota);
+    else if ("externo" in d) window.open(d.externo, "_blank", "noopener,noreferrer");
+    else if ("editar" in d) { if (!pode.editar || (cfg.versionada && d.editar.situacao_esocial !== "rascunho")) setInfo({ titulo: cfg.titulo(d.editar), linhas: cfg.colunas.map((c) => `${txt(c.r, lang)}: ${c.v(d.editar, dados, lang)}`) }); else editar(d.editar); }
+    else setInfo(d.card);
+  };
+  const explicar = (titulo: string, ajuda: Texto) => setInfo({ titulo, linhas: [ajuda[lang]] });
   const exportar = (formato: "pdf" | "excel" = "pdf") => {
     try {
       (formato === "excel" ? gerarExcelTabela : gerarPdfTabela)({
@@ -468,9 +516,28 @@ export default function RhEstruturaPage() {
                     <table className="w-full min-w-[620px]">
                       <thead>
                         <tr style={{ borderBottom: `1px solid ${BORDA}` }}>
-                          {[...cfg.colunas.map((c) => txt(c.r, lang)), cfg.versionada && !verLixeira ? L("eSocial", "eSocial", "eSocial") : verLixeira ? L("Recuperar até", "Recover within", "Recuperar en") : "", L("Ações", "Actions", "Acciones")].filter(Boolean).map((h) => (
-                            <th key={h} className="text-left px-3 md:px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
-                          ))}
+                          {cfg.colunas.map((c, j) => {
+                            const nome = txt(c.r, lang); const ativa = ordem?.col === j;
+                            return (
+                              <th key={nome} className="text-left px-3 md:px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <button onClick={() => setOrdem(ativa ? { col: j, asc: !ordem!.asc } : { col: j, asc: true })} className="inline-flex items-center gap-1 uppercase hover:opacity-80" title={L("Ordenar", "Sort", "Ordenar")} style={{ color: ativa ? (temaClaro ? "#0f7a5a" : "#2ecc9b") : TEXTO_SEC }}>
+                                    {nome} {ativa ? (ordem!.asc ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} style={{ opacity: 0.5 }} />}
+                                  </button>
+                                  <button onClick={() => explicar(nome, c.ajuda)} aria-label={`${L("O que é", "What is", "Qué es")} ${nome}`} style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }}><InfoIcon size={13} /></button>
+                                </span>
+                              </th>
+                            );
+                          })}
+                          {cfg.versionada && !verLixeira && (
+                            <th className="text-left px-3 md:px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>
+                              <span className="inline-flex items-center gap-1.5">eSocial <button onClick={() => explicar("eSocial", AJUDA_ESOCIAL)} aria-label={L("O que é eSocial", "What is eSocial", "Qué es eSocial")} style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }}><InfoIcon size={13} /></button></span>
+                            </th>
+                          )}
+                          {verLixeira && <th className="text-left px-3 md:px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{L("Recuperar até", "Recover within", "Recuperar en")}</th>}
+                          <th className="text-left px-3 md:px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>
+                            <span className="inline-flex items-center gap-1.5">{L("Ações", "Actions", "Acciones")} <button onClick={() => explicar(L("Ações", "Actions", "Acciones"), AJUDA_ACOES)} aria-label={L("O que fazem as ações", "What the actions do", "Qué hacen las acciones")} style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }}><InfoIcon size={13} /></button></span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -478,14 +545,17 @@ export default function RhEstruturaPage() {
                           <tr><td colSpan={8} className="text-center py-10 text-sm" style={{ color: TEXTO_SEC }}>
                             {verLixeira ? L("A lixeira está vazia.", "The trash is empty.", "La papelera está vacía.") : L("Nada cadastrado ainda. Use o botão de novo no topo.", "Nothing registered yet. Use the New button at the top.", "Nada registrado aún. Use el botón Nuevo arriba.")}
                           </td></tr>
-                        ) : (verLixeira ? lixeira : linhas).map((l, i) => (
+                        ) : linhasVis.map((l, i) => (
                           <tr key={l.id} style={{ borderBottom: `1px solid ${BORDA}` }}>
                             {cfg.colunas.map((c, j) => (
-                              <td key={j} className="px-3 md:px-4 py-3 text-sm" style={{ color: j === 0 ? "var(--axi-text-primary)" : TEXTO_SEC, fontWeight: j === 0 ? 700 : 400 }}>{c.v(l, dados, lang)}</td>
+                              <td key={j} className="px-3 md:px-4 py-3 text-sm" style={{ color: j === 0 ? "var(--axi-text-primary)" : TEXTO_SEC, fontWeight: j === 0 ? 700 : 400 }}>
+                                {(() => { const d = !verLixeira && c.ir ? c.ir(l, dados, lang) : null; const valor = c.v(l, dados, lang);
+                                  return d ? <button onClick={() => irPara(d)} className="text-left underline decoration-dotted underline-offset-4 hover:opacity-80" style={{ color: j === 0 ? "var(--axi-text-primary)" : temaClaro ? "#0f7a5a" : "#2ecc9b" }}>{valor}{"externo" in d ? " ↗" : " ›"}</button> : valor; })()}
+                              </td>
                             ))}
                             {cfg.versionada && !verLixeira && (
                               <td className="px-3 md:px-4 py-3">
-                                <span className="text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={l.situacao_esocial === "rascunho" ? { background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: TEXTO_SEC } : { background: temaClaro ? NAVY : "rgba(46,204,155,0.15)", color: temaClaro ? "#fff" : "#2ecc9b" }}>
+                                <span onClick={() => explicar("eSocial", AJUDA_ESOCIAL)} role="button" className="cursor-pointer text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={l.situacao_esocial === "rascunho" ? { background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: TEXTO_SEC } : { background: temaClaro ? NAVY : "rgba(46,204,155,0.15)", color: temaClaro ? "#fff" : "#2ecc9b" }}>
                                   {l.situacao_esocial === "rascunho" ? L("Rascunho", "Draft", "Borrador") : L("Enviado pelo contador", "Sent by accountant", "Enviado por el contador")}
                                 </span>
                               </td>
@@ -573,6 +643,7 @@ export default function RhEstruturaPage() {
         <CentroCompartilhamento aberto={shareAberto} onFechar={() => setShareAberto(false)} lang={lang}
           textoResumo={resumoShare} textoDetalhado={detalhadoShare} assunto={`RH — ${cfg.nome[lang]} — Axioma`} onExportarPDF={() => exportar("pdf")} cor="#0f7a5a" />
         {janelaConfirmacao}
+        <CardInfo info={info} onFechar={() => setInfo(null)} temaClaro={temaClaro} lang={lang} />
         <AvisoAxioma aviso={aviso} onFechar={() => setAviso(null)} />
       </ModuloLayout>
     </div>
@@ -613,12 +684,12 @@ function EditorCompetencias({ valor, onChange, lang, estilo, cor }: { valor: Com
 // item por item. A trava de verdade está no banco (rh_pode + RLS de rh_permissoes): ninguém libera para si.
 type Membro = { user_id: string; nome: string; email: string; papel: string; nivel: number; situacao: string };
 type Perm = { ver: boolean; editar: boolean; ver_pessoais: boolean; ver_salario: boolean; ver_saude: boolean };
-const ITENS_PERM: { k: keyof Perm; r: Texto }[] = [
-  { k: "ver", r: T("Ver o RH", "View HR", "Ver RR. HH.") },
-  { k: "editar", r: T("Editar", "Edit", "Editar") },
-  { k: "ver_pessoais", r: T("Dados pessoais", "Personal data", "Datos personales") },
-  { k: "ver_salario", r: T("Salário", "Salary", "Salario") },
-  { k: "ver_saude", r: T("Saúde", "Health", "Salud") },
+const ITENS_PERM: { k: keyof Perm; r: Texto; ajuda: Texto }[] = [
+  { k: "ver", r: T("Ver o RH", "View HR", "Ver RR. HH."), ajuda: T("Abre o RH: Painel, lista de colaboradores (nome, cargo, departamento, contrato) e Estrutura. Sem os itens abaixo, não vê CPF, endereço, salário nem exames. Tirar o \"Ver\" tira todos os outros.", "Opens HR: Panel, employee list (name, job, department, contract) and Structure. Without the items below, no CPF, address, salary or exams. Removing \"View\" removes all others.", "Abre RR. HH.: Panel, lista de colaboradores (nombre, cargo, departamento, contrato) y Estructura. Sin los ítems de abajo, no ve CPF, dirección, salario ni exámenes. Quitar \"Ver\" quita todos los demás.") },
+  { k: "editar", r: T("Editar", "Edit", "Editar"), ajuda: T("Cadastra e altera colaboradores, contratos, documentos e a Estrutura. Mandar para a lixeira continua pedindo a autorização de um supervisor. Tudo fica no Histórico de alterações.", "Creates and changes employees, contracts, documents and Structure. Moving to trash still requires a supervisor's authorization. Everything goes to the Change history.", "Registra y cambia colaboradores, contratos, documentos y la Estructura. Enviar a la papelera sigue pidiendo autorización de un supervisor. Todo queda en el Historial de cambios.") },
+  { k: "ver_pessoais", r: T("Dados pessoais", "Personal data", "Datos personales"), ajuda: T("CPF, nascimento, endereço, contatos e os documentos da admissão (com os arquivos). A LGPD (Lei nº 13.709/2018, art. 6º) manda liberar só a quem precisa para o trabalho.", "CPF, birth date, address, contacts and hiring documents (with files). Brazil's LGPD (Law 13.709/2018, art. 6) requires granting only to those who need it for their work.", "CPF, nacimiento, dirección, contactos y los documentos de admisión (con archivos). La LGPD (Ley 13.709/2018, art. 6) exige habilitar solo a quien lo necesita para su trabajo.") },
+  { k: "ver_salario", r: T("Salário", "Salary", "Salario"), ajuda: T("Salário de cada pessoa, histórico de reajustes e a soma dos salários-base. É dado pessoal protegido pela LGPD — libere só para quem cuida da folha.", "Each person's salary, raise history and total base salaries. It is personal data protected by the LGPD — grant only to those who handle payroll.", "Salario de cada persona, historial de reajustes y suma de salarios base. Es dato personal protegido por la LGPD — habilite solo a quien gestiona la nómina.") },
+  { k: "ver_saude", r: T("Saúde", "Health", "Salud"), ajuda: T("Exames da admissão (ASO e complementares) com os arquivos. Dado de saúde é dado pessoal SENSÍVEL (LGPD, art. 5º, II, e art. 11): só quem cuida da medicina do trabalho (NR-7) deve ver.", "Hiring exams (ASO and others) with files. Health data is SENSITIVE personal data (LGPD, art. 5, II, and art. 11): only those handling occupational health (NR-7) should see it.", "Exámenes de admisión (ASO y complementarios) con archivos. El dato de salud es dato personal SENSIBLE (LGPD, art. 5, II, y art. 11): solo quien gestiona la medicina laboral (NR-7) debe verlo.") },
 ];
 function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, avisar }: {
   empresaId: string; lang: Lang; temaClaro: boolean; cartaoTema: { fundo?: string; premium3d: boolean }; estilo: CSSProperties; TEXTO_SEC: string; BORDA: string; avisar: (m: string, t?: "erro" | "ok") => void;
@@ -627,6 +698,7 @@ function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, a
   const [membros, setMembros] = useState<Membro[] | null>(null);
   const [perms, setPerms] = useState<Record<string, Perm>>({});
   const [salvando, setSalvando] = useState<string | null>(null);
+  const [info, setInfo] = useState<Info | null>(null);
   const vazio: Perm = { ver: false, editar: false, ver_pessoais: false, ver_salario: false, ver_saude: false };
   useEffect(() => {
     void (async () => {
@@ -663,7 +735,12 @@ function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, a
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead><tr style={{ borderBottom: `1px solid ${BORDA}` }}>
-              {[L("Pessoa", "Person", "Persona"), ...ITENS_PERM.map((i) => i.r[lang])].map((h) => <th key={h} className="text-left px-3 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>)}
+              <th className="text-left px-3 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{L("Pessoa", "Person", "Persona")}</th>
+              {ITENS_PERM.map((i) => (
+                <th key={i.k} className="text-left px-3 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>
+                  <button onClick={() => setInfo({ titulo: i.r[lang], linhas: [i.ajuda[lang]] })} className="inline-flex items-center gap-1.5 uppercase hover:opacity-80" style={{ color: TEXTO_SEC }}>{i.r[lang]} <InfoIcon size={13} style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }} /></button>
+                </th>
+              ))}
             </tr></thead>
             <tbody>
               {membros.map((m) => {
@@ -690,7 +767,8 @@ function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, a
           </table>
         </div>
       )}
-      <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Cada liberação fica registrada com quem liberou e quando.", "Each grant is recorded with who granted it and when.", "Cada habilitación queda registrada con quién la otorgó y cuándo.")}</p>
+      <CardInfo info={info} onFechar={() => setInfo(null)} temaClaro={temaClaro} lang={lang} />
+      <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Toque no nome de cada liberação para ver o que ela abre. Cada liberação fica registrada com quem liberou e quando.", "Each grant is recorded with who granted it and when.", "Cada habilitación queda registrada con quién la otorgó y cuándo.")}</p>
     </CanvasBox>
   );
 }

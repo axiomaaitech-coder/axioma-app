@@ -15,12 +15,12 @@ export function NavRh({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
   const aqui = usePathname();
   const ativoCor = temaClaro ? "#0f7a5a" : "#2ecc9b";
   return (
-    <nav aria-label="RH" className="flex gap-1 overflow-x-auto" style={{ borderBottom: `1px solid ${temaClaro ? "rgba(16,27,61,0.15)" : "rgba(163,177,194,0.15)"}` }}>
+    <nav aria-label="RH" className="flex flex-wrap gap-1" style={{ borderBottom: `1px solid ${temaClaro ? "rgba(16,27,61,0.15)" : "rgba(163,177,194,0.15)"}` }}>
       {ABAS.map(({ rota, Icone, nome }) => {
         const ativo = aqui === rota;
         return (
           <Link key={rota} href={rota} aria-current={ativo ? "page" : undefined}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-colors -mb-px"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-colors"
             style={{ color: ativo ? ativoCor : temaClaro ? "#101b3d" : "var(--axi-text-secondary)", borderBottom: `3px solid ${ativo ? ativoCor : "transparent"}` }}>
             <Icone size={16} aria-hidden /> {nome[lang]}
           </Link>

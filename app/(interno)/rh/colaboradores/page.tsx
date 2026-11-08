@@ -25,7 +25,7 @@ import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
 import { COLUNAS, linhaPlanilha } from "../../../../lib/rhImportacao";
 import { FileSpreadsheet } from "lucide-react";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
-import { obterEmpresaAtiva } from "../../../../lib/empresaHelpers";
+import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC, fBRL2 } from "../../../../lib/cfoCore";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../../lib/erroUiHelpers";
@@ -328,6 +328,16 @@ export default function RhColaboradoresPage() {
 
   const nomeDe = (arr: Linha[], id?: string | null) => arr.find((x) => x.id === id)?.nome ?? "—";
   const colunasExport = [L("Nome", "Name", "Nombre"), L("Matrícula", "Employee ID", "Matrícula"), L("Cargo", "Job title", "Cargo"), L("Departamento", "Department", "Departamento"), L("Admissão", "Hire date", "Admisión"), L("Situação", "Status", "Situación")];
+  // valor legível no histórico: id vira o nome (cargo, departamento…), data vira dd/mm/aaaa, sim/não
+  const valorHistorico = (k: string, v: unknown): string => {
+    if (v === null || v === undefined || v === "") return "—";
+    const listas: Record<string, Linha[]> = { cargo_id: ref.cargos, departamento_id: ref.deps, estabelecimento_id: ref.filiais, lotacao_id: ref.lotacoes, centro_custo_id: ref.centros, gestor_id: ref.gestores };
+    if (listas[k]) return nomeDe(listas[k], String(v));
+    if (typeof v === "boolean") return v ? L("sim", "yes", "sí") : L("não", "no", "no");
+    if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return dataBR(v);
+    if (k === "situacao") return nomeSit(String(v));
+    return String(v);
+  };
   const linhasExport = lista.map((c) => { const k = contratos[c.id] ?? {}; return [c.nome, k.matricula ?? "—", nomeDe(ref.cargos, k.cargo_id), nomeDe(ref.deps, k.departamento_id), dataBR(k.data_admissao), nomeSit(c.situacao)]; });
   const exportar = (formato: "pdf" | "excel" = "pdf") => {
     try {
@@ -572,6 +582,7 @@ export default function RhColaboradoresPage() {
                     <p className="text-xs mt-2" style={{ color: TEXTO_SEC }}>{L("Salário: você não tem liberação para ver.", "Salary: you are not granted access.", "Salario: no tiene habilitación para ver.")}</p>
                   )}
 
+                  {form.id && <HistoricoColab colaboradorId={form.id} empresaId={empresaId!} lang={lang} valorDe={valorHistorico} />}
                   {(pode.pessoais || pode.saude) && (form.id ? (
                     <ChecklistAdmissao colaboradorId={form.id} empresaId={empresaId!} podeDocs={pode.pessoais} podeSaude={pode.saude} podeEditar={pode.editar} lang={lang} avisar={avisar} />
                   ) : (
@@ -600,6 +611,74 @@ export default function RhColaboradoresPage() {
 
 // Documentos (dado pessoal) e exames (dado de saúde) da admissão. Cada mudança grava na hora; a trava está no banco
 // (RLS de rh_admissao_itens: documento → 'pessoais', exame → 'saude'). O que a lei proíbe pedir aparece só como aviso.
+// Histórico de alterações (rh_historico, gravado pelo banco; ninguém edita nem apaga). Cada parte aparece só para
+// quem tem a liberação dela. Dados pessoais, saúde e salário: só o nome do campo, nunca o valor.
+const CAMPO_NOME: Record<string, [string, string, string]> = {
+  nome: ["Nome", "Name", "Nombre"], nome_social: ["Nome social", "Social name", "Nombre social"], situacao: ["Situação", "Status", "Situación"],
+  matricula: ["Matrícula", "Employee ID", "Matrícula"], cod_categ: ["Categoria", "Category", "Categoría"], data_admissao: ["Admissão", "Hire date", "Admisión"],
+  tp_contr: ["Tipo de contrato", "Contract type", "Tipo de contrato"], data_termino: ["Término", "End date", "Término"], experiencia: ["Experiência", "Probation", "Experiencia"],
+  cargo_id: ["Cargo", "Job title", "Cargo"], departamento_id: ["Departamento", "Department", "Departamento"], estabelecimento_id: ["Filial", "Branch", "Sucursal"],
+  lotacao_id: ["Lotação", "Tax unit", "Lotación"], centro_custo_id: ["Centro de custo", "Cost center", "Centro de costo"], gestor_id: ["Gestor", "Manager", "Gestor"],
+  qtd_hrs_sem: ["Horas por semana", "Weekly hours", "Horas semanales"], tp_jornada: ["Jornada", "Schedule", "Jornada"], data_desligamento: ["Desligamento", "Termination", "Desvinculación"],
+  situacao_esocial: ["Situação no eSocial", "eSocial status", "Situación en eSocial"], recibo_esocial: ["Recibo do eSocial", "eSocial receipt", "Recibo de eSocial"],
+  tp_reg_trab: ["Regime trabalhista", "Labor regime", "Régimen laboral"], tp_reg_prev: ["Regime previdenciário", "Pension regime", "Régimen previsional"],
+  cpf: ["CPF", "CPF", "CPF"], data_nascimento: ["Nascimento", "Birth date", "Nacimiento"], sexo: ["Sexo", "Sex", "Sexo"], raca_cor: ["Raça/cor", "Race/color", "Raza/color"],
+  estado_civil: ["Estado civil", "Marital status", "Estado civil"], grau_instr: ["Escolaridade", "Education", "Escolaridad"], pais_nascimento: ["País de nascimento", "Country of birth", "País de nacimiento"],
+  pais_nacionalidade: ["Nacionalidade", "Nationality", "Nacionalidad"], cep: ["CEP", "ZIP", "CEP"], logradouro: ["Endereço", "Address", "Dirección"], numero: ["Número", "Number", "Número"],
+  complemento: ["Complemento", "Complement", "Complemento"], bairro: ["Bairro", "District", "Barrio"], cidade: ["Cidade", "City", "Ciudad"], uf: ["Estado", "State", "Estado"],
+  telefone: ["Telefone", "Phone", "Teléfono"], email: ["E-mail", "E-mail", "E-mail"], emergencia_nome: ["Contato de emergência", "Emergency contact", "Contacto de emergencia"],
+  emergencia_telefone: ["Telefone de emergência", "Emergency phone", "Teléfono de emergencia"], vigencia_inicio: ["Vigência", "Effective date", "Vigencia"],
+  und_sal_fixo: ["Unidade do salário", "Salary unit", "Unidad del salario"], valor: ["Valor", "Amount", "Valor"], motivo: ["Motivo", "Reason", "Motivo"], observacao: ["Observação", "Note", "Observación"],
+  categoria: ["Categoria", "Category", "Categoría"], tipo: ["Item", "Item", "Ítem"], data_item: ["Data", "Date", "Fecha"], validade: ["Validade", "Expiry", "Validez"],
+  resultado: ["Resultado", "Result", "Resultado"], arquivo_nome: ["Arquivo", "File", "Archivo"], user_id: ["Login ligado", "Linked login", "Login vinculado"],
+};
+const PARTE_NOME: Record<string, [string, string, string]> = { cadastro: ["Cadastro", "Record", "Registro"], contrato: ["Contrato", "Contract", "Contrato"], pessoal: ["Dados pessoais", "Personal data", "Datos personales"], salario: ["Salário", "Salary", "Salario"], documento: ["Documento", "Document", "Documento"], exame: ["Exame", "Exam", "Examen"] };
+const ACAO_NOME: Record<string, [string, string, string]> = { criou: ["criou", "created", "creó"], alterou: ["alterou", "changed", "cambió"], lixeira: ["mandou para a lixeira", "moved to trash", "envió a la papelera"], recuperou: ["recuperou da lixeira", "restored from trash", "recuperó de la papelera"] };
+function HistoricoColab({ colaboradorId, empresaId, lang, valorDe }: { colaboradorId: string; empresaId: string; lang: Lang; valorDe: (campo: string, v: unknown) => string }) {
+  const c = useContext(FormCtx)!;
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const i = lang === "en" ? 1 : lang === "es" ? 2 : 0;
+  const [linhas, setLinhas] = useState<Linha[] | null>(null);
+  const [erro, setErro] = useState(false);
+  const [quem, setQuem] = useState<Map<string, string>>(new Map());
+  useEffect(() => { void (async () => {
+    const [h, eq] = await Promise.all([
+      supabase.from("rh_historico").select("id, parte, acao, campos, antes, depois, por, em").eq("colaborador_id", colaboradorId).order("em", { ascending: false }).limit(100),
+      listarEquipe(empresaId),
+    ]);
+    if (h.error) { setErro(true); setLinhas([]); Sentry.captureException(new Error(`rh_historico: ${h.error.message}`)); return; }
+    setQuem(new Map(eq.dados.filter((m) => m.user_id).map((m) => [m.user_id as string, m.nome || m.email])));
+    setLinhas(h.data ?? []);
+  })(); }, [colaboradorId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rot = (k: string) => CAMPO_NOME[k]?.[i] ?? k;
+  return (
+    <Secao titulo={L("Histórico de alterações", "Change history", "Historial de cambios")}>
+      <div className="md:col-span-2 space-y-2">
+        {linhas === null ? <p className="text-sm" style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p>
+          : erro ? <p className="text-sm font-semibold" style={{ color: "#b45309" }}>{L("Não foi possível carregar o histórico agora. Feche e abra de novo.", "Could not load the history now. Close and open again.", "No se pudo cargar el historial ahora. Cierre y abra de nuevo.")}</p>
+          : linhas.length === 0 ? <p className="text-sm" style={{ color: c.TEXTO_SEC }}>{L("Nenhuma alteração registrada ainda.", "No changes recorded yet.", "Ningún cambio registrado todavía.")}</p>
+          : linhas.map((h) => {
+            const quando = new Date(h.em).toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { dateStyle: "short", timeStyle: "short" });
+            const autor = h.por ? quem.get(h.por) ?? L("pessoa que saiu da equipe", "former team member", "persona que dejó el equipo") : L("sistema", "system", "sistema");
+            const item = h.depois?.item ? ` — ${ITENS_ADMISSAO.find((x) => x.tipo === h.depois.item)?.nome[lang] ?? h.depois.item}` : "";
+            const mostraValor = h.acao === "alterou" && (h.parte === "cadastro" || h.parte === "contrato");
+            return (
+              <div key={h.id} className="rounded-lg px-3 py-2 text-sm" style={{ border: `1px solid ${c.BORDA}` }}>
+                <p style={{ color: "var(--axi-text-primary)" }}><b>{quando}</b> · {autor} {ACAO_NOME[h.acao]?.[i] ?? h.acao} <b>{PARTE_NOME[h.parte]?.[i] ?? h.parte}{item}</b></p>
+                {h.campos?.length > 0 && (
+                  <p className="text-xs mt-1" style={{ color: c.TEXTO_SEC }}>
+                    {mostraValor ? (h.campos as string[]).map((k) => `${rot(k)}: ${valorDe(k, h.antes?.[k])} → ${valorDe(k, h.depois?.[k])}`).join(" · ") : (h.campos as string[]).map(rot).join(", ")}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Gravado pelo banco a cada mudança — ninguém edita nem apaga. Dados pessoais, saúde e salário aparecem só pelo nome do campo.", "Recorded by the database on every change — nobody edits or deletes it. Personal, health and salary data show only the field name.", "Grabado por la base en cada cambio — nadie lo edita ni lo borra. Datos personales, salud y salario aparecen solo con el nombre del campo.")}</p>
+      </div>
+    </Secao>
+  );
+}
+
 const COFRE_RH = "rh-documentos";
 const LIMITE_ARQUIVO = 10 * 1024 * 1024;
 const EXT_ARQUIVO: Record<string, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
