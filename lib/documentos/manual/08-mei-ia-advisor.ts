@@ -36,7 +36,7 @@ const pt: DocumentoAxioma = {
     { h1: 'Exemplos de perguntas' },
     { lista: ['"Quanto ainda posso faturar este ano sem estourar o teto?"', '"Meu DAS está em dia?"', '"Preciso declarar imposto de renda?"', '"O que muda para mim com a Reforma Tributária?"', '"Meu preço está cobrindo os custos?"'] },
     { h1: 'Boas práticas' },
-    { lista: ['Mantenha o faturamento e as despesas lançados: a IA responde melhor com dados completos.', 'Uma pergunta por vez, de forma direta.', 'A resposta orienta; a decisão é sempre sua.'] },
+    { lista: ['Mantenha o faturamento e as despesas lançados: a IA responde melhor com dados completos.', 'Uma pergunta por vez, de forma direta.', 'A resposta orienta; a decisão é sempre sua.', 'A conversa rola dentro da própria caixa do chat: a página fica parada onde você está.'] },
 
     { h1: 'Ditado por voz' },
     { p: 'Quando o ditado estiver liberado para a sua empresa, aparece um botão de microfone na caixa de pergunta do Advisor. Toque e fale (ou segure e solte); o navegador pede permissão ao microfone só no primeiro uso. Para sozinho depois de um silêncio ou em 60 segundos, e o botão ✕ cancela. O texto entra no campo, junto do que você já tinha digitado, para você revisar — **nada é enviado nem gravado sozinho**. Cada ditado concluído usa 1 pergunta de IA comum do saldo; falha, silêncio ou áudio não entendido não consome. O áudio não é guardado pelo Axioma.' },
@@ -84,7 +84,7 @@ const en: DocumentoAxioma = {
     { h1: 'Example questions' },
     { lista: ['"How much more can I bill this year without exceeding the cap?"', '"Is my DAS up to date?"', '"Do I need to file income tax?"', '"What does the Tax Reform change for me?"', '"Is my price covering my costs?"'] },
     { h1: 'Good practices' },
-    { lista: ['Keep revenue and expenses recorded: the AI answers better with complete data.', 'One question at a time, straight to the point.', 'The answer guides you; the decision is always yours.'] },
+    { lista: ['Keep revenue and expenses recorded: the AI answers better with complete data.', 'One question at a time, straight to the point.', 'The answer guides you; the decision is always yours.', 'The conversation scrolls inside the chat box: the page stays where you are.'] },
 
     { h1: 'Voice dictation' },
     { p: 'When dictation is enabled for your company, a microphone button appears in the Advisor question box. Tap and speak (or hold and release); the browser asks for microphone permission only the first time. It stops by itself after a silence or at 60 seconds, and the ✕ button cancels. The text goes into the field, after what you had already typed, for you to review — **nothing is sent or saved on its own**. Each completed dictation uses 1 standard AI question from the balance; failures, silence or unintelligible audio do not count. Axioma does not keep the audio.' },
@@ -132,7 +132,7 @@ const es: DocumentoAxioma = {
     { h1: 'Ejemplos de preguntas' },
     { lista: ['"¿Cuánto más puedo facturar este año sin superar el tope?"', '"¿Mi DAS está al día?"', '"¿Necesito declarar impuesto a la renta?"', '"¿Qué cambia para mí con la Reforma Tributaria?"', '"¿Mi precio cubre los costos?"'] },
     { h1: 'Buenas prácticas' },
-    { lista: ['Mantenga la facturación y los gastos registrados: la IA responde mejor con datos completos.', 'Una pregunta a la vez, directa.', 'La respuesta orienta; la decisión siempre es suya.'] },
+    { lista: ['Mantenga la facturación y los gastos registrados: la IA responde mejor con datos completos.', 'Una pregunta a la vez, directa.', 'La respuesta orienta; la decisión siempre es suya.', 'La conversación se desplaza dentro de la caja del chat: la página queda donde usted está.'] },
 
     { h1: 'Dictado por voz' },
     { p: 'Cuando el dictado esté habilitado para su empresa, aparece un botón de micrófono en la caja de pregunta del Advisor. Toque y hable (o mantenga y suelte); el navegador pide permiso al micrófono solo la primera vez. Se detiene solo después de un silencio o a los 60 segundos, y el botón ✕ cancela. El texto entra en el campo, junto con lo que ya había escrito, para que lo revise — **nada se envía ni se guarda solo**. Cada dictado completado usa 1 pregunta de IA común del saldo; fallas, silencio o audio no entendido no consumen. Axioma no guarda el audio.' },
