@@ -12,7 +12,7 @@ Ordem do Elias (08/11/2026): cada etapa concluída vai direto para produção (m
 | 4 | Departamentos, cargos (CBO), lotações | Concluída — `rh_lotacoes` (S-1020 + Tabelas oficiais 04/10/12), `rh_departamentos` (árvore sem ciclo), `rh_cargos` (CBO + competências), função genérica `rh_confere_mesma_empresa` | (este commit) | `RH-4-TESTE-ESTRUTURA-LOTACOES-SQL.sql`: falhas=0 · invasão: falhas=0 em 149 tabelas | Lista oficial da CBO (download do site do MTE exige clique — carregar na admissão) |
 | 5 | Tipos de vínculo | Concluída dentro da subfase 6 — categorias oficiais (Tabela 01 do eSocial), prazo determinado/experiência/aprendiz com travas da CLT | bc3ae28 | `RH-7-TESTE`: falhas=0 | — |
 | 6 | Cadastro de colaboradores + IA do RH | Concluída — `rh_colaboradores`, `rh_colaborador_pessoal`, `rh_contratos`, `rh_remuneracoes` (+ Tabela 01); tela `/rh/colaboradores`; portas da IA `rh_pessoas`/`rh_estrutura`/`rh_salarios` | bc3ae28 + (este commit) | `RH-7-TESTE`: falhas=0 · `check-rh-ia` ok · bateria completa | — |
-| 7 | Histórico e documentos | Concluída — `rh_historico` (gatilho, ninguém edita/apaga) + arquivos da admissão no cofre `rh-documentos` | (este commit) | `RH-10-TESTE`: falhas=0 · `RH-11-TESTE` | — |
+| 7 | Histórico e documentos | Concluída — `rh_historico` (gatilho, ninguém edita/apaga) + arquivos da admissão no cofre `rh-documentos` | (este commit) | `RH-10-TESTE`: falhas=0 · `RH-11-TESTE`: falhas=0 | — |
 | 8 | Importação de funcionários | Concluída — planilha modelo, prévia com erros, lotes de 200 (`rh_importar_colaboradores`), planilha de erros | (este commit) | `RH-9-TESTE`: falhas=0 · `check-rh-importacao` ok | — |
 | 9 | Permissões na tela e auditoria | Concluída — liberação por item na aba Acessos do RH; auditoria = histórico da subfase 7 | (este commit) | `RH-6-TESTE` e `RH-11-TESTE` | — |
 
@@ -39,3 +39,7 @@ Tela /rh + porta de IA rh_alertas (mesma função lib/rhPainel.painelRh). Microi
 ## Arquivos da admissão (08/11/2026)
 
 RH-10-ARQUIVOS-ADMISSAO-SQL.sql rodado; teste RH-10-TESTE-ARQUIVOS-SQL.sql: falhas=0. Cofre privado rh-documentos (10 MB, PDF/JPG/PNG/WEBP).
+
+## Histórico e exemplos (08/11/2026)
+
+RH-11 (histórico) + RH-12 (exemplos Ana/Bruno/Carla na Distribuidora Horizonte) rodados; teste RH-11: falhas=0. Conferido no site: Radar com 7 alertas corretos, salários R$ 7.200,00, histórico "Horas por semana: 44 → 40".
