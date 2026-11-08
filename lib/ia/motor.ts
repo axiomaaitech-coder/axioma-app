@@ -530,6 +530,7 @@ export const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   rh_pessoas: { pt: 'colaboradores', en: 'employees', es: 'colaboradores' },
   rh_estrutura: { pt: 'estrutura do RH', en: 'HR structure', es: 'estructura de RR. HH.' },
   rh_salarios: { pt: 'salários', en: 'salaries', es: 'salarios' },
+  rh_alertas: { pt: 'Radar de Risco do RH', en: 'HR risk radar', es: 'Radar de riesgo de RR. HH.' },
   contas_a_pagar: { pt: 'contas a pagar', en: 'accounts payable', es: 'cuentas por pagar' },
   contas_a_receber: { pt: 'contas a receber', en: 'accounts receivable', es: 'cuentas por cobrar' },
   custos: { pt: 'custos', en: 'costs', es: 'costos' },

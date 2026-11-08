@@ -23,7 +23,7 @@ const contratos = [
 const nomes = { cargos: new Map([['cg1', 'Vendedor']]), deps: new Map([['d1', 'Comercial']]) }
 const r = resumirPessoas(colabs as never, contratos, nomes, hoje)
 assert.equal(r.ativos, 3); assert.deepEqual(r.por_situacao, { ativo: 3, desligado: 1 })
-assert.equal(contratoAtual(contratos).get('c')!.id, 'k3', 'vale o contrato mais recente')
+assert.equal((contratoAtual(contratos as { id: string; colaborador_id: string; data_admissao: string }[] as never[]).get('c') as unknown as { id: string }).id, 'k3', 'vale o contrato mais recente')
 assert.deepEqual(r.ativos_por_departamento, { Comercial: 2, 'sem departamento': 1 })
 assert.deepEqual(r.ativos_por_cargo, { Vendedor: 2, 'sem cargo': 1 })
 assert.deepEqual(r.experiencia_termina_em_30_dias, [{ nome: 'Ana', termina_em: '2026-11-20', dias: 12 }])
@@ -52,4 +52,6 @@ const f = planejarConsulta('Quanto pago de folha de pagamento?')
 assert.ok(f.portas.includes('rh_salarios')); assert.deepEqual(f.indisponiveis, ['folha'], 'avisa que a folha completa não existe e mostra o salário-base')
 for (const n of FERRAMENTAS_RH.map((x) => x.name)) { assert.ok(PORTAS[n], `porta ${n}`); assert.ok(telaPodeUsarPorta('rh-colaboradores', n)); assert.ok(telaPodeUsarPorta('rh-estrutura', n)) }
 assert.equal(telaPodeUsarPorta('ia-tributaria', 'rh_salarios'), false, 'IA Tributária não abre salário de ninguém')
+assert.ok(telaPodeUsarPorta('rh', 'rh_alertas')); assert.ok(planejarConsulta('Tem algum risco trabalhista no RH?').portas.includes('rh_alertas'))
+assert.equal(indicador('rh_alertas')?.ferramenta, 'rh_alertas')
 console.log('check-rh-ia ok')

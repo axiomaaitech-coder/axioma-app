@@ -17,6 +17,7 @@ const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object',
 export const FERRAMENTAS_RH: { name: string; description: string; input_schema: Esquema; strict: true }[] = [
   { name: 'rh_pessoas', strict: true, description: 'RH: quantas pessoas a empresa tem por situação (ativo, pré-admissão, afastado, desligado), ativos por departamento e por cargo, admissões e desligamentos nos últimos 30 dias, contratos de experiência que terminam em 30 dias ou já venceram (com nome e data) e ativos sem cargo ou sem departamento. Use para "quantos funcionários temos", "quem está em experiência", "quantos no comercial". Não traz CPF, endereço nem salário.', input_schema: obj({}) },
   { name: 'rh_estrutura', strict: true, description: 'RH: a estrutura cadastrada — se os dados do empregador do eSocial estão preenchidos, quantas filiais, lotações, departamentos e cargos — e o que falta arrumar (pendências). Use para "o RH está configurado?", "quantos departamentos/cargos temos".', input_schema: obj({}) },
+  { name: 'rh_alertas', strict: true, description: 'RH: o Radar de Risco Trabalhista — o mesmo da tela Painel do RH. Experiência vencida ou terminando, prazo determinado acabando, admissão não enviada ao eSocial, quem trabalha sem exame admissional, documentos obrigatórios pendentes, ativos sem cargo ou salário, e obrigações pelo tamanho da empresa (ponto acima de 20, cota PCD e igualdade salarial a partir de 100), cada um com a base legal e os nomes. Use para "o que preciso resolver no RH", "tem algum risco trabalhista".', input_schema: obj({}) },
   { name: 'rh_salarios', strict: true, description: 'RH: soma dos salários-base mensais vigentes hoje dos contratos ativos, média, total por departamento e quantos não têm salário cadastrado. Só para quem tem liberação de salário no RH. NÃO é a folha: não inclui encargos (INSS patronal, FGTS), benefícios, horas extras nem provisões. Use para "quanto pago de salário", "custo de salários por departamento".', input_schema: obj({}) },
 ]
 export const NOMES_FERRAMENTAS_RH = new Set(FERRAMENTAS_RH.map((f) => f.name))
@@ -28,8 +29,8 @@ export type Remun = { contrato_id: string; vigencia_inicio: string; und_sal_fixo
 const diasEntre = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / 86400000)
 
 // Contrato que vale para a pessoa: o mais recente pela admissão.
-export function contratoAtual(contratos: Contrato[]): Map<string, Contrato> {
-  const m = new Map<string, Contrato>()
+export function contratoAtual<K extends Contrato>(contratos: K[]): Map<string, K> {
+  const m = new Map<string, K>()
   for (const k of [...contratos].sort((a, b) => b.data_admissao.localeCompare(a.data_admissao))) if (!m.has(k.colaborador_id)) m.set(k.colaborador_id, k)
   return m
 }
@@ -92,6 +93,28 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string): Promise<Resu
       return { cargos: new Map(cg.map((x) => [x.id, x.nome])), deps: new Map(dp.map((x) => [x.id, x.nome])) }
     }
     switch (nome) {
+      case 'rh_alertas': {
+        const { painelRh } = await import('./rhPainel')
+        const { ITENS_ADMISSAO } = await import('./rhDocumentos')
+        const [podeDocs, podeSaude, podeSal] = await Promise.all([pode('pessoais'), pode('saude'), pode('salario')])
+        const [colabs, contratos, itens, remun] = await Promise.all([
+          ler<Colab>('rh_colaboradores', 'id, nome, nome_social, situacao'),
+          ler<Contrato & { situacao_esocial: string; cod_categ: string; estabelecimento_id: string | null }>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, estabelecimento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento, situacao_esocial', false),
+          podeDocs || podeSaude ? ler<{ colaborador_id: string; tipo: string; categoria: string; situacao: string }>('rh_admissao_itens', 'id, colaborador_id, tipo, categoria, situacao', false) : Promise.resolve(null),
+          podeSal ? ler<Remun>('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false) : Promise.resolve(null),
+        ])
+        let sal: Map<string, number> | null = null
+        if (remun) { sal = new Map(); for (const r of [...remun].filter((r) => r.vigencia_inicio <= hoje).sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio))) if (!sal.has(r.contrato_id)) sal.set(r.contrato_id, Number(r.valor)) }
+        const vivos = new Set(colabs.map((c) => c.id))
+        const p = painelRh({ hoje, colabs, contratos: contratos.filter((k) => vivos.has(k.colaborador_id)), itens, salarioPorContrato: sal,
+          obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'documento').map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'exame').map((i) => i.tipo) }, podeDocs, podeSaude })
+        const limitacoes = ['nenhum valor de multa é estimado: depende da fiscalização e da tabela vigente']
+        if (!podeSaude) limitacoes.push('sem liberação de saúde: o alerta de exame admissional não foi conferido')
+        if (!podeDocs) limitacoes.push('sem liberação de dados pessoais: documentos pendentes não foram conferidos')
+        return resultado({ indicador: 'rh_alertas', definicao: definicao('rh_alertas'), estado: podeDocs && podeSaude ? 'verificado' : 'parcial', valor: p.alertas.filter((a) => a.nivel !== 'info').length, unidade: 'QTD', periodo: null,
+          criterio_data: 'posição de hoje', fontes: ['rh_colaboradores', 'rh_contratos', 'rh_admissao_itens', 'rh_remuneracoes'], registros: colabs.length, limitacoes,
+          detalhes: { hoje, alertas: p.alertas.map((a) => ({ nivel: a.nivel, alerta: a.titulo.pt, base_legal: a.base, quantidade: a.total, pessoas: a.pessoas })), perto_do_limite: p.proximos.map((x) => x.pt), kpis: p.kpis } })
+      }
       case 'rh_pessoas': {
         const [colabs, contratos, n] = await Promise.all([ler<Colab>('rh_colaboradores', 'id, nome, nome_social, situacao'), ler<Contrato>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, data_admissao, data_termino, experiencia, data_desligamento', false), nomes()])
         const vivos = new Set(colabs.map((c) => c.id))

@@ -92,6 +92,7 @@ const grupos = [
     corBg: "rgba(46,204,155,0.12)",
     itens: [
       { label: { pt: "Centros de Custo", en: "Cost Centers", es: "Centros de Costo" }, path: "/centros-custo", emoji: "🗂️" },
+      { label: { pt: "RH · Painel", en: "HR · Panel", es: "RR. HH. · Panel" }, path: "/rh", emoji: "📊" },
       { label: { pt: "RH · Colaboradores", en: "HR · Employees", es: "RR. HH. · Colaboradores" }, path: "/rh/colaboradores", emoji: "👥" },
       { label: { pt: "RH · Estrutura", en: "HR · Structure", es: "RR. HH. · Estructura" }, path: "/rh/estrutura", emoji: "🏛️" },
       { label: { pt: "Importar Documentos", en: "Import Documents", es: "Importar Documentos" }, path: "/importar-documentos", emoji: "📂" },

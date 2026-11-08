@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import { X, Download, Upload, CheckCircle2, AlertTriangle } from "lucide-react";
 import { createBrowserClient } from "../../../../lib/supabaseBrowser";
 import { CanvasBox } from "../../../../components/CanvasBox";
+import { BotaoAcao } from "../../../../components/BotaoAcao";
 import { lerTodas } from "../../../../lib/lerTodas";
 import { exportarPlanilha, exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
 import { COLUNAS, mapearCabecalho, validarLinhas, chaveNome, type Resultado } from "../../../../lib/rhImportacao";
@@ -155,7 +156,7 @@ export default function ImportarPlanilha({ empresaId, lang, temaClaro, podePesso
               </div>
               {res.length > 300 && <p className="text-xs" style={{ color: TEXTO_SEC }}>{L(`Mostrando 300 de ${res.length} (as com erro primeiro). Baixe a planilha de erros para ver todas.`, `Showing 300 of ${res.length} (errors first). Download the error sheet to see all.`, `Mostrando 300 de ${res.length} (con error primero). Descargue la planilla de errores para ver todas.`)}</p>}
               <div className="flex flex-wrap gap-2">
-                <button disabled={!validas} onClick={() => void importar()} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: validas ? BTN : "#6b7280", color: "#fff" }}>{L(`Importar ${validas} colaborador(es)`, `Import ${validas} employee(s)`, `Importar ${validas} colaborador(es)`)}</button>
+                <BotaoAcao executar={importar} desativado={!validas} texto={L(`Importar ${validas} colaborador(es)`, `Import ${validas} employee(s)`, `Importar ${validas} colaborador(es)`)} textoTrabalhando={L("Importando…", "Importing…", "Importando…")} className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: BTN, color: "#fff" }} />
                 {comErro > 0 && <button onClick={baixarErros} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff" }}>{L("Baixar planilha de erros", "Download error sheet", "Descargar planilla de errores")}</button>}
                 <button onClick={() => { setRes([]); setEtapa("escolher"); }} className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ color: TEXTO_SEC, border: `1px solid ${BORDA}` }}>{L("Escolher outro arquivo", "Choose another file", "Elegir otro archivo")}</button>
               </div>

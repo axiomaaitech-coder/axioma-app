@@ -16,6 +16,7 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
+import { BotaoAcao } from "../../../../components/BotaoAcao";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
 import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC } from "../../../../lib/cfoCore";
@@ -292,10 +293,10 @@ export default function RhEstruturaPage() {
     return f;
   }
 
-  async function salvar() {
-    if (!form || !empresaId) return;
+  async function salvar(): Promise<boolean> {
+    if (!form || !empresaId) return false;
     const falta = cfg.campos.find((c) => c.obrig && String(form[c.k] ?? "").trim() === "");
-    if (falta) { avisar(L(`Preencha: ${falta.r.pt}.`, `Fill in: ${falta.r.en}.`, `Complete: ${falta.r.es}.`)); return; }
+    if (falta) { avisar(L(`Preencha: ${falta.r.pt}.`, `Fill in: ${falta.r.en}.`, `Complete: ${falta.r.es}.`)); return false; }
     const payload: Linha = { empresa_id: empresaId };
     for (const c of cfg.campos) {
       const v = form[c.k];
@@ -307,7 +308,7 @@ export default function RhEstruturaPage() {
       if (c.num) payload[c.k] = Number(s);
       else if (c.tipo === "numero") {
         const n = lerValorBR(s);
-        if (Number.isNaN(n)) { avisar(L(`Número inválido em: ${c.r.pt}.`, `Invalid number in: ${c.r.en}.`, `Número inválido en: ${c.r.es}.`)); return; }
+        if (Number.isNaN(n)) { avisar(L(`Número inválido em: ${c.r.pt}.`, `Invalid number in: ${c.r.en}.`, `Número inválido en: ${c.r.es}.`)); return false; }
         payload[c.k] = n;
       }
       else if (["nr_insc", "cnpj_efr", "cnpj_resp", "cnae_prep", "cbo", "contrat_nr_insc", "prop_nr_insc", "apr_nr_proc_jud", "pcd_nr_proc_jud"].includes(c.k)) payload[c.k] = s.replace(/\D/g, "");
@@ -321,9 +322,10 @@ export default function RhEstruturaPage() {
     if (r.error || !r.data?.length) {
       avisar(mensagemErroRh(r.error ?? { code: "42501", message: "row-level security" }, lang));
       if (r.error && !["23514", "23505", "42501"].includes(String(r.error.code))) Sentry.captureException(new Error(`rh/estrutura gravar ${cfg.tabela}: ${r.error.message}`));
-      return;
+      return false;
     }
     setForm(null); avisar(L("Salvo.", "Saved.", "Guardado."), "ok"); void carregar();
+    return true;
   }
 
   async function paraLixeira(l: Linha) {
@@ -441,7 +443,8 @@ export default function RhEstruturaPage() {
                   <p className="text-sm font-bold mb-1" style={{ color: "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Primeiro passo do RH", "First HR step", "Primer paso de RR. HH.")}</p>
                   <p className="text-sm" style={{ color: TEXTO_SEC }}>{L("Os dados do empregador são o cadastro que o eSocial exige antes de qualquer admissão. O Axioma preenche com o que já está no cadastro da Empresa — confira com o contador e salve.", "Employer data is the record eSocial requires before any hiring. Axioma fills in what is already in the company record — check with your accountant and save.", "Los datos del empleador son el registro que eSocial exige antes de cualquier admisión. Axioma completa con lo que ya está en el registro de la empresa — confirme con el contador y guarde.")}</p>
                   {!raizCnpj(empresa?.cnpj) && <p className="text-sm mt-2 font-semibold" style={{ color: temaClaro ? "#9a3412" : "#fbbf24" }}>{L("O CNPJ completo da Empresa não está cadastrado. Preencha em Config → Empresa, ou digite no formulário.", "The company's full CNPJ is not registered. Fill it in at Config → Company, or type it in the form.", "El CNPJ completo de la empresa no está registrado. Complételo en Config → Empresa, o escríbalo en el formulario.")}</p>}
-                  <button onClick={novo} className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold" style={{ background: BTN, color: "#fff" }}><Wand2 size={15} /> {L("Preencher com os dados da Empresa", "Fill in with company data", "Completar con los datos de la empresa")}</button>
+                  <BotaoAcao executar={() => { novo(); return true; }} icone={<Wand2 size={15} />} texto={L("Preencher com os dados da Empresa", "Fill in with company data", "Completar con los datos de la empresa")}
+                    textoTrabalhando={L("Preenchendo…", "Filling in…", "Completando…")} className="mt-3 px-4 py-2 rounded-xl text-sm" estilo={{ background: BTN, color: "#fff" }} />
                 </CanvasBox>
               )}
 
@@ -557,10 +560,7 @@ export default function RhEstruturaPage() {
                       {avancado ? L("Esconder casos especiais", "Hide special cases", "Ocultar casos especiales") : L("Mostrar casos especiais (cooperativa, obra, órgão público, isenção…)", "Show special cases (cooperative, site, public body, exemption…)", "Mostrar casos especiales (cooperativa, obra, órgano público, exención…)")}
                     </button>
                   )}
-                  <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={salvar} disabled={salvando}
-                    className="w-full mt-4 py-3.5 rounded-xl font-bold" style={{ background: salvando ? "#4b5563" : BTN, color: "#fff" }}>
-                    {salvando ? L("Salvando…", "Saving…", "Guardando…") : L("Salvar", "Save", "Guardar")}
-                  </motion.button>
+                  <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
                 </CanvasBox>
               </motion.div>
             </motion.div>

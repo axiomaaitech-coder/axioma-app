@@ -31,3 +31,7 @@ não vale mais; a regra atual é testada no RH-6.
 5. IA de currículo: OpenAI sem crédito — Fase 2
 6. Guarda de currículos: 12 meses com consentimento — Fase 2
 7. Plano: RH liberado até a definição de preços — antes de publicar
+
+## Painel do RH (08/11/2026)
+
+Tela /rh + porta de IA rh_alertas (mesma função lib/rhPainel.painelRh). Microinterações (BotaoAcao) em Salvar, Importar, Planilha completa, Preencher com dados da Empresa e Perguntar. Manual 50.

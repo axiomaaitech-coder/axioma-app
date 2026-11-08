@@ -24,6 +24,7 @@ const INTENCOES: { intencao: string; re: RegExp; portas: string[] }[] = [
   { intencao: 'estoque', re: /estoque|inventory|inventario/, portas: ['estoque_resumo'] },
   { intencao: 'pessoas', re: /funcionario|colaborador|employee|empleado|headcount|quadro de pessoal|experiencia|admiss|deslig/, portas: ['rh_pessoas'] },
   { intencao: 'salarios', re: /salario|folha( de pagamento)?\b|payroll|nomina|custo com (funcionarios|pessoal)/, portas: ['rh_salarios'] },
+  { intencao: 'alertas_rh', re: /risco trabalhista|alerta(s)? do rh|resolver no rh|pendencia(s)? do rh|radar|labor risk/, portas: ['rh_alertas'] },
   { intencao: 'estrutura_rh', re: /departamento|\bcargos?\b|estrutura do rh|\brh\b|lotac|filia(l|is)\b/, portas: ['rh_estrutura'] },
   { intencao: 'compras', re: /pedidos? de compra|purchase order/, portas: ['compras_pedidos'] },
   { intencao: 'pdv', re: /\bpdv\b|\bpos sales\b|vendi no caixa/, portas: ['pdv_resumo'] },

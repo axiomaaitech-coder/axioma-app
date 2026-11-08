@@ -16,6 +16,7 @@ import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../../components/AnimatedNumber";
 import { useConfirmarExclusao } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
+import { BotaoAcao } from "../../../../components/BotaoAcao";
 import ImportarPlanilha from "./ImportarPlanilha";
 import { lerTodas } from "../../../../lib/lerTodas";
 import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
@@ -231,21 +232,21 @@ export default function RhColaboradoresPage() {
     setForm((f) => (f ? { ...f, logradouro: r.logradouro || f.logradouro, bairro: r.bairro || f.bairro, cidade: r.cidade || f.cidade, uf: r.uf || f.uf } : f));
     setCepMsg(L("Endereço preenchido pelo CEP. Confira e informe o número.", "Address filled from the postal code. Check it and add the number.", "Dirección completada por el CEP. Revise e informe el número."));
   }
-  async function salvar() {
-    if (!form || !empresaId) return;
-    if (String(form.nome).trim().length < 2) { avisar(L("Informe o nome (mínimo 2 letras).", "Enter the name (at least 2 letters).", "Informe el nombre (mínimo 2 letras).")); return; }
-    if (!String(form.matricula).trim()) { avisar(L("Informe a matrícula.", "Enter the employee ID.", "Informe la matrícula.")); return; }
-    if (!form.data_admissao) { avisar(L("Informe a data de admissão.", "Enter the hire date.", "Informe la fecha de admisión.")); return; }
-    if (pode.pessoais && soDig(form.cpf) && !validarCPF(soDig(form.cpf))) { avisar(L("CPF inválido: confira os números.", "Invalid CPF: check the numbers.", "CPF inválido: revise los números.")); return; }
-    if (pode.pessoais && (soDig(form.cpf) || form.tem_pessoal) && (!codigoPais(form.pais_nascimento_txt) || !codigoPais(form.pais_nacionalidade_txt))) { avisar(L("Escolha o país na lista (comece a digitar o nome).", "Pick the country from the list (start typing the name).", "Elija el país en la lista (empiece a escribir el nombre).")); return; }
+  async function salvar(): Promise<boolean> {
+    if (!form || !empresaId) return false;
+    if (String(form.nome).trim().length < 2) { avisar(L("Informe o nome (mínimo 2 letras).", "Enter the name (at least 2 letters).", "Informe el nombre (mínimo 2 letras).")); return false; }
+    if (!String(form.matricula).trim()) { avisar(L("Informe a matrícula.", "Enter the employee ID.", "Informe la matrícula.")); return false; }
+    if (!form.data_admissao) { avisar(L("Informe a data de admissão.", "Enter the hire date.", "Informe la fecha de admisión.")); return false; }
+    if (pode.pessoais && soDig(form.cpf) && !validarCPF(soDig(form.cpf))) { avisar(L("CPF inválido: confira os números.", "Invalid CPF: check the numbers.", "CPF inválido: revise los números.")); return false; }
+    if (pode.pessoais && (soDig(form.cpf) || form.tem_pessoal) && (!codigoPais(form.pais_nascimento_txt) || !codigoPais(form.pais_nacionalidade_txt))) { avisar(L("Escolha o país na lista (comece a digitar o nome).", "Pick the country from the list (start typing the name).", "Elija el país en la lista (empiece a escribir el nombre).")); return false; }
     const salTxt = !form.id ? form.valor : form.reajuste_valor;
-    if (pode.salario && nulo(salTxt) && Number(form.und_sal_fixo) !== 7 && !(lerValorBR(String(salTxt)) > 0)) { avisar(L("Salário inválido: use o formato 2.500,00.", "Invalid salary: use the format 2,500.00.", "Salario inválido: use el formato 2.500,00.")); return; }
-    if (nulo(form.qtd_hrs_sem) && !(lerValorBR(String(form.qtd_hrs_sem)) > 0)) { avisar(L("Horas por semana inválidas.", "Invalid weekly hours.", "Horas por semana inválidas.")); return; }
+    if (pode.salario && nulo(salTxt) && Number(form.und_sal_fixo) !== 7 && !(lerValorBR(String(salTxt)) > 0)) { avisar(L("Salário inválido: use o formato 2.500,00.", "Invalid salary: use the format 2,500.00.", "Salario inválido: use el formato 2.500,00.")); return false; }
+    if (nulo(form.qtd_hrs_sem) && !(lerValorBR(String(form.qtd_hrs_sem)) > 0)) { avisar(L("Horas por semana inválidas.", "Invalid weekly hours.", "Horas por semana inválidas.")); return false; }
     setSalvando(true);
     const novo = !form.id;
     const pessoa = { empresa_id: empresaId, nome: String(form.nome).trim(), nome_social: nulo(form.nome_social), situacao: form.situacao };
     const r1 = novo ? await supabase.from("rh_colaboradores").insert(pessoa).select("id").single() : await supabase.from("rh_colaboradores").update(pessoa).eq("id", form.id).select("id").single();
-    if (r1.error || !r1.data) { setSalvando(false); avisar(mensagemErroRh(r1.error, lang)); return; }
+    if (r1.error || !r1.data) { setSalvando(false); avisar(mensagemErroRh(r1.error, lang)); return false; }
     const cid = r1.data.id as string;
     // desfaz a pessoa criada agora se o restante falhar (não deixa cadastro pela metade)
     const desfazer = async (erro: unknown) => { if (novo) await supabase.from("rh_colaboradores").delete().eq("id", cid); setSalvando(false); avisar(mensagemErroRh(erro as { code?: string; message?: string }, lang)); };
@@ -255,7 +256,7 @@ export default function RhColaboradoresPage() {
       centro_custo_id: nulo(form.centro_custo_id), gestor_id: nulo(form.gestor_id), qtd_hrs_sem: nulo(form.qtd_hrs_sem) ? lerValorBR(String(form.qtd_hrs_sem)) : null,
       tp_jornada: nulo(form.tp_jornada) ? Number(form.tp_jornada) : null, data_desligamento: nulo(form.data_desligamento) };
     const r2 = form.contrato_id ? await supabase.from("rh_contratos").update(contrato).eq("id", form.contrato_id).select("id").single() : await supabase.from("rh_contratos").insert(contrato).select("id").single();
-    if (r2.error || !r2.data) { await desfazer(r2.error); return; }
+    if (r2.error || !r2.data) { await desfazer(r2.error); return false; }
     const kid = r2.data.id as string;
     if (pode.pessoais && (soDig(form.cpf) || form.tem_pessoal)) {
       const pes = { colaborador_id: cid, empresa_id: empresaId, cpf: soDig(form.cpf), data_nascimento: nulo(form.data_nascimento), sexo: nulo(form.sexo), raca_cor: nulo(form.raca_cor) ? Number(form.raca_cor) : null,
@@ -263,7 +264,7 @@ export default function RhColaboradoresPage() {
         cep: soDig(form.cep) || null, logradouro: nulo(form.logradouro), numero: nulo(form.numero), complemento: nulo(form.complemento), bairro: nulo(form.bairro), cidade: nulo(form.cidade),
         uf: nulo(form.uf)?.toUpperCase() ?? null, telefone: nulo(form.telefone), email: nulo(form.email)?.toLowerCase() ?? null, emergencia_nome: nulo(form.emergencia_nome), emergencia_telefone: nulo(form.emergencia_telefone) };
       const r3 = await supabase.from("rh_colaborador_pessoal").upsert(pes, { onConflict: "colaborador_id" });
-      if (r3.error) { await desfazer(r3.error); return; }
+      if (r3.error) { await desfazer(r3.error); return false; }
     }
     if (pode.salario) {
       const valorNovo = novo ? nulo(form.valor) : nulo(form.reajuste_valor);
@@ -271,10 +272,11 @@ export default function RhColaboradoresPage() {
         const und = Number(form.und_sal_fixo);
         const r4 = await supabase.from("rh_remuneracoes").insert({ empresa_id: empresaId, contrato_id: kid, vigencia_inicio: novo ? form.data_admissao : form.reajuste_data,
           und_sal_fixo: und, valor: und === 7 ? 0 : lerValorBR(String(valorNovo)), motivo: novo ? "admissao" : form.reajuste_motivo });
-        if (r4.error) { await desfazer(r4.error); return; }
+        if (r4.error) { await desfazer(r4.error); return false; }
       }
     }
     setSalvando(false); setForm(null); avisar(L("Salvo.", "Saved.", "Guardado."), "ok"); void carregarLista();
+    return true;
   }
 
   async function paraLixeira(c: Linha) {
@@ -288,8 +290,8 @@ export default function RhColaboradoresPage() {
     avisar(L(`Movido para a lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Moved to trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Movido a la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok"); void carregarLista();
   }
   // Planilha completa (Excel), no mesmo formato do modelo de importação. Lê TODOS (não só a página), cada parte com a liberação.
-  async function planilhaCompleta() {
-    if (!empresaId) return;
+  async function planilhaCompleta(): Promise<boolean> {
+    if (!empresaId) return false;
     setExportandoXls(true);
     const ler = (t: string, cols: string, lixeira: boolean, ordem: string) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", empresaId); return (lixeira ? q.is("excluido_em", null) : q).order(ordem); });
     const vazio = Promise.resolve({ data: [] as Linha[], error: null });
@@ -301,7 +303,7 @@ export default function RhColaboradoresPage() {
     ]);
     setExportandoXls(false);
     const falha = [cs, ks, ps, rs].find((r) => r.error);
-    if (falha?.error) { avisar(L("Não foi possível montar a planilha agora. Tente de novo.", "Could not build the spreadsheet now. Try again.", "No se pudo armar la planilla ahora. Intente de nuevo.")); return; }
+    if (falha?.error) { avisar(L("Não foi possível montar a planilha agora. Tente de novo.", "Could not build the spreadsheet now. Try again.", "No se pudo armar la planilla ahora. Intente de nuevo.")); return false; }
     const atual = new Map<string, Linha>();
     [...(ks.data as Linha[])].sort((a, b) => String(b.data_admissao).localeCompare(String(a.data_admissao))).forEach((k) => { if (!atual.has(k.colaborador_id)) atual.set(k.colaborador_id, k); });
     const pes = new Map((ps.data as Linha[]).map((x) => [x.colaborador_id, x]));
@@ -314,6 +316,7 @@ export default function RhColaboradoresPage() {
       { nome: L("Instruções", "Instructions", "Instrucciones"), linhas: COLUNAS.map((c) => ({ [L("Coluna", "Column", "Columna")]: c.titulo, [L("Como preencher", "How to fill", "Cómo completar")]: c.ajuda[lang] })) },
     ], `axioma-rh-colaboradores-${hoje}`);
     avisar(L(`Planilha com ${linhas.length} pessoa(s) gerada.`, `Spreadsheet with ${linhas.length} person(s) generated.`, `Planilla con ${linhas.length} persona(s) generada.`), "ok");
+    return true;
   }
   async function recuperar(c: Linha) {
     const { data, error } = await supabase.from("rh_colaboradores").update({ excluido_em: null }).eq("id", c.id).select("id");
@@ -395,9 +398,9 @@ export default function RhColaboradoresPage() {
                       {verLixeira ? <><X size={13} /> {L("Fechar lixeira", "Close trash", "Cerrar papelera")}</> : <><Trash2 size={13} /> {L(`Lixeira (${DIAS_LIXEIRA_RH} dias)`, `Trash (${DIAS_LIXEIRA_RH} days)`, `Papelera (${DIAS_LIXEIRA_RH} días)`)}</>}
                     </button>
                   )}
-                  <button onClick={() => void planilhaCompleta()} disabled={exportandoXls} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff", border: `1px solid ${BORDA}` }}>
-                    <FileSpreadsheet size={16} /> {exportandoXls ? L("Gerando…", "Generating…", "Generando…") : L("Planilha completa (Excel)", "Full spreadsheet (Excel)", "Planilla completa (Excel)")}
-                  </button>
+                  <BotaoAcao executar={planilhaCompleta} icone={<FileSpreadsheet size={16} />} texto={L("Planilha completa (Excel)", "Full spreadsheet (Excel)", "Planilla completa (Excel)")}
+                    textoTrabalhando={L("Gerando…", "Generating…", "Generando…")} textoFeito={L("Baixada", "Downloaded", "Descargada")} className="px-4 py-2.5 rounded-xl text-sm"
+                    estilo={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff", border: `1px solid ${BORDA}` }} />
                   {pode.editar && (
                     <button onClick={() => setImportAberto(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff", border: `1px solid ${BORDA}` }}>
                       <UserPlus size={16} /> {L("Importar planilha", "Import spreadsheet", "Importar planilla")}
@@ -573,9 +576,7 @@ export default function RhColaboradoresPage() {
                   ))}
 
                   {pode.editar && (
-                    <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={salvar} disabled={salvando} className="w-full mt-4 py-3.5 rounded-xl font-bold" style={{ background: salvando ? "#4b5563" : BTN, color: "#fff" }}>
-                      {salvando ? L("Salvando…", "Saving…", "Guardando…") : L("Salvar", "Save", "Guardar")}
-                    </motion.button>
+                    <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
                   )}
                 </CanvasBox>
                 </FormCtx.Provider>

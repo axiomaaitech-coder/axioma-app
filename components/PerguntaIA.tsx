@@ -7,6 +7,7 @@ import { Sparkles, Send } from 'lucide-react'
 import { CanvasBox } from './CanvasBox'
 import { perguntarAoAxioma } from '../lib/ia/cliente'
 import { FONTE_EXEC } from '../lib/cfoCore'
+import { BotaoAcao } from './BotaoAcao'
 
 type Lang = 'pt' | 'en' | 'es'
 export function PerguntaIA({ tela, empresaId, lang, temaClaro, titulo, sugestoes }: {
@@ -23,7 +24,7 @@ export function PerguntaIA({ tela, empresaId, lang, temaClaro, titulo, sugestoes
 
   async function enviar(texto: string) {
     const q = texto.trim()
-    if (!q || pensando) return
+    if (!q || pensando) return false
     setPergunta(q); setPensando(true); setResposta(null)
     const r = await perguntarAoAxioma({ pergunta: q, empresaId, tela, lang })
     setPensando(false)
@@ -36,9 +37,7 @@ export function PerguntaIA({ tela, empresaId, lang, temaClaro, titulo, sugestoes
       <form onSubmit={(e) => { e.preventDefault(); void enviar(pergunta) }} className="flex gap-2">
         <input aria-label={titulo} value={pergunta} onChange={(e) => setPergunta(e.target.value)} placeholder={L('Escreva sua pergunta', 'Type your question', 'Escriba su pregunta')}
           className="flex-1 min-w-0 px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: temaClaro ? '#ffffff' : 'rgba(10,22,40,0.9)', border: `1px solid ${BORDA}`, color: 'var(--axi-text-primary)' }} />
-        <button type="submit" disabled={pensando} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: pensando ? '#4b5563' : BTN, color: '#fff' }}>
-          <Send size={15} /> {pensando ? L('Pensando…', 'Thinking…', 'Pensando…') : L('Perguntar', 'Ask', 'Preguntar')}
-        </button>
+        <BotaoAcao executar={() => enviar(pergunta)} icone={<Send size={15} />} texto={L('Perguntar', 'Ask', 'Preguntar')} textoTrabalhando={L('Pensando…', 'Thinking…', 'Pensando…')} className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: BTN, color: '#fff' }} />
       </form>
       <div className="flex flex-wrap gap-2 mt-3">
         {sugestoes.map((s) => (
