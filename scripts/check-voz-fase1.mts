@@ -112,12 +112,13 @@ const TELAS: [string, string][] = [
   ['app/(interno)/pdv/venda/page.tsx', 'pdv'], ['app/(interno)/contas-receber/page.tsx', 'contas-receber'],
 ]
 // Relatórios e Contas Vencidas usam o ditado de dentro do chat comum (components/ChatInteligencia): também só preenche o campo
-assert.deepEqual([...TELAS.map(([, t]) => t), 'relatorios', 'contas-vencidas'].sort(), [...TELAS_VOZ].sort())
+assert.deepEqual([...TELAS.map(([, t]) => t), 'relatorios', 'contas-vencidas', 'rh'].sort(), [...TELAS_VOZ].sort())
 {
   const chat = readFileSync('components/ChatInteligencia.tsx', 'utf8')
   assert.ok(chat.includes('onTexto={(x) => setTexto((a) => juntarTexto(a, x))}'), 'chat comum: o ditado só preenche o campo')
   assert.ok(readFileSync('app/(interno)/relatorios/page.tsx', 'utf8').includes('<ChatInteligencia tela="relatorios"'), 'Relatórios usa o chat comum')
   assert.ok(/<ChatInteligencia[^>]*tela="contas-vencidas"/.test(readFileSync('app/(interno)/contas-vencidas/page.tsx', 'utf8')), 'Contas Vencidas usa o chat comum')
+  assert.ok(/<ChatInteligencia[^>]*tela={tela}/.test(readFileSync('components/PerguntaIA.tsx', 'utf8')) && ['rh', 'rh/colaboradores', 'rh/estrutura'].every((p) => readFileSync(`app/(interno)/${p}/page.tsx`, 'utf8').includes('<PerguntaIA tela="rh"')), 'RH usa o chat comum com microfone nas 3 telas')
 }
 for (const [arq, tela] of TELAS) {
   const s = readFileSync(arq, 'utf8')

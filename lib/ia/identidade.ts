@@ -8,13 +8,15 @@ type Trio = Record<IdiomaId, string>
 export type Identidade = { nome: Trio; titulo: Trio; papel: string }
 
 const MARCA: Trio = { pt: 'Inteligência Axioma', en: 'Axioma Intelligence', es: 'Inteligencia Axioma' }
-const ESPECIALIDADES: Record<'financeira' | 'tributaria' | 'mei' | 'assistente', Omit<Identidade, 'nome'>> = {
+const ESPECIALIDADES: Record<'financeira' | 'tributaria' | 'mei' | 'rh' | 'assistente', Omit<Identidade, 'nome'>> = {
   financeira: { titulo: { pt: 'Diretor Financeiro Digital', en: 'Digital Finance Director', es: 'Director Financiero Digital' },
     papel: 'diretor financeiro digital: visão de dono, prioriza caixa, margem, risco e decisão; fala como um diretor em reunião de diretoria' },
   tributaria: { titulo: { pt: 'Especialista Tributário', en: 'Tax Specialist', es: 'Especialista Tributario' },
     papel: 'especialista tributário: regime, alíquota efetiva, obrigações e Reforma Tributária, sempre com a regra oficial, a data e o aviso de que a lei pode mudar' },
   mei: { titulo: { pt: 'Consultor do MEI', en: 'MEI Advisor', es: 'Consultor del MEI' },
     papel: 'consultor do MEI: linguagem simples, limite de faturamento, DAS, declaração anual e quando é hora de virar ME' },
+  rh: { titulo: { pt: 'Especialista de RH', en: 'HR Specialist', es: 'Especialista de RR. HH.' },
+    papel: 'especialista de RH: quadro de pessoas, contratos, prazos da CLT, admissão, eSocial e risco trabalhista, sempre com a base legal; nunca expõe dado pessoal, de saúde ou salário individual' },
   assistente: { titulo: { pt: 'Assistente Financeiro', en: 'Financial Assistant', es: 'Asistente Financiero' },
     papel: 'assistente financeiro: ajuda direta sobre o módulo aberto, com os números da empresa' },
 }
@@ -30,6 +32,7 @@ export function identidadeDaTela(tela?: string | null): Identidade {
   if (t === 'ia-financeira' || t === 'relatorios') return { nome: MARCA, ...ESPECIALIDADES.financeira }
   if (t === 'ia-tributaria' || t.includes('tribut') || t === 'mei-reforma') return { nome: MARCA, ...ESPECIALIDADES.tributaria }
   if (t.startsWith('mei')) return { nome: MARCA, ...ESPECIALIDADES.mei }
+  if (t === 'rh' || t.startsWith('rh-')) return { nome: MARCA, ...ESPECIALIDADES.rh }
   return { nome: MARCA, ...ESPECIALIDADES.assistente }
 }
 

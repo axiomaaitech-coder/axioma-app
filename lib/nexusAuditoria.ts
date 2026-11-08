@@ -60,6 +60,18 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     ['rh_rubricas', 'excluido_em', 'lixeira_rh_rubricas', DIAS_LIXEIRA_RH],
     ['rh_empregador', 'excluido_em', 'lixeira_rh_empregador', DIAS_LIXEIRA_RH],
   ]
+  // arquivos da admissão de quem sai da lixeira hoje: tirar do cofre ANTES da cascata apagar o caminho.
+  // Com falha ou com sobra (mais de 1000), as pessoas ficam para o cron seguinte — nenhum arquivo fica perdido no cofre.
+  {
+    const LOTE = 1000
+    const { data, error } = await supabase.from('rh_admissao_itens').select('arquivo_path, rh_colaboradores!inner(excluido_em)')
+      .not('arquivo_path', 'is', null).lt('rh_colaboradores.excluido_em', dataLimite(DIAS_LIXEIRA_RH)).limit(LOTE)
+    const paths = ((data ?? []) as { arquivo_path: string }[]).map((x) => x.arquivo_path)
+    let falha = error?.message
+    for (let i = 0; !falha && i < paths.length; i += 100) falha = (await supabase.storage.from('rh-documentos').remove(paths.slice(i, i + 100))).error?.message
+    resultado.lixeira_rh_arquivos = falha ? `erro: ${falha}` : `${paths.length} apagado(s)`
+    if (falha || paths.length === LOTE) passos.splice(passos.findIndex((p) => p[0] === 'rh_colaboradores'), 1)
+  }
   for (const [tabela, coluna, rotulo, dias] of passos) {
     const { count, error } = await supabase.from(tabela).delete({ count: 'exact' }).lt(coluna, dataLimite(dias))
     resultado[rotulo] = error ? `erro: ${error.message}` : `${count ?? 0} apagado(s)`

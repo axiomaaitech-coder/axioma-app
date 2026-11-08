@@ -34,7 +34,7 @@ const pt: DocumentoAxioma = {
     { nota: '**Casos especiais** (cooperativa, obra, órgão público, entidade isenta, operador portuário): toque em **Mostrar casos especiais** dentro do formulário.' },
 
     { h1: 'Preenchimento e IA' },
-    { lista: ['CNPJ e CPF ganham pontos, barra e traço enquanto você digita (grava só os números).', '**Pergunte à IA do RH**, no fim da tela: "o RH está configurado? o que falta?", "quantos departamentos e cargos temos?". A IA lê só o que você pode ver.'] },
+    { lista: ['CNPJ e CPF ganham pontos, barra e traço enquanto você digita (grava só os números).', '**Inteligência Axioma — Especialista de RH**, no fim da tela: "o RH está configurado? o que falta?", "quantos departamentos e cargos temos?". A IA lê só o que você pode ver. Escreva ou toque no **microfone** para falar; **Ouvir** lê a resposta em voz alta e **Conversa ao vivo** conversa por voz, como com o José.'] },
     { h1: 'Compartilhar e exportar' },
     { lista: ['**Compartilhar**: resumo (quantos cadastros em cada aba) ou detalhado (a aba aberta).', '**PDF** e **Excel** no topo: a lista da aba aberta.'] },
 
@@ -78,7 +78,7 @@ const en: DocumentoAxioma = {
     ] },
     { nota: '**Special cases** (cooperative, construction site, public body, exempt entity, port operator): tap **Show special cases** inside the form.' },
     { h1: 'Filling in and AI' },
-    { lista: ['CNPJ and CPF get dots, slash and dash as you type (only digits are saved).', '**Ask the HR AI** at the bottom: "is HR set up? what is missing?", "how many departments and job titles?". The AI only reads what you can see.'] },
+    { lista: ['CNPJ and CPF get dots, slash and dash as you type (only digits are saved).', '**Axioma Intelligence — HR Specialist** at the bottom: "is HR set up? what is missing?", "how many departments and job titles?". The AI only reads what you can see. Type or tap the **microphone** to speak; **Listen** reads the answer aloud and **Live conversation** talks by voice, like with José.'] },
     { h1: 'Share and export' },
     { lista: ['**Share**: summary (records per tab) or detailed (the open tab).', '**PDF** and **Excel** at the top: the list of the open tab.'] },
     { h1: 'Who can see and change (HR access tab)' },
@@ -121,7 +121,7 @@ const es: DocumentoAxioma = {
     ] },
     { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario.' },
     { h1: 'Llenado e IA' },
-    { lista: ['CNPJ y CPF reciben puntos, barra y guion al escribir (solo se guardan los números).', '**Pregunte a la IA de RR. HH.** al final: "¿RR. HH. está configurado? ¿qué falta?", "¿cuántos departamentos y cargos?". La IA solo lee lo que usted puede ver.'] },
+    { lista: ['CNPJ y CPF reciben puntos, barra y guion al escribir (solo se guardan los números).', '**Inteligencia Axioma — Especialista de RR. HH.** al final: "¿RR. HH. está configurado? ¿qué falta?", "¿cuántos departamentos y cargos?". La IA solo lee lo que usted puede ver. Escriba o toque el **micrófono** para hablar; **Escuchar** lee la respuesta en voz alta y **Conversación en vivo** conversa por voz, como con José.'] },
     { h1: 'Compartir y exportar' },
     { lista: ['**Compartir**: resumen (registros por pestaña) o detallado (la pestaña abierta).', '**PDF** y **Excel** arriba: la lista de la pestaña abierta.'] },
     { h1: 'Quién puede ver y cambiar (pestaña Accesos de RR. HH.)' },

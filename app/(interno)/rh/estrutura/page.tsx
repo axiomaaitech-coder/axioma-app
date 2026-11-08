@@ -16,6 +16,8 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
+import { NavRh } from "../../../../components/NavRh";
+import Link from "next/link";
 import { BotaoAcao } from "../../../../components/BotaoAcao";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
 import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
@@ -391,11 +393,12 @@ export default function RhEstruturaPage() {
         corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
+          <NavRh lang={lang} temaClaro={temaClaro} />
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2">
                 <ShieldCheck size={20} style={{ color: ct("#2ecc9b"), flexShrink: 0 }} />
-                <p className="text-sm" style={{ color: "var(--axi-text-primary)" }}>{L("Você não tem acesso ao RH desta Empresa. Peça ao dono ou a um admin para liberar em Equipe.", "You do not have access to HR for this company. Ask the owner or an admin to grant it in Team.", "No tiene acceso a RR. HH. de esta empresa. Pida al dueño o a un admin que lo habilite en Equipo.")}</p>
+                <p className="text-sm" style={{ color: "var(--axi-text-primary)" }}>{L("Você não tem acesso ao RH desta Empresa. Peça ao Proprietário, CEO, Sócio ou Admin para liberar em RH · Estrutura → Acessos do RH.", "You do not have access to HR for this company. Ask the Owner, CEO, Partner or Admin to grant it in HR · Structure → HR access.", "No tiene acceso a RR. HH. de esta empresa. Pida al Propietario, CEO, Socio o Admin que lo habilite en RR. HH. · Estructura → Accesos de RR. HH.")}</p>
               </div>
             </CanvasBox>
           ) : (
@@ -442,7 +445,7 @@ export default function RhEstruturaPage() {
                 <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
                   <p className="text-sm font-bold mb-1" style={{ color: "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Primeiro passo do RH", "First HR step", "Primer paso de RR. HH.")}</p>
                   <p className="text-sm" style={{ color: TEXTO_SEC }}>{L("Os dados do empregador são o cadastro que o eSocial exige antes de qualquer admissão. O Axioma preenche com o que já está no cadastro da Empresa — confira com o contador e salve.", "Employer data is the record eSocial requires before any hiring. Axioma fills in what is already in the company record — check with your accountant and save.", "Los datos del empleador son el registro que eSocial exige antes de cualquier admisión. Axioma completa con lo que ya está en el registro de la empresa — confirme con el contador y guarde.")}</p>
-                  {!raizCnpj(empresa?.cnpj) && <p className="text-sm mt-2 font-semibold" style={{ color: temaClaro ? "#9a3412" : "#fbbf24" }}>{L("O CNPJ completo da Empresa não está cadastrado. Preencha em Config → Empresa, ou digite no formulário.", "The company's full CNPJ is not registered. Fill it in at Config → Company, or type it in the form.", "El CNPJ completo de la empresa no está registrado. Complételo en Config → Empresa, o escríbalo en el formulario.")}</p>}
+                  {!raizCnpj(empresa?.cnpj) && <p className="text-sm mt-2 font-semibold" style={{ color: temaClaro ? "#9a3412" : "#fbbf24" }}>{L("O CNPJ completo da Empresa não está cadastrado. Preencha em Config → Empresa, ou digite no formulário.", "The company's full CNPJ is not registered. Fill it in at Config → Company, or type it in the form.", "El CNPJ completo de la empresa no está registrado. Complételo en Config → Empresa, o escríbalo en el formulario.")} <Link href="/empresa" className="underline font-bold whitespace-nowrap">{L("Abrir Empresa ›", "Open Company ›", "Abrir Empresa ›")}</Link></p>}
                   <BotaoAcao executar={() => { novo(); return true; }} icone={<Wand2 size={15} />} texto={L("Preencher com os dados da Empresa", "Fill in with company data", "Completar con los datos de la empresa")}
                     textoTrabalhando={L("Preenchendo…", "Filling in…", "Completando…")} className="mt-3 px-4 py-2 rounded-xl text-sm" estilo={{ background: BTN, color: "#fff" }} />
                 </CanvasBox>
@@ -509,7 +512,7 @@ export default function RhEstruturaPage() {
                 </div>
               </CanvasBox>
               </>)}
-              <PerguntaIA tela="rh-estrutura" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Pergunte à IA do RH", "Ask the HR AI", "Pregunte a la IA de RR. HH.")}
+              <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Inteligência Axioma — Especialista de RH", "Axioma Intelligence — HR Specialist", "Inteligencia Axioma — Especialista de RR. HH.")}
                 sugestoes={[L("O RH está configurado? O que falta?", "Is HR set up? What is missing?", "¿RR. HH. está configurado? ¿Qué falta?"), L("Quantos departamentos e cargos temos?", "How many departments and job titles do we have?", "¿Cuántos departamentos y cargos tenemos?")]} />
               <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Fonte das regras: leiaute oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). O Axioma prepara; quem envia ao governo nesta versão é o contador.", "Rules source: official eSocial S-1.3 layout (TN 07/2026, rev. 10/20/2026). Axioma prepares; in this version the accountant sends to the government.", "Fuente de las reglas: diseño oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). Axioma prepara; en esta versión quien envía al gobierno es el contador.")}</p>
             </>

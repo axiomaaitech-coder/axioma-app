@@ -26,6 +26,7 @@ const TX: Record<string, Record<IdiomaFala, string>> = {
   iniciar: { pt: "Iniciar conversa ao vivo", en: "Start live conversation", es: "Iniciar conversación en vivo" },
   encerrar: { pt: "Encerrar", en: "End", es: "Terminar" },
   conectando: { pt: "Conectando…", en: "Connecting…", es: "Conectando…" },
+  "titulo-rh": { pt: "Conversa ao vivo com a Inteligência Axioma — Especialista de RH", en: "Live conversation with Axioma Intelligence — HR Specialist", es: "Conversación en vivo con la Inteligencia Axioma — Especialista de RR. HH." },
   ouvindo: { pt: "Microfone aberto — pode falar", en: "Microphone on — go ahead", es: "Micrófono abierto — puede hablar" },
   consultando: { pt: "Consultando os dados da empresa…", en: "Checking company data…", es: "Consultando los datos de la empresa…" },
   falando: { pt: "Falando — fale por cima para interromper", en: "Speaking — talk over to interrupt", es: "Hablando — hable encima para interrumpir" },

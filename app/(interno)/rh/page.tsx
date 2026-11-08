@@ -17,6 +17,8 @@ import AvisoAxioma from "../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { PerguntaIA } from "../../../components/PerguntaIA";
+import { NavRh } from "../../../components/NavRh";
+import Link from "next/link";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC, fBRL2, optBarrasV } from "../../../lib/cfoCore";
@@ -137,6 +139,7 @@ export default function RhPainelPage() {
         onExportarPDF={() => exportar("pdf")} onExportarExcel={() => exportar("excel")}
         headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined} corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined} botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
+          <NavRh lang={lang} temaClaro={temaClaro} />
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
@@ -173,12 +176,15 @@ export default function RhPainelPage() {
 
               {depEntradas.length > 0 && (
                 <CanvasBox cor={VERDE} {...cartaoTema}>
-                  <p className="text-sm font-black mb-2" style={{ color: temaClaro ? NAVY : "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Ativos por departamento", "Active by department", "Activos por departamento")}</p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <p className="text-sm font-black" style={{ color: temaClaro ? NAVY : "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Ativos por departamento", "Active by department", "Activos por departamento")}</p>
+                    <Link href="/rh/colaboradores" className="underline font-bold whitespace-nowrap" style={{ color: VERDE, fontSize: 12 }}>{L("Ver colaboradores ›", "See employees ›", "Ver colaboradores ›")}</Link>
+                  </div>
                   <ReactECharts option={optDep} style={{ height: 260, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
                 </CanvasBox>
               )}
               <p id="formula" className="text-xs scroll-mt-28" style={{ color: TEXTO_SEC }}>{L("Rotatividade do mês = ((admissões + desligamentos) ÷ 2) ÷ ativos de hoje × 100.", "Monthly turnover = ((hires + terminations) ÷ 2) ÷ today's active × 100.", "Rotación del mes = ((admisiones + desvinculaciones) ÷ 2) ÷ activos de hoy × 100.")}</p>
-              <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Pergunte à IA do RH", "Ask the HR AI", "Pregunte a la IA de RR. HH.")}
+              <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Inteligência Axioma — Especialista de RH", "Axioma Intelligence — HR Specialist", "Inteligencia Axioma — Especialista de RR. HH.")}
                 sugestoes={[L("O que preciso resolver no RH hoje?", "What do I need to solve in HR today?", "¿Qué debo resolver en RR. HH. hoy?"), L("Tem algum risco trabalhista?", "Is there any labor risk?", "¿Hay algún riesgo laboral?"), L("Quantos ativos por departamento?", "How many active per department?", "¿Cuántos activos por departamento?")]} />
             </>
           )}

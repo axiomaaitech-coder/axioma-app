@@ -19,7 +19,7 @@ export const FORNECEDORES_TR: FornecedorTR[] = ['gemini', 'qwen']
 export const DURACAO_MAX_S = 600 // 10 minutos por sessão
 export const SILENCIO_MAX_S = 60 // encerra sozinha depois de 60 s sem ninguém falar
 // Telas com conversa ao vivo
-export const TELAS_TR = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos', 'relatorios', 'contas-vencidas'] as const
+export const TELAS_TR = ['nexus', 'ia-financeira', 'ia-tributaria', 'mei-ia-advisor', 'contas-pagar', 'importar-documentos', 'relatorios', 'contas-vencidas', 'rh'] as const
 export type TelaTR = (typeof TELAS_TR)[number]
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -44,6 +44,8 @@ function apresentacao(tela: TelaTR, nome: string): { abertura: string; foco: str
       ? 'Foco: contas a pagar — o que vence, o que está atrasado, fornecedores, concentração, descontos, duplicidade e se o caixa aguenta. Pagamento só pela tela, com revisão da pessoa.'
     : tela === 'contas-vencidas'
       ? 'Foco: contas vencidas — a receber e a pagar, atraso por faixa, nota de risco, prioridade de cobrança, promessas, negociações, divergências, previsão de recuperação e efeito no caixa. Use a ferramenta contas_vencidas para os números. Cobrança sempre respeitosa (CDC art. 42); nada é cobrado, pago ou gravado pela conversa: a pessoa decide na tela.'
+    : tela === 'rh'
+      ? 'Foco: RH — quadro de pessoas, contratos, experiência e prazos, admissão e eSocial, exame admissional e documentos, cargos e departamentos, salários-base somados e o Radar de Risco Trabalhista. Use a ferramenta para os números e diga a base legal que vier dela. Nunca fale CPF, endereço, dado de saúde nem o salário de uma pessoa; nunca estime valor de multa; nada é cadastrado, alterado ou apagado pela conversa: a pessoa decide na tela.'
     : tela === 'relatorios'
       ? 'Foco: relatórios gerenciais da empresa — DRE do período escolhido na tela, receitas, custos, margem, lucro, indicadores e evolução; monte o relatório pedido falando o título, o período e os números principais, e diga que o detalhe completo está na tela.'
     : tela === 'importar-documentos'

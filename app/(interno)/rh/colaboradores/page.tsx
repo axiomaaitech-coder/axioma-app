@@ -3,7 +3,7 @@
 // Cada parte só aparece para quem tem a liberação (rh_pode v2); a trava de verdade está no banco (RLS),
 // esta tela só esconde o que a pessoa não pode ver. Lista paginada no servidor (feita para 10 mil pessoas).
 import { createContext, useContext, useEffect, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { Pencil, Trash2, X, Share2, RotateCcw, Search, ShieldCheck, UserPlus, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, X, Share2, RotateCcw, Search, ShieldCheck, UserPlus, AlertTriangle, Upload, Download, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Sentry from "@sentry/nextjs";
 import { useLanguage } from "../../../../lib/LanguageContext";
@@ -18,6 +18,8 @@ import { useConfirmarExclusao } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
 import { BotaoAcao } from "../../../../components/BotaoAcao";
 import ImportarPlanilha from "./ImportarPlanilha";
+import { NavRh } from "../../../../components/NavRh";
+import Link from "next/link";
 import { lerTodas } from "../../../../lib/lerTodas";
 import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
 import { COLUNAS, linhaPlanilha } from "../../../../lib/rhImportacao";
@@ -357,6 +359,7 @@ export default function RhColaboradoresPage() {
         corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined} corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
+          <NavRh lang={lang} temaClaro={temaClaro} />
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
@@ -472,9 +475,9 @@ export default function RhColaboradoresPage() {
                   </div>
                 )}
               </CanvasBox>
-              <PerguntaIA tela="rh-colaboradores" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Pergunte à IA do RH", "Ask the HR AI", "Pregunte a la IA de RR. HH.")}
+              <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Inteligência Axioma — Especialista de RH", "Axioma Intelligence — HR Specialist", "Inteligencia Axioma — Especialista de RR. HH.")}
                 sugestoes={[L("Quantos colaboradores ativos temos por departamento?", "How many active employees per department?", "¿Cuántos colaboradores activos por departamento?"), L("Quem está com a experiência terminando?", "Whose probation is ending?", "¿A quién se le termina la experiencia?"), L("Quanto somam os salários-base?", "What do base salaries add up to?", "¿Cuánto suman los salarios base?")]} />
-              {ref.cargos.length === 0 && pode.editar && <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Dica: cadastre cargos, departamentos e filiais em RH · Estrutura para escolher no contrato.", "Tip: register job titles, departments and branches in HR · Structure to pick them in the contract.", "Consejo: registre cargos, departamentos y sucursales en RR. HH. · Estructura para elegirlos en el contrato.")}</p>}
+              {ref.cargos.length === 0 && pode.editar && <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Dica: cadastre cargos, departamentos e filiais em RH · Estrutura para escolher no contrato.", "Tip: register job titles, departments and branches in HR · Structure to pick them in the contract.", "Consejo: registre cargos, departamentos y sucursales en RR. HH. · Estructura para elegirlos en el contrato.")} <Link href="/rh/estrutura" className="underline font-bold whitespace-nowrap" style={{ color: VERDE }}>{L("Abrir RH · Estrutura ›", "Open HR · Structure ›", "Abrir RR. HH. · Estructura ›")}</Link></p>}
             </>
           )}
         </div>
@@ -597,6 +600,9 @@ export default function RhColaboradoresPage() {
 
 // Documentos (dado pessoal) e exames (dado de saúde) da admissão. Cada mudança grava na hora; a trava está no banco
 // (RLS de rh_admissao_itens: documento → 'pessoais', exame → 'saude'). O que a lei proíbe pedir aparece só como aviso.
+const COFRE_RH = "rh-documentos";
+const LIMITE_ARQUIVO = 10 * 1024 * 1024;
+const EXT_ARQUIVO: Record<string, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, podeEditar, lang, avisar }: {
   colaboradorId: string; empresaId: string; podeDocs: boolean; podeSaude: boolean; podeEditar: boolean; lang: Lang; avisar: (m: string, t?: "erro" | "ok") => void;
 }) {
@@ -612,10 +618,37 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
   }, [colaboradorId]); // eslint-disable-line react-hooks/exhaustive-deps
   async function gravar(tipo: string, categoria: string, mudanca: Linha) {
     const atual = { ...(itens?.[tipo] ?? { situacao: "pendente" }), ...mudanca };
-    const linha = { empresa_id: empresaId, colaborador_id: colaboradorId, categoria, tipo, situacao: atual.situacao, data_item: atual.data_item || null, validade: atual.validade || null, resultado: tipo === "aso_admissional" ? atual.resultado || null : null };
+    const arquivo = mudanca.arquivo_path ? { arquivo_path: mudanca.arquivo_path, arquivo_nome: mudanca.arquivo_nome, arquivo_mime: mudanca.arquivo_mime, arquivo_bytes: mudanca.arquivo_bytes } : {};
+    const linha = { empresa_id: empresaId, colaborador_id: colaboradorId, categoria, tipo, situacao: atual.situacao, data_item: atual.data_item || null, validade: atual.validade || null, resultado: tipo === "aso_admissional" ? atual.resultado || null : null, ...arquivo };
     const { data, error } = await supabase.from("rh_admissao_itens").upsert(linha, { onConflict: "colaborador_id,tipo" }).select("*").single();
-    if (error || !data) { avisar(mensagemErroRh(error, lang)); return; }
+    if (error || !data) { avisar(mensagemErroRh(error, lang)); return false; }
     setItens((v) => ({ ...(v ?? {}), [tipo]: data }));
+    return true;
+  }
+  // Enviar: sobe no cofre privado, liga ao item (marca entregue + data de hoje se vazia) e só então apaga o arquivo antigo.
+  // Se a linha não gravar, o arquivo novo é removido — nada fica solto no cofre.
+  const [enviando, setEnviando] = useState<string | null>(null);
+  async function enviarArquivo(tipo: string, categoria: string, file: File | undefined) {
+    if (!file) return;
+    const ext = EXT_ARQUIVO[file.type];
+    if (!ext) { avisar(L("Envie PDF, JPG, PNG ou WEBP.", "Upload a PDF, JPG, PNG or WEBP.", "Envíe PDF, JPG, PNG o WEBP.")); return; }
+    if (file.size > LIMITE_ARQUIVO) { avisar(L("Arquivo acima de 10 MB. Diminua a foto ou o PDF e envie de novo.", "File over 10 MB. Shrink the photo or PDF and upload again.", "Archivo de más de 10 MB. Reduzca la foto o el PDF y envíe de nuevo.")); return; }
+    setEnviando(tipo);
+    const path = `${empresaId}/${colaboradorId}/${categoria}/${tipo}-${Date.now()}.${ext}`;
+    const antigo = itens?.[tipo]?.arquivo_path as string | undefined;
+    const up = await supabase.storage.from(COFRE_RH).upload(path, file, { upsert: false, contentType: file.type });
+    if (up.error) { setEnviando(null); Sentry.captureException(new Error(`rh-documentos upload: ${up.error.message}`)); avisar(L("O arquivo não foi enviado. Confira a conexão e tente de novo.", "The file was not uploaded. Check the connection and try again.", "El archivo no se envió. Revise la conexión e intente de nuevo.")); return; }
+    const ok = await gravar(tipo, categoria, { arquivo_path: path, arquivo_nome: file.name.slice(0, 200), arquivo_mime: file.type, arquivo_bytes: file.size, situacao: "entregue", data_item: itens?.[tipo]?.data_item || hojeISO() });
+    const sobra = ok ? antigo : path;
+    if (sobra) { const rm = await supabase.storage.from(COFRE_RH).remove([sobra]); if (rm.error) Sentry.captureException(new Error(`rh-documentos remove: ${rm.error.message}`)); }
+    setEnviando(null);
+    if (ok) avisar(L("Arquivo enviado.", "File uploaded.", "Archivo enviado."), "ok");
+  }
+  async function baixarArquivo(it: Linha) {
+    const { data, error } = await supabase.storage.from(COFRE_RH).createSignedUrl(it.arquivo_path, 60, { download: it.arquivo_nome || true });
+    if (error || !data?.signedUrl) { avisar(L("Não foi possível baixar agora. Tente de novo.", "Could not download now. Try again.", "No se pudo descargar ahora. Intente de nuevo.")); return false; }
+    const a = document.createElement("a"); a.href = data.signedUrl; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
+    return true;
   }
   const visiveis = ITENS_ADMISSAO.filter((i) => (i.categoria === "documento" ? podeDocs : podeSaude));
   const pendObrig = visiveis.filter((i) => i.obrigatorio && (itens?.[i.tipo]?.situacao ?? "pendente") === "pendente").length;
@@ -652,6 +685,21 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
                     <option value="inapto">{L("Inapto", "Unfit", "No apto")}</option>
                   </select>
                 ) : <span className="md:col-span-2" />}
+                <div className="md:col-span-12 flex flex-wrap items-center gap-2">
+                  {it.arquivo_path ? (
+                    <>
+                      <span className="text-xs flex items-center gap-1 min-w-0 truncate" style={{ color: c.TEXTO_SEC }}><Paperclip size={12} /> {it.arquivo_nome} · {(Number(it.arquivo_bytes) / 1024 / 1024).toFixed(1).replace(".", ",")} MB</span>
+                      <BotaoAcao executar={() => baixarArquivo(it)} icone={<Download size={13} />} texto={L("Baixar", "Download", "Descargar")} textoTrabalhando={L("Baixando…", "Downloading…", "Descargando…")} className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }} />
+                    </>
+                  ) : <span className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Sem arquivo", "No file", "Sin archivo")}</span>}
+                  {podeEditar && (
+                    <label className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 ${enviando ? "opacity-60 pointer-events-none" : "cursor-pointer"}`} style={{ background: "#101b3d", color: "#fff" }}>
+                      <Upload size={13} /> {enviando === i.tipo ? L("Enviando…", "Uploading…", "Enviando…") : it.arquivo_path ? L("Trocar arquivo", "Replace file", "Cambiar archivo") : L("Enviar arquivo", "Upload file", "Enviar archivo")}
+                      <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" disabled={!!enviando || itens === null} aria-label={`${i.nome[lang]} — ${L("enviar arquivo", "upload file", "enviar archivo")}`}
+                        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void enviarArquivo(i.tipo, i.categoria, f); }} />
+                    </label>
+                  )}
+                </div>
               </div>
             );
           })}
