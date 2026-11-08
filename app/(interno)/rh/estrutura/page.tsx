@@ -17,6 +17,7 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
+import { LetreiroAxioma } from "../../../../components/LetreiroAxioma";
 import { NavRh } from "../../../../components/NavRh";
 import Link from "next/link";
 import { BotaoAcao } from "../../../../components/BotaoAcao";
@@ -442,6 +443,7 @@ export default function RhEstruturaPage() {
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
           <NavRh lang={lang} temaClaro={temaClaro} />
+          {pode.ver && <LetreiroAxioma id="rh-estrutura" cor="#101b3d" itens={ABAS.map((a) => `${a.nome[lang]} ${dados[a.id].length}`)} />}
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2">

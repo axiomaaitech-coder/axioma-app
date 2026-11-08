@@ -96,7 +96,7 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
     carregarPontoPartida().then((r) => { setPonto(r.ponto); setEmpresaId(r.empresaId) }).catch(() => setPonto(null))
   }, [lang])
 
-  useEffect(() => { fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [mensagens, pensando])
+  useEffect(() => { { const caixa = fimRef.current?.parentElement; caixa?.scrollTo({ top: caixa.scrollHeight, behavior: 'smooth' }) } /* só a caixa do chat, não a página */ }, [mensagens, pensando])
 
   function montarContexto(): string {
     const ind = indicadores.filter((i) => i.valor != null).map((i) => `- ${i.nome.pt}: ${i.valor} (referência ${i.dataReferencia})`).join('\n')

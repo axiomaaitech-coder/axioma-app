@@ -12,6 +12,8 @@ const pt: DocumentoAxioma = {
     { p: 'Os campos e as regras seguem o evento de admissão do eSocial (S-2200) e a CLT: o que estiver fora é recusado na hora, com o motivo.' },
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Colaboradores** (barra no topo da tela).', 'Antes, vale cadastrar cargos, departamentos e filiais em **RH · Estrutura** para escolher no contrato.'] },
+    { h1: 'Letreiro' },
+    { p: 'Faixa azul-marinho logo abaixo das abas, rolando sozinha: ativos, experiência vencendo em 30 dias, pré-admissão e desligados. Passe o mouse para parar.' },
     { h1: 'Cadastrar uma pessoa' },
     { numerada: [
       'Toque em **Novo colaborador** no topo.',
@@ -76,6 +78,8 @@ const en: DocumentoAxioma = {
     { p: 'Fields and rules follow the eSocial hiring event (S-2200) and the CLT: anything outside them is refused immediately, with the reason.' },
     { h1: 'How to get there' },
     { lista: ['Top menu → **Management ▼** → **HR** → **Employees** (bar at the top of the screen).', 'First, register job titles, departments and branches in **HR · Structure** to pick them in the contract.'] },
+    { h1: 'Ticker' },
+    { p: 'Navy strip right below the tabs, scrolling on its own: active, probation ending in 30 days, pre-hire and terminated. Hover to pause.' },
     { h1: 'Register a person' },
     { numerada: [
       'Tap **New employee** at the top.',
@@ -119,6 +123,8 @@ const es: DocumentoAxioma = {
     { p: 'Los campos y las reglas siguen el evento de admisión del eSocial (S-2200) y la CLT: lo que quede fuera se rechaza al instante, con el motivo.' },
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Colaboradores** (barra en la parte superior).', 'Antes, registre cargos, departamentos y sucursales en **RR. HH. · Estructura** para elegirlos en el contrato.'] },
+    { h1: 'Letrero' },
+    { p: 'Franja azul marino debajo de las pestañas, que se desplaza sola: activos, experiencia que vence en 30 días, pre-admisión y desvinculados. Pase el mouse para detenerla.' },
     { h1: 'Registrar una persona' },
     { numerada: [
       'Toque **Nuevo colaborador** arriba.',

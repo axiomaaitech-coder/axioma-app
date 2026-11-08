@@ -46,7 +46,8 @@ export default function ChatInteligencia({ tela, empresaId, lang, claro, titulo,
   const pedido = useRef<AbortController | null>(null);
   const fim = useRef<HTMLDivElement>(null);
   const t = (k: string) => TX[k][lang];
-  useEffect(() => { fim.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [mensagens, carregando]);
+  // rola só a caixa do chat (scrollIntoView puxava a página inteira para baixo ao abrir uma conversa salva)
+  useEffect(() => { const caixa = fim.current?.parentElement; caixa?.scrollTo({ top: caixa.scrollHeight, behavior: "smooth" }); }, [mensagens, carregando]);
   useEffect(() => () => { pedido.current?.abort(); }, []);
 
   async function enviar(pergunta: string) {

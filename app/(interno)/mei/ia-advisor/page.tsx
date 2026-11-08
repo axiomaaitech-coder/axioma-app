@@ -174,7 +174,7 @@ export default function IAMEIAdvisor() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   useEffect(() => { carregar() }, [])
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMensagens])
+  useEffect(() => { { const caixa = chatEndRef.current?.parentElement; caixa?.scrollTo({ top: caixa.scrollHeight, behavior: 'smooth' }) } /* só a caixa do chat, não a página */ }, [chatMensagens])
 
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()

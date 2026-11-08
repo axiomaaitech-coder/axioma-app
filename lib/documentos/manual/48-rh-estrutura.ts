@@ -13,6 +13,8 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Como chegar' },
     { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Estrutura** (barra no topo da tela).'] },
+    { h1: 'Letreiro' },
+    { p: 'Faixa azul-marinho logo abaixo das abas, rolando sozinha: quantos itens há em cada parte (Empregador, Filiais, Lotações, Departamentos, Cargos). Passe o mouse para parar.' },
 
     { h1: 'Ordem para preencher' },
     { numerada: [
@@ -62,6 +64,8 @@ const en: DocumentoAxioma = {
     { p: 'Government rules are built in: anything outside the official eSocial layout (version S-1.3) is refused immediately, with the reason. In this version, **Axioma prepares and the accountant submits** to the government.' },
     { h1: 'How to get there' },
     { lista: ['Top menu → **Management ▼** → **HR** → **Structure** (bar at the top of the screen).'] },
+    { h1: 'Ticker' },
+    { p: 'Navy strip right below the tabs, scrolling on its own: how many items each part has (Employer, Branches, Tax units, Departments, Positions). Hover to pause.' },
     { h1: 'Order to fill in' },
     { numerada: [
       '**Employer** tab → **Fill in with company data**. Axioma brings the CNPJ root (first 8 digits) and suggests the tax classification from the registered regime. Check with your accountant and tap **Save**.',
@@ -107,6 +111,8 @@ const es: DocumentoAxioma = {
     { p: 'Las reglas del gobierno ya están en Axioma: lo que quede fuera del diseño oficial de eSocial (versión S-1.3) se rechaza al instante, con el motivo. En esta versión, **Axioma prepara y el contador envía** al gobierno.' },
     { h1: 'Cómo llegar' },
     { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Estructura** (barra en la parte superior).'] },
+    { h1: 'Letrero' },
+    { p: 'Franja azul marino debajo de las pestañas, que se desplaza sola: cuántos ítems tiene cada parte (Empleador, Sucursales, Lotaciones, Departamentos, Cargos). Pase el mouse para detenerla.' },
     { h1: 'Orden para completar' },
     { numerada: [
       'Pestaña **Empleador** → **Completar con los datos de la empresa**. Axioma trae la raíz del CNPJ (8 primeros números) y sugiere la clasificación tributaria por el régimen registrado. Confirme con el contador y toque **Guardar**.',

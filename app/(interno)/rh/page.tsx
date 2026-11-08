@@ -17,6 +17,7 @@ import AvisoAxioma from "../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { PerguntaIA } from "../../../components/PerguntaIA";
+import { LetreiroAxioma } from "../../../components/LetreiroAxioma";
 import { NavRh } from "../../../components/NavRh";
 import Link from "next/link";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
@@ -48,7 +49,7 @@ export default function RhPainelPage() {
   const VERDE = temaClaro ? "#0f7a5a" : "#2ecc9b";
   const NAVY = "#101b3d";
   const BTN = temaClaro ? "linear-gradient(135deg, #0b5f46, #0f7a5a)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)";
-  const NIVEL = { critico: { cor: ct("#ef4444"), Icone: ShieldAlert, nome: L("Crítico", "Critical", "Crítico") }, atencao: { cor: ct("#f59e0b"), Icone: AlertTriangle, nome: L("Atenção", "Attention", "Atención") }, info: { cor: temaClaro ? NAVY : "#7dd3fc", Icone: Info, nome: L("Obrigação", "Obligation", "Obligación") } };
+  const NIVEL = { critico: { cor: ct("#ef4444"), Icone: ShieldAlert, nome: L("Crítico", "Critical", "Crítico") }, atencao: { cor: (temaClaro ? "#9a3412" : ct("#f59e0b")), Icone: AlertTriangle, nome: L("Atenção", "Attention", "Atención") }, info: { cor: temaClaro ? NAVY : "#7dd3fc", Icone: Info, nome: L("Obrigação", "Obligation", "Obligación") } };
 
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [pode, setPode] = useState({ ver: false, pessoais: false, salario: false, saude: false, carregado: false });
@@ -92,7 +93,7 @@ export default function RhPainelPage() {
     { l: L("Ativos", "Active", "Activos"), v: String(k.ativos), c: VERDE, ir: "/rh/colaboradores" },
     { l: L("Admissões no mês", "Hires this month", "Admisiones del mes"), v: String(k.admissoes_mes), c: temaClaro ? NAVY : "#7dd3fc", ir: "/rh/colaboradores" },
     { l: L("Desligamentos no mês", "Terminations this month", "Desvinculaciones del mes"), v: String(k.desligamentos_mes), c: TEXTO_SEC, ir: "/rh/colaboradores" },
-    { l: L("Rotatividade do mês", "Monthly turnover", "Rotación del mes"), v: k.rotatividade_mes_pct == null ? "—" : `${String(k.rotatividade_mes_pct).replace(".", ",")}%`, c: ct("#f59e0b"), ir: "#formula" },
+    { l: L("Rotatividade do mês", "Monthly turnover", "Rotación del mes"), v: k.rotatividade_mes_pct == null ? "—" : `${String(k.rotatividade_mes_pct).replace(".", ",")}%`, c: temaClaro ? NAVY : "#f59e0b", ir: "#formula" },
     ...(k.salarios_base_mensais != null ? [{ l: L("Salários-base mensais", "Monthly base salaries", "Salarios base mensuales"), v: `R$ ${fBRL2(k.salarios_base_mensais)}`, c: VERDE, ir: "/rh/colaboradores" }] : []),
   ] : [];
   const criticos = painel?.alertas.filter((a) => a.nivel === "critico").length ?? 0;
@@ -146,6 +147,11 @@ export default function RhPainelPage() {
         headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined} corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined} botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
           <NavRh lang={lang} temaClaro={temaClaro} />
+          {pode.ver && k && <LetreiroAxioma id="rh-painel" cor="#101b3d" itens={[
+            `${L("Ativos", "Active", "Activos")} ${k.ativos}`,
+            ...(k.salarios_base_mensais != null ? [`${L("Salários-base", "Base salaries", "Salarios base")} R$ ${fBRL2(k.salarios_base_mensais)}`] : []),
+            criticos + atencao > 0 ? `${L("Alertas no Radar", "Radar alerts", "Alertas en el Radar")} ${criticos + atencao}` : `${L("Radar sem alertas", "No radar alerts", "Radar sin alertas")} ✅`,
+          ]} />}
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
@@ -175,7 +181,7 @@ export default function RhPainelPage() {
                 {painel.alertas.length === 0 ? (
                   <p className="text-sm font-semibold py-4" style={{ color: VERDE }}>{L("Nenhum risco encontrado nos dados de hoje.", "No risk found in today's data.", "Ningún riesgo encontrado en los datos de hoy.")}</p>
                 ) : <div className="space-y-2">{painel.alertas.map((a, i) => <CartaoAlerta key={a.id} a={a} i={i} />)}</div>}
-                {painel.proximos.map((p) => <p key={p.pt} className="text-xs mt-2 font-semibold" style={{ color: ct("#f59e0b") }}>⚠ {p[lang]}</p>)}
+                {painel.proximos.map((p) => <p key={p.pt} className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>⚠ {p[lang]}</p>)}
                 {(!pode.saude || !pode.pessoais) && <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Alguns alertas (exame admissional, documentos) só aparecem para quem tem liberação de saúde ou de dados pessoais.", "Some alerts (pre-employment exam, documents) only show for those with health or personal-data access.", "Algunas alertas (examen de admisión, documentos) solo aparecen para quien tiene salud o datos personales habilitados.")}</p>}
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L("Valores de multa não são estimados: dependem da fiscalização e da tabela vigente.", "Fine amounts are not estimated: they depend on inspection and the current table.", "Los montos de multa no se estiman: dependen de la fiscalización y la tabla vigente.")}</p>
               </CanvasBox>

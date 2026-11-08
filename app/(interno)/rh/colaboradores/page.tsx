@@ -18,6 +18,7 @@ import { useConfirmarExclusao } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
 import { BotaoAcao } from "../../../../components/BotaoAcao";
 import ImportarPlanilha from "./ImportarPlanilha";
+import { LetreiroAxioma } from "../../../../components/LetreiroAxioma";
 import { NavRh } from "../../../../components/NavRh";
 import Link from "next/link";
 import { lerTodas } from "../../../../lib/lerTodas";
@@ -370,6 +371,12 @@ export default function RhColaboradoresPage() {
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
           <NavRh lang={lang} temaClaro={temaClaro} />
+          {pode.ver && <LetreiroAxioma id="rh-colaboradores" cor="#101b3d" itens={[
+            `${L("Ativos", "Active", "Activos")} ${kpi.ativos}`,
+            `${L("Experiência vence em 30 dias", "Probation ends in 30 days", "Experiencia vence en 30 días")} ${kpi.experiencia}`,
+            `${L("Pré-admissão", "Pre-hire", "Pre-admisión")} ${kpi.pre}`,
+            `${L("Desligados", "Terminated", "Desvinculados")} ${kpi.desligados}`,
+          ]} />}
           {pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
@@ -382,7 +389,7 @@ export default function RhColaboradoresPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { l: L("Ativos", "Active", "Activos"), v: kpi.ativos, c: VERDE, f: "ativo" },
-                  { l: L("Experiência vence em 30 dias", "Probation ends in 30 days", "Experiencia vence en 30 días"), v: kpi.experiencia, c: kpi.experiencia ? ct("#f59e0b") : VERDE, f: "ativo" },
+                  { l: L("Experiência vence em 30 dias", "Probation ends in 30 days", "Experiencia vence en 30 días"), v: kpi.experiencia, c: kpi.experiencia ? (temaClaro ? "#9a3412" : ct("#f59e0b")) : VERDE, f: "ativo" },
                   { l: L("Pré-admissão", "Pre-hire", "Pre-admisión"), v: kpi.pre, c: temaClaro ? NAVY : "#7dd3fc", f: "pre_admissao" },
                   { l: L("Desligados", "Terminated", "Desvinculados"), v: kpi.desligados, c: TEXTO_SEC, f: "desligado" },
                 ].map((k) => (
@@ -455,7 +462,7 @@ export default function RhColaboradoresPage() {
                               <td className="px-3 py-3"><span className="text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={{ background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: c.situacao === "ativo" ? VERDE : TEXTO_SEC }}>{nomeSit(c.situacao)}</span></td>
                               <td className="px-3 py-3 text-xs">
                                 {verLixeira ? <span style={{ color: TEXTO_SEC }}>{L(`${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} dias`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} days`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} días`)}</span>
-                                  : dExp !== null && dExp >= 0 && dExp <= 30 ? <span className="flex items-center gap-1 font-bold" style={{ color: ct("#f59e0b") }}><AlertTriangle size={13} /> {L(`Experiência termina em ${dExp} dias`, `Probation ends in ${dExp} days`, `Experiencia termina en ${dExp} días`)}</span>
+                                  : dExp !== null && dExp >= 0 && dExp <= 30 ? <span className="flex items-center gap-1 font-bold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}><AlertTriangle size={13} /> {L(`Experiência termina em ${dExp} dias`, `Probation ends in ${dExp} days`, `Experiencia termina en ${dExp} días`)}</span>
                                   : dExp !== null && dExp < 0 ? <span className="font-bold" style={{ color: ct("#f87171") }}>{L("Experiência vencida: decida efetivar ou desligar", "Probation over: decide to hire or terminate", "Experiencia vencida: decida efectivar o desvincular")}</span> : "—"}
                               </td>
                               <td className="px-3 py-3">
@@ -506,7 +513,7 @@ export default function RhColaboradoresPage() {
                     </div>
                     <button onClick={() => setForm(null)} style={{ color: TEXTO_SEC }} aria-label={L("Fechar", "Close", "Cerrar")}><X size={20} /></button>
                   </div>
-                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: ct("#f59e0b") }}>{L("Este contrato já foi enviado ao eSocial pelo contador: alterações aqui precisam ser informadas ao contador.", "This contract was already sent to eSocial by the accountant: changes here must be reported to the accountant.", "Este contrato ya fue enviado al eSocial por el contador: los cambios aquí deben informarse al contador.")}</p>}
+                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>{L("Este contrato já foi enviado ao eSocial pelo contador: alterações aqui precisam ser informadas ao contador.", "This contract was already sent to eSocial by the accountant: changes here must be reported to the accountant.", "Este contrato ya fue enviado al eSocial por el contador: los cambios aquí deben informarse al contador.")}</p>}
 
                   <Secao titulo={L("Identificação", "Identification", "Identificación")}>
                     <F k="nome" r={L("Nome completo *", "Full name *", "Nombre completo *")} />
