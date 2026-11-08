@@ -13,7 +13,7 @@ Ordem do Elias (08/11/2026): cada etapa concluída vai direto para produção (m
 | 5 | Tipos de vínculo | não iniciada | | | |
 | 6 | Cadastro de colaboradores + IA do RH | Concluída — `rh_colaboradores`, `rh_colaborador_pessoal`, `rh_contratos`, `rh_remuneracoes` (+ Tabela 01); tela `/rh/colaboradores`; portas da IA `rh_pessoas`/`rh_estrutura`/`rh_salarios` | bc3ae28 + (este commit) | `RH-7-TESTE`: falhas=0 · `check-rh-ia` ok · bateria completa | — |
 | 7 | Histórico e documentos | não iniciada | | | |
-| 8 | Importação de funcionários | não iniciada | | | |
+| 8 | Importação de funcionários | Concluída — planilha modelo, prévia com erros, lotes de 200 (`rh_importar_colaboradores`), planilha de erros | (este commit) | `RH-9-TESTE`: falhas=0 · `check-rh-importacao` ok | — |
 | 9 | Permissões na tela e auditoria | não iniciada | | | |
 
 ## Permissões v2 (08/11/2026)

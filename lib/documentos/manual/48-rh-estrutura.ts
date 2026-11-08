@@ -33,6 +33,8 @@ const pt: DocumentoAxioma = {
     ] },
     { nota: '**Casos especiais** (cooperativa, obra, órgão público, entidade isenta, operador portuário): toque em **Mostrar casos especiais** dentro do formulário.' },
 
+    { h1: 'Preenchimento e IA' },
+    { lista: ['CNPJ e CPF ganham pontos, barra e traço enquanto você digita (grava só os números).', '**Pergunte à IA do RH**, no fim da tela: "o RH está configurado? o que falta?", "quantos departamentos e cargos temos?". A IA lê só o que você pode ver.'] },
     { h1: 'Compartilhar e exportar' },
     { lista: ['**Compartilhar**: resumo (quantos cadastros em cada aba) ou detalhado (a aba aberta).', '**PDF** e **Excel** no topo: a lista da aba aberta.'] },
 
@@ -75,6 +77,8 @@ const en: DocumentoAxioma = {
       '**Trash (60 days)**, at the corner of the panel: shows deleted items, days left and the **Recover** button.',
     ] },
     { nota: '**Special cases** (cooperative, construction site, public body, exempt entity, port operator): tap **Show special cases** inside the form.' },
+    { h1: 'Filling in and AI' },
+    { lista: ['CNPJ and CPF get dots, slash and dash as you type (only digits are saved).', '**Ask the HR AI** at the bottom: "is HR set up? what is missing?", "how many departments and job titles?". The AI only reads what you can see.'] },
     { h1: 'Share and export' },
     { lista: ['**Share**: summary (records per tab) or detailed (the open tab).', '**PDF** and **Excel** at the top: the list of the open tab.'] },
     { h1: 'Who can see and change (HR access tab)' },
@@ -116,6 +120,8 @@ const es: DocumentoAxioma = {
       '**Papelera (60 días)**, en la esquina del panel: muestra lo borrado, los días que faltan y el botón **Recuperar**.',
     ] },
     { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario.' },
+    { h1: 'Llenado e IA' },
+    { lista: ['CNPJ y CPF reciben puntos, barra y guion al escribir (solo se guardan los números).', '**Pregunte a la IA de RR. HH.** al final: "¿RR. HH. está configurado? ¿qué falta?", "¿cuántos departamentos y cargos?". La IA solo lee lo que usted puede ver.'] },
     { h1: 'Compartir y exportar' },
     { lista: ['**Compartir**: resumen (registros por pestaña) o detallado (la pestaña abierta).', '**PDF** y **Excel** arriba: la lista de la pestaña abierta.'] },
     { h1: 'Quién puede ver y cambiar (pestaña Accesos de RR. HH.)' },

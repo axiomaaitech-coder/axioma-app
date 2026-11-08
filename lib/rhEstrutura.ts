@@ -51,6 +51,10 @@ const TRAVAS: Record<string, Texto> = {
   rh_lot_insc: { pt: 'O tipo de lotação escolhido exige (ou proíbe) uma inscrição específica — veja a dica do campo.', en: 'The chosen tax unit type requires (or forbids) a specific registration — see the field hint.', es: 'El tipo de lotación elegido exige (o prohíbe) una inscripción específica — vea la ayuda del campo.' },
   rh_dep_nome: { pt: 'Já existe um departamento com este nome.', en: 'There is already a department with this name.', es: 'Ya existe un departamento con este nombre.' },
   rh_cargo_nome: { pt: 'Já existe um cargo com este nome.', en: 'There is already a job title with this name.', es: 'Ya existe un cargo con este nombre.' },
+  rh_contrato_matricula: { pt: 'Matrícula já usada por outra pessoa desta Empresa.', en: 'Employee ID already used by someone else in this company.', es: 'Matrícula ya usada por otra persona de esta empresa.' },
+  rh_pessoal_cpf_unico: { pt: 'CPF já cadastrado em outra pessoa desta Empresa.', en: 'CPF already registered for someone else in this company.', es: 'CPF ya registrado en otra persona de esta empresa.' },
+  rh_contrato_experiencia: { pt: 'Contrato de experiência passa de 90 dias (CLT art. 445).', en: 'Probation contract exceeds 90 days (CLT art. 445).', es: 'Contrato de experiencia supera 90 días (CLT art. 445).' },
+  rh_contrato_termino: { pt: 'Data de término: obrigatória no prazo determinado e nunca antes da admissão.', en: 'End date: required for fixed term and never before the hire date.', es: 'Fecha de término: obligatoria en plazo determinado y nunca antes de la admisión.' },
 }
 
 export function mensagemErroRh(erro: { code?: string; message?: string } | null | undefined, lang: Lang): string {

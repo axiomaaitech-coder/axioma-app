@@ -16,6 +16,11 @@ import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../../components/AnimatedNumber";
 import { useConfirmarExclusao } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
+import ImportarPlanilha from "./ImportarPlanilha";
+import { lerTodas } from "../../../../lib/lerTodas";
+import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
+import { COLUNAS, linhaPlanilha } from "../../../../lib/rhImportacao";
+import { FileSpreadsheet } from "lucide-react";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
 import { obterEmpresaAtiva } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC, fBRL2 } from "../../../../lib/cfoCore";
@@ -108,6 +113,8 @@ export default function RhColaboradoresPage() {
   const [historico, setHistorico] = useState<Linha[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
+  const [importAberto, setImportAberto] = useState(false);
+  const [exportandoXls, setExportandoXls] = useState(false);
   const [aviso, setAviso] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   const avisar = (msg: string, tipo: "erro" | "ok" = "erro") => { setAviso({ msg, tipo }); setTimeout(() => setAviso(null), 5000); };
 
@@ -280,6 +287,34 @@ export default function RhColaboradoresPage() {
     if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
     avisar(L(`Movido para a lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Moved to trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Movido a la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok"); void carregarLista();
   }
+  // Planilha completa (Excel), no mesmo formato do modelo de importação. Lê TODOS (não só a página), cada parte com a liberação.
+  async function planilhaCompleta() {
+    if (!empresaId) return;
+    setExportandoXls(true);
+    const ler = (t: string, cols: string, lixeira: boolean, ordem: string) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", empresaId); return (lixeira ? q.is("excluido_em", null) : q).order(ordem); });
+    const vazio = Promise.resolve({ data: [] as Linha[], error: null });
+    const [cs, ks, ps, rs] = await Promise.all([
+      ler("rh_colaboradores", "id, nome, nome_social, situacao", true, "nome"),
+      ler("rh_contratos", "id, colaborador_id, matricula, cod_categ, data_admissao, tp_contr, experiencia, data_termino, qtd_hrs_sem, cargo_id, departamento_id, data_desligamento, situacao_esocial", false, "id"),
+      pode.pessoais ? ler("rh_colaborador_pessoal", "colaborador_id, cpf, data_nascimento, sexo, telefone, email, cep, logradouro, numero, bairro, cidade, uf", false, "colaborador_id") : vazio,
+      pode.salario ? ler("rh_remuneracoes", "contrato_id, vigencia_inicio, valor", false, "id") : vazio,
+    ]);
+    setExportandoXls(false);
+    const falha = [cs, ks, ps, rs].find((r) => r.error);
+    if (falha?.error) { avisar(L("Não foi possível montar a planilha agora. Tente de novo.", "Could not build the spreadsheet now. Try again.", "No se pudo armar la planilla ahora. Intente de nuevo.")); return; }
+    const atual = new Map<string, Linha>();
+    [...(ks.data as Linha[])].sort((a, b) => String(b.data_admissao).localeCompare(String(a.data_admissao))).forEach((k) => { if (!atual.has(k.colaborador_id)) atual.set(k.colaborador_id, k); });
+    const pes = new Map((ps.data as Linha[]).map((x) => [x.colaborador_id, x]));
+    const hoje = hojeISO(), sal = new Map<string, number>();
+    [...(rs.data as Linha[])].filter((r) => r.vigencia_inicio <= hoje).sort((a, b) => String(b.vigencia_inicio).localeCompare(String(a.vigencia_inicio))).forEach((r) => { if (!sal.has(r.contrato_id)) sal.set(r.contrato_id, Number(r.valor)); });
+    const nomes = { cargos: new Map(ref.cargos.map((x) => [x.id, x.nome])), deps: new Map(ref.deps.map((x) => [x.id, x.nome])) };
+    const linhas = (cs.data as Linha[]).map((c) => { const k = atual.get(c.id); return linhaPlanilha(c, k, pes.get(c.id), k ? sal.get(k.id) ?? null : null, nomes, { pessoais: pode.pessoais, salario: pode.salario }); });
+    exportarPlanilhaAbas([
+      { nome: L("Colaboradores", "Employees", "Colaboradores"), linhas },
+      { nome: L("Instruções", "Instructions", "Instrucciones"), linhas: COLUNAS.map((c) => ({ [L("Coluna", "Column", "Columna")]: c.titulo, [L("Como preencher", "How to fill", "Cómo completar")]: c.ajuda[lang] })) },
+    ], `axioma-rh-colaboradores-${hoje}`);
+    avisar(L(`Planilha com ${linhas.length} pessoa(s) gerada.`, `Spreadsheet with ${linhas.length} person(s) generated.`, `Planilla con ${linhas.length} persona(s) generada.`), "ok");
+  }
   async function recuperar(c: Linha) {
     const { data, error } = await supabase.from("rh_colaboradores").update({ excluido_em: null }).eq("id", c.id).select("id");
     if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
@@ -358,6 +393,14 @@ export default function RhColaboradoresPage() {
                   {pode.editar && (
                     <button onClick={() => { setVerLixeira(!verLixeira); setPagina(0); }} className="flex items-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.06)", color: "#fff", border: `1px solid ${BORDA}` }}>
                       {verLixeira ? <><X size={13} /> {L("Fechar lixeira", "Close trash", "Cerrar papelera")}</> : <><Trash2 size={13} /> {L(`Lixeira (${DIAS_LIXEIRA_RH} dias)`, `Trash (${DIAS_LIXEIRA_RH} days)`, `Papelera (${DIAS_LIXEIRA_RH} días)`)}</>}
+                    </button>
+                  )}
+                  <button onClick={() => void planilhaCompleta()} disabled={exportandoXls} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff", border: `1px solid ${BORDA}` }}>
+                    <FileSpreadsheet size={16} /> {exportandoXls ? L("Gerando…", "Generating…", "Generando…") : L("Planilha completa (Excel)", "Full spreadsheet (Excel)", "Planilla completa (Excel)")}
+                  </button>
+                  {pode.editar && (
+                    <button onClick={() => setImportAberto(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff", border: `1px solid ${BORDA}` }}>
+                      <UserPlus size={16} /> {L("Importar planilha", "Import spreadsheet", "Importar planilla")}
                     </button>
                   )}
                   <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: BTN, color: "#fff" }}>
@@ -543,6 +586,7 @@ export default function RhColaboradoresPage() {
 
         <CentroCompartilhamento aberto={shareAberto} onFechar={() => setShareAberto(false)} lang={lang} textoResumo={resumoShare} textoDetalhado={detalhadoShare}
           assunto={L("RH — Colaboradores — Axioma", "HR — Employees — Axioma", "RR. HH. — Colaboradores — Axioma")} onExportarPDF={() => exportar("pdf")} cor="#0f7a5a" />
+        {importAberto && empresaId && <ImportarPlanilha empresaId={empresaId} lang={lang} temaClaro={temaClaro} podePessoais={pode.pessoais} podeSalario={pode.salario} aoFechar={() => setImportAberto(false)} aoImportar={() => void carregarLista()} />}
         {janelaConfirmacao}
         <AvisoAxioma aviso={aviso} onFechar={() => setAviso(null)} />
       </ModuloLayout>
