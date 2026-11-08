@@ -5,13 +5,13 @@ const pt: DocumentoAxioma = {
   arquivo: '49 - RH Colaboradores.docx',
   titulo: 'Manual 49 — RH · Colaboradores',
   subtitulo: 'O cadastro das pessoas: contrato, dados pessoais e salário, cada parte só para quem foi liberado',
-  info: ['Menu: Gestão → RH · Colaboradores  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (novembro de 2026)'],
+  info: ['Menu: Gestão → RH → Colaboradores  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Guarda cada pessoa que trabalha na Empresa — CLT, experiência, aprendiz, estágio, temporário, autônomo ou sócio com pró-labore — com o contrato, os dados pessoais e o histórico de salário. A pessoa **não precisa ter login** no Axioma para estar aqui.' },
     { p: 'Os campos e as regras seguem o evento de admissão do eSocial (S-2200) e a CLT: o que estiver fora é recusado na hora, com o motivo.' },
     { h1: 'Como chegar' },
-    { lista: ['Menu do topo → **Gestão ▼** → **RH · Colaboradores**.', 'Antes, vale cadastrar cargos, departamentos e filiais em **RH · Estrutura** para escolher no contrato.'] },
+    { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Colaboradores** (barra no topo da tela).', 'Antes, vale cadastrar cargos, departamentos e filiais em **RH · Estrutura** para escolher no contrato.'] },
     { h1: 'Cadastrar uma pessoa' },
     { numerada: [
       'Toque em **Novo colaborador** no topo.',
@@ -67,13 +67,13 @@ const en: DocumentoAxioma = {
   arquivo: '49 - HR Employees.docx',
   titulo: 'Manual 49 — HR · Employees',
   subtitulo: 'The people record: contract, personal data and salary, each part only for those granted',
-  info: ['Menu: Management → HR · Employees  •  Axioma AI.Tech user manual  •  Version 1.0 (November 2026)'],
+  info: ['Menu: Management → HR → Employees  •  Axioma AI.Tech user manual  •  Version 1.0 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'It holds everyone who works for the company — CLT, probation, apprentice, intern, temporary, self-employed or partner with owner\'s draw — with the contract, personal data and salary history. The person **does not need an Axioma login** to be here.' },
     { p: 'Fields and rules follow the eSocial hiring event (S-2200) and the CLT: anything outside them is refused immediately, with the reason.' },
     { h1: 'How to get there' },
-    { lista: ['Top menu → **Management ▼** → **HR · Employees**.', 'First, register job titles, departments and branches in **HR · Structure** to pick them in the contract.'] },
+    { lista: ['Top menu → **Management ▼** → **HR** → **Employees** (bar at the top of the screen).', 'First, register job titles, departments and branches in **HR · Structure** to pick them in the contract.'] },
     { h1: 'Register a person' },
     { numerada: [
       'Tap **New employee** at the top.',
@@ -108,13 +108,13 @@ const es: DocumentoAxioma = {
   arquivo: '49 - RR HH Colaboradores.docx',
   titulo: 'Manual 49 — RR. HH. · Colaboradores',
   subtitulo: 'El registro de las personas: contrato, datos personales y salario, cada parte solo para quien fue habilitado',
-  info: ['Menú: Gestión → RR. HH. · Colaboradores  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (noviembre de 2026)'],
+  info: ['Menú: Gestión → RR. HH. → Colaboradores  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Guarda a cada persona que trabaja en la empresa — CLT, experiencia, aprendiz, pasante, temporal, autónomo o socio con pro-labore — con el contrato, los datos personales y el historial de salario. La persona **no necesita login** en Axioma para estar aquí.' },
     { p: 'Los campos y las reglas siguen el evento de admisión del eSocial (S-2200) y la CLT: lo que quede fuera se rechaza al instante, con el motivo.' },
     { h1: 'Cómo llegar' },
-    { lista: ['Menú superior → **Gestión ▼** → **RR. HH. · Colaboradores**.', 'Antes, registre cargos, departamentos y sucursales en **RR. HH. · Estructura** para elegirlos en el contrato.'] },
+    { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Colaboradores** (barra en la parte superior).', 'Antes, registre cargos, departamentos y sucursales en **RR. HH. · Estructura** para elegirlos en el contrato.'] },
     { h1: 'Registrar una persona' },
     { numerada: [
       'Toque **Nuevo colaborador** arriba.',

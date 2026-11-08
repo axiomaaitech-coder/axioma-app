@@ -135,7 +135,7 @@ export default function RhPainelPage() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-      <ModuloLayout titulo={L("RH · Painel", "HR · Panel", "RR. HH. · Panel")} subtitulo={L("O quadro de pessoas e o Radar de Risco Trabalhista, com a lei de cada alerta", "Headcount and the Labor Risk Radar, with the law behind each alert", "El cuadro de personas y el Radar de Riesgo Laboral, con la ley de cada alerta")}
+      <ModuloLayout titulo={L("RH", "HR", "RR. HH.")} subtitulo={L("O quadro de pessoas e o Radar de Risco Trabalhista, com a lei de cada alerta", "Headcount and the Labor Risk Radar, with the law behind each alert", "El cuadro de personas y el Radar de Riesgo Laboral, con la ley de cada alerta")}
         onExportarPDF={() => exportar("pdf")} onExportarExcel={() => exportar("excel")}
         headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined} corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined} botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">

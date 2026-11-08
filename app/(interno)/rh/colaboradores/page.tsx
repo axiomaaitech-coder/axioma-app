@@ -351,7 +351,7 @@ export default function RhColaboradoresPage() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-      <ModuloLayout titulo={L("RH · Colaboradores", "HR · Employees", "RR. HH. · Colaboradores")}
+      <ModuloLayout titulo={L("RH", "HR", "RR. HH.")}
         subtitulo={L("Cadastro das pessoas, contrato, dados pessoais e salário — cada parte só para quem foi liberado", "People, contract, personal data and salary — each part only for those granted", "Personas, contrato, datos personales y salario — cada parte solo para quien fue habilitado")}
         onExportarPDF={() => exportar("pdf")} onExportarExcel={() => exportar("excel")}
         labelBotao={pode.editar ? L("Novo colaborador", "New employee", "Nuevo colaborador") : undefined} onNovo={pode.editar ? abrirNovo : undefined}

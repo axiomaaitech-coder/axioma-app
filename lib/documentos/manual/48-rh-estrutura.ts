@@ -5,14 +5,14 @@ const pt: DocumentoAxioma = {
   arquivo: '48 - RH Estrutura da Empresa.docx',
   titulo: 'Manual 48 — RH · Estrutura da Empresa',
   subtitulo: 'Empregador, filiais, lotações, departamentos e cargos: a base do eSocial e da folha',
-  info: ['Menu: Gestão → RH · Estrutura  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (novembro de 2026)'],
+  info: ['Menu: Gestão → RH → Estrutura  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'É o primeiro passo do RH do Axioma. Aqui ficam os cadastros que o **eSocial exige antes de qualquer admissão** (dados do empregador, filiais e lotações) e a organização interna da Empresa (departamentos e cargos). Os funcionários, a contratação e a folha usam esta base.' },
     { p: 'As regras do governo já estão no Axioma: o que for preenchido fora do leiaute oficial do eSocial (versão S-1.3) é recusado na hora, com a explicação do motivo. Nesta versão, o **Axioma prepara e o contador envia** ao governo.' },
 
     { h1: 'Como chegar' },
-    { lista: ['Menu do topo → **Gestão ▼** → **RH · Estrutura**.'] },
+    { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Estrutura** (barra no topo da tela).'] },
 
     { h1: 'Ordem para preencher' },
     { numerada: [
@@ -53,13 +53,13 @@ const en: DocumentoAxioma = {
   arquivo: '48 - HR Company Structure.docx',
   titulo: 'Manual 48 — HR · Company Structure',
   subtitulo: 'Employer, branches, tax units, departments and job titles: the base for eSocial and payroll',
-  info: ['Menu: Management → HR · Structure  •  Axioma AI.Tech user manual  •  Version 1.0 (November 2026)'],
+  info: ['Menu: Management → HR → Structure  •  Axioma AI.Tech user manual  •  Version 1.0 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'It is the first step of Axioma HR. It holds the records **eSocial requires before any hiring** (employer data, branches and tax units) and the company\'s internal organization (departments and job titles). Employees, hiring and payroll use this base.' },
     { p: 'Government rules are built in: anything outside the official eSocial layout (version S-1.3) is refused immediately, with the reason. In this version, **Axioma prepares and the accountant submits** to the government.' },
     { h1: 'How to get there' },
-    { lista: ['Top menu → **Management ▼** → **HR · Structure**.'] },
+    { lista: ['Top menu → **Management ▼** → **HR** → **Structure** (bar at the top of the screen).'] },
     { h1: 'Order to fill in' },
     { numerada: [
       '**Employer** tab → **Fill in with company data**. Axioma brings the CNPJ root (first 8 digits) and suggests the tax classification from the registered regime. Check with your accountant and tap **Save**.',
@@ -96,13 +96,13 @@ const es: DocumentoAxioma = {
   arquivo: '48 - RR HH Estructura de la Empresa.docx',
   titulo: 'Manual 48 — RR. HH. · Estructura de la Empresa',
   subtitulo: 'Empleador, sucursales, lotaciones, departamentos y cargos: la base del eSocial y de la nómina',
-  info: ['Menú: Gestión → RR. HH. · Estructura  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (noviembre de 2026)'],
+  info: ['Menú: Gestión → RR. HH. → Estructura  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Es el primer paso de RR. HH. de Axioma. Aquí están los registros que **eSocial exige antes de cualquier admisión** (datos del empleador, sucursales y lotaciones) y la organización interna de la empresa (departamentos y cargos). Los empleados, la contratación y la nómina usan esta base.' },
     { p: 'Las reglas del gobierno ya están en Axioma: lo que quede fuera del diseño oficial de eSocial (versión S-1.3) se rechaza al instante, con el motivo. En esta versión, **Axioma prepara y el contador envía** al gobierno.' },
     { h1: 'Cómo llegar' },
-    { lista: ['Menú superior → **Gestión ▼** → **RR. HH. · Estructura**.'] },
+    { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Estructura** (barra en la parte superior).'] },
     { h1: 'Orden para completar' },
     { numerada: [
       'Pestaña **Empleador** → **Completar con los datos de la empresa**. Axioma trae la raíz del CNPJ (8 primeros números) y sugiere la clasificación tributaria por el régimen registrado. Confirme con el contador y toque **Guardar**.',

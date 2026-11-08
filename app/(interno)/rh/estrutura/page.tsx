@@ -383,7 +383,7 @@ export default function RhEstruturaPage() {
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
       <ModuloLayout
-        titulo={L("RH · Estrutura da Empresa", "HR · Company Structure", "RR. HH. · Estructura de la Empresa")}
+        titulo={L("RH", "HR", "RR. HH.")}
         subtitulo={L("Empregador, filiais, lotações, departamentos e cargos — base do eSocial e da folha", "Employer, branches, tax units, departments and job titles — the base for eSocial and payroll", "Empleador, sucursales, lotaciones, departamentos y cargos — base del eSocial y de la nómina")}
         onExportarPDF={() => exportar("pdf")} onExportarExcel={() => exportar("excel")}
         labelBotao={pode.editar ? L(`Novo: ${cfg.nome.pt}`, `New: ${cfg.nome.en}`, `Nuevo: ${cfg.nome.es}`) : undefined}
