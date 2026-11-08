@@ -19,10 +19,12 @@ de pesquisa de 07/11/2026. Ramo de trabalho: `feat/rh-fundacao`. Nada vai para `
 6. **eSocial: "preparado" não é "enviado".** Situações: rascunho → preparado → enviado → aceito (com protocolo) ou recusado (com motivo).
    Na primeira versão quem envia é o contador.
 
-## Permissões (Subfase 1)
+## Permissões (v2 — regra do Elias, 08/11/2026; substitui a da subfase 1)
 
-Função única `rh_pode(empresa, ação)`, com as ações `ver`, `editar`, `salario` e `saude`. Ela usa o papel que já existe
-(`meu_papel`) e a tabela `rh_permissoes` para exceções pessoa a pessoa.
+Função única `rh_pode(empresa, ação)` com `ver`, `editar`, `pessoais`, `salario`, `saude` e `gerir`. Proprietário, CEO,
+Sócio e Admin (`equipe_nivel <= 4`, a hierarquia da Equipe) têm tudo e são os únicos que liberam. Os demais papéis não veem
+NADA do RH até serem liberados item por item em `rh_permissoes` (tela: aba **Acessos do RH**). Ninguém libera para si;
+`concedido_por` é gravado pelo banco. A tabela abaixo é da v1 e fica só como histórico.
 
 | Papel | ver | editar | salário | saúde |
 |---|---|---|---|---|

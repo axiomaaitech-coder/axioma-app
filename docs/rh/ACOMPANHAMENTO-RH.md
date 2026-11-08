@@ -16,6 +16,12 @@ Ordem do Elias (08/11/2026): cada etapa concluída vai direto para produção (m
 | 8 | Importação de funcionários | não iniciada | | | |
 | 9 | Permissões na tela e auditoria | não iniciada | | | |
 
+## Permissões v2 (08/11/2026)
+
+`RH-6-PERMISSOES-V2-SQL.sql` + aba Acessos do RH. Teste `RH-6-TESTE-PERMISSOES-V2-SQL.sql`: falhas=0. Atenção: os testes
+RH-1 a RH-4 foram escritos com a regra v1 (Financeiro/Contador viam o RH sem liberação) — o trecho "financeiro lê" deles
+não vale mais; a regra atual é testada no RH-6.
+
 ## Decisões em aberto (do relatório de pesquisa, seção 6)
 
 1. Contador envia ao governo na v1 (recomendado) — Fase 2/4

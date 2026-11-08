@@ -4,7 +4,7 @@
 // As regras do eSocial e as permissões estão no BANCO (docs/sql/RH-1..5); esta tela só mostra, pré-preenche
 // e traduz as recusas. Apagar = lixeira de 60 dias (o que já foi enviado ao eSocial não vai para a lixeira).
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Pencil, Trash2, X, Share2, RotateCcw, Plus, Wand2, ShieldCheck, CopyPlus } from "lucide-react";
+import { Pencil, Trash2, X, Share2, RotateCcw, Plus, Wand2, ShieldCheck, CopyPlus, KeyRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Sentry from "@sentry/nextjs";
 import { useLanguage } from "../../../../lib/LanguageContext";
@@ -16,7 +16,7 @@ import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
-import { obterEmpresaAtiva } from "../../../../lib/empresaHelpers";
+import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC } from "../../../../lib/cfoCore";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../../lib/erroUiHelpers";
@@ -200,7 +200,8 @@ export default function RhEstruturaPage() {
   const [aba, setAba] = useState<Aba>("empregador");
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState<Linha | null>(null);
-  const [pode, setPode] = useState({ ver: false, editar: false, carregado: false });
+  const [pode, setPode] = useState({ ver: false, editar: false, gerir: false, carregado: false });
+  const [verAcessos, setVerAcessos] = useState(false);
   const [dados, setDados] = useState<Dados>({ empregador: [], filiais: [], lotacoes: [], departamentos: [], cargos: [], tab08: [], tab10: [], fpas: [], centros: [] });
   const [lixeira, setLixeira] = useState<Linha[]>([]);
   const [verLixeira, setVerLixeira] = useState(false);
@@ -219,8 +220,8 @@ export default function RhEstruturaPage() {
     const eid = await obterEmpresaAtiva();
     if (!eid) { setCarregando(false); return; }
     setEmpresaId(eid);
-    const [v, e] = await Promise.all([supabase.rpc("rh_pode", { p_empresa: eid, p_acao: "ver" }), supabase.rpc("rh_pode", { p_empresa: eid, p_acao: "editar" })]);
-    setPode({ ver: !!v.data, editar: !!e.data, carregado: true });
+    const [v, e, g] = await Promise.all(["ver", "editar", "gerir"].map((a) => supabase.rpc("rh_pode", { p_empresa: eid, p_acao: a })));
+    setPode({ ver: !!v.data, editar: !!e.data, gerir: !!g.data, carregado: true });
     if (!v.data) { setCarregando(false); return; }
     const sel = (t: string, ordem: string) => supabase.from(t).select("*").eq("empresa_id", eid).is("excluido_em", null).order(ordem).limit(2000);
     const [emp, fil, lot, dep, car, t08, t10, t04, cc, empr] = await Promise.all([
@@ -385,9 +386,9 @@ export default function RhEstruturaPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
                   {ABAS.map((a) => {
-                    const ativa = a.id === aba;
+                    const ativa = a.id === aba && !verAcessos;
                     return (
-                      <button key={a.id} onClick={() => { setAba(a.id); setVerLixeira(false); }}
+                      <button key={a.id} onClick={() => { setAba(a.id); setVerLixeira(false); setVerAcessos(false); }}
                         className="px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
                         style={ativa ? { background: temaClaro ? NAVY : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: `1px solid ${temaClaro ? NAVY : "rgba(46,204,155,0.5)"}` }
                           : { background: NESTED_BG, color: temaClaro ? NAVY : "var(--axi-text-primary)", border: `1px solid ${BORDA}` }}>
@@ -395,6 +396,13 @@ export default function RhEstruturaPage() {
                       </button>
                     );
                   })}
+                  {pode.gerir && (
+                    <button onClick={() => setVerAcessos(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
+                      style={verAcessos ? { background: temaClaro ? NAVY : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: `1px solid ${temaClaro ? NAVY : "rgba(46,204,155,0.5)"}` }
+                        : { background: NESTED_BG, color: temaClaro ? NAVY : "var(--axi-text-primary)", border: `1px solid ${BORDA}` }}>
+                      <KeyRound size={14} /> {L("Acessos do RH", "HR access", "Accesos de RR. HH.")}
+                    </button>
+                  )}
                 </div>
                 <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: BTN, color: "#fff" }}>
@@ -402,6 +410,9 @@ export default function RhEstruturaPage() {
                 </motion.button>
               </div>
 
+              {verAcessos && empresaId ? (
+                <AcessosRh empresaId={empresaId} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema} estilo={estiloCampo} TEXTO_SEC={TEXTO_SEC} BORDA={BORDA} avisar={avisar} />
+              ) : (<>
               {/* Comece pelo empregador */}
               {!carregando && semEmpregador && aba !== "empregador" && aba !== "departamentos" && aba !== "cargos" && (
                 <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
@@ -478,6 +489,7 @@ export default function RhEstruturaPage() {
                   )}
                 </div>
               </CanvasBox>
+              </>)}
               <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Fonte das regras: leiaute oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). O Axioma prepara; quem envia ao governo nesta versão é o contador.", "Rules source: official eSocial S-1.3 layout (TN 07/2026, rev. 10/20/2026). Axioma prepares; in this version the accountant sends to the government.", "Fuente de las reglas: diseño oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). Axioma prepara; en esta versión quien envía al gobierno es el contador.")}</p>
             </>
           )}
@@ -573,5 +585,91 @@ function EditorCompetencias({ valor, onChange, lang, estilo, cor }: { valor: Com
         <Plus size={13} /> {L("Adicionar competência", "Add skill", "Agregar competencia")}
       </button>
     </div>
+  );
+}
+
+// Acessos do RH: só Proprietário, CEO, Sócio e Admin abrem. Eles têm acesso total e liberam os demais,
+// item por item. A trava de verdade está no banco (rh_pode + RLS de rh_permissoes): ninguém libera para si.
+type Membro = { user_id: string; nome: string; email: string; papel: string; nivel: number; situacao: string };
+type Perm = { ver: boolean; editar: boolean; ver_pessoais: boolean; ver_salario: boolean; ver_saude: boolean };
+const ITENS_PERM: { k: keyof Perm; r: Texto }[] = [
+  { k: "ver", r: T("Ver o RH", "View HR", "Ver RR. HH.") },
+  { k: "editar", r: T("Editar", "Edit", "Editar") },
+  { k: "ver_pessoais", r: T("Dados pessoais", "Personal data", "Datos personales") },
+  { k: "ver_salario", r: T("Salário", "Salary", "Salario") },
+  { k: "ver_saude", r: T("Saúde", "Health", "Salud") },
+];
+function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, avisar }: {
+  empresaId: string; lang: Lang; temaClaro: boolean; cartaoTema: { fundo?: string; premium3d: boolean }; estilo: CSSProperties; TEXTO_SEC: string; BORDA: string; avisar: (m: string, t?: "erro" | "ok") => void;
+}) {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const [membros, setMembros] = useState<Membro[] | null>(null);
+  const [perms, setPerms] = useState<Record<string, Perm>>({});
+  const [salvando, setSalvando] = useState<string | null>(null);
+  const vazio: Perm = { ver: false, editar: false, ver_pessoais: false, ver_salario: false, ver_saude: false };
+  useEffect(() => {
+    void (async () => {
+      const [eq, pr] = await Promise.all([
+        listarEquipe(empresaId),
+        supabase.from("rh_permissoes").select("user_id, ver, editar, ver_pessoais, ver_salario, ver_saude").eq("empresa_id", empresaId),
+      ]);
+      if (eq.erro || pr.error) { avisar(L("Não foi possível carregar a equipe agora. Recarregue a página.", "Could not load the team now. Reload the page.", "No se pudo cargar el equipo ahora. Recargue la página.")); setMembros([]); return; }
+      setMembros((eq.dados as unknown as Membro[]).filter((m) => m.user_id && m.situacao !== "pendente"));
+      setPerms(Object.fromEntries((pr.data ?? []).map((x: Linha) => [x.user_id, x as Perm])));
+    })();
+  }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function mudar(uid: string, k: keyof Perm, valor: boolean) {
+    const atual: Perm = { ...(perms[uid] ?? vazio), [k]: valor };
+    if (k !== "ver" && valor) atual.ver = true;                 // quem vê salário/saúde/dados também vê o RH
+    if (k === "ver" && !valor) Object.assign(atual, vazio);     // tirou "ver": tira tudo
+    setSalvando(uid);
+    const { error } = await supabase.from("rh_permissoes").upsert({ empresa_id: empresaId, user_id: uid, ...atual }, { onConflict: "empresa_id,user_id" });
+    setSalvando(null);
+    if (error) { avisar(mensagemErroRh(error, lang)); return; }
+    setPerms({ ...perms, [uid]: atual });
+    avisar(L("Acesso atualizado.", "Access updated.", "Acceso actualizado."), "ok");
+  }
+  const papelTxt = (m: Membro) => m.nivel === 1 ? L("Proprietário", "Owner", "Propietario") : m.nivel === 2 ? "CEO" : m.nivel === 3 ? L("Sócio", "Partner", "Socio") : m.nivel === 4 ? "Admin" : m.papel;
+  return (
+    <CanvasBox cor={temaClaro ? "#0f7a5a" : "#2ecc9b"} {...cartaoTema}>
+      <p className="text-sm font-black mb-1" style={{ color: temaClaro ? "#101b3d" : "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Acessos do RH", "HR access", "Accesos de RR. HH.")}</p>
+      <p className="text-sm mb-4" style={{ color: TEXTO_SEC }}>{L("Proprietário, CEO, Sócio e Admin têm acesso total e são os únicos que liberam. As demais pessoas não veem nada do RH até serem liberadas aqui. Dados pessoais, salário e saúde são liberados um a um (LGPD). Ninguém libera para si mesmo.", "Owner, CEO, Partner and Admin have full access and are the only ones who grant it. Others see nothing in HR until granted here. Personal data, salary and health are granted one by one (LGPD). Nobody can grant themselves.", "Propietario, CEO, Socio y Admin tienen acceso total y son los únicos que lo otorgan. Los demás no ven nada de RR. HH. hasta ser habilitados aquí. Datos personales, salario y salud se habilitan uno por uno (LGPD). Nadie se habilita a sí mismo.")}</p>
+      {membros === null ? (
+        <div className="flex justify-center py-8"><div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : membros.length === 0 ? (
+        <p className="text-sm py-6 text-center" style={{ color: TEXTO_SEC }}>{L("Ninguém na equipe ainda. Convide pessoas em Equipe.", "No one on the team yet. Invite people in Team.", "Nadie en el equipo aún. Invite personas en Equipo.")}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead><tr style={{ borderBottom: `1px solid ${BORDA}` }}>
+              {[L("Pessoa", "Person", "Persona"), ...ITENS_PERM.map((i) => i.r[lang])].map((h) => <th key={h} className="text-left px-3 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {membros.map((m) => {
+                const total = m.nivel <= 4;
+                const p = perms[m.user_id] ?? vazio;
+                return (
+                  <tr key={m.user_id} style={{ borderBottom: `1px solid ${BORDA}` }}>
+                    <td className="px-3 py-3 text-sm">
+                      <p className="font-bold" style={{ color: "var(--axi-text-primary)" }}>{m.nome || m.email}</p>
+                      <p className="text-xs" style={{ color: TEXTO_SEC }}>{papelTxt(m)}{m.situacao === "suspenso" ? ` · ${L("suspenso", "suspended", "suspendido")}` : ""}</p>
+                    </td>
+                    {total ? (
+                      <td colSpan={ITENS_PERM.length} className="px-3 py-3 text-sm font-bold" style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b" }}>{L("Acesso total ao RH", "Full HR access", "Acceso total a RR. HH.")}</td>
+                    ) : ITENS_PERM.map((i) => (
+                      <td key={i.k} className="px-3 py-3">
+                        <input type="checkbox" aria-label={`${i.r[lang]} — ${m.nome || m.email}`} checked={!!p[i.k]} disabled={salvando === m.user_id}
+                          onChange={(e) => mudar(m.user_id, i.k, e.target.checked)} style={{ width: 18, height: 18, accentColor: temaClaro ? "#0f7a5a" : "#2ecc9b" }} />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Cada liberação fica registrada com quem liberou e quando.", "Each grant is recorded with who granted it and when.", "Cada habilitación queda registrada con quién la otorgó y cuándo.")}</p>
+    </CanvasBox>
   );
 }
