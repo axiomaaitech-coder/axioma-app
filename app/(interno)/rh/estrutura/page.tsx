@@ -263,7 +263,7 @@ export default function RhEstruturaPage() {
   function novo() {
     const base: Linha = { situacao_esocial: "rascunho", ativo: true, competencias: [] };
     if (cfg.versionada) base.ini_valid = mesAtual();
-    if (aba === "empregador") Object.assign(base, { tp_insc: "1", nr_insc: raizCnpj(empresa?.cnpj) ?? "", class_trib: sugerirClassTrib(empresa?.regime_tributario) ?? "", ind_coop: "0", ind_constr: "0", ind_des_folha: "0" });
+    if (aba === "empregador") Object.assign(base, { tp_insc: "1", nr_insc: raizCnpj(empresa?.cnpj) ?? "", class_trib: sugerirClassTrib(empresa?.regime_tributario) ?? "", ind_coop: "0", ind_constr: "0", ind_des_folha: "0", ind_porte: ["01", "04"].includes(String(sugerirClassTrib(empresa?.regime_tributario))) ? "S" : "" }); // Simples e MEI são ME/EPP (LC 123/2006)
     if (aba === "filiais") Object.assign(base, { tp_insc: "1", nr_insc: String(empresa?.cnpj ?? "").replace(/\D/g, ""), cnae_prep: cnaeSete(empresa?.cnae_principal) ?? "", nome: L("Matriz", "Head office", "Matriz") });
     if (aba === "lotacoes") Object.assign(base, { tp_lotacao: "01", cod_tercs: sugerirClassTrib(empresa?.regime_tributario) && ["01", "04"].includes(String(sugerirClassTrib(empresa?.regime_tributario))) ? "0000" : "" });
     setEditandoId(null); setAvancado(false); setForm(base);
@@ -412,7 +412,8 @@ export default function RhEstruturaPage() {
               {!carregando && aba === "empregador" && semEmpregador && pode.editar && (
                 <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
                   <p className="text-sm font-bold mb-1" style={{ color: "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Primeiro passo do RH", "First HR step", "Primer paso de RR. HH.")}</p>
-                  <p className="text-sm" style={{ color: TEXTO_SEC }}>{L("Os dados do empregador são o cadastro que o eSocial exige antes de qualquer admissão. Já preenchemos com o CNPJ e o regime da sua Empresa — confira com o contador e salve.", "Employer data is the record eSocial requires before any hiring. We pre-filled it with your company's CNPJ and tax regime — check with your accountant and save.", "Los datos del empleador son el registro que eSocial exige antes de cualquier admisión. Los completamos con el CNPJ y el régimen de su empresa — confirme con el contador y guarde.")}</p>
+                  <p className="text-sm" style={{ color: TEXTO_SEC }}>{L("Os dados do empregador são o cadastro que o eSocial exige antes de qualquer admissão. O Axioma preenche com o que já está no cadastro da Empresa — confira com o contador e salve.", "Employer data is the record eSocial requires before any hiring. Axioma fills in what is already in the company record — check with your accountant and save.", "Los datos del empleador son el registro que eSocial exige antes de cualquier admisión. Axioma completa con lo que ya está en el registro de la empresa — confirme con el contador y guarde.")}</p>
+                  {!raizCnpj(empresa?.cnpj) && <p className="text-sm mt-2 font-semibold" style={{ color: temaClaro ? "#9a3412" : "#fbbf24" }}>{L("O CNPJ completo da Empresa não está cadastrado. Preencha em Config → Empresa, ou digite no formulário.", "The company's full CNPJ is not registered. Fill it in at Config → Company, or type it in the form.", "El CNPJ completo de la empresa no está registrado. Complételo en Config → Empresa, o escríbalo en el formulario.")}</p>}
                   <button onClick={novo} className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold" style={{ background: BTN, color: "#fff" }}><Wand2 size={15} /> {L("Preencher com os dados da Empresa", "Fill in with company data", "Completar con los datos de la empresa")}</button>
                 </CanvasBox>
               )}
