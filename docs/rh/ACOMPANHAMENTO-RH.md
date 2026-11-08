@@ -35,3 +35,7 @@ não vale mais; a regra atual é testada no RH-6.
 ## Painel do RH (08/11/2026)
 
 Tela /rh + porta de IA rh_alertas (mesma função lib/rhPainel.painelRh). Microinterações (BotaoAcao) em Salvar, Importar, Planilha completa, Preencher com dados da Empresa e Perguntar. Manual 50.
+
+## Arquivos da admissão (08/11/2026)
+
+RH-10-ARQUIVOS-ADMISSAO-SQL.sql rodado; teste RH-10-TESTE-ARQUIVOS-SQL.sql: falhas=0. Cofre privado rh-documentos (10 MB, PDF/JPG/PNG/WEBP).
