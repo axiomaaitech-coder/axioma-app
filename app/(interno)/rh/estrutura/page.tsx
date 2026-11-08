@@ -545,7 +545,7 @@ export default function RhEstruturaPage() {
                       <tbody>
                         {(verLixeira ? lixeira : linhas).length === 0 ? (
                           <tr><td colSpan={8} className="text-center py-10 text-sm" style={{ color: TEXTO_SEC }}>
-                            {verLixeira ? L("A lixeira está vazia.", "The trash is empty.", "La papelera está vacía.") : L("Nada cadastrado ainda. Use o botão de novo no topo.", "Nothing registered yet. Use the New button at the top.", "Nada registrado aún. Use el botón Nuevo arriba.")}
+                            {verLixeira ? L("A lixeira está vazia.", "The trash is empty.", "La papelera está vacía.") : (pode.editar ? L(`Nada cadastrado ainda. Clique no botão verde "+ Novo: ${cfg.nome.pt}", no topo da tela.`, `Nothing registered yet. Click the green "+ New: ${cfg.nome.en}" button at the top of the screen.`, `Nada registrado aún. Haga clic en el botón verde "+ Nuevo: ${cfg.nome.es}", en la parte superior de la pantalla.`) : L("Nada cadastrado ainda.", "Nothing registered yet.", "Nada registrado aún."))}
                           </td></tr>
                         ) : linhasVis.map((l, i) => (
                           <tr key={l.id} style={{ borderBottom: `1px solid ${BORDA}` }}>

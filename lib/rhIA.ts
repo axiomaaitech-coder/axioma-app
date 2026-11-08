@@ -97,17 +97,18 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string): Promise<Resu
         const { painelRh } = await import('./rhPainel')
         const { ITENS_ADMISSAO } = await import('./rhDocumentos')
         const [podeDocs, podeSaude, podeSal] = await Promise.all([pode('pessoais'), pode('saude'), pode('salario')])
-        const [colabs, contratos, itens, remun] = await Promise.all([
+        const [colabs, contratos, itens, remun, empregador] = await Promise.all([
           ler<Colab>('rh_colaboradores', 'id, nome, nome_social, situacao'),
           ler<Contrato & { situacao_esocial: string; cod_categ: string; estabelecimento_id: string | null }>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, estabelecimento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento, situacao_esocial', false),
           podeDocs || podeSaude ? ler<{ colaborador_id: string; tipo: string; categoria: string; situacao: string }>('rh_admissao_itens', 'id, colaborador_id, tipo, categoria, situacao', false) : Promise.resolve(null),
           podeSal ? ler<Remun>('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false) : Promise.resolve(null),
+          ler<{ id: string }>('rh_empregador', 'id'),
         ])
         let sal: Map<string, number> | null = null
         if (remun) { sal = new Map(); for (const r of [...remun].filter((r) => r.vigencia_inicio <= hoje).sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio))) if (!sal.has(r.contrato_id)) sal.set(r.contrato_id, Number(r.valor)) }
         const vivos = new Set(colabs.map((c) => c.id))
         const p = painelRh({ hoje, colabs, contratos: contratos.filter((k) => vivos.has(k.colaborador_id)), itens, salarioPorContrato: sal,
-          obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'documento').map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'exame').map((i) => i.tipo) }, podeDocs, podeSaude })
+          obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'documento').map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'exame').map((i) => i.tipo) }, podeDocs, podeSaude, temEmpregador: empregador.length > 0 })
         const limitacoes = ['nenhum valor de multa é estimado: depende da fiscalização e da tabela vigente']
         if (!podeSaude) limitacoes.push('sem liberação de saúde: o alerta de exame admissional não foi conferido')
         if (!podeDocs) limitacoes.push('sem liberação de dados pessoais: documentos pendentes não foram conferidos')

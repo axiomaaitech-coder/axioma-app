@@ -17,7 +17,7 @@ const pt: DocumentoAxioma = {
     { lista: ['**Ativos**, **Admissões no mês**, **Desligamentos no mês** e **Salários-base mensais** (só para quem tem liberação de salário): toque para abrir RH · Colaboradores.', '**Rotatividade do mês** = ((admissões + desligamentos) ÷ 2) ÷ ativos de hoje × 100. Tocar leva até a fórmula.'] },
     { h1: 'Radar de Risco Trabalhista' },
     { lista: [
-      '**Crítico** (vermelho): experiência vencida sem decisão; admissão sem envio ao eSocial (precisa ir até a véspera do início); pessoa trabalhando sem exame admissional (NR-7).',
+      '**Crítico** (vermelho): empregador não cadastrado (o eSocial exige antes de qualquer admissão — o botão leva a RH · Estrutura); experiência vencida sem decisão; admissão sem envio ao eSocial (precisa ir até a véspera do início); pessoa trabalhando sem exame admissional (NR-7).',
       '**Atenção** (amarelo): experiência terminando em até 15 dias; prazo determinado terminando em até 30 dias; documentos obrigatórios pendentes; ativo sem cargo ou sem salário.',
       '**Obrigação** (azul): o que a lei exige pelo tamanho — ponto acima de 20 pessoas (CLT art. 74), cota PCD a partir de 100 (Lei 8.213 art. 93) e relatório de igualdade salarial a partir de 100 (Lei 14.611). Perto de um limite, aparece um aviso amarelo embaixo.',
       'Cada alerta tem um botão que leva direto para resolver.',
@@ -47,7 +47,7 @@ const en: DocumentoAxioma = {
     { lista: ['**Active**, **Hires this month**, **Terminations this month** and **Monthly base salaries** (only with salary access): tap to open HR · Employees.', '**Monthly turnover** = ((hires + terminations) ÷ 2) ÷ today\'s active × 100. Tapping shows the formula.'] },
     { h1: 'Labor Risk Radar' },
     { lista: [
-      '**Critical** (red): probation expired with no decision; hiring not sent to eSocial (due by the day before start); person working without the pre-employment exam (NR-7).',
+      '**Critical** (red): employer not registered (eSocial requires it before any hire — the button takes you to HR · Structure); probation expired with no decision; hiring not sent to eSocial (due by the day before start); person working without the pre-employment exam (NR-7).',
       '**Attention** (yellow): probation ending within 15 days; fixed term ending within 30 days; required documents pending; active person with no job title or salary.',
       '**Obligation** (blue): what the law requires by size — time clock above 20 people (CLT art. 74), disability quota from 100 (Law 8.213 art. 93) and pay equity report from 100 (Law 14.611). Near a threshold, a yellow notice appears below.',
       'Each alert has a button that takes you straight to fix it.',
@@ -77,7 +77,7 @@ const es: DocumentoAxioma = {
     { lista: ['**Activos**, **Admisiones del mes**, **Desvinculaciones del mes** y **Salarios base mensuales** (solo con salario habilitado): toque para abrir RR. HH. · Colaboradores.', '**Rotación del mes** = ((admisiones + desvinculaciones) ÷ 2) ÷ activos de hoy × 100. Al tocar se ve la fórmula.'] },
     { h1: 'Radar de Riesgo Laboral' },
     { lista: [
-      '**Crítico** (rojo): experiencia vencida sin decisión; admisión sin envío al eSocial (debe ir hasta la víspera del inicio); persona trabajando sin examen de admisión (NR-7).',
+      '**Crítico** (rojo): empleador no registrado (el eSocial lo exige antes de cualquier admisión — el botón lleva a RR. HH. · Estructura); experiencia vencida sin decisión; admisión sin envío al eSocial (debe ir hasta la víspera del inicio); persona trabajando sin examen de admisión (NR-7).',
       '**Atención** (amarillo): experiencia terminando en hasta 15 días; plazo determinado terminando en hasta 30 días; documentos obligatorios pendientes; activo sin cargo o sin salario.',
       '**Obligación** (azul): lo que la ley exige por tamaño — control de jornada con más de 20 personas (CLT art. 74), cuota de discapacidad desde 100 (Ley 8.213 art. 93) e informe de igualdad salarial desde 100 (Ley 14.611). Cerca de un límite aparece un aviso amarillo abajo.',
       'Cada alerta tiene un botón que lleva directo a resolverla.',

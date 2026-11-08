@@ -12,7 +12,7 @@ const pt: DocumentoAxioma = {
     { p: 'As regras do governo já estão no Axioma: o que for preenchido fora do leiaute oficial do eSocial (versão S-1.3) é recusado na hora, com a explicação do motivo. Nesta versão, o **Axioma prepara e o contador envia** ao governo.' },
 
     { h1: 'Como chegar' },
-    { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Estrutura** (barra no topo da tela).'] },
+    { lista: ['Menu do topo → **Gestão ▼** → **RH** → **Estrutura** (barra no topo da tela).', 'Para cadastrar: clique na parte (Empregador, Filiais, Lotações, Departamentos ou Cargos) e depois no botão verde **+ Novo: <parte>**, no topo da tela, ao lado de Exportar Excel. No Empregador também há **Preencher com os dados da Empresa**.'] },
     { h1: 'Letreiro' },
     { p: 'Faixa azul-marinho logo abaixo das abas, rolando sozinha: quantos itens há em cada parte (Empregador, Filiais, Lotações, Departamentos, Cargos). Passe o mouse para parar.' },
 
@@ -63,7 +63,7 @@ const en: DocumentoAxioma = {
     { p: 'It is the first step of Axioma HR. It holds the records **eSocial requires before any hiring** (employer data, branches and tax units) and the company\'s internal organization (departments and job titles). Employees, hiring and payroll use this base.' },
     { p: 'Government rules are built in: anything outside the official eSocial layout (version S-1.3) is refused immediately, with the reason. In this version, **Axioma prepares and the accountant submits** to the government.' },
     { h1: 'How to get there' },
-    { lista: ['Top menu → **Management ▼** → **HR** → **Structure** (bar at the top of the screen).'] },
+    { lista: ['Top menu → **Management ▼** → **HR** → **Structure** (bar at the top of the screen).', 'To register: click the part (Employer, Branches, Tax units, Departments or Positions), then the green **+ New: <part>** button at the top of the screen, next to Export Excel. Employer also has **Fill in with company data**.'] },
     { h1: 'Ticker' },
     { p: 'Navy strip right below the tabs, scrolling on its own: how many items each part has (Employer, Branches, Tax units, Departments, Positions). Hover to pause.' },
     { h1: 'Order to fill in' },
@@ -110,7 +110,7 @@ const es: DocumentoAxioma = {
     { p: 'Es el primer paso de RR. HH. de Axioma. Aquí están los registros que **eSocial exige antes de cualquier admisión** (datos del empleador, sucursales y lotaciones) y la organización interna de la empresa (departamentos y cargos). Los empleados, la contratación y la nómina usan esta base.' },
     { p: 'Las reglas del gobierno ya están en Axioma: lo que quede fuera del diseño oficial de eSocial (versión S-1.3) se rechaza al instante, con el motivo. En esta versión, **Axioma prepara y el contador envía** al gobierno.' },
     { h1: 'Cómo llegar' },
-    { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Estructura** (barra en la parte superior).'] },
+    { lista: ['Menú superior → **Gestión ▼** → **RR. HH.** → **Estructura** (barra en la parte superior).', 'Para registrar: haga clic en la parte (Empleador, Sucursales, Lotaciones, Departamentos o Cargos) y luego en el botón verde **+ Nuevo: <parte>**, arriba en la pantalla, junto a Exportar Excel. En Empleador también está **Completar con los datos de la Empresa**.'] },
     { h1: 'Letrero' },
     { p: 'Franja azul marino debajo de las pestañas, que se desplaza sola: cuántos ítems tiene cada parte (Empleador, Sucursales, Lotaciones, Departamentos, Cargos). Pase el mouse para detenerla.' },
     { h1: 'Orden para completar' },

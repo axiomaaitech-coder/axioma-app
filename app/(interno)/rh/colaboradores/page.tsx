@@ -447,7 +447,7 @@ export default function RhColaboradoresPage() {
                       <tbody>
                         {lista.length === 0 ? (
                           <tr><td colSpan={8} className="text-center py-10 text-sm" style={{ color: TEXTO_SEC }}>
-                            {verLixeira ? L("A lixeira está vazia.", "The trash is empty.", "La papelera está vacía.") : busca ? L("Ninguém encontrado com esse nome.", "No one found with that name.", "Nadie encontrado con ese nombre.") : L("Nenhum colaborador nesta situação. Use \"Novo colaborador\" no topo.", "No employees in this status. Use \"New employee\" at the top.", "Ningún colaborador en esta situación. Use \"Nuevo colaborador\" arriba.")}
+                            {verLixeira ? L("A lixeira está vazia.", "The trash is empty.", "La papelera está vacía.") : busca ? L("Ninguém encontrado com esse nome.", "No one found with that name.", "Nadie encontrado con ese nombre.") : L("Nenhum colaborador nesta situação. Clique no botão verde \"+ Novo colaborador\", no topo da tela.", "No employees in this status. Click the green \"+ New employee\" button at the top of the screen.", "Ningún colaborador en esta situación. Haga clic en el botón verde \"+ Nuevo colaborador\", en la parte superior de la pantalla.")}
                           </td></tr>
                         ) : lista.map((c) => {
                           const k = contratos[c.id] ?? {};

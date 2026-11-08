@@ -12,6 +12,8 @@ export type ContratoPainel = Contrato & { situacao_esocial: string; cod_categ: s
 export type DadosPainel = {
   hoje: string; colabs: Colab[]; contratos: ContratoPainel[]; itens: ItemAdm[] | null; salarioPorContrato: Map<string, number> | null
   obrigatorios: { documento: string[]; exame: string[] }; podeDocs: boolean; podeSaude: boolean
+  /** false = nenhum cadastro do empregador (S-1000) fora da lixeira; undefined = não conferido */
+  temEmpregador?: boolean
 }
 const dias = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / 86400000)
 const nome = (c: Colab) => c.nome_social || c.nome
@@ -41,6 +43,9 @@ export function painelRh(d: DadosPainel) {
   const alertas: Alerta[] = []
   const add = (a: Omit<Alerta, 'total'>) => { if (a.pessoas.length) alertas.push({ ...a, total: a.pessoas.length, pessoas: a.pessoas.slice(0, 8) }) }
   const COLAB = '/rh/colaboradores'
+  // 0) sem empregador (S-1000) não há como enviar nenhuma admissão (S-2200) ao eSocial
+  if (d.temEmpregador === false) add({ id: 'sem_empregador', nivel: 'critico', titulo: T('Empregador não cadastrado no RH', 'Employer not registered in HR', 'Empleador no registrado en RR. HH.'), base: 'eSocial S-1000 (deve existir antes de qualquer admissão)',
+    pessoas: vivos.map(nome), acao: { rota: '/rh/estrutura', texto: T('Cadastrar o empregador', 'Register the employer', 'Registrar el empleador') } })
   // 1) experiência: vencida (decidir já) e terminando em até 15 dias
   const exp = vivos.map((c) => ({ c, k: atual.get(c.id) })).filter(({ k }) => k?.experiencia && k.data_termino && !k.data_desligamento)
   add({ id: 'experiencia_vencida', nivel: 'critico', titulo: T('Experiência vencida sem decisão', 'Probation over without a decision', 'Experiencia vencida sin decisión'), base: 'CLT art. 445 e 451',

@@ -39,4 +39,9 @@ assert.ok(P.painelRh({ ...base, colabs: muitos(21) as never, contratos: ks(21), 
 const r98 = P.painelRh({ ...base, colabs: muitos(98) as never, contratos: ks(98), itens: [] })
 assert.ok(!r98.alertas.some((a) => a.id === 'cota_pcd')); assert.ok(r98.proximos.some((x) => /cota PCD/.test(x.pt)))
 assert.ok(P.painelRh({ ...base, colabs: muitos(150) as never, contratos: ks(150), itens: [] }).alertas.some((a) => a.id === 'cota_pcd' && /3 vaga/.test(a.titulo.pt)))
+// empregador: sem cadastro = crítico com os vivos; com cadastro ou não conferido = nada
+const semEmp = P.painelRh({ ...base, temEmpregador: false }).alertas.find((a) => a.id === 'sem_empregador')
+assert.ok(semEmp && semEmp.nivel === 'critico' && semEmp.total >= 3 && semEmp.acao.rota === '/rh/estrutura')
+assert.equal(P.painelRh({ ...base, temEmpregador: true }).alertas.find((a) => a.id === 'sem_empregador'), undefined)
+assert.equal(r.alertas.find((a) => a.id === 'sem_empregador'), undefined, 'não conferido não acusa')
 console.log('check-rh-painel ok')
