@@ -52,6 +52,7 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     // termo de aceite de quem saiu da empresa: 60 dias na lixeira, depois some de vez
     ['empresa_convite_termo', 'saiu_em', 'lixeira_termos_convite', DIAS_LIXEIRA_TERMOS],
     // lixeira da estrutura do RH (60 dias). Ordem importa: cargo antes de departamento, filial depois.
+    ['rh_colaboradores', 'excluido_em', 'lixeira_rh_colaboradores', DIAS_LIXEIRA_RH], // leva junto dados pessoais, contratos e salários (cascata)
     ['rh_cargos', 'excluido_em', 'lixeira_rh_cargos', DIAS_LIXEIRA_RH],
     ['rh_departamentos', 'excluido_em', 'lixeira_rh_departamentos', DIAS_LIXEIRA_RH],
     ['rh_lotacoes', 'excluido_em', 'lixeira_rh_lotacoes', DIAS_LIXEIRA_RH],
