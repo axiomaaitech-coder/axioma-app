@@ -176,8 +176,13 @@ export const INDICADORES: Indicador[] = [
   { codigo: 'COMEX:IMPORT', principal: 'Comex Stat', frequencia: 'mensal_defasada', meta: { nome: 'Importações do Brasil (US$ bilhões no mês, Comex Stat/MDIC)', categoria: 'trade', country: 'BR', moeda: 'USD', unidade: 'US$ bi' },
     reservas: [ipea('SECEX12_MVTOT12', 'fim', (v) => doisDec(v / 1000))] },
   { codigo: 'IPEA:BRENT', principal: 'IPEA Data', frequencia: 'diaria', meta: { nome: 'Petróleo Brent (US$/barril)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/barril' },
-    reservas: [pink('Crude oil, Brent')] }, // média mensal: cobre o buraco até o diário voltar
-  { codigo: 'FMI:SOJA', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Soja em grão (US$/tonelada, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/t' }, reservas: [pink('Soybeans')] },
+    // Sem reserva: a Pink Sheet é média MENSAL e ia para a série DIÁRIA no último dia do mês (até sábado/domingo),
+    // distorcendo gráfico e variação de 5 dias (auditoria 2026-11-07). Fonte diária gratuita sem cadastro não há (EIA e FRED pedem chave).
+    reservas: [] },
+  { codigo: 'FMI:SOJA', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Soja em grão (US$/tonelada, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/t' },
+    // Sem reserva: a soja da Pink Sheet é c.i.f. Roterdã (com frete), ~8% acima da de Chicago do FMI em todo mês
+    // conferido (auditoria 2026-11-07). Gravar na mesma série trocaria o mercado sem aviso; melhor o último dado com a data.
+    reservas: [] },
   { codigo: 'FMI:MILHO', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Milho (US$/tonelada, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/t' }, reservas: [pink('Maize')] },
   { codigo: 'FMI:CAFE', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Café arábica (centavos de US$ por libra-peso, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US¢/lb' },
     reservas: [pink('Coffee, Arabica', (v) => (v * 100) / 2.20462)] }, // Pink Sheet em US$/kg
