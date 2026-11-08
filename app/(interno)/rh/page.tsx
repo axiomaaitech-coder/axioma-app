@@ -98,7 +98,13 @@ export default function RhPainelPage() {
   const criticos = painel?.alertas.filter((a) => a.nivel === "critico").length ?? 0;
   const atencao = painel?.alertas.filter((a) => a.nivel === "atencao").length ?? 0;
   const depEntradas = Object.entries(painel?.ativos_por_departamento ?? {}).sort((a, b) => b[1] - a[1]);
-  const optDep = optBarrasV(depEntradas.map(([, n]) => n), depEntradas.map(([id]) => (id === "sem" ? L("Sem depto.", "No dept.", "Sin depto.") : deps.get(id) ?? "—")), ct(VERDE), temaClaro ? "#34d399" : "#6ee7b7", undefined, temaClaro);
+  const optDepBase = optBarrasV(depEntradas.map(([, n]) => n), depEntradas.map(([id]) => (id === "sem" ? L("Sem depto.", "No dept.", "Sin depto.") : deps.get(id) ?? "—")), ct(VERDE), temaClaro ? "#34d399" : "#6ee7b7", undefined, temaClaro);
+  // o gráfico conta PESSOAS: tira o R$ do eixo, da dica e do rótulo (optBarrasV é feito para dinheiro)
+  const pessoas = (n: number) => `${n} ${n === 1 ? L("pessoa", "person", "persona") : L("pessoas", "people", "personas")}`;
+  const optDep = { ...optDepBase,
+    tooltip: { ...optDepBase.tooltip, formatter: (p: { name: string; value: number }) => `<b>${p.name}</b><br/>${pessoas(p.value)}` },
+    yAxis: { ...optDepBase.yAxis, minInterval: 1, axisLabel: { ...optDepBase.yAxis.axisLabel, formatter: (v: number) => String(v) } },
+    series: optDepBase.series.map((x: Record<string, any>) => ({ ...x, label: { ...x.label, formatter: (p: { value: number }) => (p.value > 0 ? String(p.value) : "") } })) };
 
   const linhasExport = (painel?.alertas ?? []).map((a) => ({ nivel: NIVEL[a.nivel].nome, alerta: a.titulo[lang], base: a.base, qtd: a.total ? String(a.total) : "—", pessoas: a.pessoas.join(", ") }));
   const exportar = (formato: "pdf" | "excel" = "pdf") => {

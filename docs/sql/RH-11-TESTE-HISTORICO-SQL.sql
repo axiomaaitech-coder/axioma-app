@@ -23,7 +23,7 @@ begin
 
   select count(*) into c from rh_historico where colaborador_id = C1; if c <> 9 then n := n + 1; falhas := falhas || ' total=' || c; end if;
   select * into r from rh_historico where colaborador_id = C1 and parte = 'contrato' and acao = 'alterou';
-  if r.campos <> array['qtd_hrs_sem'] or (r.depois->>'qtd_hrs_sem') <> '40' or r.por <> DONO then n := n + 1; falhas := falhas || ' contrato_diff'; end if;
+  if r.campos <> array['qtd_hrs_sem'] or (r.depois->>'qtd_hrs_sem')::numeric <> 40 or r.por <> DONO then n := n + 1; falhas := falhas || ' contrato_diff'; end if;
   select * into r from rh_historico where colaborador_id = C1 and parte = 'pessoal' and acao = 'alterou';
   if r.campos <> array['telefone'] or r.antes is not null or r.depois is not null then n := n + 1; falhas := falhas || ' pessoal_vazou_valor'; end if;
   if exists (select 1 from rh_historico where colaborador_id = C1 and parte = 'salario' and (antes is not null or depois is not null)) then n := n + 1; falhas := falhas || ' salario_vazou_valor'; end if;
