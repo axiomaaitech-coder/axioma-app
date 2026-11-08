@@ -6,8 +6,8 @@ Ramo: `feat/rh-fundacao` · Publicação no site: só com o "pode" do Elias.
 
 | # | Subfase | Situação | Commit | Testes | Pendências |
 |---|---|---|---|---|---|
-| 1 | Arquitetura + permissões (`rh_permissoes`, `rh_pode`) | Concluída — banco criado em 08/11/2026 com autorização do Elias | (este commit) | `RH-1-TESTE-PERMISSOES-SQL.sql`: falhas=0 · `TESTE-INVASAO-SQL.sql`: falhas=0 em 141 tabelas | — |
-| 2 | Empregador e verbas (S-1000, S-1010) | não iniciada | | | |
+| 1 | Arquitetura + permissões (`rh_permissoes`, `rh_pode`) | Concluída — banco criado em 08/11/2026 com autorização do Elias | 39451b9 | `RH-1-TESTE-PERMISSOES-SQL.sql`: falhas=0 · `TESTE-INVASAO-SQL.sql`: falhas=0 em 141 tabelas | — |
+| 2 | Empregador e verbas (S-1000, S-1010) | Concluída — banco criado em 08/11/2026: `rh_empregador`, `rh_rubricas` e Tabelas oficiais 03 (216 linhas, com versões), 08 (18) e 21 (87) | (este commit) | `RH-2-TESTE-EMPREGADOR-RUBRICAS-SQL.sql`: falhas=0 · invasão: falhas=0 em 143 tabelas | Verbas-modelo pré-cadastradas: só com conferência do contador (decisão pendente) |
 | 3 | Estabelecimentos e grupo | não iniciada | | | |
 | 4 | Departamentos, cargos (CBO), lotações | não iniciada | | | |
 | 5 | Tipos de vínculo | não iniciada | | | |

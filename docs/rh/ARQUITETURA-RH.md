@@ -40,7 +40,7 @@ O admin não muda a própria linha e não libera saúde para ninguém. Assim nin
 | Subfase | Tabelas |
 |---|---|
 | 1 Permissões | `rh_permissoes` + função `rh_pode` |
-| 2 Empregador | `rh_empregador` (dados do S-1000, 1 por empresa), `rh_rubricas` (S-1010) |
+| 2 Empregador | `rh_empregador` (S-1000, uma linha por período de validade) e `rh_rubricas` (S-1010). Regras do leiaute viram travas no banco. Tabelas oficiais `esocial_tab03/08/21` são lidas por todos e copiadas do leiaute S-1.3 (NT 07/2026, rev. 20/10/2026). A Tabela 03 tem versões: a natureza da verba é conferida contra a versão que vale no mês. |
 | 3 Estabelecimentos | `rh_estabelecimentos` (S-1005; filial com o mesmo CNPJ raiz). Outra raiz de CNPJ = outra empresa do Axioma, ligada como grupo. |
 | 4 Estrutura | `rh_departamentos`, `rh_cargos` (com CBO e competências), `rh_lotacoes` (S-1020). O vínculo com `centros_custo` já existe. |
 | 5 Vínculos | tipo de vínculo no contrato: CLT (indeterminado, experiência, determinado, intermitente, temporário, aprendiz), estágio, autônomo, pró-labore, empregado do MEI |
