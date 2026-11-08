@@ -50,6 +50,7 @@ import m45 from "./45-conferencia"
 import m46 from "./46-rastreabilidade"
 import m47 from "./47-contas-vencidas"
 import m48 from "./48-rh-estrutura"
+import m49 from "./49-rh-colaboradores"
 
 // Manual ainda só em português aparece igual nos 3 idiomas até ganhar a tradução.
 const tri = (d: DocumentoAxioma | DocTrilingue): DocTrilingue => (ehTrilingue(d) ? d : { pt: d, en: d, es: d })
@@ -109,6 +110,7 @@ export const MANUAIS: ManualAxioma[] = ([
   { numero: "46", nome: "Contabilidade — Rastreabilidade", doc: m46 },
   { numero: "47", nome: "Comercial — Contas Vencidas", doc: m47 },
   { numero: "48", nome: "Gestão — RH · Estrutura da Empresa", doc: m48 },
+  { numero: "49", nome: "Gestão — RH · Colaboradores", doc: m49 },
 ] as { numero: string; nome: string; doc: DocumentoAxioma | DocTrilingue }[]).map((m) => ({ ...m, doc: tri(m.doc) }))
 
 // Tela → manual (o prefixo mais longo vence). Usado pelo Assistente de Ajuda.
@@ -120,7 +122,7 @@ const ROTAS: [string, string][] = [
   ["/metas", "22"], ["/investimentos", "23"], ["/simulacoes", "24"], ["/precificacao", "25"], ["/clientes", "26"], ["/fornecedores", "27"],
   ["/contas-pagar", "28"], ["/estoque", "29"], ["/contas-receber", "30"], ["/inadimplencia", "31"], ["/centros-custo", "32"],
   ["/importar-documentos", "33"], ["/relatorios", "34"], ["/open-finance", "35"], ["/ia-financeira", "36"], ["/ia-tributaria", "37"],
-  ["/empresa", "38"], ["/equipe", "39"], ["/planos", "40"], ["/uso-ia", "41"], ["/pdv", "42"], ["/nexus", "43"], ["/risco", "44"], ["/conferencia", "45"], ["/rastreabilidade", "46"], ["/contas-vencidas", "47"], ["/rh/estrutura", "48"],
+  ["/empresa", "38"], ["/equipe", "39"], ["/planos", "40"], ["/uso-ia", "41"], ["/pdv", "42"], ["/nexus", "43"], ["/risco", "44"], ["/conferencia", "45"], ["/rastreabilidade", "46"], ["/contas-vencidas", "47"], ["/rh/estrutura", "48"], ["/rh/colaboradores", "49"],
 ]
 export function manualDaRota(caminho: string): ManualAxioma | null {
   const achado = ROTAS.filter(([r]) => caminho === r || caminho.startsWith(`${r}/`)).sort((a, b) => b[0].length - a[0].length)[0]

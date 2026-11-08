@@ -15,6 +15,7 @@ import { CentroCompartilhamento } from "../../../../components/CentroCompartilha
 import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
+import { PerguntaIA } from "../../../../components/PerguntaIA";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
 import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC } from "../../../../lib/cfoCore";
@@ -22,6 +23,8 @@ import { gerarPdfTabela, gerarExcelTabela } from "../../../../lib/gerarPdfTabela
 import { tratarFalhaExportacao } from "../../../../lib/erroUiHelpers";
 import { hojeISO } from "../../../../lib/datas";
 import { DIAS_LIXEIRA_RH } from "../../../../lib/nexusRetencao";
+import { lerValorBR } from "../../../../lib/valorBR";
+import { mascaraCPF, mascaraCNPJ } from "../../../../lib/enderecoHelpers";
 import { raizCnpj, cnaeSete, sugerirClassTrib, mesAtual, mensagemErroRh, type Lang, type Texto } from "../../../../lib/rhEstrutura";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -176,6 +179,15 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
   },
 ];
 
+// Campos de CNPJ/CPF: máscara enquanto digita. Inscrição do empregador/filial/lotação: CPF quando o tipo é CPF (2), senão CNPJ.
+const CAMPOS_DOC = new Set(["nr_insc", "cnpj_efr", "cnpj_resp", "contrat_nr_insc", "prop_nr_insc"]);
+function mascaraDoc(k: string, v: string, f: Linha): string {
+  if (!CAMPOS_DOC.has(k)) return v;
+  const tipo = String(k === "contrat_nr_insc" ? f.contrat_tp_insc : k === "prop_nr_insc" ? f.prop_tp_insc : k === "nr_insc" ? f.tp_insc : "1");
+  if (tipo === "2") return mascaraCPF(v);
+  if (tipo === "4" || tipo === "3") return v.replace(/\D/g, "").slice(0, 14);   // CNO e CAEPF: só dígitos
+  return mascaraCNPJ(v);
+}
 function txt(v: string | Texto, lang: Lang) { return typeof v === "string" ? v : v[lang]; }
 function rotulo(ops: Opcao[], v: unknown, lang: Lang) { const o = ops.find((x) => x.v === String(v ?? "")); return o ? txt(o.l, lang) : String(v ?? "—"); }
 const restamDias = (em: string) => Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(em).getTime()) / 86400000));
@@ -293,7 +305,11 @@ export default function RhEstruturaPage() {
       if (c.tipo === "lista") { const itens = s.split(",").map((x) => x.replace(/\D/g, "")).filter(Boolean); payload[c.k] = itens.length ? itens : null; continue; }
       if (s === "") { payload[c.k] = null; continue; }
       if (c.num) payload[c.k] = Number(s);
-      else if (c.tipo === "numero") payload[c.k] = Number(s.replace(",", "."));
+      else if (c.tipo === "numero") {
+        const n = lerValorBR(s);
+        if (Number.isNaN(n)) { avisar(L(`Número inválido em: ${c.r.pt}.`, `Invalid number in: ${c.r.en}.`, `Número inválido en: ${c.r.es}.`)); return; }
+        payload[c.k] = n;
+      }
       else if (["nr_insc", "cnpj_efr", "cnpj_resp", "cnae_prep", "cbo", "contrat_nr_insc", "prop_nr_insc", "apr_nr_proc_jud", "pcd_nr_proc_jud"].includes(c.k)) payload[c.k] = s.replace(/\D/g, "");
       else payload[c.k] = s;
     }
@@ -490,6 +506,8 @@ export default function RhEstruturaPage() {
                 </div>
               </CanvasBox>
               </>)}
+              <PerguntaIA tela="rh-estrutura" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Pergunte à IA do RH", "Ask the HR AI", "Pregunte a la IA de RR. HH.")}
+                sugestoes={[L("O RH está configurado? O que falta?", "Is HR set up? What is missing?", "¿RR. HH. está configurado? ¿Qué falta?"), L("Quantos departamentos e cargos temos?", "How many departments and job titles do we have?", "¿Cuántos departamentos y cargos tenemos?")]} />
               <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Fonte das regras: leiaute oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). O Axioma prepara; quem envia ao governo nesta versão é o contador.", "Rules source: official eSocial S-1.3 layout (TN 07/2026, rev. 10/20/2026). Axioma prepares; in this version the accountant sends to the government.", "Fuente de las reglas: diseño oficial eSocial S-1.3 (NT 07/2026, rev. 20/10/2026). Axioma prepara; en esta versión quien envía al gobierno es el contador.")}</p>
             </>
           )}
@@ -528,7 +546,7 @@ export default function RhEstruturaPage() {
                           <EditorCompetencias valor={form[c.k] ?? []} onChange={(v) => setForm({ ...form, [c.k]: v })} lang={lang} estilo={estiloCampo} cor={temaClaro ? NAVY : "#2ecc9b"} />
                         ) : (
                           <input id={`rh-${c.k}`} type={c.tipo === "mes" ? "month" : c.tipo === "data" ? "date" : "text"} inputMode={c.tipo === "numero" ? "decimal" : undefined}
-                            value={form[c.k] ?? ""} onChange={(e) => setForm({ ...form, [c.k]: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={estiloCampo} />
+                            value={CAMPOS_DOC.has(c.k) ? mascaraDoc(c.k, String(form[c.k] ?? ""), form) : form[c.k] ?? ""} onChange={(e) => setForm({ ...form, [c.k]: mascaraDoc(c.k, e.target.value, form) })} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={estiloCampo} />
                         )}
                         {c.ajuda && <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{c.ajuda[lang]}</p>}
                       </div>

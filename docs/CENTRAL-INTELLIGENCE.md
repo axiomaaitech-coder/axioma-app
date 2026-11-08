@@ -80,7 +80,7 @@ O retrato da empresa (`lib/ia/retratoEmpresa.ts`) é lido fora das portas, com a
 
 ## O que ainda não existe
 
-- **Módulo de RH:** é a próxima fase. Até lá, funcionários e folha respondem "não há dado", e os cenários 1, 6 e 7 foram testados nessa condição.
+- **RH (2026-11-08):** portas `rh_pessoas`, `rh_estrutura` e `rh_salarios` (lib/rhIA.ts) — contagens e nomes para quem pode ver o RH; soma de salários-base só com liberação de salário. A **folha completa** (encargos, benefícios, provisões) segue indisponível até a Fase 4 do RH.
 - **Fornecedor que deve à empresa:** não há registro.
 - **Fotografia única do banco:** as fontes são lidas em sequência; o relatório avisa e mostra os horários.
 - **Pergunta na auditoria:** hoje guarda tela, plano e consultas, sem o texto da pergunta. Aguarda decisão do Elias.

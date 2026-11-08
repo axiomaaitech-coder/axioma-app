@@ -69,9 +69,9 @@ const titulos = (tipo: string, b = banco(tab)) => executarFerramentaFinanceira(c
 // ─── 1. RH ───
 {
   const p = planejarConsulta('Quantos funcionários ativos temos?')
-  assert.deepEqual(p.indisponiveis, ['funcionarios']); assert.deepEqual(p.portas, [], 'não consulta Financeiro, Vendas nem Estoque')
-  assert.equal(indicador('funcionarios')?.indisponivel, true); assert.equal(indicador('folha')?.indisponivel, true)
-  ok(1, 'funcionários: sem módulo de RH ainda, nenhuma porta abre e o catálogo diz que não há dado')
+  assert.deepEqual(p.indisponiveis, []); assert.deepEqual(p.portas, ['rh_pessoas'], 'só a porta do RH; não consulta Financeiro, Vendas nem Estoque')
+  assert.equal(indicador('funcionarios')?.ferramenta, 'rh_pessoas'); assert.equal(indicador('folha')?.indisponivel, true)
+  ok(1, 'funcionários: a porta do RH responde; a folha completa segue indisponível (Fase 4)')
 }
 // ─── 2 e 3. Recebíveis e pagáveis ───
 {
@@ -106,9 +106,9 @@ const executivo = async (falhar: string[] = [], t = tab) => R.gerarRelatorio(ctx
 // ─── 6. Cruzamento ───
 {
   const p = planejarConsulta('Qual é o faturamento, o custo operacional, o custo com funcionários e o lucro da empresa?')
-  assert.ok(p.portas.includes('faturamento') && p.portas.includes('dre')); assert.deepEqual(p.indisponiveis, ['funcionarios'], 'funcionários: avisa que não há, sem inventar')
+  assert.ok(p.portas.includes('faturamento') && p.portas.includes('dre') && p.portas.includes('rh_salarios')); assert.deepEqual(p.indisponiveis, [], 'custo com funcionários: salário-base do RH, com o aviso de que não é a folha')
   assert.equal(p.execucao, 'paralela')
-  ok(6, 'cruzamento: cada indicador na sua porta; custo com funcionários marcado como indisponível')
+  ok(6, 'cruzamento: cada indicador na sua porta; custo com funcionários pela porta de salários do RH')
 }
 // ─── 7. Falha de módulo ───
 {
@@ -167,7 +167,7 @@ const executivo = async (falhar: string[] = [], t = tab) => R.gerarRelatorio(ctx
 }
 // ─── 12. Dado inexistente ───
 {
-  for (const id of ['funcionarios', 'folha', 'fornecedor_deve']) { const i = indicador(id)!; assert.equal(i.indisponivel, true); assert.equal(i.ferramenta, undefined, 'sem ferramenta: não há número para fabricar') }
+  for (const id of ['folha', 'fornecedor_deve']) { const i = indicador(id)!; assert.equal(i.indisponivel, true); assert.equal(i.ferramenta, undefined, 'sem ferramenta: não há número para fabricar') }
   assert.deepEqual(planejarConsulta('Algum fornecedor me deve?').indisponiveis, ['fornecedor_deve'])
   ok(12, 'dado inexistente: dito como inexistente, sem fabricar resultado')
 }

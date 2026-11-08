@@ -7,7 +7,7 @@ const { resultado, falhou } = await import('../lib/financeiro/contrato')
 assert.equal(new Set(INDICADORES.map((i) => i.id)).size, INDICADORES.length, 'id repetido no catálogo')
 
 // As ferramentas que a IA realmente tem (o nome que o catálogo cita precisa existir)
-const ferramentas = ['lib/ia/ferramentas.ts', 'lib/financeiro/ferramentasFinanceiras.ts', 'lib/vencidos/ferramentaIA.ts', 'lib/financeiro/ferramentasGestao.ts'].map((a) => readFileSync(a, 'utf8')).join('\n')
+const ferramentas = ['lib/ia/ferramentas.ts', 'lib/financeiro/ferramentasFinanceiras.ts', 'lib/vencidos/ferramentaIA.ts', 'lib/financeiro/ferramentasGestao.ts', 'lib/rhIA.ts'].map((a) => readFileSync(a, 'utf8')).join('\n')
 
 for (const i of INDICADORES) {
   assert.ok(i.definicao.length > 10, `${i.id}: sem definição`)
@@ -27,7 +27,8 @@ for (const i of INDICADORES) {
 }
 
 // O que o Axioma não tem é dito como "não há", nunca estimado
-for (const id of ['funcionarios', 'folha', 'fornecedor_deve']) assert.equal(indicador(id)?.indisponivel, true, `${id} deveria estar indisponível`)
+for (const id of ['folha', 'fornecedor_deve']) assert.equal(indicador(id)?.indisponivel, true, `${id} deveria estar indisponível`)
+assert.equal(indicador('funcionarios')?.ferramenta, 'rh_pessoas', 'funcionários vêm do RH (2026-11-08)')
 assert.deepEqual([...PAPEIS_FINANCEIROS].sort(), ['admin', 'contabil', 'dono', 'financeiro', 'leitor'])
 
 // Toda resposta do contrato diz de quando é

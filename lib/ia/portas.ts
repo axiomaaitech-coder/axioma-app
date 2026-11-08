@@ -23,6 +23,8 @@ export const PORTAS: Record<string, Porta> = {
   receitas_por_mes: porta('Receitas'), estoque_avisos: porta('Estoque'), dividas: porta('Endividamento'),
   maiores_fornecedores: porta('Fornecedores'), maiores_devedores: porta('Inadimplência'), dre: porta('DRE', PESADA),
   caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'), compras_pedidos: porta('Pedidos de Compra'), pdv_resumo: porta('PDV'),
+  // RH: a porta deixa passar os papéis financeiros; quem decide de verdade é a liberação do RH no banco (rh_pode v2 + RLS)
+  rh_pessoas: porta('RH · Colaboradores'), rh_estrutura: porta('RH · Estrutura'), rh_salarios: porta('RH · Colaboradores'),
 }
 
 // ─── Etapa 5: cada tela consulta só o que é da sua finalidade. Quem protege o dado é o papel lido no servidor; a tela vem
@@ -44,6 +46,9 @@ const PORTAS_POR_TELA: Record<string, readonly string[]> = {
   pdv: [...BASE, 'pdv_resumo', 'estoque_avisos', 'estoque_resumo', 'faturamento', 'cadastros'],
   'importar-documentos': [...BASE, 'contas_a_pagar', 'titulos', 'custos', 'despesas', 'maiores_fornecedores', 'cadastros', 'reconciliacao', 'compras_pedidos'],
 }
+const PORTAS_RH = [...BASE, 'rh_pessoas', 'rh_estrutura', 'rh_salarios', 'custos', 'custos_fixos_mes']
+PORTAS_POR_TELA['rh-estrutura'] = PORTAS_RH
+PORTAS_POR_TELA['rh-colaboradores'] = PORTAS_RH
 const PORTAS_MEI = [...TRIBUTARIO, 'titulos', 'contas_a_pagar', 'contas_a_receber', 'movimentos_realizados', 'dividas', 'caixa_tesouraria']
 // A porta de relatórios abre vários assuntos: sem isto, a IA Tributária montaria o relatório de clientes.
 const RELATORIOS_POR_TELA: Record<string, readonly string[]> = {
@@ -52,6 +57,7 @@ const RELATORIOS_POR_TELA: Record<string, readonly string[]> = {
   clientes: ['contas_receber', 'contas_vencidas', 'receitas', 'executivo'], 'centros-custo': ['despesas', 'dre', 'executivo'],
   tesouraria: ['fluxo_caixa', 'contas_receber', 'contas_pagar', 'contas_vencidas', 'endividamento', 'executivo'], pdv: ['pdv', 'receitas', 'executivo'],
   'importar-documentos': ['contas_pagar', 'despesas', 'conciliacao', 'executivo'],
+  'rh-estrutura': ['executivo'], 'rh-colaboradores': ['executivo'],
 }
 const RELATORIOS_MEI = ['tributario', 'dre', 'fluxo_caixa', 'contas_receber', 'contas_pagar', 'receitas', 'despesas', 'executivo']
 

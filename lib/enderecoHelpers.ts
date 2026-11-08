@@ -64,6 +64,30 @@ export function validarCPF(cpf: string): boolean {
   return resto === parseInt(c[10]);
 }
 
+// Máscara ENQUANTO se digita (formatarCPF/CEP só formatam o número completo). Aceita colar com ou sem pontos.
+// Guarde no banco só os dígitos (replace(/\D/g, "")): a máscara é só para ler.
+const so = (v: string, n: number) => (v || "").replace(/\D/g, "").slice(0, n);
+export function mascaraCPF(v: string): string {
+  const d = so(v, 11);
+  return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+}
+export function mascaraCNPJ(v: string): string {
+  const d = so(v, 14);
+  return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+export function mascaraCEP(v: string): string {
+  return so(v, 8).replace(/^(\d{5})(\d{1,3})$/, "$1-$2");
+}
+export function mascaraTelefone(v: string): string {
+  const d = so(v, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+// As 27 unidades da federação (siglas oficiais do IBGE)
+export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"] as const;
+
 export function formatarCPF(cpf: string): string {
   const limpo = (cpf || "").replace(/\D/g, "");
   if (limpo.length !== 11) return cpf || "";

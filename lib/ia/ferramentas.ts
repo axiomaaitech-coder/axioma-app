@@ -17,6 +17,7 @@ import { executarFerramentaFinanceira, FERRAMENTAS_FINANCEIRAS, NOMES_FERRAMENTA
 import { FERRAMENTA_RELATORIO, relatorioParaIA } from '../financeiro/relatorios'
 import { FERRAMENTA_VENCIDOS } from '../vencidos/ferramentaIA'
 import { executarFerramentaGestao, FERRAMENTAS_GESTAO, NOMES_FERRAMENTAS_GESTAO } from '../financeiro/ferramentasGestao'
+import { executarFerramentaRh, FERRAMENTAS_RH, NOMES_FERRAMENTAS_RH } from '../rhIA'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 export type Ferramenta = { name: string; description: string; input_schema: Esquema; strict: true }
@@ -30,6 +31,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   FERRAMENTA_RELATORIO as Ferramenta, // Plano 3, Tarefa 2: o mesmo relatório da tela/PDF
   FERRAMENTA_VENCIDOS as Ferramenta, // Overdue Intelligence: mesma análise da tela Contas Vencidas
   ...(FERRAMENTAS_GESTAO as Ferramenta[]), // Central Intelligence, Etapa 3: Tesouraria, Fiscal, Cadastros e Estoque
+  ...(FERRAMENTAS_RH as Ferramenta[]), // RH (2026-11-08): pessoas, estrutura e salários-base, com a liberação do RH
   { name: 'contas_a_pagar', strict: true, description: 'Contas a pagar em aberto (saldo = valor − já pago), com fornecedor, categoria e vencimento, maiores primeiro. Use para o que vence (esta semana = proximos_7_dias), o que está atrasado ou a quem a empresa deve.',
     input_schema: obj({ situacao: { type: 'string', enum: ['vencidas', 'proximos_7_dias', 'proximos_30_dias', 'todas_abertas'] }, limite }) },
   { name: 'contas_a_receber', strict: true, description: 'Contas a receber em aberto (saldo = valor − já recebido), com cliente e vencimento, maiores primeiro. Use para inadimplência, quem deve e o que entra em breve (esta semana = proximos_7_dias).',
@@ -99,6 +101,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
     }))
     if (NOMES_FERRAMENTAS_FINANCEIRAS.has(nome)) return JSON.stringify(await executarFerramentaFinanceira({ supabase, empresaId, fuso }, nome, input))
     if (NOMES_FERRAMENTAS_GESTAO.has(nome)) return JSON.stringify(await executarFerramentaGestao({ supabase, empresaId, fuso }, nome, input))
+    if (NOMES_FERRAMENTAS_RH.has(nome)) return JSON.stringify(await executarFerramentaRh({ supabase, empresaId, fuso }, nome))
     if (nome === 'contas_vencidas') {
       // carregado sob demanda: só quem pergunta de vencidos paga o custo dessa leitura
       const { consultarVencidosIA } = await import('../vencidos/ferramentaIA')

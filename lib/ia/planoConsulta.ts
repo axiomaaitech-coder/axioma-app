@@ -22,6 +22,9 @@ const INTENCOES: { intencao: string; re: RegExp; portas: string[] }[] = [
   { intencao: 'fiscal', re: /imposto|tribut|obrigac|\bdas\b|\btax\b|taxes|impuesto/, portas: ['obrigacoes_fiscais'] },
   { intencao: 'cadastros', re: /quantos (clientes|fornecedores)|how many (customers|clients|suppliers)|cuantos (clientes|proveedores)/, portas: ['cadastros'] },
   { intencao: 'estoque', re: /estoque|inventory|inventario/, portas: ['estoque_resumo'] },
+  { intencao: 'pessoas', re: /funcionario|colaborador|employee|empleado|headcount|quadro de pessoal|experiencia|admiss|deslig/, portas: ['rh_pessoas'] },
+  { intencao: 'salarios', re: /salario|folha( de pagamento)?\b|payroll|nomina|custo com (funcionarios|pessoal)/, portas: ['rh_salarios'] },
+  { intencao: 'estrutura_rh', re: /departamento|\bcargos?\b|estrutura do rh|\brh\b|lotac|filia(l|is)\b/, portas: ['rh_estrutura'] },
   { intencao: 'compras', re: /pedidos? de compra|purchase order/, portas: ['compras_pedidos'] },
   { intencao: 'pdv', re: /\bpdv\b|\bpos sales\b|vendi no caixa/, portas: ['pdv_resumo'] },
   { intencao: 'dividas', re: /divida|emprestimo|\bdebt\b|deuda/, portas: ['dividas'] },
@@ -29,8 +32,7 @@ const INTENCOES: { intencao: string; re: RegExp; portas: string[] }[] = [
 ]
 // O Axioma ainda não tem esse dado: o plano diz "indisponível" e nenhuma porta é aberta por causa disso
 const SEM_FONTE: { indicador: string; re: RegExp }[] = [
-  { indicador: 'funcionarios', re: /funcionario|colaborador|employee|empleado/ },
-  { indicador: 'folha', re: /folha( de pagamento)?\b|salario|payroll|nomina/ },
+  { indicador: 'folha', re: /folha( de pagamento)?\b|payroll|nomina/ },   // folha completa: Fase 4 do RH (salário-base existe: rh_salarios)
   { indicador: 'fornecedor_deve', re: /fornecedor(es)? (me )?deve|supplier owes|proveedor(es)? (me )?debe/ },
 ]
 

@@ -155,7 +155,7 @@ for (const [lang, re] of [['pt', /não dá acesso/], ['en', /does not give acces
   const P = await import('../lib/ia/planoConsulta')
   const C = await import('../lib/ia/consolidacao')
   const planoRh = P.planejarConsulta('Quantos funcionários ativos temos?')
-  assert.deepEqual(planoRh.indisponiveis, ['funcionarios']); assert.deepEqual(planoRh.portas, [], 'nada do RH: nenhuma porta aberta à toa'); assert.equal(planoRh.execucao, 'nenhuma')
+  assert.deepEqual(planoRh.indisponiveis, []); assert.deepEqual(planoRh.portas, ['rh_pessoas'], 'pergunta de RH abre só a porta do RH'); assert.equal(planoRh.execucao, 'isolada')
   const dois = P.planejarConsulta('Quanto temos a receber e quanto temos a pagar?')
   assert.deepEqual(dois.intencoes, ['a_receber', 'a_pagar']); assert.deepEqual(dois.portas, ['titulos'])
   const tres = P.planejarConsulta('Qual o faturamento, o lucro e o estoque?')
