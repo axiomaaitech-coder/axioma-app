@@ -1,6 +1,6 @@
 # Acompanhamento — Axioma People & HR
 
-Ramo: `feat/rh-fundacao` (enviado ao GitHub a cada etapa, autorizado em 08/11/2026) · Juntar à versão principal (site): avisar o Elias antes.
+Ordem do Elias (08/11/2026): cada etapa concluída vai direto para produção (main) com commit + push.
 
 ## Fase 1 — Fundação
 
@@ -8,8 +8,8 @@ Ramo: `feat/rh-fundacao` (enviado ao GitHub a cada etapa, autorizado em 08/11/20
 |---|---|---|---|---|---|
 | 1 | Arquitetura + permissões (`rh_permissoes`, `rh_pode`) | Concluída — banco criado em 08/11/2026 com autorização do Elias | 39451b9 | `RH-1-TESTE-PERMISSOES-SQL.sql`: falhas=0 · `TESTE-INVASAO-SQL.sql`: falhas=0 em 141 tabelas | — |
 | 2 | Empregador e verbas (S-1000, S-1010) | Concluída — banco criado em 08/11/2026: `rh_empregador`, `rh_rubricas` e Tabelas oficiais 03 (216 linhas, com versões), 08 (18) e 21 (87) | d362d01 | `RH-2-TESTE-EMPREGADOR-RUBRICAS-SQL.sql`: falhas=0 · invasão: falhas=0 em 143 tabelas | Verbas-modelo pré-cadastradas: só com conferência do contador (decisão pendente) |
-| 3 | Estabelecimentos e grupo | Concluída — `rh_estabelecimentos` (S-1005, mesma raiz do CNPJ do empregador, ligado a centro de custo), `grupos_empresariais` + `grupo_empresas` (outras raízes), funções `rh_cnpj_valido`/`rh_cpf_valido` | (este commit) | `RH-3-TESTE-ESTABELECIMENTOS-GRUPO-SQL.sql`: falhas=0 · invasão: falhas=0 em 146 tabelas | S-1070 (processos) bloqueia RAT/FAP com processo até existir |
-| 4 | Departamentos, cargos (CBO), lotações | não iniciada | | | |
+| 3 | Estabelecimentos e grupo | Concluída — `rh_estabelecimentos` (S-1005, mesma raiz do CNPJ do empregador, ligado a centro de custo), `grupos_empresariais` + `grupo_empresas` (outras raízes), funções `rh_cnpj_valido`/`rh_cpf_valido` | 4920674 | `RH-3-TESTE-ESTABELECIMENTOS-GRUPO-SQL.sql`: falhas=0 · invasão: falhas=0 em 146 tabelas | S-1070 (processos) bloqueia RAT/FAP com processo até existir |
+| 4 | Departamentos, cargos (CBO), lotações | Concluída — `rh_lotacoes` (S-1020 + Tabelas oficiais 04/10/12), `rh_departamentos` (árvore sem ciclo), `rh_cargos` (CBO + competências), função genérica `rh_confere_mesma_empresa` | (este commit) | `RH-4-TESTE-ESTRUTURA-LOTACOES-SQL.sql`: falhas=0 · invasão: falhas=0 em 149 tabelas | Lista oficial da CBO (download do site do MTE exige clique — carregar na admissão) |
 | 5 | Tipos de vínculo | não iniciada | | | |
 | 6 | Cadastro de colaboradores | não iniciada | | | |
 | 7 | Histórico e documentos | não iniciada | | | |
