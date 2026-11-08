@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 import * as Sentry from '@sentry/nextjs'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { DIAS_GUARDA_PLANO, DIAS_GUARDA_PAINEL, DIAS_GUARDA_AUDITORIA, DIAS_LIXEIRA_HISTORICO_AP, DIAS_LIXEIRA_TERMOS, dataLimite } from './nexusRetencao'
+import { DIAS_GUARDA_PLANO, DIAS_GUARDA_PAINEL, DIAS_GUARDA_AUDITORIA, DIAS_LIXEIRA_HISTORICO_AP, DIAS_LIXEIRA_TERMOS, DIAS_LIXEIRA_RH, dataLimite } from './nexusRetencao'
 
 function clienteServico(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -51,6 +51,13 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     ['contas_pagar_auditoria', 'excluido_em', 'lixeira_historico_ap', DIAS_LIXEIRA_HISTORICO_AP],
     // termo de aceite de quem saiu da empresa: 60 dias na lixeira, depois some de vez
     ['empresa_convite_termo', 'saiu_em', 'lixeira_termos_convite', DIAS_LIXEIRA_TERMOS],
+    // lixeira da estrutura do RH (60 dias). Ordem importa: cargo antes de departamento, filial depois.
+    ['rh_cargos', 'excluido_em', 'lixeira_rh_cargos', DIAS_LIXEIRA_RH],
+    ['rh_departamentos', 'excluido_em', 'lixeira_rh_departamentos', DIAS_LIXEIRA_RH],
+    ['rh_lotacoes', 'excluido_em', 'lixeira_rh_lotacoes', DIAS_LIXEIRA_RH],
+    ['rh_estabelecimentos', 'excluido_em', 'lixeira_rh_estabelecimentos', DIAS_LIXEIRA_RH],
+    ['rh_rubricas', 'excluido_em', 'lixeira_rh_rubricas', DIAS_LIXEIRA_RH],
+    ['rh_empregador', 'excluido_em', 'lixeira_rh_empregador', DIAS_LIXEIRA_RH],
   ]
   for (const [tabela, coluna, rotulo, dias] of passos) {
     const { count, error } = await supabase.from(tabela).delete({ count: 'exact' }).lt(coluna, dataLimite(dias))
