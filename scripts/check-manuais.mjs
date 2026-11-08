@@ -7,7 +7,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 
 // Commits que mexeram em telas sem mudar nada que o manual descreve (ex.: troca de import em massa).
 // Commit novo assim: pôr [sem-manual] na mensagem em vez de crescer esta lista.
-const SEM_EFEITO_NO_MANUAL = ['a03d8a6', 'f24fc61', '48e31da']
+const SEM_EFEITO_NO_MANUAL = ['a03d8a6', 'f24fc61', '48e31da', '9225c3a'] // 9225c3a: MEI IA só corrigiu a rolagem do chat
 const ultimoCommit = (caminho) => {
   try {
     const linhas = execSync(`git log -20 --format="%h %ct %s" -- "${caminho}"`, { encoding: 'utf8' }).trim().split(/\r?\n/)
