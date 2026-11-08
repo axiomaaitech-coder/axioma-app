@@ -643,7 +643,7 @@ function HistoricoColab({ colaboradorId, empresaId, lang, valorDe }: { colaborad
   const [quem, setQuem] = useState<Map<string, string>>(new Map());
   useEffect(() => { void (async () => {
     const [h, eq] = await Promise.all([
-      supabase.from("rh_historico").select("id, parte, acao, campos, antes, depois, por, em").eq("colaborador_id", colaboradorId).order("em", { ascending: false }).limit(100),
+      supabase.from("rh_historico").select("id, parte, acao, campos, antes, depois, por, em").eq("colaborador_id", colaboradorId).order("em", { ascending: false }).order("id", { ascending: false }).limit(100),
       listarEquipe(empresaId),
     ]);
     if (h.error) { setErro(true); setLinhas([]); Sentry.captureException(new Error(`rh_historico: ${h.error.message}`)); return; }
