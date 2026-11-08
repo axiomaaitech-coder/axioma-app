@@ -43,8 +43,8 @@ const TEXTO_SOBRE: Record<SaudeFonte, string> = { ok: '#101b3d', falhou: '#2b000
 
 // Quem cobre cada fonte quando ela falha (lib/nexusReservas.ts e reservas de notícias).
 const RESERVAS_DA_FONTE: Record<string, string> = {
-  'BCB SGS': 'IBGE, IPEA e Copom', 'IBGE Dados Abertos': 'Banco Central e IPEA', 'IPEA Data': 'Banco Mundial (Pink Sheet)',
-  'Banco Central Europeu': 'Frankfurter', 'FMI': 'Banco Mundial (Pink Sheet)', 'Banco Mundial': 'FMI DataMapper',
+  'BCB SGS': 'IBGE, IPEA e Copom', 'IBGE Dados Abertos': 'Banco Central e IPEA', 'IPEA Data': 'EIA (governo dos EUA), Brent diário',
+  'Banco Central Europeu': 'Frankfurter', 'FMI': 'Banco Mundial (Pink Sheet), exceto soja', 'Banco Mundial': 'FMI DataMapper',
   'Comex Stat': 'IPEA (Secex)', 'OCDE': 'DBnomics', 'GDELT': 'BBC World, ONU News e Al Jazeera',
 }
 

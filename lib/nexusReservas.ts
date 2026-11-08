@@ -40,6 +40,7 @@ const F_SIDRA: Fonte = { nome: 'IBGE Dados Abertos', tipo: 'statistics_api', pro
 const F_SGS: Fonte = { nome: 'BCB SGS', tipo: 'central_bank', provedor: 'Banco Central do Brasil', endpoint: 'https://api.bcb.gov.br/dados/serie', frequencia: 'daily', licenca: 'dados abertos (BCB)' }
 const F_COPOM: Fonte = { nome: 'BCB Copom (histórico de taxas)', tipo: 'central_bank', provedor: 'Banco Central do Brasil — site', endpoint: 'https://www.bcb.gov.br/api/servico/sitebcb/historicotaxasjuros', frequencia: 'event_driven', licenca: 'dados abertos (BCB)' }
 const F_FRANKFURTER: Fonte = { nome: 'Frankfurter (espelho do BCE)', tipo: 'fx_api', provedor: 'Frankfurter — taxas de referência do BCE', endpoint: 'https://api.frankfurter.dev/v1', frequencia: 'daily', licenca: 'código aberto; dados do BCE' }
+const F_EIA: Fonte = { nome: 'EIA (U.S. Energy Information Administration)', tipo: 'statistics_api', provedor: 'U.S. Energy Information Administration — preços spot de petróleo', endpoint: 'https://api.eia.gov/v2/petroleum/pri/spt', frequencia: 'daily', licenca: 'domínio público (governo dos EUA)' }
 const F_PINK: Fonte = { nome: 'Banco Mundial — Pink Sheet', tipo: 'international_org', provedor: 'World Bank Commodity Price Data (Pink Sheet)', endpoint: 'https://www.worldbank.org/en/research/commodity-markets', frequencia: 'monthly', licenca: 'CC BY 4.0' }
 const F_FMI_DM: Fonte = { nome: 'FMI DataMapper', tipo: 'international_org', provedor: 'International Monetary Fund — World Economic Outlook', endpoint: 'https://www.imf.org/external/datamapper/api/v1', frequencia: 'annual', licenca: 'reutilização livre com citação (FMI)' }
 
@@ -54,6 +55,27 @@ const ipea = (serie: string, modo: ModoData | 'dia', transformar: (v: number) =>
       const [a, m] = p.VALDATA.slice(0, 7).split('-').map(Number)
       return { data: modo === 'dia' ? p.VALDATA.slice(0, 10) : dataDoMes(a, m, modo), valor: transformar(Number(p.VALVALOR)) }
     })
+  },
+})
+
+// Brent diário (série RBRTE) da EIA: mesma medida do IPEA (US$/barril, dia a dia). Só existe com a chave gratuita
+// EIA_API_KEY na Vercel. A chave vai na URL (é como a EIA aceita): o erro nunca repete a URL, para não vazar a chave.
+const eiaBrent = (): Leitor => ({
+  fonte: F_EIA,
+  ler: async () => {
+    const chave = process.env.EIA_API_KEY
+    if (!chave) throw new Error('EIA: chave EIA_API_KEY não configurada')
+    let res: Response
+    try {
+      res = await buscarComRetentativa(`${F_EIA.endpoint}/data/?api_key=${encodeURIComponent(chave)}&frequency=daily&data[0]=value&facets[series][]=RBRTE&sort[0][column]=period&sort[0][direction]=desc&length=60`, { timeoutMs: 30000 })
+    } catch { throw new Error('EIA: falha de rede') }
+    if (!res.ok) throw new Error(`EIA: HTTP ${res.status}`)
+    const json = await res.json() as { response?: { data?: { period: string; value: string | number | null }[] } }
+    const pontos = (json.response?.data ?? []).filter((d) => d.value != null && Number.isFinite(Number(d.value)))
+      .map((d) => ({ data: String(d.period).slice(0, 10), valor: doisDec(Number(d.value)) }))
+      .sort((a, b) => a.data.localeCompare(b.data))
+    if (!pontos.length) throw new Error('EIA: resposta sem dados do Brent')
+    return pontos
   },
 })
 
@@ -176,9 +198,9 @@ export const INDICADORES: Indicador[] = [
   { codigo: 'COMEX:IMPORT', principal: 'Comex Stat', frequencia: 'mensal_defasada', meta: { nome: 'Importações do Brasil (US$ bilhões no mês, Comex Stat/MDIC)', categoria: 'trade', country: 'BR', moeda: 'USD', unidade: 'US$ bi' },
     reservas: [ipea('SECEX12_MVTOT12', 'fim', (v) => doisDec(v / 1000))] },
   { codigo: 'IPEA:BRENT', principal: 'IPEA Data', frequencia: 'diaria', meta: { nome: 'Petróleo Brent (US$/barril)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/barril' },
-    // Sem reserva: a Pink Sheet é média MENSAL e ia para a série DIÁRIA no último dia do mês (até sábado/domingo),
-    // distorcendo gráfico e variação de 5 dias (auditoria 2026-11-07). Fonte diária gratuita sem cadastro não há (EIA e FRED pedem chave).
-    reservas: [] },
+    // Reserva = EIA diária (mesma medida). A Pink Sheet é média MENSAL e ia para a série DIÁRIA no último dia do mês
+    // (até sábado/domingo), distorcendo gráfico e variação de 5 dias (auditoria 2026-11-07): não volta como reserva.
+    reservas: [eiaBrent()] },
   { codigo: 'FMI:SOJA', principal: 'FMI', frequencia: 'mensal_defasada', meta: { nome: 'Soja em grão (US$/tonelada, FMI)', categoria: 'commodity', country: 'WORLD', moeda: 'USD', unidade: 'US$/t' },
     // Sem reserva: a soja da Pink Sheet é c.i.f. Roterdã (com frete), ~8% acima da de Chicago do FMI em todo mês
     // conferido (auditoria 2026-11-07). Gravar na mesma série trocaria o mercado sem aviso; melhor o último dado com a data.
