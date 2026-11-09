@@ -11,8 +11,8 @@ import { lerTodas } from './lerTodas'
 import { hojeISO, somarDiasISO } from './datas'
 import { falhou, resultado, reais, centavos, type ResultadoFinanceiro } from './financeiro/contrato'
 import { definicao } from './financeiro/semantica'
-import { custoPessoal, custoMensalContrato, compararComFinanceiro, regimeDaEmpresa, type SalarioVigente } from './rhCustoPessoal'
-import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
+import { custoMensalContrato, regimeDaEmpresa, lerCustoPessoal, type SalarioVigente } from './rhCustoPessoal'
+import { simularContratacao, somaMes } from './rhSimulacao'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) })
@@ -23,6 +23,7 @@ export const FERRAMENTAS_RH: { name: string; description: string; input_schema: 
   { name: 'rh_alertas', strict: true, description: 'RH: o Radar de Risco Trabalhista — o mesmo da tela Painel do RH. Experiência vencida ou terminando, prazo determinado acabando, admissão não enviada ao eSocial, quem trabalha sem exame admissional, documentos obrigatórios pendentes, ativos sem cargo ou salário, e obrigações pelo tamanho da empresa (ponto acima de 20, cota PCD e igualdade salarial a partir de 100), cada um com a base legal e os nomes. Use para "o que preciso resolver no RH", "tem algum risco trabalhista".', input_schema: obj({}) },
   { name: 'rh_custo_pessoal', strict: true, description: 'RH ↔ financeiro: custo mensal ESTIMADO de pessoal pelo cadastro do RH — salários + FGTS + provisões de 13º e férias + INSS patronal conforme o regime (Simples: no DAS; MEI 3%; Presumido/Real 20% sem RAT e terceiros; doméstico LC 150) —, por departamento e por centro de custo, e a comparação com o que está LANÇADO em Custos Fixos como "Folha de pagamento" no mês (a DRE só vê o lançado). Só com liberação de salário. Use para "quanto custa a folha / meus funcionários", "custo de pessoal por departamento ou centro de custo", "quanto custa um funcionário de R$ X", "a folha está lançada no financeiro?".', input_schema: obj({}) },
   { name: 'rh_colaborador', strict: true, description: 'RH: dados de UM colaborador pelo nome (ou parte do nome): situação, cargo, departamento, centro de custo, matrícula, admissão, tipo de contrato, fim da experiência, situação no eSocial e — só para quem tem liberação de salário — salário vigente e custo mensal estimado para a empresa. Nunca traz CPF, endereço, documentos, saúde ou dependentes. Use para "quanto ganha a Ana", "quando acaba a experiência do Bruno", "em que departamento está o Diego".', input_schema: obj({ nome: { type: 'string', description: 'nome ou parte do nome do colaborador' } }) },
+  { name: 'rh_simular_contratacao', strict: true, description: 'RH ↔ financeiro: SIMULA uma contratação antes de fazer (não grava nada). Com o salário e a quantidade, devolve o custo mensal real por pessoa (salário + FGTS + provisões + INSS patronal pelo regime), o custo em 12 meses, a saída de caixa mês a mês (salário no 5º dia útil, FGTS/INSS no dia 20, 13º em nov/dez) e o impacto no lucro médio mensal e no peso do pessoal sobre o faturamento (DRE dos últimos 12 meses). Use para "posso contratar alguém de R$ X?", "quanto custa contratar 2 vendedores", "vale a pena contratar?". Responda como "Cenário:".', input_schema: obj({ salario: { type: 'number', description: 'salário mensal de cada pessoa, em reais' }, quantidade: { type: 'number', description: 'quantas pessoas (1 se não disser)' }, aprendiz: { type: 'boolean', description: 'true se for jovem aprendiz' }, mes_inicio: { type: 'string', description: 'AAAA-MM do início; vazio = próximo mês' } }) },
   { name: 'rh_salarios', strict: true, description: 'RH: soma dos salários-base mensais vigentes hoje dos contratos ativos, média, total por departamento e quantos não têm salário cadastrado. Só para quem tem liberação de salário no RH. NÃO é a folha: não inclui encargos (INSS patronal, FGTS), benefícios, horas extras nem provisões. Use para "quanto pago de salário", "custo de salários por departamento".', input_schema: obj({}) },
 ]
 export const NOMES_FERRAMENTAS_RH = new Set(FERRAMENTAS_RH.map((f) => f.name))
@@ -97,7 +98,7 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
   const pode = async (acao: string) => !!(await supabase.rpc('rh_pode', { p_empresa: empresaId, p_acao: acao })).data
   const semAcesso = (indicador: string, unidade: 'QTD' | 'BRL') => resultado({ indicador, definicao: definicao(indicador), estado: 'indisponivel', valor: null, unidade, periodo: null, criterio_data: '—', fontes: [], registros: 0, limitacoes: [SEM_ACESSO] })
   try {
-    if (!(await pode('ver'))) return semAcesso(nome === 'rh_salarios' ? 'salarios_base' : nome === 'rh_custo_pessoal' ? 'custo_pessoal' : nome === 'rh_colaborador' ? 'colaborador' : nome === 'rh_estrutura' ? 'rh_estrutura' : 'funcionarios', nome === 'rh_salarios' || nome === 'rh_custo_pessoal' ? 'BRL' : 'QTD')
+    if (!(await pode('ver'))) return semAcesso(nome === 'rh_salarios' ? 'salarios_base' : nome === 'rh_custo_pessoal' ? 'custo_pessoal' : nome === 'rh_simular_contratacao' ? 'simulacao_contratacao' : nome === 'rh_colaborador' ? 'colaborador' : nome === 'rh_estrutura' ? 'rh_estrutura' : 'funcionarios', nome === 'rh_salarios' || nome === 'rh_custo_pessoal' || nome === 'rh_simular_contratacao' ? 'BRL' : 'QTD')
     const ler = async <T>(t: string, cols: string, lixeira = true) => (await exigir(t, lerTodas(() => { const q = supabase.from(t).select(cols).eq('empresa_id', empresaId); return (lixeira ? q.is('excluido_em', null) : q).order('id') }))) as unknown as T[]
     const nomes = async () => {
       const [cg, dp] = await Promise.all([ler<{ id: string; nome: string }>('rh_cargos', 'id, nome'), ler<{ id: string; nome: string }>('rh_departamentos', 'id, nome')])
@@ -160,30 +161,22 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
       }
       case 'rh_custo_pessoal': {
         if (!(await pode('salario'))) return semAcesso('custo_pessoal', 'BRL')
-        const mes = hoje.slice(0, 7)
-        const [colabs, contratos, remun, deps, centros, emp, cfs] = await Promise.all([
-          ler<Colab>('rh_colaboradores', 'id, nome, situacao'),
-          ler<Contrato & { cod_categ: string }>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento', false),
-          ler<Remun>('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false),
-          ler<{ id: string; nome: string; centro_custo_id: string | null }>('rh_departamentos', 'id, nome, centro_custo_id'),
-          // centros e custos fixos são do financeiro: se a leitura falhar, o custo do RH sai assim mesmo e a limitação diz o que faltou
-          supabase.from('centros_custo').select('id, nome').eq('empresa_id', empresaId),
-          supabase.from('empresas').select('regime_tributario, atividade_fiscal').eq('id', empresaId).maybeSingle(),
-          supabase.from('custos_fixos').select('id, descricao, categoria, valor_mensal, data_inicio, data_fim, created_at').eq('empresa_id', empresaId).eq('categoria', 'Folha de pagamento'),
-        ])
-        const vivos = new Set(colabs.filter((c) => c.situacao === 'ativo' || c.situacao === 'afastado').map((c) => c.id))
-        const ativos = [...contratoAtual(contratos).values()].filter((k) => vivos.has(k.colaborador_id) && !k.data_desligamento)
-        const regime = regimeDaEmpresa((emp.data as { regime_tributario?: string } | null)?.regime_tributario)
-        const r = custoPessoal({ contratos: ativos, salario: salarioVigente(remun, hoje), regime, atividadeFiscal: (emp.data as { atividade_fiscal?: string } | null)?.atividade_fiscal,
-          departamentos: new Map(deps.map((d) => [d.id, { nome: d.nome, centro_custo_id: d.centro_custo_id }])), centros: new Map(((centros.data ?? []) as { id: string; nome: string }[]).map((c) => [c.id, c.nome])) })
-        const limitacoes = [...r.limitacoes]
-        if (centros.error) limitacoes.push('centros de custo não foram lidos agora: o custo aparece por departamento')
-        if (emp.error) limitacoes.push('regime tributário não foi lido agora: INSS patronal não calculado')
-        const ponte = cfs.error ? null : compararComFinanceiro(r.custo_total_mensal, custosFixosNoMes(cfs.data as CustoFixo[], mes).total_ativo)
-        if (cfs.error) limitacoes.push('Custos Fixos não foi lido agora: a comparação com o financeiro ficou de fora')
-        return resultado({ indicador: 'custo_pessoal', definicao: definicao('custo_pessoal'), estado: limitacoes.length > 1 || r.nao_mensais || r.sem_salario ? 'parcial' : 'verificado', valor: r.custo_total_mensal, unidade: 'BRL', periodo: null,
-          criterio_data: `salário vigente hoje; comparação com Custos Fixos de ${mes}`, fontes: ['rh_remuneracoes', 'rh_contratos', 'rh_departamentos', 'centros_custo', 'empresas.regime_tributario', 'custos_fixos'], registros: ativos.length, limitacoes,
+        const { r, ponte, contratosAtivos } = await lerCustoPessoal(supabase, empresaId, hoje)
+        return resultado({ indicador: 'custo_pessoal', definicao: definicao('custo_pessoal'), estado: r.limitacoes.length > 1 || r.nao_mensais || r.sem_salario ? 'parcial' : 'verificado', valor: r.custo_total_mensal, unidade: 'BRL', periodo: null,
+          criterio_data: `salário vigente hoje; comparação com Custos Fixos de ${hoje.slice(0, 7)}`, fontes: ['rh_remuneracoes', 'rh_contratos', 'rh_departamentos', 'centros_custo', 'empresas.regime_tributario', 'custos_fixos'], registros: contratosAtivos, limitacoes: r.limitacoes,
           detalhes: { hoje, ...r, financeiro: ponte, regra: 'estimativa do RH; a DRE e o Fluxo continuam usando só o que foi lançado (nada é somado duas vezes)' } })
+      }
+      case 'rh_simular_contratacao': {
+        const salario = Number(input.salario)
+        if (!(salario > 0)) return falhou('simulacao_contratacao', 'informe o salário mensal da contratação')
+        const mesInicio = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(input.mes_inicio ?? '')) ? String(input.mes_inicio) : somaMes(hoje.slice(0, 7), 1)
+        const { carregarBaseSimulacao } = await import('./rhSimulacaoBase')
+        const b = await carregarBaseSimulacao(supabase, empresaId, hoje, await pode('salario'))
+        const s = simularContratacao({ salario, quantidade: Number(input.quantidade) || 1, codCateg: input.aprendiz === true ? '103' : '101', regime: b.regime, mesInicio, base: b.base })
+        if (!s) return falhou('simulacao_contratacao', 'não foi possível simular com esses valores')
+        return resultado({ indicador: 'simulacao_contratacao', definicao: definicao('simulacao_contratacao'), estado: b.limitacoes.length ? 'parcial' : 'verificado', valor: s.custo_mensal_total, unidade: 'BRL', periodo: null,
+          criterio_data: `início ${mesInicio}; DRE de ${b.periodo_dre.de} a ${b.periodo_dre.ate}; caixa de hoje`, fontes: ['RH (regra do custo de pessoal)', 'DRE por competência', 'caixa realizado'], registros: 1,
+          limitacoes: [...b.limitacoes, ...s.premissas], detalhes: { hoje, cenario: true, ...s } })
       }
       case 'rh_colaborador': {
         const busca = String(input.nome ?? '').trim().replace(/[%_,()]/g, '')

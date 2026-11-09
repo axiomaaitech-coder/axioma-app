@@ -25,6 +25,7 @@ const INTENCOES: { intencao: string; re: RegExp; portas: string[] }[] = [
   { intencao: 'pessoas', re: /funcionario|colaborador|employee|empleado|headcount|quadro de pessoal|experiencia|admiss|deslig/, portas: ['rh_pessoas'] },
   { intencao: 'salarios', re: /salario|folha( de pagamento)?\b|payroll|nomina|custo com (funcionarios|pessoal)/, portas: ['rh_salarios'] },
   { intencao: 'custo_pessoal', re: /custo (com |de |do |da )?(pessoal|funcionari|colaborador|folha|empregad|mao de obra)|encargo|\bfgts\b|inss patronal|quanto (custa|sai|gasto com) (a |o |um |uma |os |as )?(minha |meu |cada |nossa |nosso |meus |minhas )?(funcionari|colaborador|empregad|folha|pessoal|equipe)|folha (esta|foi) lancad|labor cost|costo (de )?personal/, portas: ['rh_custo_pessoal'] },
+  { intencao: 'simular_contratacao', re: /contratar|contratacao|contratando|admitir|nova vaga|aumentar (o )?quadro|\bhire\b|hiring/, portas: ['rh_simular_contratacao'] },
   { intencao: 'colaborador', re: /quanto (ganha|recebe)|salario d[oae]s? [a-z]|dados d[oae]s? (funcionari|colaborador)|(experiencia|contrato|admissao|departamento|cargo) d[oae]s? [a-z]{2,}|(em que|qual( e)? o|qual) (departamento|cargo|setor|area|filial) (esta|fica|trabalha|d[oae]s? )|how much does .* earn|cuanto gana/, portas: ['rh_colaborador'] },
   { intencao: 'alertas_rh', re: /risco trabalhista|alerta(s)? do rh|resolver no rh|pendencia(s)? do rh|radar|labor risk/, portas: ['rh_alertas'] },
   { intencao: 'estrutura_rh', re: /departamento|\bcargos?\b|estrutura do rh|\brh\b|lotac|filia(l|is)\b/, portas: ['rh_estrutura'] },

@@ -13,7 +13,11 @@
 //   MEI com empregado: 3% sobre o salário (LC 123, art. 18-C, § 1º, III).
 //   Doméstico (categoria 104): 8% INSS + 0,8% seguro acidente + 8% FGTS + 3,2% indenização (LC 150/2015, art. 34).
 // ═══════════════════════════════════════════════════════════════
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { centavos, reais } from './financeiro/contrato'
+import { lerTodas } from './lerTodas'
+import { contratoAtual } from './rhIA'
+import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
 
 export type ContratoCusto = { id: string; colaborador_id: string; cod_categ: string; departamento_id: string | null }
 export type SalarioVigente = { und_sal_fixo: number; valor: number }
@@ -96,4 +100,42 @@ export function compararComFinanceiro(rhTotal: number, folhaLancada: number) {
     lancado_a_mais: 'Custos Fixos ("Folha de pagamento") está acima da estimativa do RH: pode haver pessoa fora do RH, benefício ou lançamento antigo.',
   }[situacao]
   return { estimativa_rh: reais(centavos(rhTotal)), lancado_custos_fixos_folha: reais(centavos(folhaLancada)), diferenca: dif, situacao, texto }
+}
+
+// ─── Leitura única (tela, IA e simulador usam a mesma): lê com o cliente de quem pede, a RLS do RH decide ───
+
+type L = Record<string, unknown>
+export async function lerCustoPessoal(supabase: SupabaseClient, empresaId: string, hoje: string) {
+  const ler = async (t: string, cols: string, lixeira: boolean) => {
+    const r = await lerTodas(() => { const q = supabase.from(t).select(cols).eq('empresa_id', empresaId); return (lixeira ? q.is('excluido_em', null) : q).order('id') })
+    if (r.error) throw new Error(`${t}: ${r.error.message}`)
+    return (r.data ?? []) as unknown as L[]
+  }
+  const [cs, ks, rs, ds, cc, emp, cf] = await Promise.all([
+    ler('rh_colaboradores', 'id, situacao', true),
+    ler('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento', false),
+    ler('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false),
+    ler('rh_departamentos', 'id, nome, centro_custo_id', true),
+    // do financeiro: falhar não derruba o custo do RH, só vira limitação
+    supabase.from('centros_custo').select('id, nome').eq('empresa_id', empresaId),
+    supabase.from('empresas').select('regime_tributario, atividade_fiscal').eq('id', empresaId).maybeSingle(),
+    supabase.from('custos_fixos').select('id, descricao, categoria, valor_mensal, data_inicio, data_fim, created_at').eq('empresa_id', empresaId).eq('categoria', 'Folha de pagamento'),
+  ])
+  const vivos = new Set(cs.filter((c) => c.situacao === 'ativo' || c.situacao === 'afastado').map((c) => String(c.id)))
+  const ativos = [...contratoAtual(ks as unknown as (ContratoCusto & { data_admissao: string; data_termino: string | null; experiencia: boolean; data_desligamento: string | null; cargo_id: string | null })[]).values()]
+    .filter((k) => vivos.has(k.colaborador_id) && !k.data_desligamento)
+  const salario = new Map<string, SalarioVigente>()
+  for (const x of [...rs].filter((x) => String(x.vigencia_inicio) <= hoje).sort((a, b) => String(b.vigencia_inicio).localeCompare(String(a.vigencia_inicio))))
+    if (!salario.has(String(x.contrato_id))) salario.set(String(x.contrato_id), { und_sal_fixo: Number(x.und_sal_fixo), valor: Number(x.valor) })
+  const e = (emp.data ?? null) as { regime_tributario?: string; atividade_fiscal?: string } | null
+  const regime = regimeDaEmpresa(e?.regime_tributario)
+  const r = custoPessoal({ contratos: ativos, salario, regime, atividadeFiscal: e?.atividade_fiscal,
+    departamentos: new Map(ds.map((d) => [String(d.id), { nome: String(d.nome), centro_custo_id: (d.centro_custo_id as string | null) ?? null }])),
+    centros: new Map(((cc.data ?? []) as { id: string; nome: string }[]).map((c) => [c.id, c.nome])) })
+  const limitacoes = [...r.limitacoes]
+  if (cc.error) limitacoes.push('centros de custo não foram lidos agora: o custo aparece por departamento')
+  if (emp.error) limitacoes.push('regime tributário não foi lido agora: INSS patronal não calculado')
+  if (cf.error) limitacoes.push('Custos Fixos não foi lido agora: a comparação com o financeiro ficou de fora')
+  const ponte = cf.error ? null : compararComFinanceiro(r.custo_total_mensal, custosFixosNoMes(cf.data as CustoFixo[], hoje.slice(0, 7)).total_ativo)
+  return { r: { ...r, limitacoes }, ponte, regime, atividadeFiscal: e?.atividade_fiscal ?? null, contratosAtivos: ativos.length }
 }

@@ -8,16 +8,12 @@ import { Users } from "lucide-react";
 import { CanvasBox } from "../CanvasBox";
 import { createBrowserClient } from "../../lib/supabaseBrowser";
 import { obterEmpresaAtiva } from "../../lib/empresaHelpers";
-import { lerTodas } from "../../lib/lerTodas";
 import { hojeISO } from "../../lib/datas";
 import { lerPodeRh } from "../../lib/rhAcesso";
-import { contratoAtual } from "../../lib/rhIA";
-import { custoPessoal, compararComFinanceiro, regimeDaEmpresa, type SalarioVigente } from "../../lib/rhCustoPessoal";
-import { custosFixosNoMes, type CustoFixo } from "../../lib/financeiro/calculos";
+import { lerCustoPessoal, type custoPessoal, type compararComFinanceiro } from "../../lib/rhCustoPessoal";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 type Lang = "pt" | "en" | "es";
-type Linha = Record<string, any>;
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export function CustoPessoalCard({ lang, temaClaro, agrupar = "departamento", ondeEsta }: { lang: Lang; temaClaro: boolean; agrupar?: "departamento" | "centro"; ondeEsta?: "custos-fixos" | "centros-custo" | "rh" }) {
@@ -29,26 +25,10 @@ export function CustoPessoalCard({ lang, temaClaro, agrupar = "departamento", on
     const pode = await lerPodeRh(supabase, eid, ["ver", "salario"]);
     if (!pode) { setD({ estado: "erro" }); return; }
     if (!pode.ver || !pode.salario) { setD({ estado: "sem_acesso" }); return; }
-    const ler = (t: string, cols: string, lixeira: boolean) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", eid); return (lixeira ? q.is("excluido_em", null) : q).order("id"); });
-    const hoje = hojeISO();
-    const [cs, ks, rs, ds, cc, emp, cf] = await Promise.all([
-      ler("rh_colaboradores", "id, situacao", true),
-      ler("rh_contratos", "id, colaborador_id, cargo_id, departamento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento", false),
-      ler("rh_remuneracoes", "id, contrato_id, vigencia_inicio, und_sal_fixo, valor", false),
-      ler("rh_departamentos", "id, nome, centro_custo_id", true),
-      supabase.from("centros_custo").select("id, nome").eq("empresa_id", eid),
-      supabase.from("empresas").select("regime_tributario, atividade_fiscal").eq("id", eid).maybeSingle(),
-      supabase.from("custos_fixos").select("id, descricao, categoria, valor_mensal, data_inicio, data_fim, created_at").eq("empresa_id", eid).eq("categoria", "Folha de pagamento"),
-    ]);
-    if ([cs, ks, rs, ds].some((x) => x.error)) { setD({ estado: "erro" }); return; }
-    const vivos = new Set((cs.data as Linha[]).filter((c) => c.situacao === "ativo" || c.situacao === "afastado").map((c) => c.id));
-    const ativos = [...contratoAtual(ks.data as never[] as { id: string; colaborador_id: string; cargo_id: string | null; departamento_id: string | null; data_admissao: string; data_termino: string | null; experiencia: boolean; data_desligamento: string | null; cod_categ: string }[]).values()]
-      .filter((k) => vivos.has(k.colaborador_id) && !k.data_desligamento);
-    const sal = new Map<string, SalarioVigente>();
-    for (const x of [...(rs.data as Linha[])].filter((x) => x.vigencia_inicio <= hoje).sort((a, b) => String(b.vigencia_inicio).localeCompare(String(a.vigencia_inicio)))) if (!sal.has(x.contrato_id)) sal.set(x.contrato_id, { und_sal_fixo: Number(x.und_sal_fixo), valor: Number(x.valor) });
-    const r = custoPessoal({ contratos: ativos, salario: sal, regime: regimeDaEmpresa((emp.data as Linha | null)?.regime_tributario), atividadeFiscal: (emp.data as Linha | null)?.atividade_fiscal,
-      departamentos: new Map((ds.data as Linha[]).map((x) => [x.id, { nome: x.nome, centro_custo_id: x.centro_custo_id }])), centros: new Map(((cc.data ?? []) as Linha[]).map((x) => [x.id, x.nome])) });
-    setD({ estado: "ok", r, ponte: cf.error ? null : compararComFinanceiro(r.custo_total_mensal, custosFixosNoMes(cf.data as CustoFixo[], hoje.slice(0, 7)).total_ativo) });
+    try {
+      const { r, ponte } = await lerCustoPessoal(supabase, eid, hojeISO());
+      setD({ estado: "ok", r, ponte });
+    } catch { setD({ estado: "erro" }); }
   })(); }, []);
 
   const verde = temaClaro ? "#0f7a5a" : "#2ecc9b", texto2 = temaClaro ? "#374151" : "var(--axi-text-secondary)", titulo = temaClaro ? "#101b3d" : "var(--axi-text-primary)";

@@ -3,7 +3,7 @@
 // leva a uma delas). A aba aberta fica marcada; a conversa com a Inteligência Axioma (tela "rh") é a mesma em todas.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Building2, Stethoscope, FileCheck2, CalendarClock, Send, Scale } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Stethoscope, FileCheck2, CalendarClock, Send, Scale, Calculator } from "lucide-react";
 
 type Lang = "pt" | "en" | "es";
 const ABAS = [
@@ -17,6 +17,7 @@ const ROTINAS = [
   { rota: "/rh/contratos", Icone: CalendarClock, nome: { pt: "Contratos a vencer", en: "Expiring contracts", es: "Contratos por vencer" } },
   { rota: "/rh/esocial", Icone: Send, nome: { pt: "Central do eSocial", en: "eSocial center", es: "Central del eSocial" } },
   { rota: "/rh/obrigacoes", Icone: Scale, nome: { pt: "Obrigações da empresa", en: "Company obligations", es: "Obligaciones de la empresa" } },
+  { rota: "/rh/simular", Icone: Calculator, nome: { pt: "Simular contratação", en: "Hiring simulator", es: "Simular contratación" } },
 ];
 // Tocar na aba em que já está: com filtro ou ficha aberta pelo endereço, volta à tela limpa; sem nada, sobe ao topo (nunca "não acontece nada").
 const voltarAoTopo = (rota: string) => (e: React.MouseEvent) => {
