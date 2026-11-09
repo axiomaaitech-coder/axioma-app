@@ -184,7 +184,7 @@ export default function RhPainelPage() {
                 {painel.alertas.length === 0 ? (
                   <p className="text-sm font-semibold py-4" style={{ color: VERDE }}>{L("Nenhum risco encontrado nos dados de hoje.", "No risk found in today's data.", "Ningún riesgo encontrado en los datos de hoy.")}</p>
                 ) : <div className="space-y-2">{painel.alertas.map((a, i) => <CartaoAlerta key={a.id} a={a} i={i} />)}</div>}
-                {painel.proximos.map((p) => <p key={p.pt} className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>⚠ {p[lang]}</p>)}
+                {painel.proximos.map((p) => <Link key={p.pt} href="/rh/obrigacoes" className="block text-xs mt-2 font-semibold underline" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>⚠ {p[lang]} ›</Link>)}
                 {(!pode.saude || !pode.pessoais) && <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Alguns alertas (exame admissional, documentos) só aparecem para quem tem liberação de saúde ou de dados pessoais.", "Some alerts (pre-employment exam, documents) only show for those with health or personal-data access.", "Algunas alertas (examen de admisión, documentos) solo aparecen para quien tiene salud o datos personales habilitados.")}</p>}
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L("Valores de multa não são estimados: dependem da fiscalização e da tabela vigente.", "Fine amounts are not estimated: they depend on inspection and the current table.", "Los montos de multa no se estiman: dependen de la fiscalización y la tabla vigente.")}</p>
               </CanvasBox>
@@ -195,7 +195,9 @@ export default function RhPainelPage() {
                     <p className="text-sm font-black" style={{ color: temaClaro ? NAVY : "var(--axi-text-primary)", ...FONTE_EXEC }}>{L("Ativos por departamento", "Active by department", "Activos por departamento")}</p>
                     <Link href="/rh/colaboradores" className="underline font-bold whitespace-nowrap" style={{ color: VERDE, fontSize: 12 }}>{L("Ver colaboradores ›", "See employees ›", "Ver colaboradores ›")}</Link>
                   </div>
-                  <ReactECharts option={optDep} style={{ height: 260, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+                  <ReactECharts option={{ ...optDep, series: optDep.series.map((x: Record<string, any>) => ({ ...x, cursor: "pointer" })) }} style={{ height: 260, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }}
+                    onEvents={{ click: (p: { dataIndex: number }) => { const id = depEntradas[p.dataIndex]?.[0]; if (id) router.push(`/rh/colaboradores?filtro=depto:${id}`); } }} />
+                  <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{L("Toque numa barra para ver as pessoas do departamento.", "Tap a bar to see the people in that department.", "Toque una barra para ver las personas del departamento.")}</p>
                 </CanvasBox>
               )}
               <p id="formula" className="text-xs scroll-mt-28" style={{ color: TEXTO_SEC }}>{L("Rotatividade do mês = ((admissões + desligamentos) ÷ 2) ÷ ativos de hoje × 100.", "Monthly turnover = ((hires + terminations) ÷ 2) ÷ today's active × 100.", "Rotación del mes = ((admisiones + desvinculaciones) ÷ 2) ÷ activos de hoy × 100.")}</p>

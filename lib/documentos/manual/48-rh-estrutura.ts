@@ -34,6 +34,7 @@ const pt: DocumentoAxioma = {
       '**Lixeira**: manda o cadastro para a lixeira na hora, sem senha. Ele pode ser **recuperado por 90 dias**; depois some de vez.',
       'O que **já foi enviado ao eSocial** não vai para a lixeira: informe **Vale até** — no governo, a correção é por fim de validade.',
       '**Lixeira (90 dias)**, no canto do quadro: mostra o que foi apagado, quantos dias faltam e o botão **Recuperar**.',
+      'Tocar em qualquer informação da linha que não tenha link próprio (validade, CNPJ, situação) abre o próprio cadastro: para editar, se for rascunho, ou para ver os detalhes.',
     ] },
     { nota: '**Casos especiais** (cooperativa, obra, órgão público, entidade isenta, operador portuário): toque em **Mostrar casos especiais** dentro do formulário.' },
 
@@ -83,6 +84,7 @@ const en: DocumentoAxioma = {
       '**Trash**: moves the record to the trash right away, no password. It can be **recovered for 90 days**; then it is deleted for good.',
       'What **was already sent to eSocial** cannot go to the trash: set **Valid until** — the government corrects by ending validity.',
       '**Trash (90 days)**, at the corner of the panel: shows deleted items, days left and the **Recover** button.',
+      'Tapping any item on the row without its own link (validity, CNPJ, status) opens the record itself: to edit, if it is a draft, or to see the details.',
     ] },
     { nota: '**Special cases** (cooperative, construction site, public body, exempt entity, port operator): tap **Show special cases** inside the form.' },
     { h1: 'Filling in and AI' },
@@ -130,6 +132,7 @@ const es: DocumentoAxioma = {
       '**Papelera**: envía el registro a la papelera en el momento, sin contraseña. Se puede **recuperar durante 90 días**; después se elimina definitivamente.',
       'Lo que **ya fue enviado al eSocial** no va a la papelera: informe **Vigente hasta** — en el gobierno se corrige por fin de vigencia.',
       '**Papelera (90 días)**, en la esquina del panel: muestra lo borrado, los días que faltan y el botón **Recuperar**.',
+      'Tocar cualquier dato de la fila sin enlace propio (validez, CNPJ, situación) abre el propio registro: para editar, si es borrador, o para ver los detalles.',
     ] },
     { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario.' },
     { h1: 'Llenado e IA' },

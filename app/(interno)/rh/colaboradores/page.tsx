@@ -172,6 +172,7 @@ export default function RhColaboradoresPage() {
     if (f === "admitidos_mes") r = await base().gte("data_admissao", ini).lte("data_admissao", fim);
     else if (f === "desligados_mes") r = await base().gte("data_desligamento", ini).lte("data_desligamento", fim);
     else if (f === "sem_cargo") r = await base().is("cargo_id", null).is("data_desligamento", null);
+    else if (f.startsWith("depto:")) { const d = f.slice(6); r = d === "sem" ? await base().is("departamento_id", null).is("data_desligamento", null) : await base().eq("departamento_id", d).is("data_desligamento", null); }
     else if (f === "sem_salario") {
       const [k, rm] = await Promise.all([base().is("data_desligamento", null), supabase.from("rh_remuneracoes").select("contrato_id").eq("empresa_id", empresaId!)]);
       if (k.error || rm.error) { avisar(L("Não foi possível aplicar o filtro agora.", "Could not apply the filter now.", "No se pudo aplicar el filtro ahora.")); return null; }
@@ -573,7 +574,7 @@ export default function RhColaboradoresPage() {
 
               {filtroEsp && !verLixeira && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" style={{ background: temaClaro ? "rgba(16,27,61,0.06)" : "rgba(46,204,155,0.08)", border: `1px solid ${BORDA}`, color: "var(--axi-text-primary)" }}>
-                  {L("Filtro do Painel", "Panel filter", "Filtro del Panel")}: <b>{({ admitidos_mes: L("admitidos neste mês", "hired this month", "admitidos este mes"), desligados_mes: L("desligados neste mês", "terminated this month", "desvinculados este mes"), sem_cargo: L("ativos sem cargo", "active without job title", "activos sin cargo"), sem_salario: L("ativos sem salário", "active without salary", "activos sin salario") } as Record<string, string>)[filtroEsp] ?? filtroEsp}</b>
+                  {L("Filtro do Painel", "Panel filter", "Filtro del Panel")}: <b>{({ admitidos_mes: L("admitidos neste mês", "hired this month", "admitidos este mes"), desligados_mes: L("desligados neste mês", "terminated this month", "desvinculados este mes"), sem_cargo: L("ativos sem cargo", "active without job title", "activos sin cargo"), sem_salario: L("ativos sem salário", "active without salary", "activos sin salario") } as Record<string, string>)[filtroEsp] ?? (filtroEsp.startsWith("depto:") ? (filtroEsp === "depto:sem" ? L("sem departamento", "no department", "sin departamento") : `${L("departamento", "department", "departamento")} ${ref.deps.find((d: Linha) => d.id === filtroEsp.slice(6))?.nome ?? ""}`) : filtroEsp)}</b>
                   <span style={{ color: TEXTO_SEC }}>{L("— toque no nome para abrir e resolver", "— tap the name to open and fix", "— toque el nombre para abrir y resolver")}</span>
                   <button type="button" onClick={() => { setFiltroEsp(null); setFiltroSit("ativo"); setPagina(0); window.history.replaceState(null, "", "/rh/colaboradores"); }} className="ml-auto flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff" }}><X size={13} /> {L("Limpar filtro", "Clear filter", "Limpiar filtro")}</button>
                 </div>
@@ -601,11 +602,11 @@ export default function RhColaboradoresPage() {
                           return (
                             <tr key={c.id} style={{ borderBottom: `1px solid ${BORDA}` }}>
                               <td className="px-3 py-3 text-sm font-bold" style={{ color: "var(--axi-text-primary)" }}>{verLixeira ? (c.nome_social || c.nome) : <button type="button" onClick={() => void abrirEdicao(c)} className="text-left underline-offset-2 hover:underline" title={L("Abrir a ficha", "Open the record", "Abrir la ficha")}>{c.nome_social || c.nome}</button>}</td>
-                              <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{k.matricula ?? "—"}</td>
-                              <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{nomeDe(ref.cargos, k.cargo_id)}</td>
-                              <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{nomeDe(ref.deps, k.departamento_id)}</td>
-                              <td className="px-3 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{dataBR(k.data_admissao)}</td>
-                              <td className="px-3 py-3"><span className="text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={{ background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: c.situacao === "ativo" ? VERDE : TEXTO_SEC }}>{nomeSit(c.situacao)}</span></td>
+                              <td onClick={verLixeira ? undefined : () => void abrirPorId(c.id, "contrato")} title={verLixeira ? undefined : L("Abrir o contrato na ficha", "Open the contract on the record", "Abrir el contrato en la ficha")} className={`px-3 py-3 text-sm${verLixeira ? "" : " cursor-pointer hover:underline"}`} style={{ color: TEXTO_SEC }}>{k.matricula ?? "—"}</td>
+                              <td onClick={verLixeira ? undefined : () => void abrirPorId(c.id, "contrato")} title={verLixeira ? undefined : L("Abrir o contrato na ficha", "Open the contract on the record", "Abrir el contrato en la ficha")} className={`px-3 py-3 text-sm${verLixeira ? "" : " cursor-pointer hover:underline"}`} style={{ color: TEXTO_SEC }}>{nomeDe(ref.cargos, k.cargo_id)}</td>
+                              <td onClick={verLixeira ? undefined : () => void abrirPorId(c.id, "contrato")} title={verLixeira ? undefined : L("Abrir o contrato na ficha", "Open the contract on the record", "Abrir el contrato en la ficha")} className={`px-3 py-3 text-sm${verLixeira ? "" : " cursor-pointer hover:underline"}`} style={{ color: TEXTO_SEC }}>{nomeDe(ref.deps, k.departamento_id)}</td>
+                              <td onClick={verLixeira ? undefined : () => void abrirPorId(c.id, "contrato")} title={verLixeira ? undefined : L("Abrir o contrato na ficha", "Open the contract on the record", "Abrir el contrato en la ficha")} className={`px-3 py-3 text-sm${verLixeira ? "" : " cursor-pointer hover:underline"} whitespace-nowrap`} style={{ color: TEXTO_SEC }}>{dataBR(k.data_admissao)}</td>
+                              <td onClick={verLixeira ? undefined : () => void abrirPorId(c.id, "contrato")} title={verLixeira ? undefined : L("Abrir o contrato na ficha", "Open the contract on the record", "Abrir el contrato en la ficha")} className={`px-3 py-3${verLixeira ? "" : " cursor-pointer"}`}><span className="text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={{ background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: c.situacao === "ativo" ? VERDE : TEXTO_SEC }}>{nomeSit(c.situacao)}</span></td>
                               <td className="px-3 py-3 text-xs">
                                 {verLixeira ? <span style={{ color: TEXTO_SEC }}>{L(`${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} dias`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} days`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} días`)}</span>
                                   : dExp !== null && dExp >= 0 && dExp <= 30 ? <button type="button" onClick={() => void abrirPorId(c.id, "contrato")} className="flex items-center gap-1 font-bold underline text-left" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }} title={L("Abrir o contrato para decidir", "Open the contract to decide", "Abrir el contrato para decidir")}><AlertTriangle size={13} /> {L(`Experiência termina em ${dExp} dias`, `Probation ends in ${dExp} days`, `Experiencia termina en ${dExp} días`)} ›</button>
@@ -640,7 +641,7 @@ export default function RhColaboradoresPage() {
               </CanvasBox>
               <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Inteligência Axioma — Especialista de RH", "Axioma Intelligence — HR Specialist", "Inteligencia Axioma — Especialista de RR. HH.")}
                 sugestoes={[L("Quantos colaboradores ativos temos por departamento?", "How many active employees per department?", "¿Cuántos colaboradores activos por departamento?"), L("Quem está com a experiência terminando?", "Whose probation is ending?", "¿A quién se le termina la experiencia?"), L("Quanto somam os salários-base?", "What do base salaries add up to?", "¿Cuánto suman los salarios base?")]} />
-              {ref.cargos.length === 0 && pode.editar && <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Dica: cadastre cargos, departamentos e filiais em RH · Estrutura para escolher no contrato.", "Tip: register job titles, departments and branches in HR · Structure to pick them in the contract.", "Consejo: registre cargos, departamentos y sucursales en RR. HH. · Estructura para elegirlos en el contrato.")} <Link href="/rh/estrutura" className="underline font-bold whitespace-nowrap" style={{ color: VERDE }}>{L("Abrir RH · Estrutura ›", "Open HR · Structure ›", "Abrir RR. HH. · Estructura ›")}</Link></p>}
+              {ref.cargos.length === 0 && pode.editar && <p className="text-xs" style={{ color: TEXTO_SEC }}>{L("Dica: cadastre cargos, departamentos e filiais em RH · Estrutura para escolher no contrato.", "Tip: register job titles, departments and branches in HR · Structure to pick them in the contract.", "Consejo: registre cargos, departamentos y sucursales en RR. HH. · Estructura para elegirlos en el contrato.")} <Link href="/rh/estrutura?aba=cargos" className="underline font-bold whitespace-nowrap" style={{ color: VERDE }}>{L("Abrir RH · Estrutura ›", "Open HR · Structure ›", "Abrir RR. HH. · Estructura ›")}</Link></p>}
             </>
           )}
         </div>
@@ -1155,6 +1156,14 @@ const ONDE_NOME: Record<Pendencia["onde"], [string, string, string]> = {
   salario: ["Salário, acima", "Salary, above", "Salario, arriba"], cargo: ["RH · Estrutura → Cargos", "HR · Structure → Job titles", "RR. HH. · Estructura → Cargos"],
   estrutura: ["RH · Estrutura → Filiais", "HR · Structure → Branches", "RR. HH. · Estructura → Sucursales"], empregador: ["RH · Estrutura → Empregador", "HR · Structure → Employer", "RR. HH. · Estructura → Empleador"],
 };
+// "Onde corrigir" de cada pendência do eSocial vira caminho: Estrutura abre na aba certa; parte da ficha rola até ela e acende.
+const ABA_ONDE: Partial<Record<Pendencia["onde"], string>> = { cargo: "cargos", estrutura: "filiais", empregador: "empregador" };
+const SECAO_ONDE: Partial<Record<Pendencia["onde"], string>> = { pessoal: "pessoais", contrato: "contrato", salario: "salario", pcd: "pcd", dependentes: "dependentes" };
+function OndeCorrigir({ onde, i }: { onde: Pendencia["onde"]; i: number }) {
+  const txt = `${ONDE_NOME[onde][i]} ›`;
+  if (ABA_ONDE[onde]) return <Link href={`/rh/estrutura?aba=${ABA_ONDE[onde]}`} className="underline font-semibold">{txt}</Link>;
+  return <button type="button" className="underline font-semibold" onClick={() => { const el = document.getElementById(`sec-${SECAO_ONDE[onde]}`); if (!el) return; el.scrollIntoView({ behavior: "smooth", block: "start" }); el.style.boxShadow = "0 0 0 2px #2ecc9b"; setTimeout(() => { el.style.boxShadow = ""; }, 2000); }}>{txt}</button>;
+}
 function baixarXml(nome: string, xml: string) {
   const url = URL.createObjectURL(new Blob([xml], { type: "application/xml;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
@@ -1283,7 +1292,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
             <div className="rounded-xl p-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
               <p className="font-bold mb-1" style={{ color: LARANJA }}>{L(`Falta(m) ${pend.length} item(ns) para preparar:`, `${pend.length} item(s) missing to prepare:`, `Falta(n) ${pend.length} ítem(s) para preparar:`)}</p>
               <ul className="text-xs space-y-1">
-                {pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>({["cargo", "estrutura", "empregador"].includes(x.onde) ? <Link href="/rh/estrutura" className="underline">{ONDE_NOME[x.onde][i]} ›</Link> : ONDE_NOME[x.onde][i]})</span></li>)}
+                {pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>(<OndeCorrigir onde={x.onde} i={i} />)</span></li>)}
               </ul>
             </div>
           ) : null}
@@ -1328,7 +1337,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
                       </>)}
                     </div>
                     {pend.length > 0 ? (
-                      <ul className="text-xs space-y-1">{pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>({ONDE_NOME[x.onde][i]})</span></li>)}</ul>
+                      <ul className="text-xs space-y-1">{pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>(<OndeCorrigir onde={x.onde} i={i} />)</span></li>)}</ul>
                     ) : pode.editar && (
                       <BotaoAcao executar={() => prepararAlteracao(tipo)} texto={L(`Preparar ${tipo} e baixar`, `Prepare ${tipo} and download`, `Preparar ${tipo} y descargar`)} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(MENTA)} />
                     )}
@@ -1673,7 +1682,7 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar,
                 {pode.editar && !preparado && ctx.salvo && <button type="button" onClick={() => void apagarCalculo()} className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}><Trash2 size={14} /> {L("Apagar o cálculo", "Delete the calculation", "Borrar el cálculo")}</button>}
               </div>
               {pode.editar && !preparado && ctx.salvo && (pend2299.length ? (
-                <ul className="text-xs space-y-1"><li className="font-bold" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("Para preparar o S-2299 falta:", "To prepare the S-2299 you still need:", "Para preparar el S-2299 falta:")}</li>{pend2299.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>}</li>)}</ul>
+                <ul className="text-xs space-y-1"><li className="font-bold" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("Para preparar o S-2299 falta:", "To prepare the S-2299 you still need:", "Para preparar el S-2299 falta:")}</li>{pend2299.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>(<OndeCorrigir onde={x.onde} i={lang === "en" ? 1 : lang === "es" ? 2 : 0} />)</span></li>)}</ul>
               ) : (
                 <BotaoAcao executar={preparar} texto={L("Preparar o S-2299 e desligar", "Prepare the S-2299 and terminate", "Preparar el S-2299 y desvincular")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />
               ))}

@@ -558,7 +558,8 @@ export default function RhEstruturaPage() {
                         ) : linhasVis.map((l, i) => (
                           <tr key={l.id} style={{ borderBottom: `1px solid ${BORDA}` }}>
                             {cfg.colunas.map((c, j) => (
-                              <td key={j} className="px-3 md:px-4 py-3 text-sm" style={{ color: j === 0 ? "var(--axi-text-primary)" : TEXTO_SEC, fontWeight: j === 0 ? 700 : 400 }}>
+                              <td key={j} className={`px-3 md:px-4 py-3 text-sm${!verLixeira && !(c.ir && c.ir(l, dados, lang)) ? " cursor-pointer" : ""}`} style={{ color: j === 0 ? "var(--axi-text-primary)" : TEXTO_SEC, fontWeight: j === 0 ? 700 : 400 }}
+                                onClick={!verLixeira && !(c.ir && c.ir(l, dados, lang)) ? () => irPara({ editar: l }) : undefined}>
                                 {(() => { const d = !verLixeira && c.ir ? c.ir(l, dados, lang) : null; const valor = c.v(l, dados, lang);
                                   return d ? <button onClick={() => irPara(d)} className="text-left underline decoration-dotted underline-offset-4 hover:opacity-80" style={{ color: j === 0 ? "var(--axi-text-primary)" : temaClaro ? "#0f7a5a" : "#2ecc9b" }}>{valor}{"externo" in d ? " ↗" : " ›"}</button> : valor; })()}
                               </td>
@@ -807,7 +808,7 @@ function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, a
       {membros === null ? (
         <div className="flex justify-center py-8"><div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : membros.length === 0 ? (
-        <p className="text-sm py-6 text-center" style={{ color: TEXTO_SEC }}>{L("Ninguém na equipe ainda. Convide pessoas em Equipe.", "No one on the team yet. Invite people in Team.", "Nadie en el equipo aún. Invite personas en Equipo.")}</p>
+        <p className="text-sm py-6 text-center" style={{ color: TEXTO_SEC }}>{L("Ninguém na equipe ainda.", "No one on the team yet.", "Nadie en el equipo aún.")} <Link href="/equipe" className="underline font-bold">{L("Convidar pessoas em Equipe ›", "Invite people in Team ›", "Invitar personas en Equipo ›")}</Link></p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px]">

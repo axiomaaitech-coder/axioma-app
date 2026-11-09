@@ -3,6 +3,7 @@
 // tema Claro/Escuro, idioma, letreiro e checagem de acesso (rh_pode). Cada tela só escreve o conteúdo dela.
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import ModuloLayout from "../ModuloLayout";
 import { CanvasBox } from "../CanvasBox";
 import AvisoAxioma from "../AvisoAxioma";
@@ -72,7 +73,7 @@ export function RotinaRh({ titulo, subtitulo, letreiro, exigir = [], children }:
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: cor.verde, flexShrink: 0 }} />
                 <p className="text-sm" style={{ color: "var(--axi-text-primary)" }}>{!pode.ver
                   ? L("Você não tem acesso ao RH desta Empresa. Peça ao Proprietário, CEO, Sócio ou Admin para liberar em RH · Estrutura e acessos → Acessos do RH.", "You do not have access to HR for this company. Ask the Owner, CEO, Partner or Admin to grant it in HR · Structure and access → HR access.", "No tiene acceso a RR. HH. de esta empresa. Pida al Propietario, CEO, Socio o Admin que lo habilite en RR. HH. · Estructura y accesos → Accesos de RR. HH.")
-                  : L(`Esta tela precisa da liberação de ${falta.map((f) => ({ pessoais: "dados pessoais", salario: "salário", saude: "saúde" })[f]).join(" e ")}. Peça em RH · Estrutura e acessos → Acessos do RH.`, `This screen needs ${falta.map((f) => ({ pessoais: "personal data", salario: "salary", saude: "health" })[f]).join(" and ")} access. Ask in HR · Structure and access → HR access.`, `Esta pantalla necesita habilitación de ${falta.map((f) => ({ pessoais: "datos personales", salario: "salario", saude: "salud" })[f]).join(" y ")}. Pídala en RR. HH. · Estructura y accesos → Accesos de RR. HH.`)}</p>
+                  : L(`Esta tela precisa da liberação de ${falta.map((f) => ({ pessoais: "dados pessoais", salario: "salário", saude: "saúde" })[f]).join(" e ")}. Peça em RH · Estrutura e acessos → Acessos do RH.`, `This screen needs ${falta.map((f) => ({ pessoais: "personal data", salario: "salary", saude: "health" })[f]).join(" and ")} access. Ask in HR · Structure and access → HR access.`, `Esta pantalla necesita habilitación de ${falta.map((f) => ({ pessoais: "datos personales", salario: "salario", saude: "salud" })[f]).join(" y ")}. Pídala en RR. HH. · Estructura y accesos → Accesos de RR. HH.`)}{falta.length > 0 && pode.ver && <> <Link href="/rh/estrutura?aba=acessos" className="underline font-bold">{L("Abrir Acessos do RH ›", "Open HR access ›", "Abrir Accesos de RR. HH. ›")}</Link></>}</p>
               </div>
             </CanvasBox>
           ) : (<>
