@@ -91,9 +91,9 @@ export default function RhPainelPage() {
 
   const k = painel?.kpis;
   const cards = k ? [
-    { l: L("Ativos", "Active", "Activos"), v: String(k.ativos), c: VERDE, ir: "/rh/colaboradores" },
-    { l: L("Admissões no mês", "Hires this month", "Admisiones del mes"), v: String(k.admissoes_mes), c: temaClaro ? NAVY : "#7dd3fc", ir: "/rh/colaboradores" },
-    { l: L("Desligamentos no mês", "Terminations this month", "Desvinculaciones del mes"), v: String(k.desligamentos_mes), c: TEXTO_SEC, ir: "/rh/colaboradores" },
+    { l: L("Ativos", "Active", "Activos"), v: String(k.ativos), c: VERDE, ir: "/rh/colaboradores?filtro=ativo" },
+    { l: L("Admissões no mês", "Hires this month", "Admisiones del mes"), v: String(k.admissoes_mes), c: temaClaro ? NAVY : "#7dd3fc", ir: "/rh/colaboradores?filtro=admitidos_mes" },
+    { l: L("Desligamentos no mês", "Terminations this month", "Desvinculaciones del mes"), v: String(k.desligamentos_mes), c: TEXTO_SEC, ir: "/rh/colaboradores?filtro=desligados_mes" },
     { l: L("Rotatividade do mês", "Monthly turnover", "Rotación del mes"), v: k.rotatividade_mes_pct == null ? "—" : `${String(k.rotatividade_mes_pct).replace(".", ",")}%`, c: temaClaro ? NAVY : "#f59e0b", ir: "#formula" },
     ...(k.salarios_base_mensais != null ? [{ l: L("Salários-base mensais", "Monthly base salaries", "Salarios base mensuales"), v: `R$ ${fBRL2(k.salarios_base_mensais)}`, c: VERDE, ir: "/rh/colaboradores" }] : []),
   ] : [];
@@ -122,6 +122,8 @@ export default function RhPainelPage() {
   const resumoShare = [`🚀 AXIOMA AI.TECH — ${L("RH · Painel", "HR · Panel", "RR. HH. · Panel")}`, `• ${L("Ativos", "Active", "Activos")}: ${k?.ativos ?? 0}`,
     `• ${L("Alertas críticos", "Critical alerts", "Alertas críticas")}: ${criticos} · ${L("atenção", "attention", "atención")}: ${atencao}`, ...(painel?.alertas ?? []).filter((a) => a.nivel !== "info").map((a) => `– ${a.titulo[lang]} (${a.total})`), `_axiomaai.com.br_`].join("\n");
 
+  // parte da ficha que cada alerta abre quando se toca no nome da pessoa
+  const SECAO_ALERTA: Record<string, string> = { sem_aso: "exames", docs_pendentes: "documentos", sem_salario: "salario", esocial_admissao: "esocial", sem_empregador: "esocial" };
   const CartaoAlerta = ({ a, i }: { a: Alerta; i: number }) => {
     const n = NIVEL[a.nivel];
     return (
@@ -130,12 +132,12 @@ export default function RhPainelPage() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--axi-text-primary)" }}><n.Icone size={16} style={{ color: n.cor, flexShrink: 0 }} /> {a.titulo[lang]}{a.total > 0 && <span className="text-xs px-2 py-0.5 rounded-full font-black" style={{ background: `${n.cor}22`, color: n.cor }}>{a.total}</span>}</p>
-            {a.pessoas.length > 0 && <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{a.pessoas.join(" · ")}{a.total > a.pessoas.length ? ` ${L(`e mais ${a.total - a.pessoas.length}`, `and ${a.total - a.pessoas.length} more`, `y ${a.total - a.pessoas.length} más`)}` : ""}</p>}
+            {a.pessoas.length > 0 && <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{a.pessoas.map((p, j) => <span key={j}>{j > 0 && " · "}<Link href={`/rh/colaboradores?abrir=${a.ids[j]}&secao=${SECAO_ALERTA[a.id] ?? "contrato"}`} className="underline hover:opacity-80" title={L("Abrir a ficha", "Open the record", "Abrir la ficha")}>{p}</Link></span>)}{a.total > a.pessoas.length ? ` ${L(`e mais ${a.total - a.pessoas.length}`, `and ${a.total - a.pessoas.length} more`, `y ${a.total - a.pessoas.length} más`)}` : ""}</p>}
             <p className="text-xs mt-1 font-semibold" style={{ color: TEXTO_SEC }}>{L("Base", "Basis", "Base")}: {a.base}</p>
           </div>
-          <motion.button whileHover={{ x: 3 }} whileTap={{ scale: 0.96 }} onClick={() => router.push(a.acao.rota)} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: BTN, color: "#fff" }}>
+          <Link href={a.total === 1 && a.ids[0] ? `/rh/colaboradores?abrir=${a.ids[0]}&secao=${SECAO_ALERTA[a.id] ?? "contrato"}` : a.acao.rota} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition-transform hover:translate-x-0.5 active:scale-95" style={{ background: BTN, color: "#fff" }}>
             {a.acao.texto[lang]} <ArrowRight size={13} />
-          </motion.button>
+          </Link>
         </div>
       </motion.div>
     );

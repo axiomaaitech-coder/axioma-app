@@ -41,7 +41,7 @@ assert.ok(!r98.alertas.some((a) => a.id === 'cota_pcd')); assert.ok(r98.proximos
 assert.ok(P.painelRh({ ...base, colabs: muitos(150) as never, contratos: ks(150), itens: [] }).alertas.some((a) => a.id === 'cota_pcd' && /3 vaga/.test(a.titulo.pt)))
 // empregador: sem cadastro = crítico com os vivos; com cadastro ou não conferido = nada
 const semEmp = P.painelRh({ ...base, temEmpregador: false }).alertas.find((a) => a.id === 'sem_empregador')
-assert.ok(semEmp && semEmp.nivel === 'critico' && semEmp.total >= 3 && semEmp.acao.rota === '/rh/estrutura')
+assert.ok(semEmp && semEmp.nivel === 'critico' && semEmp.total >= 3 && semEmp.acao.rota === '/rh/estrutura?aba=empregador' && semEmp.ids.length === semEmp.pessoas.length)
 assert.equal(P.painelRh({ ...base, temEmpregador: true }).alertas.find((a) => a.id === 'sem_empregador'), undefined)
 assert.equal(r.alertas.find((a) => a.id === 'sem_empregador'), undefined, 'não conferido não acusa')
 // preparado ou recusado também está fora do prazo enquanto o contador não envia
@@ -49,4 +49,13 @@ const ksPrep = (contratos as Record<string, unknown>[]).map((x) => (x.id === 'k3
 assert.deepEqual(P.painelRh({ ...base, contratos: ksPrep }).alertas.find((a) => a.id === 'esocial_admissao')!.pessoas, ['Caio'], 'preparado sem envio alerta')
 const ksAceito = (contratos as Record<string, unknown>[]).map((x) => (x.id === 'k3' ? { ...x, situacao_esocial: 'aceito' } : x)) as never
 assert.equal(P.painelRh({ ...base, contratos: ksAceito }).alertas.find((a) => a.id === 'esocial_admissao'), undefined, 'aceito não alerta')
+// auditoria 09/11: todo alerta tem destino próprio (nenhum volta para /rh) e cada nome tem a ficha (ids na mesma ordem)
+for (const a of r.alertas) { assert.notEqual(a.acao.rota, '/rh', a.id); assert.equal(a.ids.length, a.pessoas.length, a.id) }
+assert.deepEqual(id('sem_aso')!.ids, ['b', 'c']); assert.equal(id('sem_aso')!.acao.rota, '/rh/exames'); assert.equal(id('experiencia_vencida')!.acao.rota, '/rh/contratos')
+// exame só agendado ainda não libera (NR-7); dispensado libera
+const comAgenda = [...itens, { colaborador_id: 'b', tipo: 'aso_admissional', categoria: 'exame', situacao: 'agendado' }, { colaborador_id: 'c', tipo: 'aso_admissional', categoria: 'exame', situacao: 'dispensado' }]
+assert.deepEqual(P.painelRh({ ...base, itens: comAgenda }).alertas.find((a) => a.id === 'sem_aso')!.pessoas, ['Bruno'])
+// porte: pré-admissão não conta; aprendiz (103) contado
+const porte = P.porteRh(colabs.filter((c) => c.situacao !== 'desligado') as never, new Map([['a', k('x1', 'a')], ['b', k('x2', 'b', { cod_categ: '103' })], ['e', k('x3', 'e')]]) as never)
+assert.equal(porte.empregados, 2); assert.equal(porte.aprendizes, 1); assert.equal(porte.maiorEstab, 2)
 console.log('check-rh-painel ok')

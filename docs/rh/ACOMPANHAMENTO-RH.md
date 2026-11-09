@@ -84,3 +84,12 @@ fazia alguns SQLs não gravarem). Teste RH-17 falhas=0. Próximo: S-1010 (verbas
 RH-18 e RH-18B rodados (lotação da Horizonte com terceiros 0000 — a regra do Simples barrou 0115, correto; função das verbas
 ajustada ao índice parcial da lixeira). Cálculo testado à mão (6 casos) e pelo exemplo oficial da Receita. 15 S-1010 e 3 S-2299
 aceitos pelo XSD oficial. Fora desta versão: rescisão do intermitente, verbas de convenção, pensão alimentícia, estabilidades.
+
+## Auditoria de botões (09/11/2026)
+
+RH-19 rodado (exame agendado com data e clínica; conferido 2 · 1). Rotinas novas: Exames, Documentos, Contratos a vencer,
+Central do eSocial, Obrigações. Todo alerta do Painel tem destino; nomes abrem a ficha na parte certa. Manual 51.
+
+## PRÓXIMO (pedido do Elias, 09/11/2026 — depois da auditoria de botões)
+Telas próprias de **Admissões** e **Desligamentos**: listas em ordem alfabética, busca por nome/matrícula/CPF, filtros por
+período, situação no eSocial e motivo; pensadas para empresa grande (paginação no banco). Cada linha abre a ficha da pessoa.

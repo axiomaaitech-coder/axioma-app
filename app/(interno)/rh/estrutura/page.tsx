@@ -305,6 +305,12 @@ export default function RhEstruturaPage() {
     setCarregando(false);
   }
   useEffect(() => { void carregar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Link direto de outra tela do RH: /rh/estrutura?aba=cargos | verbas | acessos …
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get("aba");
+    if (a === "verbas") setVerVerbas(true); else if (a === "acessos") setVerAcessos(true);
+    else if (a && ABAS.some((x) => x.id === a)) setAba(a as Aba);
+  }, []);
 
   async function carregarLixeira() {
     if (!empresaId) return;

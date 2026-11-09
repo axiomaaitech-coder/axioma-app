@@ -52,7 +52,7 @@ begin
   execute 'reset role';
   insert into empresa_usuarios (empresa_id, user_id, papel) values (ALVO, U, 'contabil') on conflict do nothing;
   delete from rh_permissoes where empresa_id = ALVO and user_id = U;
-  insert into rh_permissoes (empresa_id, user_id, ver, pessoais) values (ALVO, U, true, true);
+  insert into rh_permissoes (empresa_id, user_id, ver, ver_pessoais) values (ALVO, U, true, true);
   perform set_config('request.jwt.claims', json_build_object('sub', U, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   select count(*) into c from rh_colaborador_pcd where colaborador_id = C1; if c <> 0 then n := n + 1; falhas := falhas || ' sem_saude_viu_pcd'; end if;

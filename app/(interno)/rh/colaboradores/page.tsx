@@ -71,10 +71,10 @@ function F({ k, r, tipo = "text", opcoes, ajuda, largo, mascara, lista, erro, ao
     </div>
   );
 }
-function Secao({ titulo, children }: { titulo: string; children: ReactNode }) {
+function Secao({ titulo, children, ancora }: { titulo: string; children: ReactNode; ancora?: string }) {
   const c = useContext(FormCtx)!;
   return (
-    <div className="rounded-xl p-3 md:p-4 mt-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+    <div id={ancora ? `sec-${ancora}` : undefined} className="rounded-xl p-3 md:p-4 mt-3 scroll-mt-4 transition-shadow" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
       <p className="text-sm font-black mb-3" style={{ color: c.titulo, ...FONTE_EXEC }}>{titulo}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
     </div>
@@ -115,6 +115,9 @@ export default function RhColaboradoresPage() {
   const [kpi, setKpi] = useState({ ativos: 0, experiencia: 0, pre: 0, desligados: 0 });
   const [carregando, setCarregando] = useState(true);
   const [verLixeira, setVerLixeira] = useState(false);
+  // filtro especial vindo do Painel/Radar (admitidos no mês, sem cargo…): lista só essas pessoas
+  const [filtroEsp, setFiltroEsp] = useState<string | null>(null);
+  const [linkLido, setLinkLido] = useState(false);
   const [form, setForm] = useState<Linha | null>(null);
   const [historico, setHistorico] = useState<Linha[]>([]);
   const [salvando, setSalvando] = useState(false);
@@ -161,12 +164,35 @@ export default function RhColaboradoresPage() {
     setKpi({ ativos: a, pre: p, desligados: d, experiencia: e });
   }
 
+  // quem entra em cada filtro do Painel (lido do banco, não da página aberta)
+  async function idsDoFiltro(f: string): Promise<string[] | null> {
+    const mes = hojeISO().slice(0, 7), ini = `${mes}-01`;
+    const fim = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
+    const base = () => supabase.from("rh_contratos").select("colaborador_id, id, cargo_id").eq("empresa_id", empresaId!);
+    let r;
+    if (f === "admitidos_mes") r = await base().gte("data_admissao", ini).lte("data_admissao", fim);
+    else if (f === "desligados_mes") r = await base().gte("data_desligamento", ini).lte("data_desligamento", fim);
+    else if (f === "sem_cargo") r = await base().is("cargo_id", null).is("data_desligamento", null);
+    else if (f === "sem_salario") {
+      const [k, rm] = await Promise.all([base().is("data_desligamento", null), supabase.from("rh_remuneracoes").select("contrato_id").eq("empresa_id", empresaId!)]);
+      if (k.error || rm.error) { avisar(L("Não foi possível aplicar o filtro agora.", "Could not apply the filter now.", "No se pudo aplicar el filtro ahora.")); return null; }
+      const com = new Set((rm.data ?? []).map((x: Linha) => x.contrato_id));
+      return (k.data ?? []).filter((x: Linha) => !com.has(x.id)).map((x: Linha) => x.colaborador_id);
+    } else return [];
+    if (r.error) { avisar(L("Não foi possível aplicar o filtro agora.", "Could not apply the filter now.", "No se pudo aplicar el filtro ahora.")); return null; }
+    return [...new Set((r.data ?? []).map((x: Linha) => x.colaborador_id))];
+  }
   async function carregarLista() {
     if (!empresaId || !pode.ver) return;
     setCarregando(true);
     let q = supabase.from("rh_colaboradores").select("id, nome, nome_social, situacao, excluido_em", { count: "exact" }).eq("empresa_id", empresaId);
     if (verLixeira) q = q.gte("excluido_em", new Date(Date.now() - DIAS_LIXEIRA_RH * 86400000).toISOString()).order("excluido_em", { ascending: false });
     else { q = q.is("excluido_em", null).order("nome"); if (filtroSit) q = q.eq("situacao", filtroSit); }
+    if (filtroEsp && !verLixeira) {
+      const ids = await idsDoFiltro(filtroEsp);
+      if (ids === null) { setCarregando(false); return; }
+      q = q.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    }
     if (busca.trim()) q = q.ilike("nome", `%${busca.trim().replace(/[%_]/g, "")}%`);
     const { data, count, error } = await q.range(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA - 1);
     if (error) { avisar(L("Não foi possível carregar os colaboradores agora.", "Could not load employees now.", "No se pudieron cargar los colaboradores ahora.")); Sentry.captureException(new Error(`rh/colaboradores lista: ${error.message}`)); setCarregando(false); return; }
@@ -183,7 +209,42 @@ export default function RhColaboradoresPage() {
     void carregarKpis(empresaId);
     setCarregando(false);
   }
-  useEffect(() => { void carregarLista(); }, [empresaId, pode.ver, pagina, filtroSit, verLixeira]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void carregarLista(); }, [empresaId, pode.ver, pagina, filtroSit, verLixeira, filtroEsp]); // eslint-disable-line react-hooks/exhaustive-deps
+  // links diretos: /rh/colaboradores?filtro=… (lista filtrada) e ?abrir=<pessoa>&secao=<parte> (abre a ficha na parte certa)
+  useEffect(() => {
+    if (linkLido || !empresaId || !pode.carregado) return;
+    const sp = new URLSearchParams(window.location.search);
+    const f = sp.get("filtro"), abrir = sp.get("abrir"), secao = sp.get("secao");
+    void (async () => {
+      setLinkLido(true);
+      if (f === "ativo" || f === "pre_admissao" || f === "desligado") { setFiltroSit(f); setFiltroEsp(null); }
+      else if (f) { setFiltroSit(f === "desligados_mes" ? "" : "ativo"); if (f === "admitidos_mes") setFiltroSit(""); setFiltroEsp(f); }
+      if (abrir && pode.ver) await abrirPorId(abrir, secao);
+    })();
+  }, [empresaId, pode.carregado]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function abrirPorId(id: string, secao: string | null) {
+    const [c, k] = await Promise.all([
+      supabase.from("rh_colaboradores").select("id, nome, nome_social, situacao, excluido_em").eq("id", id).maybeSingle(),
+      supabase.from("rh_contratos").select("*").eq("colaborador_id", id).order("data_admissao", { ascending: false }).limit(1),
+    ]);
+    if (c.error || k.error || !c.data) { avisar(L("Não foi possível abrir esta pessoa (ela pode ter ido para a lixeira).", "Could not open this person (they may be in the trash).", "No se pudo abrir esta persona (puede estar en la papelera).")); return; }
+    const contrato = (k.data ?? [])[0];
+    if (contrato) setContratos((m) => ({ ...m, [id]: contrato }));
+    await abrirEdicao(c.data, contrato);
+    if (secao) irParaSecao(secao === "exames" ? "documentos" : secao);
+  }
+  // rola até a parte da ficha e destaca por 2 segundos
+  function irParaSecao(secao: string) {
+    let tent = 0;
+    const tenta = () => {
+      const el = document.getElementById(`sec-${secao}`);
+      if (!el) { if (tent++ < 20) setTimeout(tenta, 250); return; }
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.style.boxShadow = "0 0 0 3px #2ecc9b";
+      setTimeout(() => { el.style.boxShadow = ""; }, 2200);
+    };
+    setTimeout(tenta, 300);
+  }
   useEffect(() => { const t = setTimeout(() => { setPagina(0); void carregarLista(); }, 350); return () => clearTimeout(t); }, [busca]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function gestoresPossiveis() {
@@ -198,10 +259,10 @@ export default function RhColaboradoresPage() {
     setForm({ nome: "", nome_social: "", situacao: "ativo", matricula: "", cod_categ: "101", data_admissao: hojeISO(), tp_contr: "1", experiencia: false, data_termino: "", qtd_hrs_sem: "44", tp_jornada: "4", tp_reg_jor: "1", nat_atividade: "1", tmp_parc: "0", hor_noturno: "N",
       pais_nascimento_txt: "105 — Brasil", pais_nacionalidade_txt: "105 — Brasil", und_sal_fixo: "5", valor: "", reajuste_valor: "", reajuste_data: hojeISO(), reajuste_motivo: "reajuste_coletivo" });
   }
-  async function abrirEdicao(c: Linha) {
+  async function abrirEdicao(c: Linha, kDireto?: Linha) {
     setCepMsg(null);
     const g = await gestoresPossiveis(); setRef((r) => ({ ...r, gestores: g.filter((x: Linha) => x.id !== c.id) }));
-    const k = contratos[c.id] ?? {};
+    const k = kDireto ?? contratos[c.id] ?? {};
     let pes: Linha = {};
     // Leitura que falha não abre o formulário vazio (pareceria que a pessoa não tem CPF ou salário): avisa e para.
     if (pode.pessoais) {
@@ -492,6 +553,13 @@ export default function RhColaboradoresPage() {
                 </div>
               </CanvasBox>
 
+              {filtroEsp && !verLixeira && (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" style={{ background: temaClaro ? "rgba(16,27,61,0.06)" : "rgba(46,204,155,0.08)", border: `1px solid ${BORDA}`, color: "var(--axi-text-primary)" }}>
+                  {L("Filtro do Painel", "Panel filter", "Filtro del Panel")}: <b>{({ admitidos_mes: L("admitidos neste mês", "hired this month", "admitidos este mes"), desligados_mes: L("desligados neste mês", "terminated this month", "desvinculados este mes"), sem_cargo: L("ativos sem cargo", "active without job title", "activos sin cargo"), sem_salario: L("ativos sem salário", "active without salary", "activos sin salario") } as Record<string, string>)[filtroEsp] ?? filtroEsp}</b>
+                  <span style={{ color: TEXTO_SEC }}>{L("— toque no nome para abrir e resolver", "— tap the name to open and fix", "— toque el nombre para abrir y resolver")}</span>
+                  <button type="button" onClick={() => { setFiltroEsp(null); setFiltroSit("ativo"); setPagina(0); window.history.replaceState(null, "", "/rh/colaboradores"); }} className="ml-auto flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff" }}><X size={13} /> {L("Limpar filtro", "Clear filter", "Limpiar filtro")}</button>
+                </div>
+              )}
               {/* Lista */}
               <CanvasBox cor={VERDE} {...cartaoTema}>
                 <div className="overflow-x-auto">
@@ -514,7 +582,7 @@ export default function RhColaboradoresPage() {
                           const dExp = k.experiencia && !k.data_desligamento ? dias(k.data_termino) : null;
                           return (
                             <tr key={c.id} style={{ borderBottom: `1px solid ${BORDA}` }}>
-                              <td className="px-3 py-3 text-sm font-bold" style={{ color: "var(--axi-text-primary)" }}>{c.nome_social || c.nome}</td>
+                              <td className="px-3 py-3 text-sm font-bold" style={{ color: "var(--axi-text-primary)" }}>{verLixeira ? (c.nome_social || c.nome) : <button type="button" onClick={() => void abrirEdicao(c)} className="text-left underline-offset-2 hover:underline" title={L("Abrir a ficha", "Open the record", "Abrir la ficha")}>{c.nome_social || c.nome}</button>}</td>
                               <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{k.matricula ?? "—"}</td>
                               <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{nomeDe(ref.cargos, k.cargo_id)}</td>
                               <td className="px-3 py-3 text-sm" style={{ color: TEXTO_SEC }}>{nomeDe(ref.deps, k.departamento_id)}</td>
@@ -522,8 +590,8 @@ export default function RhColaboradoresPage() {
                               <td className="px-3 py-3"><span className="text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap" style={{ background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(255,255,255,0.08)", color: c.situacao === "ativo" ? VERDE : TEXTO_SEC }}>{nomeSit(c.situacao)}</span></td>
                               <td className="px-3 py-3 text-xs">
                                 {verLixeira ? <span style={{ color: TEXTO_SEC }}>{L(`${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} dias`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} days`, `${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(c.excluido_em).getTime()) / 86400000))} días`)}</span>
-                                  : dExp !== null && dExp >= 0 && dExp <= 30 ? <span className="flex items-center gap-1 font-bold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}><AlertTriangle size={13} /> {L(`Experiência termina em ${dExp} dias`, `Probation ends in ${dExp} days`, `Experiencia termina en ${dExp} días`)}</span>
-                                  : dExp !== null && dExp < 0 ? <span className="font-bold" style={{ color: ct("#f87171") }}>{L("Experiência vencida: decida efetivar ou desligar", "Probation over: decide to hire or terminate", "Experiencia vencida: decida efectivar o desvincular")}</span> : "—"}
+                                  : dExp !== null && dExp >= 0 && dExp <= 30 ? <button type="button" onClick={() => void abrirPorId(c.id, "contrato")} className="flex items-center gap-1 font-bold underline text-left" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }} title={L("Abrir o contrato para decidir", "Open the contract to decide", "Abrir el contrato para decidir")}><AlertTriangle size={13} /> {L(`Experiência termina em ${dExp} dias`, `Probation ends in ${dExp} days`, `Experiencia termina en ${dExp} días`)} ›</button>
+                                  : dExp !== null && dExp < 0 ? <button type="button" onClick={() => void abrirPorId(c.id, "contrato")} className="font-bold underline text-left" style={{ color: ct("#f87171") }} title={L("Abrir o contrato para decidir", "Open the contract to decide", "Abrir el contrato para decidir")}>{L("Experiência vencida: decida efetivar ou desligar", "Probation over: decide to hire or terminate", "Experiencia vencida: decida efectivar o desvincular")} ›</button> : "—"}
                               </td>
                               <td className="px-3 py-3">
                                 <div className="flex items-center gap-3">
@@ -581,11 +649,22 @@ export default function RhColaboradoresPage() {
                     <F k="situacao" r={L("Situação", "Status", "Situación")} opcoes={SITUACOES.map((s) => ({ v: s, l: nomeSit(s) }))} />
                   </Secao>
 
-                  <Secao titulo={L("Contrato", "Contract", "Contrato")}>
+                  <Secao ancora="contrato" titulo={L("Contrato", "Contract", "Contrato")}>
                     <F k="matricula" r={L("Matrícula *", "Employee ID *", "Matrícula *")} />
                     <F k="cod_categ" r={L("Categoria (Tabela 01 do eSocial) *", "Category (eSocial Table 01) *", "Categoría (Tabla 01 del eSocial) *")} opcoes={ref.categorias.map((c) => ({ v: c.codigo, l: `${c.codigo} — ${String(c.descricao).slice(0, 80)}` }))} />
                     <F k="data_admissao" tipo="date" r={L("Data de admissão *", "Hire date *", "Fecha de admisión *")} />
                     <F k="tp_contr" r={L("Tipo de contrato", "Contract type", "Tipo de contrato")} opcoes={[{ v: "1", l: L("Prazo indeterminado", "Open-ended", "Plazo indeterminado") }, { v: "2", l: L("Prazo determinado (data de término)", "Fixed term (end date)", "Plazo determinado (fecha de término)") }, { v: "3", l: L("Prazo determinado (até um fato)", "Fixed term (until an event)", "Plazo determinado (hasta un hecho)") }]} />
+                    {form.contrato_id && String(form.tp_contr) === "2" && form.data_termino && !form.data_desligamento && (
+                      <div className="md:col-span-2 rounded-xl p-3 space-y-2" style={{ border: `2px solid ${(form.data_termino < hojeISO()) ? "#ef4444" : (temaClaro ? "#9a3412" : "#fbbf24")}` }}>
+                        <p className="text-sm font-bold" style={{ color: "var(--axi-text-primary)" }}>{form.experiencia ? L("Decisão sobre o contrato de experiência", "Probation decision", "Decisión sobre el contrato de experiencia") : L("Decisão sobre o contrato por prazo determinado", "Fixed-term contract decision", "Decisión sobre el contrato a plazo determinado")} — {form.data_termino < hojeISO() ? L(`venceu em ${dataBR(form.data_termino)}`, `ended on ${dataBR(form.data_termino)}`, `venció el ${dataBR(form.data_termino)}`) : L(`termina em ${dataBR(form.data_termino)}`, `ends on ${dataBR(form.data_termino)}`, `termina el ${dataBR(form.data_termino)}`)}</p>
+                        <p className="text-xs" style={{ color: TEXTO_SEC }}>{form.experiencia ? L("CLT art. 445 e 451: a experiência vai até 90 dias e pode ser prorrogada uma única vez dentro desse limite; se a pessoa continua trabalhando depois do fim, o contrato vira prazo indeterminado.", "CLT arts. 445 and 451: probation lasts up to 90 days and can be extended only once within that limit; if the person keeps working after the end, the contract becomes open-ended.", "CLT arts. 445 y 451: la experiencia dura hasta 90 días y puede prorrogarse una sola vez dentro de ese límite; si la persona sigue trabajando después del fin, el contrato pasa a plazo indeterminado.") : L("CLT art. 445 e 451: até 2 anos, prorrogável uma única vez dentro desse limite.", "CLT arts. 445 and 451: up to 2 years, extendable only once within that limit.", "CLT arts. 445 y 451: hasta 2 años, prorrogable una sola vez dentro de ese límite.")}</p>
+                        {pode.editar && <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => { setForm({ ...form, tp_contr: "1", experiencia: false, data_termino: "", clau_assec: "" }); avisar(L("Efetivação marcada: confira e toque em Salvar.", "Made permanent: check and tap Save.", "Efectivación marcada: revise y toque Guardar."), "ok"); }} className="px-3 py-2 rounded-lg text-xs font-bold" style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>{L("Efetivar (prazo indeterminado)", "Make permanent (open-ended)", "Efectivar (plazo indeterminado)")}</button>
+                          <button type="button" onClick={() => { const lim = form.experiencia ? new Date(new Date(form.data_admissao + "T12:00:00Z").getTime() + 89 * 86400000).toISOString().slice(0, 10) : ""; setForm({ ...form, data_termino: lim || form.data_termino }); avisar(form.experiencia ? L(`Prorrogação até o limite de 90 dias (${dataBR(lim)}). Ajuste a data se quiser menos e toque em Salvar.`, `Extended to the 90-day limit (${dataBR(lim)}). Adjust the date if you want less and tap Save.`, `Prórroga hasta el límite de 90 días (${dataBR(lim)}). Ajuste la fecha si quiere menos y toque Guardar.`) : L("Informe a nova data de término (até 2 anos no total) e toque em Salvar.", "Enter the new end date (up to 2 years in total) and tap Save.", "Informe la nueva fecha de término (hasta 2 años en total) y toque Guardar."), "ok"); document.getElementById("col-data_termino")?.focus(); }} className="px-3 py-2 rounded-lg text-xs font-bold" style={{ background: "linear-gradient(135deg, #0a1628, #101b3d)", color: "#fff" }}>{L("Prorrogar", "Extend", "Prorrogar")}</button>
+                          <button type="button" onClick={() => irParaSecao("desligamento")} className="px-3 py-2 rounded-lg text-xs font-bold" style={{ background: "linear-gradient(135deg, #0a1628, #101b3d)", color: "#fff" }}>{L("Desligar ›", "Terminate ›", "Desvincular ›")}</button>
+                        </div>}
+                      </div>
+                    )}
                     {String(form.tp_contr) === "2" && (<>
                       <F k="data_termino" tipo="date" r={L("Data de término *", "End date *", "Fecha de término *")} ajuda={L("Experiência: até 90 dias (CLT art. 445). Prazo determinado comum: até 2 anos.", "Probation: up to 90 days (CLT art. 445). Regular fixed term: up to 2 years.", "Experiencia: hasta 90 días (CLT art. 445). Plazo determinado común: hasta 2 años.")} />
                       <label className="flex items-center gap-2 text-sm self-end pb-3" style={{ color: "var(--axi-text-primary)" }}><input type="checkbox" checked={!!form.experiencia} onChange={(e) => setForm({ ...form, experiencia: e.target.checked })} /> {L("É contrato de experiência", "This is a probation contract", "Es contrato de experiencia")}</label>
@@ -640,7 +719,7 @@ export default function RhColaboradoresPage() {
                   </Secao>
 
                   {pode.pessoais ? (
-                    <Secao titulo={L("Dados pessoais (protegidos)", "Personal data (protected)", "Datos personales (protegidos)")}>
+                    <Secao ancora="pessoais" titulo={L("Dados pessoais (protegidos)", "Personal data (protected)", "Datos personales (protegidos)")}>
                       <F k="cpf" r="CPF" mascara={mascaraCPF} modo="numeric" erro={soDig(form.cpf).length === 11 && !validarCPF(soDig(form.cpf)) ? L("CPF inválido (dígito verificador não confere).", "Invalid CPF (check digit does not match).", "CPF inválido (dígito verificador no coincide).") : null} />
                       <F k="data_nascimento" tipo="date" r={L("Data de nascimento", "Date of birth", "Fecha de nacimiento")} />
                       <F k="sexo" r={L("Sexo (exigido pelo eSocial)", "Sex (required by eSocial)", "Sexo (exigido por eSocial)")} opcoes={[vazio, { v: "F", l: L("Feminino", "Female", "Femenino") }, { v: "M", l: L("Masculino", "Male", "Masculino") }]} />
@@ -673,7 +752,7 @@ export default function RhColaboradoresPage() {
                   )}
 
                   {pode.saude ? (
-                    <Secao titulo={L("Pessoa com deficiência (dado de saúde, protegido)", "Person with disability (health data, protected)", "Persona con discapacidad (dato de salud, protegido)")}>
+                    <Secao ancora="pcd" titulo={L("Pessoa com deficiência (dado de saúde, protegido)", "Person with disability (health data, protected)", "Persona con discapacidad (dato de salud, protegido)")}>
                       <div className="md:col-span-2 flex flex-wrap gap-x-5 gap-y-2 text-sm" style={{ color: "var(--axi-text-primary)" }}>
                         {([["def_fisica", L("Física", "Physical", "Física")], ["def_visual", L("Visual", "Visual", "Visual")], ["def_auditiva", L("Auditiva", "Hearing", "Auditiva")], ["def_mental", L("Mental", "Mental", "Mental")], ["def_intelectual", L("Intelectual", "Intellectual", "Intelectual")], ["reab_readap", L("Reabilitado pelo INSS", "Rehabilitated by INSS", "Rehabilitado por el INSS")]] as const).map(([k, rot]) => (
                           <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={!!form[`pcd_${k}`]} onChange={(e) => setForm({ ...form, [`pcd_${k}`]: e.target.checked })} /> {rot}</label>
@@ -687,7 +766,7 @@ export default function RhColaboradoresPage() {
                   )}
 
                   {pode.salario ? (
-                    <Secao titulo={L("Salário (protegido)", "Salary (protected)", "Salario (protegido)")}>
+                    <Secao ancora="salario" titulo={L("Salário (protegido)", "Salary (protected)", "Salario (protegido)")}>
                       {!form.id ? (<>
                         <F k="valor" r={L("Salário na admissão (R$)", "Salary at hire (R$)", "Salario en la admisión (R$)")} />
                         <F k="und_sal_fixo" r={L("Por", "Per", "Por")} opcoes={[{ v: "5", l: L("Mês", "Month", "Mes") }, { v: "1", l: L("Hora", "Hour", "Hora") }, { v: "2", l: L("Dia", "Day", "Día") }, { v: "3", l: L("Semana", "Week", "Semana") }, { v: "4", l: L("Quinzena", "Fortnight", "Quincena") }, { v: "6", l: L("Tarefa", "Task", "Tarea") }, { v: "7", l: L("Só variável (comissão)", "Variable only (commission)", "Solo variable (comisión)") }]} />
@@ -867,8 +946,9 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
     return true;
   }
   const visiveis = ITENS_ADMISSAO.filter((i) => (i.categoria === "documento" ? podeDocs : podeSaude));
-  const pendObrig = visiveis.filter((i) => i.obrigatorio && (itens?.[i.tipo]?.situacao ?? "pendente") === "pendente").length;
-  const cor = (sit: string) => (sit === "entregue" ? "#0f7a5a" : sit === "dispensado" ? c.TEXTO_SEC : "#b45309");
+  // agendado ainda é pendente: sem o ASO a pessoa não começa (NR-7)
+  const pendObrig = visiveis.filter((i) => i.obrigatorio && ["pendente", "agendado"].includes(itens?.[i.tipo]?.situacao ?? "pendente")).length;
+  const cor = (sit: string) => (sit === "entregue" ? "#0f7a5a" : sit === "dispensado" ? c.TEXTO_SEC : sit === "agendado" ? "#101b3d" : "#b45309");
   const grupo = (cat: "documento" | "exame", titulo: string) => {
     const lista = visiveis.filter((i) => i.categoria === cat);
     if (!lista.length) return null;
@@ -887,6 +967,7 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
                 <select aria-label={`${i.nome[lang]} — ${L("situação", "status", "situación")}`} disabled={!podeEditar || itens === null} value={sit} onChange={(e) => void gravar(i.tipo, i.categoria, { situacao: e.target.value })}
                   className="md:col-span-3 px-2 py-2 rounded-lg text-sm font-bold" style={{ ...c.campo, color: cor(sit) }}>
                   <option value="pendente">{L("Pendente", "Pending", "Pendiente")}</option>
+                  {sit === "agendado" && <option value="agendado">{L("Agendado", "Scheduled", "Agendado")}</option>}
                   <option value="entregue">{i.categoria === "exame" ? L("Realizado", "Done", "Realizado") : L("Entregue", "Received", "Entregado")}</option>
                   <option value="dispensado">{L("Não se aplica", "Not applicable", "No aplica")}</option>
                 </select>
@@ -901,6 +982,12 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
                     <option value="inapto">{L("Inapto", "Unfit", "No apto")}</option>
                   </select>
                 ) : <span className="md:col-span-2" />}
+                {i.categoria === "exame" && (
+                  <p className="md:col-span-12 text-xs" style={{ color: c.TEXTO_SEC }}>
+                    {sit === "agendado" && it.agendado_para ? L(`Agendado para ${new Date(it.agendado_para).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}${it.clinica ? ` · ${it.clinica}` : ""}. `, `Scheduled for ${new Date(it.agendado_para).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}${it.clinica ? ` · ${it.clinica}` : ""}. `, `Agendado para ${new Date(it.agendado_para).toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}${it.clinica ? ` · ${it.clinica}` : ""}. `) : ""}
+                    <Link href="/rh/exames" className="underline font-bold" style={{ color: "#0f7a5a" }}>{sit === "pendente" ? L("Agendar em Exames ›", "Schedule in Exams ›", "Agendar en Exámenes ›") : L("Ver em Exames ›", "See in Exams ›", "Ver en Exámenes ›")}</Link>
+                  </p>
+                )}
                 <div className="md:col-span-12 flex flex-wrap items-center gap-2">
                   {it.arquivo_path ? (
                     <>
@@ -924,7 +1011,7 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
     );
   };
   return (
-    <Secao titulo={L("Documentos e exames da admissão", "Hiring documents and exams", "Documentos y exámenes de admisión")}>
+    <Secao ancora="documentos" titulo={L("Documentos e exames da admissão", "Hiring documents and exams", "Documentos y exámenes de admisión")}>
       <p className="md:col-span-2 text-sm" style={{ color: pendObrig ? "#b45309" : "#0f7a5a", fontWeight: 700 }}>
         {itens === null ? L("Carregando…", "Loading…", "Cargando…") : pendObrig ? L(`${pendObrig} item(ns) obrigatório(s) pendente(s)`, `${pendObrig} required item(s) pending`, `${pendObrig} ítem(s) obligatorio(s) pendiente(s)`) : L("Itens obrigatórios em dia", "Required items complete", "Ítems obligatorios al día")}
       </p>
@@ -1072,7 +1159,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
   const corSit = situacao === "aceito" ? (claro ? "#0f7a5a" : "#2ecc9b") : situacao === "recusado" ? "#ef4444" : situacao === "rascunho" ? LARANJA : (claro ? "#101b3d" : "#7dd3fc");
   const abertos = ["rascunho", "recusado", "preparado"].includes(situacao);
   return (
-    <Secao titulo={L("eSocial — admissão (S-2200)", "eSocial — hire (S-2200)", "eSocial — admisión (S-2200)")}>
+    <Secao ancora="esocial" titulo={L("eSocial — admissão (S-2200)", "eSocial — hire (S-2200)", "eSocial — admisión (S-2200)")}>
       <div className="md:col-span-2 text-sm space-y-3" style={{ color: "var(--axi-text-primary)" }}>
         {erro ? <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dados do eSocial agora. Feche e abra de novo.", "Could not read eSocial data now. Close and open again.", "No se pudieron leer los datos del eSocial ahora. Cierre y abra de nuevo.")}</p> : !dados ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : (<>
           <p><b>{L("Situação", "Status", "Situación")}:</b> <span className="font-bold" style={{ color: corSit }}>{(SIT_ESOCIAL[situacao] ?? [situacao, situacao, situacao])[i]}</span>{recibo && <> · {L("recibo", "receipt", "recibo")} {recibo}</>}</p>
@@ -1208,7 +1295,7 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
   const nomeTipo = (cod?: string | null) => tipos.find((t) => t.codigo === cod)?.descricao ?? (cod ? cod : L("sem tipo", "no type", "sin tipo"));
   const campoEd = (k: string, v: unknown) => setEd((e) => (e ? { ...e, [k]: v } : e));
   return (
-    <Secao titulo={L("Dependentes (IR, salário-família e eSocial)", "Dependents (income tax, family allowance and eSocial)", "Dependientes (IR, asignación familiar y eSocial)")}>
+    <Secao ancora="dependentes" titulo={L("Dependentes (IR, salário-família e eSocial)", "Dependents (income tax, family allowance and eSocial)", "Dependientes (IR, asignación familiar y eSocial)")}>
       <div className="md:col-span-2 text-sm space-y-2" style={{ color: "var(--axi-text-primary)" }}>
         {erro && <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dependentes agora.", "Could not read dependents now.", "No se pudieron leer los dependientes ahora.")}</p>}
         {lista === null ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : lista.length === 0 && !ed ? <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Nenhum dependente.", "No dependents.", "Ningún dependiente.")}</p> : (
@@ -1383,7 +1470,7 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar 
   const MENTA = "linear-gradient(135deg, #0b5f46, #0f7a5a)", AZUL = "linear-gradient(135deg, #0a1628, #101b3d)";
   const k = ctx?.k;
   return (
-    <Secao titulo={L("Desligamento e rescisão (S-2299)", "Termination and severance (S-2299)", "Desvinculación y rescisión (S-2299)")}>
+    <Secao ancora="desligamento" titulo={L("Desligamento e rescisão (S-2299)", "Termination and severance (S-2299)", "Desvinculación y rescisión (S-2299)")}>
       <div className="md:col-span-2 text-sm space-y-3" style={{ color: "var(--axi-text-primary)" }}>
         {ctx?.erro ? <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dados agora. Feche e abra de novo.", "Could not read the data now. Close and open again.", "No se pudieron leer los datos ahora. Cierre y abra de nuevo.")}</p> : !ctx ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : (<>
           {preparado ? (
