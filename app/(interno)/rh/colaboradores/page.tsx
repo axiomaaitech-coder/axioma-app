@@ -34,7 +34,7 @@ import { hojeISO } from "../../../../lib/datas";
 import { DIAS_LIXEIRA_RH } from "../../../../lib/nexusRetencao";
 import { lerValorBR } from "../../../../lib/valorBR";
 import { consultarCEP, mascaraCPF, mascaraCEP, mascaraCNPJ, mascaraTelefone, validarCPF, UFS } from "../../../../lib/enderecoHelpers";
-import { pendenciasS2200, gerarS2200, VERSAO_LEIAUTE, type DadosS2200, type Pendencia } from "../../../../lib/rhEsocial";
+import { pendenciasS2200, gerarS2200, pendenciasS2205, gerarS2205, pendenciasS2206, gerarS2206, VERSAO_LEIAUTE, type DadosS2200, type Pendencia } from "../../../../lib/rhEsocial";
 import { ITENS_ADMISSAO, PROIBIDOS } from "../../../../lib/rhDocumentos";
 import { mensagemErroRh, type Lang } from "../../../../lib/rhEstrutura";
 
@@ -572,7 +572,7 @@ export default function RhColaboradoresPage() {
                     </div>
                     <button onClick={() => setForm(null)} style={{ color: TEXTO_SEC }} aria-label={L("Fechar", "Close", "Cerrar")}><X size={20} /></button>
                   </div>
-                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>{form.contrato_situacao === "preparado" ? L("O arquivo do eSocial desta admissão já foi preparado. Se mudar um dado do contrato, ele volta a rascunho e é preciso preparar de novo.", "The eSocial file for this hire was already prepared. If you change a contract field, it goes back to draft and must be prepared again.", "El archivo del eSocial de esta admisión ya fue preparado. Si cambia un dato del contrato, vuelve a borrador y hay que prepararlo de nuevo.") : L("Esta admissão já foi enviada ao eSocial: os dados do contrato não mudam aqui (alteração de contrato é outro envio, S-2206, numa próxima etapa).", "This hire was already sent to eSocial: contract data cannot change here (contract changes are another submission, S-2206, in a later step).", "Esta admisión ya fue enviada al eSocial: los datos del contrato no cambian aquí (la alteración es otro envío, S-2206, en una próxima etapa).")}</p>}
+                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>{form.contrato_situacao === "preparado" ? L("O arquivo do eSocial desta admissão já foi preparado. Se mudar um dado do contrato, ele volta a rascunho e é preciso preparar de novo.", "The eSocial file for this hire was already prepared. If you change a contract field, it goes back to draft and must be prepared again.", "El archivo del eSocial de esta admisión ya fue preparado. Si cambia un dato del contrato, vuelve a borrador y hay que prepararlo de nuevo.") : L("Esta admissão já foi enviada ao eSocial. Pode alterar e salvar: o Axioma marca o que precisa ir ao eSocial (alteração de contrato S-2206 ou de dados pessoais S-2205) no cartão do eSocial, no fim. Matrícula, admissão, CPF e nascimento não mudam aqui — o contador retifica a admissão.", "This hire was already sent to eSocial. You can change and save: Axioma flags what must go to eSocial (contract change S-2206 or personal data S-2205) in the eSocial card at the end. Employee ID, hire date, CPF and birth date cannot change here — the accountant corrects the hire.", "Esta admisión ya fue enviada al eSocial. Puede cambiar y guardar: Axioma marca lo que debe ir al eSocial (alteración de contrato S-2206 o de datos personales S-2205) en la tarjeta del eSocial, al final. Matrícula, admisión, CPF y nacimiento no cambian aquí — el contador rectifica la admisión.")}</p>}
 
                   <Secao titulo={L("Identificação", "Identification", "Identificación")}>
                     <F k="nome" r={L("Nome completo *", "Full name *", "Nombre completo *")} />
@@ -969,6 +969,11 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
   const [dados, setDados] = useState<DadosS2200 | null>(null);
   const [situacao, setSituacao] = useState("rascunho");
   const [recibo, setRecibo] = useState("");
+  // alterações depois da admissão enviada (S-2205 dados pessoais · S-2206 contrato); o banco marca as pendências
+  const [pend2205, setPend2205] = useState(false);
+  const [pend2206, setPend2206] = useState(false);
+  const [alt, setAlt] = useState({ dt2205: hojeISO(), dt2206: hojeISO(), dtEf: "", dscAlt: "", justProrr: "" });
+  const [recibos, setRecibos] = useState<Record<string, string>>({});
   const [eventos, setEventos] = useState<Linha[]>([]);
   const [erro, setErro] = useState(false);
   const podePreparar = pode.pessoais && pode.salario && pode.saude;
@@ -977,7 +982,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
     const { data: k, error: eK } = await supabase.from("rh_contratos").select("*").eq("id", contratoId).single();
     setErro(false);
     if (eK || !k) { setErro(true); Sentry.captureException(new Error(`rh/esocial contrato: ${eK?.message}`)); return; }
-    setSituacao(k.situacao_esocial); setRecibo(k.recibo_esocial ?? "");
+    setSituacao(k.situacao_esocial); setRecibo(k.recibo_esocial ?? ""); setPend2205(!!k.alt_cadastral_pendente); setPend2206(!!k.alt_contratual_pendente);
     const hoje = hojeISO();
     const nada = Promise.resolve({ data: null, error: null });
     const [col, pes, rem, cg, est, emp, ev, pcd, dep] = await Promise.all([
@@ -987,7 +992,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
       k.cargo_id ? supabase.from("rh_cargos").select("nome, cbo").eq("id", k.cargo_id).maybeSingle() : nada,
       k.estabelecimento_id ? supabase.from("rh_estabelecimentos").select("tp_insc, nr_insc, cnpj_sindicato").eq("id", k.estabelecimento_id).maybeSingle() : nada,
       supabase.from("rh_empregador").select("tp_insc, nr_insc, ini_valid").eq("empresa_id", empresaId).is("excluido_em", null).lte("ini_valid", String(k.data_admissao).slice(0, 7)).order("ini_valid", { ascending: false }).limit(1),
-      podePreparar ? supabase.from("rh_esocial_eventos").select("id, id_evento, versao_leiaute, xml, criado_em").eq("contrato_id", contratoId).order("criado_em", { ascending: false }).limit(20) : Promise.resolve({ data: [], error: null }),
+      podePreparar ? supabase.from("rh_esocial_eventos").select("id, evento, id_evento, versao_leiaute, xml, criado_em, situacao, recibo, data_ref").eq("contrato_id", contratoId).order("criado_em", { ascending: false }).limit(20) : Promise.resolve({ data: [], error: null }),
       pode.saude ? supabase.from("rh_colaborador_pcd").select("*").eq("colaborador_id", k.colaborador_id).maybeSingle() : nada,
       pode.pessoais ? supabase.from("rh_dependentes").select("tp_dep, nome, data_nascimento, cpf, dep_irrf, dep_sf, inc_trab, descr_dep").eq("colaborador_id", k.colaborador_id).is("excluido_em", null).order("data_nascimento") : Promise.resolve({ data: [], error: null }),
     ]);
@@ -1022,6 +1027,32 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
       await carregar(); aoMudar("preparado");
       return true;
     } catch (e) { Sentry.captureException(e); avisar(L("Não foi possível preparar o arquivo.", "Could not prepare the file.", "No se pudo preparar el archivo.")); return false; }
+  }
+  async function prepararAlteracao(tipo: "S-2205" | "S-2206"): Promise<boolean> {
+    if (!dados) return false;
+    const hoje = hojeISO();
+    try {
+      const opc = { agora: new Date(), seq: eventos.length + 1, tpAmb: 1 as const, hoje };
+      const { id, xml } = tipo === "S-2205"
+        ? gerarS2205(dados, { ...opc, dtAlteracao: alt.dt2205 })
+        : gerarS2206(dados, { ...opc, dtAlteracao: alt.dt2206, dtEf: alt.dtEf || null, dscAlt: alt.dscAlt.trim() || null, justProrr: alt.justProrr.trim() || null });
+      const r1 = await supabase.from("rh_esocial_eventos").insert({ empresa_id: empresaId, contrato_id: contratoId, evento: tipo, id_evento: id, versao_leiaute: VERSAO_LEIAUTE, xml, data_ref: tipo === "S-2205" ? alt.dt2205 : alt.dt2206 }).select("id").single();
+      if (r1.error) { avisar(mensagemErroRh(r1.error, lang)); return false; }
+      const r2 = await supabase.from("rh_contratos").update(tipo === "S-2205" ? { alt_cadastral_pendente: false } : { alt_contratual_pendente: false }).eq("id", contratoId).select("id");
+      if (r2.error || !r2.data?.length) { avisar(L("O arquivo foi gerado, mas a marca de pendência não saiu. Recarregue a página e confira.", "The file was generated, but the pending flag was not cleared. Reload and check.", "El archivo se generó, pero la marca de pendiente no se quitó. Recargue y revise.")); return false; }
+      baixarXml(nomeArquivo(id), xml);
+      avisar(L(`Alteração preparada (${tipo}) e baixada. Entregue ao contador.`, `Change prepared (${tipo}) and downloaded. Give it to the accountant.`, `Alteración preparada (${tipo}) y descargada. Entréguela al contador.`), "ok");
+      await carregar();
+      return true;
+    } catch (e) { Sentry.captureException(e); avisar(L("Não foi possível preparar a alteração.", "Could not prepare the change.", "No se pudo preparar la alteración.")); return false; }
+  }
+  async function marcarEvento(ev: Linha, nova: "enviado_pelo_contador" | "aceito" | "recusado"): Promise<boolean> {
+    const rec = (recibos[ev.id] ?? "").trim();
+    if (nova === "aceito" && !/^[0-9.]{10,40}$/.test(rec)) { avisar(L("Informe o número do recibo (só números e pontos).", "Enter the receipt number (digits and dots only).", "Informe el número de recibo (solo números y puntos).")); return false; }
+    const r = await supabase.from("rh_esocial_eventos").update({ situacao: nova, ...(nova === "aceito" ? { recibo: rec } : {}) }).eq("id", ev.id).select("id");
+    if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return false; }
+    avisar(L("Situação atualizada.", "Status updated.", "Situación actualizada."), "ok"); await carregar();
+    return true;
   }
   async function marcar(nova: "enviado_pelo_contador" | "aceito" | "recusado"): Promise<boolean> {
     const rec = recibo.trim();
@@ -1071,9 +1102,55 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
               </div>
             </div>
           )}
+          {["enviado", "aceito", "enviado_pelo_contador"].includes(situacao) && podePreparar && (
+            <div className="rounded-xl p-3 space-y-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+              <p className="text-xs font-bold">{L("Alterações depois da admissão", "Changes after the hire", "Alteraciones después de la admisión")}</p>
+              {!pend2205 && !pend2206 && <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Nenhuma alteração pendente. Ao mudar e salvar um dado do contrato, do salário ou pessoal, o Axioma avisa aqui o que precisa ir ao eSocial.", "No pending changes. When you change and save a contract, salary or personal field, Axioma shows here what must go to eSocial.", "Ninguna alteración pendiente. Al cambiar y guardar un dato del contrato, salario o personal, Axioma avisa aquí lo que debe ir al eSocial.")}</p>}
+              {([["S-2206", pend2206, L("Alteração de contrato pendente (S-2206)", "Pending contract change (S-2206)", "Alteración de contrato pendiente (S-2206)")], ["S-2205", pend2205, L("Alteração de dados pessoais pendente (S-2205)", "Pending personal data change (S-2205)", "Alteración de datos personales pendiente (S-2205)")]] as const).filter(([, on]) => on).map(([tipo, , titulo]) => {
+                const hoje = hojeISO();
+                const pend = !dados ? [] : tipo === "S-2205" ? pendenciasS2205(dados, alt.dt2205, hoje) : pendenciasS2206(dados, { dtAlteracao: alt.dt2206, dtEf: alt.dtEf || null }, hoje);
+                const campoCls = "w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none";
+                return (
+                  <div key={tipo} className="space-y-2">
+                    <p className="text-sm font-bold" style={{ color: LARANJA }}>{titulo}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div><label htmlFor={`alt-dt-${tipo}`} className="text-xs font-semibold mb-1 block" style={{ color: c.ROTULO }}>{L("Data da alteração", "Change date", "Fecha del cambio")}</label>
+                        <input id={`alt-dt-${tipo}`} type="date" value={tipo === "S-2205" ? alt.dt2205 : alt.dt2206} onChange={(e) => setAlt((a) => ({ ...a, [tipo === "S-2205" ? "dt2205" : "dt2206"]: e.target.value }))} className={campoCls} style={c.campo} /></div>
+                      {tipo === "S-2206" && (<>
+                        <div><label htmlFor="alt-dtef" className="text-xs font-semibold mb-1 block" style={{ color: c.ROTULO }}>{L("Efeito no salário a partir de (opcional)", "Pay effect from (optional)", "Efecto en el salario desde (opcional)")}</label>
+                          <input id="alt-dtef" type="date" value={alt.dtEf} onChange={(e) => setAlt((a) => ({ ...a, dtEf: e.target.value }))} className={campoCls} style={c.campo} /></div>
+                        <div className="md:col-span-2"><label htmlFor="alt-dsc" className="text-xs font-semibold mb-1 block" style={{ color: c.ROTULO }}>{L("O que mudou (opcional, até 150 letras)", "What changed (optional, up to 150 chars)", "Qué cambió (opcional, hasta 150 letras)")}</label>
+                          <input id="alt-dsc" maxLength={150} value={alt.dscAlt} onChange={(e) => setAlt((a) => ({ ...a, dscAlt: e.target.value }))} className={campoCls} style={c.campo} placeholder={L("Ex.: promoção a vendedor sênior; reajuste da convenção 2026", "E.g. promotion; 2026 collective raise", "Ej.: promoción; reajuste del convenio 2026")} /></div>
+                        {dados?.contrato.cod_categ === "106" && <div className="md:col-span-2"><label htmlFor="alt-prorr" className="text-xs font-semibold mb-1 block" style={{ color: c.ROTULO }}>{L("Temporário: justificativa da prorrogação (só se prorrogou)", "Temporary: extension justification (only if extended)", "Temporal: justificación de la prórroga (solo si se prorrogó)")}</label>
+                          <input id="alt-prorr" value={alt.justProrr} onChange={(e) => setAlt((a) => ({ ...a, justProrr: e.target.value }))} className={campoCls} style={c.campo} /></div>}
+                      </>)}
+                    </div>
+                    {pend.length > 0 ? (
+                      <ul className="text-xs space-y-1">{pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>({ONDE_NOME[x.onde][i]})</span></li>)}</ul>
+                    ) : pode.editar && (
+                      <BotaoAcao executar={() => prepararAlteracao(tipo)} texto={L(`Preparar ${tipo} e baixar`, `Prepare ${tipo} and download`, `Preparar ${tipo} y descargar`)} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(MENTA)} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {eventos.length > 0 && (
             <ul className="text-xs space-y-0.5" style={{ color: c.TEXTO_SEC }}>
-              {eventos.map((e) => <li key={e.id} className="break-all">{new Date(e.criado_em).toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")} — {e.id_evento} <button type="button" className="underline" onClick={() => baixarXml(nomeArquivo(e.id_evento), e.xml)}>{L("baixar", "download", "descargar")}</button></li>)}
+              {eventos.map((e) => (
+                <li key={e.id} className="break-all space-y-1">
+                  <span><b>{e.evento}</b> · {new Date(e.criado_em).toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")}{e.data_ref ? ` · ${L("data", "date", "fecha")} ${dataBR(e.data_ref)}` : ""} — {e.id_evento} <button type="button" className="underline" onClick={() => baixarXml(nomeArquivo(e.id_evento), e.xml)}>{L("baixar", "download", "descargar")}</button>
+                    {e.evento !== "S-2200" && <> · <b>{(SIT_ESOCIAL[e.situacao] ?? [e.situacao, e.situacao, e.situacao])[i]}</b>{e.recibo ? ` · ${L("recibo", "receipt", "recibo")} ${e.recibo}` : ""}</>}</span>
+                  {e.evento !== "S-2200" && pode.editar && ["preparado", "enviado_pelo_contador"].includes(e.situacao) && (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <input value={recibos[e.id] ?? ""} onChange={(ev) => setRecibos((r) => ({ ...r, [e.id]: ev.target.value }))} aria-label={L("Número do recibo", "Receipt number", "Número de recibo")} placeholder={L("Recibo", "Receipt", "Recibo")} inputMode="decimal" className="px-2 py-1.5 rounded-lg text-xs focus:outline-none w-48" style={c.campo} />
+                      <BotaoAcao executar={() => marcarEvento(e, "aceito")} texto={L("Aceito", "Accepted", "Aceptado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={btn(MENTA)} />
+                      {e.situacao === "preparado" && <BotaoAcao executar={() => marcarEvento(e, "enviado_pelo_contador")} texto={L("Enviado", "Sent", "Enviado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={btn(AZUL)} />}
+                      <BotaoAcao executar={() => marcarEvento(e, "recusado")} texto={L("Recusado", "Rejected", "Rechazado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={btn(AZUL)} />
+                    </span>
+                  )}
+                </li>
+              ))}
             </ul>
           )}
         </>)}

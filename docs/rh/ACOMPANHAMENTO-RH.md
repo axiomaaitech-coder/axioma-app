@@ -72,3 +72,9 @@ Pedido do Elias ("pode criar cadastro de PCD e das categorias que faltam e ficar
 fictício, Diego/Eduarda/Fábio). Doméstico e temporário só no teste automático (não cabem na Horizonte). Política de Privacidade
 3.7 e 12 corrigidas (antes dizia que o Axioma não trata dado sensível nem de criança — o RH trata, por obrigação legal).
 Fica para depois: S-2205/S-2206 (alterações), S-2299 (desligamento), importação por planilha dos campos novos.
+
+## Alterações S-2205/S-2206 (09/11/2026)
+
+RH-17 rodado (o Supabase pede confirmação "Potential issue detected" quando o SQL troca regras/gatilhos — era isso que
+fazia alguns SQLs não gravarem). Teste RH-17 falhas=0. Próximo: S-1010 (verbas da empresa), cálculo da rescisão e S-2299
+(decisão do Elias: o Axioma calcula a rescisão).

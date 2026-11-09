@@ -56,6 +56,13 @@ const pt: DocumentoAxioma = {
       '**Estrangeiro**: quando a nacionalidade não é brasileira, aparecem condição de ingresso e tempo de residência.',
       'Preparar e baixar o arquivo exige liberação de **dados pessoais**, **salário** e **saúde** (o arquivo tem CPF, endereço, salário e, se houver, deficiência).',
     ] },
+    { h1: 'Alterações depois da admissão (S-2205 e S-2206)' },
+    { lista: [
+      'Depois que a admissão foi enviada, pode alterar e salvar normalmente. O Axioma marca sozinho o que precisa ir ao eSocial: **alteração de contrato (S-2206)** — cargo, horário, jornada, sindicato, filial, salário novo etc. — ou **alteração de dados pessoais (S-2205)** — nome, endereço, estado civil, escolaridade, contato, deficiência e dependentes.',
+      'No cartão **eSocial**, em **Alterações depois da admissão**, aparece a pendência. Informe a **data da alteração** (não antes da admissão e no máximo 180 dias à frente) e, no contrato, se quiser, a data do efeito no salário e o que mudou. Toque em **Preparar S-2206 e baixar** (ou S-2205) e entregue ao contador.',
+      'Cada arquivo de alteração tem a sua situação: digite o **recibo** e toque em **Aceito**, ou **Enviado** (recibo ainda não chegou), ou **Recusado**.',
+      'Não mudam por alteração (o contador retifica a admissão): matrícula, data de admissão, regime, CPF, data e país de nascimento. Contato de emergência e cidade por extenso não vão ao eSocial e não geram pendência.',
+    ] },
     { h1: 'Pessoa com deficiência e dependentes' },
     { lista: [
       '**Pessoa com deficiência** (só para quem tem liberação de **saúde** — é dado sensível, LGPD art. 11): marque física, visual, auditiva, mental, intelectual ou reabilitado pelo INSS e, se quiser, uma observação curta sobre o posto de trabalho. Para admissão antes de 26/10/2026 o eSocial pergunta também se a pessoa conta na cota (Lei 8.213/1991, art. 93).',
@@ -138,6 +145,13 @@ const en: DocumentoAxioma = {
       '**Foreigner**: when the nationality is not Brazilian, entry condition and residence term appear.',
       'Preparing and downloading the file requires **personal data**, **salary** and **health** access (the file has CPF, address, salary and, if any, disability).',
     ] },
+    { h1: 'Changes after the hire (S-2205 and S-2206)' },
+    { lista: [
+      'After the hire was sent, you can change and save normally. Axioma flags by itself what must go to eSocial: **contract change (S-2206)** — job title, schedule, union, branch, new salary etc. — or **personal data change (S-2205)** — name, address, marital status, education, contact, disability and dependents.',
+      'In the **eSocial** card, under **Changes after the hire**, the pending item appears. Enter the **change date** (not before the hire and at most 180 days ahead) and, for the contract, optionally the pay effect date and what changed. Tap **Prepare S-2206 and download** (or S-2205) and give it to the accountant.',
+      'Each change file has its own status: type the **receipt** and tap **Accepted**, or **Sent** (receipt not received yet), or **Rejected**.',
+      'Not changed by these events (the accountant corrects the hire): employee ID, hire date, regime, CPF, birth date and country. Emergency contact and city name do not go to eSocial and do not create a pending item.',
+    ] },
     { h1: 'People with disabilities and dependents' },
     { lista: [
       '**Person with disability** (only with **health** access — sensitive data, LGPD art. 11): tick physical, visual, hearing, mental, intellectual or rehabilitated by INSS and, optionally, a short note about the workstation. For hires before 10/26/2026 eSocial also asks whether the person counts toward the quota (Law 8,213/1991, art. 93).',
@@ -208,6 +222,13 @@ const es: DocumentoAxioma = {
       '**Intermitente (111)**: sin horas fijas por semana; en el horario, describa cómo es la convocatoria (CLT art. 452-A); el salario suele ser por hora.',
       '**Extranjero**: cuando la nacionalidad no es brasileña, aparecen condición de ingreso y tiempo de residencia.',
       'Preparar y descargar el archivo exige habilitación de **datos personales**, **salario** y **salud** (el archivo tiene CPF, dirección, salario y, si hay, discapacidad).',
+    ] },
+    { h1: 'Alteraciones después de la admisión (S-2205 y S-2206)' },
+    { lista: [
+      'Después de enviada la admisión, puede cambiar y guardar normalmente. Axioma marca solo lo que debe ir al eSocial: **alteración de contrato (S-2206)** — cargo, horario, jornada, sindicato, sucursal, salario nuevo etc. — o **alteración de datos personales (S-2205)** — nombre, dirección, estado civil, escolaridad, contacto, discapacidad y dependientes.',
+      'En la tarjeta **eSocial**, en **Alteraciones después de la admisión**, aparece lo pendiente. Informe la **fecha del cambio** (no antes de la admisión y como máximo 180 días adelante) y, en el contrato, si quiere, la fecha del efecto en el salario y qué cambió. Toque **Preparar S-2206 y descargar** (o S-2205) y entréguelo al contador.',
+      'Cada archivo de alteración tiene su situación: escriba el **recibo** y toque **Aceptado**, o **Enviado** (recibo aún no llegó), o **Rechazado**.',
+      'No cambian por estos eventos (el contador rectifica la admisión): matrícula, fecha de admisión, régimen, CPF, fecha y país de nacimiento. Contacto de emergencia y ciudad por extenso no van al eSocial y no generan pendiente.',
     ] },
     { h1: 'Personas con discapacidad y dependientes' },
     { lista: [

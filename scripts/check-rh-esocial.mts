@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { writeFileSync, mkdtempSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { pendenciasS2200, gerarS2200, idEvento, inscricaoEmpregador, type DadosS2200 } from '../lib/rhEsocial'
+import { pendenciasS2200, gerarS2200, idEvento, inscricaoEmpregador, gerarS2205, gerarS2206, pendenciasS2205, pendenciasS2206, type DadosS2200 } from '../lib/rhEsocial'
 
 const base: DadosS2200 = {
   empregador: { tp_insc: 1, nr_insc: '11222333' },
@@ -52,6 +52,13 @@ assert.throws(() => gerarS2200({ ...base, cargo: null }, { agora, seq: 1, tpAmb:
 
 // arquivo: válido no esquema oficial, em três variações
 const dir = mkdtempSync(join(tmpdir(), 's2200-'))
+const validaXml = (xml: string, xsd: string, nome: string) => {
+  const f = join(dir, `${nome}.xml`); writeFileSync(f, xml, 'utf8')
+  try { execFileSync('python', ['-I', 'scripts/valida-xsd.py', xsd, f], { encoding: 'utf8' }) }
+  catch (e) { throw new Error(`${nome}: XSD recusou
+${(e as { stdout?: string }).stdout ?? e}`) }
+  return xml
+}
 const valida = (d: DadosS2200, nome: string) => {
   const { xml } = gerarS2200(d, { agora, seq: 1, tpAmb: 1 })
   const f = join(dir, `${nome}.xml`); writeFileSync(f, xml, 'utf8')
@@ -94,4 +101,22 @@ assert.ok(xt.includes('<trabTemporario><hipLeg>1</hipLeg>') && xt.includes('<cpf
 const xi = valida({ ...base, contrato: { ...base.contrato, cod_categ: '111', tp_contr: 1, data_termino: null, clau_assec: null, qtd_hrs_sem: null, hor_noturno: null, tp_jornada: 9, dsc_jorn: 'Conforme convocação com 3 dias de antecedência' },
   remuneracao: { und_sal_fixo: 1, valor: 15.5 } }, 'intermitente')
 assert.ok(!xi.includes('<qtdHrsSem>') && !xi.includes('<horNoturno>') && xi.includes('<vrSalFx>15.50</vrSalFx>'))
+// S-2205 (dados pessoais) e S-2206 (contrato)
+const hoje = '2026-11-09'
+const x5 = validaXml(gerarS2205({ ...base, pcd: { def_fisica: false, def_visual: false, def_auditiva: false, def_mental: false, def_intelectual: false, reab_readap: false } },
+  { agora, seq: 2, tpAmb: 1, dtAlteracao: '2026-11-20', hoje }).xml, 'evtAltCadastral.xsd', 's2205-tira-pcd')
+assert.ok(x5.includes('<dtAlteracao>2026-11-20</dtAlteracao>') && x5.includes('<defFisica>N</defFisica>') && x5.includes('<ideTrabalhador><cpfTrab>52998224725</cpfTrab></ideTrabalhador>'), 'S-2205: CPF só na identificação')
+assert.ok(!x5.includes('<nascimento>') && x5.includes('<paisNac>105</paisNac>'))
+validaXml(gerarS2205({ ...base, pcd: null, dependentes: [{ tp_dep: '03', nome: 'Joana', data_nascimento: '2015-06-01', cpf: '11144477735', dep_irrf: true, dep_sf: true, inc_trab: false }] },
+  { agora, seq: 3, tpAmb: 1, dtAlteracao: '2026-11-20', hoje }).xml, 'evtAltCadastral.xsd', 's2205-dependente')
+assert.ok(pendenciasS2205(base, '2027-08-01', hoje).some((p) => /Data da alteração/.test(p.campo.pt)), 'mais de 180 dias à frente')
+assert.ok(pendenciasS2205(base, '2026-01-01', hoje).some((p) => /Data da alteração/.test(p.campo.pt)), 'antes da admissão')
+const x6 = validaXml(gerarS2206({ ...base, remuneracao: { und_sal_fixo: 5, valor: 2800 } },
+  { agora, seq: 4, tpAmb: 1, hoje, dtAlteracao: '2026-12-01', dtEf: '2026-12-01', dscAlt: 'Promoção a vendedor sênior' }).xml, 'evtAltContratual.xsd', 's2206-salario')
+assert.ok(x6.includes('<vrSalFx>2800.00</vrSalFx>') && !x6.includes('<clauAssec>') && x6.includes('<dscAlt>Promoção'))
+validaXml(gerarS2206({ ...base, contrato: { ...base.contrato, cod_categ: '106', temp_hip_leg: 2, temp_just_contr: 'Pico de vendas', temp_tomador_tp_insc: 1, temp_tomador_nr_insc: '45678901000175',
+  lt_cep: '01310100', lt_logradouro: 'Rua A', lt_numero: '1', lt_cod_munic: '3550308', lt_uf: 'SP' } },
+  { agora, seq: 5, tpAmb: 1, hoje, dtAlteracao: '2026-12-01', justProrr: 'Pico de vendas prorrogado até o carnaval' }).xml, 'evtAltContratual.xsd', 's2206-temporario-prorroga')
+assert.ok(pendenciasS2206({ ...base, cargo: null }, { dtAlteracao: '2026-12-01' }, hoje).some((p) => /Cargo/.test(p.campo.pt)))
+assert.throws(() => gerarS2205({ ...base, pessoal: { ...base.pessoal!, logradouro: null } }, { agora, seq: 9, tpAmb: 1, dtAlteracao: '2026-11-20', hoje }), /pendência/)
 console.log('check-rh-esocial ok')

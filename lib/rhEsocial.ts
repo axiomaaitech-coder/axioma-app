@@ -8,7 +8,6 @@
 import type { Texto } from './rhEstrutura'
 
 export const VERSAO_LEIAUTE = 'S-1.3 (NT 07/2026 rev.)'
-const NS = 'http://www.esocial.gov.br/schema/evt/evtAdmissao/v_S_01_03_00'
 const VER_PROC = 'AxiomaRH-1.1'
 
 /** Categorias de empregado (Tabela 01) em vigor. 107/108 (Verde e Amarelo) foram encerradas pelo governo em 31/12/2022. */
@@ -188,58 +187,128 @@ const endereco = (x: { logradouro?: string | null; numero?: string | null; compl
   tag('dscLograd', corta(x.logradouro, 100)) + tag('nrLograd', corta(x.numero, 10)) + tag('complemento', corta(x.complemento, 30))
   + tag('bairro', corta(x.bairro, 90)) + tag('cep', dig(x.cep)) + tag('codMunic', x.cod_munic) + tag('uf', x.uf)
 
+// ---------- partes do XML usadas pelos três eventos (S-2200, S-2205, S-2206) ----------
+const ns = (ev: string) => `http://www.esocial.gov.br/schema/evt/${ev}/v_S_01_03_00`
+const ideEvento = (tpAmb: 1 | 2) => grupo('ideEvento', tag('indRetif', 1), tag('tpAmb', tpAmb), tag('procEmi', 1), tag('verProc', VER_PROC))
+const ideEmpregador = (e: { tp_insc: number; nr_insc: string }) => grupo('ideEmpregador', tag('tpInsc', e.tp_insc), tag('nrInsc', inscricaoEmpregador(e)))
+
+/** Dados pessoais: no S-2200 vão CPF e nascimento; no S-2205 só o que pode mudar (paisNac solto, sem CPF/nascimento). */
+function xmlDadosTrab(d: DadosS2200, dtRef: string, modo: '2200' | '2205'): string {
+  const s = d.pessoal!
+  // S-2200: só quem tem deficiência; S-2205: se há registro de PCD (mesmo tudo "N", para tirar a marcação anterior)
+  const pcd = modo === '2200' ? (temDeficiencia(d.pcd) ? d.pcd! : null) : d.pcd ?? null
+  const cota = pcd && dtRef < '2026-10-26' ? sn(pcd.info_cota && temDeficiencia(pcd)) : ''
+  return (modo === '2200' ? tag('cpfTrab', dig(s.cpf)) : '')
+    + tag('nmTrab', corta(d.colab.nome, 70)) + tag('sexo', s.sexo) + tag('racaCor', s.raca_cor)
+    + tag('estCiv', s.estado_civil ?? '') + tag('grauInstr', s.grau_instr) + tag('nmSoc', d.colab.nome_social ? corta(d.colab.nome_social, 70) : '')
+    + (modo === '2200' ? grupo('nascimento', tag('dtNascto', s.data_nascimento), tag('paisNascto', s.pais_nascimento), tag('paisNac', s.pais_nacionalidade)) : tag('paisNac', s.pais_nacionalidade))
+    + grupo('endereco', grupo('brasil', endereco(s)))
+    + (s.pais_nacionalidade !== '105' ? grupo('trabImig', tag('tmpResid', s.imig_tmp_resid ?? ''), tag('condIng', s.imig_cond_ing)) : '')
+    + (pcd ? grupo('infoDeficiencia', tag('defFisica', sn(pcd.def_fisica)), tag('defVisual', sn(pcd.def_visual)), tag('defAuditiva', sn(pcd.def_auditiva)),
+        tag('defMental', sn(pcd.def_mental)), tag('defIntelectual', sn(pcd.def_intelectual)), tag('reabReadap', sn(pcd.reab_readap)),
+        tag('infoCota', cota), tag('observacao', pcd.observacao && temDeficiencia(pcd) ? corta(pcd.observacao, 255) : '')) : '')
+    + (d.dependentes ?? []).map((x) => grupo('dependente', tag('tpDep', x.tp_dep ?? ''), tag('nmDep', corta(x.nome, 70)), tag('dtNascto', x.data_nascimento),
+        tag('cpfDep', dig(x.cpf)), tag('depIRRF', sn(x.dep_irrf)), tag('depSF', sn(x.dep_sf)), tag('incTrab', sn(x.inc_trab)),
+        tag('descrDep', x.tp_dep === '99' ? corta(x.descr_dep, 100) : ''))).join('')
+    + grupo('contato', tag('fonePrinc', dig(s.telefone).length >= 10 ? dig(s.telefone).slice(0, 13) : ''), tag('emailPrinc', s.email && s.email.length <= 60 ? s.email : ''))
+}
+
+/** infoContrato: no S-2206 a duração não leva cláusula assecuratória. */
+function xmlInfoContrato(d: DadosS2200, modo: '2200' | '2206'): string {
+  const k = d.contrato, est = d.estabelecimento, cat = k.cod_categ
+  const domestico = cat === '104', temporario = cat === '106', intermitente = cat === '111'
+  const temHorario = k.tp_reg_jor === 1 || k.qtd_hrs_sem != null || !vazio(k.dsc_jorn)
+  const lt = { logradouro: k.lt_logradouro, numero: k.lt_numero, complemento: k.lt_complemento, bairro: k.lt_bairro, cep: k.lt_cep, cod_munic: k.lt_cod_munic, uf: k.lt_uf }
+  return grupo('infoContrato',
+    tag('nmCargo', corta(d.cargo!.nome, 100)), tag('CBOCargo', d.cargo!.cbo), tag('codCateg', cat),
+    grupo('remuneracao', tag('vrSalFx', num2(d.remuneracao!.und_sal_fixo === 7 ? 0 : d.remuneracao!.valor)), tag('undSalFixo', d.remuneracao!.und_sal_fixo),
+      tag('dscSalVar', [6, 7].includes(d.remuneracao!.und_sal_fixo) ? corta(k.dsc_sal_var, 999) : '')),
+    grupo('duracao', tag('tpContr', k.tp_contr), tag('dtTerm', k.tp_contr === 2 ? k.data_termino : ''),
+      modo === '2200' ? tag('clauAssec', k.tp_contr !== 1 ? sn(k.clau_assec) : '') : '', tag('objDet', k.tp_contr === 3 ? corta(k.obj_det, 255) : '')),
+    grupo('localTrabalho',
+      !domestico && est ? grupo('localTrabGeral', tag('tpInsc', est.tp_insc), tag('nrInsc', alnum(est.nr_insc))) : '',
+      domestico || temporario ? grupo('localTempDom', endereco(lt)) : ''),
+    temHorario ? grupo('horContratual', tag('qtdHrsSem', k.qtd_hrs_sem != null && !intermitente ? num2(Number(k.qtd_hrs_sem)) : ''), tag('tpJornada', k.tp_jornada),
+      tag('tmpParc', k.tmp_parc), tag('horNoturno', !intermitente ? sn(k.hor_noturno) : ''), tag('dscJorn', corta(k.dsc_jorn, 999))) : '')
+}
+
+const aprendXml = (k: DadosS2200['contrato']) => k.cod_categ === '103' && k.apr_ind ? grupo('aprend', tag('indAprend', k.apr_ind),
+  tag('cnpjEntQual', k.apr_ind === 1 ? dig(k.apr_cnpj_ent_qual) : ''), tag('tpInsc', k.apr_ind === 2 ? k.apr_tp_insc : ''),
+  tag('nrInsc', k.apr_ind === 2 ? dig(k.apr_nr_insc) : ''), tag('cnpjPrat', dig(k.apr_cnpj_prat))) : ''
+const sindicato = (d: DadosS2200) => dig(d.contrato.cnpj_sindicato || (d.contrato.cod_categ !== '104' ? d.estabelecimento?.cnpj_sindicato : ''))
+
 /** Monta o XML do S-2200 (sem assinatura — o contador assina com o certificado dele). Lança erro se houver pendência. */
 export function gerarS2200(d: DadosS2200, opc: { agora: Date; seq: number; tpAmb: 1 | 2 }): { id: string; xml: string } {
   const pend = pendenciasS2200(d)
   if (pend.length) throw new Error(`S-2200 com ${pend.length} pendência(s): ${pend.map((x) => x.campo.pt).join(', ')}`)
-  const e = d.empregador!, s = d.pessoal!, k = d.contrato, est = d.estabelecimento
-  const cat = k.cod_categ, domestico = cat === '104', temporario = cat === '106', intermitente = cat === '111'
+  const e = d.empregador!, k = d.contrato
   const id = idEvento(e, opc.agora, opc.seq)
-  const sind = dig(k.cnpj_sindicato || (!domestico ? est?.cnpj_sindicato : ''))
-  const temHorario = k.tp_reg_jor === 1 || k.qtd_hrs_sem != null || !vazio(k.dsc_jorn)
-  const pcd = temDeficiencia(d.pcd) ? d.pcd! : null
-  const lt = { logradouro: k.lt_logradouro, numero: k.lt_numero, complemento: k.lt_complemento, bairro: k.lt_bairro, cep: k.lt_cep, cod_munic: k.lt_cod_munic, uf: k.lt_uf }
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>`
-    + `<eSocial xmlns="${NS}"><evtAdmissao Id="${id}">`
-    + grupo('ideEvento', tag('indRetif', 1), tag('tpAmb', opc.tpAmb), tag('procEmi', 1), tag('verProc', VER_PROC))
-    + grupo('ideEmpregador', tag('tpInsc', e.tp_insc), tag('nrInsc', inscricaoEmpregador(e)))
-    + grupo('trabalhador',
-        tag('cpfTrab', dig(s.cpf)), tag('nmTrab', corta(d.colab.nome, 70)), tag('sexo', s.sexo), tag('racaCor', s.raca_cor),
-        tag('estCiv', s.estado_civil ?? ''), tag('grauInstr', s.grau_instr), tag('nmSoc', d.colab.nome_social ? corta(d.colab.nome_social, 70) : ''),
-        grupo('nascimento', tag('dtNascto', s.data_nascimento), tag('paisNascto', s.pais_nascimento), tag('paisNac', s.pais_nacionalidade)),
-        grupo('endereco', grupo('brasil', endereco(s))),
-        s.pais_nacionalidade !== '105' ? grupo('trabImig', tag('tmpResid', s.imig_tmp_resid ?? ''), tag('condIng', s.imig_cond_ing)) : '',
-        pcd ? grupo('infoDeficiencia', tag('defFisica', sn(pcd.def_fisica)), tag('defVisual', sn(pcd.def_visual)), tag('defAuditiva', sn(pcd.def_auditiva)),
-          tag('defMental', sn(pcd.def_mental)), tag('defIntelectual', sn(pcd.def_intelectual)), tag('reabReadap', sn(pcd.reab_readap)),
-          tag('infoCota', k.data_admissao < '2026-10-26' ? sn(pcd.info_cota) : ''), tag('observacao', pcd.observacao ? corta(pcd.observacao, 255) : '')) : '',
-        (d.dependentes ?? []).map((x) => grupo('dependente', tag('tpDep', x.tp_dep ?? ''), tag('nmDep', corta(x.nome, 70)), tag('dtNascto', x.data_nascimento),
-          tag('cpfDep', dig(x.cpf)), tag('depIRRF', sn(x.dep_irrf)), tag('depSF', sn(x.dep_sf)), tag('incTrab', sn(x.inc_trab)),
-          tag('descrDep', x.tp_dep === '99' ? corta(x.descr_dep, 100) : ''))).join(''),
-        grupo('contato', tag('fonePrinc', dig(s.telefone).length >= 10 ? dig(s.telefone).slice(0, 13) : ''), tag('emailPrinc', s.email && s.email.length <= 60 ? s.email : '')))
+  const temp = k.cod_categ === '106' ? grupo('trabTemporario', tag('hipLeg', k.temp_hip_leg), tag('justContr', corta(k.temp_just_contr, 999)),
+    grupo('ideEstabVinc', tag('tpInsc', k.temp_tomador_tp_insc), tag('nrInsc', dig(k.temp_tomador_nr_insc))),
+    k.temp_hip_leg === 1 ? (k.temp_cpf_substituidos ?? []).slice(0, 9).map((c) => grupo('ideTrabSubstituido', tag('cpfTrabSubst', dig(c)))).join('') : '') : ''
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${ns('evtAdmissao')}"><evtAdmissao Id="${id}">`
+    + ideEvento(opc.tpAmb) + ideEmpregador(e)
+    + `<trabalhador>${xmlDadosTrab(d, k.data_admissao, '2200')}</trabalhador>`
     + grupo('vinculo',
         tag('matricula', corta(k.matricula, 30)), tag('tpRegTrab', k.tp_reg_trab), tag('tpRegPrev', k.tp_reg_prev), tag('cadIni', 'N'),
         grupo('infoRegimeTrab', grupo('infoCeletista',
           tag('dtAdm', k.data_admissao), tag('tpAdmissao', 1), tag('indAdmissao', 1), tag('tpRegJor', k.tp_reg_jor), tag('natAtividade', k.nat_atividade),
-          tag('dtBase', k.data_base ?? ''), tag('cnpjSindCategProf', sind),
-          temporario ? grupo('trabTemporario', tag('hipLeg', k.temp_hip_leg), tag('justContr', corta(k.temp_just_contr, 999)),
-            grupo('ideEstabVinc', tag('tpInsc', k.temp_tomador_tp_insc), tag('nrInsc', dig(k.temp_tomador_nr_insc))),
-            k.temp_hip_leg === 1 ? (k.temp_cpf_substituidos ?? []).slice(0, 9).map((c) => grupo('ideTrabSubstituido', tag('cpfTrabSubst', dig(c)))).join('') : '') : '',
-          cat === '103' && k.apr_ind ? grupo('aprend', tag('indAprend', k.apr_ind),
-            tag('cnpjEntQual', k.apr_ind === 1 ? dig(k.apr_cnpj_ent_qual) : ''),
-            tag('tpInsc', k.apr_ind === 2 ? k.apr_tp_insc : ''), tag('nrInsc', k.apr_ind === 2 ? dig(k.apr_nr_insc) : ''),
-            tag('cnpjPrat', dig(k.apr_cnpj_prat))) : '')),
-        grupo('infoContrato',
-          tag('nmCargo', corta(d.cargo!.nome, 100)), tag('CBOCargo', d.cargo!.cbo), tag('codCateg', cat),
-          grupo('remuneracao', tag('vrSalFx', num2(d.remuneracao!.und_sal_fixo === 7 ? 0 : d.remuneracao!.valor)), tag('undSalFixo', d.remuneracao!.und_sal_fixo),
-            tag('dscSalVar', [6, 7].includes(d.remuneracao!.und_sal_fixo) ? corta(k.dsc_sal_var, 999) : '')),
-          grupo('duracao', tag('tpContr', k.tp_contr), tag('dtTerm', k.tp_contr === 2 ? k.data_termino : ''),
-            tag('clauAssec', k.tp_contr !== 1 ? sn(k.clau_assec) : ''), tag('objDet', k.tp_contr === 3 ? corta(k.obj_det, 255) : '')),
-          grupo('localTrabalho',
-            !domestico && est ? grupo('localTrabGeral', tag('tpInsc', est.tp_insc), tag('nrInsc', alnum(est.nr_insc))) : '',
-            domestico || temporario ? grupo('localTempDom', endereco(lt)) : ''),
-          temHorario ? grupo('horContratual', tag('qtdHrsSem', k.qtd_hrs_sem != null && !intermitente ? num2(Number(k.qtd_hrs_sem)) : ''), tag('tpJornada', k.tp_jornada),
-            tag('tmpParc', k.tmp_parc), tag('horNoturno', !intermitente ? sn(k.hor_noturno) : ''), tag('dscJorn', corta(k.dsc_jorn, 999))) : ''))
+          tag('dtBase', k.data_base ?? ''), tag('cnpjSindCategProf', sindicato(d)), temp, aprendXml(k))),
+        xmlInfoContrato(d, '2200'))
     + `</evtAdmissao></eSocial>`
+  return { id, xml }
+}
+
+// ---------- S-2205 (alteração de dados pessoais) e S-2206 (alteração de contrato) ----------
+const DIA = 86400000
+/** Data da alteração: não antes da admissão e no máximo 180 dias à frente de hoje (regra do leiaute). */
+function pendenciasData(d: DadosS2200, dt: string, hoje: string): Pendencia[] {
+  const p: Pendencia[] = []
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) p.push({ onde: 'contrato', campo: T('Data da alteração', 'Change date', 'Fecha del cambio') })
+  else if (dt < d.contrato.data_admissao) p.push({ onde: 'contrato', campo: T('Data da alteração', 'Change date', 'Fecha del cambio'), motivo: T('Não pode ser antes da admissão', 'Cannot be before the hire date', 'No puede ser antes de la admisión') })
+  else if (new Date(dt + 'T12:00:00Z').getTime() - new Date(hoje + 'T12:00:00Z').getTime() > 180 * DIA) p.push({ onde: 'contrato', campo: T('Data da alteração', 'Change date', 'Fecha del cambio'), motivo: T('No máximo 180 dias à frente de hoje', 'At most 180 days from today', 'Como máximo 180 días desde hoy') })
+  if (d.contrato.data_desligamento) p.push({ onde: 'contrato', campo: T('Desligamento', 'Termination', 'Desvinculación'), motivo: T('Pessoa desligada: não cabe alteração', 'Person terminated: no change applies', 'Persona desvinculada: no cabe alteración') })
+  return p
+}
+const PESSOAIS: Pendencia['onde'][] = ['pessoal', 'pcd', 'dependentes']
+
+/** O que falta para o S-2205: os dados pessoais e de dependentes/PCD, com as regras de data valendo na data da alteração. */
+export function pendenciasS2205(d: DadosS2200, dtAlteracao: string, hoje: string): Pendencia[] {
+  const naData = { ...d, contrato: { ...d.contrato, data_admissao: dtAlteracao } }
+  const pessoais = pendenciasS2200(naData).filter((x) => PESSOAIS.includes(x.onde) && !/^(CPF|Data de nascimento|País de nascimento)/.test(x.campo.pt))
+  return [...pendenciasData(d, dtAlteracao, hoje), ...(d.empregador ? [] : [{ onde: 'empregador' as const, campo: T('Cadastro do Empregador', 'Employer record', 'Registro del Empleador') }]), ...pessoais]
+}
+export function gerarS2205(d: DadosS2200, opc: { agora: Date; seq: number; tpAmb: 1 | 2; dtAlteracao: string; hoje: string }): { id: string; xml: string } {
+  const pend = pendenciasS2205(d, opc.dtAlteracao, opc.hoje)
+  if (pend.length) throw new Error(`S-2205 com ${pend.length} pendência(s): ${pend.map((x) => x.campo.pt).join(', ')}`)
+  const e = d.empregador!, id = idEvento(e, opc.agora, opc.seq)
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${ns('evtAltCadastral')}"><evtAltCadastral Id="${id}">`
+    + ideEvento(opc.tpAmb) + ideEmpregador(e) + grupo('ideTrabalhador', tag('cpfTrab', dig(d.pessoal!.cpf)))
+    + grupo('alteracao', tag('dtAlteracao', opc.dtAlteracao), `<dadosTrabalhador>${xmlDadosTrab(d, opc.dtAlteracao, '2205')}</dadosTrabalhador>`)
+    + `</evtAltCadastral></eSocial>`
+  return { id, xml }
+}
+
+export type OpcS2206 = { dtAlteracao: string; dtEf?: string | null; dscAlt?: string | null; justProrr?: string | null }
+/** O que falta para o S-2206: contrato, cargo, salário, local, sindicato e jornada — e a data da alteração. */
+export function pendenciasS2206(d: DadosS2200, o: OpcS2206, hoje: string): Pendencia[] {
+  const contrato = pendenciasS2200(d).filter((x) => !PESSOAIS.includes(x.onde) || /^(CPF)/.test(x.campo.pt))
+  const p = [...pendenciasData(d, o.dtAlteracao, hoje), ...contrato.filter((x) => !/^Desligamento/.test(x.campo.pt))]
+  if (o.dtEf && o.dtEf < d.contrato.data_admissao) p.push({ onde: 'contrato', campo: T('Data dos efeitos no salário', 'Pay effective date', 'Fecha de efectos en el salario'), motivo: T('Não pode ser antes da admissão', 'Cannot be before the hire date', 'No puede ser antes de la admisión') })
+  return p
+}
+export function gerarS2206(d: DadosS2200, opc: { agora: Date; seq: number; tpAmb: 1 | 2; hoje: string } & OpcS2206): { id: string; xml: string } {
+  const pend = pendenciasS2206(d, opc, opc.hoje)
+  if (pend.length) throw new Error(`S-2206 com ${pend.length} pendência(s): ${pend.map((x) => x.campo.pt).join(', ')}`)
+  const e = d.empregador!, k = d.contrato, id = idEvento(e, opc.agora, opc.seq)
+  const temp = k.cod_categ === '106' && !vazio(opc.justProrr) ? grupo('trabTemporario', tag('justProrr', corta(opc.justProrr, 999))) : ''
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${ns('evtAltContratual')}"><evtAltContratual Id="${id}">`
+    + ideEvento(opc.tpAmb) + ideEmpregador(e) + grupo('ideVinculo', tag('cpfTrab', dig(d.pessoal!.cpf)), tag('matricula', corta(k.matricula, 30)))
+    + grupo('altContratual', tag('dtAlteracao', opc.dtAlteracao), tag('dtEf', opc.dtEf ?? ''), tag('dscAlt', opc.dscAlt ? corta(opc.dscAlt, 150) : ''),
+        grupo('vinculo', tag('tpRegPrev', k.tp_reg_prev),
+          grupo('infoRegimeTrab', grupo('infoCeletista', tag('tpRegJor', k.tp_reg_jor), tag('natAtividade', k.nat_atividade), tag('dtBase', k.data_base ?? ''),
+            tag('cnpjSindCategProf', sindicato(d)), temp, aprendXml(k))),
+          xmlInfoContrato(d, '2206')))
+    + `</evtAltContratual></eSocial>`
   return { id, xml }
 }
