@@ -98,7 +98,7 @@ const en: DocumentoAxioma = {
       'In **HR access**, tick for each person: **View HR**, **Edit**, **Personal data**, **Salary** and **Health**. Ticking any item also ticks "View HR"; unticking "View HR" removes everything.',
       'Nobody can grant themselves. Each grant is recorded with who granted it and when. A suspended person or one with expired access loses HR access immediately.',
     ] },
-    { nota: 'Rules source: official eSocial S-1.3 layout (TN 07/2026, revision of 10/20/2026) and eSocial Tables 03, 04, 08, 10, 12 and 21.' },
+    { nota: 'Rules source: official eSocial S-1.3 layout (TN 07/2026, revision of 10/20/2026) and eSocial Tables 03, 04, 08, 10, 12 and 21. Se a internet falhar ao conferir o acesso, a tela avisa "Não foi possível conferir o seu acesso" com o botão **Tentar de novo** (não mostra um falso "sem acesso").' },
   ],
 }
 
@@ -134,7 +134,7 @@ const es: DocumentoAxioma = {
       '**Papelera (90 días)**, en la esquina del panel: muestra lo borrado, los días que faltan y el botón **Recuperar**.',
       'Tocar cualquier dato de la fila sin enlace propio (validez, CNPJ, situación) abre el propio registro: para editar, si es borrador, o para ver los detalles.',
     ] },
-    { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario.' },
+    { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario. If the internet fails while checking access, the screen says "Could not check your HR access" with a **Try again** button (it never shows a false "no access").' },
     { h1: 'Llenado e IA' },
     { lista: ['CNPJ y CPF reciben puntos, barra y guion al escribir (solo se guardan los números).', '**Inteligencia Axioma — Especialista de RR. HH.** al final: "¿RR. HH. está configurado? ¿qué falta?", "¿cuántos departamentos y cargos?". La IA solo lee lo que usted puede ver. Escriba o toque el **micrófono** para hablar; **Escuchar** lee la respuesta en voz alta y **Conversación en vivo** conversa por voz, como con José.'] },
     { h1: 'Compartir y exportar' },
@@ -146,7 +146,7 @@ const es: DocumentoAxioma = {
       'En **Accesos de RR. HH.**, marque para cada persona: **Ver RR. HH.**, **Editar**, **Datos personales**, **Salario** y **Salud**. Marcar un ítem ya marca "Ver RR. HH."; desmarcar "Ver RR. HH." quita todo.',
       'Nadie se habilita a sí mismo. Cada habilitación queda registrada con quién la otorgó y cuándo. Una persona suspendida o con acceso vencido pierde el acceso al instante.',
     ] },
-    { nota: 'Fuente de las reglas: diseño oficial eSocial S-1.3 (NT 07/2026, revisión del 20/10/2026) y Tablas 03, 04, 08, 10, 12 y 21 del eSocial.' },
+    { nota: 'Fuente de las reglas: diseño oficial eSocial S-1.3 (NT 07/2026, revisión del 20/10/2026) y Tablas 03, 04, 08, 10, 12 y 21 del eSocial. Si internet falla al verificar el acceso, la pantalla avisa "No se pudo verificar su acceso" con el botón **Intentar de nuevo** (no muestra un falso "sin acceso").' },
   ],
 }
 
