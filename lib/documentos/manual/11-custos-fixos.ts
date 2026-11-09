@@ -54,6 +54,13 @@ const pt: DocumentoAxioma = {
     ] },
     { nota: 'Todo dia o Axioma cria sozinho, em Contas a Pagar, a conta do mês de cada custo fixo vigente, e avisa 7 dias antes do vencimento. A DRE soma o custo só nos meses entre "Vale desde" e "Até", sem contar duas vezes a conta gerada.' },
     { nota: '**Se a lista de Centros de Custo vier vazia com o aviso "Alguns dados não puderam ser carregados"**, o Axioma já tentou de novo sozinho e a leitura falhou: atualize a página antes de escolher o centro. Lista vazia com o aviso não quer dizer que a Empresa não tem centros.' },
+    { h1: 'Custo de pessoal (RH)' },
+    { lista: [
+      'Cartão **Custo de pessoal (RH)**: estimativa mensal pelo cadastro do RH — salários + FGTS (8%; aprendiz 2%) + provisões de 13º e férias com 1/3 + INSS patronal pelo regime (Simples: já no DAS, exceto Anexo IV; MEI 3%; Lucro Presumido/Real 20%, sem RAT e terceiros; doméstico pela LC 150).',
+      'Compara com o que está **lançado em Custos Fixos como "Folha de pagamento"** no mês e avisa se confere, se está a menos, a mais ou não lançado. A DRE e o Fluxo de Caixa usam só o lançado: a estimativa **nunca** é somada a eles (nada conta duas vezes).',
+      'Só aparece com a liberação de salário do RH. **Ver no RH ›** abre o Painel do RH; **Abrir Custos Fixos ›** leva ao lançamento.',
+      'Na conversa com a Inteligência Axioma: "quanto custa a minha folha?", "custo de pessoal por centro de custo", "a folha está lançada?".',
+    ] },
   ],
 }
 
@@ -110,6 +117,13 @@ const en: DocumentoAxioma = {
     ] },
     { nota: 'Every day Axioma creates in Payables the month\'s bill for each valid fixed cost, and warns 7 days before the due date. The P&L counts the cost only in the months between "Valid from" and "Until", without counting the generated bill twice.' },
     { nota: '**If the Cost Center list comes empty with the notice "Some data could not be loaded"**, Axioma has already retried on its own and the read failed: refresh the page before choosing the center. An empty list with the notice does not mean the Company has no centers.' },
+    { h1: 'Personnel cost (HR)' },
+    { lista: [
+      '**Personnel cost (HR)** card: monthly estimate from HR records — salaries + FGTS (8%; apprentice 2%) + 13th and vacation (+1/3) provisions + employer INSS by tax regime (Simples: already in the DAS, except Annex IV; MEI 3%; Presumed/Actual Profit 20%, without RAT and third parties; domestic workers under LC 150).',
+      'It compares with what is **entered in Fixed Costs as "Payroll"** for the month and warns whether it matches, is lower, higher or not entered. The income statement and cash flow use only what was entered: the estimate is **never** added to them (nothing counts twice).',
+      'Only shown with HR salary access. **See in HR ›** opens the HR Panel; **Open Fixed Costs ›** takes you to the entry.',
+      'In the Axioma Intelligence chat: "how much does my payroll cost?", "personnel cost by cost center", "is payroll entered?".',
+    ] },
   ],
 }
 
@@ -166,6 +180,13 @@ const es: DocumentoAxioma = {
     ] },
     { nota: 'Todos los días Axioma crea en Cuentas por Pagar la cuenta del mes de cada costo fijo vigente y avisa 7 días antes del vencimiento. El Estado de Resultados suma el costo solo en los meses entre "Vigente desde" y "Hasta", sin contar dos veces la cuenta generada.' },
     { nota: '**Si la lista de Centros de Costo viene vacía con el aviso "Algunos datos no se pudieron cargar"**, Axioma ya intentó de nuevo solo y la lectura falló: actualice la página antes de elegir el centro. Una lista vacía con el aviso no significa que la Empresa no tenga centros.' },
+    { h1: 'Costo de personal (RR. HH.)' },
+    { lista: [
+      'Tarjeta **Costo de personal (RR. HH.)**: estimación mensual según el registro de RR. HH. — salarios + FGTS (8%; aprendiz 2%) + provisiones de 13º y vacaciones con 1/3 + INSS patronal según el régimen (Simples: ya en el DAS, salvo Anexo IV; MEI 3%; Lucro Presumido/Real 20%, sin RAT ni terceros; doméstico por la LC 150).',
+      'Compara con lo **registrado en Costos Fijos como "Nómina"** en el mes y avisa si coincide, si está por debajo, por encima o no registrado. El estado de resultados y el flujo de caja usan solo lo registrado: la estimación **nunca** se les suma (nada cuenta dos veces).',
+      'Solo aparece con habilitación de salario en RR. HH. **Ver en RR. HH. ›** abre el Panel de RR. HH.; **Abrir Costos Fijos ›** lleva al registro.',
+      'En la conversación con la Inteligencia Axioma: "¿cuánto cuesta mi nómina?", "costo de personal por centro de costo", "¿la nómina está registrada?".',
+    ] },
   ],
 }
 

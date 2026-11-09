@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useRouter } from "next/navigation";
+import { CustoPessoalCard } from "../../../components/rh/CustoPessoalCard";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2,  AlertTriangle, Sparkles, Bell, Zap } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -385,6 +386,9 @@ export default function CustosFixos() {
                 </div>
               </div>
             )}
+
+            {/* Ponte RH ↔ financeiro: estimativa do RH × "Folha de pagamento" lançada aqui (não soma na DRE) */}
+            <CustoPessoalCard lang={lang} temaClaro={temaClaro} ondeEsta="custos-fixos" />
 
             {/* MODAL ÚNICO — Análise */}
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>

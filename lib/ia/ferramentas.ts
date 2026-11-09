@@ -101,7 +101,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
     }))
     if (NOMES_FERRAMENTAS_FINANCEIRAS.has(nome)) return JSON.stringify(await executarFerramentaFinanceira({ supabase, empresaId, fuso }, nome, input))
     if (NOMES_FERRAMENTAS_GESTAO.has(nome)) return JSON.stringify(await executarFerramentaGestao({ supabase, empresaId, fuso }, nome, input))
-    if (NOMES_FERRAMENTAS_RH.has(nome)) return JSON.stringify(await executarFerramentaRh({ supabase, empresaId, fuso }, nome))
+    if (NOMES_FERRAMENTAS_RH.has(nome)) return JSON.stringify(await executarFerramentaRh({ supabase, empresaId, fuso }, nome, input))
     if (nome === 'contas_vencidas') {
       // carregado sob demanda: só quem pergunta de vencidos paga o custo dessa leitura
       const { consultarVencidosIA } = await import('../vencidos/ferramentaIA')

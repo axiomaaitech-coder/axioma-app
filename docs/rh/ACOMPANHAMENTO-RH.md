@@ -95,6 +95,11 @@ Central do eSocial, Obrigações. Todo alerta do Painel tem destino; nomes abrem
 RH-20 rodado (2·1·1·2·1·1) e teste RH-20 falhas=0 (desfaz tudo no fim). Salário, dependentes e anexos com lápis/lixeira;
 apagar cálculo da rescisão; experiência: quem trabalhou → desligamento motivo 06; quem não trabalhou → cancelar admissão (S-3000).
 
+## Ponte RH ↔ Financeiro (09/11/2026)
+
+Portas rh_custo_pessoal e rh_colaborador; cartão Custo de pessoal em RH, Custos Fixos e Centros de Custo. Estimativa ≠ lançado:
+nada é somado na DRE. Próximos: Fator R na IA Tributária (folha 12 meses), provisões e datas da folha no Fluxo (5º dia útil, FGTS/INSS dia 20), headcount.
+
 ## PRÓXIMO (pedido do Elias, 09/11/2026 — depois da auditoria de botões)
 Telas próprias de **Admissões** e **Desligamentos**: listas em ordem alfabética, busca por nome/matrícula/CPF, filtros por
 período, situação no eSocial e motivo; pensadas para empresa grande (paginação no banco). Cada linha abre a ficha da pessoa.

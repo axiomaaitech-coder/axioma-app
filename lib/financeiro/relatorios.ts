@@ -439,7 +439,7 @@ export async function gerarRelatorio(ctx: CtxRelatorio, pedido: PedidoRelatorio)
     ] })
     secoes.push(tabela('categorias', L(lang, 'Despesas por categoria', 'Expenses by category', 'Gastos por categoría'), [[tx(lang, 'categoria'), 'texto'], [tx(lang, 'registros'), 'numero'], [tx(lang, 'valor'), 'moeda'], [tx(lang, 'participacao'), 'pct']], (cd?.grupos ?? []).map((x) => [x.nome, x.registros, x.valor, x.pct]), lang, cat ? ['Total', null, cat.valor as number, 100] : undefined))
     secoes.push(tabela('fornecedores', L(lang, 'Despesas por fornecedor', 'Expenses by supplier', 'Gastos por proveedor'), [[tx(lang, 'fornecedor'), 'texto'], [tx(lang, 'registros'), 'numero'], [tx(lang, 'valor'), 'moeda'], [tx(lang, 'participacao'), 'pct']], (fdd?.grupos ?? []).map((x) => [x.nome, x.registros, x.valor, x.pct]), lang))
-    C.limitar(L(lang, 'Folha de pagamento não tem cadastro no Axioma: só entra se foi lançada como conta a pagar ou custo.', 'Payroll has no record in Axioma: it is only included if entered as a payable or cost.', 'La nómina no tiene registro en Axioma: solo entra si fue registrada como cuenta por pagar o costo.'))
+    C.limitar(L(lang, 'Folha de pagamento só entra aqui se foi lançada como conta a pagar ou custo; o RH mostra a estimativa do custo de pessoal para comparar.', 'Payroll is only included here if entered as a payable or cost; HR shows the estimated personnel cost to compare.', 'La nómina solo entra aquí si fue registrada como cuenta por pagar o costo; RR. HH. muestra la estimación del costo de personal para comparar.'))
   }
 
   if (tipo === 'endividamento') {

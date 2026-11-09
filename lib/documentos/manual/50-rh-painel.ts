@@ -28,6 +28,13 @@ const pt: DocumentoAxioma = {
     { h1: 'Compartilhar e exportar' },
     { lista: ['**Compartilhar**, **PDF** e **Excel** levam a lista de alertas com a base legal.'] },
     { nota: 'Quem pode ver: Proprietário, CEO, Sócio e Admin; os demais só com liberação em RH · Estrutura → **Acessos do RH**. Se a internet falhar ao conferir o acesso, a tela avisa "Não foi possível conferir o seu acesso" com o botão **Tentar de novo** (não mostra um falso "sem acesso").' },
+    { h1: 'Custo de pessoal (RH)' },
+    { lista: [
+      'Cartão **Custo de pessoal (RH)**: estimativa mensal pelo cadastro do RH — salários + FGTS (8%; aprendiz 2%) + provisões de 13º e férias com 1/3 + INSS patronal pelo regime (Simples: já no DAS, exceto Anexo IV; MEI 3%; Lucro Presumido/Real 20%, sem RAT e terceiros; doméstico pela LC 150).',
+      'Compara com o que está **lançado em Custos Fixos como "Folha de pagamento"** no mês e avisa se confere, se está a menos, a mais ou não lançado. A DRE e o Fluxo de Caixa usam só o lançado: a estimativa **nunca** é somada a eles (nada conta duas vezes).',
+      'Só aparece com a liberação de salário do RH. **Ver no RH ›** abre o Painel do RH; **Abrir Custos Fixos ›** leva ao lançamento.',
+      'Na conversa com a Inteligência Axioma: "quanto custa a minha folha?", "custo de pessoal por centro de custo", "a folha está lançada?".',
+    ] },
   ],
 }
 
@@ -58,6 +65,13 @@ const en: DocumentoAxioma = {
     { h1: 'Share and export' },
     { lista: ['**Share**, **PDF** and **Excel** carry the alert list with the legal basis.'] },
     { nota: 'Who can see: Owner, CEO, Partner and Admin; others only with access granted in HR · Structure → **HR access**. If the internet fails while checking access, the screen says "Could not check your HR access" with a **Try again** button (it never shows a false "no access").' },
+    { h1: 'Personnel cost (HR)' },
+    { lista: [
+      '**Personnel cost (HR)** card: monthly estimate from HR records — salaries + FGTS (8%; apprentice 2%) + 13th and vacation (+1/3) provisions + employer INSS by tax regime (Simples: already in the DAS, except Annex IV; MEI 3%; Presumed/Actual Profit 20%, without RAT and third parties; domestic workers under LC 150).',
+      'It compares with what is **entered in Fixed Costs as "Payroll"** for the month and warns whether it matches, is lower, higher or not entered. The income statement and cash flow use only what was entered: the estimate is **never** added to them (nothing counts twice).',
+      'Only shown with HR salary access. **See in HR ›** opens the HR Panel; **Open Fixed Costs ›** takes you to the entry.',
+      'In the Axioma Intelligence chat: "how much does my payroll cost?", "personnel cost by cost center", "is payroll entered?".',
+    ] },
   ],
 }
 
@@ -88,6 +102,13 @@ const es: DocumentoAxioma = {
     { h1: 'Compartir y exportar' },
     { lista: ['**Compartir**, **PDF** y **Excel** llevan la lista de alertas con la base legal.'] },
     { nota: 'Quién puede ver: Propietario, CEO, Socio y Admin; los demás solo con acceso en RR. HH. · Estructura → **Accesos de RR. HH.** Si internet falla al verificar el acceso, la pantalla avisa "No se pudo verificar su acceso" con el botón **Intentar de nuevo** (no muestra un falso "sin acceso").' },
+    { h1: 'Costo de personal (RR. HH.)' },
+    { lista: [
+      'Tarjeta **Costo de personal (RR. HH.)**: estimación mensual según el registro de RR. HH. — salarios + FGTS (8%; aprendiz 2%) + provisiones de 13º y vacaciones con 1/3 + INSS patronal según el régimen (Simples: ya en el DAS, salvo Anexo IV; MEI 3%; Lucro Presumido/Real 20%, sin RAT ni terceros; doméstico por la LC 150).',
+      'Compara con lo **registrado en Costos Fijos como "Nómina"** en el mes y avisa si coincide, si está por debajo, por encima o no registrado. El estado de resultados y el flujo de caja usan solo lo registrado: la estimación **nunca** se les suma (nada cuenta dos veces).',
+      'Solo aparece con habilitación de salario en RR. HH. **Ver en RR. HH. ›** abre el Panel de RR. HH.; **Abrir Costos Fijos ›** lleva al registro.',
+      'En la conversación con la Inteligencia Axioma: "¿cuánto cuesta mi nómina?", "costo de personal por centro de costo", "¿la nómina está registrada?".',
+    ] },
   ],
 }
 

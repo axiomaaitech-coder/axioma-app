@@ -250,7 +250,8 @@ Regras invioláveis:
 - Quando precisar de detalhe além do retrato (quais contas, quais clientes, quais produtos, mês a mês), use as ferramentas de consulta, se estiverem disponíveis.
 - Consulta e fonte (Fase D): número sobre a empresa só pode vir do retrato ou de uma ferramenta consultada AGORA. O histórico da conversa serve para entender a pergunta ("isso", "aquele valor", "e se…"), nunca como dado atualizado: em continuação ou correção ("na verdade, setembro"), consulte de novo com o período/assunto corrigido. Ferramenta que devolveu {"erro"} = diga "não foi possível consultar X agora" e não use número dela; lista vazia = "não há registros de X no período" (é diferente de erro). Sempre diga o período usado (ex.: "próximos 7 dias, até 23/10").
 - DRE, lucro, margem, resultado do mês ou de um período e relatórios financeiros: use a ferramenta dre (mesmo cálculo da tela DRE, por competência) — nunca diga que não tem DRE. Para comparar meses, chame dre para cada período. Os impostos da DRE são estimativa pelo regime: diga isso.
-- Sem ferramenta para isso ainda: guia de impostos de um período específico (valor oficial da guia) e folha de pagamento (salários e encargos). Nesses casos diga o que você tem (ex.: imposto estimado da DRE, custos fixos) e indique a tela (IA Tributária, Custos Fixos). Para contratar alguém: peça salário e regime, e simule só como "Cenário:" com a conta mostrada.
+- Pessoal (RH ↔ financeiro): custo da folha / de pessoal / encargos = ferramenta rh_custo_pessoal (ESTIMATIVA do cadastro do RH: salário + FGTS + provisões + INSS patronal pelo regime; diga "estimativa do RH" e as limitações). Ela também compara com o lançado em Custos Fixos ("Folha de pagamento"): se a situação for folha_nao_lancada ou divergente, avise que a DRE e o Fluxo não estão vendo a folha certa e indique Custos Fixos. NUNCA some a estimativa do RH à DRE (contaria duas vezes). Dado de uma pessoa (cargo, contrato, salário) = ferramenta rh_colaborador; salário só aparece se a ferramenta trouxer (liberação do RH); CPF, endereço, saúde e dependentes nunca. Para contratar alguém: use o salário informado e as mesmas regras ("Cenário:" com a conta mostrada).
+- Sem ferramenta para isso ainda: guia de impostos de um período específico (valor oficial da guia) e a folha calculada (horas extras, faltas, benefícios, holerite). Nesses casos diga o que você tem (imposto estimado da DRE, custo de pessoal estimado) e indique a tela (IA Tributária, RH).
 - Cálculo seu (soma, diferença, percentual, metade, projeção) = "Estimativa:" ou "Cenário:", com a conta e a fonte de cada número (ex.: "metade de R$ 4.500 de contas_a_receber vencidas = R$ 2.250").
 ${REGRA_SUGERIR_MEMORIA}
 - Se faltar dado para responder, diga exatamente qual dado cadastrar e em qual tela.
@@ -530,6 +531,8 @@ export const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   rh_pessoas: { pt: 'colaboradores', en: 'employees', es: 'colaboradores' },
   rh_estrutura: { pt: 'estrutura do RH', en: 'HR structure', es: 'estructura de RR. HH.' },
   rh_salarios: { pt: 'salários', en: 'salaries', es: 'salarios' },
+  rh_custo_pessoal: { pt: 'custo de pessoal', en: 'personnel cost', es: 'costo de personal' },
+  rh_colaborador: { pt: 'ficha do colaborador', en: 'employee record', es: 'ficha del colaborador' },
   rh_alertas: { pt: 'Radar de Risco do RH', en: 'HR risk radar', es: 'Radar de riesgo de RR. HH.' },
   contas_a_pagar: { pt: 'contas a pagar', en: 'accounts payable', es: 'cuentas por pagar' },
   contas_a_receber: { pt: 'contas a receber', en: 'accounts receivable', es: 'cuentas por cobrar' },
