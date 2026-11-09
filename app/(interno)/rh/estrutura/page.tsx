@@ -172,7 +172,7 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
     titulo: (l) => l.nome,
     campos: [
       { k: "nome", r: T("Nome do cargo", "Job title", "Nombre del cargo"), tipo: "texto", obrig: true },
-      { k: "cbo", r: T("CBO (6 dígitos)", "CBO occupation code (6 digits)", "CBO (6 dígitos)"), tipo: "texto", obrig: true, ajuda: T("Código da Classificação Brasileira de Ocupações. O eSocial exige na admissão.", "Brazilian Occupation Classification code. eSocial requires it at hiring.", "Código de la Clasificación Brasileña de Ocupaciones. eSocial lo exige en la admisión.") },
+      { k: "cbo", r: T("Ocupação na CBO", "CBO occupation", "Ocupación en la CBO"), tipo: "texto", obrig: true, ajuda: T("Digite o nome do cargo (ex.: vendedor, motorista) ou o código e escolha na lista oficial do Ministério do Trabalho (2.725 ocupações e 7.870 nomes alternativos). O eSocial exige na admissão.", "Type the job name (e.g. salesperson, driver) or the code and pick it from the official Ministry of Labor list (2,725 occupations and 7,870 alternative names). eSocial requires it at hiring.", "Escriba el nombre del cargo (ej.: vendedor, conductor) o el código y elíjalo de la lista oficial del Ministerio de Trabajo (2.725 ocupaciones y 7.870 nombres alternativos). eSocial lo exige en la admisión.") },
       { k: "departamento_id", r: T("Departamento (opcional)", "Department (optional)", "Departamento (opcional)"), tipo: "select", opcoes: (d) => [{ v: "", l: "—" }, ...d.departamentos.map((x) => ({ v: x.id, l: x.nome }))] },
       { k: "descricao", r: T("O que a pessoa faz", "What the person does", "Qué hace la persona"), tipo: "area" },
       { k: "requisitos", r: T("Requisitos (formação, experiência, registro)", "Requirements (education, experience, licence)", "Requisitos (formación, experiencia, registro)"), tipo: "area" },
@@ -620,6 +620,9 @@ export default function RhEstruturaPage() {
                           </label>
                         ) : c.tipo === "area" ? (
                           <textarea id={`rh-${c.k}`} rows={3} value={form[c.k] ?? ""} onChange={(e) => setForm({ ...form, [c.k]: e.target.value })} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={estiloCampo} />
+                        ) : c.k === "cbo" ? (
+                          <BuscaCbo id={`rh-${c.k}`} valor={String(form.cbo ?? "")} lang={lang} estilo={estiloCampo} claro={temaClaro}
+                            onChange={(codigo, titulo) => setForm((f) => (f ? { ...f, cbo: codigo, ...(titulo && !String(f.nome ?? "").trim() ? { nome: titulo } : {}) } : f))} />
                         ) : c.tipo === "competencias" ? (
                           <EditorCompetencias valor={form[c.k] ?? []} onChange={(v) => setForm({ ...form, [c.k]: v })} lang={lang} estilo={estiloCampo} cor={temaClaro ? NAVY : "#2ecc9b"} />
                         ) : (
@@ -653,6 +656,69 @@ export default function RhEstruturaPage() {
 }
 
 // Lista de competências do cargo: nome, técnica/comportamental, obrigatória, nível 1–5.
+// Busca na lista oficial da CBO (tabelas cbo_ocupacoes/cbo_sinonimos, RH-13). Sem a lista no banco, aceita o código digitado.
+const semAcento = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+function BuscaCbo({ id, valor, onChange, lang, estilo, claro }: { id: string; valor: string; onChange: (codigo: string, titulo?: string) => void; lang: Lang; estilo: CSSProperties; claro: boolean }) {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const [texto, setTexto] = useState("");
+  const [titulo, setTitulo] = useState<string | null>(null);
+  const [achados, setAchados] = useState<{ codigo: string; titulo: string; ocupacao: string }[]>([]);
+  const [semLista, setSemLista] = useState(false);
+  useEffect(() => {
+    if (!/^\d{6}$/.test(valor)) { setTitulo(null); return; }
+    let vivo = true;
+    void supabase.from("cbo_ocupacoes").select("titulo").eq("codigo", valor).maybeSingle().then(({ data, error }) => { if (!vivo) return; if (error) setSemLista(true); setTitulo(data?.titulo ?? (error ? null : "")); });
+    return () => { vivo = false; };
+  }, [valor]);
+  useEffect(() => {
+    const q = semAcento(texto);
+    if (q.length < 2) { setAchados([]); return; }
+    let vivo = true;
+    const t = setTimeout(async () => {
+      const digitos = /^\d+$/.test(q);
+      const [oc, si] = await Promise.all([
+        (digitos ? supabase.from("cbo_ocupacoes").select("codigo, titulo").like("codigo", `${q}%`) : supabase.from("cbo_ocupacoes").select("codigo, titulo").ilike("busca", `%${q}%`)).order("titulo").limit(12),
+        digitos ? Promise.resolve({ data: [], error: null }) : supabase.from("cbo_sinonimos").select("codigo, titulo, cbo_ocupacoes(titulo)").ilike("busca", `%${q}%`).order("titulo").limit(12),
+      ]);
+      if (!vivo) return;
+      if (oc.error || si.error) { setSemLista(true); setAchados([]); return; }
+      const vistos = new Set<string>();
+      const lista = [
+        ...(oc.data ?? []).map((o: Linha) => ({ codigo: o.codigo, titulo: o.titulo, ocupacao: o.titulo })),
+        ...(si.data ?? []).map((s: Linha) => ({ codigo: s.codigo, titulo: s.titulo, ocupacao: (s.cbo_ocupacoes as Linha | null)?.titulo ?? s.titulo })),
+      ].filter((x) => { const k = `${x.codigo}|${x.titulo}`; if (vistos.has(k)) return false; vistos.add(k); return true; }).slice(0, 15);
+      setAchados(lista);
+    }, 250);
+    return () => { vivo = false; clearTimeout(t); };
+  }, [texto]);
+  const cor = claro ? "#101b3d" : "#2ecc9b";
+  return (
+    <div>
+      <input id={id} type="text" value={texto} placeholder={valor ? `${valor}${titulo ? ` — ${titulo}` : ""}` : L("Ex.: vendedor, motorista, 411010", "E.g. salesperson, driver, 411010", "Ej.: vendedor, conductor, 411010")}
+        onChange={(e) => { const v = e.target.value; setTexto(v); const d = v.replace(/\D/g, ""); if (semLista && /^\d{6}$/.test(d)) onChange(d); }}
+        className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={estilo} autoComplete="off" />
+      {valor && (
+        <p className="text-xs mt-1 font-semibold" style={{ color: titulo === "" ? (claro ? "#9a3412" : "#fbbf24") : cor }}>
+          {titulo === "" ? L(`${valor}: código fora da lista oficial — escolha outro.`, `${valor}: code not in the official list — pick another.`, `${valor}: código fuera de la lista oficial — elija otro.`)
+            : `${L("Escolhido", "Selected", "Elegido")}: ${valor}${titulo ? ` — ${titulo}` : ""}`}
+        </p>
+      )}
+      {semLista && <p className="text-xs mt-1" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("A lista oficial ainda não está disponível: digite o código de 6 dígitos.", "The official list is not available yet: type the 6-digit code.", "La lista oficial aún no está disponible: escriba el código de 6 dígitos.")}</p>}
+      {achados.length > 0 && (
+        <div className="mt-1 rounded-xl overflow-hidden max-h-64 overflow-y-auto" style={{ border: `1px solid ${claro ? "rgba(16,27,61,0.25)" : "rgba(46,204,155,0.35)"}` }} role="listbox">
+          {achados.map((a) => (
+            <button key={`${a.codigo}|${a.titulo}`} type="button" role="option" aria-selected={a.codigo === valor}
+              onClick={() => { onChange(a.codigo, a.ocupacao); setTexto(""); setAchados([]); }}
+              className="w-full text-left px-3 py-2 text-sm hover:opacity-80" style={{ background: claro ? "rgba(246,247,196,0.6)" : "rgba(15,23,42,0.6)", color: "var(--axi-text-primary)", borderBottom: "1px solid rgba(128,128,128,0.15)" }}>
+              <span className="font-bold" style={{ color: cor }}>{a.codigo}</span> — {a.titulo}{a.titulo !== a.ocupacao && <span style={{ opacity: 0.75 }}> ({a.ocupacao})</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditorCompetencias({ valor, onChange, lang, estilo, cor }: { valor: Competencia[]; onChange: (v: Competencia[]) => void; lang: Lang; estilo: CSSProperties; cor: string }) {
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const muda = (i: number, p: Partial<Competencia>) => onChange(valor.map((c, j) => (j === i ? { ...c, ...p } : c)));

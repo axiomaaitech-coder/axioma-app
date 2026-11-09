@@ -43,3 +43,10 @@ RH-10-ARQUIVOS-ADMISSAO-SQL.sql rodado; teste RH-10-TESTE-ARQUIVOS-SQL.sql: falh
 ## Histórico e exemplos (08/11/2026)
 
 RH-11 (histórico) + RH-12 (exemplos Ana/Bruno/Carla na Distribuidora Horizonte) rodados; teste RH-11: falhas=0. Conferido no site: Radar com 7 alertas corretos, salários R$ 7.200,00, histórico "Horas por semana: 44 → 40".
+
+## Lista oficial da CBO (08/11/2026)
+
+Arquivo "Estrutura CBO (CSV)" do MTE (cbo.mte.gov.br, arquivos de 10/07/2026; baixado pelo Elias porque o site pede "Não sou um robô").
+`RH-13-CBO-SQL.sql` rodado: `cbo_ocupacoes` (2.725) + `cbo_sinonimos` (7.870), só leitura para logados; trava `rh_cargos_cbo_oficial`
+(cargo só aceita código da lista). Conferência: 2725 · 7870 · 0 cargos fora da lista. Tela: campo "Ocupação na CBO" com busca por nome
+ou código, sem acento, em pt/en/es.
