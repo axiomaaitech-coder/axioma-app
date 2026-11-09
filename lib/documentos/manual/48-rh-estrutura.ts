@@ -31,9 +31,9 @@ const pt: DocumentoAxioma = {
     { lista: [
       '**Lápis**: corrige o cadastro. Nos cadastros do eSocial, só enquanto estiver como **Rascunho**.',
       '**Nova validade** (ícone de copiar): quando algo muda a partir de um mês, crie uma nova validade em vez de apagar. O histórico fica certo, como o governo exige.',
-      '**Lixeira**: pede a autorização de um supervisor e manda o cadastro para a lixeira. Ele pode ser **recuperado por 60 dias**; depois some de vez.',
+      '**Lixeira**: pede a autorização de um supervisor e manda o cadastro para a lixeira. Ele pode ser **recuperado por 90 dias**; depois some de vez.',
       'O que **já foi enviado ao eSocial** não vai para a lixeira: informe **Vale até** — no governo, a correção é por fim de validade.',
-      '**Lixeira (60 dias)**, no canto do quadro: mostra o que foi apagado, quantos dias faltam e o botão **Recuperar**.',
+      '**Lixeira (90 dias)**, no canto do quadro: mostra o que foi apagado, quantos dias faltam e o botão **Recuperar**.',
     ] },
     { nota: '**Casos especiais** (cooperativa, obra, órgão público, entidade isenta, operador portuário): toque em **Mostrar casos especiais** dentro do formulário.' },
 
@@ -80,9 +80,9 @@ const en: DocumentoAxioma = {
     { lista: [
       '**Pencil**: edits the record. For eSocial records, only while it is a **Draft**.',
       '**New validity** (copy icon): when something changes from a given month, create a new validity instead of deleting. History stays correct, as the government requires.',
-      '**Trash**: asks for a supervisor\'s authorization and moves the record to the trash. It can be **recovered for 60 days**; then it is deleted for good.',
+      '**Trash**: asks for a supervisor\'s authorization and moves the record to the trash. It can be **recovered for 90 days**; then it is deleted for good.',
       'What **was already sent to eSocial** cannot go to the trash: set **Valid until** — the government corrects by ending validity.',
-      '**Trash (60 days)**, at the corner of the panel: shows deleted items, days left and the **Recover** button.',
+      '**Trash (90 days)**, at the corner of the panel: shows deleted items, days left and the **Recover** button.',
     ] },
     { nota: '**Special cases** (cooperative, construction site, public body, exempt entity, port operator): tap **Show special cases** inside the form.' },
     { h1: 'Filling in and AI' },
@@ -127,9 +127,9 @@ const es: DocumentoAxioma = {
     { lista: [
       '**Lápiz**: corrige el registro. En los registros del eSocial, solo mientras esté como **Borrador**.',
       '**Nueva vigencia** (ícono de copiar): cuando algo cambia desde un mes, cree una nueva vigencia en lugar de borrar. El historial queda correcto, como exige el gobierno.',
-      '**Papelera**: pide la autorización de un supervisor y envía el registro a la papelera. Se puede **recuperar durante 60 días**; después se elimina definitivamente.',
+      '**Papelera**: pide la autorización de un supervisor y envía el registro a la papelera. Se puede **recuperar durante 90 días**; después se elimina definitivamente.',
       'Lo que **ya fue enviado al eSocial** no va a la papelera: informe **Vigente hasta** — en el gobierno se corrige por fin de vigencia.',
-      '**Papelera (60 días)**, en la esquina del panel: muestra lo borrado, los días que faltan y el botón **Recuperar**.',
+      '**Papelera (90 días)**, en la esquina del panel: muestra lo borrado, los días que faltan y el botón **Recuperar**.',
     ] },
     { nota: '**Casos especiales** (cooperativa, obra, órgano público, entidad exenta, operador portuario): toque **Mostrar casos especiales** dentro del formulario.' },
     { h1: 'Llenado e IA' },

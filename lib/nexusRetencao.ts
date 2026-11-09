@@ -10,7 +10,7 @@ export const DIAS_GUARDA_PAINEL = 180     // painel executivo do dia (nexus_brie
 export const DIAS_GUARDA_AUDITORIA = 365  // registro de uso de IA (nexus_audit_log)
 export const DIAS_LIXEIRA_HISTORICO_AP = 30 // lixeira do Histórico de Contas a Pagar (HISTORICO-AP-LIXEIRA-SQL.sql)
 export const DIAS_LIXEIRA_TERMOS = 60 // termo de aceite de quem saiu da empresa (bloco 8 do HIERARQUIA-EQUIPE-SQL.sql)
-export const DIAS_LIXEIRA_RH = 60 // cadastros da estrutura do RH na lixeira (docs/sql/RH-5-LIXEIRA-SQL.sql)
+export const DIAS_LIXEIRA_RH = 90 // lixeira do RH: estrutura, colaboradores, dependentes, salários e anexos (RH-5; 60→90 dias pedido do Elias 09/11/2026, RH-20)
 export const DIAS_AVISO_ANTES = 15       // a partir daqui a tela avisa pra salvar
 
 // Quantos dias faltam pra um registro criado em `criadoEm` ser apagado.

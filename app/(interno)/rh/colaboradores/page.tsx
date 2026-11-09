@@ -403,9 +403,31 @@ export default function RhColaboradoresPage() {
     return true;
   }
 
+  // Admissão já enviada ao eSocial (RH-20, decisão do Elias 09/11/2026):
+  //  · a pessoa NÃO chegou a trabalhar → cancela a admissão e vai para a lixeira (o contador exclui o S-2200 com o S-3000);
+  //  · a pessoa trabalhou (nem que 1 dia) → é desligada (término da experiência) e os dados ficam guardados (obrigação legal).
+  async function cancelarAdmissao(c: Linha, contratoId: string): Promise<boolean> {
+    const ok = await confirmar({ oQue: `"${c.nome_social || c.nome}"`, tabela: "rh_colaboradores", registroId: c.id,
+      efeito: { pt: `Use só se a pessoa NÃO chegou a trabalhar nenhum dia. A admissão é cancelada e o cadastro vai para a lixeira por ${DIAS_LIXEIRA_RH} dias. A admissão já foi ao eSocial: peça ao contador para excluí-la lá (evento S-3000). Se a pessoa trabalhou, não use: registre o desligamento.`, en: `Use only if the person did NOT work a single day. The hire is cancelled and the record goes to the trash for ${DIAS_LIXEIRA_RH} days. The hire was already sent to eSocial: ask the accountant to delete it there (event S-3000). If the person worked, do not use: record the termination.`, es: `Use solo si la persona NO llegó a trabajar ningún día. La admisión se cancela y el registro va a la papelera por ${DIAS_LIXEIRA_RH} días. La admisión ya fue al eSocial: pida al contador que la excluya allí (evento S-3000). Si la persona trabajó, no lo use: registre la desvinculación.` } });
+    if (!ok) return false;
+    const r1 = await supabase.from("rh_contratos").update({ admissao_cancelada: true }).eq("id", contratoId).select("id");
+    if (r1.error || !r1.data?.length) { avisar(mensagemErroRh(r1.error, lang)); return false; }
+    const r2 = await supabase.from("rh_colaboradores").update({ excluido_em: new Date().toISOString() }).eq("id", c.id).select("id");
+    if (r2.error || !r2.data?.length) { avisar(mensagemErroRh(r2.error, lang)); return false; }
+    setForm(null); void carregarLista();
+    avisar(L(`Admissão cancelada e cadastro na lixeira por ${DIAS_LIXEIRA_RH} dias. Lembre o contador de excluir a admissão no eSocial (S-3000).`, `Hire cancelled and record in the trash for ${DIAS_LIXEIRA_RH} days. Remind the accountant to delete the hire in eSocial (S-3000).`, `Admisión cancelada y registro en la papelera por ${DIAS_LIXEIRA_RH} días. Recuerde al contador excluir la admisión en el eSocial (S-3000).`), "ok");
+    return true;
+  }
   async function paraLixeira(c: Linha) {
-    const k = contratos[c.id];
-    if (k && k.situacao_esocial !== "rascunho") { avisar(L("Já foi enviado ao eSocial: não vai para a lixeira. Registre o desligamento.", "Already sent to eSocial: it cannot go to the trash. Record the termination instead.", "Ya enviado al eSocial: no va a la papelera. Registre la desvinculación.")); return; }
+    const { data: kk, error: eK } = await supabase.from("rh_contratos").select("id, data_admissao, data_desligamento, situacao_esocial, admissao_cancelada").eq("colaborador_id", c.id).order("data_admissao", { ascending: false }).limit(1);
+    if (eK) { avisar(mensagemErroRh(eK, lang)); return; }
+    const k = kk?.[0];
+    if (k && k.situacao_esocial !== "rascunho" && !k.admissao_cancelada) {
+      if (k.data_desligamento) { avisar(L("Esta pessoa já foi desligada: os dados ficam guardados, como a lei manda (FGTS, INSS e eSocial). Ela aparece no filtro Desligados.", "This person was already terminated: the data is kept, as the law requires (FGTS, INSS and eSocial). They show under the Terminated filter.", "Esta persona ya fue desvinculada: los datos se guardan, como exige la ley (FGTS, INSS y eSocial). Aparece en el filtro Desvinculados.")); return; }
+      if (k.data_admissao > hojeISO() || c.situacao === "pre_admissao") { await cancelarAdmissao(c, k.id); return; }
+      avisar(L("Já foi enviado ao eSocial. Se a pessoa trabalhou, registre o desligamento (abri a ficha nessa parte; experiência vencida já vem com o motivo certo). Se NÃO chegou a trabalhar, use \"Não chegou a trabalhar\" ali mesmo.", "Already sent to eSocial. If the person worked, record the termination (the record is open at that part; expired probation comes with the right reason). If they did NOT work, use \"Did not start work\" right there.", "Ya enviado al eSocial. Si la persona trabajó, registre la desvinculación (abrí la ficha en esa parte; la experiencia vencida ya viene con el motivo correcto). Si NO llegó a trabajar, use \"No llegó a trabajar\" allí mismo."));
+      void abrirPorId(c.id, "desligamento"); return;
+    }
     const ok = await confirmar({ oQue: `"${c.nome}"`, tabela: "rh_colaboradores", registroId: c.id,
       efeito: { pt: `O cadastro, o contrato, os dados pessoais e o histórico de salário vão para a lixeira do RH por ${DIAS_LIXEIRA_RH} dias e podem ser recuperados. Depois disso, somem de vez. Se a pessoa saiu da empresa, não apague: registre o desligamento.`, en: `The record, contract, personal data and salary history go to the HR trash for ${DIAS_LIXEIRA_RH} days and can be recovered. After that, they are deleted for good. If the person left the company, do not delete: record the termination.`, es: `El registro, el contrato, los datos personales y el historial de salario van a la papelera de RR. HH. por ${DIAS_LIXEIRA_RH} días y pueden recuperarse. Después se eliminan definitivamente. Si la persona salió de la empresa, no borre: registre la desvinculación.` } });
     if (!ok) return;
@@ -773,12 +795,13 @@ export default function RhColaboradoresPage() {
                       </>) : (<>
                         <div className="md:col-span-2 text-sm" style={{ color: "var(--axi-text-primary)" }}>
                           {salarioAtual ? <>{L("Salário atual", "Current salary", "Salario actual")}: <b style={{ color: VERDE }}>R$ {fBRL2(Number(salarioAtual.valor))}</b> {L("desde", "since", "desde")} {dataBR(salarioAtual.vigencia_inicio)}</> : L("Sem salário registrado.", "No salary recorded.", "Sin salario registrado.")}
-                          {historico.length > 1 && <ul className="mt-2 text-xs space-y-0.5" style={{ color: TEXTO_SEC }}>{historico.slice(1).map((h) => <li key={h.id}>{dataBR(h.vigencia_inicio)} — R$ {fBRL2(Number(h.valor))} ({h.motivo})</li>)}</ul>}
                         </div>
+                        {form.contrato_id && <SalariosColab contratoId={form.contrato_id} historico={historico} lang={lang} podeEditar={pode.editar} avisar={avisar}
+                          recarregar={async () => { const { data, error } = await supabase.from("rh_remuneracoes").select("*").eq("contrato_id", form.contrato_id).order("vigencia_inicio", { ascending: false }); if (!error) setHistorico(data ?? []); }} />}
                         <F k="reajuste_valor" r={L("Novo salário (R$) — deixe vazio se não mudou", "New salary (R$) — leave empty if unchanged", "Nuevo salario (R$) — vacío si no cambió")} />
                         <F k="reajuste_data" tipo="date" r={L("Vale a partir de", "Effective from", "Vigente desde")} />
                         <F k="reajuste_motivo" r={L("Motivo", "Reason", "Motivo")} opcoes={[{ v: "reajuste_coletivo", l: L("Reajuste da convenção", "Collective raise", "Reajuste del convenio") }, { v: "merito", l: L("Mérito", "Merit", "Mérito") }, { v: "promocao", l: L("Promoção", "Promotion", "Promoción") }, { v: "enquadramento", l: L("Enquadramento", "Reclassification", "Encuadramiento") }, { v: "correcao", l: L("Correção de valor lançado errado", "Correction of a wrong entry", "Corrección de valor registrado mal") }, { v: "outro", l: L("Outro", "Other", "Otro") }]} />
-                        <p className="md:col-span-2 text-xs" style={{ color: TEXTO_SEC }}>{L("O histórico de salário nunca é apagado nem alterado: valor errado se corrige com uma nova linha, motivo \"Correção\".", "Salary history is never deleted or changed: a wrong value is corrected with a new line, reason \"Correction\".", "El historial de salario nunca se borra ni se cambia: un valor erróneo se corrige con una nueva línea, motivo \"Corrección\".")}</p>
+                        <p className="md:col-span-2 text-xs" style={{ color: TEXTO_SEC }}>{L("Digitou errado? Use o lápis na linha do salário para corrigir, ou a lixeira para tirar uma linha lançada por engano. Toda correção fica registrada no histórico.", "Typed it wrong? Use the pencil on the salary line to fix it, or the trash to remove a line entered by mistake. Every fix is recorded in the history.", "¿Lo escribió mal? Use el lápiz en la línea del salario para corregir, o la papelera para quitar una línea registrada por error. Toda corrección queda en el historial.")}</p>
                       </>)}
                     </Secao>
                   ) : (
@@ -794,7 +817,8 @@ export default function RhColaboradoresPage() {
 
                   {form.id && pode.pessoais && <DependentesColab colaboradorId={form.id} empresaId={empresaId!} lang={lang} podeEditar={pode.editar} avisar={avisar} />}
                   {form.id && form.contrato_id && <CartaoEsocial contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={(sit) => { setForm((f) => (f ? { ...f, contrato_situacao: sit } : f)); void carregarLista(); }} />}
-                  {form.id && form.contrato_id && ["ativo", "afastado", "desligado"].includes(form.situacao) && <DesligamentoColab contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={() => { setForm(null); void carregarLista(); }} />}
+                  {form.id && form.contrato_id && ["ativo", "afastado", "desligado"].includes(form.situacao) && <DesligamentoColab contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={() => { setForm(null); void carregarLista(); }}
+                    aoCancelarAdmissao={form.contrato_situacao !== "rascunho" ? () => cancelarAdmissao({ id: form.id, nome: form.nome, nome_social: form.nome_social }, form.contrato_id) : undefined} />}
                   {pode.editar && (
                     <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
                   )}
@@ -817,6 +841,92 @@ export default function RhColaboradoresPage() {
 
 // Documentos (dado pessoal) e exames (dado de saúde) da admissão. Cada mudança grava na hora; a trava está no banco
 // (RLS de rh_admissao_itens: documento → 'pessoais', exame → 'saude'). O que a lei proíbe pedir aparece só como aviso.
+// Salário: cada linha com lápis (corrige na hora) e lixeira (DIAS_LIXEIRA_RH dias, recuperável). A linha da admissão só muda o
+// valor e não vai para a lixeira (RH-20). Se a admissão já foi ao eSocial, o banco marca a alteração (S-2206).
+const MOTIVOS_SAL: Record<string, [string, string, string]> = {
+  admissao: ["Admissão", "Hire", "Admisión"], reajuste_coletivo: ["Reajuste da convenção", "Collective raise", "Reajuste del convenio"], merito: ["Mérito", "Merit", "Mérito"],
+  promocao: ["Promoção", "Promotion", "Promoción"], enquadramento: ["Enquadramento", "Reclassification", "Encuadramiento"], correcao: ["Correção", "Correction", "Corrección"], outro: ["Outro", "Other", "Otro"],
+};
+function SalariosColab({ contratoId, historico, lang, podeEditar, avisar, recarregar }: {
+  contratoId: string; historico: Linha[]; lang: Lang; podeEditar: boolean; avisar: (m: string, t?: "erro" | "ok") => void; recarregar: () => Promise<void>;
+}) {
+  const c = useContext(FormCtx)!;
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const ix = lang === "en" ? 1 : lang === "es" ? 2 : 0;
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(c.titulo !== "var(--axi-text-primary)");
+  const [ed, setEd] = useState<Linha | null>(null);
+  const [lixeira, setLixeira] = useState<Linha[] | null>(null);
+  async function verLixeira() {
+    if (lixeira) { setLixeira(null); return; }
+    const { data, error } = await supabase.rpc("rh_remun_na_lixeira", { p_contrato: contratoId });
+    if (error) { avisar(mensagemErroRh(error, lang)); return; }
+    setLixeira((data ?? []) as Linha[]);
+  }
+  async function salvarEd(): Promise<boolean> {
+    if (!ed) return false;
+    const valor = lerValorBR(String(ed.valor ?? ""));
+    if (!(valor >= 0) || (Number(ed.und_sal_fixo) !== 7 && !(valor > 0))) { avisar(L("Informe um valor válido.", "Enter a valid amount.", "Informe un valor válido.")); return false; }
+    const mud: Linha = { valor };
+    if (ed.motivo !== "admissao") Object.assign(mud, { vigencia_inicio: ed.vigencia_inicio, motivo: ed.motivo });
+    const { data, error } = await supabase.from("rh_remuneracoes").update(mud).eq("id", ed.id).select("id");
+    if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return false; }
+    setEd(null); await recarregar();
+    avisar(L("Salário corrigido.", "Salary corrected.", "Salario corregido."), "ok"); return true;
+  }
+  async function paraLixeira(h: Linha) {
+    if (!(await confirmar({ oQue: `R$ ${fBRL2(Number(h.valor))} (${dataBR(h.vigencia_inicio)})`, tabela: "rh_remuneracoes", registroId: h.id,
+      efeito: { pt: `A linha de salário sai da ficha, do Painel e da IA e fica ${DIAS_LIXEIRA_RH} dias na lixeira — dá para recuperar. Se a admissão já foi ao eSocial, fica pendente a alteração (S-2206).`, en: `The salary line leaves the record, the Panel and the AI and stays ${DIAS_LIXEIRA_RH} days in the trash — it can be recovered. If the hire was already sent to eSocial, the change (S-2206) becomes pending.`, es: `La línea de salario sale de la ficha, del Panel y de la IA y queda ${DIAS_LIXEIRA_RH} días en la papelera — se puede recuperar. Si la admisión ya fue al eSocial, queda pendiente la alteración (S-2206).` } }))) return;
+    const { error } = await supabase.rpc("rh_remun_lixeira", { p_id: h.id, p_recuperar: false });
+    if (error) { avisar(mensagemErroRh(error, lang)); return; }
+    await recarregar(); setLixeira(null);
+    avisar(L(`Salário na lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Salary in the trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Salario en la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok");
+  }
+  async function recuperar(h: Linha): Promise<boolean> {
+    const { error } = await supabase.rpc("rh_remun_lixeira", { p_id: h.id, p_recuperar: true });
+    if (error) { avisar(mensagemErroRh(error, lang)); return false; }
+    await recarregar(); setLixeira((l) => (l ?? []).filter((x) => x.id !== h.id));
+    avisar(L("Salário recuperado.", "Salary recovered.", "Salario recuperado."), "ok"); return true;
+  }
+  const restam = (em: string) => Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(em).getTime()) / 86400000));
+  const campoCls = "px-2 py-1.5 rounded-lg text-sm";
+  return (
+    <div className="md:col-span-2 text-sm space-y-2" style={{ color: "var(--axi-text-primary)" }}>
+      {historico.length > 0 && <ul className="space-y-1.5">{historico.map((h) => (
+        <li key={h.id} className="rounded-lg px-3 py-2" style={{ border: `1px solid ${c.BORDA}` }}>
+          {ed?.id === h.id ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Valor (R$)", "Amount (R$)", "Valor (R$)")}<input inputMode="decimal" value={ed?.valor ?? ""} onChange={(e) => setEd((x) => (x ? { ...x, valor: e.target.value } : x))} className={`${campoCls} block w-32`} style={c.campo} /></label>
+              {h.motivo !== "admissao" && <>
+                <label className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Vale a partir de", "Effective from", "Vigente desde")}<input type="date" value={ed?.vigencia_inicio ?? ""} onChange={(e) => setEd((x) => (x ? { ...x, vigencia_inicio: e.target.value } : x))} className={`${campoCls} block`} style={c.campo} /></label>
+                <label className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Motivo", "Reason", "Motivo")}<select value={ed?.motivo ?? ""} onChange={(e) => setEd((x) => (x ? { ...x, motivo: e.target.value } : x))} className={`${campoCls} block`} style={c.campo}>
+                  {Object.entries(MOTIVOS_SAL).filter(([k]) => k !== "admissao").map(([k, v]) => <option key={k} value={k}>{v[ix]}</option>)}</select></label>
+              </>}
+              <BotaoAcao executar={salvarEd} texto={L("Salvar correção", "Save fix", "Guardar corrección")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }} />
+              <button type="button" onClick={() => setEd(null)} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: "#101b3d", color: "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>{dataBR(h.vigencia_inicio)} — <b>R$ {fBRL2(Number(h.valor))}</b> <span style={{ color: c.TEXTO_SEC }}>({(MOTIVOS_SAL[h.motivo] ?? [h.motivo, h.motivo, h.motivo])[ix]})</span></span>
+              {podeEditar && <span className="flex gap-1">
+                <button type="button" aria-label={L("Corrigir este salário", "Fix this salary", "Corregir este salario")} title={L("Corrigir", "Fix", "Corregir")} onClick={() => setEd({ id: h.id, valor: fBRL2(Number(h.valor)), vigencia_inicio: h.vigencia_inicio, motivo: h.motivo, und_sal_fixo: h.und_sal_fixo })} className="p-1.5 rounded-lg" style={{ color: c.titulo }}><Pencil size={14} /></button>
+                {h.motivo !== "admissao" && <button type="button" aria-label={L("Mandar este salário para a lixeira", "Move this salary to the trash", "Enviar este salario a la papelera")} title={L("Lixeira", "Trash", "Papelera")} onClick={() => void paraLixeira(h)} className="p-1.5 rounded-lg" style={{ color: "#ef4444" }}><Trash2 size={14} /></button>}
+              </span>}
+            </div>
+          )}
+        </li>))}</ul>}
+      <button type="button" onClick={() => void verLixeira()} className="text-xs font-bold underline flex items-center gap-1" style={{ color: c.TEXTO_SEC }}><Trash2 size={12} /> {lixeira ? L("Fechar lixeira do salário", "Close salary trash", "Cerrar papelera del salario") : L(`Lixeira do salário (${DIAS_LIXEIRA_RH} dias)`, `Salary trash (${DIAS_LIXEIRA_RH} days)`, `Papelera del salario (${DIAS_LIXEIRA_RH} días)`)}</button>
+      {lixeira && (lixeira.length === 0 ? <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("A lixeira do salário está vazia.", "The salary trash is empty.", "La papelera del salario está vacía.")}</p> : (
+        <ul className="space-y-1">{lixeira.map((h) => (
+          <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ border: `1px dashed ${c.BORDA}`, color: c.TEXTO_SEC }}>
+            <span>{dataBR(h.vigencia_inicio)} — R$ {fBRL2(Number(h.valor))} · {L(`some em ${restam(h.excluido_em)} dias`, `gone in ${restam(h.excluido_em)} days`, `se borra en ${restam(h.excluido_em)} días`)}</span>
+            {podeEditar && <BotaoAcao executar={() => recuperar(h)} icone={<RotateCcw size={13} />} texto={L("Recuperar", "Recover", "Recuperar")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "#101b3d", color: "#fff" }} />}
+          </li>))}</ul>
+      ))}
+      {janelaConfirmacao}
+    </div>
+  );
+}
+
 // Histórico de alterações (rh_historico, gravado pelo banco; ninguém edita nem apaga). Cada parte aparece só para
 // quem tem a liberação dela. Dados pessoais, saúde e salário: só o nome do campo, nunca o valor.
 const CAMPO_NOME: Record<string, [string, string, string]> = {
@@ -903,6 +1013,7 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
 }) {
   const c = useContext(FormCtx)!;
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(c.titulo !== "var(--axi-text-primary)");
   const [itens, setItens] = useState<Record<string, Linha> | null>(null);
   useEffect(() => {
     void (async () => {
@@ -913,7 +1024,7 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
   }, [colaboradorId]); // eslint-disable-line react-hooks/exhaustive-deps
   async function gravar(tipo: string, categoria: string, mudanca: Linha) {
     const atual = { ...(itens?.[tipo] ?? { situacao: "pendente" }), ...mudanca };
-    const arquivo = mudanca.arquivo_path ? { arquivo_path: mudanca.arquivo_path, arquivo_nome: mudanca.arquivo_nome, arquivo_mime: mudanca.arquivo_mime, arquivo_bytes: mudanca.arquivo_bytes } : {};
+    const arquivo = mudanca.arquivo_path ? { arquivo_path: mudanca.arquivo_path, arquivo_nome: mudanca.arquivo_nome, arquivo_mime: mudanca.arquivo_mime, arquivo_bytes: mudanca.arquivo_bytes, arquivo_excluido_em: null } : {};
     const linha = { empresa_id: empresaId, colaborador_id: colaboradorId, categoria, tipo, situacao: atual.situacao, data_item: atual.data_item || null, validade: atual.validade || null, resultado: tipo === "aso_admissional" ? atual.resultado || null : null, ...arquivo };
     const { data, error } = await supabase.from("rh_admissao_itens").upsert(linha, { onConflict: "colaborador_id,tipo" }).select("*").single();
     if (error || !data) { avisar(mensagemErroRh(error, lang)); return false; }
@@ -938,6 +1049,16 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
     if (sobra) { const rm = await supabase.storage.from(COFRE_RH).remove([sobra]); if (rm.error) Sentry.captureException(new Error(`rh-documentos remove: ${rm.error.message}`)); }
     setEnviando(null);
     if (ok) avisar(L("Arquivo enviado.", "File uploaded.", "Archivo enviado."), "ok");
+  }
+  // Arquivo anexado por engano: vai para a lixeira por DIAS_LIXEIRA_RH dias (some da ficha, dá para recuperar); depois a limpeza diária apaga.
+  async function arquivoLixeira(it: Linha, nome: string, recuperar: boolean): Promise<boolean> {
+    if (!recuperar && !(await confirmar({ oQue: `"${it.arquivo_nome}" (${nome})`, tabela: "rh_admissao_itens", registroId: it.id,
+      efeito: { pt: `O arquivo sai da ficha e fica ${DIAS_LIXEIRA_RH} dias na lixeira — dá para recuperar. A situação do item não muda.`, en: `The file leaves the record and stays ${DIAS_LIXEIRA_RH} days in the trash — it can be recovered. The item status does not change.`, es: `El archivo sale de la ficha y queda ${DIAS_LIXEIRA_RH} días en la papelera — se puede recuperar. La situación del ítem no cambia.` } }))) return false;
+    const { data, error } = await supabase.from("rh_admissao_itens").update({ arquivo_excluido_em: recuperar ? null : new Date().toISOString() }).eq("id", it.id).select("*").single();
+    if (error || !data) { avisar(mensagemErroRh(error, lang)); return false; }
+    setItens((v) => ({ ...(v ?? {}), [it.tipo]: data }));
+    avisar(recuperar ? L("Arquivo recuperado.", "File recovered.", "Archivo recuperado.") : L(`Arquivo na lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `File in the trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Archivo en la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok");
+    return true;
   }
   async function baixarArquivo(it: Linha) {
     const { data, error } = await supabase.storage.from(COFRE_RH).createSignedUrl(it.arquivo_path, 60, { download: it.arquivo_nome || true });
@@ -989,10 +1110,14 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
                   </p>
                 )}
                 <div className="md:col-span-12 flex flex-wrap items-center gap-2">
-                  {it.arquivo_path ? (
+                  {it.arquivo_path && it.arquivo_excluido_em ? (
+                    <span className="text-xs flex flex-wrap items-center gap-2" style={{ color: c.TEXTO_SEC }}><Trash2 size={12} /> {L(`"${it.arquivo_nome}" na lixeira — some em ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(it.arquivo_excluido_em).getTime()) / 86400000))} dias`, `"${it.arquivo_nome}" in the trash — gone in ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(it.arquivo_excluido_em).getTime()) / 86400000))} days`, `"${it.arquivo_nome}" en la papelera — se borra en ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(it.arquivo_excluido_em).getTime()) / 86400000))} días`)}
+                      {podeEditar && <BotaoAcao executar={() => arquivoLixeira(it, i.nome[lang], true)} icone={<RotateCcw size={13} />} texto={L("Recuperar", "Recover", "Recuperar")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "#101b3d", color: "#fff" }} />}</span>
+                  ) : it.arquivo_path ? (
                     <>
                       <span className="text-xs flex items-center gap-1 min-w-0 truncate" style={{ color: c.TEXTO_SEC }}><Paperclip size={12} /> {it.arquivo_nome} · {(Number(it.arquivo_bytes) / 1024 / 1024).toFixed(1).replace(".", ",")} MB</span>
                       <BotaoAcao executar={() => baixarArquivo(it)} icone={<Download size={13} />} texto={L("Baixar", "Download", "Descargar")} textoTrabalhando={L("Baixando…", "Downloading…", "Descargando…")} className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }} />
+                      {podeEditar && <button type="button" aria-label={L(`Mandar o arquivo de ${i.nome[lang]} para a lixeira`, `Move the ${i.nome[lang]} file to the trash`, `Enviar el archivo de ${i.nome[lang]} a la papelera`)} title={L("Mandar o arquivo para a lixeira", "Move the file to the trash", "Enviar el archivo a la papelera")} onClick={() => void arquivoLixeira(it, i.nome[lang], false)} className="p-1.5 rounded-lg" style={{ color: "#ef4444" }}><Trash2 size={14} /></button>}
                     </>
                   ) : <span className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Sem arquivo", "No file", "Sin archivo")}</span>}
                   {podeEditar && (
@@ -1021,6 +1146,7 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
         <p className="font-bold mb-1" style={{ color: "#dc2626" }}>{L("Proibido pedir na admissão", "Forbidden to require at hiring", "Prohibido exigir en la admisión")}</p>
         <ul className="list-disc pl-4 space-y-0.5">{PROIBIDOS.map((p) => <li key={p.pt}>{p[lang]}</li>)}</ul>
       </div>
+      {janelaConfirmacao}
     </Secao>
   );
 }
@@ -1259,6 +1385,20 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
   const [tipos, setTipos] = useState<Linha[]>([]);
   const [ed, setEd] = useState<Linha | null>(null);
   const [erro, setErro] = useState(false);
+  const [lixeira, setLixeira] = useState<Linha[] | null>(null);
+  async function verLixeira() {
+    if (lixeira) { setLixeira(null); return; }
+    const { data, error } = await supabase.from("rh_dependentes").select("id, nome, data_nascimento, excluido_em").eq("colaborador_id", colaboradorId)
+      .gte("excluido_em", new Date(Date.now() - DIAS_LIXEIRA_RH * 86400000).toISOString()).order("excluido_em", { ascending: false });
+    if (error) { avisar(mensagemErroRh(error, lang)); return; }
+    setLixeira(data ?? []);
+  }
+  async function recuperar(d: Linha): Promise<boolean> {
+    const r = await supabase.from("rh_dependentes").update({ excluido_em: null }).eq("id", d.id).select("id");
+    if (r.error || !r.data?.length) { avisar(r.error?.code === "23505" ? L("Já existe um dependente ativo com este CPF.", "There is already an active dependent with this CPF.", "Ya existe un dependiente activo con este CPF.") : mensagemErroRh(r.error, lang)); return false; }
+    setLixeira((l) => (l ?? []).filter((x) => x.id !== d.id)); await carregar();
+    avisar(L("Dependente recuperado.", "Dependent recovered.", "Dependiente recuperado."), "ok"); return true;
+  }
   async function carregar() {
     const [d, t] = await Promise.all([
       supabase.from("rh_dependentes").select("*").eq("colaborador_id", colaboradorId).is("excluido_em", null).order("data_nascimento"),
@@ -1290,7 +1430,7 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
     if (!ok) return;
     const r = await supabase.from("rh_dependentes").update({ excluido_em: new Date().toISOString() }).eq("id", d.id).select("id");
     if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return; }
-    avisar(L("Dependente retirado.", "Dependent removed.", "Dependiente retirado."), "ok"); await carregar();
+    setLixeira(null); avisar(L(`Dependente na lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Dependent in the trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Dependiente en la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok"); await carregar();
   }
   const nomeTipo = (cod?: string | null) => tipos.find((t) => t.codigo === cod)?.descricao ?? (cod ? cod : L("sem tipo", "no type", "sin tipo"));
   const campoEd = (k: string, v: unknown) => setEd((e) => (e ? { ...e, [k]: v } : e));
@@ -1311,6 +1451,14 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
             ))}
           </ul>
         )}
+        <button type="button" onClick={() => void verLixeira()} className="text-xs font-bold underline flex items-center gap-1" style={{ color: c.TEXTO_SEC }}><Trash2 size={12} /> {lixeira ? L("Fechar lixeira dos dependentes", "Close dependents trash", "Cerrar papelera de dependientes") : L(`Lixeira dos dependentes (${DIAS_LIXEIRA_RH} dias)`, `Dependents trash (${DIAS_LIXEIRA_RH} days)`, `Papelera de dependientes (${DIAS_LIXEIRA_RH} días)`)}</button>
+        {lixeira && (lixeira.length === 0 ? <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("A lixeira dos dependentes está vazia.", "The dependents trash is empty.", "La papelera de dependientes está vacía.")}</p> : (
+          <ul className="space-y-1">{lixeira.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ border: `1px dashed ${c.BORDA}`, color: c.TEXTO_SEC }}>
+              <span>{d.nome} · {dataBR(d.data_nascimento)} · {L(`some em ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(d.excluido_em).getTime()) / 86400000))} dias`, `gone in ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(d.excluido_em).getTime()) / 86400000))} days`, `se borra en ${Math.max(0, DIAS_LIXEIRA_RH - Math.floor((Date.now() - new Date(d.excluido_em).getTime()) / 86400000))} días`)}</span>
+              {podeEditar && <BotaoAcao executar={() => recuperar(d)} icone={<RotateCcw size={13} />} texto={L("Recuperar", "Recover", "Recuperar")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "#101b3d", color: "#fff" }} />}
+            </li>))}</ul>
+        ))}
         {ed ? (
           <div className="rounded-xl p-3 grid grid-cols-1 md:grid-cols-2 gap-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
             {([["nome", L("Nome do dependente *", "Dependent's name *", "Nombre del dependiente *"), "text"], ["data_nascimento", L("Data de nascimento *", "Date of birth *", "Fecha de nacimiento *"), "date"]] as const).map(([k, rot, tipo]) => (
@@ -1363,10 +1511,11 @@ function motivosPara(cat: string, tpContr: number): string[] {
   });
 }
 const brl = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
+function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar, aoCancelarAdmissao }: {
   contratoId: string; empresaId: string; lang: Lang; pode: { editar: boolean; pessoais: boolean; salario: boolean; saude: boolean };
-  avisar: (m: string, t?: "erro" | "ok") => void; aoMudar: () => void;
+  avisar: (m: string, t?: "erro" | "ok") => void; aoMudar: () => void; aoCancelarAdmissao?: () => Promise<boolean>;
 }) {
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(useContext(FormCtx)!.titulo !== "var(--axi-text-primary)");
   const c = useContext(FormCtx)!;
   const claro = c.titulo !== "var(--axi-text-primary)";
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
@@ -1396,11 +1545,24 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar 
     if (salvo) {
       setF({ mtv: salvo.mtv_deslig, dt: salvo.dt_deslig, aviso: salvo.aviso ?? "indenizado", dtAviso: salvo.dt_aviso ?? "", vencidas: String(salvo.ferias_vencidas), faltas: String(salvo.faltas), media: salvo.media_variaveis ? String(salvo.media_variaveis).replace(".", ",") : "", adiant13: salvo.adiantamento_13 ? String(salvo.adiantamento_13).replace(".", ",") : "", desc480: !!salvo.descontar_480, saldoFgts: salvo.saldo_fgts != null ? String(salvo.saldo_fgts).replace(".", ",") : "", dep: String(salvo.dependentes_ir) });
       setRes(salvo.resultado as ResultadoRescisao);
-    } else setF((x) => ({ ...x, dep: String((deps.data ?? []).length) }));
+    } else {
+      const venceu = Number(k.tp_contr) === 2 && k.data_termino && k.data_termino <= hojeISO();
+      setF((x) => ({ ...x, dep: String((deps.data ?? []).length), ...(venceu ? { mtv: "06", dt: k.data_termino } : {}) }));
+    }
   }
   useEffect(() => { void carregar(); }, [contratoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const preparado = ctx?.salvo && ctx.salvo.situacao !== "calculado";
+  // Cálculo salvo errado (motivo, data…): apaga e recomeça. Só antes de preparar o S-2299; o contrato não muda (a data de
+  // desligamento só entra ao preparar). É um cálculo — refaz-se em segundos, por isso não vai para lixeira.
+  async function apagarCalculo() {
+    if (!(await confirmar({ oQue: L("o cálculo da rescisão", "the severance calculation", "el cálculo de la rescisión"), tabela: "rh_desligamentos", registroId: ctx?.salvo?.id,
+      efeito: { pt: "O cálculo salvo é apagado e a pessoa continua ativa. Dá para calcular de novo na hora.", en: "The saved calculation is deleted and the person stays active. You can calculate again right away.", es: "El cálculo guardado se borra y la persona sigue activa. Se puede calcular de nuevo en el momento." } }))) return;
+    const { data, error } = await supabase.from("rh_desligamentos").delete().eq("contrato_id", contratoId).eq("situacao", "calculado").select("id");
+    if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
+    setRes(null); setAberto(false); setF((x) => ({ ...x, mtv: "", dt: hojeISO() }));
+    avisar(L("Cálculo apagado.", "Calculation deleted.", "Cálculo borrado."), "ok"); await carregar();
+  }
   const regra = f.mtv ? REGRAS_MOTIVO[f.mtv as Motivo] : null;
   async function calcular(): Promise<boolean> {
     setErroCalc(null); setRes(null);
@@ -1476,7 +1638,12 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar 
           {preparado ? (
             <p className="font-semibold" style={{ color: claro ? "#0f7a5a" : "#2ecc9b" }}>{L(`Desligamento preparado em ${dataBR(ctx.salvo.dt_deslig)} (${NOME_MOTIVO(ctx.salvo.mtv_deslig, "pt")}). A situação do envio fica no cartão do eSocial, acima.`, `Termination prepared on ${dataBR(ctx.salvo.dt_deslig)}. The sending status is in the eSocial card above.`, `Desvinculación preparada el ${dataBR(ctx.salvo.dt_deslig)}. La situación del envío está en la tarjeta del eSocial, arriba.`)}</p>
           ) : !aberto && !ctx.salvo ? (
-            pode.editar && <button type="button" onClick={() => setAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}>{L("Iniciar desligamento e calcular a rescisão", "Start termination and calculate severance", "Iniciar desvinculación y calcular la rescisión")}</button>
+            pode.editar && <div className="space-y-2">
+              {k && Number(k.tp_contr) === 2 && k.data_termino && k.data_termino <= hojeISO() && <p className="text-xs font-semibold" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L(`O contrato terminou em ${dataBR(k.data_termino)}. Se a Empresa não vai continuar, encerre agora: o motivo "06 — término do contrato" e o último dia já vêm preenchidos. Os dados ficam guardados, como a lei manda.`, `The contract ended on ${dataBR(k.data_termino)}. If the company will not continue, close it now: reason "06 — end of fixed-term contract" and the last day come pre-filled. The data is kept, as the law requires.`, `El contrato terminó el ${dataBR(k.data_termino)}. Si la empresa no va a continuar, ciérrelo ahora: el motivo "06 — término del contrato" y el último día ya vienen completados. Los datos se guardan, como exige la ley.`)}</p>}
+              <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}>{L("Iniciar desligamento e calcular a rescisão", "Start termination and calculate severance", "Iniciar desvinculación y calcular la rescisión")}</button>
+              {aoCancelarAdmissao && <BotaoAcao executar={aoCancelarAdmissao} texto={L("Não chegou a trabalhar — cancelar admissão", "Did not start work — cancel hire", "No llegó a trabajar — cancelar admisión")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: "linear-gradient(135deg, #7f1d1d, #b91c1c)", color: "#fff" }} />}
+              </div></div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">{lbl(L("Motivo (Tabela 19 do eSocial)", "Reason (eSocial Table 19)", "Motivo (Tabla 19 del eSocial)"), "dl-mtv")}
@@ -1522,6 +1689,7 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar 
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={pdf} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}>{L("PDF do cálculo", "Calculation PDF", "PDF del cálculo")}</button>
                 {pode.editar && !preparado && <BotaoAcao executar={salvar} texto={L("Salvar o cálculo", "Save the calculation", "Guardar el cálculo")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />}
+                {pode.editar && !preparado && ctx.salvo && <button type="button" onClick={() => void apagarCalculo()} className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}><Trash2 size={14} /> {L("Apagar o cálculo", "Delete the calculation", "Borrar el cálculo")}</button>}
               </div>
               {pode.editar && !preparado && ctx.salvo && (pend2299.length ? (
                 <ul className="text-xs space-y-1"><li className="font-bold" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("Para preparar o S-2299 falta:", "To prepare the S-2299 you still need:", "Para preparar el S-2299 falta:")}</li>{pend2299.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>}</li>)}</ul>
@@ -1533,6 +1701,7 @@ function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar 
           )}
         </>)}
       </div>
+      {janelaConfirmacao}
     </Secao>
   );
 }

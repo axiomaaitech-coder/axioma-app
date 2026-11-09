@@ -90,6 +90,11 @@ aceitos pelo XSD oficial. Fora desta versão: rescisão do intermitente, verbas 
 RH-19 rodado (exame agendado com data e clínica; conferido 2 · 1). Rotinas novas: Exames, Documentos, Contratos a vencer,
 Central do eSocial, Obrigações. Todo alerta do Painel tem destino; nomes abrem a ficha na parte certa. Manual 51.
 
+## Corrigir e lixeira de 90 dias (09/11/2026)
+
+RH-20 rodado (2·1·1·2·1·1) e teste RH-20 falhas=0 (desfaz tudo no fim). Salário, dependentes e anexos com lápis/lixeira;
+apagar cálculo da rescisão; experiência: quem trabalhou → desligamento motivo 06; quem não trabalhou → cancelar admissão (S-3000).
+
 ## PRÓXIMO (pedido do Elias, 09/11/2026 — depois da auditoria de botões)
 Telas próprias de **Admissões** e **Desligamentos**: listas em ordem alfabética, busca por nome/matrícula/CPF, filtros por
 período, situação no eSocial e motivo; pensadas para empresa grande (paginação no banco). Cada linha abre a ficha da pessoa.

@@ -2,7 +2,7 @@
 // RH · Estrutura da Empresa (Fase 1 do Axioma People & HR).
 // Empregador (S-1000), filiais (S-1005), lotações (S-1020), departamentos e cargos.
 // As regras do eSocial e as permissões estão no BANCO (docs/sql/RH-1..5); esta tela só mostra, pré-preenche
-// e traduz as recusas. Apagar = lixeira de 60 dias (o que já foi enviado ao eSocial não vai para a lixeira).
+// e traduz as recusas. Apagar = lixeira de 90 dias (o que já foi enviado ao eSocial não vai para a lixeira).
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Pencil, Trash2, X, Share2, RotateCcw, Plus, Wand2, ShieldCheck, CopyPlus, KeyRound, Info as InfoIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -215,7 +215,7 @@ function CardInfo({ info, onFechar, temaClaro, lang }: { info: Info | null; onFe
 }
 
 const AJUDA_ESOCIAL = T("Se este cadastro já foi enviado ao eSocial (o governo). Rascunho: ainda não foi — pode editar com o lápis. Enviado pelo contador: já está no governo — não se edita; para mudar algo, crie uma nova validade (eSocial, Decreto nº 8.373/2014).", "Whether this record was already sent to eSocial (the government). Draft: not yet — you can edit with the pencil. Sent by the accountant: already with the government — not editable; to change something, create a new validity (eSocial, Decree 8.373/2014).", "Si este registro ya se envió a eSocial (el gobierno). Borrador: aún no — puede editarlo con el lápiz. Enviado por el contador: ya está en el gobierno — no se edita; para cambiar algo, cree una nueva vigencia (eSocial, Decreto 8.373/2014).");
-const AJUDA_ACOES = T("Lápis: editar (só rascunho). Copiar: nova validade a partir de um mês (o anterior fica no histórico). Lixeira: guarda por 60 dias e pode recuperar — pede a autorização de um supervisor.", "Pencil: edit (draft only). Copy: new validity from a month (the previous stays in history). Trash: kept 60 days and recoverable — requires a supervisor's authorization.", "Lápiz: editar (solo borrador). Copiar: nueva vigencia desde un mes (la anterior queda en el historial). Papelera: se guarda 60 días y se puede recuperar — pide autorización de un supervisor.");
+const AJUDA_ACOES = T("Lápis: editar (só rascunho). Copiar: nova validade a partir de um mês (o anterior fica no histórico). Lixeira: guarda por 90 dias e pode recuperar — pede a autorização de um supervisor.", "Pencil: edit (draft only). Copy: new validity from a month (the previous stays in history). Trash: kept 90 days and recoverable — requires a supervisor's authorization.", "Lápiz: editar (solo borrador). Copiar: nueva vigencia desde un mes (la anterior queda en el historial). Papelera: se guarda 90 días y se puede recuperar — pide autorización de un supervisor.");
 
 // Campos de CNPJ/CPF: máscara enquanto digita. Inscrição do empregador/filial/lotação: CPF quando o tipo é CPF (2), senão CNPJ.
 const CAMPOS_DOC = new Set(["nr_insc", "cnpj_efr", "cnpj_resp", "contrat_nr_insc", "prop_nr_insc", "cnpj_sindicato"]);

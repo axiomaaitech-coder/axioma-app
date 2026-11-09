@@ -51,7 +51,7 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     ['contas_pagar_auditoria', 'excluido_em', 'lixeira_historico_ap', DIAS_LIXEIRA_HISTORICO_AP],
     // termo de aceite de quem saiu da empresa: 60 dias na lixeira, depois some de vez
     ['empresa_convite_termo', 'saiu_em', 'lixeira_termos_convite', DIAS_LIXEIRA_TERMOS],
-    // lixeira da estrutura do RH (60 dias). Ordem importa: cargo antes de departamento, filial depois.
+    // lixeira do RH (90 dias). Ordem importa: cargo antes de departamento, filial depois.
     ['rh_colaboradores', 'excluido_em', 'lixeira_rh_colaboradores', DIAS_LIXEIRA_RH], // leva junto dados pessoais, contratos e salários (cascata)
     ['rh_cargos', 'excluido_em', 'lixeira_rh_cargos', DIAS_LIXEIRA_RH],
     ['rh_departamentos', 'excluido_em', 'lixeira_rh_departamentos', DIAS_LIXEIRA_RH],
@@ -59,6 +59,8 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     ['rh_estabelecimentos', 'excluido_em', 'lixeira_rh_estabelecimentos', DIAS_LIXEIRA_RH],
     ['rh_rubricas', 'excluido_em', 'lixeira_rh_rubricas', DIAS_LIXEIRA_RH],
     ['rh_empregador', 'excluido_em', 'lixeira_rh_empregador', DIAS_LIXEIRA_RH],
+    ['rh_dependentes', 'excluido_em', 'lixeira_rh_dependentes', DIAS_LIXEIRA_RH],
+    ['rh_remuneracoes', 'excluido_em', 'lixeira_rh_salarios', DIAS_LIXEIRA_RH],
   ]
   // arquivos da admissão de quem sai da lixeira hoje: tirar do cofre ANTES da cascata apagar o caminho.
   // Com falha ou com sobra (mais de 1000), as pessoas ficam para o cron seguinte — nenhum arquivo fica perdido no cofre.
@@ -71,6 +73,19 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     for (let i = 0; !falha && i < paths.length; i += 100) falha = (await supabase.storage.from('rh-documentos').remove(paths.slice(i, i + 100))).error?.message
     resultado.lixeira_rh_arquivos = falha ? `erro: ${falha}` : `${paths.length} apagado(s)`
     if (falha || paths.length === LOTE) passos.splice(passos.findIndex((p) => p[0] === 'rh_colaboradores'), 1)
+  }
+  // arquivo anexado por engano (só o arquivo foi para a lixeira): apaga do cofre e limpa o item; o item continua
+  {
+    const { data, error } = await supabase.from('rh_admissao_itens').select('id, arquivo_path').not('arquivo_excluido_em', 'is', null)
+      .lt('arquivo_excluido_em', dataLimite(DIAS_LIXEIRA_RH)).limit(1000)
+    const itens = (data ?? []) as { id: string; arquivo_path: string }[]
+    let falha = error?.message
+    for (let i = 0; !falha && i < itens.length; i += 100) {
+      const lote = itens.slice(i, i + 100)
+      falha = (await supabase.storage.from('rh-documentos').remove(lote.map((x) => x.arquivo_path))).error?.message
+      if (!falha) falha = (await supabase.from('rh_admissao_itens').update({ arquivo_path: null, arquivo_nome: null, arquivo_mime: null, arquivo_bytes: null, arquivo_excluido_em: null }).in('id', lote.map((x) => x.id))).error?.message
+    }
+    resultado.lixeira_rh_anexos = falha ? `erro: ${falha}` : `${itens.length} apagado(s)`
   }
   for (const [tabela, coluna, rotulo, dias] of passos) {
     const { count, error } = await supabase.from(tabela).delete({ count: 'exact' }).lt(coluna, dataLimite(dias))

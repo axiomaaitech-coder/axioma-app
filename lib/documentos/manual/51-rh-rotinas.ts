@@ -37,6 +37,7 @@ const pt: DocumentoAxioma = {
       'Tudo o que ainda falta ir ao governo, por evento: **S-2200** admissões, **S-2205** alterações cadastrais, **S-2206** alterações de contrato, **S-2299** desligamentos e **S-1010** verbas da empresa.',
       'Cada linha diz em que ponto está (não preparada, arquivo pronto esperando envio, recusada) e abre a ficha no **cartão do eSocial** — ou, nas verbas, RH · Estrutura → Verbas.',
       'Desligamentos só aparecem para quem tem liberação de dados pessoais e salário.',
+      '**S-3000 · Admissões canceladas**: quem não chegou a trabalhar e teve a admissão cancelada — o contador exclui a admissão no eSocial.',
     ] },
     { h1: 'Obrigações da empresa' },
     { lista: [
@@ -85,6 +86,7 @@ const en: DocumentoAxioma = {
       'Everything still to be sent to the government, by event: **S-2200** hires, **S-2205** personal data changes, **S-2206** contract changes, **S-2299** terminations and **S-1010** company pay items.',
       'Each line says where it stands (not prepared, file ready waiting to be sent, rejected) and opens the record at the **eSocial card** — or, for pay items, HR · Structure → Pay items.',
       'Terminations only show for those with personal data and salary access.',
+      '**S-3000 · Cancelled hires**: people who did not start work and had the hire cancelled — the accountant deletes the hire in eSocial.',
     ] },
     { h1: 'Company obligations' },
     { lista: [
@@ -133,6 +135,7 @@ const es: DocumentoAxioma = {
       'Todo lo que aún falta enviar al gobierno, por evento: **S-2200** admisiones, **S-2205** alteraciones de registro, **S-2206** alteraciones de contrato, **S-2299** desvinculaciones y **S-1010** rubros de la empresa.',
       'Cada línea dice en qué punto está (no preparada, archivo listo esperando envío, rechazada) y abre la ficha en la **tarjeta del eSocial** — o, en los rubros, RR. HH. · Estructura → Rubros.',
       'Las desvinculaciones solo aparecen para quien tiene habilitación de datos personales y salario.',
+      '**S-3000 · Admisiones canceladas**: quien no llegó a trabajar y tuvo la admisión cancelada — el contador excluye la admisión en el eSocial.',
     ] },
     { h1: 'Obligaciones de la empresa' },
     { lista: [
