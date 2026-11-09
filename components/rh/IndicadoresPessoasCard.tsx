@@ -31,6 +31,7 @@ export function IndicadoresPessoasCard({ lang, temaClaro, ondeEsta }: { lang: La
   const cartao = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const alerta = (a: string) => (lang === "pt" ? a : a.startsWith("o custo de pessoal passa") ? L("", "personnel cost exceeds average monthly revenue", "el costo de personal supera la facturación media mensual")
     : a.startsWith("a folha não está") ? L("", "payroll is not (fully) entered in Fixed Costs: the income statement profit is higher than the real one", "la nómina no está (toda) registrada en Costos Fijos: la utilidad del estado de resultados es mayor que la real")
+    : a.includes("sem salário") ? L("", "people without a monthly salary were left out of personnel cost", "personas sin salario mensual quedaron fuera del costo de personal")
     : L("", "cost centers with a \"headcount\" different from HR: allocation by people uses the typed number", "centros de costo con \"headcount\" distinto de RR. HH.: el prorrateo por personas usa el número digitado"));
   return (
     <CanvasBox cor={verde} {...cartao}>
@@ -43,7 +44,7 @@ export function IndicadoresPessoasCard({ lang, temaClaro, ondeEsta }: { lang: La
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
           {[[L("Pessoal sobre o faturamento", "Personnel over revenue", "Personal sobre la facturación"), r.pessoal_sobre_faturamento_pct == null ? "—" : `${String(r.pessoal_sobre_faturamento_pct).replace(".", ",")}%`],
             [L("Faturamento por pessoa / mês", "Revenue per person / month", "Facturación por persona / mes"), brl(r.faturamento_por_pessoa)],
-            [L("Custo médio por pessoa / mês", "Average cost per person / month", "Costo medio por persona / mes"), brl(r.custo_medio_por_pessoa)],
+            [L(`Custo médio por pessoa / mês (${r.pessoas_com_salario} com salário)`, `Average cost per person / month (${r.pessoas_com_salario} with salary)`, `Costo medio por persona / mes (${r.pessoas_com_salario} con salario)`), brl(r.custo_medio_por_pessoa)],
             [L("Lucro por pessoa / mês", "Profit per person / month", "Utilidad por persona / mes"), brl(r.lucro_por_pessoa)]].map(([n, v]) => (
             <div key={n} className="rounded-xl p-2" style={nested}><p style={{ color: texto2 }}>{n}</p><p className="font-bold text-sm" style={{ color: titulo }}>{v}</p></div>))}
         </div>

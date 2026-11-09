@@ -7,7 +7,8 @@
 import { centavos, reais } from './financeiro/contrato'
 
 export function indicadoresPessoas(p: {
-  pessoas: number; custoPessoalMensal: number | null; receitaMediaMensal: number | null; lucroMedioMensal: number | null
+  // pessoasComSalario: o custo de pessoal só soma quem tem salário mensal cadastrado — o custo médio divide por eles, não por todos
+  pessoas: number; pessoasComSalario?: number; custoPessoalMensal: number | null; receitaMediaMensal: number | null; lucroMedioMensal: number | null
   folhaForaDaDre?: boolean
   centros?: { nome: string; headcountCadastrado: number | null; pessoasRh: number }[]
 }) {
@@ -18,12 +19,13 @@ export function indicadoresPessoas(p: {
   if (p.folhaForaDaDre) alertas.push('a folha não está (toda) lançada em Custos Fixos: o lucro médio da DRE está maior que o real')
   const centros = (p.centros ?? []).map((c) => ({ ...c, confere: c.headcountCadastrado == null ? null : c.headcountCadastrado === c.pessoasRh }))
   const divergentes = centros.filter((c) => c.confere === false)
+  if (p.pessoasComSalario != null && p.pessoasComSalario < p.pessoas) alertas.push(`${p.pessoas - p.pessoasComSalario} pessoa(s) sem salário mensal cadastrado: ficaram fora do custo de pessoal`)
   if (divergentes.length) alertas.push(`${divergentes.length} centro(s) de custo com "headcount" diferente do RH: o rateio por pessoas usa o número digitado`)
   return {
     pessoas: p.pessoas,
     pessoal_sobre_faturamento_pct: pct,
     faturamento_por_pessoa: div(p.receitaMediaMensal, p.pessoas),
-    custo_medio_por_pessoa: div(p.custoPessoalMensal, p.pessoas),
+    custo_medio_por_pessoa: div(p.custoPessoalMensal, p.pessoasComSalario ?? p.pessoas), pessoas_com_salario: p.pessoasComSalario ?? p.pessoas,
     lucro_por_pessoa: div(p.lucroMedioMensal, p.pessoas),
     centros, alertas,
   }

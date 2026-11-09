@@ -10,6 +10,9 @@ assert.equal(r.custo_medio_por_pessoa, 4644)         // 9.288,00 ÷ 2
 assert.equal(r.lucro_por_pessoa, 3196.85)            // 6.393,69 ÷ 2
 assert.deepEqual(r.centros.map((c) => c.confere), [false, true, null])
 assert.equal(r.alertas.length, 3)
+// 3 ativos, só 2 com salário (custo 9.288 é deles): custo médio ÷ 2; faturamento e lucro ÷ 3
+const s3 = I.indicadoresPessoas({ pessoas: 3, pessoasComSalario: 2, custoPessoalMensal: 9288, receitaMediaMensal: 8166.79, lucroMedioMensal: 6393.69 })
+assert.equal(s3.custo_medio_por_pessoa, 4644); assert.equal(s3.faturamento_por_pessoa, 2722.26); assert.ok(s3.alertas.some((a) => /sem salário/.test(a)))
 // sem pessoas ou sem DRE: não divide por zero, não inventa
 const v = I.indicadoresPessoas({ pessoas: 0, custoPessoalMensal: 0, receitaMediaMensal: null, lucroMedioMensal: null })
 assert.equal(v.faturamento_por_pessoa, null); assert.equal(v.pessoal_sobre_faturamento_pct, null); assert.equal(v.alertas.length, 0)

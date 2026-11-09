@@ -15,7 +15,7 @@ export async function carregarIndicadoresPessoas(supabase: SupabaseClient, empre
     .map((c) => ({ nome: c.nome, headcountCadastrado: c.headcount, pessoasRh: porCentro[c.nome] ?? 0 }))
   const limitacoes = [...b.limitacoes]
   if (cc.error) limitacoes.push('Centros de Custo não foram lidos agora: a comparação de headcount ficou de fora')
-  const ind = indicadoresPessoas({ pessoas: b.pessoal?.r.pessoas_ativas ?? 0, custoPessoalMensal: b.base.custoPessoalAtual, receitaMediaMensal: b.base.receitaMediaMensal,
+  const ind = indicadoresPessoas({ pessoas: b.pessoal?.r.pessoas_ativas ?? 0, pessoasComSalario: b.pessoal?.r.pessoas_contadas, custoPessoalMensal: b.base.custoPessoalAtual, receitaMediaMensal: b.base.receitaMediaMensal,
     lucroMedioMensal: b.base.lucroMedioMensal, folhaForaDaDre: b.base.folhaForaDaDre, centros })
   return { ...ind, periodo_dre: b.periodo_dre, limitacoes, sem_salario: !podeSalario }
 }
