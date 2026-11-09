@@ -20,6 +20,7 @@ import { PerguntaIA } from "../../../components/PerguntaIA";
 import { LetreiroAxioma } from "../../../components/LetreiroAxioma";
 import { NavRh } from "../../../components/NavRh";
 import { CustoPessoalCard } from "../../../components/rh/CustoPessoalCard";
+import { IndicadoresPessoasCard } from "../../../components/rh/IndicadoresPessoasCard";
 import { lerPodeRh } from "../../../lib/rhAcesso";
 import { FalhaAcessoRh } from "../../../components/rh/RotinaRh";
 import Link from "next/link";
@@ -206,6 +207,7 @@ export default function RhPainelPage() {
                 </CanvasBox>
               )}
               {pode.salario && <CustoPessoalCard lang={lang} temaClaro={temaClaro} ondeEsta="rh" />}
+              {pode.salario && <IndicadoresPessoasCard lang={lang} temaClaro={temaClaro} ondeEsta="rh" />}
               <p id="formula" className="text-xs scroll-mt-28" style={{ color: TEXTO_SEC }}>{L("Rotatividade do mês = ((admissões + desligamentos) ÷ 2) ÷ ativos de hoje × 100.", "Monthly turnover = ((hires + terminations) ÷ 2) ÷ today's active × 100.", "Rotación del mes = ((admisiones + desvinculaciones) ÷ 2) ÷ activos de hoy × 100.")}</p>
               <PerguntaIA tela="rh" empresaId={empresaId} lang={lang} temaClaro={temaClaro} titulo={L("Inteligência Axioma — Especialista de RH", "Axioma Intelligence — HR Specialist", "Inteligencia Axioma — Especialista de RR. HH.")}
                 sugestoes={[L("O que preciso resolver no RH hoje?", "What do I need to solve in HR today?", "¿Qué debo resolver en RR. HH. hoy?"), L("Tem algum risco trabalhista?", "Is there any labor risk?", "¿Hay algún riesgo laboral?"), L("Quantos ativos por departamento?", "How many active per department?", "¿Cuántos activos por departamento?")]} />

@@ -34,6 +34,6 @@ export async function carregarBaseSimulacao(supabase: SupabaseClient, empresaId:
   return {
     base: { receitaMediaMensal, lucroMedioMensal, custoPessoalAtual: pessoal ? pessoal.r.custo_total_mensal : null, caixa: caixa.erro ? null : caixa.saldo,
       folhaForaDaDre: !!pessoal?.ponte && (pessoal.ponte.situacao === 'folha_nao_lancada' || pessoal.ponte.situacao === 'lancado_a_menos') } as BaseSimulacao,
-    regime: pessoal?.regime ?? regimeDaEmpresa((emp.data as { regime_tributario?: string } | null)?.regime_tributario), periodo_dre: { de: inicio, ate: fim }, limitacoes,
+    pessoal, regime: pessoal?.regime ?? regimeDaEmpresa((emp.data as { regime_tributario?: string } | null)?.regime_tributario), periodo_dre: { de: inicio, ate: fim }, limitacoes,
   }
 }

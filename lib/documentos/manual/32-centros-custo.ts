@@ -62,6 +62,13 @@ const pt: DocumentoAxioma = {
       'Só aparece com a liberação de salário do RH. **Ver no RH ›** abre o Painel do RH; **Abrir Custos Fixos ›** leva ao lançamento.',
       'Na conversa com a Inteligência Axioma: "quanto custa a minha folha?", "custo de pessoal por centro de custo", "a folha está lançada?".',
     ] },
+    { h1: 'Indicadores de pessoas (CFO)' },
+    { lista: [
+      'Cartão **Indicadores de pessoas (CFO)** (com liberação de salário do RH): **pessoal sobre o faturamento** (%), **faturamento por pessoa**, **custo médio por pessoa** e **lucro por pessoa** — médias mensais dos últimos 12 meses completos da DRE, com as pessoas ativas de hoje.',
+      '**Headcount dos Centros de Custo × RH**: compara o número digitado em cada Centro de Custo (usado no rateio por pessoas) com as pessoas do RH ligadas a ele pelo departamento; ⚠ quando não bate.',
+      'Avisos em laranja: pessoal acima do faturamento e folha não lançada em Custos Fixos (o lucro da DRE fica maior que o real). Nenhum "padrão de mercado" é inventado: só os números da própria Empresa.',
+      'Pela Inteligência Axioma: "quanto da minha receita vai para pessoal?", "qual o faturamento por funcionário?".',
+    ] },
   ],
 }
 
@@ -126,6 +133,13 @@ const en: DocumentoAxioma = {
       'Only shown with HR salary access. **See in HR ›** opens the HR Panel; **Open Fixed Costs ›** takes you to the entry.',
       'In the Axioma Intelligence chat: "how much does my payroll cost?", "personnel cost by cost center", "is payroll entered?".',
     ] },
+    { h1: 'People indicators (CFO)' },
+    { lista: [
+      '**People indicators (CFO)** card (with HR salary access): **personnel over revenue** (%), **revenue per person**, **average cost per person** and **profit per person** — monthly averages of the last 12 complete months of the income statement, with today\'s active people.',
+      '**Cost center headcount × HR**: compares the number typed in each Cost Center (used for allocation by people) with the HR people linked to it through the department; ⚠ when it does not match.',
+      'Orange warnings: personnel above revenue and payroll not entered in Fixed Costs (the income statement profit is higher than the real one). No "market standard" is made up: only the company\'s own numbers.',
+      'Through Axioma Intelligence: "how much of my revenue goes to personnel?", "what is the revenue per employee?".',
+    ] },
   ],
 }
 
@@ -189,6 +203,13 @@ const es: DocumentoAxioma = {
       'Compara con lo **registrado en Costos Fijos como "Nómina"** en el mes y avisa si coincide, si está por debajo, por encima o no registrado. El estado de resultados y el flujo de caja usan solo lo registrado: la estimación **nunca** se les suma (nada cuenta dos veces).',
       'Solo aparece con habilitación de salario en RR. HH. **Ver en RR. HH. ›** abre el Panel de RR. HH.; **Abrir Costos Fijos ›** lleva al registro.',
       'En la conversación con la Inteligencia Axioma: "¿cuánto cuesta mi nómina?", "costo de personal por centro de costo", "¿la nómina está registrada?".',
+    ] },
+    { h1: 'Indicadores de personas (CFO)' },
+    { lista: [
+      'Tarjeta **Indicadores de personas (CFO)** (con habilitación de salario en RR. HH.): **personal sobre la facturación** (%), **facturación por persona**, **costo medio por persona** y **utilidad por persona** — promedios mensuales de los últimos 12 meses completos del estado de resultados, con las personas activas de hoy.',
+      '**Headcount de los Centros de Costo × RR. HH.**: compara el número digitado en cada Centro de Costo (usado en el prorrateo por personas) con las personas de RR. HH. ligadas a él por el departamento; ⚠ cuando no coincide.',
+      'Avisos naranjas: personal por encima de la facturación y nómina no registrada en Costos Fijos (la utilidad del estado de resultados queda mayor que la real). No se inventa ningún "estándar de mercado": solo los números de la propia empresa.',
+      'Por la Inteligencia Axioma: "¿cuánto de mi ingreso va a personal?", "¿cuál es la facturación por empleado?".',
     ] },
   ],
 }

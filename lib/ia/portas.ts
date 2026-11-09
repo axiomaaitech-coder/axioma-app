@@ -25,14 +25,14 @@ export const PORTAS: Record<string, Porta> = {
   caixa_tesouraria: porta('Tesouraria', PESADA), obrigacoes_fiscais: porta('Fiscal'), cadastros: porta('Clientes e Fornecedores'), estoque_resumo: porta('Estoque'), compras_pedidos: porta('Pedidos de Compra'), pdv_resumo: porta('PDV'),
   // RH: a porta deixa passar os papéis financeiros; quem decide de verdade é a liberação do RH no banco (rh_pode v2 + RLS)
   rh_pessoas: porta('RH · Colaboradores'), rh_estrutura: porta('RH · Estrutura'), rh_salarios: porta('RH · Colaboradores'), rh_alertas: porta('RH · Painel'),
-  rh_custo_pessoal: porta('RH ↔ Financeiro · Custo de pessoal'), rh_colaborador: porta('RH · Colaboradores'), rh_simular_contratacao: porta('RH ↔ Financeiro · Simulador de contratação', PESADA),
+  rh_custo_pessoal: porta('RH ↔ Financeiro · Custo de pessoal'), rh_colaborador: porta('RH · Colaboradores'), rh_simular_contratacao: porta('RH ↔ Financeiro · Simulador de contratação', PESADA), rh_indicadores_pessoas: porta('RH ↔ Financeiro · Indicadores de pessoas', PESADA),
 }
 
 // ─── Etapa 5: cada tela consulta só o que é da sua finalidade. Quem protege o dado é o papel lido no servidor; a tela vem
 // do navegador e serve para manter a IA no assunto. O modelo continua vendo todas as ferramentas: sem a ferramenta,
 // ele concluía que o dado não existia ("não há cadastro de clientes"); a recusa vem da porta, com o motivo certo. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
 const BASE = ['resumo_financeiro', 'relatorio']
-const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais', 'rh_custo_pessoal', 'rh_simular_contratacao']
+const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais', 'rh_custo_pessoal', 'rh_simular_contratacao', 'rh_indicadores_pessoas']
 const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais', 'compras_pedidos', 'rh_custo_pessoal']
 const A_RECEBER = ['titulos', 'contas_a_receber', 'maiores_devedores', 'receitas_por_cliente', 'faturamento', 'cadastros']
 const COBRANCA = ['contas_vencidas', 'caixa_tesouraria', 'movimentos_realizados', 'reconciliacao']
@@ -42,12 +42,12 @@ const PORTAS_POR_TELA: Record<string, readonly string[]> = {
   'contas-receber': [...BASE, ...A_RECEBER, ...COBRANCA],
   'contas-vencidas': [...BASE, ...A_PAGAR, ...A_RECEBER, ...COBRANCA],
   clientes: [...BASE, 'cadastros', 'receitas_por_cliente', 'maiores_devedores', 'contas_a_receber', 'titulos', 'contas_vencidas'],
-  'centros-custo': [...BASE, 'custos', 'custos_fixos_mes', 'despesas', 'dre', 'maiores_fornecedores', 'rh_custo_pessoal', 'rh_pessoas', 'rh_simular_contratacao'],
+  'centros-custo': [...BASE, 'custos', 'custos_fixos_mes', 'despesas', 'dre', 'maiores_fornecedores', 'rh_custo_pessoal', 'rh_pessoas', 'rh_simular_contratacao', 'rh_indicadores_pessoas'],
   tesouraria: [...BASE, 'caixa_tesouraria', 'movimentos_realizados', 'titulos', 'contas_a_pagar', 'contas_a_receber', 'dividas', 'obrigacoes_fiscais', 'contas_vencidas', 'rh_custo_pessoal', 'rh_simular_contratacao'],
   pdv: [...BASE, 'pdv_resumo', 'estoque_avisos', 'estoque_resumo', 'faturamento', 'cadastros'],
   'importar-documentos': [...BASE, 'contas_a_pagar', 'titulos', 'custos', 'despesas', 'maiores_fornecedores', 'cadastros', 'reconciliacao', 'compras_pedidos'],
 }
-const PORTAS_RH = [...BASE, 'rh_pessoas', 'rh_estrutura', 'rh_salarios', 'rh_alertas', 'rh_custo_pessoal', 'rh_colaborador', 'rh_simular_contratacao', 'custos', 'custos_fixos_mes', 'dre']
+const PORTAS_RH = [...BASE, 'rh_pessoas', 'rh_estrutura', 'rh_salarios', 'rh_alertas', 'rh_custo_pessoal', 'rh_colaborador', 'rh_simular_contratacao', 'rh_indicadores_pessoas', 'custos', 'custos_fixos_mes', 'dre']
 PORTAS_POR_TELA['rh'] = PORTAS_RH
 PORTAS_POR_TELA['rh-estrutura'] = PORTAS_RH
 PORTAS_POR_TELA['rh-colaboradores'] = PORTAS_RH

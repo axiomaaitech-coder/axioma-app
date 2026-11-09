@@ -72,7 +72,12 @@ export function custoPessoal(p: {
   let sal = 0, fgts = 0, prov = 0, inss = 0, contados = 0, naoMensais = 0, semSalario = 0, semPatronal = 0, encSal = 0, decimo = 0
   const porDep = new Map<string, { custo: number; pessoas: number }>(), porCc = new Map<string, { custo: number; pessoas: number }>()
   const soma = (m: Map<string, { custo: number; pessoas: number }>, k: string, v: number) => { const x = m.get(k) ?? { custo: 0, pessoas: 0 }; x.custo += v; x.pessoas++; m.set(k, x) }
+  // pessoas por centro de custo: TODOS os contratos ativos (com ou sem salário) — compara com o headcount do Centro de Custo
+  const pessoasCc = new Map<string, number>()
   for (const k of p.contratos) {
+    const depK = k.departamento_id ? p.departamentos.get(k.departamento_id) : undefined
+    const ccK = (depK?.centro_custo_id && p.centros.get(depK.centro_custo_id)) || 'sem centro de custo'
+    pessoasCc.set(ccK, (pessoasCc.get(ccK) ?? 0) + 1)
     const sv = p.salario.get(k.id)
     if (!sv) { semSalario++; continue }
     const c = custoMensalContrato(k, sv, p.regime)
@@ -92,7 +97,7 @@ export function custoPessoal(p: {
   if (naoMensais) limitacoes.push(`${naoMensais} contrato(s) pago(s) por hora, dia, semana, tarefa ou só variável ficaram fora (não viram mês sem jornada e produção)`)
   if (semSalario) limitacoes.push(`${semSalario} contrato(s) ativo(s) sem salário cadastrado ficaram fora`)
   return {
-    pessoas_contadas: contados, nao_mensais: naoMensais, sem_salario: semSalario,
+    pessoas_contadas: contados, pessoas_ativas: p.contratos.length, pessoas_por_centro: Object.fromEntries(pessoasCc), nao_mensais: naoMensais, sem_salario: semSalario,
     salarios: reais(sal), encargos_mensais_sobre_salario: reais(encSal), decimo_terceiro_ano: p.ano ? reais(decimo) : null, fgts: reais(fgts), provisoes_13_ferias: reais(prov), inss_patronal: reais(inss), custo_total_mensal: reais(sal + fgts + prov + inss),
     regime: p.regime, base_inss_patronal: inssPatronalPct(p.regime, '101').base,
     por_departamento: lista(porDep), por_centro_custo: lista(porCc), limitacoes,

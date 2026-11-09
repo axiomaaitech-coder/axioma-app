@@ -1,6 +1,7 @@
 "use client";
 import { lerTodas } from "../../../lib/lerTodas";
 import { CustoPessoalCard } from "../../../components/rh/CustoPessoalCard";
+import { IndicadoresPessoasCard } from "../../../components/rh/IndicadoresPessoasCard";
 import { LetreiroExecutivo } from "../../../components/LetreiroExecutivo";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -847,6 +848,7 @@ export default function CentrosCustoPage() {
         {aba === "visao" && (
           <div className="space-y-4">
             <CustoPessoalCard lang={langF2} temaClaro={temaClaro} agrupar="centro" ondeEsta="centros-custo" />
+            <IndicadoresPessoasCard lang={langF2} temaClaro={temaClaro} ondeEsta="centros-custo" />
             {centros.length === 0 ? (
               <CanvasBox {...cartaoTema} cor={ct("#2ecc9b")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
