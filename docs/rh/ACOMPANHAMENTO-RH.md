@@ -24,13 +24,17 @@ não vale mais; a regra atual é testada no RH-6.
 
 ## Decisões em aberto (do relatório de pesquisa, seção 6)
 
-1. Contador envia ao governo na v1 (recomendado) — Fase 2/4
+**Decididas pelo Elias em 08/11/2026:** contador envia ao governo na v1 (o Axioma prepara); próxima etapa = admissão
+preparada para o eSocial (S-2200); currículos de não contratados guardados 12 meses com aceite do candidato; RH liberado
+em todos os planos até a definição de preços.
+
+1. Contador envia ao governo na v1 (recomendado) — Fase 2/4 — **DECIDIDO: sim**
 2. Ponto: importar arquivo em vez de criar REP-P próprio (recomendado) — Fase 3
 3. Grupo: filial com a mesma raiz de CNPJ = estabelecimento; outra raiz = outra empresa ligada (é a regra do eSocial) — Fase 1, subfase 3
 4. Link por WhatsApp (tem custo por mensagem) — Fase 2
 5. IA de currículo: OpenAI sem crédito — Fase 2
-6. Guarda de currículos: 12 meses com consentimento — Fase 2
-7. Plano: RH liberado até a definição de preços — antes de publicar
+6. Guarda de currículos: 12 meses com consentimento — Fase 2 — **DECIDIDO: sim**
+7. Plano: RH liberado até a definição de preços — antes de publicar — **DECIDIDO: sim**
 
 ## Painel do RH (08/11/2026)
 
@@ -50,3 +54,12 @@ Arquivo "Estrutura CBO (CSV)" do MTE (cbo.mte.gov.br, arquivos de 10/07/2026; ba
 `RH-13-CBO-SQL.sql` rodado: `cbo_ocupacoes` (2.725) + `cbo_sinonimos` (7.870), só leitura para logados; trava `rh_cargos_cbo_oficial`
 (cargo só aceita código da lista). Conferência: 2725 · 7870 · 0 cargos fora da lista. Tela: campo "Ocupação na CBO" com busca por nome
 ou código, sem acento, em pt/en/es.
+
+## Admissão preparada para o eSocial — S-2200 (08/11/2026)
+
+Decisões do Elias: contador envia; sindicato na filial com troca no contrato; esquemas XSD oficiais baixados (pacote de 26/10/2026,
+`evtAdmissao.xsd` idêntico ao de 23/11/2026). SQL rodados pelo Elias: RH-14 (campos, `rh_esocial_eventos`, trava do contrato),
+RH-14B (regra do contrato sem amarrar categoria × natureza, valendo para todos), RH-14C (arquivo só para quem tem dados pessoais
++ salário). Teste RH-14: falhas=0. `check-rh-esocial`: 3 arquivos aceitos pelo XSD oficial (menos a assinatura, que é do contador).
+Fica para depois: S-2206 (alteração), S-2299 (desligamento), aprendiz/doméstico/temporário/intermitente, PCD e dependentes,
+importação por planilha dos campos novos.

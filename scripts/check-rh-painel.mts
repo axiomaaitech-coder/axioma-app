@@ -44,4 +44,9 @@ const semEmp = P.painelRh({ ...base, temEmpregador: false }).alertas.find((a) =>
 assert.ok(semEmp && semEmp.nivel === 'critico' && semEmp.total >= 3 && semEmp.acao.rota === '/rh/estrutura')
 assert.equal(P.painelRh({ ...base, temEmpregador: true }).alertas.find((a) => a.id === 'sem_empregador'), undefined)
 assert.equal(r.alertas.find((a) => a.id === 'sem_empregador'), undefined, 'não conferido não acusa')
+// preparado ou recusado também está fora do prazo enquanto o contador não envia
+const ksPrep = (contratos as Record<string, unknown>[]).map((x) => (x.id === 'k3' ? { ...x, situacao_esocial: 'preparado' } : x)) as never
+assert.deepEqual(P.painelRh({ ...base, contratos: ksPrep }).alertas.find((a) => a.id === 'esocial_admissao')!.pessoas, ['Caio'], 'preparado sem envio alerta')
+const ksAceito = (contratos as Record<string, unknown>[]).map((x) => (x.id === 'k3' ? { ...x, situacao_esocial: 'aceito' } : x)) as never
+assert.equal(P.painelRh({ ...base, contratos: ksAceito }).alertas.find((a) => a.id === 'esocial_admissao'), undefined, 'aceito não alerta')
 console.log('check-rh-painel ok')

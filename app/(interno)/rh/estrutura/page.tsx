@@ -105,6 +105,7 @@ const ABAS: { id: Aba; tabela: string; nome: Texto; versionada: boolean; campos:
       { k: "fim_valid", r: T("Vale até (opcional)", "Valid until (optional)", "Vigente hasta (opcional)"), tipo: "mes" },
       { k: "cnae_prep", r: T("CNAE principal (7 dígitos)", "Main CNAE (7 digits)", "CNAE principal (7 dígitos)"), tipo: "texto", obrig: true },
       { k: "centro_custo_id", r: T("Centro de custo (opcional)", "Cost center (optional)", "Centro de costo (opcional)"), tipo: "select", opcoes: (d) => [{ v: "", l: "—" }, ...d.centros] },
+      { k: "cnpj_sindicato", r: T("CNPJ do sindicato da categoria", "Union CNPJ (category)", "CNPJ del sindicato de la categoría"), tipo: "texto", ajuda: T("O eSocial exige em toda admissão. Vale para quem trabalha nesta filial; quem é de categoria diferenciada (ex.: motorista) recebe outro no contrato. Confira na convenção coletiva ou com o contador.", "eSocial requires it on every hire. Applies to everyone at this branch; differentiated categories (e.g. drivers) get another one on the contract. Check the collective agreement or the accountant.", "eSocial lo exige en toda admisión. Vale para quien trabaja en esta sucursal; las categorías diferenciadas (ej.: conductor) reciben otro en el contrato. Revise el convenio colectivo o con el contador.") },
       { k: "situacao_esocial", r: T("Situação no eSocial", "eSocial status", "Situación en eSocial"), tipo: "select", obrig: true, opcoes: SITUACAO },
       { k: "cnpj_resp", r: T("Obra: CNPJ responsável", "Site: responsible CNPJ", "Obra: CNPJ responsable"), tipo: "texto", avancado: true },
       { k: "fap", r: T("FAP (0,5000 a 2,0000), se diferente do oficial", "FAP (0.5000–2.0000), if different from official", "FAP (0,5000 a 2,0000), si distinto del oficial"), tipo: "numero", avancado: true },
@@ -216,7 +217,7 @@ const AJUDA_ESOCIAL = T("Se este cadastro já foi enviado ao eSocial (o governo)
 const AJUDA_ACOES = T("Lápis: editar (só rascunho). Copiar: nova validade a partir de um mês (o anterior fica no histórico). Lixeira: guarda por 60 dias e pode recuperar — pede a autorização de um supervisor.", "Pencil: edit (draft only). Copy: new validity from a month (the previous stays in history). Trash: kept 60 days and recoverable — requires a supervisor's authorization.", "Lápiz: editar (solo borrador). Copiar: nueva vigencia desde un mes (la anterior queda en el historial). Papelera: se guarda 60 días y se puede recuperar — pide autorización de un supervisor.");
 
 // Campos de CNPJ/CPF: máscara enquanto digita. Inscrição do empregador/filial/lotação: CPF quando o tipo é CPF (2), senão CNPJ.
-const CAMPOS_DOC = new Set(["nr_insc", "cnpj_efr", "cnpj_resp", "contrat_nr_insc", "prop_nr_insc"]);
+const CAMPOS_DOC = new Set(["nr_insc", "cnpj_efr", "cnpj_resp", "contrat_nr_insc", "prop_nr_insc", "cnpj_sindicato"]);
 function mascaraDoc(k: string, v: string, f: Linha): string {
   if (!CAMPOS_DOC.has(k)) return v;
   const tipo = String(k === "contrat_nr_insc" ? f.contrat_tp_insc : k === "prop_nr_insc" ? f.prop_tp_insc : k === "nr_insc" ? f.tp_insc : "1");
@@ -349,7 +350,7 @@ export default function RhEstruturaPage() {
         if (Number.isNaN(n)) { avisar(L(`Número inválido em: ${c.r.pt}.`, `Invalid number in: ${c.r.en}.`, `Número inválido en: ${c.r.es}.`)); return false; }
         payload[c.k] = n;
       }
-      else if (["nr_insc", "cnpj_efr", "cnpj_resp", "cnae_prep", "cbo", "contrat_nr_insc", "prop_nr_insc", "apr_nr_proc_jud", "pcd_nr_proc_jud"].includes(c.k)) payload[c.k] = s.replace(/\D/g, "");
+      else if (["nr_insc", "cnpj_efr", "cnpj_resp", "cnae_prep", "cbo", "contrat_nr_insc", "prop_nr_insc", "apr_nr_proc_jud", "pcd_nr_proc_jud", "cnpj_sindicato"].includes(c.k)) payload[c.k] = s.replace(/\D/g, "");
       else payload[c.k] = s;
     }
     setSalvando(true);
@@ -665,14 +666,14 @@ function BuscaCbo({ id, valor, onChange, lang, estilo, claro }: { id: string; va
   const [achados, setAchados] = useState<{ codigo: string; titulo: string; ocupacao: string }[]>([]);
   const [semLista, setSemLista] = useState(false);
   useEffect(() => {
-    if (!/^\d{6}$/.test(valor)) { setTitulo(null); return; }
+    if (!/^\d{6}$/.test(valor)) return;
     let vivo = true;
     void supabase.from("cbo_ocupacoes").select("titulo").eq("codigo", valor).maybeSingle().then(({ data, error }) => { if (!vivo) return; if (error) setSemLista(true); setTitulo(data?.titulo ?? (error ? null : "")); });
     return () => { vivo = false; };
   }, [valor]);
   useEffect(() => {
     const q = semAcento(texto);
-    if (q.length < 2) { setAchados([]); return; }
+    if (q.length < 2) return;
     let vivo = true;
     const t = setTimeout(async () => {
       const digitos = /^\d+$/.test(q);
@@ -691,22 +692,24 @@ function BuscaCbo({ id, valor, onChange, lang, estilo, claro }: { id: string; va
     }, 250);
     return () => { vivo = false; clearTimeout(t); };
   }, [texto]);
+  const tituloOk = /^\d{6}$/.test(valor) ? titulo : null;
+  const lista = semAcento(texto).length < 2 ? [] : achados;
   const cor = claro ? "#101b3d" : "#2ecc9b";
   return (
     <div>
-      <input id={id} type="text" value={texto} placeholder={valor ? `${valor}${titulo ? ` — ${titulo}` : ""}` : L("Ex.: vendedor, motorista, 411010", "E.g. salesperson, driver, 411010", "Ej.: vendedor, conductor, 411010")}
+      <input id={id} type="text" value={texto} placeholder={valor ? `${valor}${tituloOk ? ` — ${tituloOk}` : ""}` : L("Ex.: vendedor, motorista, 411010", "E.g. salesperson, driver, 411010", "Ej.: vendedor, conductor, 411010")}
         onChange={(e) => { const v = e.target.value; setTexto(v); const d = v.replace(/\D/g, ""); if (semLista && /^\d{6}$/.test(d)) onChange(d); }}
         className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={estilo} autoComplete="off" />
       {valor && (
-        <p className="text-xs mt-1 font-semibold" style={{ color: titulo === "" ? (claro ? "#9a3412" : "#fbbf24") : cor }}>
-          {titulo === "" ? L(`${valor}: código fora da lista oficial — escolha outro.`, `${valor}: code not in the official list — pick another.`, `${valor}: código fuera de la lista oficial — elija otro.`)
-            : `${L("Escolhido", "Selected", "Elegido")}: ${valor}${titulo ? ` — ${titulo}` : ""}`}
+        <p className="text-xs mt-1 font-semibold" style={{ color: tituloOk === "" ? (claro ? "#9a3412" : "#fbbf24") : cor }}>
+          {tituloOk === "" ? L(`${valor}: código fora da lista oficial — escolha outro.`, `${valor}: code not in the official list — pick another.`, `${valor}: código fuera de la lista oficial — elija otro.`)
+            : `${L("Escolhido", "Selected", "Elegido")}: ${valor}${tituloOk ? ` — ${tituloOk}` : ""}`}
         </p>
       )}
       {semLista && <p className="text-xs mt-1" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("A lista oficial ainda não está disponível: digite o código de 6 dígitos.", "The official list is not available yet: type the 6-digit code.", "La lista oficial aún no está disponible: escriba el código de 6 dígitos.")}</p>}
-      {achados.length > 0 && (
+      {lista.length > 0 && (
         <div className="mt-1 rounded-xl overflow-hidden max-h-64 overflow-y-auto" style={{ border: `1px solid ${claro ? "rgba(16,27,61,0.25)" : "rgba(46,204,155,0.35)"}` }} role="listbox">
-          {achados.map((a) => (
+          {lista.map((a) => (
             <button key={`${a.codigo}|${a.titulo}`} type="button" role="option" aria-selected={a.codigo === valor}
               onClick={() => { onChange(a.codigo, a.ocupacao); setTexto(""); setAchados([]); }}
               className="w-full text-left px-3 py-2 text-sm hover:opacity-80" style={{ background: claro ? "rgba(246,247,196,0.6)" : "rgba(15,23,42,0.6)", color: "var(--axi-text-primary)", borderBottom: "1px solid rgba(128,128,128,0.15)" }}>

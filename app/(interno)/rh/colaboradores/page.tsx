@@ -26,14 +26,15 @@ import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
 import { COLUNAS, linhaPlanilha } from "../../../../lib/rhImportacao";
 import { FileSpreadsheet } from "lucide-react";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
-import { obterEmpresaAtiva, listarEquipe } from "../../../../lib/empresaHelpers";
+import { obterEmpresaAtiva, listarEquipe, validarCNPJ } from "../../../../lib/empresaHelpers";
 import { corTema, FONTE_EXEC, fBRL2 } from "../../../../lib/cfoCore";
 import { gerarPdfTabela, gerarExcelTabela } from "../../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../../lib/erroUiHelpers";
 import { hojeISO } from "../../../../lib/datas";
 import { DIAS_LIXEIRA_RH } from "../../../../lib/nexusRetencao";
 import { lerValorBR } from "../../../../lib/valorBR";
-import { consultarCEP, mascaraCPF, mascaraCEP, mascaraTelefone, validarCPF, UFS } from "../../../../lib/enderecoHelpers";
+import { consultarCEP, mascaraCPF, mascaraCEP, mascaraCNPJ, mascaraTelefone, validarCPF, UFS } from "../../../../lib/enderecoHelpers";
+import { pendenciasS2200, gerarS2200, VERSAO_LEIAUTE, type DadosS2200, type Pendencia } from "../../../../lib/rhEsocial";
 import { ITENS_ADMISSAO, PROIBIDOS } from "../../../../lib/rhDocumentos";
 import { mensagemErroRh, type Lang } from "../../../../lib/rhEstrutura";
 
@@ -193,7 +194,7 @@ export default function RhColaboradoresPage() {
 
   async function abrirNovo() {
     setHistorico([]); setCepMsg(null); const g = await gestoresPossiveis(); setRef((r) => ({ ...r, gestores: g }));
-    setForm({ nome: "", nome_social: "", situacao: "ativo", matricula: "", cod_categ: "101", data_admissao: hojeISO(), tp_contr: "1", experiencia: false, data_termino: "", qtd_hrs_sem: "44", tp_jornada: "4",
+    setForm({ nome: "", nome_social: "", situacao: "ativo", matricula: "", cod_categ: "101", data_admissao: hojeISO(), tp_contr: "1", experiencia: false, data_termino: "", qtd_hrs_sem: "44", tp_jornada: "4", tp_reg_jor: "1", nat_atividade: "1", tmp_parc: "0", hor_noturno: "N",
       pais_nascimento_txt: "105 — Brasil", pais_nacionalidade_txt: "105 — Brasil", und_sal_fixo: "5", valor: "", reajuste_valor: "", reajuste_data: hojeISO(), reajuste_motivo: "reajuste_coletivo" });
   }
   async function abrirEdicao(c: Linha) {
@@ -217,9 +218,11 @@ export default function RhColaboradoresPage() {
       matricula: s(k.matricula), cod_categ: s(k.cod_categ || "101"), data_admissao: s(k.data_admissao), tp_contr: s(k.tp_contr || 1), experiencia: !!k.experiencia, data_termino: s(k.data_termino),
       cargo_id: s(k.cargo_id), departamento_id: s(k.departamento_id), estabelecimento_id: s(k.estabelecimento_id), lotacao_id: s(k.lotacao_id), centro_custo_id: s(k.centro_custo_id), gestor_id: s(k.gestor_id),
       qtd_hrs_sem: s(k.qtd_hrs_sem), tp_jornada: s(k.tp_jornada), data_desligamento: s(k.data_desligamento), contrato_situacao: k.situacao_esocial ?? "rascunho",
+      tp_reg_jor: s(k.tp_reg_jor ?? 1), nat_atividade: s(k.nat_atividade ?? 1), tmp_parc: s(k.tmp_parc ?? 0), hor_noturno: k.hor_noturno == null ? "" : k.hor_noturno ? "S" : "N", dsc_jorn: s(k.dsc_jorn),
+      clau_assec: k.clau_assec == null ? "" : k.clau_assec ? "S" : "N", obj_det: s(k.obj_det), data_base: s(k.data_base), cnpj_sindicato: mascaraCNPJ(s(k.cnpj_sindicato)), dsc_sal_var: s(k.dsc_sal_var),
       tem_pessoal: !!pes.colaborador_id, cpf: mascaraCPF(s(pes.cpf)), data_nascimento: s(pes.data_nascimento), sexo: s(pes.sexo), raca_cor: s(pes.raca_cor), estado_civil: s(pes.estado_civil), grau_instr: s(pes.grau_instr),
       pais_nascimento_txt: rotuloPais(s(pes.pais_nascimento || "105")), pais_nacionalidade_txt: rotuloPais(s(pes.pais_nacionalidade || "105")), cep: mascaraCEP(s(pes.cep)), logradouro: s(pes.logradouro), numero: s(pes.numero), complemento: s(pes.complemento),
-      bairro: s(pes.bairro), cidade: s(pes.cidade), uf: s(pes.uf), telefone: s(pes.telefone), email: s(pes.email), emergencia_nome: s(pes.emergencia_nome), emergencia_telefone: s(pes.emergencia_telefone),
+      bairro: s(pes.bairro), cidade: s(pes.cidade), uf: s(pes.uf), cod_munic: s(pes.cod_munic), telefone: s(pes.telefone), email: s(pes.email), emergencia_nome: s(pes.emergencia_nome), emergencia_telefone: s(pes.emergencia_telefone),
       und_sal_fixo: "5", valor: "", reajuste_valor: "", reajuste_data: hojeISO(), reajuste_motivo: "reajuste_coletivo" });
   }
 
@@ -232,7 +235,7 @@ export default function RhColaboradoresPage() {
     setCepMsg(L("Buscando o endereço…", "Looking up the address…", "Buscando la dirección…"));
     const r = await consultarCEP(v);
     if ("erro" in r) { setCepMsg(r.codigo === "nao_encontrado" ? L("CEP não encontrado. Preencha o endereço à mão.", "Postal code not found. Fill in the address manually.", "CEP no encontrado. Complete la dirección a mano.") : L("Busca de CEP indisponível agora. Preencha o endereço à mão.", "Postal code lookup unavailable now. Fill in the address manually.", "Búsqueda de CEP no disponible. Complete la dirección a mano.")); return; }
-    setForm((f) => (f ? { ...f, logradouro: r.logradouro || f.logradouro, bairro: r.bairro || f.bairro, cidade: r.cidade || f.cidade, uf: r.uf || f.uf } : f));
+    setForm((f) => (f ? { ...f, logradouro: r.logradouro || f.logradouro, bairro: r.bairro || f.bairro, cidade: r.cidade || f.cidade, uf: r.uf || f.uf, cod_munic: r.ibge || f.cod_munic } : f));
     setCepMsg(L("Endereço preenchido pelo CEP. Confira e informe o número.", "Address filled from the postal code. Check it and add the number.", "Dirección completada por el CEP. Revise e informe el número."));
   }
   async function salvar(): Promise<boolean> {
@@ -245,6 +248,8 @@ export default function RhColaboradoresPage() {
     const salTxt = !form.id ? form.valor : form.reajuste_valor;
     if (pode.salario && nulo(salTxt) && Number(form.und_sal_fixo) !== 7 && !(lerValorBR(String(salTxt)) > 0)) { avisar(L("Salário inválido: use o formato 2.500,00.", "Invalid salary: use the format 2,500.00.", "Salario inválido: use el formato 2.500,00.")); return false; }
     if (nulo(form.qtd_hrs_sem) && !(lerValorBR(String(form.qtd_hrs_sem)) > 0)) { avisar(L("Horas por semana inválidas.", "Invalid weekly hours.", "Horas por semana inválidas.")); return false; }
+    if (String(form.tp_contr) === "3" && !nulo(form.obj_det)) { avisar(L("Informe o objeto do contrato (obra, serviço, safra).", "Enter the contract purpose (project, service, harvest).", "Informe el objeto del contrato (obra, servicio, cosecha).")); return false; }
+    if (soDig(form.cnpj_sindicato) && !validarCNPJ(soDig(form.cnpj_sindicato))) { avisar(L("CNPJ do sindicato inválido: confira os números.", "Invalid union CNPJ: check the numbers.", "CNPJ del sindicato inválido: revise los números.")); return false; }
     setSalvando(true);
     const novo = !form.id;
     const pessoa = { empresa_id: empresaId, nome: String(form.nome).trim(), nome_social: nulo(form.nome_social), situacao: form.situacao };
@@ -257,7 +262,11 @@ export default function RhColaboradoresPage() {
       tp_contr: Number(form.tp_contr), data_termino: Number(form.tp_contr) === 2 ? nulo(form.data_termino) : null, experiencia: Number(form.tp_contr) === 2 && !!form.experiencia,
       cargo_id: nulo(form.cargo_id), departamento_id: nulo(form.departamento_id), estabelecimento_id: nulo(form.estabelecimento_id), lotacao_id: nulo(form.lotacao_id),
       centro_custo_id: nulo(form.centro_custo_id), gestor_id: nulo(form.gestor_id), qtd_hrs_sem: nulo(form.qtd_hrs_sem) ? lerValorBR(String(form.qtd_hrs_sem)) : null,
-      tp_jornada: nulo(form.tp_jornada) ? Number(form.tp_jornada) : null, data_desligamento: nulo(form.data_desligamento) };
+      tp_jornada: nulo(form.tp_jornada) ? Number(form.tp_jornada) : null, data_desligamento: nulo(form.data_desligamento),
+      tp_reg_jor: Number(form.tp_reg_jor || 1), nat_atividade: Number(form.nat_atividade || 1), tmp_parc: Number(form.tmp_parc || 0),
+      hor_noturno: form.hor_noturno === "S" ? true : form.hor_noturno === "N" ? false : null, dsc_jorn: nulo(form.dsc_jorn),
+      clau_assec: Number(form.tp_contr) !== 1 && form.clau_assec ? form.clau_assec === "S" : null, obj_det: Number(form.tp_contr) === 3 ? nulo(form.obj_det) : null,
+      data_base: nulo(form.data_base) ? Number(form.data_base) : null, cnpj_sindicato: soDig(form.cnpj_sindicato) || null, dsc_sal_var: nulo(form.dsc_sal_var) };
     const r2 = form.contrato_id ? await supabase.from("rh_contratos").update(contrato).eq("id", form.contrato_id).select("id").single() : await supabase.from("rh_contratos").insert(contrato).select("id").single();
     if (r2.error || !r2.data) { await desfazer(r2.error); return false; }
     const kid = r2.data.id as string;
@@ -265,7 +274,7 @@ export default function RhColaboradoresPage() {
       const pes = { colaborador_id: cid, empresa_id: empresaId, cpf: soDig(form.cpf), data_nascimento: nulo(form.data_nascimento), sexo: nulo(form.sexo), raca_cor: nulo(form.raca_cor) ? Number(form.raca_cor) : null,
         estado_civil: nulo(form.estado_civil) ? Number(form.estado_civil) : null, grau_instr: nulo(form.grau_instr), pais_nascimento: codigoPais(form.pais_nascimento_txt) ?? "105", pais_nacionalidade: codigoPais(form.pais_nacionalidade_txt) ?? "105",
         cep: soDig(form.cep) || null, logradouro: nulo(form.logradouro), numero: nulo(form.numero), complemento: nulo(form.complemento), bairro: nulo(form.bairro), cidade: nulo(form.cidade),
-        uf: nulo(form.uf)?.toUpperCase() ?? null, telefone: nulo(form.telefone), email: nulo(form.email)?.toLowerCase() ?? null, emergencia_nome: nulo(form.emergencia_nome), emergencia_telefone: nulo(form.emergencia_telefone) };
+        uf: nulo(form.uf)?.toUpperCase() ?? null, cod_munic: /^\d{7}$/.test(String(form.cod_munic ?? "")) ? String(form.cod_munic) : null, telefone: nulo(form.telefone), email: nulo(form.email)?.toLowerCase() ?? null, emergencia_nome: nulo(form.emergencia_nome), emergencia_telefone: nulo(form.emergencia_telefone) };
       const r3 = await supabase.from("rh_colaborador_pessoal").upsert(pes, { onConflict: "colaborador_id" });
       if (r3.error) { await desfazer(r3.error); return false; }
     }
@@ -513,7 +522,7 @@ export default function RhColaboradoresPage() {
                     </div>
                     <button onClick={() => setForm(null)} style={{ color: TEXTO_SEC }} aria-label={L("Fechar", "Close", "Cerrar")}><X size={20} /></button>
                   </div>
-                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>{L("Este contrato já foi enviado ao eSocial pelo contador: alterações aqui precisam ser informadas ao contador.", "This contract was already sent to eSocial by the accountant: changes here must be reported to the accountant.", "Este contrato ya fue enviado al eSocial por el contador: los cambios aquí deben informarse al contador.")}</p>}
+                  {travado && <p className="text-xs mt-2 font-semibold" style={{ color: (temaClaro ? "#9a3412" : ct("#f59e0b")) }}>{form.contrato_situacao === "preparado" ? L("O arquivo do eSocial desta admissão já foi preparado. Se mudar um dado do contrato, ele volta a rascunho e é preciso preparar de novo.", "The eSocial file for this hire was already prepared. If you change a contract field, it goes back to draft and must be prepared again.", "El archivo del eSocial de esta admisión ya fue preparado. Si cambia un dato del contrato, vuelve a borrador y hay que prepararlo de nuevo.") : L("Esta admissão já foi enviada ao eSocial: os dados do contrato não mudam aqui (alteração de contrato é outro envio, S-2206, numa próxima etapa).", "This hire was already sent to eSocial: contract data cannot change here (contract changes are another submission, S-2206, in a later step).", "Esta admisión ya fue enviada al eSocial: los datos del contrato no cambian aquí (la alteración es otro envío, S-2206, en una próxima etapa).")}</p>}
 
                   <Secao titulo={L("Identificação", "Identification", "Identificación")}>
                     <F k="nome" r={L("Nome completo *", "Full name *", "Nombre completo *")} />
@@ -538,6 +547,16 @@ export default function RhColaboradoresPage() {
                     <F k="gestor_id" r={L("Gestor responsável", "Manager", "Gestor responsable")} opcoes={[vazio, ...ref.gestores.map((x) => ({ v: x.id, l: x.nome }))]} />
                     <F k="qtd_hrs_sem" r={L("Horas por semana", "Hours per week", "Horas por semana")} ajuda={L("Obrigatório, exceto intermitente.", "Required, except intermittent.", "Obligatorio, excepto intermitente.")} />
                     <F k="tp_jornada" r={L("Tipo de jornada", "Work schedule", "Tipo de jornada")} opcoes={[vazio, { v: "2", l: "12 x 36" }, { v: "3", l: L("Horário fixo, folga variável", "Fixed hours, variable day off", "Horario fijo, descanso variable") }, { v: "4", l: L("Horário fixo, folga no domingo", "Fixed hours, Sunday off", "Horario fijo, descanso el domingo") }, { v: "5", l: L("Horário fixo, folga fixa (não domingo)", "Fixed hours, fixed day off (not Sunday)", "Horario fijo, descanso fijo (no domingo)") }, { v: "6", l: L("Horário fixo, folga fixa + domingo periódico", "Fixed hours, fixed day off + periodic Sunday", "Horario fijo, descanso fijo + domingo periódico") }, { v: "7", l: L("Turno de revezamento", "Rotating shifts", "Turnos rotativos") }, { v: "9", l: L("Outros tipos", "Other types", "Otros tipos") }]} />
+                    <F k="tp_reg_jor" r={L("Controle de horário", "Working-time control", "Control de horario")} opcoes={[{ v: "1", l: L("Tem horário controlado", "Hours are controlled", "Tiene horario controlado") }, { v: "2", l: L("Trabalho externo (CLT art. 62, I)", "External work (CLT art. 62, I)", "Trabajo externo (CLT art. 62, I)") }, { v: "3", l: L("Gerente/cargo de gestão (CLT art. 62, II)", "Manager (CLT art. 62, II)", "Gerente (CLT art. 62, II)") }, { v: "4", l: L("Teletrabalho (CLT art. 62, III)", "Telework (CLT art. 62, III)", "Teletrabajo (CLT art. 62, III)") }]} />
+                    <F k="hor_noturno" r={L("Trabalha à noite (22h–5h)?", "Night work (10pm–5am)?", "¿Trabaja de noche (22h–5h)?")} opcoes={[vazio, { v: "N", l: L("Não", "No", "No") }, { v: "S", l: L("Sim, no todo ou em parte", "Yes, fully or partly", "Sí, total o parcialmente") }]} />
+                    <div className="md:col-span-2"><F k="dsc_jorn" r={L("Horário (dias, entrada, saída e intervalo)", "Schedule (days, start, end and break)", "Horario (días, entrada, salida e intervalo)")} ajuda={L("Ex.: Seg a sex 08:00–12:00 e 13:00–17:48. O eSocial exige.", "E.g. Mon–Fri 08:00–12:00 and 13:00–17:48. eSocial requires it.", "Ej.: Lun a vie 08:00–12:00 y 13:00–17:48. eSocial lo exige.")} /></div>
+                    <F k="tmp_parc" r={L("Tempo parcial", "Part-time", "Tiempo parcial")} opcoes={[{ v: "0", l: L("Não é tempo parcial", "Not part-time", "No es tiempo parcial") }, { v: "2", l: L("Até 30 horas por semana", "Up to 30 hours/week", "Hasta 30 horas/semana") }, { v: "3", l: L("Até 26 horas por semana", "Up to 26 hours/week", "Hasta 26 horas/semana") }, { v: "1", l: L("Até 25 horas (só doméstico)", "Up to 25 hours (domestic only)", "Hasta 25 horas (solo doméstico)") }]} />
+                    <F k="nat_atividade" r={L("Natureza da atividade", "Nature of the work", "Naturaleza de la actividad")} opcoes={[{ v: "1", l: L("Urbana", "Urban", "Urbana") }, { v: "2", l: L("Rural", "Rural", "Rural") }]} />
+                    {String(form.tp_contr) !== "1" && <F k="clau_assec" r={L("Cláusula de rescisão antecipada", "Early termination clause", "Cláusula de rescisión anticipada")} ajuda={L("CLT art. 481: o contrato permite que qualquer lado encerre antes do prazo?", "CLT art. 481: may either side end the contract early?", "CLT art. 481: ¿cualquier parte puede terminar antes del plazo?")} opcoes={[vazio, { v: "N", l: L("Não", "No", "No") }, { v: "S", l: L("Sim", "Yes", "Sí") }]} />}
+                    {String(form.tp_contr) === "3" && <F k="obj_det" r={L("Objeto do contrato (obra, serviço, safra) *", "Contract purpose (project, service, harvest) *", "Objeto del contrato (obra, servicio, cosecha) *")} />}
+                    <F k="cnpj_sindicato" r={L("CNPJ do sindicato (só se for diferente do da filial)", "Union CNPJ (only if different from the branch)", "CNPJ del sindicato (solo si difiere de la sucursal)")} mascara={mascaraCNPJ} modo="numeric" ajuda={L("Categoria diferenciada (ex.: motorista). Vazio = usa o sindicato cadastrado na filial.", "Differentiated category (e.g. driver). Empty = uses the union on the branch.", "Categoría diferenciada (ej.: conductor). Vacío = usa el sindicato de la sucursal.")} />
+                    <F k="data_base" r={L("Mês da data-base da categoria", "Collective bargaining month", "Mes de la fecha base de la categoría")} opcoes={[vazio, ...Array.from({ length: 12 }, (_, i) => ({ v: String(i + 1), l: new Date(2026, i, 1).toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "long" }) }))]} />
+                    <div className="md:col-span-2"><F k="dsc_sal_var" r={L("Salário variável: como é calculado (só tarefa/comissão)", "Variable pay: how it is calculated (task/commission only)", "Salario variable: cómo se calcula (solo tarea/comisión)")} ajuda={L("Ex.: comissão de 3% sobre as vendas do mês.", "E.g. 3% commission on monthly sales.", "Ej.: comisión del 3% sobre las ventas del mes.")} /></div>
                     {form.situacao === "desligado" && <F k="data_desligamento" tipo="date" r={L("Data do desligamento", "Termination date", "Fecha de desvinculación")} />}
                   </Secao>
 
@@ -561,6 +580,7 @@ export default function RhColaboradoresPage() {
                       <F k="bairro" r={L("Bairro", "District", "Barrio")} />
                       <F k="cidade" r={L("Cidade", "City", "Ciudad")} />
                       <F k="uf" r="UF" opcoes={[vazio, ...UFS.map((u) => ({ v: u, l: u }))]} />
+                      <F k="cod_munic" r={L("Código do município (IBGE)", "City code (IBGE)", "Código del municipio (IBGE)")} modo="numeric" ajuda={L("Vem sozinho ao digitar o CEP. O eSocial exige.", "Fills in when you type the CEP. eSocial requires it.", "Se completa al escribir el CEP. eSocial lo exige.")} />
                       <F k="emergencia_nome" r={L("Contato de emergência", "Emergency contact", "Contacto de emergencia")} />
                       <F k="emergencia_telefone" r={L("Telefone de emergência", "Emergency phone", "Teléfono de emergencia")} mascara={mascaraTelefone} modo="tel" />
                       <datalist id="lista-paises">{paises.map((p) => <option key={p.codigo} value={`${p.codigo} — ${p.nome}`} />)}</datalist>
@@ -596,6 +616,7 @@ export default function RhColaboradoresPage() {
                     <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Documentos e exames da admissão: salve o cadastro primeiro e abra de novo pelo lápis.", "Hiring documents and exams: save the record first and reopen it with the pencil.", "Documentos y exámenes de admisión: guarde el registro primero y ábralo de nuevo con el lápiz.")}</p>
                   ))}
 
+                  {form.id && form.contrato_id && <CartaoEsocial contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={(sit) => { setForm((f) => (f ? { ...f, contrato_situacao: sit } : f)); void carregarLista(); }} />}
                   {pode.editar && (
                     <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
                   )}
@@ -628,6 +649,11 @@ const CAMPO_NOME: Record<string, [string, string, string]> = {
   lotacao_id: ["Lotação", "Tax unit", "Lotación"], centro_custo_id: ["Centro de custo", "Cost center", "Centro de costo"], gestor_id: ["Gestor", "Manager", "Gestor"],
   qtd_hrs_sem: ["Horas por semana", "Weekly hours", "Horas semanales"], tp_jornada: ["Jornada", "Schedule", "Jornada"], data_desligamento: ["Desligamento", "Termination", "Desvinculación"],
   situacao_esocial: ["Situação no eSocial", "eSocial status", "Situación en eSocial"], recibo_esocial: ["Recibo do eSocial", "eSocial receipt", "Recibo de eSocial"],
+  tp_reg_jor: ["Controle de horário", "Working-time control", "Control de horario"], nat_atividade: ["Natureza da atividade", "Nature of work", "Naturaleza de la actividad"],
+  tmp_parc: ["Tempo parcial", "Part-time", "Tiempo parcial"], hor_noturno: ["Trabalho noturno", "Night work", "Trabajo nocturno"], dsc_jorn: ["Horário", "Schedule", "Horario"],
+  clau_assec: ["Cláusula de rescisão antecipada", "Early termination clause", "Cláusula de rescisión anticipada"], obj_det: ["Objeto do contrato", "Contract purpose", "Objeto del contrato"],
+  data_base: ["Mês da data-base", "Bargaining month", "Mes de fecha base"], cnpj_sindicato: ["CNPJ do sindicato", "Union CNPJ", "CNPJ del sindicato"], dsc_sal_var: ["Salário variável", "Variable pay", "Salario variable"],
+  cod_munic: ["Código do município", "City code", "Código del municipio"],
   tp_reg_trab: ["Regime trabalhista", "Labor regime", "Régimen laboral"], tp_reg_prev: ["Regime previdenciário", "Pension regime", "Régimen previsional"],
   cpf: ["CPF", "CPF", "CPF"], data_nascimento: ["Nascimento", "Birth date", "Nacimiento"], sexo: ["Sexo", "Sex", "Sexo"], raca_cor: ["Raça/cor", "Race/color", "Raza/color"],
   estado_civil: ["Estado civil", "Marital status", "Estado civil"], grau_instr: ["Escolaridade", "Education", "Escolaridad"], pais_nascimento: ["País de nascimento", "Country of birth", "País de nacimiento"],
@@ -803,6 +829,148 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
       <div className="md:col-span-2 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--axi-text-primary)" }}>
         <p className="font-bold mb-1" style={{ color: "#dc2626" }}>{L("Proibido pedir na admissão", "Forbidden to require at hiring", "Prohibido exigir en la admisión")}</p>
         <ul className="list-disc pl-4 space-y-0.5">{PROIBIDOS.map((p) => <li key={p.pt}>{p[lang]}</li>)}</ul>
+      </div>
+    </Secao>
+  );
+}
+
+// Admissão no eSocial (S-2200): o Axioma PREPARA o arquivo; o contador assina com o certificado dele e envia (decisão do Elias, 08/11/2026).
+// Pendências e arquivo vêm de lib/rhEsocial.ts (testado contra o XSD oficial). O arquivo gerado fica guardado em rh_esocial_eventos
+// (ninguém altera nem apaga) e a situação fica no contrato; o banco volta "preparado" a rascunho se um dado da admissão mudar.
+const SIT_ESOCIAL: Record<string, [string, string, string]> = {
+  rascunho: ["Rascunho — ainda não preparado", "Draft — not prepared yet", "Borrador — aún no preparado"],
+  preparado: ["Arquivo preparado — falta o contador enviar", "File prepared — waiting for the accountant to send it", "Archivo preparado — falta que el contador lo envíe"],
+  enviado: ["Enviado ao governo", "Sent to the government", "Enviado al gobierno"],
+  enviado_pelo_contador: ["Enviado pelo contador", "Sent by the accountant", "Enviado por el contador"],
+  aceito: ["Aceito pelo eSocial (com recibo)", "Accepted by eSocial (with receipt)", "Aceptado por eSocial (con recibo)"],
+  recusado: ["Recusado pelo eSocial — corrigir e preparar de novo", "Rejected by eSocial — fix and prepare again", "Rechazado por eSocial — corregir y preparar de nuevo"],
+};
+const ONDE_NOME: Record<Pendencia["onde"], [string, string, string]> = {
+  pessoal: ["Dados pessoais, acima", "Personal data, above", "Datos personales, arriba"], contrato: ["Contrato, acima", "Contract, above", "Contrato, arriba"],
+  salario: ["Salário, acima", "Salary, above", "Salario, arriba"], cargo: ["RH · Estrutura → Cargos", "HR · Structure → Job titles", "RR. HH. · Estructura → Cargos"],
+  estrutura: ["RH · Estrutura → Filiais", "HR · Structure → Branches", "RR. HH. · Estructura → Sucursales"], empregador: ["RH · Estrutura → Empregador", "HR · Structure → Employer", "RR. HH. · Estructura → Empleador"],
+};
+function baixarXml(nome: string, xml: string) {
+  const url = URL.createObjectURL(new Blob([xml], { type: "application/xml;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
+  contratoId: string; empresaId: string; lang: Lang; pode: { editar: boolean; pessoais: boolean; salario: boolean };
+  avisar: (m: string, t?: "erro" | "ok") => void; aoMudar: (situacao: string) => void;
+}) {
+  const c = useContext(FormCtx)!;
+  const claro = c.titulo !== "var(--axi-text-primary)";
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const i = lang === "en" ? 1 : lang === "es" ? 2 : 0;
+  const [dados, setDados] = useState<DadosS2200 | null>(null);
+  const [situacao, setSituacao] = useState("rascunho");
+  const [recibo, setRecibo] = useState("");
+  const [eventos, setEventos] = useState<Linha[]>([]);
+  const [erro, setErro] = useState(false);
+  const podePreparar = pode.pessoais && pode.salario;
+
+  async function carregar() {
+    const { data: k, error: eK } = await supabase.from("rh_contratos").select("*").eq("id", contratoId).single();
+    setErro(false);
+    if (eK || !k) { setErro(true); Sentry.captureException(new Error(`rh/esocial contrato: ${eK?.message}`)); return; }
+    setSituacao(k.situacao_esocial); setRecibo(k.recibo_esocial ?? "");
+    const hoje = hojeISO();
+    const nada = Promise.resolve({ data: null, error: null });
+    const [col, pes, rem, cg, est, emp, ev] = await Promise.all([
+      supabase.from("rh_colaboradores").select("nome, nome_social").eq("id", k.colaborador_id).single(),
+      pode.pessoais ? supabase.from("rh_colaborador_pessoal").select("*").eq("colaborador_id", k.colaborador_id).maybeSingle() : nada,
+      pode.salario ? supabase.from("rh_remuneracoes").select("und_sal_fixo, valor, vigencia_inicio").eq("contrato_id", contratoId).lte("vigencia_inicio", k.data_admissao > hoje ? k.data_admissao : hoje).order("vigencia_inicio", { ascending: false }).limit(1) : nada,
+      k.cargo_id ? supabase.from("rh_cargos").select("nome, cbo").eq("id", k.cargo_id).maybeSingle() : nada,
+      k.estabelecimento_id ? supabase.from("rh_estabelecimentos").select("tp_insc, nr_insc, cnpj_sindicato").eq("id", k.estabelecimento_id).maybeSingle() : nada,
+      supabase.from("rh_empregador").select("tp_insc, nr_insc, ini_valid").eq("empresa_id", empresaId).is("excluido_em", null).lte("ini_valid", String(k.data_admissao).slice(0, 7)).order("ini_valid", { ascending: false }).limit(1),
+      supabase.from("rh_esocial_eventos").select("id, id_evento, versao_leiaute, xml, criado_em").eq("contrato_id", contratoId).order("criado_em", { ascending: false }).limit(20),
+    ]);
+    const falha = [col, pes, rem, cg, est, emp, ev].find((x) => x.error);
+    if (falha?.error) { setErro(true); Sentry.captureException(new Error(`rh/esocial leitura: ${falha.error.message}`)); return; }
+    setEventos((ev.data as Linha[] | null) ?? []);
+    const r0 = (rem.data as Linha[] | null)?.[0];
+    const cd = col.data as Linha;
+    setDados({
+      empregador: ((emp.data as Linha[] | null)?.[0] as DadosS2200["empregador"]) ?? null, colab: { nome: cd.nome, nome_social: cd.nome_social },
+      pessoal: (pes.data as Linha | null) ?? null, contrato: { ...(k as Linha), qtd_hrs_sem: k.qtd_hrs_sem == null ? null : Number(k.qtd_hrs_sem) } as DadosS2200["contrato"],
+      cargo: (cg.data as DadosS2200["cargo"]) ?? null, remuneracao: r0 ? { und_sal_fixo: Number(r0.und_sal_fixo), valor: Number(r0.valor) } : null,
+      estabelecimento: (est.data as DadosS2200["estabelecimento"]) ?? null,
+    });
+  }
+  useEffect(() => { void carregar(); }, [contratoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pend = dados ? pendenciasS2200(dados) : [];
+  const nomeArquivo = (id: string) => `S-2200-${String(dados?.contrato.matricula ?? "").replace(/[^A-Za-z0-9-]/g, "")}-${id}.xml`;
+
+  async function preparar(): Promise<boolean> {
+    if (!dados || pend.length) return false;
+    try {
+      const { id, xml } = gerarS2200(dados, { agora: new Date(), seq: eventos.length + 1, tpAmb: 1 });
+      const r1 = await supabase.from("rh_esocial_eventos").insert({ empresa_id: empresaId, contrato_id: contratoId, evento: "S-2200", id_evento: id, versao_leiaute: VERSAO_LEIAUTE, xml }).select("id").single();
+      if (r1.error) { avisar(mensagemErroRh(r1.error, lang)); return false; }
+      const r2 = await supabase.from("rh_contratos").update({ situacao_esocial: "preparado" }).eq("id", contratoId).in("situacao_esocial", ["rascunho", "recusado", "preparado"]).select("id");
+      if (r2.error || !r2.data?.length) { avisar(L("O arquivo foi gerado, mas a situação não mudou. Recarregue a página e confira.", "The file was generated, but the status did not change. Reload the page and check.", "El archivo se generó, pero la situación no cambió. Recargue la página y revise.")); return false; }
+      baixarXml(nomeArquivo(id), xml);
+      avisar(L("Arquivo preparado e baixado. Entregue ao contador para assinar e enviar.", "File prepared and downloaded. Give it to the accountant to sign and send.", "Archivo preparado y descargado. Entréguelo al contador para firmar y enviar."), "ok");
+      await carregar(); aoMudar("preparado");
+      return true;
+    } catch (e) { Sentry.captureException(e); avisar(L("Não foi possível preparar o arquivo.", "Could not prepare the file.", "No se pudo preparar el archivo.")); return false; }
+  }
+  async function marcar(nova: "enviado_pelo_contador" | "aceito" | "recusado"): Promise<boolean> {
+    const rec = recibo.trim();
+    if (nova === "aceito" && !/^[0-9.]{10,40}$/.test(rec)) { avisar(L("Informe o número do recibo que o contador recebeu do eSocial (só números e pontos).", "Enter the receipt number the accountant got from eSocial (digits and dots only).", "Informe el número de recibo que el contador recibió de eSocial (solo números y puntos).")); return false; }
+    const r = await supabase.from("rh_contratos").update({ situacao_esocial: nova, ...(nova === "aceito" ? { recibo_esocial: rec } : {}) }).eq("id", contratoId).select("id");
+    if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return false; }
+    avisar(L("Situação atualizada.", "Status updated.", "Situación actualizada."), "ok");
+    await carregar(); aoMudar(nova);
+    return true;
+  }
+
+  const btn = (fundo: string): CSSProperties => ({ background: fundo, color: "#fff" });
+  const MENTA = "linear-gradient(135deg, #0b5f46, #0f7a5a)", AZUL = "linear-gradient(135deg, #0a1628, #101b3d)";
+  const LARANJA = claro ? "#9a3412" : "#fbbf24";
+  const corSit = situacao === "aceito" ? (claro ? "#0f7a5a" : "#2ecc9b") : situacao === "recusado" ? "#ef4444" : situacao === "rascunho" ? LARANJA : (claro ? "#101b3d" : "#7dd3fc");
+  const abertos = ["rascunho", "recusado", "preparado"].includes(situacao);
+  return (
+    <Secao titulo={L("eSocial — admissão (S-2200)", "eSocial — hire (S-2200)", "eSocial — admisión (S-2200)")}>
+      <div className="md:col-span-2 text-sm space-y-3" style={{ color: "var(--axi-text-primary)" }}>
+        {erro ? <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dados do eSocial agora. Feche e abra de novo.", "Could not read eSocial data now. Close and open again.", "No se pudieron leer los datos del eSocial ahora. Cierre y abra de nuevo.")}</p> : !dados ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : (<>
+          <p><b>{L("Situação", "Status", "Situación")}:</b> <span className="font-bold" style={{ color: corSit }}>{(SIT_ESOCIAL[situacao] ?? [situacao, situacao, situacao])[i]}</span>{recibo && <> · {L("recibo", "receipt", "recibo")} {recibo}</>}</p>
+          <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("O Axioma prepara o arquivo no formato oficial (leiaute S-1.3, conferido contra o esquema do governo). O contador assina com o certificado digital dele e envia. A lista abaixo usa o que está SALVO: salve antes de preparar.", "Axioma prepares the file in the official format (layout S-1.3, checked against the government schema). The accountant signs it with their digital certificate and sends it. The list below uses what is SAVED: save before preparing.", "Axioma prepara el archivo en el formato oficial (leiaute S-1.3, verificado contra el esquema del gobierno). El contador lo firma con su certificado digital y lo envía. La lista de abajo usa lo GUARDADO: guarde antes de preparar.")}</p>
+          {!podePreparar ? (
+            <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Para preparar o arquivo é preciso liberação de dados pessoais e de salário (peça em RH · Estrutura e acessos → Acessos do RH).", "Preparing the file requires personal-data and salary access (ask in HR · Structure and access → HR access).", "Para preparar el archivo se necesita habilitación de datos personales y salario (pídala en RR. HH. · Estructura y accesos → Accesos de RR. HH.).")}</p>
+          ) : pend.length > 0 && abertos ? (
+            <div className="rounded-xl p-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+              <p className="font-bold mb-1" style={{ color: LARANJA }}>{L(`Falta(m) ${pend.length} item(ns) para preparar:`, `${pend.length} item(s) missing to prepare:`, `Falta(n) ${pend.length} ítem(s) para preparar:`)}</p>
+              <ul className="text-xs space-y-1">
+                {pend.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>} <span style={{ color: c.TEXTO_SEC }}>({["cargo", "estrutura", "empregador"].includes(x.onde) ? <Link href="/rh/estrutura" className="underline">{ONDE_NOME[x.onde][i]} ›</Link> : ONDE_NOME[x.onde][i]})</span></li>)}
+              </ul>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {pode.editar && podePreparar && pend.length === 0 && abertos && (
+              <BotaoAcao executar={preparar} texto={situacao === "preparado" ? L("Preparar de novo e baixar", "Prepare again and download", "Preparar de nuevo y descargar") : L("Preparar arquivo do eSocial", "Prepare eSocial file", "Preparar archivo del eSocial")} textoTrabalhando={L("Preparando…", "Preparing…", "Preparando…")} className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(MENTA)} />
+            )}
+            {eventos[0] && <button type="button" onClick={() => baixarXml(nomeArquivo(eventos[0].id_evento), eventos[0].xml)} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={btn(AZUL)}>{L("Baixar o último arquivo", "Download the latest file", "Descargar el último archivo")}</button>}
+          </div>
+          {pode.editar && ["preparado", "enviado_pelo_contador", "enviado"].includes(situacao) && (
+            <div className="rounded-xl p-3 space-y-2" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+              <p className="text-xs font-bold">{L("Depois que o contador enviar:", "After the accountant sends it:", "Después de que el contador lo envíe:")}</p>
+              <input value={recibo} onChange={(e) => setRecibo(e.target.value)} aria-label={L("Número do recibo do eSocial", "eSocial receipt number", "Número de recibo del eSocial")} placeholder={L("Número do recibo do eSocial (ex.: 1.2.0000000000123456789)", "eSocial receipt number (e.g. 1.2.0000000000123456789)", "Número de recibo del eSocial (ej.: 1.2.0000000000123456789)")} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={c.campo} inputMode="decimal" />
+              <div className="flex flex-wrap gap-2">
+                <BotaoAcao executar={() => marcar("aceito")} texto={L("Aceito — salvar recibo", "Accepted — save receipt", "Aceptado — guardar recibo")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(MENTA)} />
+                {situacao === "preparado" && <BotaoAcao executar={() => marcar("enviado_pelo_contador")} texto={L("Enviado, recibo ainda não chegou", "Sent, receipt not received yet", "Enviado, recibo aún no llegó")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(AZUL)} />}
+                <BotaoAcao executar={() => marcar("recusado")} texto={L("O eSocial recusou", "eSocial rejected it", "eSocial lo rechazó")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={btn(AZUL)} />
+              </div>
+            </div>
+          )}
+          {eventos.length > 0 && (
+            <ul className="text-xs space-y-0.5" style={{ color: c.TEXTO_SEC }}>
+              {eventos.map((e) => <li key={e.id} className="break-all">{new Date(e.criado_em).toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")} — {e.id_evento} <button type="button" className="underline" onClick={() => baixarXml(nomeArquivo(e.id_evento), e.xml)}>{L("baixar", "download", "descargar")}</button></li>)}
+            </ul>
+          )}
+        </>)}
       </div>
     </Secao>
   );

@@ -74,5 +74,6 @@ export async function GET(req: NextRequest) {
     bairro: data.bairro,
     cidade: data.localidade,
     uf: data.uf,
+    ibge: data.ibge, // código IBGE do município (7 dígitos) — o eSocial exige no endereço (S-2200 codMunic)
   });
 }

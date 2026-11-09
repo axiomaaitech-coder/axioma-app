@@ -57,7 +57,7 @@ export function painelRh(d: DadosPainel) {
     pessoas: vivos.map((c) => ({ c, k: atual.get(c.id) })).filter(({ k }) => k && !k.experiencia && k.data_termino && !k.data_desligamento && k.data_termino >= hoje && dias(hoje, k.data_termino) <= 30).map(({ c }) => nome(c)), acao: { rota: COLAB, texto: T('Renovar ou encerrar', 'Renew or end', 'Renovar o terminar') } })
   // 3) admissão não enviada ao eSocial e já começando (o S-2200 vai até o dia anterior ao início)
   add({ id: 'esocial_admissao', nivel: 'critico', titulo: T('Admissão não marcada como enviada ao eSocial', 'Hire not marked as sent to eSocial', 'Admisión no marcada como enviada al eSocial'), base: 'eSocial S-2200 (MOS: até o dia anterior ao início)',
-    pessoas: vivos.map((c) => ({ c, k: atual.get(c.id) })).filter(({ k }) => k && k.situacao_esocial === 'rascunho' && dias(hoje, k.data_admissao) <= 1).map(({ c }) => nome(c)), acao: { rota: COLAB, texto: T('Enviar ao contador e marcar', 'Send to the accountant and mark', 'Enviar al contador y marcar') } })
+    pessoas: vivos.map((c) => ({ c, k: atual.get(c.id) })).filter(({ k }) => k && ['rascunho', 'preparado', 'recusado'].includes(k.situacao_esocial) && dias(hoje, k.data_admissao) <= 1).map(({ c }) => nome(c)), acao: { rota: COLAB, texto: T('Preparar o arquivo e entregar ao contador', 'Prepare the file and give it to the accountant', 'Preparar el archivo y entregarlo al contador') } })
   // 4) exame admissional e documentos obrigatórios (só para quem pode ver)
   const itensDe = new Map<string, ItemAdm[]>()
   ;(d.itens ?? []).forEach((i) => { const l = itensDe.get(i.colaborador_id) ?? []; l.push(i); itensDe.set(i.colaborador_id, l) })

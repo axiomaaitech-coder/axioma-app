@@ -15,6 +15,7 @@ export type DadosCEP = {
   bairro?: string;
   cidade?: string;
   uf?: string;
+  ibge?: string;
 };
 
 // Consulta o ViaCEP por dentro da nossa própria rota (app/api/empresa/
@@ -42,6 +43,7 @@ export async function consultarCEP(cep: string): Promise<DadosCEP | { erro: stri
     bairro: data.bairro,
     cidade: data.cidade,
     uf: data.uf,
+    ibge: /^\d{7}$/.test(String(data.ibge ?? "")) ? data.ibge : undefined,
   };
 }
 
