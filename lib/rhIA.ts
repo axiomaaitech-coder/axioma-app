@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { lerTodas } from './lerTodas'
+import { contratoAtual } from './rhContrato'
 import { hojeISO, somarDiasISO } from './datas'
 import { falhou, resultado, reais, centavos, type ResultadoFinanceiro } from './financeiro/contrato'
 import { definicao } from './financeiro/semantica'
@@ -34,12 +35,8 @@ export type Contrato = { id: string; colaborador_id: string; cargo_id: string | 
 export type Remun = { contrato_id: string; vigencia_inicio: string; und_sal_fixo: number; valor: number }
 const diasEntre = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / 86400000)
 
-// Contrato que vale para a pessoa: o mais recente pela admissão.
-export function contratoAtual<K extends Contrato>(contratos: K[]): Map<string, K> {
-  const m = new Map<string, K>()
-  for (const k of [...contratos].sort((a, b) => b.data_admissao.localeCompare(a.data_admissao))) if (!m.has(k.colaborador_id)) m.set(k.colaborador_id, k)
-  return m
-}
+// Contrato que vale para a pessoa: lib/rhContrato.ts (reexportado aqui para quem já importa de rhIA)
+export { contratoAtual }
 
 export function resumirPessoas(colabs: Colab[], contratos: Contrato[], nomes: { cargos: Map<string, string>; deps: Map<string, string> }, hoje: string) {
   const atual = contratoAtual(contratos)

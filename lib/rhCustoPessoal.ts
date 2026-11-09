@@ -16,7 +16,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { centavos, reais } from './financeiro/contrato'
 import { lerTodas } from './lerTodas'
-import { contratoAtual } from './rhIA'
+import { contratoAtual } from './rhContrato'
 import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
 
 export type ContratoCusto = { id: string; colaborador_id: string; cod_categ: string; departamento_id: string | null }
