@@ -88,7 +88,6 @@ export default function RhColaboradoresPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
@@ -407,9 +406,6 @@ export default function RhColaboradoresPage() {
   //  · a pessoa NÃO chegou a trabalhar → cancela a admissão e vai para a lixeira (o contador exclui o S-2200 com o S-3000);
   //  · a pessoa trabalhou (nem que 1 dia) → é desligada (término da experiência) e os dados ficam guardados (obrigação legal).
   async function cancelarAdmissao(c: Linha, contratoId: string): Promise<boolean> {
-    const ok = await confirmar({ oQue: `"${c.nome_social || c.nome}"`, tabela: "rh_colaboradores", registroId: c.id,
-      efeito: { pt: `Use só se a pessoa NÃO chegou a trabalhar nenhum dia. A admissão é cancelada e o cadastro vai para a lixeira por ${DIAS_LIXEIRA_RH} dias. A admissão já foi ao eSocial: peça ao contador para excluí-la lá (evento S-3000). Se a pessoa trabalhou, não use: registre o desligamento.`, en: `Use only if the person did NOT work a single day. The hire is cancelled and the record goes to the trash for ${DIAS_LIXEIRA_RH} days. The hire was already sent to eSocial: ask the accountant to delete it there (event S-3000). If the person worked, do not use: record the termination.`, es: `Use solo si la persona NO llegó a trabajar ningún día. La admisión se cancela y el registro va a la papelera por ${DIAS_LIXEIRA_RH} días. La admisión ya fue al eSocial: pida al contador que la excluya allí (evento S-3000). Si la persona trabajó, no lo use: registre la desvinculación.` } });
-    if (!ok) return false;
     const r1 = await supabase.from("rh_contratos").update({ admissao_cancelada: true }).eq("id", contratoId).select("id");
     if (r1.error || !r1.data?.length) { avisar(mensagemErroRh(r1.error, lang)); return false; }
     const r2 = await supabase.from("rh_colaboradores").update({ excluido_em: new Date().toISOString() }).eq("id", c.id).select("id");
@@ -428,9 +424,6 @@ export default function RhColaboradoresPage() {
       avisar(L("Já foi enviado ao eSocial. Se a pessoa trabalhou, registre o desligamento (abri a ficha nessa parte; experiência vencida já vem com o motivo certo). Se NÃO chegou a trabalhar, use \"Não chegou a trabalhar\" ali mesmo.", "Already sent to eSocial. If the person worked, record the termination (the record is open at that part; expired probation comes with the right reason). If they did NOT work, use \"Did not start work\" right there.", "Ya enviado al eSocial. Si la persona trabajó, registre la desvinculación (abrí la ficha en esa parte; la experiencia vencida ya viene con el motivo correcto). Si NO llegó a trabajar, use \"No llegó a trabajar\" allí mismo."));
       void abrirPorId(c.id, "desligamento"); return;
     }
-    const ok = await confirmar({ oQue: `"${c.nome}"`, tabela: "rh_colaboradores", registroId: c.id,
-      efeito: { pt: `O cadastro, o contrato, os dados pessoais e o histórico de salário vão para a lixeira do RH por ${DIAS_LIXEIRA_RH} dias e podem ser recuperados. Depois disso, somem de vez. Se a pessoa saiu da empresa, não apague: registre o desligamento.`, en: `The record, contract, personal data and salary history go to the HR trash for ${DIAS_LIXEIRA_RH} days and can be recovered. After that, they are deleted for good. If the person left the company, do not delete: record the termination.`, es: `El registro, el contrato, los datos personales y el historial de salario van a la papelera de RR. HH. por ${DIAS_LIXEIRA_RH} días y pueden recuperarse. Después se eliminan definitivamente. Si la persona salió de la empresa, no borre: registre la desvinculación.` } });
-    if (!ok) return;
     const { data, error } = await supabase.from("rh_colaboradores").update({ excluido_em: new Date().toISOString() }).eq("id", c.id).select("id");
     if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
     avisar(L(`Movido para a lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Moved to trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Movido a la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok"); void carregarLista();
@@ -465,6 +458,9 @@ export default function RhColaboradoresPage() {
     return true;
   }
   async function recuperar(c: Linha) {
+    // admissão cancelada por engano: recuperar desfaz o cancelamento (sai do aviso de S-3000)
+    { const r0 = await supabase.from("rh_contratos").update({ admissao_cancelada: false }).eq("colaborador_id", c.id).eq("admissao_cancelada", true);
+      if (r0.error) { avisar(mensagemErroRh(r0.error, lang)); return; } }
     const { data, error } = await supabase.from("rh_colaboradores").update({ excluido_em: null }).eq("id", c.id).select("id");
     if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
     avisar(L("Recuperado.", "Recovered.", "Recuperado."), "ok"); void carregarLista();
@@ -832,7 +828,6 @@ export default function RhColaboradoresPage() {
         <CentroCompartilhamento aberto={shareAberto} onFechar={() => setShareAberto(false)} lang={lang} textoResumo={resumoShare} textoDetalhado={detalhadoShare}
           assunto={L("RH — Colaboradores — Axioma", "HR — Employees — Axioma", "RR. HH. — Colaboradores — Axioma")} onExportarPDF={() => exportar("pdf")} cor="#0f7a5a" />
         {importAberto && empresaId && <ImportarPlanilha empresaId={empresaId} lang={lang} temaClaro={temaClaro} podePessoais={pode.pessoais} podeSalario={pode.salario} aoFechar={() => setImportAberto(false)} aoImportar={() => void carregarLista()} />}
-        {janelaConfirmacao}
         <AvisoAxioma aviso={aviso} onFechar={() => setAviso(null)} />
       </ModuloLayout>
     </div>
@@ -853,7 +848,6 @@ function SalariosColab({ contratoId, historico, lang, podeEditar, avisar, recarr
   const c = useContext(FormCtx)!;
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const ix = lang === "en" ? 1 : lang === "es" ? 2 : 0;
-  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(c.titulo !== "var(--axi-text-primary)");
   const [ed, setEd] = useState<Linha | null>(null);
   const [lixeira, setLixeira] = useState<Linha[] | null>(null);
   async function verLixeira() {
@@ -874,8 +868,6 @@ function SalariosColab({ contratoId, historico, lang, podeEditar, avisar, recarr
     avisar(L("Salário corrigido.", "Salary corrected.", "Salario corregido."), "ok"); return true;
   }
   async function paraLixeira(h: Linha) {
-    if (!(await confirmar({ oQue: `R$ ${fBRL2(Number(h.valor))} (${dataBR(h.vigencia_inicio)})`, tabela: "rh_remuneracoes", registroId: h.id,
-      efeito: { pt: `A linha de salário sai da ficha, do Painel e da IA e fica ${DIAS_LIXEIRA_RH} dias na lixeira — dá para recuperar. Se a admissão já foi ao eSocial, fica pendente a alteração (S-2206).`, en: `The salary line leaves the record, the Panel and the AI and stays ${DIAS_LIXEIRA_RH} days in the trash — it can be recovered. If the hire was already sent to eSocial, the change (S-2206) becomes pending.`, es: `La línea de salario sale de la ficha, del Panel y de la IA y queda ${DIAS_LIXEIRA_RH} días en la papelera — se puede recuperar. Si la admisión ya fue al eSocial, queda pendiente la alteración (S-2206).` } }))) return;
     const { error } = await supabase.rpc("rh_remun_lixeira", { p_id: h.id, p_recuperar: false });
     if (error) { avisar(mensagemErroRh(error, lang)); return; }
     await recarregar(); setLixeira(null);
@@ -922,7 +914,6 @@ function SalariosColab({ contratoId, historico, lang, podeEditar, avisar, recarr
             {podeEditar && <BotaoAcao executar={() => recuperar(h)} icone={<RotateCcw size={13} />} texto={L("Recuperar", "Recover", "Recuperar")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: "#101b3d", color: "#fff" }} />}
           </li>))}</ul>
       ))}
-      {janelaConfirmacao}
     </div>
   );
 }
@@ -1013,7 +1004,6 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
 }) {
   const c = useContext(FormCtx)!;
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
-  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(c.titulo !== "var(--axi-text-primary)");
   const [itens, setItens] = useState<Record<string, Linha> | null>(null);
   useEffect(() => {
     void (async () => {
@@ -1052,8 +1042,6 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
   }
   // Arquivo anexado por engano: vai para a lixeira por DIAS_LIXEIRA_RH dias (some da ficha, dá para recuperar); depois a limpeza diária apaga.
   async function arquivoLixeira(it: Linha, nome: string, recuperar: boolean): Promise<boolean> {
-    if (!recuperar && !(await confirmar({ oQue: `"${it.arquivo_nome}" (${nome})`, tabela: "rh_admissao_itens", registroId: it.id,
-      efeito: { pt: `O arquivo sai da ficha e fica ${DIAS_LIXEIRA_RH} dias na lixeira — dá para recuperar. A situação do item não muda.`, en: `The file leaves the record and stays ${DIAS_LIXEIRA_RH} days in the trash — it can be recovered. The item status does not change.`, es: `El archivo sale de la ficha y queda ${DIAS_LIXEIRA_RH} días en la papelera — se puede recuperar. La situación del ítem no cambia.` } }))) return false;
     const { data, error } = await supabase.from("rh_admissao_itens").update({ arquivo_excluido_em: recuperar ? null : new Date().toISOString() }).eq("id", it.id).select("*").single();
     if (error || !data) { avisar(mensagemErroRh(error, lang)); return false; }
     setItens((v) => ({ ...(v ?? {}), [it.tipo]: data }));
@@ -1146,7 +1134,6 @@ function ChecklistAdmissao({ colaboradorId, empresaId, podeDocs, podeSaude, pode
         <p className="font-bold mb-1" style={{ color: "#dc2626" }}>{L("Proibido pedir na admissão", "Forbidden to require at hiring", "Prohibido exigir en la admisión")}</p>
         <ul className="list-disc pl-4 space-y-0.5">{PROIBIDOS.map((p) => <li key={p.pt}>{p[lang]}</li>)}</ul>
       </div>
-      {janelaConfirmacao}
     </Secao>
   );
 }
@@ -1378,8 +1365,6 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
 // Tirar um dependente marca excluido_em (fica no histórico); apagar segue a regra do Axioma (aviso + motivo + senha).
 function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }: { colaboradorId: string; empresaId: string; lang: Lang; podeEditar: boolean; avisar: (m: string, t?: "erro" | "ok") => void }) {
   const c = useContext(FormCtx)!;
-  const claro = c.titulo !== "var(--axi-text-primary)";
-  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(claro);
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [lista, setLista] = useState<Linha[] | null>(null);
   const [tipos, setTipos] = useState<Linha[]>([]);
@@ -1425,9 +1410,6 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
     return true;
   }
   async function tirar(d: Linha) {
-    const ok = await confirmar({ oQue: `"${d.nome}"`, tabela: "rh_dependentes", registroId: d.id,
-      efeito: { pt: "O dependente sai da lista (IR, salário-família e eSocial) e fica registrado no histórico. Se já foi informado ao eSocial, avise o contador.", en: "The dependent leaves the list (income tax, family allowance and eSocial) and stays in the history. If already reported to eSocial, tell the accountant.", es: "El dependiente sale de la lista (IR, asignación familiar y eSocial) y queda en el historial. Si ya fue informado al eSocial, avise al contador." } });
-    if (!ok) return;
     const r = await supabase.from("rh_dependentes").update({ excluido_em: new Date().toISOString() }).eq("id", d.id).select("id");
     if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return; }
     setLixeira(null); avisar(L(`Dependente na lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Dependent in the trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Dependiente en la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok"); await carregar();
@@ -1487,7 +1469,6 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
           <button type="button" onClick={() => setEd({ nome: "", data_nascimento: "", tp_dep: "03", cpf: "", dep_irrf: false, dep_sf: false, inc_trab: false })} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>{L("+ Adicionar dependente", "+ Add dependent", "+ Agregar dependiente")}</button>
         )}
       </div>
-      {janelaConfirmacao}
     </Secao>
   );
 }

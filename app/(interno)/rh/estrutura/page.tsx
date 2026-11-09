@@ -15,7 +15,6 @@ import { CanvasBox } from "../../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../../components/CentroCompartilhamento";
 import AvisoAxioma from "../../../../components/AvisoAxioma";
 import { ThemeToggle } from "../../../../components/ThemeToggle";
-import { useConfirmarExclusao, nomeItem } from "../../../../components/ConfirmarExclusao";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
 import { LetreiroAxioma } from "../../../../components/LetreiroAxioma";
 import { NavRh } from "../../../../components/NavRh";
@@ -237,7 +236,6 @@ export default function RhEstruturaPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(temaClaro);
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true };
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
@@ -380,12 +378,6 @@ export default function RhEstruturaPage() {
       avisar(L("Já foi enviado ao eSocial: não vai para a lixeira. Edite e informe \"Vale até\" — no governo, a correção é por fim de validade.", "Already sent to eSocial: it cannot go to the trash. Set \"Valid until\" instead — the government corrects by ending validity.", "Ya enviado al eSocial: no va a la papelera. Informe \"Vigente hasta\" — en el gobierno se corrige por fin de vigencia."));
       return;
     }
-    const ok = await confirmar({
-      oQue: nomeItem({ nome: cfg.titulo(l) }, { pt: "este cadastro", en: "this record", es: "este registro" }),
-      efeito: T(`Vai para a lixeira do RH e pode ser recuperado por ${DIAS_LIXEIRA_RH} dias. Depois disso, some de vez.`, `It goes to the HR trash and can be recovered for ${DIAS_LIXEIRA_RH} days. After that, it is deleted for good.`, `Va a la papelera de RR. HH. y puede recuperarse por ${DIAS_LIXEIRA_RH} días. Después, se elimina definitivamente.`),
-      tabela: cfg.tabela, registroId: l.id,
-    });
-    if (!ok) return;
     const { data, error } = await supabase.from(cfg.tabela).update({ excluido_em: new Date().toISOString() }).eq("id", l.id).select("id");
     if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return; }
     avisar(L(`Movido para a lixeira — dá para recuperar por ${DIAS_LIXEIRA_RH} dias.`, `Moved to trash — recoverable for ${DIAS_LIXEIRA_RH} days.`, `Movido a la papelera — se puede recuperar por ${DIAS_LIXEIRA_RH} días.`), "ok");
@@ -663,7 +655,6 @@ export default function RhEstruturaPage() {
 
         <CentroCompartilhamento aberto={shareAberto} onFechar={() => setShareAberto(false)} lang={lang}
           textoResumo={resumoShare} textoDetalhado={detalhadoShare} assunto={`RH — ${cfg.nome[lang]} — Axioma`} onExportarPDF={() => exportar("pdf")} cor="#0f7a5a" />
-        {janelaConfirmacao}
         <CardInfo info={info} onFechar={() => setInfo(null)} temaClaro={temaClaro} lang={lang} />
         <AvisoAxioma aviso={aviso} onFechar={() => setAviso(null)} />
       </ModuloLayout>
