@@ -19,13 +19,13 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
   const { empresaId, pode, L, cor, cartao, avisar } = ctx;
   const [obs, setObs] = useState<Ob[] | null>(null);
   useEffect(() => { void (async () => {
-    const ler = (t: string, cols: string, lixeira: boolean) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", empresaId); return (lixeira ? q.is("excluido_em", null) : q).order("id"); });
+    const ler = (t: string, cols: string, lixeira: boolean, ordem = "id") => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", empresaId); return (lixeira ? q.is("excluido_em", null) : q).order(ordem); });
     const [cs, ks, es, emp, pcd] = await Promise.all([
       ler("rh_colaboradores", "id, nome, nome_social, situacao", true),
       ler("rh_contratos", "id, colaborador_id, data_admissao, data_desligamento, cod_categ, estabelecimento_id, experiencia, data_termino, cargo_id, departamento_id, situacao_esocial", false),
       ler("rh_estabelecimentos", "id, nome", true),
       supabase.from("rh_empregador").select("ind_porte").eq("empresa_id", empresaId).is("excluido_em", null).order("ini_valid", { ascending: false }).limit(1),
-      pode.saude ? ler("rh_colaborador_pcd", "colaborador_id, info_cota", false) : Promise.resolve({ data: null, error: null }),
+      pode.saude ? ler("rh_colaborador_pcd", "colaborador_id, info_cota", false, "colaborador_id") : Promise.resolve({ data: null, error: null }),
     ]);
     const erro = [cs, ks, es, emp, pcd].find((r) => r.error)?.error;
     if (erro) { avisar(L("Não foi possível ler os dados agora. Recarregue a página.", "Could not read the data now. Reload the page.", "No se pudieron leer los datos ahora. Recargue la página.")); Sentry.captureException(new Error(`rh/obrigacoes: ${erro.message}`)); setObs([]); return; }
