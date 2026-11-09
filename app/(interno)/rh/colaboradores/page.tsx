@@ -20,6 +20,8 @@ import { BotaoAcao } from "../../../../components/BotaoAcao";
 import ImportarPlanilha from "./ImportarPlanilha";
 import { LetreiroAxioma } from "../../../../components/LetreiroAxioma";
 import { NavRh } from "../../../../components/NavRh";
+import { lerPodeRh } from "../../../../lib/rhAcesso";
+import { FalhaAcessoRh } from "../../../../components/rh/RotinaRh";
 import Link from "next/link";
 import { lerTodas } from "../../../../lib/lerTodas";
 import { exportarPlanilhaAbas } from "../../../../lib/exportarPlanilha";
@@ -102,6 +104,7 @@ export default function RhColaboradoresPage() {
 
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [pode, setPode] = useState({ ver: false, editar: false, pessoais: false, salario: false, saude: false, carregado: false });
+  const [falhaAcesso, setFalhaAcesso] = useState(false);
   const [paises, setPaises] = useState<{ codigo: string; nome: string }[]>([]);
   const [cepMsg, setCepMsg] = useState<string | null>(null);
   const [ref, setRef] = useState<{ cargos: Linha[]; deps: Linha[]; filiais: Linha[]; lotacoes: Linha[]; centros: Linha[]; categorias: Linha[]; gestores: Linha[] }>({ cargos: [], deps: [], filiais: [], lotacoes: [], centros: [], categorias: [], gestores: [] });
@@ -130,9 +133,9 @@ export default function RhColaboradoresPage() {
     const eid = await obterEmpresaAtiva();
     if (!eid) { setCarregando(false); return; }
     setEmpresaId(eid);
-    const acoes = ["ver", "editar", "pessoais", "salario", "saude"];
-    const r = await Promise.all(acoes.map((a) => supabase.rpc("rh_pode", { p_empresa: eid, p_acao: a })));
-    const p = { ver: !!r[0].data, editar: !!r[1].data, pessoais: !!r[2].data, salario: !!r[3].data, saude: !!r[4].data, carregado: true };
+    const r = await lerPodeRh(supabase, eid, ["ver", "editar", "pessoais", "salario", "saude"]);
+    if (!r) { setFalhaAcesso(true); setPode((x) => ({ ...x, carregado: true })); setCarregando(false); return; }
+    const p = { ...r, carregado: true };
     if (p.pessoais) {
       const { data: ps, error: eP } = await supabase.from("esocial_tab06_pais").select("codigo, nome").is("extincao", null).order("nome");
       if (eP) avisar(L("Não foi possível carregar a lista de países.", "Could not load the country list.", "No se pudo cargar la lista de países.")); else setPaises(ps ?? []);
@@ -153,13 +156,15 @@ export default function RhColaboradoresPage() {
   useEffect(() => { void iniciar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function carregarKpis(eid: string) {
-    const conta = (q: any) => q.then((r: any) => r.count ?? 0);
+    let falhou = false;
+    const conta = (q: any) => q.then((r: any) => { if (r.error) falhou = true; return r.count ?? 0; });
     const base = () => supabase.from("rh_colaboradores").select("id", { count: "exact", head: true }).eq("empresa_id", eid).is("excluido_em", null);
     const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const [a, p, d, e] = await Promise.all([
       conta(base().eq("situacao", "ativo")), conta(base().eq("situacao", "pre_admissao")), conta(base().eq("situacao", "desligado")),
       conta(supabase.from("rh_contratos").select("id", { count: "exact", head: true }).eq("empresa_id", eid).eq("experiencia", true).is("data_desligamento", null).gte("data_termino", hojeISO()).lte("data_termino", em30)),
     ]);
+    if (falhou) { avisar(L("Não foi possível contar os números do topo agora. Recarregue a página.", "Could not count the top numbers now. Reload the page.", "No se pudieron contar los números de arriba ahora. Recargue la página.")); return; }
     setKpi({ ativos: a, pre: p, desligados: d, experiencia: e });
   }
 
@@ -172,6 +177,7 @@ export default function RhColaboradoresPage() {
     if (f === "admitidos_mes") r = await base().gte("data_admissao", ini).lte("data_admissao", fim);
     else if (f === "desligados_mes") r = await base().gte("data_desligamento", ini).lte("data_desligamento", fim);
     else if (f === "sem_cargo") r = await base().is("cargo_id", null).is("data_desligamento", null);
+    else if (f === "experiencia_30") r = await base().eq("experiencia", true).is("data_desligamento", null).gte("data_termino", hojeISO()).lte("data_termino", new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
     else if (f.startsWith("depto:")) { const d = f.slice(6); r = d === "sem" ? await base().is("departamento_id", null).is("data_desligamento", null) : await base().eq("departamento_id", d).is("data_desligamento", null); }
     else if (f === "sem_salario") {
       const [k, rm] = await Promise.all([base().is("data_desligamento", null), supabase.from("rh_remuneracoes").select("contrato_id").eq("empresa_id", empresaId!)]);
@@ -517,7 +523,7 @@ export default function RhColaboradoresPage() {
             `${L("Pré-admissão", "Pre-hire", "Pre-admisión")} ${kpi.pre}`,
             `${L("Desligados", "Terminated", "Desvinculados")} ${kpi.desligados}`,
           ]} />}
-          {pode.carregado && !pode.ver ? (
+          {falhaAcesso ? <FalhaAcessoRh lang={lang} temaClaro={temaClaro} /> : pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
                 <p className="text-sm" style={{ color: "var(--axi-text-primary)" }}>{L("Você não tem acesso ao RH desta Empresa. Peça ao Proprietário, CEO, Sócio ou Admin para liberar em RH · Estrutura → Acessos do RH.", "You do not have access to HR for this company. Ask the Owner, CEO, Partner or Admin to grant it in HR · Structure → HR access.", "No tiene acceso a RR. HH. de esta empresa. Pida al Propietario, CEO, Socio o Admin que lo habilite en RR. HH. · Estructura → Accesos de RR. HH.")}</p>
@@ -528,18 +534,28 @@ export default function RhColaboradoresPage() {
               {/* Indicadores (cada um filtra a lista) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { l: L("Ativos", "Active", "Activos"), v: kpi.ativos, c: VERDE, f: "ativo" },
-                  { l: L("Experiência vence em 30 dias", "Probation ends in 30 days", "Experiencia vence en 30 días"), v: kpi.experiencia, c: kpi.experiencia ? (temaClaro ? "#9a3412" : ct("#f59e0b")) : VERDE, f: "ativo" },
-                  { l: L("Pré-admissão", "Pre-hire", "Pre-admisión"), v: kpi.pre, c: temaClaro ? NAVY : "#7dd3fc", f: "pre_admissao" },
-                  { l: L("Desligados", "Terminated", "Desvinculados"), v: kpi.desligados, c: TEXTO_SEC, f: "desligado" },
-                ].map((k) => (
-                  <motion.div key={k.l} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer" onClick={() => { setVerLixeira(false); setFiltroSit(k.f); setPagina(0); }}>
+                  { l: L("Ativos", "Active", "Activos"), v: kpi.ativos, c: VERDE, sit: "ativo", esp: null },
+                  { l: L("Experiência vence em 30 dias", "Probation ends in 30 days", "Experiencia vence en 30 días"), v: kpi.experiencia, c: kpi.experiencia ? (temaClaro ? "#9a3412" : ct("#f59e0b")) : VERDE, sit: "", esp: "experiencia_30" },
+                  { l: L("Pré-admissão", "Pre-hire", "Pre-admisión"), v: kpi.pre, c: temaClaro ? NAVY : "#7dd3fc", sit: "pre_admissao", esp: null },
+                  { l: L("Desligados", "Terminated", "Desvinculados"), v: kpi.desligados, c: TEXTO_SEC, sit: "desligado", esp: null },
+                ].map((k) => {
+                  const ativoCard = !verLixeira && (k.esp ? filtroEsp === k.esp : !filtroEsp && filtroSit === k.sit);
+                  return (
+                  <motion.div key={k.l} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} className="cursor-pointer rounded-2xl" role="button" tabIndex={0} aria-pressed={ativoCard}
+                    style={ativoCard ? { boxShadow: `0 0 0 2px ${k.c}` } : undefined}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } }}
+                    onClick={() => {
+                      setVerLixeira(false); setBusca(""); setFiltroSit(k.sit); setFiltroEsp(k.esp); setPagina(0);
+                      window.history.replaceState(null, "", k.esp ? `/rh/colaboradores?filtro=${k.esp}` : "/rh/colaboradores");
+                      setTimeout(() => document.getElementById("lista-colab")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+                    }}>
                     <CanvasBox cor={k.c} destaque {...cartaoTema}>
                       <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{k.l}</p>
                       <p className="text-xl md:text-2xl font-black" style={{ color: k.c, ...FONTE_EXEC }}><AnimatedNumber value={String(k.v)} /></p>
+                      <p className="text-xs mt-1 font-semibold" style={{ color: ativoCard ? k.c : TEXTO_SEC }}>{ativoCard ? L("✓ mostrando na lista", "✓ shown in the list", "✓ mostrando en la lista") : L("Toque para ver na lista ›", "Tap to see in the list ›", "Toque para ver en la lista ›")}</p>
                     </CanvasBox>
                   </motion.div>
-                ))}
+                ); })}
               </div>
 
               {/* Busca, filtros, compartilhar */}
@@ -574,12 +590,12 @@ export default function RhColaboradoresPage() {
 
               {filtroEsp && !verLixeira && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" style={{ background: temaClaro ? "rgba(16,27,61,0.06)" : "rgba(46,204,155,0.08)", border: `1px solid ${BORDA}`, color: "var(--axi-text-primary)" }}>
-                  {L("Filtro do Painel", "Panel filter", "Filtro del Panel")}: <b>{({ admitidos_mes: L("admitidos neste mês", "hired this month", "admitidos este mes"), desligados_mes: L("desligados neste mês", "terminated this month", "desvinculados este mes"), sem_cargo: L("ativos sem cargo", "active without job title", "activos sin cargo"), sem_salario: L("ativos sem salário", "active without salary", "activos sin salario") } as Record<string, string>)[filtroEsp] ?? (filtroEsp.startsWith("depto:") ? (filtroEsp === "depto:sem" ? L("sem departamento", "no department", "sin departamento") : `${L("departamento", "department", "departamento")} ${ref.deps.find((d: Linha) => d.id === filtroEsp.slice(6))?.nome ?? ""}`) : filtroEsp)}</b>
+                  {L("Filtro", "Filter", "Filtro")}: <b>{({ experiencia_30: L("experiência vence em até 30 dias", "probation ends within 30 days", "experiencia vence en hasta 30 días"), admitidos_mes: L("admitidos neste mês", "hired this month", "admitidos este mes"), desligados_mes: L("desligados neste mês", "terminated this month", "desvinculados este mes"), sem_cargo: L("ativos sem cargo", "active without job title", "activos sin cargo"), sem_salario: L("ativos sem salário", "active without salary", "activos sin salario") } as Record<string, string>)[filtroEsp] ?? (filtroEsp.startsWith("depto:") ? (filtroEsp === "depto:sem" ? L("sem departamento", "no department", "sin departamento") : `${L("departamento", "department", "departamento")} ${ref.deps.find((d: Linha) => d.id === filtroEsp.slice(6))?.nome ?? ""}`) : filtroEsp)}</b>
                   <span style={{ color: TEXTO_SEC }}>{L("— toque no nome para abrir e resolver", "— tap the name to open and fix", "— toque el nombre para abrir y resolver")}</span>
                   <button type="button" onClick={() => { setFiltroEsp(null); setFiltroSit("ativo"); setPagina(0); window.history.replaceState(null, "", "/rh/colaboradores"); }} className="ml-auto flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? NAVY : "rgba(255,255,255,0.08)", color: "#fff" }}><X size={13} /> {L("Limpar filtro", "Clear filter", "Limpiar filtro")}</button>
                 </div>
               )}
-              {/* Lista */}
+              {/* Lista */}<div id="lista-colab" style={{ scrollMarginTop: 80 }} />
               <CanvasBox cor={VERDE} {...cartaoTema}>
                 <div className="overflow-x-auto">
                   {carregando ? (

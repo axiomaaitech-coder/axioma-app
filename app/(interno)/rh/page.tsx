@@ -19,6 +19,8 @@ import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { PerguntaIA } from "../../../components/PerguntaIA";
 import { LetreiroAxioma } from "../../../components/LetreiroAxioma";
 import { NavRh } from "../../../components/NavRh";
+import { lerPodeRh } from "../../../lib/rhAcesso";
+import { FalhaAcessoRh } from "../../../components/rh/RotinaRh";
 import Link from "next/link";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -53,6 +55,7 @@ export default function RhPainelPage() {
 
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [pode, setPode] = useState({ ver: false, pessoais: false, salario: false, saude: false, carregado: false });
+  const [falhaAcesso, setFalhaAcesso] = useState(false);
   const [painel, setPainel] = useState<Painel | null>(null);
   const [deps, setDeps] = useState<Map<string, string>>(new Map());
   const [shareAberto, setShareAberto] = useState(false);
@@ -63,8 +66,9 @@ export default function RhPainelPage() {
     const eid = await obterEmpresaAtiva();
     if (!eid) return;
     setEmpresaId(eid);
-    const r = await Promise.all(["ver", "pessoais", "salario", "saude"].map((a) => supabase.rpc("rh_pode", { p_empresa: eid, p_acao: a })));
-    const p = { ver: !!r[0].data, pessoais: !!r[1].data, salario: !!r[2].data, saude: !!r[3].data, carregado: true };
+    const r = await lerPodeRh(supabase, eid, ["ver", "pessoais", "salario", "saude"]);
+    if (!r) { setFalhaAcesso(true); setPode((x) => ({ ...x, carregado: true })); return; }
+    const p = { ...r, carregado: true };
     setPode(p);
     if (!p.ver) return;
     const ler = (t: string, cols: string, lixeira: boolean) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", eid); return (lixeira ? q.is("excluido_em", null) : q).order("id"); });
@@ -155,7 +159,7 @@ export default function RhPainelPage() {
             ...(k.salarios_base_mensais != null ? [`${L("Salários-base", "Base salaries", "Salarios base")} R$ ${fBRL2(k.salarios_base_mensais)}`] : []),
             criticos + atencao > 0 ? `${L("Alertas no Radar", "Radar alerts", "Alertas en el Radar")} ${criticos + atencao}` : `${L("Radar sem alertas", "No radar alerts", "Radar sin alertas")} ✅`,
           ]} />}
-          {pode.carregado && !pode.ver ? (
+          {falhaAcesso ? <FalhaAcessoRh lang={lang} temaClaro={temaClaro} /> : pode.carregado && !pode.ver ? (
             <CanvasBox cor={VERDE} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2"><ShieldCheck size={20} style={{ color: VERDE, flexShrink: 0 }} />
                 <p className="text-sm" style={{ color: "var(--axi-text-primary)" }}>{L("Você não tem acesso ao RH desta Empresa. Peça ao Proprietário, CEO, Sócio ou Admin para liberar em RH · Estrutura → Acessos do RH.", "You do not have access to HR for this company. Ask the Owner, CEO, Partner or Admin to grant it in HR · Structure → HR access.", "No tiene acceso a RR. HH. de esta empresa. Pida al Propietario, CEO, Socio o Admin que lo habilite en RR. HH. · Estructura → Accesos de RR. HH.")}</p>

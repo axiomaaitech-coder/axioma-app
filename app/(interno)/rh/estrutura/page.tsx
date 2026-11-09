@@ -18,6 +18,8 @@ import { ThemeToggle } from "../../../../components/ThemeToggle";
 import { PerguntaIA } from "../../../../components/PerguntaIA";
 import { LetreiroAxioma } from "../../../../components/LetreiroAxioma";
 import { NavRh } from "../../../../components/NavRh";
+import { lerPodeRh } from "../../../../lib/rhAcesso";
+import { FalhaAcessoRh } from "../../../../components/rh/RotinaRh";
 import Link from "next/link";
 import { BotaoAcao } from "../../../../components/BotaoAcao";
 import { useThemeAxioma } from "../../../../lib/ThemeContext";
@@ -252,6 +254,7 @@ export default function RhEstruturaPage() {
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState<Linha | null>(null);
   const [pode, setPode] = useState({ ver: false, editar: false, gerir: false, carregado: false });
+  const [falhaAcesso, setFalhaAcesso] = useState(false);
   const [verAcessos, setVerAcessos] = useState(false);
   const [verVerbas, setVerVerbas] = useState(false);
   const [dados, setDados] = useState<Dados>({ empregador: [], filiais: [], lotacoes: [], departamentos: [], cargos: [], tab08: [], tab10: [], fpas: [], centros: [] });
@@ -272,9 +275,10 @@ export default function RhEstruturaPage() {
     const eid = await obterEmpresaAtiva();
     if (!eid) { setCarregando(false); return; }
     setEmpresaId(eid);
-    const [v, e, g] = await Promise.all(["ver", "editar", "gerir"].map((a) => supabase.rpc("rh_pode", { p_empresa: eid, p_acao: a })));
-    setPode({ ver: !!v.data, editar: !!e.data, gerir: !!g.data, carregado: true });
-    if (!v.data) { setCarregando(false); return; }
+    const r = await lerPodeRh(supabase, eid, ["ver", "editar", "gerir"]);
+    if (!r) { setFalhaAcesso(true); setPode((x) => ({ ...x, carregado: true })); setCarregando(false); return; }
+    setPode({ ...r, carregado: true });
+    if (!r.ver) { setCarregando(false); return; }
     const sel = (t: string, ordem: string) => supabase.from(t).select("*").eq("empresa_id", eid).is("excluido_em", null).order(ordem).limit(2000);
     const [emp, fil, lot, dep, car, t08, t10, t04, cc, empr] = await Promise.all([
       sel("rh_empregador", "ini_valid"), sel("rh_estabelecimentos", "nome"), sel("rh_lotacoes", "cod_lotacao"), sel("rh_departamentos", "nome"), sel("rh_cargos", "nome"),
@@ -284,7 +288,7 @@ export default function RhEstruturaPage() {
       supabase.from("centros_custo").select("id, nome").eq("empresa_id", eid).order("nome"),
       supabase.from("empresas").select("cnpj, regime_tributario, cnae_principal").eq("id", eid).maybeSingle(),
     ]);
-    const falhou = [emp, fil, lot, dep, car, t08, t10, t04].find((r) => r.error);
+    const falhou = [emp, fil, lot, dep, car, t08, t10, t04, cc, empr].find((r) => r.error);
     if (falhou?.error) {
       // Leitura falhou ≠ "não há cadastro": avisa em vez de mostrar a tela vazia calada.
       avisar(L("Não foi possível carregar a estrutura do RH agora. Recarregue a página.", "Could not load the HR structure now. Reload the page.", "No se pudo cargar la estructura de RR. HH. ahora. Recargue la página."));
@@ -445,7 +449,7 @@ export default function RhEstruturaPage() {
         <div className="space-y-4">
           <NavRh lang={lang} temaClaro={temaClaro} />
           {pode.ver && <LetreiroAxioma id="rh-estrutura" cor="#101b3d" itens={ABAS.map((a) => `${a.nome[lang]} ${dados[a.id].length}`)} />}
-          {pode.carregado && !pode.ver ? (
+          {falhaAcesso ? <FalhaAcessoRh lang={lang} temaClaro={temaClaro} /> : pode.carregado && !pode.ver ? (
             <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
               <div className="flex items-start gap-3 py-2">
                 <ShieldCheck size={20} style={{ color: ct("#2ecc9b"), flexShrink: 0 }} />

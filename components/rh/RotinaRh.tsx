@@ -15,6 +15,21 @@ import { useThemeAxioma } from "../../lib/ThemeContext";
 import { createBrowserClient } from "../../lib/supabaseBrowser";
 import { obterEmpresaAtiva } from "../../lib/empresaHelpers";
 import type { Lang } from "../../lib/rhEstrutura";
+import { lerPodeRh, TEXTO_FALHA_ACESSO } from "../../lib/rhAcesso";
+
+/** Conexão falhou ao conferir a liberação: diz isso (nunca o falso "sem acesso") e oferece tentar de novo. */
+export function FalhaAcessoRh({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
+  return (
+    <CanvasBox cor={temaClaro ? "#0f7a5a" : "#2ecc9b"} {...(temaClaro ? { fundo: "#f6f7c4", premium3d: true } : { premium3d: true })}>
+      <div className="flex flex-wrap items-center gap-3 py-2">
+        <ShieldCheck size={20} style={{ color: temaClaro ? "#0f7a5a" : "#2ecc9b", flexShrink: 0 }} />
+        <p className="text-sm flex-1" style={{ color: "var(--axi-text-primary)" }}>{TEXTO_FALHA_ACESSO[lang]}</p>
+        <button type="button" onClick={() => window.location.reload()} className="px-4 py-2 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>
+          {lang === "en" ? "Try again" : lang === "es" ? "Intentar de nuevo" : "Tentar de novo"}</button>
+      </div>
+    </CanvasBox>
+  );
+}
 
 export const supabaseRh = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 export type PodeRh = { ver: boolean; editar: boolean; pessoais: boolean; salario: boolean; saude: boolean; carregado: boolean };
@@ -40,14 +55,15 @@ export function RotinaRh({ titulo, subtitulo, letreiro, exigir = [], children }:
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [pode, setPode] = useState<PodeRh>({ ver: false, editar: false, pessoais: false, salario: false, saude: false, carregado: false });
   const [aviso, setAviso] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  const [falhaAcesso, setFalhaAcesso] = useState(false);
   const avisar = (msg: string, tipo: "erro" | "ok" = "erro") => { setAviso({ msg, tipo }); setTimeout(() => setAviso(null), 5000); };
   useEffect(() => { void (async () => {
     const eid = await obterEmpresaAtiva();
     if (!eid) { setPode((p) => ({ ...p, carregado: true })); return; }
-    const acoes = ["ver", "editar", "pessoais", "salario", "saude"];
-    const r = await Promise.all(acoes.map((a) => supabaseRh.rpc("rh_pode", { p_empresa: eid, p_acao: a })));
+    const r = await lerPodeRh(supabaseRh, eid, ["ver", "editar", "pessoais", "salario", "saude"]);
+    if (!r) { setFalhaAcesso(true); setPode((p) => ({ ...p, carregado: true })); return; }
     setEmpresaId(eid);
-    setPode({ ver: !!r[0].data, editar: !!r[1].data, pessoais: !!r[2].data, salario: !!r[3].data, saude: !!r[4].data, carregado: true });
+    setPode({ ...r, carregado: true });
   })(); }, []);
   const cor = {
     verde: temaClaro ? "#0f7a5a" : "#2ecc9b", navy: "#101b3d", texto2: temaClaro ? "#374151" : "var(--axi-text-secondary)",
@@ -66,7 +82,7 @@ export function RotinaRh({ titulo, subtitulo, letreiro, exigir = [], children }:
         <div className="space-y-4">
           <NavRh lang={lang} temaClaro={temaClaro} />
           <h2 className="text-lg font-black" style={{ color: cor.titulo }}>{L(titulo.pt, titulo.en, titulo.es)}</h2>
-          {!pode.carregado || !ctx ? (
+          {falhaAcesso ? <FalhaAcessoRh lang={lang} temaClaro={temaClaro} /> : !pode.carregado || !ctx ? (
             <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
           ) : !pode.ver || falta.length ? (
             <CanvasBox cor={cor.verde} {...cartao}>

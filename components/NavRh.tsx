@@ -18,6 +18,12 @@ const ROTINAS = [
   { rota: "/rh/esocial", Icone: Send, nome: { pt: "Central do eSocial", en: "eSocial center", es: "Central del eSocial" } },
   { rota: "/rh/obrigacoes", Icone: Scale, nome: { pt: "Obrigações da empresa", en: "Company obligations", es: "Obligaciones de la empresa" } },
 ];
+// Tocar na aba em que já está: com filtro ou ficha aberta pelo endereço, volta à tela limpa; sem nada, sobe ao topo (nunca "não acontece nada").
+const voltarAoTopo = (rota: string) => (e: React.MouseEvent) => {
+  e.preventDefault();
+  if (window.location.search || window.location.hash) window.location.assign(rota);
+  else window.scrollTo({ top: 0, behavior: "smooth" });
+};
 export function NavRh({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
   const aqui = usePathname();
   const ativoCor = temaClaro ? "#0f7a5a" : "#2ecc9b";
@@ -28,7 +34,7 @@ export function NavRh({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
         {ABAS.map(({ rota, Icone, nome }) => {
           const ativo = aqui === rota;
           return (
-            <Link key={rota} href={rota} aria-current={ativo ? "page" : undefined}
+            <Link key={rota} href={rota} aria-current={ativo ? "page" : undefined} onClick={ativo ? voltarAoTopo(rota) : undefined}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-colors"
               style={{ color: ativo ? ativoCor : temaClaro ? "#101b3d" : "var(--axi-text-secondary)", borderBottom: `3px solid ${ativo ? ativoCor : "transparent"}` }}>
               <Icone size={16} aria-hidden /> {nome[lang]}
@@ -40,7 +46,7 @@ export function NavRh({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
         {ROTINAS.map(({ rota, Icone, nome }) => {
           const ativo = aqui === rota;
           return (
-            <Link key={rota} href={rota} aria-current={ativo ? "page" : undefined}
+            <Link key={rota} href={rota} aria-current={ativo ? "page" : undefined} onClick={ativo ? voltarAoTopo(rota) : undefined}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap axi-card-faixa"
               style={ativo ? { background: temaClaro ? "#101b3d" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff" }
                 : { background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.05)", color: temaClaro ? "#101b3d" : "var(--axi-text-primary)", border: `1px solid ${linha}` }}>
