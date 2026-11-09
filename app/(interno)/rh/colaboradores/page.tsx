@@ -34,7 +34,8 @@ import { hojeISO } from "../../../../lib/datas";
 import { DIAS_LIXEIRA_RH } from "../../../../lib/nexusRetencao";
 import { lerValorBR } from "../../../../lib/valorBR";
 import { consultarCEP, mascaraCPF, mascaraCEP, mascaraCNPJ, mascaraTelefone, validarCPF, UFS } from "../../../../lib/enderecoHelpers";
-import { pendenciasS2200, gerarS2200, pendenciasS2205, gerarS2205, pendenciasS2206, gerarS2206, VERSAO_LEIAUTE, type DadosS2200, type Pendencia } from "../../../../lib/rhEsocial";
+import { pendenciasS2200, gerarS2200, pendenciasS2205, gerarS2205, pendenciasS2206, gerarS2206, pendenciasS2299, gerarS2299, VERSAO_LEIAUTE, type DadosS2200, type DadosS2299, type Pendencia } from "../../../../lib/rhEsocial";
+import { calcularRescisao, salarioMensalDe, REGRAS_MOTIVO, type Motivo, type RegrasFolha, type ResultadoRescisao } from "../../../../lib/rhRescisao";
 import { ITENS_ADMISSAO, PROIBIDOS } from "../../../../lib/rhDocumentos";
 import { mensagemErroRh, type Lang } from "../../../../lib/rhEstrutura";
 
@@ -714,6 +715,7 @@ export default function RhColaboradoresPage() {
 
                   {form.id && pode.pessoais && <DependentesColab colaboradorId={form.id} empresaId={empresaId!} lang={lang} podeEditar={pode.editar} avisar={avisar} />}
                   {form.id && form.contrato_id && <CartaoEsocial contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={(sit) => { setForm((f) => (f ? { ...f, contrato_situacao: sit } : f)); void carregarLista(); }} />}
+                  {form.id && form.contrato_id && ["ativo", "afastado", "desligado"].includes(form.situacao) && <DesligamentoColab contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={() => { setForm(null); void carregarLista(); }} />}
                   {pode.editar && (
                     <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
                   )}
@@ -1251,6 +1253,199 @@ function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }
         )}
       </div>
       {janelaConfirmacao}
+    </Secao>
+  );
+}
+
+// Desligamento: o Axioma calcula a rescisão (lib/rhRescisao.ts, regras da lei em rh_regras com fonte e vigência), guarda o cálculo
+// (rh_desligamentos) e prepara o S-2299 com as verbas (lib/rhEsocial.ts, validado contra o XSD oficial). O contador assina e envia.
+const NOME_MOTIVO = (m: string, lang: Lang): string => {
+  const pt = REGRAS_MOTIVO[m as Motivo]?.nome ?? m;
+  if (lang === "pt") return pt;
+  const en: Record<string, string> = { "01": "Dismissal for cause", "02": "Dismissal without cause", "03": "Early end of fixed term by the company (CLT art. 479)", "04": "Early end of fixed term by the employee (CLT art. 480)", "05": "Mutual fault", "06": "End of fixed-term contract", "07": "Resignation", "08": "Employee initiative — CLT arts. 394/483 § 1", "09": "Employee option on death of individual employer", "10": "Death of the employee", "17": "Indirect termination (CLT art. 483)", "26": "Stoppage by act of authority (CLT art. 486)", "27": "Force majeure (CLT art. 502)", "33": "Mutual agreement (CLT art. 484-A)", "38": "Retirement (on request)", "41": "Apprentice: poor performance", "42": "Apprentice: unjustified school absence", "47": "Closing of the company or branch", "48": "Death of individual employer, no continuation", "49": "Death of domestic employer, no continuation" };
+  const es: Record<string, string> = { "01": "Despido con justa causa", "02": "Despido sin justa causa", "03": "Rescisión anticipada del contrato a término por la empresa (CLT art. 479)", "04": "Rescisión anticipada del contrato a término por el empleado (CLT art. 480)", "05": "Culpa recíproca", "06": "Fin del contrato a término", "07": "Renuncia", "08": "Iniciativa del empleado — CLT arts. 394/483 § 1", "09": "Opción del empleado por fallecimiento del empleador individual", "10": "Fallecimiento del empleado", "17": "Rescisión indirecta (CLT art. 483)", "26": "Paralización por acto de autoridad (CLT art. 486)", "27": "Fuerza mayor (CLT art. 502)", "33": "Acuerdo entre las partes (CLT art. 484-A)", "38": "Jubilación (a pedido)", "41": "Aprendiz: desempeño insuficiente", "42": "Aprendiz: ausencia injustificada a la escuela", "47": "Cierre de la empresa o establecimiento", "48": "Fallecimiento del empleador individual sin continuidad", "49": "Fallecimiento del empleador doméstico sin continuidad" };
+  return `${(lang === "en" ? en : es)[m] ?? m}`;
+};
+function motivosPara(cat: string, tpContr: number): string[] {
+  return Object.keys(REGRAS_MOTIVO).filter((m) => {
+    if (["41", "42"].includes(m)) return cat === "103";
+    if (["03", "04", "06"].includes(m)) return tpContr !== 1;
+    if (m === "49") return cat === "104";
+    if (["47", "48", "26"].includes(m)) return cat !== "104";
+    return true;
+  });
+}
+const brl = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function DesligamentoColab({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
+  contratoId: string; empresaId: string; lang: Lang; pode: { editar: boolean; pessoais: boolean; salario: boolean; saude: boolean };
+  avisar: (m: string, t?: "erro" | "ok") => void; aoMudar: () => void;
+}) {
+  const c = useContext(FormCtx)!;
+  const claro = c.titulo !== "var(--axi-text-primary)";
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const [ctx, setCtx] = useState<Linha | null>(null);       // contrato, salário, empregador, filial, lotação, verbas, regras, desligamento salvo
+  const [aberto, setAberto] = useState(false);
+  const [f, setF] = useState<Linha>({ mtv: "", dt: hojeISO(), aviso: "indenizado", dtAviso: "", vencidas: "0", faltas: "0", media: "", adiant13: "", desc480: false, saldoFgts: "", dep: "0" });
+  const [res, setRes] = useState<ResultadoRescisao | null>(null);
+  const [erroCalc, setErroCalc] = useState<string | null>(null);
+  async function carregar() {
+    const { data: k, error: eK } = await supabase.from("rh_contratos").select("*").eq("id", contratoId).single();
+    if (eK || !k) { setCtx({ erro: true }); return; }
+    const nada = Promise.resolve({ data: null, error: null });
+    const [pes, rem, emp, est, lot, rub, deps, dl] = await Promise.all([
+      supabase.from("rh_colaborador_pessoal").select("cpf").eq("colaborador_id", k.colaborador_id).maybeSingle(),
+      supabase.from("rh_remuneracoes").select("und_sal_fixo, valor, vigencia_inicio").eq("contrato_id", contratoId).order("vigencia_inicio", { ascending: false }).limit(12),
+      supabase.from("rh_empregador").select("tp_insc, nr_insc, class_trib").eq("empresa_id", empresaId).is("excluido_em", null).order("ini_valid", { ascending: false }).limit(1),
+      k.estabelecimento_id ? supabase.from("rh_estabelecimentos").select("tp_insc, nr_insc").eq("id", k.estabelecimento_id).maybeSingle() : nada,
+      k.lotacao_id ? supabase.from("rh_lotacoes").select("cod_lotacao").eq("id", k.lotacao_id).maybeSingle() : nada,
+      supabase.from("rh_rubricas").select("cod_rubr").eq("empresa_id", empresaId).eq("ide_tab_rubr", "AXIOMA").is("excluido_em", null),
+      supabase.from("rh_dependentes").select("id").eq("colaborador_id", k.colaborador_id).eq("dep_irrf", true).is("excluido_em", null),
+      supabase.from("rh_desligamentos").select("*").eq("contrato_id", contratoId).maybeSingle(),
+    ]);
+    const falha = [pes, rem, emp, est, lot, rub, deps, dl].find((x) => x.error);
+    if (falha?.error) { setCtx({ erro: true }); Sentry.captureException(new Error(`rh/desligamento: ${falha.error.message}`)); return; }
+    const salvo = dl.data as Linha | null;
+    setCtx({ k, cpf: (pes.data as Linha | null)?.cpf, rem: rem.data ?? [], emp: (emp.data as Linha[] | null)?.[0] ?? null, est: est.data, codLot: (lot.data as Linha | null)?.cod_lotacao ?? null, rubricas: ((rub.data ?? []) as Linha[]).map((r) => r.cod_rubr), salvo });
+    if (salvo) {
+      setF({ mtv: salvo.mtv_deslig, dt: salvo.dt_deslig, aviso: salvo.aviso ?? "indenizado", dtAviso: salvo.dt_aviso ?? "", vencidas: String(salvo.ferias_vencidas), faltas: String(salvo.faltas), media: salvo.media_variaveis ? String(salvo.media_variaveis).replace(".", ",") : "", adiant13: salvo.adiantamento_13 ? String(salvo.adiantamento_13).replace(".", ",") : "", desc480: !!salvo.descontar_480, saldoFgts: salvo.saldo_fgts != null ? String(salvo.saldo_fgts).replace(".", ",") : "", dep: String(salvo.dependentes_ir) });
+      setRes(salvo.resultado as ResultadoRescisao);
+    } else setF((x) => ({ ...x, dep: String((deps.data ?? []).length) }));
+  }
+  useEffect(() => { void carregar(); }, [contratoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const preparado = ctx?.salvo && ctx.salvo.situacao !== "calculado";
+  const regra = f.mtv ? REGRAS_MOTIVO[f.mtv as Motivo] : null;
+  async function calcular(): Promise<boolean> {
+    setErroCalc(null); setRes(null);
+    if (!ctx?.k || !f.mtv || !f.dt) { setErroCalc(L("Escolha o motivo e a data do desligamento.", "Choose the reason and the termination date.", "Elija el motivo y la fecha de desvinculación.")); return false; }
+    const k = ctx.k;
+    if (k.cod_categ === "111") { setErroCalc(L("Intermitente: as verbas de férias e 13º são pagas a cada convocação; a rescisão do intermitente ainda não é calculada pelo Axioma — fale com o contador.", "Intermittent: vacation and 13th are paid at each call; Axioma does not calculate intermittent termination yet — talk to the accountant.", "Intermitente: vacaciones y 13º se pagan en cada convocatoria; Axioma aún no calcula la rescisión del intermitente — hable con el contador.")); return false; }
+    if (f.dt < k.data_admissao) { setErroCalc(L("A data do desligamento não pode ser antes da admissão.", "The termination date cannot be before the hire date.", "La fecha de desvinculación no puede ser antes de la admisión.")); return false; }
+    const { data: rg, error: eR } = await supabase.from("rh_regras").select("valor, fonte").eq("chave", "folha").lte("vigencia_inicio", f.dt).order("vigencia_inicio", { ascending: false }).limit(1);
+    if (eR) { setErroCalc(L("Não foi possível ler as regras da lei agora. Tente de novo.", "Could not read the legal rules now. Try again.", "No se pudieron leer las reglas legales ahora. Intente de nuevo.")); return false; }
+    if (!rg?.length) { setErroCalc(L("As regras da lei (INSS e IR) para essa data ainda não estão cadastradas no Axioma: a partir de 01/01/2026.", "The legal rules (INSS and income tax) for this date are not registered in Axioma yet: from 01/01/2026.", "Las reglas legales (INSS e IR) para esta fecha aún no están en Axioma: desde 01/01/2026.")); return false; }
+    const r0 = (ctx.rem as Linha[]).find((x) => x.vigencia_inicio <= f.dt);
+    const media = lerValorBR(String(f.media || "0"));
+    const mensal = r0 ? salarioMensalDe(Number(r0.und_sal_fixo), Number(r0.valor), k.qtd_hrs_sem == null ? null : Number(k.qtd_hrs_sem)) : null;
+    if (mensal == null && !(media > 0)) { setErroCalc(L("Salário por tarefa/variável ou sem salário: informe a média mensal das variáveis dos últimos 12 meses.", "Task/variable pay or no salary: enter the monthly average of variable pay for the last 12 months.", "Salario por tarea/variable o sin salario: informe el promedio mensual de las variables de los últimos 12 meses.")); return false; }
+    try {
+      const r = calcularRescisao({ motivo: f.mtv as Motivo, admissao: k.data_admissao, desligamento: f.dt, codCateg: k.cod_categ, tpContr: Number(k.tp_contr), dataTermino: k.data_termino, clauAssec: k.clau_assec,
+        salarioMensal: mensal ?? 0, mediaVariaveis: media, aviso: f.aviso, feriasVencidas: Number(f.vencidas), faltasPeriodoAtual: Number(f.faltas || 0), dependentesIR: Number(f.dep || 0),
+        adiantamento13: lerValorBR(String(f.adiant13 || "0")), descontar480: !!f.desc480, saldoFgts: String(f.saldoFgts).trim() ? lerValorBR(String(f.saldoFgts)) : null }, rg[0].valor as RegrasFolha);
+      setRes(r); return true;
+    } catch (e) { setErroCalc(String((e as Error).message)); return false; }
+  }
+  async function salvar(): Promise<boolean> {
+    if (!res || !ctx?.k) return false;
+    const linha = { empresa_id: empresaId, contrato_id: contratoId, mtv_deslig: f.mtv, dt_deslig: f.dt, aviso: regra?.aviso === "nenhum" ? null : f.aviso, dt_aviso: f.dtAviso || null,
+      ferias_vencidas: Number(f.vencidas), faltas: Number(f.faltas || 0), media_variaveis: lerValorBR(String(f.media || "0")), adiantamento_13: lerValorBR(String(f.adiant13 || "0")),
+      descontar_480: !!f.desc480, saldo_fgts: String(f.saldoFgts).trim() ? lerValorBR(String(f.saldoFgts)) : null, dependentes_ir: Number(f.dep || 0), resultado: res, situacao: "calculado", updated_at: new Date().toISOString() };
+    const r = await supabase.from("rh_desligamentos").upsert(linha, { onConflict: "contrato_id" }).select("id");
+    if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return false; }
+    avisar(L("Cálculo salvo. Confira com o contador e depois prepare o S-2299.", "Calculation saved. Check with the accountant, then prepare the S-2299.", "Cálculo guardado. Revíselo con el contador y luego prepare el S-2299."), "ok");
+    await carregar(); return true;
+  }
+  const dados2299 = (): DadosS2299 | null => !ctx?.k || !res ? null : ({ empregador: ctx.emp, cpf: ctx.cpf, matricula: ctx.k.matricula, tpRegPrev: Number(ctx.k.tp_reg_prev),
+    mtvDeslig: f.mtv, dtDeslig: f.dt, dtAvPrv: f.dtAviso || null, avisoIndenizadoDias: res.avisoIndenizadoDias, projecao: res.projecao,
+    estabelecimento: ctx.est, codLotacao: ctx.codLot, verbas: res.verbas, rubricasExistentes: ctx.rubricas });
+  const pend2299 = (() => { const d = dados2299(); return d ? pendenciasS2299(d, hojeISO()) : []; })();
+  async function preparar(): Promise<boolean> {
+    const d = dados2299(); if (!d || !ctx?.k || !ctx.salvo) return false;
+    try {
+      const { id, xml } = gerarS2299(d, { agora: new Date(), seq: 1, tpAmb: 1, hoje: hojeISO() });
+      const r1 = await supabase.from("rh_esocial_eventos").insert({ empresa_id: empresaId, contrato_id: contratoId, evento: "S-2299", id_evento: id, versao_leiaute: VERSAO_LEIAUTE, xml, data_ref: f.dt }).select("id").single();
+      if (r1.error) { avisar(mensagemErroRh(r1.error, lang)); return false; }
+      const r2 = await supabase.from("rh_desligamentos").update({ situacao: "preparado", updated_at: new Date().toISOString() }).eq("contrato_id", contratoId).select("id");
+      const r3 = await supabase.from("rh_contratos").update({ data_desligamento: f.dt }).eq("id", contratoId).select("id");
+      const r4 = await supabase.from("rh_colaboradores").update({ situacao: "desligado" }).eq("id", ctx.k.colaborador_id).select("id");
+      if ([r2, r3, r4].some((x) => x.error || !x.data?.length)) { avisar(L("O arquivo foi gerado, mas algum registro não atualizou. Recarregue e confira.", "The file was generated, but a record did not update. Reload and check.", "El archivo se generó, pero algún registro no se actualizó. Recargue y revise.")); return false; }
+      const url = URL.createObjectURL(new Blob([xml], { type: "application/xml;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = `S-2299-${ctx.k.matricula}-${id}.xml`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      avisar(L("Desligamento preparado (S-2299) e baixado. Entregue ao contador.", "Termination prepared (S-2299) and downloaded. Give it to the accountant.", "Desvinculación preparada (S-2299) y descargada. Entréguela al contador."), "ok");
+      await carregar(); aoMudar(); return true;
+    } catch (e) { Sentry.captureException(e); avisar(L("Não foi possível preparar o S-2299.", "Could not prepare the S-2299.", "No se pudo preparar el S-2299.")); return false; }
+  }
+  function pdf() {
+    if (!res) return;
+    try {
+      gerarPdfTabela({ titulo: L("Cálculo da rescisão", "Termination calculation", "Cálculo de la rescisión"), subtitulo: `${NOME_MOTIVO(f.mtv, lang)} · ${dataBR(f.dt)} · ${L("prazo de pagamento", "payment deadline", "plazo de pago")} ${dataBR(res.prazoPagamento)}`,
+        colunas: [{ header: L("Verba", "Item", "Rubrica"), key: "v", width: 6 }, { header: L("Ref.", "Ref.", "Ref."), key: "q", width: 1 }, { header: L("Provento", "Earning", "Haber"), key: "p", width: 2 }, { header: L("Desconto", "Deduction", "Descuento"), key: "d", width: 2 }],
+        linhas: res.verbas.map((v) => ({ v: v.nome, q: v.qtd ? String(v.qtd) : "", p: v.tipo === "provento" ? brl(v.valor) : "", d: v.tipo === "desconto" ? brl(v.valor) : "" })),
+        resumo: [{ label: L("Total bruto", "Gross", "Bruto"), valor: `R$ ${brl(res.bruto)}` }, { label: L("Descontos", "Deductions", "Descuentos"), valor: `R$ ${brl(res.descontos)}` }, { label: L("Líquido a pagar", "Net to pay", "Líquido a pagar"), valor: `R$ ${brl(res.liquido)}` },
+          { label: L("FGTS do mês (depósito)", "FGTS of the month", "FGTS del mes"), valor: `R$ ${brl(res.fgts.deposito)}` }, ...(res.fgts.multa != null ? [{ label: L(`Multa FGTS ${res.fgts.multaPct}%`, `FGTS fine ${res.fgts.multaPct}%`, `Multa FGTS ${res.fgts.multaPct}%`), valor: `R$ ${brl(res.fgts.multa)}` }] : [])],
+        nomeArquivo: `axioma-rescisao-${ctx?.k?.matricula ?? ""}-${f.dt}.pdf` }, (m) => avisar(m), lang);
+    } catch (e) { avisar(tratarFalhaExportacao("rh-rescisao.pdf", e, lang)); }
+  }
+
+  if (!pode.pessoais || !pode.salario) return null;
+  const campoCls = "w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none";
+  const lbl = (t: string, id: string) => <label htmlFor={id} className="text-xs font-semibold mb-1 block" style={{ color: c.ROTULO }}>{t}</label>;
+  const MENTA = "linear-gradient(135deg, #0b5f46, #0f7a5a)", AZUL = "linear-gradient(135deg, #0a1628, #101b3d)";
+  const k = ctx?.k;
+  return (
+    <Secao titulo={L("Desligamento e rescisão (S-2299)", "Termination and severance (S-2299)", "Desvinculación y rescisión (S-2299)")}>
+      <div className="md:col-span-2 text-sm space-y-3" style={{ color: "var(--axi-text-primary)" }}>
+        {ctx?.erro ? <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dados agora. Feche e abra de novo.", "Could not read the data now. Close and open again.", "No se pudieron leer los datos ahora. Cierre y abra de nuevo.")}</p> : !ctx ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : (<>
+          {preparado ? (
+            <p className="font-semibold" style={{ color: claro ? "#0f7a5a" : "#2ecc9b" }}>{L(`Desligamento preparado em ${dataBR(ctx.salvo.dt_deslig)} (${NOME_MOTIVO(ctx.salvo.mtv_deslig, "pt")}). A situação do envio fica no cartão do eSocial, acima.`, `Termination prepared on ${dataBR(ctx.salvo.dt_deslig)}. The sending status is in the eSocial card above.`, `Desvinculación preparada el ${dataBR(ctx.salvo.dt_deslig)}. La situación del envío está en la tarjeta del eSocial, arriba.`)}</p>
+          ) : !aberto && !ctx.salvo ? (
+            pode.editar && <button type="button" onClick={() => setAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}>{L("Iniciar desligamento e calcular a rescisão", "Start termination and calculate severance", "Iniciar desvinculación y calcular la rescisión")}</button>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">{lbl(L("Motivo (Tabela 19 do eSocial)", "Reason (eSocial Table 19)", "Motivo (Tabla 19 del eSocial)"), "dl-mtv")}
+                <select id="dl-mtv" value={f.mtv} onChange={(e) => setF({ ...f, mtv: e.target.value })} className={campoCls} style={c.campo}>
+                  <option value="">—</option>{k && motivosPara(k.cod_categ, Number(k.tp_contr)).map((m) => <option key={m} value={m}>{m} — {NOME_MOTIVO(m, lang)}</option>)}
+                </select></div>
+              <div>{lbl(L("Último dia trabalhado", "Last day worked", "Último día trabajado"), "dl-dt")}<input id="dl-dt" type="date" value={f.dt} onChange={(e) => setF({ ...f, dt: e.target.value })} className={campoCls} style={c.campo} /></div>
+              {regra && regra.aviso !== "nenhum" && regra.aviso !== "metade" && (
+                <div>{lbl(L("Aviso prévio", "Prior notice", "Aviso previo"), "dl-aviso")}
+                  <select id="dl-aviso" value={f.aviso} onChange={(e) => setF({ ...f, aviso: e.target.value })} className={campoCls} style={c.campo}>
+                    {regra.aviso === "empregador" ? (<><option value="indenizado">{L("Indenizado (pago sem trabalhar)", "Paid in lieu (not worked)", "Indemnizado (pagado sin trabajar)")}</option><option value="trabalhado">{L("Trabalhado", "Worked", "Trabajado")}</option></>)
+                      : (<><option value="trabalhado">{L("Trabalhado pelo empregado", "Worked by the employee", "Trabajado por el empleado")}</option><option value="descontado">{L("Não cumprido — descontar (CLT art. 487 § 2º)", "Not served — deduct (CLT art. 487 § 2)", "No cumplido — descontar (CLT art. 487 § 2)")}</option><option value="dispensado">{L("Empresa dispensou o cumprimento", "Company waived it", "La empresa lo dispensó")}</option></>)}
+                  </select></div>
+              )}
+              {f.aviso === "trabalhado" && <div>{lbl(L("Data em que o aviso foi dado", "Date notice was given", "Fecha del aviso"), "dl-dtav")}<input id="dl-dtav" type="date" value={f.dtAviso} onChange={(e) => setF({ ...f, dtAviso: e.target.value })} className={campoCls} style={c.campo} /></div>}
+              <div>{lbl(L("Férias vencidas não gozadas (períodos)", "Unused accrued vacation (periods)", "Vacaciones vencidas no gozadas (períodos)"), "dl-venc")}
+                <select id="dl-venc" value={f.vencidas} onChange={(e) => setF({ ...f, vencidas: e.target.value })} className={campoCls} style={c.campo}><option value="0">0</option><option value="1">1</option><option value="2">2</option></select></div>
+              <div>{lbl(L("Faltas injustificadas no período de férias atual", "Unjustified absences in the current vacation period", "Faltas injustificadas en el período de vacaciones actual"), "dl-faltas")}<input id="dl-faltas" inputMode="numeric" value={f.faltas} onChange={(e) => setF({ ...f, faltas: e.target.value.replace(/\D/g, "") })} className={campoCls} style={c.campo} /></div>
+              <div>{lbl(L("Média mensal de variáveis (horas extras, comissões) — R$", "Monthly average of variables (overtime, commissions) — R$", "Promedio mensual de variables (horas extra, comisiones) — R$"), "dl-media")}<input id="dl-media" inputMode="decimal" value={f.media} onChange={(e) => setF({ ...f, media: e.target.value })} className={campoCls} style={c.campo} placeholder="0,00" /></div>
+              <div>{lbl(L("1ª parcela do 13º já paga neste ano — R$", "13th first installment already paid this year — R$", "1ª cuota del 13º ya pagada este año — R$"), "dl-adi")}<input id="dl-adi" inputMode="decimal" value={f.adiant13} onChange={(e) => setF({ ...f, adiant13: e.target.value })} className={campoCls} style={c.campo} placeholder="0,00" /></div>
+              <div>{lbl(L("Dependentes para o IR", "Dependents for income tax", "Dependientes para el IR"), "dl-dep")}<input id="dl-dep" inputMode="numeric" value={f.dep} onChange={(e) => setF({ ...f, dep: e.target.value.replace(/\D/g, "") })} className={campoCls} style={c.campo} /></div>
+              {regra && regra.multa > 0 && <div>{lbl(L("Saldo do FGTS no extrato (para a multa) — R$", "FGTS balance on the statement (for the fine) — R$", "Saldo del FGTS en el extracto (para la multa) — R$"), "dl-fgts")}<input id="dl-fgts" inputMode="decimal" value={f.saldoFgts} onChange={(e) => setF({ ...f, saldoFgts: e.target.value })} className={campoCls} style={c.campo} placeholder={L("opcional", "optional", "opcional")} /></div>}
+              {f.mtv === "04" && <label className="md:col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={!!f.desc480} onChange={(e) => setF({ ...f, desc480: e.target.checked })} /> {L("Descontar a indenização do art. 480 (prejuízo comprovado)", "Deduct the art. 480 indemnity (proven loss)", "Descontar la indemnización del art. 480 (perjuicio comprobado)")}</label>}
+              <div className="md:col-span-2 flex flex-wrap gap-2">
+                <BotaoAcao executar={calcular} texto={L("Calcular a rescisão", "Calculate severance", "Calcular la rescisión")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />
+              </div>
+              {erroCalc && <p className="md:col-span-2 text-sm font-semibold" style={{ color: "#ef4444" }}>{erroCalc}</p>}
+            </div>
+          )}
+          {res && (
+            <div className="rounded-xl p-3 space-y-2" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+              <p className="font-bold" style={{ color: c.titulo }}>{res.motivo}</p>
+              <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L(`Aviso: ${res.avisoDias} dias (${res.avisoIndenizadoDias} indenizados) · contrato projetado até ${dataBR(res.projecao)} · pagar até ${dataBR(res.prazoPagamento)} (CLT art. 477 § 6º)`, `Notice: ${res.avisoDias} days (${res.avisoIndenizadoDias} paid in lieu) · contract projected to ${dataBR(res.projecao)} · pay by ${dataBR(res.prazoPagamento)} (CLT art. 477 § 6)`, `Aviso: ${res.avisoDias} días (${res.avisoIndenizadoDias} indemnizados) · contrato proyectado hasta ${dataBR(res.projecao)} · pagar hasta ${dataBR(res.prazoPagamento)} (CLT art. 477 § 6)`)}</p>
+              <div className="overflow-x-auto"><table className="w-full text-xs"><tbody>
+                {res.verbas.map((v, n) => <tr key={n} style={{ borderBottom: `1px solid ${c.BORDA}` }}><td className="py-1 pr-2">{v.nome}</td><td className="py-1 text-right whitespace-nowrap" style={{ color: v.tipo === "desconto" ? "#ef4444" : undefined }}>{v.tipo === "desconto" ? "− " : ""}R$ {brl(v.valor)}</td></tr>)}
+                <tr><td className="pt-2 font-bold">{L("Bruto", "Gross", "Bruto")}</td><td className="pt-2 text-right font-bold">R$ {brl(res.bruto)}</td></tr>
+                <tr><td className="font-bold">{L("Descontos", "Deductions", "Descuentos")}</td><td className="text-right font-bold" style={{ color: "#ef4444" }}>− R$ {brl(res.descontos)}</td></tr>
+                <tr><td className="font-black" style={{ color: c.titulo }}>{L("Líquido a pagar", "Net to pay", "Líquido a pagar")}</td><td className="text-right font-black" style={{ color: claro ? "#0f7a5a" : "#2ecc9b" }}>R$ {brl(res.liquido)}</td></tr>
+              </tbody></table></div>
+              <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L(`FGTS do mês: R$ ${brl(res.fgts.deposito)} (${res.fgts.aliquota * 100}%)`, `FGTS of the month: R$ ${brl(res.fgts.deposito)} (${res.fgts.aliquota * 100}%)`, `FGTS del mes: R$ ${brl(res.fgts.deposito)} (${res.fgts.aliquota * 100}%)`)}{res.fgts.multa != null ? ` · ${L("multa", "fine", "multa")} ${res.fgts.multaPct}%: R$ ${brl(res.fgts.multa)} ${L("(guia do FGTS Digital, fora do termo)", "(FGTS Digital slip, outside the term)", "(guía del FGTS Digital, fuera del término)")}` : ""}</p>
+              {res.avisos.map((a, n) => <p key={n} className="text-xs" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>⚠ {a}</p>)}
+              <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Cálculo pela lei (CLT, Lei 12.506, Lei 4.090) com INSS e IR de 2026 e a redução da Lei 15.270. Não inclui verbas de convenção coletiva, pensão alimentícia nem estabilidades — confira com o contador.", "Calculated by law (CLT, Laws 12,506 and 4,090) with 2026 INSS and income tax and the Law 15,270 reduction. Does not include collective-agreement items, alimony or job-security indemnities — check with the accountant.", "Cálculo por ley (CLT, Leyes 12.506 y 4.090) con INSS e IR de 2026 y la reducción de la Ley 15.270. No incluye rubricas de convenio colectivo, pensión alimenticia ni estabilidades — revise con el contador.")}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={pdf} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: AZUL, color: "#fff" }}>{L("PDF do cálculo", "Calculation PDF", "PDF del cálculo")}</button>
+                {pode.editar && !preparado && <BotaoAcao executar={salvar} texto={L("Salvar o cálculo", "Save the calculation", "Guardar el cálculo")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />}
+              </div>
+              {pode.editar && !preparado && ctx.salvo && (pend2299.length ? (
+                <ul className="text-xs space-y-1"><li className="font-bold" style={{ color: claro ? "#9a3412" : "#fbbf24" }}>{L("Para preparar o S-2299 falta:", "To prepare the S-2299 you still need:", "Para preparar el S-2299 falta:")}</li>{pend2299.map((x, n) => <li key={n}>• <b>{x.campo[lang]}</b>{x.motivo && <> — {x.motivo[lang]}</>}</li>)}</ul>
+              ) : (
+                <BotaoAcao executar={preparar} texto={L("Preparar o S-2299 e desligar", "Prepare the S-2299 and terminate", "Preparar el S-2299 y desvincular")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />
+              ))}
+              {pode.editar && !preparado && ctx.salvo && <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Ao preparar, o contrato recebe a data de desligamento e a pessoa passa para \"Desligado\". As verbas (S-1010) precisam ter sido enviadas antes pelo contador.", "When prepared, the contract gets the termination date and the person becomes \"Terminated\". The pay items (S-1010) must have been sent by the accountant first.", "Al preparar, el contrato recibe la fecha de desvinculación y la persona pasa a \"Desvinculado\". Las rubricas (S-1010) deben haberse enviado antes por el contador.")}</p>}
+            </div>
+          )}
+        </>)}
+      </div>
     </Secao>
   );
 }

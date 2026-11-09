@@ -31,6 +31,7 @@ import { DIAS_LIXEIRA_RH } from "../../../../lib/nexusRetencao";
 import { lerValorBR } from "../../../../lib/valorBR";
 import { mascaraCPF, mascaraCNPJ } from "../../../../lib/enderecoHelpers";
 import { raizCnpj, cnaeSete, sugerirClassTrib, mesAtual, mensagemErroRh, type Lang, type Texto } from "../../../../lib/rhEstrutura";
+import { gerarS1010, VERSAO_LEIAUTE, type Rubrica } from "../../../../lib/rhEsocial";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -254,6 +255,7 @@ export default function RhEstruturaPage() {
   const [empresa, setEmpresa] = useState<Linha | null>(null);
   const [pode, setPode] = useState({ ver: false, editar: false, gerir: false, carregado: false });
   const [verAcessos, setVerAcessos] = useState(false);
+  const [verVerbas, setVerVerbas] = useState(false);
   const [dados, setDados] = useState<Dados>({ empregador: [], filiais: [], lotacoes: [], departamentos: [], cargos: [], tab08: [], tab10: [], fpas: [], centros: [] });
   const [lixeira, setLixeira] = useState<Linha[]>([]);
   const [verLixeira, setVerLixeira] = useState(false);
@@ -458,9 +460,9 @@ export default function RhEstruturaPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
                   {ABAS.map((a) => {
-                    const ativa = a.id === aba && !verAcessos;
+                    const ativa = a.id === aba && !verAcessos && !verVerbas;
                     return (
-                      <button key={a.id} onClick={() => { setAba(a.id); setVerLixeira(false); setVerAcessos(false); }}
+                      <button key={a.id} onClick={() => { setAba(a.id); setVerLixeira(false); setVerAcessos(false); setVerVerbas(false); }}
                         className="px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
                         style={ativa ? { background: temaClaro ? NAVY : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: `1px solid ${temaClaro ? NAVY : "rgba(46,204,155,0.5)"}` }
                           : { background: NESTED_BG, color: temaClaro ? NAVY : "var(--axi-text-primary)", border: `1px solid ${BORDA}` }}>
@@ -468,8 +470,13 @@ export default function RhEstruturaPage() {
                       </button>
                     );
                   })}
+                  <button onClick={() => { setVerVerbas(true); setVerAcessos(false); }} className="px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
+                    style={verVerbas ? { background: temaClaro ? NAVY : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: `1px solid ${temaClaro ? NAVY : "rgba(46,204,155,0.5)"}` }
+                      : { background: NESTED_BG, color: temaClaro ? NAVY : "var(--axi-text-primary)", border: `1px solid ${BORDA}` }}>
+                    {L("Verbas da rescisão (S-1010)", "Termination pay items (S-1010)", "Rubricas de la rescisión (S-1010)")}
+                  </button>
                   {pode.gerir && (
-                    <button onClick={() => setVerAcessos(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
+                    <button onClick={() => { setVerAcessos(true); setVerVerbas(false); }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap axi-card-premium3d axi-card-faixa"
                       style={verAcessos ? { background: temaClaro ? NAVY : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", color: "#fff", border: `1px solid ${temaClaro ? NAVY : "rgba(46,204,155,0.5)"}` }
                         : { background: NESTED_BG, color: temaClaro ? NAVY : "var(--axi-text-primary)", border: `1px solid ${BORDA}` }}>
                       <KeyRound size={14} /> {L("Acessos do RH", "HR access", "Accesos de RR. HH.")}
@@ -482,7 +489,9 @@ export default function RhEstruturaPage() {
                 </motion.button>
               </div>
 
-              {verAcessos && empresaId ? (
+              {verVerbas && empresaId ? (
+                <VerbasEsocial empresaId={empresaId} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema} TEXTO_SEC={TEXTO_SEC} BORDA={BORDA} podeEditar={pode.editar} avisar={avisar} />
+              ) : verAcessos && empresaId ? (
                 <AcessosRh empresaId={empresaId} lang={lang} temaClaro={temaClaro} cartaoTema={cartaoTema} estilo={estiloCampo} TEXTO_SEC={TEXTO_SEC} BORDA={BORDA} avisar={avisar} />
               ) : (<>
               {/* Comece pelo empregador */}
@@ -840,6 +849,102 @@ function AcessosRh({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, a
       )}
       <CardInfo info={info} onFechar={() => setInfo(null)} temaClaro={temaClaro} lang={lang} />
       <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Toque no nome de cada liberação para ver o que ela abre. Cada liberação fica registrada com quem liberou e quando.", "Each grant is recorded with who granted it and when.", "Cada habilitación queda registrada con quién la otorgó y cuándo.")}</p>
+    </CanvasBox>
+  );
+}
+
+// Verbas da empresa para a rescisão (S-1010). As 15 padrão do Axioma entram em rascunho: o contador confere as incidências
+// (INSS, IR, FGTS) antes do primeiro envio. Elas precisam estar no eSocial antes do primeiro desligamento (S-2299).
+const SIT_VERBA: Record<string, [string, string, string]> = {
+  rascunho: ["Rascunho — conferir com o contador", "Draft — check with the accountant", "Borrador — revisar con el contador"],
+  preparado: ["Arquivo preparado — falta o contador enviar", "File prepared — waiting for the accountant", "Archivo preparado — falta que el contador lo envíe"],
+  enviado: ["Enviado", "Sent", "Enviado"], enviado_pelo_contador: ["Enviado pelo contador", "Sent by the accountant", "Enviado por el contador"],
+  aceito: ["Aceito pelo eSocial", "Accepted by eSocial", "Aceptado por eSocial"], recusado: ["Recusado — corrigir e preparar de novo", "Rejected — fix and prepare again", "Rechazado — corregir y preparar de nuevo"],
+};
+function baixarXmlVerba(nome: string, xml: string) {
+  const url = URL.createObjectURL(new Blob([xml], { type: "application/xml;charset=utf-8" }));
+  const a = document.createElement("a"); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function VerbasEsocial({ empresaId, lang, temaClaro, cartaoTema, TEXTO_SEC, BORDA, podeEditar, avisar }: {
+  empresaId: string; lang: Lang; temaClaro: boolean; cartaoTema: { fundo?: string; premium3d: boolean }; TEXTO_SEC: string; BORDA: string; podeEditar: boolean; avisar: (m: string, t?: "erro" | "ok") => void;
+}) {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const i = lang === "en" ? 1 : lang === "es" ? 2 : 0;
+  const [lista, setLista] = useState<Linha[] | null>(null);
+  const [emp, setEmp] = useState<Linha | null>(null);
+  const [recibos, setRecibos] = useState<Record<string, string>>({});
+  async function carregar() {
+    const [r, e] = await Promise.all([
+      supabase.from("rh_rubricas").select("*").eq("empresa_id", empresaId).is("excluido_em", null).order("cod_rubr"),
+      supabase.from("rh_empregador").select("tp_insc, nr_insc").eq("empresa_id", empresaId).is("excluido_em", null).order("ini_valid", { ascending: false }).limit(1),
+    ]);
+    if (r.error || e.error) { avisar(L("Não foi possível ler as verbas agora. Recarregue a página.", "Could not read the pay items now. Reload the page.", "No se pudieron leer las rubricas ahora. Recargue la página.")); setLista([]); return; }
+    setLista(r.data ?? []); setEmp((e.data ?? [])[0] ?? null);
+  }
+  useEffect(() => { void carregar(); }, [empresaId]); // eslint-disable-line react-hooks/exhaustive-deps
+  async function cadastrarPadrao(): Promise<boolean> {
+    const { data, error } = await supabase.rpc("rh_rubricas_padrao", { p_empresa: empresaId });
+    if (error) { avisar(mensagemErroRh(error, lang)); return false; }
+    avisar(L(`${data ?? 0} verba(s) padrão cadastrada(s). Confira com o contador antes de enviar.`, `${data ?? 0} default pay item(s) registered. Check with the accountant before sending.`, `${data ?? 0} rubrica(s) estándar registrada(s). Revise con el contador antes de enviar.`), "ok");
+    await carregar(); return true;
+  }
+  async function preparar(alvo: Linha[]): Promise<boolean> {
+    if (!emp) { avisar(L("Cadastre o Empregador antes (aba Empregador).", "Register the Employer first (Employer tab).", "Registre el Empleador primero (pestaña Empleador).")); return false; }
+    const agora = new Date(); let n = 0;
+    for (const [k, r] of alvo.entries()) {
+      const { id, xml } = gerarS1010({ tp_insc: emp.tp_insc, nr_insc: emp.nr_insc }, r as Rubrica, { agora, seq: k + 1, tpAmb: 1 });
+      const r1 = await supabase.from("rh_esocial_eventos").insert({ empresa_id: empresaId, rubrica_id: r.id, contrato_id: null, evento: "S-1010", id_evento: id, versao_leiaute: VERSAO_LEIAUTE, xml }).select("id").single();
+      if (r1.error) { avisar(mensagemErroRh(r1.error, lang)); break; }
+      const r2 = await supabase.from("rh_rubricas").update({ situacao_esocial: "preparado" }).eq("id", r.id).select("id");
+      if (r2.error || !r2.data?.length) { avisar(mensagemErroRh(r2.error, lang)); break; }
+      baixarXmlVerba(`S-1010-${r.cod_rubr}-${id}.xml`, xml); n++;
+      await new Promise((ok) => setTimeout(ok, 350)); // o navegador baixa um de cada vez
+    }
+    if (n) avisar(L(`${n} arquivo(s) do S-1010 preparado(s) e baixado(s). Entregue ao contador.`, `${n} S-1010 file(s) prepared and downloaded. Give them to the accountant.`, `${n} archivo(s) S-1010 preparado(s) y descargado(s). Entréguelos al contador.`), "ok");
+    await carregar(); return n > 0;
+  }
+  async function marcar(r: Linha, nova: "enviado_pelo_contador" | "aceito" | "recusado"): Promise<boolean> {
+    const rec = (recibos[r.id] ?? "").trim();
+    if (nova === "aceito" && !/^[0-9.]{10,40}$/.test(rec)) { avisar(L("Informe o número do recibo (só números e pontos).", "Enter the receipt number (digits and dots only).", "Informe el número de recibo (solo números y puntos).")); return false; }
+    const { data, error } = await supabase.from("rh_rubricas").update({ situacao_esocial: nova, ...(nova === "aceito" ? { recibo_esocial: rec } : {}) }).eq("id", r.id).select("id");
+    if (error || !data?.length) { avisar(mensagemErroRh(error, lang)); return false; }
+    await carregar(); return true;
+  }
+  const rascunhos = (lista ?? []).filter((r) => ["rascunho", "recusado"].includes(r.situacao_esocial));
+  const MENTA = "linear-gradient(135deg, #0b5f46, #0f7a5a)", AZUL = "linear-gradient(135deg, #0a1628, #101b3d)";
+  const titulo = temaClaro ? "#101b3d" : "var(--axi-text-primary)";
+  const campo: CSSProperties = { background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)", border: `1px solid ${BORDA}`, color: "var(--axi-text-primary)" };
+  return (
+    <CanvasBox cor={temaClaro ? "#0f7a5a" : "#2ecc9b"} {...cartaoTema}>
+      <p className="text-sm font-black mb-1" style={{ color: titulo, ...FONTE_EXEC }}>{L("Verbas da rescisão (S-1010)", "Termination pay items (S-1010)", "Rubricas de la rescisión (S-1010)")}</p>
+      <p className="text-sm mb-3" style={{ color: TEXTO_SEC }}>{L("São as verbas que o Axioma usa no cálculo da rescisão (saldo, aviso, 13º, férias, INSS, IR…). Precisam estar no eSocial antes do primeiro desligamento. As incidências de INSS, IR e FGTS são o padrão do Axioma pela lei — confira com o contador antes de enviar.", "These are the pay items Axioma uses in the termination calculation (balance, notice, 13th, vacation, INSS, income tax…). They must be in eSocial before the first termination. The INSS, income tax and FGTS incidences are Axioma's legal default — check with the accountant before sending.", "Son las rubricas que Axioma usa en el cálculo de la rescisión (saldo, aviso, 13º, vacaciones, INSS, IR…). Deben estar en eSocial antes de la primera desvinculación. Las incidencias de INSS, IR y FGTS son el estándar legal de Axioma — revíselas con el contador antes de enviar.")}</p>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {podeEditar && <BotaoAcao executar={cadastrarPadrao} texto={L("Cadastrar as verbas padrão", "Register the default pay items", "Registrar las rubricas estándar")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: MENTA, color: "#fff" }} />}
+        {podeEditar && rascunhos.length > 0 && <BotaoAcao executar={() => preparar(rascunhos)} texto={L(`Preparar S-1010 (${rascunhos.length}) e baixar`, `Prepare S-1010 (${rascunhos.length}) and download`, `Preparar S-1010 (${rascunhos.length}) y descargar`)} textoTrabalhando={L("Preparando…", "Preparing…", "Preparando…")} className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: AZUL, color: "#fff" }} />}
+      </div>
+      {lista === null ? <p className="text-sm" style={{ color: TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : lista.length === 0 ? (
+        <p className="text-sm py-4 text-center" style={{ color: TEXTO_SEC }}>{L("Nenhuma verba cadastrada. Toque em \"Cadastrar as verbas padrão\".", "No pay items yet. Tap \"Register the default pay items\".", "Ninguna rubrica registrada. Toque \"Registrar las rubricas estándar\".")}</p>
+      ) : (
+        <ul className="space-y-2">
+          {lista.map((r) => (
+            <li key={r.id} className="rounded-xl px-3 py-2 text-sm" style={{ border: `1px solid ${BORDA}`, color: "var(--axi-text-primary)" }}>
+              <div className="flex flex-wrap justify-between gap-2">
+                <span><b>{r.cod_rubr}</b> — {r.dsc_rubr} <span style={{ color: TEXTO_SEC }}>· {L("natureza", "nature", "naturaleza")} {r.nat_rubr} · INSS {r.cod_inc_cp} · IR {r.cod_inc_irrf} · FGTS {r.cod_inc_fgts}</span></span>
+                <span className="font-semibold" style={{ color: r.situacao_esocial === "aceito" ? (temaClaro ? "#0f7a5a" : "#2ecc9b") : r.situacao_esocial === "recusado" ? "#ef4444" : (temaClaro ? "#9a3412" : "#fbbf24") }}>{(SIT_VERBA[r.situacao_esocial] ?? [r.situacao_esocial, r.situacao_esocial, r.situacao_esocial])[i]}{r.recibo_esocial ? ` · ${r.recibo_esocial}` : ""}</span>
+              </div>
+              {podeEditar && ["preparado", "enviado_pelo_contador"].includes(r.situacao_esocial) && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <input value={recibos[r.id] ?? ""} onChange={(e) => setRecibos((x) => ({ ...x, [r.id]: e.target.value }))} aria-label={L("Número do recibo", "Receipt number", "Número de recibo")} placeholder={L("Recibo", "Receipt", "Recibo")} inputMode="decimal" className="px-2 py-1.5 rounded-lg text-xs focus:outline-none w-48" style={campo} />
+                  <BotaoAcao executar={() => marcar(r, "aceito")} texto={L("Aceito", "Accepted", "Aceptado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: MENTA, color: "#fff" }} />
+                  {r.situacao_esocial === "preparado" && <BotaoAcao executar={() => marcar(r, "enviado_pelo_contador")} texto={L("Enviado", "Sent", "Enviado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: AZUL, color: "#fff" }} />}
+                  <BotaoAcao executar={() => marcar(r, "recusado")} texto={L("Recusado", "Rejected", "Rechazado")} textoTrabalhando="…" className="px-3 py-1.5 rounded-lg text-xs" estilo={{ background: AZUL, color: "#fff" }} />
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </CanvasBox>
   );
 }

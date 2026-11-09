@@ -1,6 +1,11 @@
 // Teste do cálculo da rescisão (lib/rhRescisao.ts) com casos conferidos à mão. Rodar: npx tsx scripts/check-rh-rescisao.mts
 import assert from 'node:assert/strict'
 import { calcularRescisao, REGRAS_2026 as R, inssProgressivo, irrf, diasAvisoProporcional, avos13, avosFerias, diasFeriasPorFaltas, salarioMensalDe } from '../lib/rhRescisao'
+import { gerarS1010, gerarS2299, pendenciasS2299, codRubrica, type Rubrica } from '../lib/rhEsocial'
+import { execFileSync } from 'node:child_process'
+import { writeFileSync, mkdtempSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 const v = (res: ReturnType<typeof calcularRescisao>, nat: string, nome?: RegExp) => res.verbas.filter((x) => x.nat === nat && (!nome || nome.test(x.nome))).reduce((s, x) => s + x.valor, 0)
 
@@ -55,4 +60,40 @@ assert.equal(v(f, '6002'), 1375); assert.equal(f.fgts.multaPct, 20)
 assert.equal(calcularRescisao({ motivo: '02', admissao: '2024-03-01', desligamento: '2026-11-20', codCateg: '104', tpContr: 1, salarioMensal: 1621 }, R).fgts.multaPct, 0)
 assert.equal(calcularRescisao({ motivo: '06', admissao: '2026-01-05', desligamento: '2027-01-04', codCateg: '103', tpContr: 2, dataTermino: '2027-01-04', salarioMensal: 1200 }, R).fgts.aliquota, 0.02, 'aprendiz: FGTS 2%')
 assert.throws(() => calcularRescisao({ motivo: '11' as never, admissao: '2024-01-01', desligamento: '2026-01-01', codCateg: '101', tpContr: 1, salarioMensal: 2000 }, R))
+// ---------- S-1010 (as 15 verbas padrão, iguais às do RH-18) e S-2299, validados contra o XSD oficial ----------
+const dir = mkdtempSync(join(tmpdir(), 'resc-'))
+const valida = (xml: string, xsd: string, nome: string) => {
+  const f = join(dir, `${nome}.xml`); writeFileSync(f, xml, 'utf8')
+  try { execFileSync('python', ['-I', 'scripts/valida-xsd.py', xsd, f], { encoding: 'utf8' }) }
+  catch (er) { throw new Error(`${nome}: XSD recusou
+${(er as { stdout?: string }).stdout ?? er}`) }
+  return xml
+}
+const PADRAO: [string, string, string, number, string, string, string][] = [
+  ['AX6000', 'Saldo de salário na rescisão', '6000', 1, '11', '11', '11'], ['AX6001', '13º salário sobre o aviso prévio indenizado', '6001', 1, '12', '12', '12'],
+  ['AX6002', '13º salário proporcional na rescisão', '6002', 1, '12', '12', '12'], ['AX6003', 'Aviso prévio indenizado', '6003', 1, '00', '74', '21'],
+  ['AX6004', 'Férias em dobro na rescisão + 1/3', '6004', 1, '00', '79', '00'], ['AX6006', 'Férias proporcionais indenizadas + 1/3', '6006', 1, '00', '79', '00'],
+  ['AX6007', 'Férias vencidas indenizadas + 1/3', '6007', 1, '00', '79', '00'], ['AX6104', 'Indenização do art. 479 da CLT', '6104', 1, '00', '74', '00'],
+  ['AX6901', 'Desconto do aviso prévio não cumprido', '6901', 2, '00', '9', '00'], ['AX6904', 'Desconto do art. 480 da CLT', '6904', 2, '00', '9', '00'],
+  ['AX9214', 'Desconto do adiantamento do 13º salário', '9214', 2, '00', '9', '00'], ['AX9201M', 'INSS do empregado — mensal', '9201', 2, '31', '41', '00'],
+  ['AX9201D', 'INSS do empregado — 13º salário', '9201', 2, '32', '42', '00'], ['AX9203M', 'Imposto de Renda retido — mensal', '9203', 2, '00', '31', '00'],
+  ['AX9203D', 'Imposto de Renda retido — 13º salário', '9203', 2, '00', '32', '00'],
+]
+const emp = { tp_insc: 1, nr_insc: '12345678', class_trib: '01' }, agora = new Date(Date.UTC(2026, 10, 9, 15, 0, 0))
+PADRAO.forEach(([cod, dsc, nat, tp, cp, ir, fg], i) => {
+  const r: Rubrica = { cod_rubr: cod, ide_tab_rubr: 'AXIOMA', ini_valid: '2025-01', dsc_rubr: dsc, nat_rubr: nat, tp_rubr: tp, cod_inc_cp: cp, cod_inc_irrf: ir, cod_inc_fgts: fg, observacao: 'Padrão Axioma para rescisão' }
+  valida(gerarS1010(emp, r, { agora, seq: i + 1, tpAmb: 1 }).xml, 'evtTabRubrica.xsd', `s1010-${cod}`)
+})
+const todas = PADRAO.map((x) => x[0])
+const base2299 = (res: ReturnType<typeof calcularRescisao>, mtv: string, dt: string) => ({ empregador: emp, cpf: '13579246828', matricula: 'HZ-004', tpRegPrev: 1, mtvDeslig: mtv, dtDeslig: dt,
+  avisoIndenizadoDias: res.avisoIndenizadoDias, projecao: res.projecao, estabelecimento: { tp_insc: 1, nr_insc: '12345678000195' }, codLotacao: 'LOT-01', verbas: res.verbas, rubricasExistentes: todas })
+const xa = valida(gerarS2299(base2299(a, '02', '2026-11-20'), { agora, seq: 20, tpAmb: 1, hoje: '2026-11-15' }).xml, 'evtDeslig.xsd', 's2299-sem-justa-causa')
+assert.ok(xa.includes('<indPagtoAPI>S</indPagtoAPI><dtProjFimAPI>2026-12-26</dtProjFimAPI>') && xa.includes('<codRubr>AX6003</codRubr>') && xa.includes('<vrRubr>3600.00</vrRubr>'))
+assert.ok(xa.includes('<codRubr>AX9201D</codRubr>'), 'INSS do 13º na verba própria')
+valida(gerarS2299(base2299(d, '33', '2026-06-30'), { agora, seq: 21, tpAmb: 1, hoje: '2026-11-09' }).xml, 'evtDeslig.xsd', 's2299-acordo')
+valida(gerarS2299(base2299(c, '07', '2026-11-10'), { agora, seq: 22, tpAmb: 1, hoje: '2026-11-09' }).xml, 'evtDeslig.xsd', 's2299-pedido-desconto-aviso')
+assert.ok(pendenciasS2299({ ...base2299(a, '02', '2026-11-20'), rubricasExistentes: [] }, '2026-11-15').some((p) => /S-1010/.test(p.campo.pt)), 'sem verbas cadastradas')
+assert.ok(pendenciasS2299({ ...base2299(a, '02', '2026-12-20'), }, '2026-11-15').some((p) => /Data do desligamento/.test(p.campo.pt)), 'mais de 10 dias à frente')
+assert.ok(pendenciasS2299({ ...base2299(a, '02', '2026-11-20'), codLotacao: null }, '2026-11-15').some((p) => /Lotação/.test(p.campo.pt)))
+assert.equal(codRubrica({ nat: '9203', cp: null, ir: '13' }), 'AX9203D')
 console.log('check-rh-rescisao ok')

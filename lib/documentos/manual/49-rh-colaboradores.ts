@@ -63,6 +63,19 @@ const pt: DocumentoAxioma = {
       'Cada arquivo de alteração tem a sua situação: digite o **recibo** e toque em **Aceito**, ou **Enviado** (recibo ainda não chegou), ou **Recusado**.',
       'Não mudam por alteração (o contador retifica a admissão): matrícula, data de admissão, regime, CPF, data e país de nascimento. Contato de emergência e cidade por extenso não vão ao eSocial e não geram pendência.',
     ] },
+    { h1: 'Desligamento e cálculo da rescisão (S-2299)' },
+    { numerada: [
+      'Abra a pessoa pelo lápis. No fim, em **Desligamento e rescisão (S-2299)**, toque em **Iniciar desligamento e calcular a rescisão**.',
+      'Escolha o **motivo** (Tabela 19 do eSocial — só aparecem os que valem para a categoria e o tipo de contrato) e o **último dia trabalhado**. Conforme o motivo, informe o **aviso prévio** (indenizado ou trabalhado; no pedido de demissão: trabalhado, descontado ou dispensado), as **férias vencidas não gozadas**, as **faltas** do período atual, a **média de variáveis** (horas extras, comissões), a **1ª parcela do 13º já paga**, os **dependentes para o IR** e, quando há multa, o **saldo do FGTS** do extrato.',
+      'Toque em **Calcular a rescisão**: aparece verba por verba — saldo de salário, aviso prévio (30 dias + 3 por ano, até 90 — Lei 12.506), 13º e férias proporcionais (com os dias do aviso indenizado), férias vencidas ou em dobro, art. 479/480, INSS e IR (tabelas de 2026, com a redução da Lei 15.270) — o bruto, os descontos, o líquido, o FGTS do mês, a multa (40% ou 20%) e o **prazo de pagamento** (10 dias — CLT art. 477 § 6º).',
+      '**PDF do cálculo** gera o demonstrativo para o contador. **Salvar o cálculo** guarda como foi feito.',
+      'Sem pendências, **Preparar o S-2299 e desligar** baixa o arquivo, grava a data de desligamento no contrato e muda a pessoa para **Desligado**. A situação do envio (enviado, aceito com recibo, recusado) fica no cartão do eSocial.',
+    ] },
+    { lista: [
+      'Antes do primeiro desligamento, as **verbas da rescisão (S-1010)** precisam estar no eSocial: RH · Estrutura e acessos → **Verbas da rescisão (S-1010)**.',
+      'O cálculo segue a lei; não inclui verbas da convenção coletiva, pensão alimentícia nem indenizações de estabilidade — confira com o contador. Intermitente ainda não é calculado.',
+      'Depois de preparado, o cálculo não muda; se o eSocial recusar, corrija e prepare de novo.',
+    ] },
     { h1: 'Pessoa com deficiência e dependentes' },
     { lista: [
       '**Pessoa com deficiência** (só para quem tem liberação de **saúde** — é dado sensível, LGPD art. 11): marque física, visual, auditiva, mental, intelectual ou reabilitado pelo INSS e, se quiser, uma observação curta sobre o posto de trabalho. Para admissão antes de 26/10/2026 o eSocial pergunta também se a pessoa conta na cota (Lei 8.213/1991, art. 93).',
@@ -152,6 +165,19 @@ const en: DocumentoAxioma = {
       'Each change file has its own status: type the **receipt** and tap **Accepted**, or **Sent** (receipt not received yet), or **Rejected**.',
       'Not changed by these events (the accountant corrects the hire): employee ID, hire date, regime, CPF, birth date and country. Emergency contact and city name do not go to eSocial and do not create a pending item.',
     ] },
+    { h1: 'Termination and severance calculation (S-2299)' },
+    { numerada: [
+      'Open the person with the pencil. At the end, in **Termination and severance (S-2299)**, tap **Start termination and calculate severance**.',
+      'Choose the **reason** (eSocial Table 19 — only those valid for the category and contract type appear) and the **last day worked**. Depending on the reason, enter the **prior notice** (paid in lieu or worked; on resignation: worked, deducted or waived), **unused accrued vacation**, **absences** in the current period, the **average of variable pay**, the **13th first installment already paid**, **dependents for income tax** and, when there is a fine, the **FGTS balance** from the statement.',
+      'Tap **Calculate severance**: you see item by item — salary balance, prior notice (30 days + 3 per year, up to 90 — Law 12,506), proportional 13th and vacation (including paid-in-lieu notice days), accrued or double vacation, art. 479/480, INSS and income tax (2026 tables, with the Law 15,270 reduction) — gross, deductions, net, FGTS of the month, the fine (40% or 20%) and the **payment deadline** (10 days — CLT art. 477 § 6).',
+      '**Calculation PDF** creates the statement for the accountant. **Save the calculation** stores it as made.',
+      'With nothing missing, **Prepare the S-2299 and terminate** downloads the file, records the termination date and sets the person to **Terminated**. The sending status is in the eSocial card.',
+    ] },
+    { lista: [
+      'Before the first termination, the **termination pay items (S-1010)** must be in eSocial: HR · Structure and access → **Termination pay items (S-1010)**.',
+      'The calculation follows the law; it does not include collective-agreement items, alimony or job-security indemnities — check with the accountant. Intermittent is not calculated yet.',
+      'Once prepared, the calculation does not change; if eSocial rejects it, fix and prepare again.',
+    ] },
     { h1: 'People with disabilities and dependents' },
     { lista: [
       '**Person with disability** (only with **health** access — sensitive data, LGPD art. 11): tick physical, visual, hearing, mental, intellectual or rehabilitated by INSS and, optionally, a short note about the workstation. For hires before 10/26/2026 eSocial also asks whether the person counts toward the quota (Law 8,213/1991, art. 93).',
@@ -229,6 +255,19 @@ const es: DocumentoAxioma = {
       'En la tarjeta **eSocial**, en **Alteraciones después de la admisión**, aparece lo pendiente. Informe la **fecha del cambio** (no antes de la admisión y como máximo 180 días adelante) y, en el contrato, si quiere, la fecha del efecto en el salario y qué cambió. Toque **Preparar S-2206 y descargar** (o S-2205) y entréguelo al contador.',
       'Cada archivo de alteración tiene su situación: escriba el **recibo** y toque **Aceptado**, o **Enviado** (recibo aún no llegó), o **Rechazado**.',
       'No cambian por estos eventos (el contador rectifica la admisión): matrícula, fecha de admisión, régimen, CPF, fecha y país de nacimiento. Contacto de emergencia y ciudad por extenso no van al eSocial y no generan pendiente.',
+    ] },
+    { h1: 'Desvinculación y cálculo de la rescisión (S-2299)' },
+    { numerada: [
+      'Abra la persona con el lápiz. Al final, en **Desvinculación y rescisión (S-2299)**, toque **Iniciar desvinculación y calcular la rescisión**.',
+      'Elija el **motivo** (Tabla 19 del eSocial — solo aparecen los válidos para la categoría y el tipo de contrato) y el **último día trabajado**. Según el motivo, informe el **aviso previo** (indemnizado o trabajado; en la renuncia: trabajado, descontado o dispensado), las **vacaciones vencidas no gozadas**, las **faltas** del período actual, el **promedio de variables**, la **1ª cuota del 13º ya pagada**, los **dependientes para el IR** y, cuando hay multa, el **saldo del FGTS** del extracto.',
+      'Toque **Calcular la rescisión**: aparece rubrica por rubrica — saldo de salario, aviso previo (30 días + 3 por año, hasta 90 — Ley 12.506), 13º y vacaciones proporcionales (con los días del aviso indemnizado), vacaciones vencidas o en doble, art. 479/480, INSS e IR (tablas de 2026, con la reducción de la Ley 15.270) — bruto, descuentos, líquido, FGTS del mes, la multa (40% o 20%) y el **plazo de pago** (10 días — CLT art. 477 § 6).',
+      '**PDF del cálculo** genera el demostrativo para el contador. **Guardar el cálculo** lo guarda como fue hecho.',
+      'Sin pendientes, **Preparar el S-2299 y desvincular** descarga el archivo, registra la fecha de desvinculación y pasa la persona a **Desvinculado**. La situación del envío está en la tarjeta del eSocial.',
+    ] },
+    { lista: [
+      'Antes de la primera desvinculación, las **rubricas de la rescisión (S-1010)** deben estar en eSocial: RR. HH. · Estructura y accesos → **Rubricas de la rescisión (S-1010)**.',
+      'El cálculo sigue la ley; no incluye rubricas de convenio colectivo, pensión alimenticia ni indemnizaciones de estabilidad — revise con el contador. El intermitente aún no se calcula.',
+      'Una vez preparado, el cálculo no cambia; si eSocial lo rechaza, corrija y prepare de nuevo.',
     ] },
     { h1: 'Personas con discapacidad y dependientes' },
     { lista: [

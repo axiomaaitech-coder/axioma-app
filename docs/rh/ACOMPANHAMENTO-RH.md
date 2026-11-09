@@ -78,3 +78,9 @@ Fica para depois: S-2205/S-2206 (alterações), S-2299 (desligamento), importaç
 RH-17 rodado (o Supabase pede confirmação "Potential issue detected" quando o SQL troca regras/gatilhos — era isso que
 fazia alguns SQLs não gravarem). Teste RH-17 falhas=0. Próximo: S-1010 (verbas da empresa), cálculo da rescisão e S-2299
 (decisão do Elias: o Axioma calcula a rescisão).
+
+## Rescisão e desligamento (09/11/2026)
+
+RH-18 e RH-18B rodados (lotação da Horizonte com terceiros 0000 — a regra do Simples barrou 0115, correto; função das verbas
+ajustada ao índice parcial da lixeira). Cálculo testado à mão (6 casos) e pelo exemplo oficial da Receita. 15 S-1010 e 3 S-2299
+aceitos pelo XSD oficial. Fora desta versão: rescisão do intermitente, verbas de convenção, pensão alimentícia, estabilidades.

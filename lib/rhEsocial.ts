@@ -312,3 +312,69 @@ export function gerarS2206(d: DadosS2200, opc: { agora: Date; seq: number; tpAmb
     + `</evtAltContratual></eSocial>`
   return { id, xml }
 }
+
+// ---------- S-1010 (verbas da empresa) e S-2299 (desligamento) ----------
+export type Rubrica = { cod_rubr: string; ide_tab_rubr: string; ini_valid: string; dsc_rubr: string; nat_rubr: string; tp_rubr: number; cod_inc_cp: string; cod_inc_irrf: string; cod_inc_fgts: string; observacao?: string | null }
+
+/** S-1010: inclusão de uma verba na tabela de rubricas do eSocial (precisa ir antes do S-2299 que a usa). */
+export function gerarS1010(e: { tp_insc: number; nr_insc: string }, r: Rubrica, opc: { agora: Date; seq: number; tpAmb: 1 | 2 }): { id: string; xml: string } {
+  const id = idEvento(e, opc.agora, opc.seq)
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${ns('evtTabRubrica')}"><evtTabRubrica Id="${id}">`
+    + grupo('ideEvento', tag('tpAmb', opc.tpAmb), tag('procEmi', 1), tag('verProc', VER_PROC)) + ideEmpregador(e)
+    + grupo('infoRubrica', grupo('inclusao',
+        grupo('ideRubrica', tag('codRubr', r.cod_rubr), tag('ideTabRubr', r.ide_tab_rubr), tag('iniValid', r.ini_valid)),
+        grupo('dadosRubrica', tag('dscRubr', corta(r.dsc_rubr, 100)), tag('natRubr', r.nat_rubr), tag('tpRubr', r.tp_rubr),
+          tag('codIncCP', r.cod_inc_cp), tag('codIncIRRF', r.cod_inc_irrf), tag('codIncFGTS', r.cod_inc_fgts), tag('observacao', r.observacao ? corta(r.observacao, 255) : ''))))
+    + `</evtTabRubrica></eSocial>`
+  return { id, xml }
+}
+
+/** Verba do cálculo → código da verba padrão do Axioma (INSS e IR têm uma para o mês e outra para o 13º). */
+export function codRubrica(v: { nat: string; cp: string | null; ir: string | null }): string {
+  if (v.nat === '9201') return v.cp === '13' ? 'AX9201D' : 'AX9201M'
+  if (v.nat === '9203') return v.ir === '13' ? 'AX9203D' : 'AX9203M'
+  return `AX${v.nat}`
+}
+
+export type DadosS2299 = {
+  empregador: { tp_insc: number; nr_insc: string; class_trib?: string | null } | null
+  cpf?: string | null; matricula: string; tpRegPrev: number
+  mtvDeslig: string; dtDeslig: string; dtAvPrv?: string | null
+  avisoIndenizadoDias: number; projecao: string
+  estabelecimento: { tp_insc: number; nr_insc: string } | null
+  codLotacao?: string | null
+  verbas: { nat: string; nome: string; qtd?: number; valor: number; cp: string | null; ir: string | null }[]
+  rubricasExistentes: string[]   // códigos AX… já cadastrados na empresa (S-1010)
+}
+/** O que falta para o S-2299 (desligamento com as verbas da rescisão). */
+export function pendenciasS2299(d: DadosS2299, hoje: string): Pendencia[] {
+  const p: Pendencia[] = []
+  const falta = (onde: Pendencia['onde'], campo: Texto, motivo?: Texto) => p.push({ onde, campo, motivo })
+  if (!d.empregador) falta('empregador', T('Cadastro do Empregador', 'Employer record', 'Registro del Empleador'))
+  else if (d.empregador.class_trib === '03') falta('empregador', T('Simples com contribuição não substituída (classificação 03)', 'Simples with non-substituted contribution (class 03)', 'Simples con contribución no sustituida (clase 03)'), T('Informe ao contador: o indicador do Simples no desligamento é dele', 'Tell the accountant: the Simples indicator is theirs', 'Avise al contador: el indicador del Simples es suyo'))
+  if (dig(d.cpf).length !== 11) falta('pessoal', T('CPF', 'CPF', 'CPF'))
+  if (!d.estabelecimento || !/^([A-Z0-9]{12}\d{2}|\d{12})$/.test(alnum(d.estabelecimento.nr_insc))) falta('contrato', T('Filial com CNPJ completo', 'Branch with full CNPJ', 'Sucursal con CNPJ completo'))
+  if (vazio(d.codLotacao)) falta('contrato', T('Lotação tributária (RH · Estrutura → Lotações)', 'Tax unit (HR · Structure → Tax units)', 'Lotación tributaria (RR. HH. · Estructura → Lotaciones)'))
+  if (new Date(d.dtDeslig + 'T12:00:00Z').getTime() - new Date(hoje + 'T12:00:00Z').getTime() > 10 * DIA) falta('contrato', T('Data do desligamento', 'Termination date', 'Fecha de desvinculación'), T('No máximo 10 dias à frente de hoje', 'At most 10 days from today', 'Como máximo 10 días desde hoy'))
+  const faltam = [...new Set(d.verbas.filter((v) => v.valor > 0).map((v) => codRubrica(v)))].filter((c) => !d.rubricasExistentes.includes(c))
+  if (faltam.length) falta('estrutura', T(`Verbas da empresa (S-1010): ${faltam.join(', ')}`, `Company pay items (S-1010): ${faltam.join(', ')}`, `Rubricas de la empresa (S-1010): ${faltam.join(', ')}`), T('Cadastre as verbas padrão do Axioma', 'Register the Axioma default pay items', 'Registre las rubricas estándar de Axioma'))
+  if (!d.verbas.some((v) => v.valor > 0)) falta('salario', T('Verbas da rescisão', 'Termination pay items', 'Rubricas de la rescisión'), T('O eSocial exige pelo menos uma verba', 'eSocial requires at least one item', 'eSocial exige al menos una rubrica'))
+  return p
+}
+export function gerarS2299(d: DadosS2299, opc: { agora: Date; seq: number; tpAmb: 1 | 2; hoje: string }): { id: string; xml: string } {
+  const pend = pendenciasS2299(d, opc.hoje)
+  if (pend.length) throw new Error(`S-2299 com ${pend.length} pendência(s): ${pend.map((x) => x.campo.pt).join(', ')}`)
+  const e = d.empregador!, est = d.estabelecimento!, id = idEvento(e, opc.agora, opc.seq)
+  const api = d.avisoIndenizadoDias > 0
+  const det = d.verbas.filter((v) => v.valor > 0).map((v) => grupo('detVerbas', tag('codRubr', codRubrica(v)), tag('ideTabRubr', 'AXIOMA'),
+    tag('qtdRubr', v.qtd && v.qtd > 0 ? v.qtd : ''), tag('vrRubr', num2(v.valor)), tag('indApurIR', 0))).join('')
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><eSocial xmlns="${ns('evtDeslig')}"><evtDeslig Id="${id}">`
+    + ideEvento(opc.tpAmb) + ideEmpregador(e) + grupo('ideVinculo', tag('cpfTrab', dig(d.cpf)), tag('matricula', corta(d.matricula, 30)))
+    + grupo('infoDeslig', tag('mtvDeslig', d.mtvDeslig), tag('dtDeslig', d.dtDeslig), tag('dtAvPrv', d.dtAvPrv ?? ''),
+        tag('indPagtoAPI', api ? 'S' : 'N'), tag('dtProjFimAPI', api ? d.projecao : ''), tag('pensAlim', 0),
+        grupo('verbasResc', grupo('dmDev', tag('ideDmDev', `RESC${d.dtDeslig.replace(/-/g, '')}`),
+          grupo('infoPerApur', grupo('ideEstabLot', tag('tpInsc', est.tp_insc), tag('nrInsc', alnum(est.nr_insc)), tag('codLotacao', corta(d.codLotacao, 30)),
+            det, d.tpRegPrev === 1 ? grupo('infoAgNocivo', tag('grauExp', 1)) : '')))))
+    + `</evtDeslig></eSocial>`
+  return { id, xml }
+}
