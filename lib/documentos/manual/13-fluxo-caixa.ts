@@ -66,6 +66,12 @@ const pt: DocumentoAxioma = {
     { alerta: 'Viu o **Alerta de Ruptura de Caixa**? Aja logo: antecipe recebimentos, renegocie pagamentos ou reforce o caixa. Quanto antes, mais opções.' },
     { nota: 'Quando a conexão bancária (Open Finance) estiver ativa, o extrato do banco entra sozinho e o caixa fica ainda mais fiel.' },
 
+    { h1: 'Folha do RH na previsão' },
+    { lista: [
+      'Em **Previstos automáticos** aparece a origem **Folha (RH)** (só para quem tem a liberação de salário do RH): salários no **5º dia útil** do mês seguinte (sábado conta, domingo não), **FGTS e INSS no dia 20** (antecipados se caírem no fim de semana) e o **13º** em 30/11 e 20/12. Feriados não são considerados.',
+      'Não conta duas vezes: se a folha já está lançada em **Custos Fixos** como "Folha de pagamento", essa parte já está na projeção e o RH acrescenta **só o 13º**.',
+      'O quadro **Calendário da folha (RH)** mostra as próximas saídas e leva ao Custo de pessoal no RH. Nada é gravado no Fluxo: é previsão.',
+    ] },
     { h1: 'Datas e dados confiáveis' },
     { p: 'As datas desta tela seguem o dia da sua empresa (fuso do estado cadastrado): depois das 21h o Axioma não pula mais para o dia seguinte. Se algum dado não puder ser lido, o Axioma tenta de novo sozinho; só se ainda assim falhar aparece no topo o aviso **Alguns dados não puderam ser carregados** — o valor faltante nunca é mostrado como zero.' },
   ],
@@ -136,6 +142,12 @@ const en: DocumentoAxioma = {
     { alerta: 'Seeing the **Cash Shortfall Alert**? Act quickly: bring receipts forward, renegotiate payments or reinforce cash. The sooner, the more options.' },
     { nota: 'Once the bank connection (Open Finance) is active, the bank statement comes in automatically and cash becomes even more accurate.' },
 
+    { h1: 'HR payroll in the forecast' },
+    { lista: [
+      'Under **Automatic forecasts** the **Payroll (HR)** source appears (only for people with HR salary access): salaries on the **5th business day** of the following month (Saturday counts, Sunday does not), **FGTS and INSS on the 20th** (moved earlier if on a weekend) and the **13th salary** on Nov 30 and Dec 20. Holidays are not considered.',
+      'No double counting: if payroll is already entered in **Fixed Costs** as "Payroll", that part is already in the projection and HR adds **only the 13th salary**.',
+      'The **Payroll calendar (HR)** box shows the next outflows and links to Personnel cost in HR. Nothing is saved in the cash flow: it is a forecast.',
+    ] },
     { h1: 'Reliable dates and data' },
     { p: 'Dates on this screen follow your company’s day (time zone of the registered state): after 9 p.m. Axioma no longer jumps to the next day. If some data cannot be read, Axioma retries on its own; only if it still fails does the notice **Some data could not be loaded** appear at the top — the missing value is never shown as zero.' },
   ],
@@ -206,6 +218,12 @@ const es: DocumentoAxioma = {
     { alerta: '¿Vio la **Alerta de Ruptura de Caja**? Actúe rápido: adelante cobros, renegocie pagos o refuerce la caja. Cuanto antes, más opciones.' },
     { nota: 'Cuando la conexión bancaria (Open Finance) esté activa, el extracto del banco entra solo y la caja queda aún más fiel.' },
 
+    { h1: 'Nómina de RR. HH. en la previsión' },
+    { lista: [
+      'En **Previstos automáticos** aparece el origen **Nómina (RR. HH.)** (solo para quien tiene habilitación de salario en RR. HH.): salarios el **5º día hábil** del mes siguiente (el sábado cuenta, el domingo no), **FGTS e INSS el día 20** (anticipados si caen en fin de semana) y el **13º** el 30/11 y 20/12. No se consideran feriados.',
+      'No cuenta dos veces: si la nómina ya está registrada en **Costos Fijos** como "Nómina", esa parte ya está en la proyección y RR. HH. agrega **solo el 13º**.',
+      'El cuadro **Calendario de la nómina (RR. HH.)** muestra las próximas salidas y lleva al Costo de personal en RR. HH. No se guarda nada en el flujo: es previsión.',
+    ] },
     { h1: 'Fechas y datos confiables' },
     { p: 'Las fechas de esta pantalla siguen el día de su empresa (huso del estado registrado): después de las 21 h Axioma ya no salta al día siguiente. Si algún dato no se puede leer, Axioma reintenta por su cuenta; solo si aun así falla aparece arriba el aviso **Algunos datos no se pudieron cargar** — el valor faltante nunca se muestra como cero.' },
   ],

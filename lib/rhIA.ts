@@ -14,6 +14,7 @@ import { falhou, resultado, reais, centavos, type ResultadoFinanceiro } from './
 import { definicao } from './financeiro/semantica'
 import { custoMensalContrato, regimeDaEmpresa, lerCustoPessoal, type SalarioVigente } from './rhCustoPessoal'
 import { simularContratacao, somaMes } from './rhSimulacao'
+import { previsaoFolhaCaixa } from './rhFolhaCaixa'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) })
@@ -161,7 +162,9 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
         const { r, ponte, contratosAtivos } = await lerCustoPessoal(supabase, empresaId, hoje)
         return resultado({ indicador: 'custo_pessoal', definicao: definicao('custo_pessoal'), estado: r.limitacoes.length > 1 || r.nao_mensais || r.sem_salario ? 'parcial' : 'verificado', valor: r.custo_total_mensal, unidade: 'BRL', periodo: null,
           criterio_data: `salário vigente hoje; comparação com Custos Fixos de ${hoje.slice(0, 7)}`, fontes: ['rh_remuneracoes', 'rh_contratos', 'rh_departamentos', 'centros_custo', 'empresas.regime_tributario', 'custos_fixos'], registros: contratosAtivos, limitacoes: r.limitacoes,
-          detalhes: { hoje, ...r, financeiro: ponte, regra: 'estimativa do RH; a DRE e o Fluxo continuam usando só o que foi lançado (nada é somado duas vezes)' } })
+          detalhes: { hoje, ...r, financeiro: ponte, regra: 'estimativa do RH; a DRE e o Fluxo continuam usando só o que foi lançado (nada é somado duas vezes)',
+            proximas_saidas_da_folha: previsaoFolhaCaixa({ salarioMensal: r.salarios, encargosMensais: r.encargos_mensais_sobre_salario, decimoTerceiroAno: r.decimo_terceiro_ano, hoje, folhaJaNosCustosFixos: !ponte || ponte.situacao !== 'folha_nao_lancada' }),
+            calendario: 'salário no 5º dia útil (sábado conta), FGTS/INSS dia 20 antecipado no fim de semana, 13º 30/11 e 20/12; feriados não considerados; folha já lançada em Custos Fixos → só o 13º' } })
       }
       case 'rh_simular_contratacao': {
         const salario = Number(input.salario)

@@ -19,7 +19,7 @@ import { lerTodas } from './lerTodas'
 import { contratoAtual } from './rhContrato'
 import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
 
-export type ContratoCusto = { id: string; colaborador_id: string; cod_categ: string; departamento_id: string | null }
+export type ContratoCusto = { id: string; colaborador_id: string; cod_categ: string; departamento_id: string | null; data_admissao?: string }
 export type SalarioVigente = { und_sal_fixo: number; valor: number }
 export type Regime = 'mei' | 'simples' | 'presumido' | 'real' | null
 
@@ -42,6 +42,14 @@ export function inssPatronalPct(regime: Regime, codCateg: string): { pct: number
   return { pct: null, base: 'regime tributário não informado (Config → Empresa)' }
 }
 
+export function avos13(dataAdmissao: string | undefined, ano: number): number {
+  if (!dataAdmissao || Number(dataAdmissao.slice(0, 4)) < ano) return 12
+  if (Number(dataAdmissao.slice(0, 4)) > ano) return 0
+  const mes = Number(dataAdmissao.slice(5, 7)), dia = Number(dataAdmissao.slice(8, 10))
+  const fimDoMes = new Date(Date.UTC(ano, mes, 0)).getUTCDate()
+  return 12 - mes + (fimDoMes - dia + 1 >= 15 ? 1 : 0)
+}
+
 export function custoMensalContrato(k: ContratoCusto, sal: SalarioVigente | undefined, regime: Regime) {
   if (!sal || Number(sal.und_sal_fixo) !== 5) return null
   const s = centavos(sal.valor)
@@ -52,14 +60,16 @@ export function custoMensalContrato(k: ContratoCusto, sal: SalarioVigente | unde
   const indenizDomestico = k.cod_categ === '104' ? Math.round(((s + prov13 + provFerias) * 3.2) / 100) : 0
   const inss = inssPatronalPct(regime, k.cod_categ)
   const patronal = inss.pct == null ? 0 : Math.round(((s + prov13 + provFerias) * inss.pct) / 100)
-  return { salario: s, fgts: fgts + indenizDomestico, provisoes: prov13 + provFerias, inss_patronal: patronal, patronal_calculado: inss.pct != null, total: s + fgts + indenizDomestico + prov13 + provFerias + patronal }
+  const encargosSalario = Math.round((s * fgtsPct) / 100) + (k.cod_categ === '104' ? Math.round((s * 3.2) / 100) : 0) + (inss.pct == null ? 0 : Math.round((s * inss.pct) / 100))
+  return { salario: s, fgts: fgts + indenizDomestico, provisoes: prov13 + provFerias, inss_patronal: patronal, patronal_calculado: inss.pct != null, total: s + fgts + indenizDomestico + prov13 + provFerias + patronal, encargos_salario: encargosSalario }
 }
 
 export function custoPessoal(p: {
   contratos: ContratoCusto[]; salario: Map<string, SalarioVigente>; regime: Regime; atividadeFiscal?: string | null
-  departamentos: Map<string, { nome: string; centro_custo_id: string | null }>; centros: Map<string, string>
+  departamentos: Map<string, { nome: string; centro_custo_id: string | null }>; centros: Map<string, string>; ano?: number
 }) {
-  let sal = 0, fgts = 0, prov = 0, inss = 0, contados = 0, naoMensais = 0, semSalario = 0, semPatronal = 0
+  // 13º do ano (Lei 4.090/1962, art. 1º, § 2º): 1/12 por mês trabalhado no ano; fração de 15 dias ou mais conta como mês
+  let sal = 0, fgts = 0, prov = 0, inss = 0, contados = 0, naoMensais = 0, semSalario = 0, semPatronal = 0, encSal = 0, decimo = 0
   const porDep = new Map<string, { custo: number; pessoas: number }>(), porCc = new Map<string, { custo: number; pessoas: number }>()
   const soma = (m: Map<string, { custo: number; pessoas: number }>, k: string, v: number) => { const x = m.get(k) ?? { custo: 0, pessoas: 0 }; x.custo += v; x.pessoas++; m.set(k, x) }
   for (const k of p.contratos) {
@@ -67,7 +77,8 @@ export function custoPessoal(p: {
     if (!sv) { semSalario++; continue }
     const c = custoMensalContrato(k, sv, p.regime)
     if (!c) { naoMensais++; continue }
-    contados++; sal += c.salario; fgts += c.fgts; prov += c.provisoes; inss += c.inss_patronal
+    contados++; sal += c.salario; fgts += c.fgts; prov += c.provisoes; inss += c.inss_patronal; encSal += c.encargos_salario
+    if (p.ano) decimo += Math.round((c.salario * avos13(k.data_admissao, p.ano)) / 12)
     if (!c.patronal_calculado) semPatronal++
     const dep = k.departamento_id ? p.departamentos.get(k.departamento_id) : undefined
     soma(porDep, dep?.nome ?? 'sem departamento', c.total)
@@ -82,7 +93,7 @@ export function custoPessoal(p: {
   if (semSalario) limitacoes.push(`${semSalario} contrato(s) ativo(s) sem salário cadastrado ficaram fora`)
   return {
     pessoas_contadas: contados, nao_mensais: naoMensais, sem_salario: semSalario,
-    salarios: reais(sal), fgts: reais(fgts), provisoes_13_ferias: reais(prov), inss_patronal: reais(inss), custo_total_mensal: reais(sal + fgts + prov + inss),
+    salarios: reais(sal), encargos_mensais_sobre_salario: reais(encSal), decimo_terceiro_ano: p.ano ? reais(decimo) : null, fgts: reais(fgts), provisoes_13_ferias: reais(prov), inss_patronal: reais(inss), custo_total_mensal: reais(sal + fgts + prov + inss),
     regime: p.regime, base_inss_patronal: inssPatronalPct(p.regime, '101').base,
     por_departamento: lista(porDep), por_centro_custo: lista(porCc), limitacoes,
   }
@@ -129,7 +140,7 @@ export async function lerCustoPessoal(supabase: SupabaseClient, empresaId: strin
     if (!salario.has(String(x.contrato_id))) salario.set(String(x.contrato_id), { und_sal_fixo: Number(x.und_sal_fixo), valor: Number(x.valor) })
   const e = (emp.data ?? null) as { regime_tributario?: string; atividade_fiscal?: string } | null
   const regime = regimeDaEmpresa(e?.regime_tributario)
-  const r = custoPessoal({ contratos: ativos, salario, regime, atividadeFiscal: e?.atividade_fiscal,
+  const r = custoPessoal({ contratos: ativos, salario, regime, atividadeFiscal: e?.atividade_fiscal, ano: Number(hoje.slice(0, 4)),
     departamentos: new Map(ds.map((d) => [String(d.id), { nome: String(d.nome), centro_custo_id: (d.centro_custo_id as string | null) ?? null }])),
     centros: new Map(((cc.data ?? []) as { id: string; nome: string }[]).map((c) => [c.id, c.nome])) })
   const limitacoes = [...r.limitacoes]

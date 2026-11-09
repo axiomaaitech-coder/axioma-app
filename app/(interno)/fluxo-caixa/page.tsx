@@ -35,6 +35,9 @@ import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/Conf
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, naturezaDoFluxo, NATUREZAS_FLUXO, type Natureza, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 import { hojeISO, agora, isoDia } from "../../../lib/datas";
+import { lerPodeRh } from "../../../lib/rhAcesso";
+import { lerCustoPessoal } from "../../../lib/rhCustoPessoal";
+import { previsaoFolhaCaixa, type SaidaFolha } from "../../../lib/rhFolhaCaixa";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.92), rgba(10,22,40,0.96))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.95), rgba(10,22,40,0.98))";
@@ -154,6 +157,8 @@ export default function FluxoCaixa() {
   const [saldoReal, setSaldoReal] = useState<number | null>(null);
   const [saldoCartao, setSaldoCartao] = useState(0);
   const [dividasRows, setDividasRows] = useState<any[]>([]);
+  // Folha do RH (calendário): null = sem liberação de salário no RH ou sem RH; só previsão, nada é gravado
+  const [folhaRh, setFolhaRh] = useState<{ saidas: SaidaFolha[]; soDecimo: boolean } | null>(null);
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
   const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("mes_atual"));
@@ -203,6 +208,20 @@ export default function FluxoCaixa() {
     setCustosFixosRows(cf || []);
     setDividasRows(dv || []);
     setCarregando(false);
+    // Calendário da folha (RH ↔ Fluxo): só com a liberação de salário do RH. Folha já lançada em Custos Fixos → só o 13º (o custo
+    // fixo mensal já entra na projeção); Custos Fixos sem leitura → também só o 13º (nunca arriscar contar duas vezes).
+    try {
+      const pode = await lerPodeRh(supabase, empresaId, ["ver", "salario"]);
+      if (!pode?.ver || !pode.salario) { setFolhaRh(null); return; }
+      const { r, ponte } = await lerCustoPessoal(supabase, empresaId, hojeISO());
+      if (!r.pessoas_contadas) { setFolhaRh(null); return; }
+      const soDecimo = !ponte || ponte.situacao !== "folha_nao_lancada";
+      setFolhaRh({ soDecimo, saidas: previsaoFolhaCaixa({ salarioMensal: r.salarios, encargosMensais: r.encargos_mensais_sobre_salario, decimoTerceiroAno: r.decimo_terceiro_ano, hoje: hojeISO(), folhaJaNosCustosFixos: soDecimo }) });
+    } catch (e) {
+      setFolhaRh(null);
+      Sentry.captureException(e);
+      showToast(L("A previsão da folha do RH não carregou — o caixa futuro pode estar sem ela.", "HR payroll forecast did not load — future cash may be missing it.", "La previsión de la nómina de RR. HH. no cargó — la caja futura puede estar sin ella."), "erro");
+    }
   };
 
   const abrirEdicao = (l: LancamentoFC) => {
@@ -352,10 +371,12 @@ export default function FluxoCaixa() {
   const saidasAutoDividas: EventoCaixa[] = dividasRows.flatMap((d: any) => parcelasFuturasDivida(d).filter((ev) => ev.data <= limiteAuto));
 
   const totalAutoEntradas = entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0);
-  const totalAutoSaidas = [...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas].reduce((a, e) => a + e.valor, 0);
+  // Folha do RH (lib/rhFolhaCaixa): salário no 5º dia útil, FGTS/INSS dia 20, 13º — mesmo horizonte de 120 dias
+  const saidasAutoFolha: EventoCaixa[] = (folhaRh?.saidas ?? []).map((s) => ({ data: s.data, valor: s.valor }));
+  const totalAutoSaidas = [...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas, ...saidasAutoFolha].reduce((a, e) => a + e.valor, 0);
 
   const entradasFuturasPrevistas: EventoCaixa[] = previstosAutoAtivo ? [...entradasManualPrevistas, ...entradasAutoContasReceber] : entradasManualPrevistas;
-  const saidasFuturasPrevistas: EventoCaixa[] = previstosAutoAtivo ? [...saidasManualPrevistas, ...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas] : saidasManualPrevistas;
+  const saidasFuturasPrevistas: EventoCaixa[] = previstosAutoAtivo ? [...saidasManualPrevistas, ...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas, ...saidasAutoFolha] : saidasManualPrevistas;
 
   const ruptura = detectarRupturaCaixa(saldoAtualReal, entradasFuturasPrevistas, saidasFuturasPrevistas, 90);
 
@@ -606,12 +627,13 @@ export default function FluxoCaixa() {
                 {/* Decomposição por origem — grid de valores, sempre bege
                     neutro (regra 4), nunca tingido pela cor da categoria;
                     só o número mantém a cor de identificação. */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className={`grid grid-cols-2 ${folhaRh ? "md:grid-cols-5" : "md:grid-cols-4"} gap-2`}>
                   {[
                     { l: cx.origemContasReceber, v: entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0), c: ct(CORES.verde) },
                     { l: cx.origemContasPagar, v: saidasAutoContasPagar.reduce((a, e) => a + e.valor, 0), c: ct(CORES.vermelho) },
                     { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.verde : CORES.laranja) },
                     { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.cyan : CORES.rosa) },
+                    ...(folhaRh ? [{ l: L("Folha (RH)", "Payroll (HR)", "Nómina (RR. HH.)"), v: saidasAutoFolha.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.verde : CORES.laranja) }] : []),
                   ].map((o) => (
                     <div key={o.l} className={`rounded-xl px-3 py-2.5${classePremium3d}`} style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
                       <p className="text-xs uppercase tracking-wider font-bold" style={{ color: TEXTO_SEC }}>{o.l}</p>
@@ -620,6 +642,18 @@ export default function FluxoCaixa() {
                   ))}
                 </div>
                 <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{cx.avisoDuplicidade}</p>
+                {folhaRh && (
+                  <div className="mt-3 rounded-xl px-3 py-2.5 text-xs" style={{ background: temaClaro ? NESTED_BG : "rgba(2,8,16,0.5)", border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(163,177,194,0.15)"}`, color: TEXTO_SEC }}>
+                    <p className="font-bold mb-1" style={{ color: "var(--axi-text-primary)" }}>{L("Calendário da folha (RH)", "Payroll calendar (HR)", "Calendario de la nómina (RR. HH.)")}</p>
+                    <p className="mb-1">{folhaRh.soDecimo
+                      ? L("A folha mensal já está em Custos Fixos (já projetada acima); o RH acrescenta só o 13º.", "The monthly payroll is already in Fixed Costs (already projected above); HR adds only the 13th salary.", "La nómina mensual ya está en Costos Fijos (ya proyectada arriba); RR. HH. agrega solo el 13º.")
+                      : L("A folha não está lançada em Custos Fixos: o RH projeta salários (5º dia útil), FGTS/INSS (dia 20) e 13º. Feriados não são considerados.", "Payroll is not entered in Fixed Costs: HR projects salaries (5th business day), FGTS/INSS (20th) and the 13th salary. Holidays are not considered.", "La nómina no está registrada en Costos Fijos: RR. HH. proyecta salarios (5º día hábil), FGTS/INSS (día 20) y el 13º. No se consideran feriados.")}</p>
+                    {folhaRh.saidas.length === 0 ? <p>{L("Nenhuma saída da folha nos próximos 120 dias.", "No payroll outflow in the next 120 days.", "Ninguna salida de la nómina en los próximos 120 días.")}</p> : (
+                      <ul className="space-y-0.5">{folhaRh.saidas.slice(0, 6).map((s) => (
+                        <li key={s.data + s.rotulo} className="flex justify-between gap-2"><span>{s.data.split("-").reverse().join("/")} · {s.rotulo}</span><b style={{ color: "var(--axi-text-primary)" }}>{fBRL(s.valor)}</b></li>))}</ul>)}
+                    <a href="/rh" className="inline-block mt-1 underline font-bold" style={{ color: ct(temaClaro ? CORES.verde : CORES.cyan) }}>{L("Ver custo de pessoal no RH ›", "See personnel cost in HR ›", "Ver costo de personal en RR. HH. ›")}</a>
+                  </div>
+                )}
               </div>
             )}
 
