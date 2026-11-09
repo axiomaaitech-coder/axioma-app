@@ -63,3 +63,12 @@ RH-14B (regra do contrato sem amarrar categoria × natureza, valendo para todos)
 + salário). Teste RH-14: falhas=0. `check-rh-esocial`: 3 arquivos aceitos pelo XSD oficial (menos a assinatura, que é do contador).
 Fica para depois: S-2206 (alteração), S-2299 (desligamento), aprendiz/doméstico/temporário/intermitente, PCD e dependentes,
 importação por planilha dos campos novos.
+
+## S-2200 completo (09/11/2026)
+
+Pedido do Elias ("pode criar cadastro de PCD e das categorias que faltam e ficaram de fora, deixe completo"). RH-15: Tabela 07,
+`rh_colaborador_pcd` (saúde), `rh_dependentes` (pessoais), imigrante, aprendiz/temporário/local de trabalho no contrato, histórico com
+"saude", arquivo exige saúde. RH-16: exemplos na Horizonte (CNPJ 12.345.678/0001-95 fictício, empregador, matriz com sindicato
+fictício, Diego/Eduarda/Fábio). Doméstico e temporário só no teste automático (não cabem na Horizonte). Política de Privacidade
+3.7 e 12 corrigidas (antes dizia que o Axioma não trata dado sensível nem de criança — o RH trata, por obrigação legal).
+Fica para depois: S-2205/S-2206 (alterações), S-2299 (desligamento), importação por planilha dos campos novos.

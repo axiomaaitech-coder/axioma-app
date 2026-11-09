@@ -62,7 +62,8 @@ const doc: DocumentoAxioma = {
       'Axioma **does not record the audio** in databases, files or logs and **does not identify people by their voice** (no voice biometrics). The microphone turns on only after your tap and the browser permission.',
     ] },
     { h2: '3.7 Data we do not ask for' },
-    { p: 'Axioma was not designed to process sensitive personal data (such as health, religion, biometrics or political opinion) or data of children and adolescents. We ask the Customer not to enter such data in the Platform.' },
+    { p: 'Outside the HR module, Axioma was not designed to process sensitive personal data (such as health, religion, biometrics or political opinion) or data of children and adolescents. We ask the Customer not to enter such data in the other modules.' },
+    { p: '**HR module.** So the Company can meet labor and social-security obligations (CLT, NR-7 and eSocial), HR processes, on the Customer\'s behalf, some sensitive data of employees — **race/color** (self-declared, required by eSocial), **occupational exams** and **disability** (quota under Law 8,213/1991, art. 93) — and data of **dependents**, who may be minor children (income tax and family allowance). The legal basis is compliance with a legal or regulatory obligation (LGPD, art. 7, II, and art. 11, II, "a"); for children and adolescents, their best interest prevails (LGPD, art. 14, and ANPD Statement CD/ANPD No. 1/2023). These data are kept in separate parts that only people with the specific access (health or personal data) can see; they are never used in any analysis, score or decision by Axioma or its artificial intelligence; and they only leave the Platform when the Customer downloads the eSocial file to give to its accountant.' },
 
     { h1: '4. What we use the data for and on what legal basis' },
     { tabela: { colunas: ['Purpose', 'Legal basis (LGPD)'], larguras: [5800, 3226], linhas: [
@@ -157,7 +158,7 @@ const doc: DocumentoAxioma = {
     { p: 'We use only cookies and local storage that are strictly necessary to keep the session open, protect access and remember preferences (language, theme, active company). We do not use advertising cookies. To improve the screens, we measure usage with PostHog in a reduced way: no cookies, nothing stored in your browser, no session recording and no text, values or names shown on screen — only which screen was opened and what kind of button was used.' },
 
     { h1: '12. Children and adolescents' },
-    { p: 'Axioma is intended for companies and people over 18. We do not knowingly process data of children and adolescents. If we identify such processing, the data will be deleted.' },
+    { p: 'Axioma is intended for companies and people over 18: children and adolescents do not use the Platform. The only exception of data processed is in the HR module — employees\' dependents (income tax and family allowance) and young apprentices — always under a legal obligation, in the best interest of the child or adolescent (LGPD, art. 14, and ANPD Statement CD/ANPD No. 1/2023) and with restricted access, as described in item 3.7. Otherwise, if we identify data of a child or adolescent entered by mistake, it will be deleted.' },
 
     { h1: '13. Customer obligations as controller' },
     { p: 'When the Customer company enters third-party personal data in Axioma, it is the controller of that data and undertakes to:' },

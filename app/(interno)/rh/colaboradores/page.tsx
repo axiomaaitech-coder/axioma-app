@@ -208,6 +208,12 @@ export default function RhColaboradoresPage() {
       if (error) { avisar(L("Não foi possível ler os dados agora. Tente de novo em instantes.", "Could not read the data now. Try again shortly.", "No se pudieron leer los datos ahora. Intente de nuevo en instantes.")); Sentry.captureException(new Error(`rh/colaboradores pessoal: ${error.message}`)); return; }
       pes = data ?? {};
     }
+    let pcd: Linha = {};
+    if (pode.saude) {
+      const { data, error } = await supabase.from("rh_colaborador_pcd").select("*").eq("colaborador_id", c.id).maybeSingle();
+      if (error) { avisar(L("Não foi possível ler os dados agora. Tente de novo em instantes.", "Could not read the data now. Try again shortly.", "No se pudieron leer los datos ahora. Intente de nuevo en instantes.")); Sentry.captureException(new Error(`rh/colaboradores pcd: ${error.message}`)); return; }
+      pcd = data ?? {};
+    }
     if (pode.salario && k.id) {
       const { data, error } = await supabase.from("rh_remuneracoes").select("*").eq("contrato_id", k.id).order("vigencia_inicio", { ascending: false });
       if (error) { avisar(L("Não foi possível ler os dados agora. Tente de novo em instantes.", "Could not read the data now. Try again shortly.", "No se pudieron leer los datos ahora. Intente de nuevo en instantes.")); Sentry.captureException(new Error(`rh/colaboradores salario: ${error.message}`)); return; }
@@ -220,9 +226,15 @@ export default function RhColaboradoresPage() {
       qtd_hrs_sem: s(k.qtd_hrs_sem), tp_jornada: s(k.tp_jornada), data_desligamento: s(k.data_desligamento), contrato_situacao: k.situacao_esocial ?? "rascunho",
       tp_reg_jor: s(k.tp_reg_jor ?? 1), nat_atividade: s(k.nat_atividade ?? 1), tmp_parc: s(k.tmp_parc ?? 0), hor_noturno: k.hor_noturno == null ? "" : k.hor_noturno ? "S" : "N", dsc_jorn: s(k.dsc_jorn),
       clau_assec: k.clau_assec == null ? "" : k.clau_assec ? "S" : "N", obj_det: s(k.obj_det), data_base: s(k.data_base), cnpj_sindicato: mascaraCNPJ(s(k.cnpj_sindicato)), dsc_sal_var: s(k.dsc_sal_var),
+      apr_ind: s(k.apr_ind), apr_cnpj_ent_qual: mascaraCNPJ(s(k.apr_cnpj_ent_qual)), apr_tp_insc: s(k.apr_tp_insc || 1), apr_nr_insc: s(k.apr_nr_insc), apr_cnpj_prat: mascaraCNPJ(s(k.apr_cnpj_prat)),
+      temp_hip_leg: s(k.temp_hip_leg), temp_just_contr: s(k.temp_just_contr), temp_tomador_tp_insc: s(k.temp_tomador_tp_insc || 1), temp_tomador_nr_insc: s(k.temp_tomador_nr_insc),
+      temp_cpf_substituidos: ((k.temp_cpf_substituidos as string[] | null) ?? []).map((x) => mascaraCPF(x)).join(", "),
+      lt_cep: mascaraCEP(s(k.lt_cep)), lt_logradouro: s(k.lt_logradouro), lt_numero: s(k.lt_numero), lt_complemento: s(k.lt_complemento), lt_bairro: s(k.lt_bairro), lt_cod_munic: s(k.lt_cod_munic), lt_uf: s(k.lt_uf),
+      tem_pcd: !!pcd.colaborador_id, pcd_def_fisica: !!pcd.def_fisica, pcd_def_visual: !!pcd.def_visual, pcd_def_auditiva: !!pcd.def_auditiva, pcd_def_mental: !!pcd.def_mental,
+      pcd_def_intelectual: !!pcd.def_intelectual, pcd_reab_readap: !!pcd.reab_readap, pcd_info_cota: pcd.info_cota == null ? "" : pcd.info_cota ? "S" : "N", pcd_observacao: s(pcd.observacao),
       tem_pessoal: !!pes.colaborador_id, cpf: mascaraCPF(s(pes.cpf)), data_nascimento: s(pes.data_nascimento), sexo: s(pes.sexo), raca_cor: s(pes.raca_cor), estado_civil: s(pes.estado_civil), grau_instr: s(pes.grau_instr),
       pais_nascimento_txt: rotuloPais(s(pes.pais_nascimento || "105")), pais_nacionalidade_txt: rotuloPais(s(pes.pais_nacionalidade || "105")), cep: mascaraCEP(s(pes.cep)), logradouro: s(pes.logradouro), numero: s(pes.numero), complemento: s(pes.complemento),
-      bairro: s(pes.bairro), cidade: s(pes.cidade), uf: s(pes.uf), cod_munic: s(pes.cod_munic), telefone: s(pes.telefone), email: s(pes.email), emergencia_nome: s(pes.emergencia_nome), emergencia_telefone: s(pes.emergencia_telefone),
+      bairro: s(pes.bairro), cidade: s(pes.cidade), uf: s(pes.uf), cod_munic: s(pes.cod_munic), imig_tmp_resid: s(pes.imig_tmp_resid), imig_cond_ing: s(pes.imig_cond_ing), telefone: s(pes.telefone), email: s(pes.email), emergencia_nome: s(pes.emergencia_nome), emergencia_telefone: s(pes.emergencia_telefone),
       und_sal_fixo: "5", valor: "", reajuste_valor: "", reajuste_data: hojeISO(), reajuste_motivo: "reajuste_coletivo" });
   }
 
@@ -238,6 +250,12 @@ export default function RhColaboradoresPage() {
     setForm((f) => (f ? { ...f, logradouro: r.logradouro || f.logradouro, bairro: r.bairro || f.bairro, cidade: r.cidade || f.cidade, uf: r.uf || f.uf, cod_munic: r.ibge || f.cod_munic } : f));
     setCepMsg(L("Endereço preenchido pelo CEP. Confira e informe o número.", "Address filled from the postal code. Check it and add the number.", "Dirección completada por el CEP. Revise e informe el número."));
   }
+  async function preencherLtPorCep(v: string) {
+    if (soDig(v).length !== 8) return;
+    const r = await consultarCEP(v);
+    if ("erro" in r) { avisar(L("CEP do local de trabalho não encontrado: preencha à mão.", "Workplace postal code not found: fill it in manually.", "CEP del lugar de trabajo no encontrado: complételo a mano.")); return; }
+    setForm((f) => (f ? { ...f, lt_logradouro: r.logradouro || f.lt_logradouro, lt_bairro: r.bairro || f.lt_bairro, lt_uf: r.uf || f.lt_uf, lt_cod_munic: r.ibge || f.lt_cod_munic } : f));
+  }
   async function salvar(): Promise<boolean> {
     if (!form || !empresaId) return false;
     if (String(form.nome).trim().length < 2) { avisar(L("Informe o nome (mínimo 2 letras).", "Enter the name (at least 2 letters).", "Informe el nombre (mínimo 2 letras).")); return false; }
@@ -249,6 +267,13 @@ export default function RhColaboradoresPage() {
     if (pode.salario && nulo(salTxt) && Number(form.und_sal_fixo) !== 7 && !(lerValorBR(String(salTxt)) > 0)) { avisar(L("Salário inválido: use o formato 2.500,00.", "Invalid salary: use the format 2,500.00.", "Salario inválido: use el formato 2.500,00.")); return false; }
     if (nulo(form.qtd_hrs_sem) && !(lerValorBR(String(form.qtd_hrs_sem)) > 0)) { avisar(L("Horas por semana inválidas.", "Invalid weekly hours.", "Horas por semana inválidas.")); return false; }
     if (String(form.tp_contr) === "3" && !nulo(form.obj_det)) { avisar(L("Informe o objeto do contrato (obra, serviço, safra).", "Enter the contract purpose (project, service, harvest).", "Informe el objeto del contrato (obra, servicio, cosecha).")); return false; }
+    const cat = String(form.cod_categ);
+    const cpfsSubst = String(form.temp_cpf_substituidos ?? "").split(/[,;\s]+/).map(soDig).filter(Boolean);
+    if (cat === "106" && cpfsSubst.some((x) => !validarCPF(x))) { avisar(L("Temporário: algum CPF de quem está sendo substituído é inválido.", "Temporary: a replaced worker's CPF is invalid.", "Temporal: algún CPF de quien es sustituido es inválido.")); return false; }
+    if (cat === "106" && cpfsSubst.length > 9) { avisar(L("Temporário: no máximo 9 pessoas substituídas.", "Temporary: at most 9 replaced workers.", "Temporal: como máximo 9 personas sustituidas.")); return false; }
+    for (const [campoCnpj, nome] of [["apr_cnpj_ent_qual", L("CNPJ da entidade qualificadora", "Training entity CNPJ", "CNPJ de la entidad calificadora")], ["apr_cnpj_prat", L("CNPJ do local das atividades práticas", "Practical activities CNPJ", "CNPJ del lugar de las actividades prácticas")]] as const) {
+      if (cat === "103" && soDig(form[campoCnpj]) && !validarCNPJ(soDig(form[campoCnpj]))) { avisar(L(`${nome} inválido.`, `Invalid ${nome}.`, `${nome} inválido.`)); return false; }
+    }
     if (soDig(form.cnpj_sindicato) && !validarCNPJ(soDig(form.cnpj_sindicato))) { avisar(L("CNPJ do sindicato inválido: confira os números.", "Invalid union CNPJ: check the numbers.", "CNPJ del sindicato inválido: revise los números.")); return false; }
     setSalvando(true);
     const novo = !form.id;
@@ -266,7 +291,21 @@ export default function RhColaboradoresPage() {
       tp_reg_jor: Number(form.tp_reg_jor || 1), nat_atividade: Number(form.nat_atividade || 1), tmp_parc: Number(form.tmp_parc || 0),
       hor_noturno: form.hor_noturno === "S" ? true : form.hor_noturno === "N" ? false : null, dsc_jorn: nulo(form.dsc_jorn),
       clau_assec: Number(form.tp_contr) !== 1 && form.clau_assec ? form.clau_assec === "S" : null, obj_det: Number(form.tp_contr) === 3 ? nulo(form.obj_det) : null,
-      data_base: nulo(form.data_base) ? Number(form.data_base) : null, cnpj_sindicato: soDig(form.cnpj_sindicato) || null, dsc_sal_var: nulo(form.dsc_sal_var) };
+      data_base: nulo(form.data_base) ? Number(form.data_base) : null, cnpj_sindicato: soDig(form.cnpj_sindicato) || null, dsc_sal_var: nulo(form.dsc_sal_var),
+      // aprendiz (só 103), temporário (só 106), local de trabalho (só doméstico 104 e temporário 106): fora disso, vazio
+      apr_ind: cat === "103" && nulo(form.apr_ind) ? Number(form.apr_ind) : null,
+      apr_cnpj_ent_qual: cat === "103" && String(form.apr_ind) === "1" ? soDig(form.apr_cnpj_ent_qual) || null : null,
+      apr_tp_insc: cat === "103" && String(form.apr_ind) === "2" ? Number(form.apr_tp_insc || 1) : null,
+      apr_nr_insc: cat === "103" && String(form.apr_ind) === "2" ? soDig(form.apr_nr_insc) || null : null,
+      apr_cnpj_prat: cat === "103" ? soDig(form.apr_cnpj_prat) || null : null,
+      temp_hip_leg: cat === "106" && nulo(form.temp_hip_leg) ? Number(form.temp_hip_leg) : null,
+      temp_just_contr: cat === "106" ? nulo(form.temp_just_contr) : null,
+      temp_tomador_tp_insc: cat === "106" && soDig(form.temp_tomador_nr_insc) ? Number(form.temp_tomador_tp_insc || 1) : null,
+      temp_tomador_nr_insc: cat === "106" ? soDig(form.temp_tomador_nr_insc) || null : null,
+      temp_cpf_substituidos: cat === "106" && String(form.temp_hip_leg) === "1" && cpfsSubst.length ? cpfsSubst : null,
+      ...(["104", "106"].includes(cat)
+        ? { lt_cep: soDig(form.lt_cep) || null, lt_logradouro: nulo(form.lt_logradouro), lt_numero: nulo(form.lt_numero), lt_complemento: nulo(form.lt_complemento), lt_bairro: nulo(form.lt_bairro), lt_cod_munic: /^\d{7}$/.test(String(form.lt_cod_munic ?? "")) ? String(form.lt_cod_munic) : null, lt_uf: nulo(form.lt_uf)?.toUpperCase() ?? null }
+        : { lt_cep: null, lt_logradouro: null, lt_numero: null, lt_complemento: null, lt_bairro: null, lt_cod_munic: null, lt_uf: null }) };
     const r2 = form.contrato_id ? await supabase.from("rh_contratos").update(contrato).eq("id", form.contrato_id).select("id").single() : await supabase.from("rh_contratos").insert(contrato).select("id").single();
     if (r2.error || !r2.data) { await desfazer(r2.error); return false; }
     const kid = r2.data.id as string;
@@ -274,9 +313,20 @@ export default function RhColaboradoresPage() {
       const pes = { colaborador_id: cid, empresa_id: empresaId, cpf: soDig(form.cpf), data_nascimento: nulo(form.data_nascimento), sexo: nulo(form.sexo), raca_cor: nulo(form.raca_cor) ? Number(form.raca_cor) : null,
         estado_civil: nulo(form.estado_civil) ? Number(form.estado_civil) : null, grau_instr: nulo(form.grau_instr), pais_nascimento: codigoPais(form.pais_nascimento_txt) ?? "105", pais_nacionalidade: codigoPais(form.pais_nacionalidade_txt) ?? "105",
         cep: soDig(form.cep) || null, logradouro: nulo(form.logradouro), numero: nulo(form.numero), complemento: nulo(form.complemento), bairro: nulo(form.bairro), cidade: nulo(form.cidade),
-        uf: nulo(form.uf)?.toUpperCase() ?? null, cod_munic: /^\d{7}$/.test(String(form.cod_munic ?? "")) ? String(form.cod_munic) : null, telefone: nulo(form.telefone), email: nulo(form.email)?.toLowerCase() ?? null, emergencia_nome: nulo(form.emergencia_nome), emergencia_telefone: nulo(form.emergencia_telefone) };
+        uf: nulo(form.uf)?.toUpperCase() ?? null, cod_munic: /^\d{7}$/.test(String(form.cod_munic ?? "")) ? String(form.cod_munic) : null,
+        imig_tmp_resid: (codigoPais(form.pais_nacionalidade_txt) ?? "105") !== "105" && nulo(form.imig_tmp_resid) ? Number(form.imig_tmp_resid) : null,
+        imig_cond_ing: (codigoPais(form.pais_nacionalidade_txt) ?? "105") !== "105" && nulo(form.imig_cond_ing) ? Number(form.imig_cond_ing) : null, telefone: nulo(form.telefone), email: nulo(form.email)?.toLowerCase() ?? null, emergencia_nome: nulo(form.emergencia_nome), emergencia_telefone: nulo(form.emergencia_telefone) };
       const r3 = await supabase.from("rh_colaborador_pessoal").upsert(pes, { onConflict: "colaborador_id" });
       if (r3.error) { await desfazer(r3.error); return false; }
+    }
+    const flagsPcd = ["def_fisica", "def_visual", "def_auditiva", "def_mental", "def_intelectual", "reab_readap"] as const;
+    if (pode.saude && (form.tem_pcd || flagsPcd.some((f) => form[`pcd_${f}`]))) {
+      const algum = flagsPcd.some((f) => form[`pcd_${f}`]);
+      const linha: Linha = { colaborador_id: cid, empresa_id: empresaId, observacao: algum ? nulo(form.pcd_observacao) : null,
+        info_cota: algum && form.pcd_info_cota ? form.pcd_info_cota === "S" : null, updated_at: new Date().toISOString() };
+      flagsPcd.forEach((f) => { linha[f] = !!form[`pcd_${f}`]; });
+      const rP = await supabase.from("rh_colaborador_pcd").upsert(linha, { onConflict: "colaborador_id" });
+      if (rP.error) { await desfazer(rP.error); return false; }
     }
     if (pode.salario) {
       const valorNovo = novo ? nulo(form.valor) : nulo(form.reajuste_valor);
@@ -557,6 +607,34 @@ export default function RhColaboradoresPage() {
                     <F k="cnpj_sindicato" r={L("CNPJ do sindicato (só se for diferente do da filial)", "Union CNPJ (only if different from the branch)", "CNPJ del sindicato (solo si difiere de la sucursal)")} mascara={mascaraCNPJ} modo="numeric" ajuda={L("Categoria diferenciada (ex.: motorista). Vazio = usa o sindicato cadastrado na filial.", "Differentiated category (e.g. driver). Empty = uses the union on the branch.", "Categoría diferenciada (ej.: conductor). Vacío = usa el sindicato de la sucursal.")} />
                     <F k="data_base" r={L("Mês da data-base da categoria", "Collective bargaining month", "Mes de la fecha base de la categoría")} opcoes={[vazio, ...Array.from({ length: 12 }, (_, i) => ({ v: String(i + 1), l: new Date(2026, i, 1).toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "long" }) }))]} />
                     <div className="md:col-span-2"><F k="dsc_sal_var" r={L("Salário variável: como é calculado (só tarefa/comissão)", "Variable pay: how it is calculated (task/commission only)", "Salario variable: cómo se calcula (solo tarea/comisión)")} ajuda={L("Ex.: comissão de 3% sobre as vendas do mês.", "E.g. 3% commission on monthly sales.", "Ej.: comisión del 3% sobre las ventas del mes.")} /></div>
+                    {String(form.cod_categ) === "103" && (<>
+                      <F k="apr_ind" r={L("Aprendiz: forma de contratação", "Apprentice: hiring method", "Aprendiz: forma de contratación")} opcoes={[vazio, { v: "1", l: L("Direta (a Empresa cumpre a cota)", "Direct (the company fulfils the quota)", "Directa (la empresa cumple la cuota)") }, { v: "2", l: L("Indireta (entidade sem fins lucrativos contrata)", "Indirect (non-profit entity hires)", "Indirecta (entidad sin fines de lucro contrata)") }]} />
+                      {String(form.apr_ind) === "1" && <F k="apr_cnpj_ent_qual" r={L("CNPJ da entidade qualificadora (curso)", "Training entity CNPJ (course)", "CNPJ de la entidad calificadora (curso)")} mascara={mascaraCNPJ} modo="numeric" />}
+                      {String(form.apr_ind) === "2" && (<>
+                        <F k="apr_tp_insc" r={L("Estabelecimento que cumpre a cota: tipo", "Quota establishment: type", "Establecimiento de la cuota: tipo")} opcoes={[{ v: "1", l: "CNPJ" }, { v: "2", l: "CPF" }]} />
+                        <F k="apr_nr_insc" r={L("CNPJ/CPF do estabelecimento que cumpre a cota", "CNPJ/CPF of the quota establishment", "CNPJ/CPF del establecimiento de la cuota")} mascara={String(form.apr_tp_insc) === "2" ? mascaraCPF : mascaraCNPJ} modo="numeric" />
+                      </>)}
+                      <F k="apr_cnpj_prat" r={L("CNPJ do local das atividades práticas (só se for outro)", "Practical activities CNPJ (only if elsewhere)", "CNPJ del lugar de las actividades prácticas (solo si es otro)")} mascara={mascaraCNPJ} modo="numeric" />
+                    </>)}
+                    {String(form.cod_categ) === "106" && (<>
+                      <F k="temp_hip_leg" r={L("Temporário: motivo legal (Lei 6.019/1974)", "Temporary: legal reason (Law 6,019/1974)", "Temporal: motivo legal (Ley 6.019/1974)")} opcoes={[vazio, { v: "1", l: L("Substituição de pessoal permanente", "Replacing permanent staff", "Sustitución de personal permanente") }, { v: "2", l: L("Demanda complementar de serviços", "Extra demand for services", "Demanda complementaria de servicios") }]} />
+                      <F k="temp_tomador_tp_insc" r={L("Cliente (tomador): tipo", "Client: type", "Cliente (tomador): tipo")} opcoes={[{ v: "1", l: "CNPJ" }, { v: "2", l: "CPF" }]} />
+                      <F k="temp_tomador_nr_insc" r={L("CNPJ/CPF do cliente (tomador)", "Client CNPJ/CPF", "CNPJ/CPF del cliente (tomador)")} mascara={String(form.temp_tomador_tp_insc) === "2" ? mascaraCPF : mascaraCNPJ} modo="numeric" />
+                      {String(form.temp_hip_leg) === "1" && <F k="temp_cpf_substituidos" r={L("CPF de quem está sendo substituído (até 9, separados por vírgula)", "CPF of who is being replaced (up to 9, comma-separated)", "CPF de quien es sustituido (hasta 9, separados por coma)")} />}
+                      <F largo k="temp_just_contr" r={L("Justificativa (o fato que motiva a contratação)", "Justification (the fact behind the hiring)", "Justificación (el hecho que motiva la contratación)")} ajuda={L("Ex.: substituição de empregada em licença-maternidade até 30/04/2027.", "E.g. replacing an employee on maternity leave until 04/30/2027.", "Ej.: sustitución de empleada en licencia por maternidad hasta el 30/04/2027.")} />
+                    </>)}
+                    {["104", "106"].includes(String(form.cod_categ)) && (<>
+                      <p className="md:col-span-2 text-xs font-bold" style={{ color: ROTULO }}>{String(form.cod_categ) === "104" ? L("Local de trabalho: a casa onde a pessoa trabalha", "Workplace: the home where the person works", "Lugar de trabajo: la casa donde trabaja la persona") : L("Local de trabalho: onde a pessoa vai trabalhar (cliente)", "Workplace: where the person will work (client)", "Lugar de trabajo: donde la persona va a trabajar (cliente)")}</p>
+                      <F k="lt_cep" r={L("CEP do local de trabalho", "Workplace CEP", "CEP del lugar de trabajo")} mascara={mascaraCEP} modo="numeric" aoMudar={(v) => void preencherLtPorCep(v)} />
+                      <F k="lt_logradouro" r={L("Endereço", "Street", "Dirección")} />
+                      <F k="lt_numero" r={L("Número", "Number", "Número")} />
+                      <F k="lt_complemento" r={L("Complemento", "Complement", "Complemento")} />
+                      <F k="lt_bairro" r={L("Bairro", "District", "Barrio")} />
+                      <F k="lt_uf" r="UF" opcoes={[vazio, ...UFS.map((u) => ({ v: u, l: u }))]} />
+                      <F k="lt_cod_munic" r={L("Código do município (IBGE)", "City code (IBGE)", "Código del municipio (IBGE)")} modo="numeric" ajuda={L("Vem sozinho pelo CEP.", "Fills in from the CEP.", "Se completa con el CEP.")} />
+                    </>)}
+                    {String(form.cod_categ) === "104" && <p className="md:col-span-2 text-xs" style={{ color: TEXTO_SEC }}>{L("Doméstico: o empregador é a pessoa física (CPF) — cadastre-o em RH · Estrutura → Empregador com tipo CPF. O sindicato vai aqui no contrato.", "Domestic: the employer is the individual (CPF) — register them in HR · Structure → Employer with type CPF. The union goes here on the contract.", "Doméstico: el empleador es la persona física (CPF) — regístrelo en RR. HH. · Estructura → Empleador con tipo CPF. El sindicato va aquí en el contrato.")}</p>}
+                    {String(form.cod_categ) === "111" && <p className="md:col-span-2 text-xs" style={{ color: TEXTO_SEC }}>{L("Intermitente (CLT art. 452-A): sem horas fixas por semana. No horário, descreva como é feita a convocação; o salário costuma ser por hora.", "Intermittent (CLT art. 452-A): no fixed weekly hours. In the schedule, describe how calls are made; pay is usually hourly.", "Intermitente (CLT art. 452-A): sin horas fijas por semana. En el horario, describa cómo es la convocatoria; el salario suele ser por hora.")}</p>}
                     {form.situacao === "desligado" && <F k="data_desligamento" tipo="date" r={L("Data do desligamento", "Termination date", "Fecha de desvinculación")} />}
                   </Secao>
 
@@ -573,6 +651,10 @@ export default function RhColaboradoresPage() {
                       <F k="email" tipo="email" r="E-mail" modo="email" />
                       <F k="pais_nascimento_txt" r={L("País de nascimento", "Country of birth", "País de nacimiento")} lista="lista-paises" ajuda={L("Comece a digitar e escolha na lista.", "Start typing and pick from the list.", "Empiece a escribir y elija en la lista.")} />
                       <F k="pais_nacionalidade_txt" r={L("Nacionalidade", "Nationality", "Nacionalidad")} lista="lista-paises" />
+                      {(codigoPais(form.pais_nacionalidade_txt) ?? "105") !== "105" && (<>
+                        <F k="imig_cond_ing" r={L("Estrangeiro: condição de ingresso", "Foreigner: entry condition", "Extranjero: condición de ingreso")} opcoes={[vazio, { v: "1", l: L("Refugiado", "Refugee", "Refugiado") }, { v: "2", l: L("Solicitante de refúgio", "Asylum seeker", "Solicitante de refugio") }, { v: "3", l: L("Reunião familiar", "Family reunion", "Reunión familiar") }, { v: "4", l: L("Acordo do Mercosul", "Mercosur agreement", "Acuerdo del Mercosur") }, { v: "5", l: L("Dependente de agente diplomático", "Dependent of a diplomatic agent", "Dependiente de agente diplomático") }, { v: "6", l: L("Tratado Brasil–Portugal", "Brazil–Portugal treaty", "Tratado Brasil–Portugal") }, { v: "7", l: L("Outra condição", "Other condition", "Otra condición") }]} />
+                        <F k="imig_tmp_resid" r={L("Estrangeiro: tempo de residência", "Foreigner: residence term", "Extranjero: tiempo de residencia")} opcoes={[vazio, { v: "1", l: L("Prazo indeterminado", "Indefinite", "Plazo indeterminado") }, { v: "2", l: L("Prazo determinado", "Fixed term", "Plazo determinado") }]} />
+                      </>)}
                       <F k="cep" r="CEP" mascara={mascaraCEP} modo="numeric" aoMudar={(v) => void preencherPorCep(v)} ajuda={cepMsg ?? L("Digite o CEP: endereço, bairro, cidade e UF se preenchem sozinhos.", "Type the postal code: street, district, city and state fill in automatically.", "Escriba el CEP: dirección, barrio, ciudad y estado se completan solos.")} />
                       <F k="logradouro" r={L("Endereço", "Street", "Dirección")} />
                       <F k="numero" r={L("Número", "Number", "Número")} />
@@ -587,6 +669,20 @@ export default function RhColaboradoresPage() {
                     </Secao>
                   ) : (
                     <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Dados pessoais: você não tem liberação para ver.", "Personal data: you are not granted access.", "Datos personales: no tiene habilitación para ver.")}</p>
+                  )}
+
+                  {pode.saude ? (
+                    <Secao titulo={L("Pessoa com deficiência (dado de saúde, protegido)", "Person with disability (health data, protected)", "Persona con discapacidad (dato de salud, protegido)")}>
+                      <div className="md:col-span-2 flex flex-wrap gap-x-5 gap-y-2 text-sm" style={{ color: "var(--axi-text-primary)" }}>
+                        {([["def_fisica", L("Física", "Physical", "Física")], ["def_visual", L("Visual", "Visual", "Visual")], ["def_auditiva", L("Auditiva", "Hearing", "Auditiva")], ["def_mental", L("Mental", "Mental", "Mental")], ["def_intelectual", L("Intelectual", "Intellectual", "Intelectual")], ["reab_readap", L("Reabilitado pelo INSS", "Rehabilitated by INSS", "Rehabilitado por el INSS")]] as const).map(([k, rot]) => (
+                          <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={!!form[`pcd_${k}`]} onChange={(e) => setForm({ ...form, [`pcd_${k}`]: e.target.checked })} /> {rot}</label>
+                        ))}
+                      </div>
+                      {String(form.data_admissao) < "2026-10-26" && <F k="pcd_info_cota" r={L("Conta na cota de PCD/reabilitados?", "Counts toward the disability quota?", "¿Cuenta en la cuota de PcD/rehabilitados?")} ajuda={L("O eSocial pede só para admissão antes de 26/10/2026.", "eSocial asks only for hires before 10/26/2026.", "eSocial lo pide solo para admisiones antes del 26/10/2026.")} opcoes={[vazio, { v: "S", l: L("Sim", "Yes", "Sí") }, { v: "N", l: L("Não", "No", "No") }]} />}
+                      <F largo k="pcd_observacao" r={L("Observação (opcional)", "Note (optional)", "Observación (opcional)")} ajuda={L("Só o necessário para o posto de trabalho. Lei 8.213/1991 art. 93 (cota) e LGPD art. 11 (dado sensível).", "Only what the workstation needs. Law 8,213/1991 art. 93 (quota) and LGPD art. 11 (sensitive data).", "Solo lo necesario para el puesto. Ley 8.213/1991 art. 93 (cuota) y LGPD art. 11 (dato sensible).")} />
+                    </Secao>
+                  ) : (
+                    <p className="text-xs mt-2" style={{ color: TEXTO_SEC }}>{L("Pessoa com deficiência: dado de saúde, você não tem liberação para ver.", "Person with disability: health data, you are not granted access.", "Persona con discapacidad: dato de salud, no tiene habilitación para ver.")}</p>
                   )}
 
                   {pode.salario ? (
@@ -616,6 +712,7 @@ export default function RhColaboradoresPage() {
                     <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{L("Documentos e exames da admissão: salve o cadastro primeiro e abra de novo pelo lápis.", "Hiring documents and exams: save the record first and reopen it with the pencil.", "Documentos y exámenes de admisión: guarde el registro primero y ábralo de nuevo con el lápiz.")}</p>
                   ))}
 
+                  {form.id && pode.pessoais && <DependentesColab colaboradorId={form.id} empresaId={empresaId!} lang={lang} podeEditar={pode.editar} avisar={avisar} />}
                   {form.id && form.contrato_id && <CartaoEsocial contratoId={form.contrato_id} empresaId={empresaId!} lang={lang} pode={pode} avisar={avisar} aoMudar={(sit) => { setForm((f) => (f ? { ...f, contrato_situacao: sit } : f)); void carregarLista(); }} />}
                   {pode.editar && (
                     <BotaoAcao executar={salvar} texto={L("Salvar", "Save", "Guardar")} textoTrabalhando={L("Salvando…", "Saving…", "Guardando…")} className="w-full mt-4 py-3.5 rounded-xl" estilo={{ background: BTN, color: "#fff" }} />
@@ -653,7 +750,12 @@ const CAMPO_NOME: Record<string, [string, string, string]> = {
   tmp_parc: ["Tempo parcial", "Part-time", "Tiempo parcial"], hor_noturno: ["Trabalho noturno", "Night work", "Trabajo nocturno"], dsc_jorn: ["Horário", "Schedule", "Horario"],
   clau_assec: ["Cláusula de rescisão antecipada", "Early termination clause", "Cláusula de rescisión anticipada"], obj_det: ["Objeto do contrato", "Contract purpose", "Objeto del contrato"],
   data_base: ["Mês da data-base", "Bargaining month", "Mes de fecha base"], cnpj_sindicato: ["CNPJ do sindicato", "Union CNPJ", "CNPJ del sindicato"], dsc_sal_var: ["Salário variável", "Variable pay", "Salario variable"],
-  cod_munic: ["Código do município", "City code", "Código del municipio"],
+  cod_munic: ["Código do município", "City code", "Código del municipio"], imig_tmp_resid: ["Tempo de residência", "Residence term", "Tiempo de residencia"], imig_cond_ing: ["Condição de ingresso", "Entry condition", "Condición de ingreso"],
+  apr_ind: ["Aprendiz: forma de contratação", "Apprentice: hiring", "Aprendiz: contratación"], apr_cnpj_ent_qual: ["Entidade qualificadora", "Training entity", "Entidad calificadora"], apr_tp_insc: ["Aprendiz: tipo", "Apprentice: type", "Aprendiz: tipo"], apr_nr_insc: ["Aprendiz: estabelecimento da cota", "Apprentice: quota establishment", "Aprendiz: establecimiento"], apr_cnpj_prat: ["Local das atividades práticas", "Practical activities place", "Lugar de las prácticas"],
+  temp_hip_leg: ["Temporário: motivo", "Temporary: reason", "Temporal: motivo"], temp_just_contr: ["Temporário: justificativa", "Temporary: justification", "Temporal: justificación"], temp_tomador_tp_insc: ["Cliente: tipo", "Client: type", "Cliente: tipo"], temp_tomador_nr_insc: ["Cliente (tomador)", "Client", "Cliente (tomador)"], temp_cpf_substituidos: ["Substituídos", "Replaced workers", "Sustituidos"],
+  lt_cep: ["Local de trabalho: CEP", "Workplace: CEP", "Lugar de trabajo: CEP"], lt_logradouro: ["Local de trabalho: endereço", "Workplace: street", "Lugar de trabajo: dirección"], lt_numero: ["Local de trabalho: número", "Workplace: number", "Lugar de trabajo: número"], lt_complemento: ["Local de trabalho: complemento", "Workplace: complement", "Lugar de trabajo: complemento"], lt_bairro: ["Local de trabalho: bairro", "Workplace: district", "Lugar de trabajo: barrio"], lt_cod_munic: ["Local de trabalho: município", "Workplace: city", "Lugar de trabajo: municipio"], lt_uf: ["Local de trabalho: UF", "Workplace: state", "Lugar de trabajo: estado"],
+  def_fisica: ["Deficiência física", "Physical disability", "Discapacidad física"], def_visual: ["Deficiência visual", "Visual disability", "Discapacidad visual"], def_auditiva: ["Deficiência auditiva", "Hearing disability", "Discapacidad auditiva"], def_mental: ["Deficiência mental", "Mental disability", "Discapacidad mental"], def_intelectual: ["Deficiência intelectual", "Intellectual disability", "Discapacidad intelectual"], reab_readap: ["Reabilitado", "Rehabilitated", "Rehabilitado"], info_cota: ["Cota PCD", "Disability quota", "Cuota PcD"],
+  tp_dep: ["Tipo de dependente", "Dependent type", "Tipo de dependiente"], dep_irrf: ["Deduz no IR", "Income tax deduction", "Deduce en IR"], dep_sf: ["Salário-família", "Family allowance", "Asignación familiar"], inc_trab: ["Incapaz para o trabalho", "Unable to work", "Incapaz para el trabajo"], descr_dep: ["Descrição do dependente", "Dependent description", "Descripción del dependiente"],
   tp_reg_trab: ["Regime trabalhista", "Labor regime", "Régimen laboral"], tp_reg_prev: ["Regime previdenciário", "Pension regime", "Régimen previsional"],
   cpf: ["CPF", "CPF", "CPF"], data_nascimento: ["Nascimento", "Birth date", "Nacimiento"], sexo: ["Sexo", "Sex", "Sexo"], raca_cor: ["Raça/cor", "Race/color", "Raza/color"],
   estado_civil: ["Estado civil", "Marital status", "Estado civil"], grau_instr: ["Escolaridade", "Education", "Escolaridad"], pais_nascimento: ["País de nascimento", "Country of birth", "País de nacimiento"],
@@ -665,7 +767,7 @@ const CAMPO_NOME: Record<string, [string, string, string]> = {
   categoria: ["Categoria", "Category", "Categoría"], tipo: ["Item", "Item", "Ítem"], data_item: ["Data", "Date", "Fecha"], validade: ["Validade", "Expiry", "Validez"],
   resultado: ["Resultado", "Result", "Resultado"], arquivo_nome: ["Arquivo", "File", "Archivo"], user_id: ["Login ligado", "Linked login", "Login vinculado"],
 };
-const PARTE_NOME: Record<string, [string, string, string]> = { cadastro: ["Cadastro", "Record", "Registro"], contrato: ["Contrato", "Contract", "Contrato"], pessoal: ["Dados pessoais", "Personal data", "Datos personales"], salario: ["Salário", "Salary", "Salario"], documento: ["Documento", "Document", "Documento"], exame: ["Exame", "Exam", "Examen"] };
+const PARTE_NOME: Record<string, [string, string, string]> = { cadastro: ["Cadastro", "Record", "Registro"], contrato: ["Contrato", "Contract", "Contrato"], pessoal: ["Dados pessoais", "Personal data", "Datos personales"], salario: ["Salário", "Salary", "Salario"], documento: ["Documento", "Document", "Documento"], exame: ["Exame", "Exam", "Examen"], saude: ["Saúde (PCD)", "Health (disability)", "Salud (PcD)"] };
 const ACAO_NOME: Record<string, [string, string, string]> = { criou: ["criou", "created", "creó"], alterou: ["alterou", "changed", "cambió"], lixeira: ["mandou para a lixeira", "moved to trash", "envió a la papelera"], recuperou: ["recuperou da lixeira", "restored from trash", "recuperó de la papelera"] };
 function HistoricoColab({ colaboradorId, empresaId, lang, valorDe }: { colaboradorId: string; empresaId: string; lang: Lang; valorDe: (campo: string, v: unknown) => string }) {
   const c = useContext(FormCtx)!;
@@ -846,6 +948,7 @@ const SIT_ESOCIAL: Record<string, [string, string, string]> = {
   recusado: ["Recusado pelo eSocial — corrigir e preparar de novo", "Rejected by eSocial — fix and prepare again", "Rechazado por eSocial — corregir y preparar de nuevo"],
 };
 const ONDE_NOME: Record<Pendencia["onde"], [string, string, string]> = {
+  pcd: ["Pessoa com deficiência, acima", "Person with disability, above", "Persona con discapacidad, arriba"], dependentes: ["Dependentes, acima", "Dependents, above", "Dependientes, arriba"],
   pessoal: ["Dados pessoais, acima", "Personal data, above", "Datos personales, arriba"], contrato: ["Contrato, acima", "Contract, above", "Contrato, arriba"],
   salario: ["Salário, acima", "Salary, above", "Salario, arriba"], cargo: ["RH · Estrutura → Cargos", "HR · Structure → Job titles", "RR. HH. · Estructura → Cargos"],
   estrutura: ["RH · Estrutura → Filiais", "HR · Structure → Branches", "RR. HH. · Estructura → Sucursales"], empregador: ["RH · Estrutura → Empregador", "HR · Structure → Employer", "RR. HH. · Estructura → Empleador"],
@@ -856,7 +959,7 @@ function baixarXml(nome: string, xml: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
-  contratoId: string; empresaId: string; lang: Lang; pode: { editar: boolean; pessoais: boolean; salario: boolean };
+  contratoId: string; empresaId: string; lang: Lang; pode: { editar: boolean; pessoais: boolean; salario: boolean; saude: boolean };
   avisar: (m: string, t?: "erro" | "ok") => void; aoMudar: (situacao: string) => void;
 }) {
   const c = useContext(FormCtx)!;
@@ -868,7 +971,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
   const [recibo, setRecibo] = useState("");
   const [eventos, setEventos] = useState<Linha[]>([]);
   const [erro, setErro] = useState(false);
-  const podePreparar = pode.pessoais && pode.salario;
+  const podePreparar = pode.pessoais && pode.salario && pode.saude;
 
   async function carregar() {
     const { data: k, error: eK } = await supabase.from("rh_contratos").select("*").eq("id", contratoId).single();
@@ -877,16 +980,18 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
     setSituacao(k.situacao_esocial); setRecibo(k.recibo_esocial ?? "");
     const hoje = hojeISO();
     const nada = Promise.resolve({ data: null, error: null });
-    const [col, pes, rem, cg, est, emp, ev] = await Promise.all([
+    const [col, pes, rem, cg, est, emp, ev, pcd, dep] = await Promise.all([
       supabase.from("rh_colaboradores").select("nome, nome_social").eq("id", k.colaborador_id).single(),
       pode.pessoais ? supabase.from("rh_colaborador_pessoal").select("*").eq("colaborador_id", k.colaborador_id).maybeSingle() : nada,
       pode.salario ? supabase.from("rh_remuneracoes").select("und_sal_fixo, valor, vigencia_inicio").eq("contrato_id", contratoId).lte("vigencia_inicio", k.data_admissao > hoje ? k.data_admissao : hoje).order("vigencia_inicio", { ascending: false }).limit(1) : nada,
       k.cargo_id ? supabase.from("rh_cargos").select("nome, cbo").eq("id", k.cargo_id).maybeSingle() : nada,
       k.estabelecimento_id ? supabase.from("rh_estabelecimentos").select("tp_insc, nr_insc, cnpj_sindicato").eq("id", k.estabelecimento_id).maybeSingle() : nada,
       supabase.from("rh_empregador").select("tp_insc, nr_insc, ini_valid").eq("empresa_id", empresaId).is("excluido_em", null).lte("ini_valid", String(k.data_admissao).slice(0, 7)).order("ini_valid", { ascending: false }).limit(1),
-      supabase.from("rh_esocial_eventos").select("id, id_evento, versao_leiaute, xml, criado_em").eq("contrato_id", contratoId).order("criado_em", { ascending: false }).limit(20),
+      podePreparar ? supabase.from("rh_esocial_eventos").select("id, id_evento, versao_leiaute, xml, criado_em").eq("contrato_id", contratoId).order("criado_em", { ascending: false }).limit(20) : Promise.resolve({ data: [], error: null }),
+      pode.saude ? supabase.from("rh_colaborador_pcd").select("*").eq("colaborador_id", k.colaborador_id).maybeSingle() : nada,
+      pode.pessoais ? supabase.from("rh_dependentes").select("tp_dep, nome, data_nascimento, cpf, dep_irrf, dep_sf, inc_trab, descr_dep").eq("colaborador_id", k.colaborador_id).is("excluido_em", null).order("data_nascimento") : Promise.resolve({ data: [], error: null }),
     ]);
-    const falha = [col, pes, rem, cg, est, emp, ev].find((x) => x.error);
+    const falha = [col, pes, rem, cg, est, emp, ev, pcd, dep].find((x) => x.error);
     if (falha?.error) { setErro(true); Sentry.captureException(new Error(`rh/esocial leitura: ${falha.error.message}`)); return; }
     setEventos((ev.data as Linha[] | null) ?? []);
     const r0 = (rem.data as Linha[] | null)?.[0];
@@ -896,6 +1001,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
       pessoal: (pes.data as Linha | null) ?? null, contrato: { ...(k as Linha), qtd_hrs_sem: k.qtd_hrs_sem == null ? null : Number(k.qtd_hrs_sem) } as DadosS2200["contrato"],
       cargo: (cg.data as DadosS2200["cargo"]) ?? null, remuneracao: r0 ? { und_sal_fixo: Number(r0.und_sal_fixo), valor: Number(r0.valor) } : null,
       estabelecimento: (est.data as DadosS2200["estabelecimento"]) ?? null,
+      pcd: (pcd.data as DadosS2200["pcd"]) ?? null, dependentes: (dep.data as DadosS2200["dependentes"]) ?? [],
     });
   }
   useEffect(() => { void carregar(); }, [contratoId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -939,7 +1045,7 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
           <p><b>{L("Situação", "Status", "Situación")}:</b> <span className="font-bold" style={{ color: corSit }}>{(SIT_ESOCIAL[situacao] ?? [situacao, situacao, situacao])[i]}</span>{recibo && <> · {L("recibo", "receipt", "recibo")} {recibo}</>}</p>
           <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("O Axioma prepara o arquivo no formato oficial (leiaute S-1.3, conferido contra o esquema do governo). O contador assina com o certificado digital dele e envia. A lista abaixo usa o que está SALVO: salve antes de preparar.", "Axioma prepares the file in the official format (layout S-1.3, checked against the government schema). The accountant signs it with their digital certificate and sends it. The list below uses what is SAVED: save before preparing.", "Axioma prepara el archivo en el formato oficial (leiaute S-1.3, verificado contra el esquema del gobierno). El contador lo firma con su certificado digital y lo envía. La lista de abajo usa lo GUARDADO: guarde antes de preparar.")}</p>
           {!podePreparar ? (
-            <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Para preparar o arquivo é preciso liberação de dados pessoais e de salário (peça em RH · Estrutura e acessos → Acessos do RH).", "Preparing the file requires personal-data and salary access (ask in HR · Structure and access → HR access).", "Para preparar el archivo se necesita habilitación de datos personales y salario (pídala en RR. HH. · Estructura y accesos → Accesos de RR. HH.).")}</p>
+            <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Para preparar o arquivo é preciso liberação de dados pessoais, salário e saúde — o arquivo tem CPF, salário e deficiência (peça em RH · Estrutura e acessos → Acessos do RH).", "Preparing the file requires personal-data, salary and health access — the file has CPF, salary and disability (ask in HR · Structure and access → HR access).", "Para preparar el archivo se necesita habilitación de datos personales, salario y salud — el archivo tiene CPF, salario y discapacidad (pídala en RR. HH. · Estructura y accesos → Accesos de RR. HH.).")}</p>
           ) : pend.length > 0 && abertos ? (
             <div className="rounded-xl p-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
               <p className="font-bold mb-1" style={{ color: LARANJA }}>{L(`Falta(m) ${pend.length} item(ns) para preparar:`, `${pend.length} item(s) missing to prepare:`, `Falta(n) ${pend.length} ítem(s) para preparar:`)}</p>
@@ -972,6 +1078,102 @@ function CartaoEsocial({ contratoId, empresaId, lang, pode, avisar, aoMudar }: {
           )}
         </>)}
       </div>
+    </Secao>
+  );
+}
+
+// Dependentes (Tabela 07 do eSocial): IR, salário-família e S-2200. Dado pessoal: só quem tem a liberação de dados pessoais.
+// Tirar um dependente marca excluido_em (fica no histórico); apagar segue a regra do Axioma (aviso + motivo + senha).
+function DependentesColab({ colaboradorId, empresaId, lang, podeEditar, avisar }: { colaboradorId: string; empresaId: string; lang: Lang; podeEditar: boolean; avisar: (m: string, t?: "erro" | "ok") => void }) {
+  const c = useContext(FormCtx)!;
+  const claro = c.titulo !== "var(--axi-text-primary)";
+  const { confirmar, janelaConfirmacao } = useConfirmarExclusao(claro);
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const [lista, setLista] = useState<Linha[] | null>(null);
+  const [tipos, setTipos] = useState<Linha[]>([]);
+  const [ed, setEd] = useState<Linha | null>(null);
+  const [erro, setErro] = useState(false);
+  async function carregar() {
+    const [d, t] = await Promise.all([
+      supabase.from("rh_dependentes").select("*").eq("colaborador_id", colaboradorId).is("excluido_em", null).order("data_nascimento"),
+      supabase.from("esocial_tab07_dependente").select("codigo, descricao, termino").order("codigo"),
+    ]);
+    if (d.error || t.error) { setErro(true); setLista([]); Sentry.captureException(new Error(`rh_dependentes: ${(d.error ?? t.error)!.message}`)); return; }
+    setErro(false); setLista(d.data ?? []); setTipos((t.data ?? []).filter((x: Linha) => !x.termino));
+  }
+  useEffect(() => { void carregar(); }, [colaboradorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function salvar(): Promise<boolean> {
+    if (!ed) return false;
+    const cpf = soDig(ed.cpf);
+    if (String(ed.nome ?? "").trim().length < 2) { avisar(L("Dependente: informe o nome.", "Dependent: enter the name.", "Dependiente: informe el nombre.")); return false; }
+    if (!ed.data_nascimento) { avisar(L("Dependente: informe a data de nascimento.", "Dependent: enter the date of birth.", "Dependiente: informe la fecha de nacimiento.")); return false; }
+    if (cpf && !validarCPF(cpf)) { avisar(L("Dependente: CPF inválido.", "Dependent: invalid CPF.", "Dependiente: CPF inválido.")); return false; }
+    if (ed.dep_irrf && (!cpf || !ed.tp_dep)) { avisar(L("Para deduzir no IR, o eSocial exige o CPF e o tipo do dependente.", "To deduct from income tax, eSocial requires the dependent's CPF and type.", "Para deducir en el IR, eSocial exige el CPF y el tipo del dependiente.")); return false; }
+    if (ed.tp_dep === "99" && !String(ed.descr_dep ?? "").trim()) { avisar(L("Tipo \"Outros\": descreva a dependência.", "\"Other\" type: describe the dependency.", "Tipo \"Otros\": describa la dependencia.")); return false; }
+    const linha = { empresa_id: empresaId, colaborador_id: colaboradorId, tp_dep: ed.tp_dep || null, nome: String(ed.nome).trim(), data_nascimento: ed.data_nascimento, cpf: cpf || null,
+      dep_irrf: !!ed.dep_irrf, dep_sf: !!ed.dep_sf, inc_trab: !!ed.inc_trab, descr_dep: ed.tp_dep === "99" ? String(ed.descr_dep).trim() : null };
+    const r = ed.id ? await supabase.from("rh_dependentes").update(linha).eq("id", ed.id).select("id") : await supabase.from("rh_dependentes").insert(linha).select("id");
+    if (r.error || !r.data?.length) { avisar(r.error?.code === "23505" ? L("Já existe um dependente com este CPF.", "There is already a dependent with this CPF.", "Ya existe un dependiente con este CPF.") : mensagemErroRh(r.error, lang)); return false; }
+    setEd(null); avisar(L("Dependente salvo.", "Dependent saved.", "Dependiente guardado."), "ok"); await carregar();
+    return true;
+  }
+  async function tirar(d: Linha) {
+    const ok = await confirmar({ oQue: `"${d.nome}"`, tabela: "rh_dependentes", registroId: d.id,
+      efeito: { pt: "O dependente sai da lista (IR, salário-família e eSocial) e fica registrado no histórico. Se já foi informado ao eSocial, avise o contador.", en: "The dependent leaves the list (income tax, family allowance and eSocial) and stays in the history. If already reported to eSocial, tell the accountant.", es: "El dependiente sale de la lista (IR, asignación familiar y eSocial) y queda en el historial. Si ya fue informado al eSocial, avise al contador." } });
+    if (!ok) return;
+    const r = await supabase.from("rh_dependentes").update({ excluido_em: new Date().toISOString() }).eq("id", d.id).select("id");
+    if (r.error || !r.data?.length) { avisar(mensagemErroRh(r.error, lang)); return; }
+    avisar(L("Dependente retirado.", "Dependent removed.", "Dependiente retirado."), "ok"); await carregar();
+  }
+  const nomeTipo = (cod?: string | null) => tipos.find((t) => t.codigo === cod)?.descricao ?? (cod ? cod : L("sem tipo", "no type", "sin tipo"));
+  const campoEd = (k: string, v: unknown) => setEd((e) => (e ? { ...e, [k]: v } : e));
+  return (
+    <Secao titulo={L("Dependentes (IR, salário-família e eSocial)", "Dependents (income tax, family allowance and eSocial)", "Dependientes (IR, asignación familiar y eSocial)")}>
+      <div className="md:col-span-2 text-sm space-y-2" style={{ color: "var(--axi-text-primary)" }}>
+        {erro && <p style={{ color: "#ef4444" }}>{L("Não foi possível ler os dependentes agora.", "Could not read dependents now.", "No se pudieron leer los dependientes ahora.")}</p>}
+        {lista === null ? <p style={{ color: c.TEXTO_SEC }}>{L("Carregando…", "Loading…", "Cargando…")}</p> : lista.length === 0 && !ed ? <p className="text-xs" style={{ color: c.TEXTO_SEC }}>{L("Nenhum dependente.", "No dependents.", "Ningún dependiente.")}</p> : (
+          <ul className="space-y-1">
+            {lista.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+                <span><b>{d.nome}</b> · {dataBR(d.data_nascimento)} · <span style={{ color: c.TEXTO_SEC }}>{nomeTipo(d.tp_dep)}{d.dep_irrf ? ` · ${L("deduz IR", "tax deduction", "deduce IR")}` : ""}{d.dep_sf ? ` · ${L("salário-família", "family allowance", "asignación familiar")}` : ""}{d.inc_trab ? ` · ${L("incapaz para o trabalho", "unable to work", "incapaz para el trabajo")}` : ""}</span></span>
+                {podeEditar && <span className="flex gap-2">
+                  <button type="button" aria-label={L("Editar dependente", "Edit dependent", "Editar dependiente")} onClick={() => setEd({ ...d, cpf: mascaraCPF(d.cpf ?? "") })} style={{ color: c.titulo }}><Pencil size={15} /></button>
+                  <button type="button" aria-label={L("Retirar dependente", "Remove dependent", "Retirar dependiente")} onClick={() => void tirar(d)} style={{ color: "#ef4444" }}><Trash2 size={15} /></button>
+                </span>}
+              </li>
+            ))}
+          </ul>
+        )}
+        {ed ? (
+          <div className="rounded-xl p-3 grid grid-cols-1 md:grid-cols-2 gap-3" style={{ background: c.NESTED_BG, border: `1px solid ${c.BORDA}` }}>
+            {([["nome", L("Nome do dependente *", "Dependent's name *", "Nombre del dependiente *"), "text"], ["data_nascimento", L("Data de nascimento *", "Date of birth *", "Fecha de nacimiento *"), "date"]] as const).map(([k, rot, tipo]) => (
+              <div key={k}><label htmlFor={`dep-${k}`} className="text-xs font-semibold mb-1.5 block" style={{ color: c.ROTULO }}>{rot}</label>
+                <input id={`dep-${k}`} type={tipo} value={ed[k] ?? ""} onChange={(e) => campoEd(k, e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={c.campo} /></div>
+            ))}
+            <div><label htmlFor="dep-tipo" className="text-xs font-semibold mb-1.5 block" style={{ color: c.ROTULO }}>{L("Tipo (Tabela 07 do eSocial)", "Type (eSocial Table 07)", "Tipo (Tabla 07 del eSocial)")}</label>
+              <select id="dep-tipo" value={ed.tp_dep ?? ""} onChange={(e) => campoEd("tp_dep", e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={c.campo}>
+                <option value="">—</option>{tipos.map((t) => <option key={t.codigo} value={t.codigo}>{t.codigo} — {String(t.descricao).slice(0, 90)}</option>)}
+              </select></div>
+            <div><label htmlFor="dep-cpf" className="text-xs font-semibold mb-1.5 block" style={{ color: c.ROTULO }}>{L("CPF (obrigatório se deduz no IR)", "CPF (required for tax deduction)", "CPF (obligatorio si deduce en IR)")}</label>
+              <input id="dep-cpf" inputMode="numeric" value={ed.cpf ?? ""} onChange={(e) => campoEd("cpf", mascaraCPF(e.target.value))} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={c.campo} /></div>
+            {ed.tp_dep === "99" && <div className="md:col-span-2"><label htmlFor="dep-descr" className="text-xs font-semibold mb-1.5 block" style={{ color: c.ROTULO }}>{L("Descrição da dependência *", "Description of the dependency *", "Descripción de la dependencia *")}</label>
+              <input id="dep-descr" value={ed.descr_dep ?? ""} onChange={(e) => campoEd("descr_dep", e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={c.campo} /></div>}
+            <div className="md:col-span-2 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              {([["dep_irrf", L("Deduz no Imposto de Renda", "Income tax deduction", "Deduce en el Impuesto a la Renta")], ["dep_sf", L("Recebe salário-família", "Receives family allowance", "Recibe asignación familiar")], ["inc_trab", L("Incapaz para o trabalho", "Unable to work", "Incapaz para el trabajo")]] as const).map(([k, rot]) => (
+                <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={!!ed[k]} onChange={(e) => campoEd(k, e.target.checked)} /> {rot}</label>
+              ))}
+            </div>
+            <div className="md:col-span-2 flex flex-wrap gap-2">
+              <BotaoAcao executar={salvar} texto={L("Salvar dependente", "Save dependent", "Guardar dependiente")} textoTrabalhando="…" className="px-4 py-2.5 rounded-xl text-sm" estilo={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }} />
+              <button type="button" onClick={() => setEd(null)} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "linear-gradient(135deg, #0a1628, #101b3d)", color: "#fff" }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+            </div>
+          </div>
+        ) : podeEditar && (
+          <button type="button" onClick={() => setEd({ nome: "", data_nascimento: "", tp_dep: "03", cpf: "", dep_irrf: false, dep_sf: false, inc_trab: false })} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>{L("+ Adicionar dependente", "+ Add dependent", "+ Agregar dependiente")}</button>
+        )}
+      </div>
+      {janelaConfirmacao}
     </Secao>
   );
 }

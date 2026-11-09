@@ -62,7 +62,8 @@ const doc: DocumentoAxioma = {
       'Axioma **no graba el audio** en bases de datos, archivos o registros y **no identifica a las personas por la voz** (no hay biometría de voz). El micrófono solo se enciende tras su toque y el permiso del navegador.',
     ] },
     { h2: '3.7 Datos que no pedimos' },
-    { p: 'Axioma no fue hecho para tratar datos personales sensibles (como salud, religión, biometría u opinión política) ni datos de niños y adolescentes. Pedimos que el Cliente no los registre en la Plataforma.' },
+    { p: 'Fuera del módulo de RR. HH., Axioma no fue hecho para tratar datos personales sensibles (como salud, religión, biometría u opinión política) ni datos de niños y adolescentes. Pedimos que el Cliente no los registre en los demás módulos.' },
+    { p: '**Módulo de RR. HH.** Para que la Empresa cumpla obligaciones laborales y previsionales (CLT, NR-7 y eSocial), RR. HH. trata, en nombre del Cliente, algunos datos sensibles de los empleados — **raza/color** (autodeclarada, exigida por eSocial), **exámenes ocupacionales** y **discapacidad** (cuota de la Ley 8.213/1991, art. 93) — y datos de **dependientes**, que pueden ser hijos menores de edad (Impuesto a la Renta y asignación familiar). La base legal es el cumplimiento de obligación legal o regulatoria (LGPD, art. 7, II, y art. 11, II, "a"); para niños y adolescentes, prevalece su mejor interés (LGPD, art. 14, y Enunciado CD/ANPD nº 1/2023). Estos datos quedan en partes separadas, que solo quien recibió la habilitación específica (salud o datos personales) puede ver; nunca se usan en análisis, puntuación o decisión de Axioma o de su inteligencia artificial; y solo salen de la Plataforma cuando el propio Cliente descarga el archivo del eSocial para entregarlo a su contador.' },
 
     { h1: '4. Para qué usamos los datos y con qué base legal' },
     { tabela: { colunas: ['Finalidad', 'Base legal (LGPD)'], larguras: [5800, 3226], linhas: [
@@ -157,7 +158,7 @@ const doc: DocumentoAxioma = {
     { p: 'Usamos solo cookies y almacenamiento local estrictamente necesarios para mantener la sesión abierta, proteger el acceso y recordar preferencias (idioma, tema, empresa activa). No usamos cookies de publicidad. Para mejorar las pantallas, medimos el uso con PostHog de forma reducida: sin cookies, sin guardar nada en su navegador, sin grabación de sesión y sin llevar textos, valores ni nombres que aparecen en pantalla — solo qué pantalla se abrió y qué tipo de botón se usó.' },
 
     { h1: '12. Niños y adolescentes' },
-    { p: 'Axioma está destinado a empresas y a mayores de 18 años. No tratamos intencionalmente datos de niños y adolescentes. Si identificamos ese tratamiento, los datos serán eliminados.' },
+    { p: 'Axioma está destinado a empresas y a mayores de 18 años: niños y adolescentes no usan la Plataforma. La única excepción de dato tratado es la del módulo de RR. HH. — dependientes de empleados (Impuesto a la Renta y asignación familiar) y el joven aprendiz —, siempre por obligación legal, en el mejor interés del niño o adolescente (LGPD, art. 14, y Enunciado CD/ANPD nº 1/2023) y con acceso restringido, como se describe en el ítem 3.7. Fuera de eso, si identificamos datos de un niño o adolescente registrados por error, serán eliminados.' },
 
     { h1: '13. Obligaciones del Cliente como responsable' },
     { p: 'Cuando la empresa Cliente registra en Axioma datos personales de terceros, es la responsable de esos datos y se compromete a:' },
