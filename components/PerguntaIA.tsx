@@ -14,7 +14,7 @@ export function PerguntaIA({ tela, empresaId, lang, temaClaro, titulo, sugestoes
     <CanvasBox cor={temaClaro ? '#0f7a5a' : '#2ecc9b'} {...(temaClaro ? { fundo: '#f6f7c4', premium3d: true } : { premium3d: true })}>
       <ChatInteligencia tela={tela} empresaId={empresaId} lang={lang} claro={temaClaro} titulo={titulo} sugestoes={sugestoes}
         placeholder={L('Escreva ou fale sua pergunta', 'Type or say your question', 'Escriba o diga su pregunta')} contexto={contexto ?? (() => '')} />
-      <p className="text-xs mt-2" style={{ color: temaClaro ? '#374151' : 'var(--axi-text-secondary)' }}>{L('A IA só lê o que você tem liberação para ver, nunca fala CPF, endereço, saúde ou salário de uma pessoa, e mostra de onde veio cada número.', 'The AI only reads what you are allowed to see, never says a person\'s ID, address, health or salary, and shows where each number came from.', 'La IA solo lee lo que usted puede ver, nunca dice el CPF, la dirección, la salud ni el salario de una persona, y muestra de dónde vino cada número.')}</p>
+      <p className="text-xs mt-2" style={{ color: temaClaro ? '#374151' : 'var(--axi-text-secondary)' }}>{L('A IA só lê o que você tem liberação para ver: salário de uma pessoa só com a liberação de salário do RH; CPF, endereço, saúde e dependentes nunca. Mostra de onde veio cada número.', 'The AI only reads what you are allowed to see: one person\'s salary only with HR salary access; ID, address, health and dependents never. It shows where each number came from.', 'La IA solo lee lo que usted puede ver: el salario de una persona solo con habilitación de salario en RR. HH.; CPF, dirección, salud y dependientes nunca. Muestra de dónde vino cada número.')}</p>
     </CanvasBox>
   )
 }
