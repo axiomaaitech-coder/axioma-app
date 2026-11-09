@@ -43,7 +43,7 @@ const pt: DocumentoAxioma = {
     { lista: [
       '**Controle de ponto**: obrigatório com mais de 20 empregados no mesmo estabelecimento (CLT art. 74, § 2º). Mostra a conta por filial.',
       '**Cota de pessoas com deficiência**: a partir de 100 empregados, 2% a 5% (Lei 8.213/1991, art. 93). Com liberação de saúde, mostra quantas vagas já estão preenchidas.',
-      '**Relatório de igualdade salarial**: a partir de 100 empregados, 2 vezes por ano no Portal Emprega Brasil (Lei 14.611/2023).',
+      '**Relatório de igualdade salarial**: a partir de 100 empregados, 2 vezes por ano no Portal Emprega Brasil (Lei 14.611/2023). **Ver cargos e salários ›** abre os cargos na Estrutura.',
       '**Cota de aprendizes**: 5% a 15% das funções que exigem formação (CLT art. 429); ME/EPP dispensadas (LC 123/2006, art. 51, III). Quais funções contam depende da CBO — confirme com o contador.',
       'Cada item diz se **já se aplica** ou quantos empregados faltam, e traz a base legal.',
     ] },
@@ -92,7 +92,7 @@ const en: DocumentoAxioma = {
     { lista: [
       '**Time tracking**: mandatory above 20 employees in the same site (CLT art. 74, § 2). Shows the count per branch.',
       '**Disability quota**: from 100 employees, 2% to 5% (Law 8.213/1991, art. 93). With health access, shows how many positions are filled.',
-      '**Pay equality report**: from 100 employees, twice a year on the Emprega Brasil portal (Law 14.611/2023).',
+      '**Pay equality report**: from 100 employees, twice a year on the Emprega Brasil portal (Law 14.611/2023). **See job titles and salaries ›** opens the job titles in Structure.',
       '**Apprentice quota**: 5% to 15% of roles that require training (CLT art. 429); micro and small businesses exempt (LC 123/2006, art. 51, III). Which roles count depends on the CBO — confirm with the accountant.',
       'Each item says whether it **already applies** or how many employees are left, with the legal basis.',
     ] },
@@ -141,7 +141,7 @@ const es: DocumentoAxioma = {
     { lista: [
       '**Control de jornada**: obligatorio con más de 20 empleados en el mismo establecimiento (CLT art. 74, § 2). Muestra la cuenta por sucursal.',
       '**Cuota de personas con discapacidad**: desde 100 empleados, 2% a 5% (Ley 8.213/1991, art. 93). Con habilitación de salud, muestra cuántos puestos están ocupados.',
-      '**Informe de igualdad salarial**: desde 100 empleados, 2 veces al año en el Portal Emprega Brasil (Ley 14.611/2023).',
+      '**Informe de igualdad salarial**: desde 100 empleados, 2 veces al año en el Portal Emprega Brasil (Ley 14.611/2023). **Ver cargos y salarios ›** abre los cargos en la Estructura.',
       '**Cuota de aprendices**: 5% a 15% de las funciones que exigen formación (CLT art. 429); ME/EPP dispensadas (LC 123/2006, art. 51, III). Qué funciones cuentan depende de la CBO — confirme con el contador.',
       'Cada ítem dice si **ya se aplica** o cuántos empleados faltan, con la base legal.',
     ] },
