@@ -35,4 +35,8 @@ const { planejarConsulta } = await import('../lib/ia/planoConsulta')
 for (const q of ['Posso contratar alguém de R$ 2.500?', 'quanto custa contratar 2 vendedores', 'vale a pena abrir uma nova vaga?']) assert.ok(planejarConsulta(q, 'rh').portas.includes('rh_simular_contratacao'), q)
 assert.ok(!planejarConsulta('quando acaba o contrato do Bruno', 'rh').portas.includes('rh_simular_contratacao'))
 assert.ok(planejarConsulta('posso contratar mais um?', 'centros-custo').portas.includes('rh_simular_contratacao'))
+// folha fora da DRE e pessoal acima do faturamento viram aviso (lucro da DRE inflado)
+const r4 = S.simularContratacao({ salario: 3000, quantidade: 1, codCateg: '101', regime: 'simples', mesInicio: '2026-12', base: { receitaMediaMensal: 8166.79, lucroMedioMensal: 6393.69, custoPessoalAtual: 9288, caixa: 100000, folhaForaDaDre: true } })!
+assert.ok(r4.alertas.some((a) => /MAIOR que o real/.test(a)) && r4.alertas.some((a) => /passa do faturamento/.test(a)))
+assert.equal(r4.fluxo[0].valor, 250) // dez: só a 2ª parcela do 13º (1/12)
 console.log('check-rh-simulacao ok')

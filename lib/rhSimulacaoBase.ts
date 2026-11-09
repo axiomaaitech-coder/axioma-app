@@ -32,7 +32,8 @@ export async function carregarBaseSimulacao(supabase: SupabaseClient, empresaId:
   if (caixa.erro) limitacoes.push('caixa de hoje não foi lido agora')
   if (!pessoal) limitacoes.push(podeSalario ? 'custo de pessoal atual não foi lido agora' : 'sem liberação de salário: o custo de pessoal atual não entra na comparação')
   return {
-    base: { receitaMediaMensal, lucroMedioMensal, custoPessoalAtual: pessoal ? pessoal.r.custo_total_mensal : null, caixa: caixa.erro ? null : caixa.saldo } as BaseSimulacao,
+    base: { receitaMediaMensal, lucroMedioMensal, custoPessoalAtual: pessoal ? pessoal.r.custo_total_mensal : null, caixa: caixa.erro ? null : caixa.saldo,
+      folhaForaDaDre: !!pessoal?.ponte && (pessoal.ponte.situacao === 'folha_nao_lancada' || pessoal.ponte.situacao === 'lancado_a_menos') } as BaseSimulacao,
     regime: pessoal?.regime ?? regimeDaEmpresa((emp.data as { regime_tributario?: string } | null)?.regime_tributario), periodo_dre: { de: inicio, ate: fim }, limitacoes,
   }
 }

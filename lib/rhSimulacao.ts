@@ -12,7 +12,8 @@ import { custoMensalContrato, inssPatronalPct, type Regime } from './rhCustoPess
 
 export const somaMes = (mes: string, n: number) => { const [a, m] = mes.split('-').map(Number); const t = a * 12 + (m - 1) + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}` }
 
-export type BaseSimulacao = { receitaMediaMensal: number | null; lucroMedioMensal: number | null; custoPessoalAtual: number | null; caixa: number | null }
+// folhaForaDaDre: a ponte RH ↔ financeiro achou a folha não lançada (ou lançada a menos) em Custos Fixos — o lucro médio da DRE está maior que o real
+export type BaseSimulacao = { receitaMediaMensal: number | null; lucroMedioMensal: number | null; custoPessoalAtual: number | null; caixa: number | null; folhaForaDaDre?: boolean }
 
 export function simularContratacao(p: { salario: number; quantidade: number; codCateg: '101' | '103'; regime: Regime; mesInicio: string; base: BaseSimulacao }) {
   const qtd = Math.max(1, Math.floor(p.quantidade))
@@ -52,6 +53,8 @@ export function simularContratacao(p: { salario: number; quantidade: number; cod
   const lucroDepois = b.lucroMedioMensal != null ? reais(centavos(b.lucroMedioMensal) - mensal) : null
   const tresMeses = fluxo.slice(0, 4).reduce((s, x) => s + centavos(x.valor), 0)
   const alertas: string[] = []
+  if (b.folhaForaDaDre) alertas.push('a folha atual não está (toda) lançada em Custos Fixos: o lucro médio da DRE está MAIOR que o real e o impacto desta contratação é pior do que parece')
+  if (pessoalDepois != null && b.receitaMediaMensal && pessoalDepois > centavos(b.receitaMediaMensal)) alertas.push('o custo de pessoal passa do faturamento médio mensal')
   if (lucroDepois != null && lucroDepois < 0) alertas.push('com essa contratação o lucro médio mensal fica NEGATIVO')
   else if (lucroDepois != null && b.lucroMedioMensal != null && b.lucroMedioMensal > 0 && lucroDepois < b.lucroMedioMensal * 0.5) alertas.push('a contratação consome mais da metade do lucro médio mensal')
   if (b.caixa != null && centavos(b.caixa) < tresMeses) alertas.push('o caixa de hoje não cobre os primeiros meses dessa contratação')

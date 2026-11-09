@@ -42,6 +42,8 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
     "a contratação consome mais da metade do lucro médio mensal": L("", "the hire takes more than half of the average monthly profit", "la contratación consume más de la mitad de la utilidad media mensual"),
     "o caixa de hoje não cobre os primeiros meses dessa contratação": L("", "today's cash does not cover the first months of this hire", "la caja de hoy no cubre los primeros meses de esta contratación"),
     "novembro e dezembro têm o 13º: o caixa precisa de folga nesses meses": L("", "November and December have the 13th salary: cash needs room in those months", "noviembre y diciembre tienen el 13º: la caja necesita margen en esos meses"),
+    "a folha atual não está (toda) lançada em Custos Fixos: o lucro médio da DRE está MAIOR que o real e o impacto desta contratação é pior do que parece": L("", "current payroll is not (fully) entered in Fixed Costs: the average profit in the income statement is HIGHER than the real one and this hire's impact is worse than it looks", "la nómina actual no está (toda) registrada en Costos Fijos: la utilidad media del estado de resultados es MAYOR que la real y el impacto de esta contratación es peor de lo que parece"),
+    "o custo de pessoal passa do faturamento médio mensal": L("", "personnel cost exceeds average monthly revenue", "el costo de personal supera la facturación media mensual"),
   } as Record<string, string>)[a] ?? a);
 
   return (<>
@@ -86,6 +88,7 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
             <Link href="/dre" className="underline" style={{ color: cor.verde }}>{L("Abrir DRE ›", "Open income statement ›", "Abrir estado de resultados ›")}</Link>
             <Link href="/fluxo-caixa" className="underline" style={{ color: cor.verde }}>{L("Abrir Fluxo de Caixa ›", "Open cash flow ›", "Abrir flujo de caja ›")}</Link>
             <Link href="/rh" className="underline" style={{ color: cor.verde }}>{L("Custo de pessoal atual ›", "Current personnel cost ›", "Costo de personal actual ›")}</Link>
+            {base?.base.folhaForaDaDre && <Link href="/custos-fixos" className="underline" style={{ color: cor.laranja }}>{L("Lançar a folha em Custos Fixos ›", "Enter payroll in Fixed Costs ›", "Registrar la nómina en Costos Fijos ›")}</Link>}
           </div>
         </CanvasBox>
       </div>
