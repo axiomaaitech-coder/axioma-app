@@ -15,6 +15,7 @@ import { definicao } from './financeiro/semantica'
 import { custoMensalContrato, regimeDaEmpresa, lerCustoPessoal, type SalarioVigente } from './rhCustoPessoal'
 import { simularContratacao, somaMes } from './rhSimulacao'
 import { previsaoFolhaCaixa } from './rhFolhaCaixa'
+import { periodosFerias, valorDobra, type ParteFerias } from './rhFerias'
 
 type Esquema = { type: 'object'; additionalProperties: false; properties: Record<string, unknown>; required: string[] }
 const obj = (properties: Record<string, unknown>): Esquema => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) })
@@ -27,6 +28,7 @@ export const FERRAMENTAS_RH: { name: string; description: string; input_schema: 
   { name: 'rh_colaborador', strict: true, description: 'RH: dados de UM colaborador pelo nome (ou parte do nome): situação, cargo, departamento, centro de custo, matrícula, admissão, tipo de contrato, fim da experiência, situação no eSocial e — só para quem tem liberação de salário — salário vigente e custo mensal estimado para a empresa. Nunca traz CPF, endereço, documentos, saúde ou dependentes. Use para "quanto ganha a Ana", "quando acaba a experiência do Bruno", "em que departamento está o Diego".', input_schema: obj({ nome: { type: 'string', description: 'nome ou parte do nome do colaborador' } }) },
   { name: 'rh_simular_contratacao', strict: true, description: 'RH ↔ financeiro: SIMULA uma contratação antes de fazer (não grava nada). Com o salário e a quantidade, devolve o custo mensal real por pessoa (salário + FGTS + provisões + INSS patronal pelo regime), o custo em 12 meses, a saída de caixa mês a mês (salário no 5º dia útil, FGTS/INSS no dia 20, 13º em nov/dez) e o impacto no lucro médio mensal e no peso do pessoal sobre o faturamento (DRE dos últimos 12 meses). Use para "posso contratar alguém de R$ X?", "quanto custa contratar 2 vendedores", "vale a pena contratar?". Responda como "Cenário:".', input_schema: obj({ salario: { type: 'number', description: 'salário mensal de cada pessoa, em reais' }, quantidade: { type: 'number', description: 'quantas pessoas (1 se não disser)' }, aprendiz: { type: 'boolean', description: 'true se for jovem aprendiz' }, mes_inicio: { type: 'string', description: 'AAAA-MM do início; vazio = próximo mês' } }) },
   { name: 'rh_indicadores_pessoas', strict: true, description: 'RH ↔ financeiro: indicadores de CFO para pessoas — custo de pessoal sobre o faturamento (%), faturamento por pessoa, custo médio por pessoa e lucro por pessoa (médias mensais dos últimos 12 meses completos da DRE) e o headcount digitado em cada Centro de Custo × o número real do RH. Só com liberação de salário. Use para "quanto da receita vai para pessoal", "quanto cada funcionário gera de receita", "produtividade da equipe", "o headcount dos centros de custo está certo?".', input_schema: obj({}) },
+  { name: 'rh_ferias', strict: true, description: 'RH: férias de cada pessoa ativa — períodos aquisitivos, saldo de dias, prazo para conceder (período concessivo), quem está com férias VENCIDAS (pagas em dobro, CLT art. 137) e quem tem o prazo acabando em até 60 dias, as férias já programadas (início, dias, abono, pagar até) e, com liberação de salário, o custo extra da dobra. Use para "quem está com férias vencendo", "tenho férias vencidas", "quando a Ana pode tirar férias", "quanto vou pagar de férias em dobro".', input_schema: obj({}) },
   { name: 'rh_salarios', strict: true, description: 'RH: soma dos salários-base mensais vigentes hoje dos contratos ativos, média, total por departamento e quantos não têm salário cadastrado. Só para quem tem liberação de salário no RH. NÃO é a folha: não inclui encargos (INSS patronal, FGTS), benefícios, horas extras nem provisões. Use para "quanto pago de salário", "custo de salários por departamento".', input_schema: obj({}) },
 ]
 export const NOMES_FERRAMENTAS_RH = new Set(FERRAMENTAS_RH.map((f) => f.name))
@@ -97,7 +99,7 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
   const pode = async (acao: string) => !!(await supabase.rpc('rh_pode', { p_empresa: empresaId, p_acao: acao })).data
   const semAcesso = (indicador: string, unidade: 'QTD' | 'BRL') => resultado({ indicador, definicao: definicao(indicador), estado: 'indisponivel', valor: null, unidade, periodo: null, criterio_data: '—', fontes: [], registros: 0, limitacoes: [SEM_ACESSO] })
   try {
-    if (!(await pode('ver'))) return semAcesso(nome === 'rh_salarios' ? 'salarios_base' : nome === 'rh_custo_pessoal' ? 'custo_pessoal' : nome === 'rh_simular_contratacao' ? 'simulacao_contratacao' : nome === 'rh_indicadores_pessoas' ? 'indicadores_pessoas' : nome === 'rh_colaborador' ? 'colaborador' : nome === 'rh_estrutura' ? 'rh_estrutura' : 'funcionarios', nome === 'rh_salarios' || nome === 'rh_custo_pessoal' || nome === 'rh_simular_contratacao' ? 'BRL' : 'QTD')
+    if (!(await pode('ver'))) return semAcesso(nome === 'rh_salarios' ? 'salarios_base' : nome === 'rh_custo_pessoal' ? 'custo_pessoal' : nome === 'rh_simular_contratacao' ? 'simulacao_contratacao' : nome === 'rh_indicadores_pessoas' ? 'indicadores_pessoas' : nome === 'rh_ferias' ? 'ferias' : nome === 'rh_colaborador' ? 'colaborador' : nome === 'rh_estrutura' ? 'rh_estrutura' : 'funcionarios', nome === 'rh_salarios' || nome === 'rh_custo_pessoal' || nome === 'rh_simular_contratacao' ? 'BRL' : 'QTD')
     const ler = async <T>(t: string, cols: string, lixeira = true) => (await exigir(t, lerTodas(() => { const q = supabase.from(t).select(cols).eq('empresa_id', empresaId); return (lixeira ? q.is('excluido_em', null) : q).order('id') }))) as unknown as T[]
     const nomes = async () => {
       const [cg, dp] = await Promise.all([ler<{ id: string; nome: string }>('rh_cargos', 'id, nome'), ler<{ id: string; nome: string }>('rh_departamentos', 'id, nome')])
@@ -108,18 +110,19 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
         const { painelRh } = await import('./rhPainel')
         const { ITENS_ADMISSAO } = await import('./rhDocumentos')
         const [podeDocs, podeSaude, podeSal] = await Promise.all([pode('pessoais'), pode('saude'), pode('salario')])
-        const [colabs, contratos, itens, remun, empregador] = await Promise.all([
+        const [colabs, contratos, itens, remun, empregador, ferias] = await Promise.all([
           ler<Colab>('rh_colaboradores', 'id, nome, nome_social, situacao'),
           ler<Contrato & { situacao_esocial: string; cod_categ: string; estabelecimento_id: string | null }>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, estabelecimento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento, situacao_esocial', false),
           podeDocs || podeSaude ? ler<{ colaborador_id: string; tipo: string; categoria: string; situacao: string }>('rh_admissao_itens', 'id, colaborador_id, tipo, categoria, situacao', false) : Promise.resolve(null),
           podeSal ? ler<Remun>('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false) : Promise.resolve(null),
           ler<{ id: string }>('rh_empregador', 'id'),
+          ler<ParteFerias & { contrato_id: string }>('rh_ferias', 'id, contrato_id, aquisitivo_inicio, gozo_inicio, dias, abono_dias, faltas_periodo').catch(() => undefined),
         ])
         let sal: Map<string, number> | null = null
         if (remun) { sal = new Map(); for (const r of [...remun].filter((r) => r.vigencia_inicio <= hoje).sort((a, b) => b.vigencia_inicio.localeCompare(a.vigencia_inicio))) if (!sal.has(r.contrato_id)) sal.set(r.contrato_id, Number(r.valor)) }
         const vivos = new Set(colabs.map((c) => c.id))
         const p = painelRh({ hoje, colabs, contratos: contratos.filter((k) => vivos.has(k.colaborador_id)), itens, salarioPorContrato: sal,
-          obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'documento').map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'exame').map((i) => i.tipo) }, podeDocs, podeSaude, temEmpregador: empregador.length > 0 })
+          obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'documento').map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === 'exame').map((i) => i.tipo) }, podeDocs, podeSaude, temEmpregador: empregador.length > 0, ferias })
         const limitacoes = ['nenhum valor de multa é estimado: depende da fiscalização e da tabela vigente']
         if (!podeSaude) limitacoes.push('sem liberação de saúde: o alerta de exame admissional não foi conferido')
         if (!podeDocs) limitacoes.push('sem liberação de dados pessoais: documentos pendentes não foram conferidos')
@@ -185,6 +188,32 @@ export async function executarFerramentaRh(ctx: Ctx, nome: string, input: Record
         const r = await carregarIndicadoresPessoas(supabase, empresaId, hoje, true)
         return resultado({ indicador: 'indicadores_pessoas', definicao: definicao('indicadores_pessoas'), estado: r.limitacoes.length ? 'parcial' : 'verificado', valor: r.pessoal_sobre_faturamento_pct, unidade: 'PCT', periodo: null,
           criterio_data: `DRE de ${r.periodo_dre.de} a ${r.periodo_dre.ate} (médias mensais); pessoas ativas hoje`, fontes: ['RH (custo de pessoal)', 'DRE por competência', 'centros_custo.headcount'], registros: r.pessoas, limitacoes: r.limitacoes, detalhes: { hoje, ...r } })
+      }
+      case 'rh_ferias': {
+        const podeSal = await pode('salario')
+        const [colabs, contratos, ferias, remun] = await Promise.all([
+          ler<Colab>('rh_colaboradores', 'id, nome, nome_social, situacao'),
+          ler<Contrato>('rh_contratos', 'id, colaborador_id, cargo_id, departamento_id, data_admissao, data_termino, experiencia, data_desligamento', false),
+          ler<ParteFerias & { contrato_id: string }>('rh_ferias', 'id, contrato_id, aquisitivo_inicio, gozo_inicio, dias, abono_dias, faltas_periodo'),
+          podeSal ? ler<Remun>('rh_remuneracoes', 'id, contrato_id, vigencia_inicio, und_sal_fixo, valor', false) : Promise.resolve([] as Remun[]),
+        ])
+        const atual = contratoAtual(contratos)
+        const sal = salarioVigente(remun, hoje)
+        const pessoas = colabs.filter((c) => c.situacao === 'ativo' || c.situacao === 'afastado').map((c) => {
+          const k = atual.get(c.id); if (!k) return null
+          const per = periodosFerias({ dataAdmissao: k.data_admissao, hoje, dataDesligamento: k.data_desligamento, partes: ferias.filter((f) => f.contrato_id === k.id) })
+          const sv = sal.get(k.id); const dobra = per.reduce((s, x) => s + x.dias_em_dobro, 0)
+          return { nome: c.nome_social || c.nome, admissao: k.data_admissao,
+            periodos: per.filter((x) => x.status !== 'quitado').map((x) => ({ aquisitivo: `${x.aquisitivo_inicio} a ${x.aquisitivo_fim}`, prazo_ate: x.concessivo_fim, status: x.status, saldo_dias: x.saldo, dias_para_vencer: x.dias_para_vencer,
+              programadas: x.partes.map((p) => ({ inicio: p.gozo_inicio, fim: p.fim, dias: p.dias, abono: p.abono_dias, pagar_ate: p.pagamento_ate, dias_em_dobro: p.em_dobro })) })),
+            dias_em_dobro: dobra, ...(podeSal && sv && sv.und_sal_fixo === 5 && dobra ? { custo_extra_da_dobra: valorDobra(sv.valor, dobra) } : {}) }
+        }).filter(Boolean) as { nome: string; dias_em_dobro: number; periodos: { status: string; dias_para_vencer: number | null }[] }[]
+        const vencidas = pessoas.filter((p) => p.periodos.some((x) => x.status === 'vencida'))
+        const vencendo = pessoas.filter((p) => p.periodos.some((x) => x.status === 'a_conceder' && (x.dias_para_vencer ?? 999) <= 60))
+        return resultado({ indicador: 'ferias', definicao: definicao('ferias'), estado: 'verificado', valor: vencidas.length, unidade: 'QTD', periodo: null, criterio_data: 'posição de hoje (períodos pela data de admissão)',
+          fontes: ['rh_ferias', 'rh_contratos', 'rh_colaboradores', ...(podeSal ? ['rh_remuneracoes'] : [])], registros: pessoas.length,
+          limitacoes: ['direito pelo nº de faltas só quando informado nas férias (sem informação, 30 dias)', 'valores sem médias de horas extras e comissões', ...(podeSal ? [] : ['sem liberação de salário: custo da dobra não calculado'])],
+          detalhes: { hoje, com_ferias_vencidas: vencidas.map((p) => p.nome), prazo_acaba_em_60_dias: vencendo.map((p) => p.nome), pessoas, regras: 'CLT arts. 130, 134, 135, 137, 143 e 145 (conferidas no Planalto)' } })
       }
       case 'rh_colaborador': {
         const busca = String(input.nome ?? '').trim().replace(/[%_,()]/g, '')

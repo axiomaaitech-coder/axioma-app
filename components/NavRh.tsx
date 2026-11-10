@@ -3,7 +3,7 @@
 // leva a uma delas). A aba aberta fica marcada; a conversa com a Inteligência Axioma (tela "rh") é a mesma em todas.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Building2, Stethoscope, FileCheck2, CalendarClock, Send, Scale, Calculator } from "lucide-react";
+import { LayoutDashboard, Users, Building2, Stethoscope, FileCheck2, CalendarClock, Send, Scale, Calculator, Palmtree } from "lucide-react";
 
 type Lang = "pt" | "en" | "es";
 const ABAS = [
@@ -14,6 +14,7 @@ const ABAS = [
 const ROTINAS = [
   { rota: "/rh/exames", Icone: Stethoscope, nome: { pt: "Exames", en: "Exams", es: "Exámenes" } },
   { rota: "/rh/documentos", Icone: FileCheck2, nome: { pt: "Documentos", en: "Documents", es: "Documentos" } },
+  { rota: "/rh/ferias", Icone: Palmtree, nome: { pt: "Férias", en: "Vacations", es: "Vacaciones" } },
   { rota: "/rh/contratos", Icone: CalendarClock, nome: { pt: "Contratos a vencer", en: "Expiring contracts", es: "Contratos por vencer" } },
   { rota: "/rh/esocial", Icone: Send, nome: { pt: "Central do eSocial", en: "eSocial center", es: "Central del eSocial" } },
   { rota: "/rh/obrigacoes", Icone: Scale, nome: { pt: "Obrigações da empresa", en: "Company obligations", es: "Obligaciones de la empresa" } },

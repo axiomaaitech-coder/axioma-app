@@ -58,4 +58,13 @@ assert.deepEqual(P.painelRh({ ...base, itens: comAgenda }).alertas.find((a) => a
 // porte: pré-admissão não conta; aprendiz (103) contado
 const porte = P.porteRh(colabs.filter((c) => c.situacao !== 'desligado') as never, new Map([['a', k('x1', 'a')], ['b', k('x2', 'b', { cod_categ: '103' })], ['e', k('x3', 'e')]]) as never)
 assert.equal(porte.empregados, 2); assert.equal(porte.aprendizes, 1); assert.equal(porte.maiorEstab, 2)
+// férias: Carla-like admitida 10/01/2024 sem férias → 1º período venceu em 09/01/2026 (dobro); 2º prazo até 09/01/2027 (61 d → fora dos 60)
+const kf = [k('f1', 'a', { data_admissao: '2024-01-10' }), k('f2', 'b', { data_admissao: '2024-11-20' })]
+const rf = P.painelRh({ ...base, contratos: kf, ferias: [] })
+assert.deepEqual(rf.alertas.find((a) => a.id === 'ferias_vencidas')!.ids, ['a'])
+assert.equal(rf.alertas.find((a) => a.id === 'ferias_vencidas')!.acao.rota, '/rh/ferias')
+// b: período 20/11/2024–19/11/2025, prazo até 19/11/2026 → 11 dias
+assert.deepEqual(rf.alertas.find((a) => a.id === 'ferias_vencendo')!.pessoas, ['Bruno (11 d)'])
+// sem leitura das férias (undefined): nenhum alerta de férias
+assert.equal(P.painelRh({ ...base, contratos: kf }).alertas.find((a) => a.id.startsWith('ferias')), undefined)
 console.log('check-rh-painel ok')

@@ -535,6 +535,7 @@ export const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   rh_colaborador: { pt: 'ficha do colaborador', en: 'employee record', es: 'ficha del colaborador' },
   rh_simular_contratacao: { pt: 'simulação de contratação', en: 'hiring simulation', es: 'simulación de contratación' },
   rh_indicadores_pessoas: { pt: 'indicadores de pessoas', en: 'people indicators', es: 'indicadores de personas' },
+  rh_ferias: { pt: 'férias', en: 'vacations', es: 'vacaciones' },
   rh_alertas: { pt: 'Radar de Risco do RH', en: 'HR risk radar', es: 'Radar de riesgo de RR. HH.' },
   contas_a_pagar: { pt: 'contas a pagar', en: 'accounts payable', es: 'cuentas por pagar' },
   contas_a_receber: { pt: 'contas a receber', en: 'accounts receivable', es: 'cuentas por cobrar' },

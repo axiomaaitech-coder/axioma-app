@@ -75,13 +75,14 @@ export default function RhPainelPage() {
     if (!p.ver) return;
     const ler = (t: string, cols: string, lixeira: boolean) => lerTodas(() => { const q = supabase.from(t).select(cols).eq("empresa_id", eid); return (lixeira ? q.is("excluido_em", null) : q).order("id"); });
     const nada = Promise.resolve({ data: null as Linha[] | null, error: null });
-    const [cs, ks, its, rs, dp, em] = await Promise.all([
+    const [cs, ks, its, rs, dp, em, fe] = await Promise.all([
       ler("rh_colaboradores", "id, nome, nome_social, situacao", true),
       ler("rh_contratos", "id, colaborador_id, cargo_id, departamento_id, estabelecimento_id, cod_categ, data_admissao, data_termino, experiencia, data_desligamento, situacao_esocial", false),
       p.pessoais || p.saude ? ler("rh_admissao_itens", "id, colaborador_id, tipo, categoria, situacao", false) : nada,
       p.salario ? ler("rh_remuneracoes", "id, contrato_id, vigencia_inicio, valor", false) : nada,
       ler("rh_departamentos", "id, nome", true),
       ler("rh_empregador", "id", true),
+      ler("rh_ferias", "id, contrato_id, aquisitivo_inicio, gozo_inicio, dias, abono_dias, faltas_periodo", true),
     ]);
     const falha = [cs, ks, its, rs, dp, em].find((x) => x.error);
     if (falha?.error) { avisar(L("Não foi possível montar o painel agora. Recarregue a página.", "Could not build the panel now. Reload the page.", "No se pudo armar el panel ahora. Recargue la página.")); Sentry.captureException(new Error(`rh/painel: ${falha.error.message}`)); return; }
@@ -92,7 +93,7 @@ export default function RhPainelPage() {
     setDeps(new Map((dp.data as Linha[]).map((d) => [d.id, d.nome])));
     setPainel(painelRh({ hoje, colabs: cs.data as never, contratos: (ks.data as Linha[]).filter((k) => vivos.has(k.colaborador_id)) as never, itens: its.data as never, salarioPorContrato: sal,
       obrigatorios: { documento: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === "documento").map((i) => i.tipo), exame: ITENS_ADMISSAO.filter((i) => i.obrigatorio && i.categoria === "exame").map((i) => i.tipo) },
-      podeDocs: p.pessoais, podeSaude: p.saude, temEmpregador: ((em.data as Linha[]) ?? []).length > 0 }));
+      podeDocs: p.pessoais, podeSaude: p.saude, temEmpregador: ((em.data as Linha[]) ?? []).length > 0 , ferias: fe.error ? undefined : (fe.data as never)}));
   })(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const k = painel?.kpis;

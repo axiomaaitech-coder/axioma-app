@@ -2,6 +2,7 @@
 // o número da tela e o da resposta são o mesmo. Só alerta o que o dado mostra; cada alerta cita a base legal.
 // Nenhum valor de multa é estimado aqui: depende da fiscalização e da tabela vigente (NR-28) — não inventamos número.
 import { contratoAtual, type Colab, type Contrato } from './rhIA'
+import { periodosFerias, type ParteFerias } from './rhFerias'
 
 export type Texto = { pt: string; en: string; es: string }
 const T = (pt: string, en: string, es: string): Texto => ({ pt, en, es })
@@ -15,6 +16,8 @@ export type DadosPainel = {
   obrigatorios: { documento: string[]; exame: string[] }; podeDocs: boolean; podeSaude: boolean
   /** false = nenhum cadastro do empregador (S-1000) fora da lixeira; undefined = não conferido */
   temEmpregador?: boolean
+  /** partes de férias fora da lixeira (rh_ferias); undefined = não conferido (o alerta de férias não aparece) */
+  ferias?: (ParteFerias & { contrato_id: string })[]
 }
 const dias = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / 86400000)
 const nome = (c: Colab) => c.nome_social || c.nome
@@ -80,6 +83,14 @@ export function painelRh(d: DadosPainel) {
     quem: ativos.filter((c) => { const k = atual.get(c.id); return k && k.data_admissao <= hoje && !d.obrigatorios.exame.every((t) => feito(c.id, t)) }).map((c) => ({ c })), acao: { rota: '/rh/exames', texto: T('Marcar o exame', 'Schedule the exam', 'Agendar el examen') } })
   if (d.podeDocs && d.itens) add({ id: 'docs_pendentes', nivel: 'atencao', titulo: T('Documentos obrigatórios pendentes', 'Required documents pending', 'Documentos obligatorios pendientes'), base: 'CLT art. 29 e 41; LGPD',
     quem: vivos.filter((c) => !d.obrigatorios.documento.every((t) => feito(c.id, t))).map((c) => ({ c })), acao: { rota: '/rh/documentos', texto: T('Cobrar os documentos', 'Collect the documents', 'Pedir los documentos') } })
+  // 4b) férias: vencidas (pagas em dobro — CLT art. 137) e prazo acabando em até 60 dias (art. 134)
+  if (d.ferias) {
+    const fer = vivos.filter((c) => c.situacao !== 'pre_admissao').map((c) => { const k = atual.get(c.id); return k ? { c, per: periodosFerias({ dataAdmissao: k.data_admissao, hoje, dataDesligamento: k.data_desligamento, partes: d.ferias!.filter((f) => f.contrato_id === k.id) }) } : null }).filter(Boolean) as { c: Colab; per: ReturnType<typeof periodosFerias> }[]
+    add({ id: 'ferias_vencidas', nivel: 'critico', titulo: T('Férias vencidas (pagas em dobro)', 'Expired vacations (paid double)', 'Vacaciones vencidas (pagadas en doble)'), base: 'CLT art. 137',
+      quem: fer.filter((x) => x.per.some((p) => p.status === 'vencida')).map(({ c, per }) => ({ c, rotulo: `${nome(c)} (${per.filter((p) => p.status === 'vencida').reduce((s, p) => s + p.saldo, 0)} d)` })), acao: { rota: '/rh/ferias', texto: T('Conceder as férias', 'Grant the vacations', 'Conceder las vacaciones') } })
+    add({ id: 'ferias_vencendo', nivel: 'atencao', titulo: T('Prazo das férias acaba em até 60 dias', 'Vacation deadline within 60 days', 'Plazo de vacaciones termina en hasta 60 días'), base: 'CLT art. 134 e 135 (aviso com 30 dias)',
+      quem: fer.map(({ c, per }) => ({ c, p: per.find((p) => p.status === 'a_conceder' && (p.dias_para_vencer ?? 999) <= 60) })).filter((x) => x.p).map(({ c, p }) => ({ c, rotulo: `${nome(c)} (${p!.dias_para_vencer} d)` })), acao: { rota: '/rh/ferias', texto: T('Programar as férias', 'Schedule the vacations', 'Programar las vacaciones') } })
+  }
   // 5) cadastro incompleto que o eSocial e a folha vão exigir
   add({ id: 'sem_cargo', nivel: 'atencao', titulo: T('Ativos sem cargo (o eSocial exige o CBO)', 'Active without job title (eSocial requires the CBO)', 'Activos sin cargo (eSocial exige el CBO)'), base: 'eSocial S-2200',
     quem: ativos.filter((c) => !atual.get(c.id)?.cargo_id).map((c) => ({ c })), acao: { rota: `${COLAB}?filtro=sem_cargo`, texto: T('Definir o cargo', 'Set the job title', 'Definir el cargo') } })

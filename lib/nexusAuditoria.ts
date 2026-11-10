@@ -61,6 +61,7 @@ export async function limparDadosVencidos(supabase: SupabaseClient): Promise<Rec
     ['rh_empregador', 'excluido_em', 'lixeira_rh_empregador', DIAS_LIXEIRA_RH],
     ['rh_dependentes', 'excluido_em', 'lixeira_rh_dependentes', DIAS_LIXEIRA_RH],
     ['rh_remuneracoes', 'excluido_em', 'lixeira_rh_salarios', DIAS_LIXEIRA_RH],
+    ['rh_ferias', 'excluido_em', 'lixeira_rh_ferias', DIAS_LIXEIRA_RH],
   ]
   // arquivos da admissão de quem sai da lixeira hoje: tirar do cofre ANTES da cascata apagar o caminho.
   // Com falha ou com sobra (mais de 1000), as pessoas ficam para o cron seguinte — nenhum arquivo fica perdido no cofre.
