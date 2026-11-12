@@ -24,6 +24,14 @@ const pt: DocumentoAxioma = {
     { alerta: 'Reforma Tributária — premissa: IBS e CBS criados pela Emenda Constitucional 132/2023 e regulados pela Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026); 2026 é ano de teste e as alíquotas finais ainda dependem de lei. O Axioma mostra a premissa e a data em cada cálculo. Regras em transição: podem mudar.' },
 
     { p: '**Avisos em vez de resposta**: se o saldo de IA do mês acabou, a conversa mostra o aviso com o caminho da recarga (Config → Uso da IA) em vez de uma resposta pronta. Quem tem acesso de **operador de caixa** recebe o aviso de que a inteligência financeira é do dono, sócios e administradores. Se algum dado não puder ser lido nem depois das novas tentativas automáticas, aparece no topo o aviso **Alguns dados não puderam ser carregados** — o número nunca é tratado como zero.' },
+    { h1: 'Split payment (Reforma Tributária)' },
+    { lista: [
+      'Com a Reforma, o IBS e a CBS são separados no momento em que o cliente paga, antes de o dinheiro chegar à conta da Empresa (LC 214/2025, art. 31). Hoje a Empresa recebe o valor cheio e paga o imposto depois; com o split, esse dinheiro não passa mais pelo caixa. A implantação é gradual e ainda não tem data marcada (art. 35).',
+      'O simulador já vem com a **receita** e as **compras com crédito** médias da DRE e com o **caixa de hoje**. Escolha o **cenário de alíquota** (cada um mostra a fonte): 2027 pelo cálculo do TCU (11,3%) ou pela estimativa do Comitê Gestor (9,21%); regime cheio de 2033 pelo Comitê Gestor (27,91%) ou pela estimativa da Fazenda (26,5%); ou informe outra.',
+      'Ajuste a **parte da receita que paga IBS/CBS** (exportação e isentos ficam fora) e os **dias que o imposto fica no caixa hoje** (ex.: recebe no mês e paga dia 25 do mês seguinte, cerca de 40 dias).',
+      'O resultado mostra o **retido por mês** (pior caso e já com os créditos das compras), o **capital de giro a mais** que a Empresa vai precisar e se o **caixa de hoje** cobre. É simulação para planejar, não cálculo de guia.',
+      'Empresa do **Simples**: a regra do split para quem paga tudo no DAS ainda depende de regulamentação; a conta mostra o cenário de quem optar por pagar IBS e CBS pelo regime regular.',
+    ] },
     { h1: 'Fator R (Simples Nacional)' },
     { lista: [
       'Pergunte à Inteligência Axioma "qual meu fator R?" ou "anexo III ou V?". Ela calcula: **folha paga nos 12 meses anteriores** ao mês de apuração ÷ **receita bruta dos mesmos 12 meses** (LC 123/2006, art. 18).',
@@ -89,6 +97,14 @@ const en: DocumentoAxioma = {
     { alerta: 'Tax Reform — assumption: IBS and CBS created by Constitutional Amendment 132/2023 and regulated by Complementary Law 214/2025 (planalto.gov.br, checked in October 2026); 2026 is a test year and final rates still depend on law. Axioma shows the assumption and date in each calculation. Rules in transition: they may change.' },
 
     { p: '**Notices instead of an answer**: if this month’s AI balance has run out, the chat shows the notice with the top-up path (Settings → AI Usage) instead of a canned answer. Users with **cashier operator** access get a notice that the financial intelligence is for owners, partners and administrators. If some data cannot be read even after the automatic retries, the notice **Some data could not be loaded** appears at the top — the number is never treated as zero.' },
+    { h1: 'Split payment (Tax Reform)' },
+    { lista: [
+      'With the Reform, IBS and CBS are split off when the customer pays, before the money reaches the company\'s account (LC 214/2025, art. 31). Today the company receives the full amount and pays the tax later; with the split, that money no longer passes through cash. Rollout is gradual and has no set date yet (art. 35).',
+      'The simulator starts with average **revenue** and **purchases with credit** from the income statement and **today\'s cash**. Pick the **rate scenario** (each shows its source): 2027 per the TCU calculation (11.3%) or the Management Committee estimate (9.21%); full 2033 regime per the Management Committee (27.91%) or the Finance Ministry estimate (26.5%); or enter another.',
+      'Adjust the **share of revenue paying IBS/CBS** (exports and exempt sales excluded) and the **days the tax stays in cash today** (e.g. receive during the month and pay on the 25th of the next, about 40 days).',
+      'The result shows the **amount withheld per month** (worst case and net of purchase credits), the **extra working capital** the company will need and whether **today\'s cash** covers it. A planning simulation, not a tax computation.',
+      '**Simples** companies: the split rule for those paying everything in the DAS still depends on regulation; the math shows the scenario of opting to pay IBS and CBS under the regular regime.',
+    ] },
     { h1: 'R factor (Simples Nacional)' },
     { lista: [
       'Ask Axioma Intelligence "what is my R factor?" or "annex III or V?". It calculates: **payroll paid in the 12 months before** the assessment month ÷ **gross revenue of the same 12 months** (LC 123/2006, art. 18).',
@@ -154,6 +170,14 @@ const es: DocumentoAxioma = {
     { alerta: 'Reforma Tributaria — premisa: IBS y CBS creados por la Enmienda Constitucional 132/2023 y regulados por la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026); 2026 es año de prueba y las alícuotas finales aún dependen de ley. Axioma muestra la premisa y la fecha en cada cálculo. Reglas en transición: pueden cambiar.' },
 
     { p: '**Avisos en lugar de respuesta**: si el saldo de IA del mes se agotó, la conversación muestra el aviso con el camino de recarga (Config → Uso de la IA) en lugar de una respuesta predefinida. Quien tiene acceso de **operador de caja** recibe el aviso de que la inteligencia financiera es del dueño, socios y administradores. Si algún dato no se puede leer ni después de los reintentos automáticos, aparece arriba el aviso **Algunos datos no se pudieron cargar** — el número nunca se trata como cero.' },
+    { h1: 'Split payment (Reforma Tributaria)' },
+    { lista: [
+      'Con la Reforma, el IBS y la CBS se separan cuando el cliente paga, antes de que el dinero llegue a la cuenta de la empresa (LC 214/2025, art. 31). Hoy la empresa recibe el valor completo y paga el impuesto después; con el split, ese dinero ya no pasa por la caja. La implantación es gradual y aún no tiene fecha (art. 35).',
+      'El simulador ya trae los **ingresos** y las **compras con crédito** medias del estado de resultados y la **caja de hoy**. Elija el **escenario de alícuota** (cada uno muestra la fuente): 2027 según el cálculo del TCU (11,3%) o la estimación del Comité Gestor (9,21%); régimen pleno de 2033 según el Comité Gestor (27,91%) o la estimación de Hacienda (26,5%); u otra.',
+      'Ajuste la **parte de los ingresos que paga IBS/CBS** (exportación y exentos quedan fuera) y los **días que el impuesto queda en caja hoy** (ej.: recibe en el mes y paga el 25 del siguiente, unos 40 días).',
+      'El resultado muestra lo **retenido por mes** (peor caso y neto de créditos de compras), el **capital de trabajo extra** que la empresa necesitará y si la **caja de hoy** lo cubre. Simulación para planificar, no cálculo de guía.',
+      'Empresas del **Simples**: la regla del split para quien paga todo en el DAS aún depende de reglamentación; la cuenta muestra el escenario de optar por pagar IBS y CBS por el régimen regular.',
+    ] },
     { h1: 'Factor R (Simples Nacional)' },
     { lista: [
       'Pregunte a la Inteligencia Axioma "¿cuál es mi factor R?" o "¿anexo III o V?". Calcula: **nómina pagada en los 12 meses anteriores** al mes de apuración ÷ **facturación bruta de los mismos 12 meses** (LC 123/2006, art. 18).',

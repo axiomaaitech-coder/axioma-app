@@ -22,6 +22,7 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
+import SimuladorSplit from "../../../components/fiscal/SimuladorSplit";
 import BotaoVoz from "../../../components/BotaoVoz";
 import OuvirResposta from "../../../components/OuvirResposta";
 import { assinarHistorico } from "../../../lib/voz/assinarHistorico";
@@ -622,6 +623,7 @@ export default function IATributariaPage() {
           {/* REFORMA */}
           {aba === "reforma" && (
             <div className="space-y-3">
+              <SimuladorSplit lang={lang as "pt" | "en" | "es"} temaClaro={temaClaro} empresaId={empresaId} receitaMensal={dados.receita_bruta_mensal} comprasMensal={dados.custos_variaveis_mensal} regime={dados.regime_atual} />
               <CanvasBox cor={AMARELO} {...cartaoTema}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.reformaTitulo}</p>
                 <p className="text-xs" style={{ color: TEXTO }}>{tt.reformaDesc}</p>

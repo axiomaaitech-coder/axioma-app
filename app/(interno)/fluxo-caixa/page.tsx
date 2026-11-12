@@ -1,4 +1,5 @@
 ﻿"use client";
+import SimuladorSplit from "../../../components/fiscal/SimuladorSplit";
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { saldoCaixaRealizado, saldoCartaoAPagar } from "../../../lib/caixaSaldo";
 import { useRouter } from "next/navigation";
@@ -686,6 +687,9 @@ export default function FluxoCaixa() {
                 <SubChart titulo={`${t.fluxoCaixa.totalEntradas} × ${t.fluxoCaixa.totalSaidas}`} cor={ct(CORES.azul)} option={optBarras} altura={260} />
               </div>
             </div>
+
+            {/* Reforma Tributária: quanto o split payment vai tirar do caixa (mesmo simulador da IA Tributária) */}
+            <SimuladorSplit lang={lang} temaClaro={temaClaro} />
 
             {/* Insights */}
             {insights.length > 0 && (
