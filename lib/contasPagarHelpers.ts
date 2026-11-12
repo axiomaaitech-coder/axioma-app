@@ -14,7 +14,7 @@ import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 import { compararPar } from "./motorDuplicidade";
-import { hojeISO } from "./datas";
+import { hojeISO, ultimoDiaDoMes } from "./datas";
 import { registrarMovimentacao } from "./rastreio/motor";
 
 const supabase = createBrowserClient(
@@ -371,7 +371,9 @@ export async function gerarContaDeCustoFixo(
   if (erroExistente) { reportarFalhaEscrita("contas_pagar", "conferir conta do custo fixo", erroExistente.message); return { erro: erroExistente.message }; }
   if (existentes?.length) return { id: existentes[0].id, jaExiste: true };
 
-  const dia = String(Math.min(28, Math.max(1, custoFixo.dia_vencimento || 1))).padStart(2, "0");
+  // Dia 29/30/31 vale no mês que tem esse dia; senão, o último dia do mês (antes travava em 28 em todo mês).
+  const ultimo = Number(ultimoDiaDoMes(mesReferencia).slice(8));
+  const dia = String(Math.min(ultimo, Math.max(1, custoFixo.dia_vencimento || 1))).padStart(2, "0");
   const dataVencimento = `${mesReferencia}-${dia}`;
   const payload = {
     fornecedor_id: null, descricao: custoFixo.descricao, categoria: custoFixo.categoria || "Outros",
@@ -416,7 +418,7 @@ export async function gerarContasCustoFixoDoMes(userId: string, empresaId: strin
   let geradas = 0, falhas = 0;
   for (const cf of data || []) {
     if (!(Number(cf.valor_mensal) > 0)) continue;
-    const diaVenc = Math.min(28, Math.max(1, Number(cf.dia_vencimento) || 1));
+    const diaVenc = Math.min(Number(ultimoDiaDoMes(hoje).slice(8)), Math.max(1, Number(cf.dia_vencimento) || 1));
     const mesRef = diaVenc >= dia ? hoje.slice(0, 7) : mesQueVem;
     // Todo mês vigente precisa da sua conta (12/11/2026): a DRE conta o custo fixo em cada mês de vigência, mas antes
     // só nascia a PRÓXIMA conta — custo cadastrado com início no passado (ou mês cujo vencimento já tinha passado)

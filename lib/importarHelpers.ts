@@ -813,7 +813,9 @@ async function baixarContaPelaImportacao(
 ): Promise<{ erro?: string }> {
   const valor = Math.round((Number(linha.valor) || 0) * 100) / 100;
   if (!(valor > 0)) return { erro: "valor inválido" };
-  const data = linha.data || hojeISO();
+  // Sem data real não dá baixa: antes usava a data de hoje calada e o pagamento caía no dia/mês errado.
+  if (!linha.data) return { erro: "Data ausente" };
+  const data = linha.data;
   const { data: conta, error } = await supabase.from(alvo.tabela).select("*").eq("id", alvo.id).eq("empresa_id", empresaId).maybeSingle();
   if (error || !conta) return { erro: error?.message || "conta não encontrada nesta empresa" };
   if (alvo.tabela === "contas_pagar") {

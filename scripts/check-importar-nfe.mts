@@ -156,3 +156,15 @@ const sug = lerSugestoesIA(`Aqui vai:\n[lanc_estoque] => estoque || São roupas 
 assert.deepEqual(Object.keys(sug), ['lanc_estoque'])
 assert.equal(sug.lanc_estoque.valor, 'estoque')
 console.log('OK — ajudante da IA: só aceita pergunta e opção válidas')
+
+// Data que não existe (31/02, 31/11) vira "sem data" (linha com erro), nunca gravação recusada pelo banco.
+{
+  const { parseDataBR } = await import('../lib/importarParsers')
+  assert.equal(parseDataBR('31/11/2026'), undefined)
+  assert.equal(parseDataBR('29/02/2026'), undefined)
+  assert.equal(parseDataBR('29/02/2028'), '2028-02-29')
+  assert.equal(parseDataBR('30/11/2026'), '2026-11-30')
+  assert.equal(parseDataBR('2026-02-30'), undefined)
+  assert.equal(parseDataBR('20261112'), '2026-11-12')
+  console.log('check-importar datas impossíveis: ok')
+}

@@ -117,7 +117,16 @@ export type MapeamentoColunas = {
 // HELPERS
 // ============================================================================
 
-function parseDataBR(texto: string): string | undefined {
+// Data que não existe no calendário (31/02, 31/11) virava gravação recusada pelo banco: aqui some como "sem data".
+export function parseDataBR(texto: string): string | undefined {
+  const iso = parseDataBRBruta(texto);
+  if (!iso) return undefined;
+  const [a, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  return dt.getUTCFullYear() === a && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d ? iso : undefined;
+}
+
+function parseDataBRBruta(texto: string): string | undefined {
   if (!texto) return undefined;
   const limpo = String(texto).trim();
 
