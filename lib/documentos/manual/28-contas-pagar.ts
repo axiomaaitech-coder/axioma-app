@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '28 - Comercial - Contas a Pagar.docx',
   titulo: 'Manual 28 — Contas a Pagar',
   subtitulo: 'Central de obrigações com fornecedores',
-  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.5 (outubro de 2026)'],
+  info: ['Menu: Comercial → Contas a Pagar  •  Manual de uso do Axioma AI.Tech  •  Versão 2.6 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Reúne tudo o que a empresa tem para pagar: vencimentos, baixas, anexos, aprovações, pedidos de compra e conferência de notas. Além de organizar, o Axioma **protege o caixa**: detecta duplicidades, multas evitáveis, descontos que ainda dá para aproveitar e aumentos silenciosos de preço.' },
@@ -89,7 +89,7 @@ const en: DocumentoAxioma = {
   arquivo: '28 - Commercial - Accounts Payable.docx',
   titulo: 'Manual 28 — Accounts Payable',
   subtitulo: 'Control center for supplier obligations',
-  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.5 (October 2026)'],
+  info: ['Menu: Commercial → Accounts Payable  •  Axioma AI.Tech user manual  •  Version 2.6 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Brings together everything the company has to pay: due dates, payments, attachments, approvals, purchase orders and invoice matching. Beyond organizing, Axioma **protects your cash**: it detects duplicates, avoidable penalties, discounts you can still take and silent price increases.' },
@@ -173,7 +173,7 @@ const es: DocumentoAxioma = {
   arquivo: '28 - Comercial - Cuentas por Pagar.docx',
   titulo: 'Manual 28 — Cuentas por Pagar',
   subtitulo: 'Central de obligaciones con proveedores',
-  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.5 (octubre de 2026)'],
+  info: ['Menú: Comercial → Cuentas por Pagar  •  Manual de uso de Axioma AI.Tech  •  Versión 2.6 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Reúne todo lo que la empresa tiene que pagar: vencimientos, pagos, adjuntos, aprobaciones, órdenes de compra y conciliación de facturas. Además de organizar, Axioma **protege la caja**: detecta duplicados, multas evitables, descuentos que aún se pueden aprovechar y aumentos silenciosos de precio.' },

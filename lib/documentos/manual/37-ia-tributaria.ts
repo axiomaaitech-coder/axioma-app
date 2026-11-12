@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributária.docx',
   titulo: 'Manual 37 — IA Tributária',
   subtitulo: 'Especialista Tributário da Inteligência Axioma: simulação, economia e compliance',
-  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 2.9 (novembro de 2026)'],
+  info: ['Menu: IA Premium → IA Tributária  •  Manual de uso do Axioma AI.Tech  •  Versão 3.0 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A IA Tributária mostra **quanto a empresa paga de imposto**, **se está no regime mais barato**, **quanto dá para economizar** e **como a Reforma Tributária vai afetar o negócio**. Tem um chat para tirar dúvidas fiscais com os dados reais da empresa.' },
@@ -78,7 +78,7 @@ const en: DocumentoAxioma = {
   arquivo: '37 - AI Premium - Tax AI.docx',
   titulo: 'Manual 37 — Tax AI',
   subtitulo: 'Tax Specialist of Axioma Intelligence: simulation, savings and compliance',
-  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 2.9 (November 2026)'],
+  info: ['Menu: AI Premium → Tax AI  •  Axioma AI.Tech user manual  •  Version 3.0 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Tax AI shows **how much tax the company pays**, **whether it is in the cheapest regime**, **how much it can save** and **how the Tax Reform will affect the business**. It has a chat to answer tax questions with the company’s real data.' },
@@ -151,7 +151,7 @@ const es: DocumentoAxioma = {
   arquivo: '37 - IA Premium - IA Tributaria.docx',
   titulo: 'Manual 37 — IA Tributaria',
   subtitulo: 'Especialista Tributario de la Inteligencia Axioma: simulación, ahorro y cumplimiento',
-  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 2.9 (noviembre de 2026)'],
+  info: ['Menú: IA Premium → IA Tributaria  •  Manual de uso de Axioma AI.Tech  •  Versión 3.0 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La IA Tributaria muestra **cuánto paga de impuestos la empresa**, **si está en el régimen más barato**, **cuánto se puede ahorrar** y **cómo la Reforma Tributaria afectará al negocio**. Tiene un chat para resolver dudas fiscales con los datos reales de la empresa.' },
