@@ -54,7 +54,7 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
         shadowColor: cor + "60", shadowBlur: claro ? 4 : 12,
       },
-      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => fK(p.value) },
+      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => (Number(p.value) ? fK(p.value) : "") }, // mês zerado sem rótulo (padrão Power BI)
       emphasis: { itemStyle: { shadowBlur: 24 } },
       data: dados,
     }],
