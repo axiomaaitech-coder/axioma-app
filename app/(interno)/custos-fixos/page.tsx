@@ -261,12 +261,12 @@ export default function CustosFixos() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS ═══════════
-  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.vermelho), cx.totalMensal.toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(CORES.verde), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
   const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(temaClaro ? CORES.verde : CORES.laranja), temaClaro ? CORES.verde : CORES.laranjaC, undefined, temaClaro);
 
   const kpisCFO = [
-    { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(CORES.vermelho), i: "📉" },
+    { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(temaClaro ? "#101b3d" : "#e6edf5"), i: "📉" },
     { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(temaClaro ? CORES.verde : CORES.amarelo), i: "📅" },
     { l: t.custosFixos.itens, v: `${custos.length}`, c: ct(CORES.azul), i: "📋" },
     { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: ct(CORES.verde), i: "💸" },
@@ -321,7 +321,7 @@ export default function CustosFixos() {
         {/* KPIs originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct("#f87171"), ir: "#lista-custos-fixos" },
+            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct(temaClaro ? "#101b3d" : "#e6edf5"), ir: "#lista-custos-fixos" },
             { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#2ecc9b"), ir: "/dre" },
             { label: t.custosFixos.itens, value: `${custos.length}`, cor: ct("#2ecc9b"), ir: "#lista-custos-fixos" },
           ].map((card, i) => (
@@ -394,7 +394,7 @@ export default function CustosFixos() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(46,204,155,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ef4444,#2ecc9b)", boxShadow: "0 0 12px #ef4444" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#2ecc9b,#2ecc9b)", boxShadow: "0 0 12px #2ecc9b" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.analiseAnual}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.composicao} · {cx.economiaPotencial}</p>
@@ -488,7 +488,7 @@ export default function CustosFixos() {
               <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f87171") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? "#0f7a5a" : "#7fe3c3") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Fixed Cost" : lang === "es" ? "Editar Costo Fijo" : "Editar Custo Fixo") : t.custosFixos.novoCusto}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
@@ -546,7 +546,7 @@ export default function CustosFixos() {
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(46,204,155,0.25)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando}
-                    className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #ff5a6b)", color: "#fff" }}>
+                    className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? (lang === "en" ? "Save Changes" : lang === "es" ? "Guardar Cambios" : "Salvar Alterações") : t.custosFixos.salvarCusto}
                   </motion.button>
                 </div>

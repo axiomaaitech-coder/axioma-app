@@ -399,7 +399,7 @@ export default function IATributariaPage() {
             </CanvasBox>
             {[
               { label: lang === "en" ? "Tax Burden" : lang === "es" ? "Carga" : "Carga", valor: carga ? `${carga.carga_pct.toFixed(1)}%` : "—", cor: (carga?.carga_pct ?? 0) > 15 ? AMARELO : VERDE, ir: "/fiscal" },
-              { label: lang === "en" ? "Tax/Month" : lang === "es" ? "Impuesto/Mes" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO, ir: "/fiscal/obrigacoes" },
+              { label: lang === "en" ? "Tax/Month" : lang === "es" ? "Impuesto/Mes" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: TEXTO, ir: "/fiscal/obrigacoes" },
               { label: lang === "en" ? "Savings" : lang === "es" ? "Ahorro" : "Economia", valor: economia && economia.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE, ir: "/fiscal/config" },
             ].map((c, i) => (
               <div key={i} className="cursor-pointer transition-transform hover:-translate-y-0.5" onClick={() => irParaDestino((c as { ir?: string }).ir || "/fiscal", router)}><CanvasBox cor={c.cor} {...cartaoTema}>
@@ -563,11 +563,11 @@ export default function IATributariaPage() {
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
                     <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.porMes}</p>
-                    <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_mensal)}</p>
+                    <p className="text-lg font-bold" style={{ color: TEXTO }}>{formatBRL(carga.imposto_mensal)}</p>
                   </div>
                   <div className="rounded-xl p-3 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
                     <p className="text-xs uppercase" style={{ color: CINZA }}>{tt.porAno}</p>
-                    <p className="text-lg font-bold" style={{ color: VERMELHO }}>{formatBRL(carga.imposto_anual)}</p>
+                    <p className="text-lg font-bold" style={{ color: TEXTO }}>{formatBRL(carga.imposto_anual)}</p>
                   </div>
                 </div>
               </CanvasBox>

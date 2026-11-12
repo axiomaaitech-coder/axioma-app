@@ -2902,7 +2902,7 @@ export default function ContasPagarPage() {
 
       {aba === "conferencia" && (
         <CanvasBox {...cartaoTema} cor={VERMELHO}>
-          <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+          <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
           <h3 className="text-base font-bold mb-1" style={{ color: TEXTO }}>{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</h3>
           <p className="text-xs mb-3" style={{ color: CINZA }}>
             {L("Conferência inteligente do Axioma: casa cada nota importada com o que foi recebido no estoque e com a conta a pagar — sem pedido de compra, automático.", "Axioma's smart matching: checks every imported invoice against what was received into stock and against the bill — no purchase order needed, automatic.", "Conciliación inteligente de Axioma: coteja cada factura importada con lo recibido en stock y con la cuenta a pagar — sin orden de compra, automático.")}
