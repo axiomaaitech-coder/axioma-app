@@ -17,7 +17,7 @@ const porta = (modulo: string, tempoMs = NORMAL): Porta => ({ modulo, papeis: PA
 
 export const PORTAS: Record<string, Porta> = {
   resumo_financeiro: porta('Dashboard'), titulos: porta('Contas a Receber e a Pagar'), movimentos_realizados: porta('Fluxo de Caixa'),
-  faturamento: porta('DRE'), despesas: porta('DRE'), receitas_por_cliente: porta('Receitas'), custos_fixos_mes: porta('Custos Fixos'),
+  faturamento: porta('DRE'), fator_r: porta('IA Tributária · Fator R'), despesas: porta('DRE'), receitas_por_cliente: porta('Receitas'), custos_fixos_mes: porta('Custos Fixos'),
   reconciliacao: porta('Conferência', PESADA), relatorio: porta('Relatórios', PESADA), contas_vencidas: porta('Contas Vencidas', PESADA),
   contas_a_pagar: porta('Contas a Pagar'), contas_a_receber: porta('Contas a Receber'), custos: porta('Custos Fixos e Variáveis'),
   receitas_por_mes: porta('Receitas'), estoque_avisos: porta('Estoque'), dividas: porta('Endividamento'),
@@ -32,7 +32,7 @@ export const PORTAS: Record<string, Porta> = {
 // do navegador e serve para manter a IA no assunto. O modelo continua vendo todas as ferramentas: sem a ferramenta,
 // ele concluía que o dado não existia ("não há cadastro de clientes"); a recusa vem da porta, com o motivo certo. Tela fora desta lista (IA Financeira, Relatórios, Nexus) vê todas as portas. ───
 const BASE = ['resumo_financeiro', 'relatorio']
-const TRIBUTARIO = [...BASE, 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais', 'rh_custo_pessoal', 'rh_simular_contratacao', 'rh_indicadores_pessoas']
+const TRIBUTARIO = [...BASE, 'fator_r', 'faturamento', 'despesas', 'dre', 'custos', 'custos_fixos_mes', 'receitas_por_mes', 'obrigacoes_fiscais', 'rh_custo_pessoal', 'rh_simular_contratacao', 'rh_indicadores_pessoas']
 const A_PAGAR = ['titulos', 'contas_a_pagar', 'maiores_fornecedores', 'despesas', 'custos', 'obrigacoes_fiscais', 'compras_pedidos', 'rh_custo_pessoal']
 const A_RECEBER = ['titulos', 'contas_a_receber', 'maiores_devedores', 'receitas_por_cliente', 'faturamento', 'cadastros']
 const COBRANCA = ['contas_vencidas', 'caixa_tesouraria', 'movimentos_realizados', 'reconciliacao']

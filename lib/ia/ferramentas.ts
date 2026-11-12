@@ -12,7 +12,7 @@ import { lerTodas } from '../lerTodas'
 import { soVigentes } from '../custoFixoVigente'
 import { registrarLeitura } from '../erroUiHelpers'
 import { saldoCartaoAPagar } from '../caixaSaldo'
-import { consultarDRE } from './ferramentaDre'
+import { consultarDRE, consultarFatorR } from './ferramentaDre'
 import { executarFerramentaFinanceira, FERRAMENTAS_FINANCEIRAS, NOMES_FERRAMENTAS_FINANCEIRAS } from '../financeiro/ferramentasFinanceiras'
 import { FERRAMENTA_RELATORIO, relatorioParaIA } from '../financeiro/relatorios'
 import { FERRAMENTA_VENCIDOS } from '../vencidos/ferramentaIA'
@@ -46,6 +46,7 @@ export const FERRAMENTAS: Ferramenta[] = [
     input_schema: obj({ limite }) },
   { name: 'maiores_fornecedores', strict: true, description: 'Fornecedores com mais valor em contas a pagar (total lançado e saldo em aberto), maiores primeiro.',
     input_schema: obj({ limite }) },
+  { name: 'fator_r', strict: true, description: 'Fator R do Simples Nacional (LC 123/2006, art. 18): folha de salários paga nos 12 meses anteriores ao mês de apuração (lançada em Custos Fixos como "Folha de pagamento") ÷ receita bruta dos mesmos 12 meses; 28% ou mais indica Anexo III, abaixo indica Anexo V, e quanto de folha faltaria para chegar a 28%. Use para "qual meu fator R", "anexo III ou V", "vale a pena aumentar pró-labore". Diga sempre que só vale para os serviços sujeitos ao Fator R (pelo CNAE) e as premissas.', input_schema: obj({}) },
   { name: 'dre', strict: true, description: 'DRE gerencial por competência (mesmo cálculo da tela DRE): receita bruta, devoluções, impostos estimados pelo regime, receita líquida, custos variáveis, margem de contribuição, custos fixos, resultado operacional, juros e lucro líquido, com receitas e custos por categoria e os custos fixos vigentes. Use para DRE, lucro, margem, resultado, relatório financeiro ou comparação entre meses (chame uma vez por período).',
     input_schema: obj({ mes_inicio: { type: 'string', description: 'Primeiro mês, formato AAAA-MM (ex.: 2026-09).' }, mes_fim: { type: 'string', description: 'Último mês, formato AAAA-MM (igual ao inicial para um mês só).' } }) },
   { name: 'maiores_devedores', strict: true, description: 'Clientes com mais saldo em aberto a receber (e quanto disso está vencido), maiores primeiro.',
@@ -190,6 +191,7 @@ export async function executarFerramenta(supabase: SupabaseClient, empresaId: st
         return JSON.stringify({ itens: top.map(([id, v]) => ({ cliente: cli.get(id) ?? null, saldo_aberto: r2(v.saldo), vencido: r2(v.vencido) })) })
       }
       case 'dre': return JSON.stringify(await consultarDRE(supabase, empresaId, input, fuso))
+      case 'fator_r': return JSON.stringify(await consultarFatorR(supabase, empresaId, fuso))
       case 'relatorio': return JSON.stringify(await relatorioParaIA({ supabase, empresaId, fuso }, input))
       default: return JSON.stringify({ erro: `ferramenta desconhecida: ${nome}` })
     }

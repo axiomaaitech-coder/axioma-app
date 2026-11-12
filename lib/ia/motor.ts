@@ -532,6 +532,7 @@ export const NOME_FERRAMENTA: Record<string, Record<Idioma, string>> = {
   rh_estrutura: { pt: 'estrutura do RH', en: 'HR structure', es: 'estructura de RR. HH.' },
   rh_salarios: { pt: 'salários', en: 'salaries', es: 'salarios' },
   rh_custo_pessoal: { pt: 'custo de pessoal', en: 'personnel cost', es: 'costo de personal' },
+  fator_r: { pt: 'Fator R', en: 'R factor', es: 'Factor R' },
   rh_colaborador: { pt: 'ficha do colaborador', en: 'employee record', es: 'ficha del colaborador' },
   rh_simular_contratacao: { pt: 'simulação de contratação', en: 'hiring simulation', es: 'simulación de contratación' },
   rh_indicadores_pessoas: { pt: 'indicadores de pessoas', en: 'people indicators', es: 'indicadores de personas' },

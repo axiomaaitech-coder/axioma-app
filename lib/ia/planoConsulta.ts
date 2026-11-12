@@ -19,6 +19,7 @@ const INTENCOES: { intencao: string; re: RegExp; portas: string[] }[] = [
   { intencao: 'faturamento', re: /fatur|revenue|facturacion/, portas: ['faturamento'] },
   { intencao: 'despesas', re: /despesa|gasto|expense/, portas: ['despesas'] },
   { intencao: 'resultado', re: /lucro|margem|\bdre\b|profit|margin|utilidad/, portas: ['dre'] },
+  { intencao: 'fator_r', re: /fator r|factor r|r factor|anexo (iii|v|3|5)|pro.?labore/, portas: ['fator_r'] },
   { intencao: 'fiscal', re: /imposto|tribut|obrigac|\bdas\b|\btax\b|taxes|impuesto/, portas: ['obrigacoes_fiscais'] },
   { intencao: 'cadastros', re: /quantos (clientes|fornecedores)|how many (customers|clients|suppliers)|cuantos (clientes|proveedores)/, portas: ['cadastros'] },
   { intencao: 'estoque', re: /estoque|inventory|inventario/, portas: ['estoque_resumo'] },

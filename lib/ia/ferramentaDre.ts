@@ -93,3 +93,43 @@ export async function consultarDRE(supabase: SupabaseClient, empresaId: string, 
     sem_movimento: d.semMovimento,
   }
 }
+
+// ─── Fator R do Simples Nacional (LC 123/2006, art. 18, §§ 5º-J, 5º-K, 5º-M e 24) ───
+// Fator R = folha de salários paga nos 12 meses ANTERIORES ao mês de apuração (salários, pró-labore, INSS patronal e FGTS)
+// ÷ receita bruta dos mesmos 12 meses. 28% ou mais → Anexo III; abaixo → Anexo V. Só vale para os serviços do § 5º-I
+// (depende do CNAE): o Axioma calcula e mostra, nunca troca o anexo sozinho. Folha = Custos Fixos "Folha de pagamento"
+// (o lançado, mesma fonte da DRE); a estimativa do RH não entra (seria inventar folha que não foi paga).
+export function fatorR(folha12: number, receita12: number): { pct: number; anexo: 'III' | 'V' } | null {
+  if (!(receita12 > 0) || !(folha12 > 0)) return null
+  // decide pelo número exato (27,999% é Anexo V); só o que aparece é arredondado
+  return { pct: Math.floor((folha12 / receita12) * 10000) / 100, anexo: folha12 * 100 >= receita12 * 28 ? 'III' : 'V' }
+}
+export async function consultarFatorR(supabase: SupabaseClient, empresaId: string, fuso: string): Promise<Record<string, unknown>> {
+  const pa = hojeISO(new Date(), fuso).slice(0, 7)
+  const [a, m] = pa.split('-').map(Number)
+  const t = a * 12 + (m - 1) - 1
+  const mesFim = `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`
+  const inicio = inicio12(mesFim), fim = ultimoDia(mesFim)
+  const [base, emp] = await Promise.all([carregarBaseDRE(empresaId, inicio, fim, supabase as never), supabase.from('empresas').select('regime_tributario, atividade_fiscal').eq('id', empresaId).maybeSingle()])
+  if (base.falhou || emp.error) return { erro: 'não foi possível calcular o Fator R agora (leitura falhou)' }
+  const receita12 = r2(somaNoPeriodo(base.receitas, inicio, fim) - somaNoPeriodo(base.devolucoes, inicio, fim))
+  const folha = base.custosFixos.filter((c) => c.categoria === 'Folha de pagamento')
+  const folha12 = custoFixoNoPeriodo(folha, inicio, fim)
+  const mesesComReceita = new Set(base.receitas.filter((r) => r.data >= inicio && r.data <= fim).map((r) => r.data.slice(0, 7))).size
+  const f = fatorR(folha12, receita12)
+  const e = (emp.data ?? {}) as { regime_tributario?: string | null; atividade_fiscal?: string | null }
+  const premissas = ['folha = Custos Fixos na categoria "Folha de pagamento" (salários, pró-labore, INSS patronal e FGTS devem estar lançados ali)', 'receita = receita bruta da DRE por competência menos devoluções']
+  if (mesesComReceita < 12) premissas.push(`só ${mesesComReceita} dos 12 meses têm receita: para empresa com menos de 13 meses a lei usa regra proporcional (Resolução CGSN nº 140/2018), o número pode diferir`)
+  if (!/simples/i.test(e.regime_tributario ?? '')) premissas.push('a empresa não está cadastrada no Simples Nacional: o Fator R só vale no Simples')
+  return {
+    indicador: 'fator_r', estado: !f ? 'sem_dado' : mesesComReceita < 12 ? 'parcial' : 'verificado',
+    fonte: 'LC 123/2006, art. 18, §§ 5º-J, 5º-K, 5º-M e 24', mes_apuracao: pa, periodo: { de: inicio, ate: fim },
+    folha_12_meses: folha12, receita_bruta_12_meses: receita12, fator_r_pct: f?.pct ?? null,
+    anexo_indicado: f ? `Anexo ${f.anexo} (${f.anexo === 'III' ? '28% ou mais' : 'abaixo de 28%'})` : null,
+    folha_que_faltaria_para_28pct: f && f.anexo === 'V' ? r2(receita12 * 0.28 - folha12) : null,
+    atividade_fiscal: e.atividade_fiscal ?? null, regime: e.regime_tributario ?? null,
+    aviso: !f ? (receita12 > 0 ? 'Não há folha lançada em Custos Fixos ("Folha de pagamento") nos 12 meses: sem ela o Fator R não pode ser calculado. Lance a folha em Custos Fixos.' : 'Sem receita nos 12 meses anteriores: sem base para o Fator R.')
+      : 'Vale só para os serviços sujeitos ao Fator R (§ 5º-I, pelo CNAE). O Axioma mostra a conta; o anexo usado no DAS é o que a empresa declara no PGDAS-D.',
+    premissas,
+  }
+}

@@ -281,3 +281,13 @@ console.log('check-financeiro: tudo certo ✔')
   if (razaoJaCobre(42840, 42840, 50000)) throw new Error('razão só tem o que o rastro explica: precisa lançar o resto')
   console.log('check-financeiro venda à noite e Conferência sem dobrar: ok')
 }
+
+{ // Fator R (LC 123/2006, art. 18 § 5º-M): 28% ou mais = Anexo III; abaixo = Anexo V; sem folha ou sem receita = sem cálculo
+  const { fatorR } = await import('../lib/ia/ferramentaDre')
+  assert.deepEqual(fatorR(28000, 100000), { pct: 28, anexo: 'III' })
+  assert.deepEqual(fatorR(27999, 100000), { pct: 27.99, anexo: 'V' }) // abaixo de 28% é V, mesmo perto
+  assert.equal(fatorR(27000, 100000)?.anexo, 'V')
+  assert.equal(fatorR(0, 100000), null)
+  assert.equal(fatorR(5000, 0), null)
+  console.log('check-financeiro Fator R: ok')
+}

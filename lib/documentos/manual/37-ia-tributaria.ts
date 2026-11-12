@@ -24,6 +24,13 @@ const pt: DocumentoAxioma = {
     { alerta: 'Reforma Tributária — premissa: IBS e CBS criados pela Emenda Constitucional 132/2023 e regulados pela Lei Complementar 214/2025 (planalto.gov.br, conferidas em outubro de 2026); 2026 é ano de teste e as alíquotas finais ainda dependem de lei. O Axioma mostra a premissa e a data em cada cálculo. Regras em transição: podem mudar.' },
 
     { p: '**Avisos em vez de resposta**: se o saldo de IA do mês acabou, a conversa mostra o aviso com o caminho da recarga (Config → Uso da IA) em vez de uma resposta pronta. Quem tem acesso de **operador de caixa** recebe o aviso de que a inteligência financeira é do dono, sócios e administradores. Se algum dado não puder ser lido nem depois das novas tentativas automáticas, aparece no topo o aviso **Alguns dados não puderam ser carregados** — o número nunca é tratado como zero.' },
+    { h1: 'Fator R (Simples Nacional)' },
+    { lista: [
+      'Pergunte à Inteligência Axioma "qual meu fator R?" ou "anexo III ou V?". Ela calcula: **folha paga nos 12 meses anteriores** ao mês de apuração ÷ **receita bruta dos mesmos 12 meses** (LC 123/2006, art. 18).',
+      '**28% ou mais** indica o **Anexo III**; **abaixo de 28%**, o **Anexo V** (mais caro). Se ficar abaixo, ela diz quanto de folha faltaria para chegar a 28%.',
+      'A folha vem de **Custos Fixos → categoria "Folha de pagamento"** (salários, pró-labore, INSS patronal e FGTS lançados ali). A estimativa do RH não entra: sem folha lançada, a resposta avisa que não há como calcular.',
+      'Vale só para os serviços sujeitos ao Fator R (depende do CNAE) e só no Simples. Empresa com menos de 13 meses tem regra proporcional: a resposta avisa que o número pode diferir. O Axioma mostra a conta e não troca o anexo sozinho.',
+    ] },
     { h1: 'As abas' },
     { h2: '🛡️ Score Fiscal' },
     { p: 'Nota de adequação fiscal e compliance da empresa, com o que está bom e o que melhorar.' },
@@ -82,6 +89,13 @@ const en: DocumentoAxioma = {
     { alerta: 'Tax Reform — assumption: IBS and CBS created by Constitutional Amendment 132/2023 and regulated by Complementary Law 214/2025 (planalto.gov.br, checked in October 2026); 2026 is a test year and final rates still depend on law. Axioma shows the assumption and date in each calculation. Rules in transition: they may change.' },
 
     { p: '**Notices instead of an answer**: if this month’s AI balance has run out, the chat shows the notice with the top-up path (Settings → AI Usage) instead of a canned answer. Users with **cashier operator** access get a notice that the financial intelligence is for owners, partners and administrators. If some data cannot be read even after the automatic retries, the notice **Some data could not be loaded** appears at the top — the number is never treated as zero.' },
+    { h1: 'R factor (Simples Nacional)' },
+    { lista: [
+      'Ask Axioma Intelligence "what is my R factor?" or "annex III or V?". It calculates: **payroll paid in the 12 months before** the assessment month ÷ **gross revenue of the same 12 months** (LC 123/2006, art. 18).',
+      '**28% or more** points to **Annex III**; **below 28%**, to **Annex V** (more expensive). If below, it says how much payroll would be missing to reach 28%.',
+      'Payroll comes from **Fixed Costs → category "Folha de pagamento"** (salaries, owner's pay, employer INSS and FGTS entered there). The HR estimate is not used: without entered payroll, the answer warns it cannot be calculated.',
+      'It only applies to services subject to the R factor (depends on the CNAE) and only in the Simples. Companies under 13 months follow a proportional rule: the answer warns the number may differ. Axioma shows the math and never changes the annex on its own.',
+    ] },
     { h1: 'The tabs' },
     { h2: '🛡️ Tax Score' },
     { p: 'The company’s tax compliance score, with what is fine and what to improve.' },
@@ -140,6 +154,13 @@ const es: DocumentoAxioma = {
     { alerta: 'Reforma Tributaria — premisa: IBS y CBS creados por la Enmienda Constitucional 132/2023 y regulados por la Ley Complementaria 214/2025 (planalto.gov.br, verificadas en octubre de 2026); 2026 es año de prueba y las alícuotas finales aún dependen de ley. Axioma muestra la premisa y la fecha en cada cálculo. Reglas en transición: pueden cambiar.' },
 
     { p: '**Avisos en lugar de respuesta**: si el saldo de IA del mes se agotó, la conversación muestra el aviso con el camino de recarga (Config → Uso de la IA) en lugar de una respuesta predefinida. Quien tiene acceso de **operador de caja** recibe el aviso de que la inteligencia financiera es del dueño, socios y administradores. Si algún dato no se puede leer ni después de los reintentos automáticos, aparece arriba el aviso **Algunos datos no se pudieron cargar** — el número nunca se trata como cero.' },
+    { h1: 'Factor R (Simples Nacional)' },
+    { lista: [
+      'Pregunte a la Inteligencia Axioma "¿cuál es mi factor R?" o "¿anexo III o V?". Calcula: **nómina pagada en los 12 meses anteriores** al mes de apuración ÷ **facturación bruta de los mismos 12 meses** (LC 123/2006, art. 18).',
+      '**28% o más** indica el **Anexo III**; **menos de 28%**, el **Anexo V** (más caro). Si queda por debajo, dice cuánta nómina faltaría para llegar al 28%.',
+      'La nómina viene de **Costos Fijos → categoría "Folha de pagamento"** (salarios, pro-labore, INSS patronal y FGTS registrados allí). La estimación de RR. HH. no entra: sin nómina registrada, la respuesta avisa que no se puede calcular.',
+      'Vale solo para los servicios sujetos al factor R (depende del CNAE) y solo en el Simples. Empresas con menos de 13 meses siguen una regla proporcional: la respuesta avisa que el número puede diferir. Axioma muestra la cuenta y no cambia el anexo por su cuenta.',
+    ] },
     { h1: 'Las pestañas' },
     { h2: '🛡️ Score Fiscal' },
     { p: 'Nota de adecuación fiscal y cumplimiento de la empresa, con lo que está bien y lo que mejorar.' },
