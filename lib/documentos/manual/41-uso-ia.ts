@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '41 - Configurações - Uso da IA.docx',
   titulo: 'Manual 41 — Uso da IA',
   subtitulo: 'Quanto a inteligência foi usada, por qual caminho e quanto custou',
-  info: ['Menu: Config → Uso da IA  •  Manual de uso do Axioma AI.Tech  •  Versão 3.2 (novembro de 2026)'],
+  info: ['Menu: Config → Uso da IA  •  Manual de uso do Axioma AI.Tech  •  Versão 3.3 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Dá transparência total sobre a inteligência artificial do Axioma: quantas perguntas foram feitas, qual motor respondeu, quantas respostas foram conferidas e o custo estimado. **Nenhum conteúdo das conversas aparece aqui**: só números.' },
@@ -53,7 +53,7 @@ const en: DocumentoAxioma = {
   arquivo: '41 - Settings - AI Usage.docx',
   titulo: 'Manual 41 — AI Usage',
   subtitulo: 'How much the intelligence was used, by which path and how much it cost',
-  info: ['Menu: Settings → AI usage  •  Axioma AI.Tech user manual  •  Version 3.2 (November 2026)'],
+  info: ['Menu: Settings → AI usage  •  Axioma AI.Tech user manual  •  Version 3.3 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gives full transparency about Axioma’s artificial intelligence: how many questions were asked, which engine answered, how many answers were checked and the estimated cost. **No conversation content appears here**: only numbers.' },
@@ -101,7 +101,7 @@ const es: DocumentoAxioma = {
   arquivo: '41 - Configuración - Uso de la IA.docx',
   titulo: 'Manual 41 — Uso de la IA',
   subtitulo: 'Cuánto se usó la inteligencia, por qué camino y cuánto costó',
-  info: ['Menú: Config → Uso de la IA  •  Manual de uso de Axioma AI.Tech  •  Versión 3.2 (noviembre de 2026)'],
+  info: ['Menú: Config → Uso de la IA  •  Manual de uso de Axioma AI.Tech  •  Versión 3.3 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Da transparencia total sobre la inteligencia artificial de Axioma: cuántas preguntas se hicieron, qué motor respondió, cuántas respuestas se verificaron y el costo estimado. **Ningún contenido de las conversaciones aparece aquí**: solo números.' },

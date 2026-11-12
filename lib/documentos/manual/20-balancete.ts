@@ -23,6 +23,7 @@ const pt: DocumentoAxioma = {
       ['**Compartilhar**', 'Envia o balancete.'],
     ] } },
     { nota: 'A leitura é feita em lotes, sem limite de linhas; se algo não carregar, a tela avisa que os números podem estar incompletos — nunca mostra um balancete parcial como se fosse completo.' },
+    { p: 'Vindo do **Fechamento do mês** (cartão Prontidão pela Contabilidade), o Balancete já abre no mês escolhido lá; a seta **← Voltar ao Fechamento do mês** no topo volta no mesmo mês.' },
   ],
 }
 
@@ -48,6 +49,7 @@ const en: DocumentoAxioma = {
       ['**Share**', 'Sends the trial balance.'],
     ] } },
     { nota: 'Reading is done in batches, with no row limit; if something does not load, the screen warns that the numbers may be incomplete — it never shows a partial trial balance as if it were complete.' },
+    { p: 'Coming from **Month-end close** (Readiness by Accounting card), the Trial Balance opens on the month chosen there; the **← Back to Month-end close** arrow at the top returns to the same month.' },
   ],
 }
 
@@ -73,6 +75,7 @@ const es: DocumentoAxioma = {
       ['**Compartir**', 'Envía el balance.'],
     ] } },
     { nota: 'La lectura se hace por lotes, sin límite de filas; si algo no carga, la pantalla avisa que los números pueden estar incompletos — nunca muestra un balance parcial como si fuera completo.' },
+    { p: 'Viniendo del **Cierre del mes** (tarjeta Preparación por Contabilidad), el Balance ya abre en el mes elegido allí; la flecha **← Volver al Cierre del mes** arriba vuelve al mismo mes.' },
   ],
 }
 
