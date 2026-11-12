@@ -48,7 +48,7 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
       axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [{
       // largura fixa e igual (padrão Power BI): com poucas categorias "60%" virava barra gigante
-      type: "bar", barMaxWidth: 56, barCategoryGap: "28%",
+      type: "bar", barMaxWidth: 44, barCategoryGap: "20%", // 20% = padrão do Power BI; 44px cabe em 12 meses, então todo gráfico fica com a mesma largura
       itemStyle: {
         borderRadius: [8, 8, 2, 2],
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
