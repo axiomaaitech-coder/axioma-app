@@ -106,7 +106,8 @@ export function serieRolling(itens: Lancamento[], meses = 12, ateData?: string):
   }
   itens.forEach((it) => {
     if (!it.data) return;
-    const d = new Date(it.data + "T00:00:00");
+    // data com hora (created_at "2026-03-09T10:00:00+00") virava data inválida e o item sumia calado — usa só o dia
+    const d = new Date(String(it.data).slice(0, 10) + "T00:00:00");
     const b = buckets.find((x) => x.ano === d.getFullYear() && x.mes === d.getMonth());
     if (b) b.value += Number(it.valor) || 0;
   });

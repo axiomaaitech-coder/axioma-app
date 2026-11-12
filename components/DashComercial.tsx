@@ -5,7 +5,7 @@ import { createBrowserClient } from "../lib/supabaseBrowser";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling, serieCores, progressoPercentual } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
-import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK, barrasProgressoMetas } from "../lib/dashGraficos";
+import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK, barrasProgressoMetas, mesesRolling } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 import { isoDia } from "../lib/datas";
 
@@ -281,10 +281,10 @@ export default function DashComercial() {
             ) : (
               <>
                 <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" altura={260}
-                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, tt.meses, C.azul, C.azulC, claro) : undefined}
+                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, mesesRolling(tt.meses), C.azul, C.azulC, claro) : undefined}
                   vazio={tt.semCliente} />
                 <ChartDash {...chartBase} titulo={tt.inad} cor={C.rosa} path="/inadimplencia" altura={260}
-                  option={real.inadSerie.some(v => v > 0) ? barrasV(real.inadSerie, tt.meses, C.rosa, C.rosaC, claro) : undefined}
+                  option={real.inadSerie.some(v => v > 0) ? barrasV(real.inadSerie, mesesRolling(tt.meses), C.rosa, C.rosaC, claro) : undefined}
                   vazio={tt.semInadimplencia} />
                 <ChartDash {...chartBase} titulo={tt.receber} cor={C.verde} path="/contas-receber" altura={220}
                   option={real.receberTotal > 0 ? rosca([

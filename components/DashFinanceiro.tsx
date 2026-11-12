@@ -10,7 +10,7 @@ import { carregarBaseDRE } from "../lib/dreCompetencia";
 import { saldoCaixaRealizado, saldoCartaoAPagar } from "../lib/caixaSaldo";
 import { hojeISO } from "../lib/datas";
 import { avisarFalhaLeitura, reportarFalhaLeitura } from "../lib/erroUiHelpers";
-import { fBRL, fK, tip, tipClaro, EIXO, barrasV, rosca } from "../lib/dashGraficos";
+import { fBRL, fK, tip, tipClaro, EIXO, barrasV, rosca, mesesRolling } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -278,7 +278,7 @@ export default function DashFinanceiro() {
                   option={real.custosFixosCategorias.length ? barrasV(real.custosFixosCategorias.map(c => c.value), real.custosFixosCategorias.map(c => c.name), C.vermelho, C.vermelhoC, claro) : undefined}
                   vazio={tt.semCustoFixo} />
                 <ChartDash {...chartBase} titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" altura={260}
-                  option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, tt.meses, C.laranja, C.laranjaC, claro) : undefined}
+                  option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, mesesRolling(tt.meses), C.laranja, C.laranjaC, claro) : undefined}
                   vazio={tt.semCustoVariavel} />
                 <ChartDash {...chartBase} titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" altura={220}
                   option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: real.custosFixosTotal + real.custosVarMes, color: C.vermelho }], C.cyan, tt.total, claro) : undefined}

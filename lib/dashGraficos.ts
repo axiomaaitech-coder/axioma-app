@@ -105,3 +105,9 @@ export function barrasProgressoMetas(nomes: string[], pcts: number[], rotuloMeta
     }],
   };
 }
+
+// Rótulos dos últimos N meses terminando no mês atual (mesma janela de serieRolling): "Dez/25 … Nov/26".
+// Antes os gráficos reais usavam Jan…Dez fixo e o valor de novembro aparecia embaixo de "Dez".
+export function mesesRolling(nomes: string[], n = 12, hoje = new Date()): string[] {
+  return Array.from({ length: n }, (_, i) => { const d = new Date(hoje.getFullYear(), hoje.getMonth() - (n - 1 - i), 1); return `${nomes[d.getMonth()]}/${String(d.getFullYear()).slice(2)}` })
+}
