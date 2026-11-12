@@ -64,6 +64,8 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
     void lerSalvas();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // simulou antes da DRE/caixa chegarem: refaz sozinho quando chegam (senão o impacto ficaria vazio calado)
+  useEffect(() => { if (base && res) setRes(calcular(f)); }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
   const extras = (x: Form): ExtrasSimulacao => ({
     jornadaSemanal: num(x.jornada) || 44, periculosidade: !!x.periculosidade, insalubridadeGrau: Number(x.insalubridade) as 0 | 10 | 20 | 40,
     horasExtrasMes: num(x.he), adicionalHEPct: num(x.hePct) || 50, horasNoturnasMes: num(x.noturnas), comissaoMedia: num(x.comissao),
@@ -129,7 +131,7 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
     [L("Terceiros (Sistema S etc.)", "Third parties (S System etc.)", "Terceros (Sistema S etc.)"), brl(r.por_pessoa.terceiros)],
     [L("Benefícios (parte da Empresa)", "Benefits (company share)", "Beneficios (parte de la empresa)"), brl(r.por_pessoa.beneficios)],
     [L("Custo mensal por pessoa", "Monthly cost per person", "Costo mensual por persona"), brl(r.por_pessoa.custo_mensal)],
-    [L("Para cada R$ 1 de salário", "For each R$ 1 of salary", "Por cada R$ 1 de salario"), r.por_pessoa.multiplicador == null ? "—" : `R$ ${String(r.por_pessoa.multiplicador).replace(".", ",")}`],
+    [L("Para cada R$ 1 de salário", "For each R$ 1 of salary", "Por cada R$ 1 de salario"), r.por_pessoa.multiplicador == null ? "—" : `R$ ${r.por_pessoa.multiplicador.toFixed(2).replace(".", ",")}`],
     [L("Custo da hora trabalhada", "Cost per hour worked", "Costo de la hora trabajada"), brl(r.por_pessoa.custo_hora_trabalhada)],
     [L("Custo mensal total", "Total monthly cost", "Costo mensual total"), brl(r.custo_mensal_total)],
     [L("Custos de entrada", "Onboarding costs", "Costos de entrada"), brl(r.custo_entrada)],
@@ -222,7 +224,7 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
         <CanvasBox cor={cor.verde} {...cartao}>
           <p className="text-sm font-black mb-2" style={{ color: cor.titulo }}>{L("Custo real por pessoa", "Real cost per person", "Costo real por persona")}</p>
           <p className="text-2xl font-black" style={{ color: cor.verde }}>{brl(res.por_pessoa.custo_mensal)} <span className="text-sm font-semibold" style={{ color: cor.texto2 }}>/{L("mês", "month", "mes")}</span></p>
-          <p className="text-xs mb-3" style={{ color: cor.texto2 }}>{L(`Para cada R$ 1,00 de salário, a Empresa gasta R$ ${String(res.por_pessoa.multiplicador ?? "—").replace(".", ",")}. Hora trabalhada: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`, `For each R$ 1.00 of salary, the company spends R$ ${res.por_pessoa.multiplicador ?? "—"}. Hour worked: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`, `Por cada R$ 1,00 de salario, la empresa gasta R$ ${String(res.por_pessoa.multiplicador ?? "—").replace(".", ",")}. Hora trabajada: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`)}</p>
+          <p className="text-xs mb-3" style={{ color: cor.texto2 }}>{L(`Para cada R$ 1,00 de salário, a Empresa gasta R$ ${(res.por_pessoa.multiplicador == null ? "—" : res.por_pessoa.multiplicador.toFixed(2).replace(".", ","))}. Hora trabalhada: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`, `For each R$ 1.00 of salary, the company spends R$ ${res.por_pessoa.multiplicador == null ? "—" : res.por_pessoa.multiplicador.toFixed(2)}. Hour worked: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`, `Por cada R$ 1,00 de salario, la empresa gasta R$ ${(res.por_pessoa.multiplicador == null ? "—" : res.por_pessoa.multiplicador.toFixed(2).replace(".", ","))}. Hora trabajada: ${brl(res.por_pessoa.custo_hora_trabalhada)}.`)}</p>
           <div className="grid grid-cols-2 gap-2 text-xs">{linhas(res).slice(1, 10).map(([n, v]) => (
             <div key={n} className="rounded-xl p-2" style={nested}><p style={{ color: cor.texto2 }}>{n}</p><p className="font-bold text-sm" style={{ color: cor.titulo }}>{v}</p></div>))}</div>
           <p className="text-sm mt-3" style={{ color: cor.titulo }}>{L(`${res.quantidade} pessoa(s)`, `${res.quantidade} person(s)`, `${res.quantidade} persona(s)`)}: <b>{brl(res.custo_mensal_total)}</b>/{L("mês", "month", "mes")} · {L("12 meses com entrada", "12 months with onboarding", "12 meses con entrada")}: <b>{brl(res.custo_12_meses)}</b></p>
