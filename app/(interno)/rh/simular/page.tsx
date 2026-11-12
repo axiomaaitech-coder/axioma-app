@@ -104,6 +104,18 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
     setTimeout(() => document.getElementById("resultado-sim")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   }
 
+  const traduzAlerta = (a: string) => (lang === "pt" ? a : ({
+    "com essa contratação o lucro médio mensal fica NEGATIVO": L("", "with this hire the average monthly profit becomes NEGATIVE", "con esta contratación la utilidad media mensual queda NEGATIVA"),
+    "a contratação consome mais da metade do lucro médio mensal": L("", "the hire takes more than half of the average monthly profit", "la contratación consume más de la mitad de la utilidad media mensual"),
+    "o caixa de hoje não cobre os primeiros meses dessa contratação": L("", "today's cash does not cover the first months of this hire", "la caja de hoy no cubre los primeros meses de esta contratación"),
+    "novembro e dezembro têm o 13º: o caixa precisa de folga nesses meses": L("", "November and December have the 13th salary: cash needs room in those months", "noviembre y diciembre tienen el 13º: la caja necesita margen en esos meses"),
+    "a folha atual não está (toda) lançada em Custos Fixos: o lucro médio da DRE está MAIOR que o real e o impacto desta contratação é pior do que parece": L("", "current payroll is not (fully) entered in Fixed Costs: the average profit in the income statement is HIGHER than the real one and this hire's impact is worse than it looks", "la nómina actual no está (toda) registrada en Costos Fijos: la utilidad media del estado de resultados es MAYOR que la real y el impacto de esta contratación es peor de lo que parece"),
+    "o custo de pessoal passa do faturamento médio mensal": L("", "personnel cost exceeds average monthly revenue", "el costo de personal supera la facturación media mensual"),
+    "mesmo com a receita esperada a contratação não se paga: a contribuição mensal fica abaixo do custo": L("", "even with the expected revenue the hire does not pay off: the monthly contribution is below the cost", "aun con el ingreso esperado la contratación no se paga: la contribución mensual queda por debajo del costo"),
+    "a contratação não se paga em 24 meses com a receita e a rampa informadas": L("", "the hire does not pay off within 24 months with the revenue and ramp-up entered", "la contratación no se paga en 24 meses con el ingreso y la rampa informados"),
+    "mais de 2 horas extras por dia útil em média: a CLT limita a 2 horas por dia (art. 59) — risco trabalhista": L("", "more than 2 overtime hours per working day on average: the CLT limits it to 2 hours a day (art. 59) — labor risk", "más de 2 horas extras por día hábil en promedio: la CLT limita a 2 horas por día (art. 59) — riesgo laboral"),
+    "a contratação leva o Fator R a 28% ou mais: se a atividade estiver sujeita ao Fator R, o Simples pode passar do Anexo V para o III (imposto menor)": L("", "the hire takes the R factor to 28% or more: if the activity is subject to the R factor, the Simples may move from Annex V to III (lower tax)", "la contratación lleva el factor R a 28% o más: si la actividad está sujeta al factor R, el Simples puede pasar del Anexo V al III (impuesto menor)"),
+  } as Record<string, string>)[a] ?? a);
   // linhas do relatório: as mesmas no PDF, no compartilhar e na comparação
   const linhas = (r: Res): [string, string][] => [
     [L("Pessoas", "People", "Personas"), String(r.quantidade)],
@@ -144,18 +156,6 @@ function Conteudo({ ctx }: { ctx: CtxRotina }) {
   const nomeMes = (m: string) => `${NOME_MES[lang][Number(m.slice(5, 7)) - 1]}/${m.slice(2, 4)}`;
   const maxFluxo = res ? Math.max(1, ...res.fluxo.map((x) => x.valor)) : 1;
   const nested = { background: cor.aninhado, border: `1px solid ${cor.borda}` };
-  const traduzAlerta = (a: string) => (lang === "pt" ? a : ({
-    "com essa contratação o lucro médio mensal fica NEGATIVO": L("", "with this hire the average monthly profit becomes NEGATIVE", "con esta contratación la utilidad media mensual queda NEGATIVA"),
-    "a contratação consome mais da metade do lucro médio mensal": L("", "the hire takes more than half of the average monthly profit", "la contratación consume más de la mitad de la utilidad media mensual"),
-    "o caixa de hoje não cobre os primeiros meses dessa contratação": L("", "today's cash does not cover the first months of this hire", "la caja de hoy no cubre los primeros meses de esta contratación"),
-    "novembro e dezembro têm o 13º: o caixa precisa de folga nesses meses": L("", "November and December have the 13th salary: cash needs room in those months", "noviembre y diciembre tienen el 13º: la caja necesita margen en esos meses"),
-    "a folha atual não está (toda) lançada em Custos Fixos: o lucro médio da DRE está MAIOR que o real e o impacto desta contratação é pior do que parece": L("", "current payroll is not (fully) entered in Fixed Costs: the average profit in the income statement is HIGHER than the real one and this hire's impact is worse than it looks", "la nómina actual no está (toda) registrada en Costos Fijos: la utilidad media del estado de resultados es MAYOR que la real y el impacto de esta contratación es peor de lo que parece"),
-    "o custo de pessoal passa do faturamento médio mensal": L("", "personnel cost exceeds average monthly revenue", "el costo de personal supera la facturación media mensual"),
-    "mesmo com a receita esperada a contratação não se paga: a contribuição mensal fica abaixo do custo": L("", "even with the expected revenue the hire does not pay off: the monthly contribution is below the cost", "aun con el ingreso esperado la contratación no se paga: la contribución mensual queda por debajo del costo"),
-    "a contratação não se paga em 24 meses com a receita e a rampa informadas": L("", "the hire does not pay off within 24 months with the revenue and ramp-up entered", "la contratación no se paga en 24 meses con el ingreso y la rampa informados"),
-    "mais de 2 horas extras por dia útil em média: a CLT limita a 2 horas por dia (art. 59) — risco trabalhista": L("", "more than 2 overtime hours per working day on average: the CLT limits it to 2 hours a day (art. 59) — labor risk", "más de 2 horas extras por día hábil en promedio: la CLT limita a 2 horas por día (art. 59) — riesgo laboral"),
-    "a contratação leva o Fator R a 28% ou mais: se a atividade estiver sujeita ao Fator R, o Simples pode passar do Anexo V para o III (imposto menor)": L("", "the hire takes the R factor to 28% or more: if the activity is subject to the R factor, the Simples may move from Annex V to III (lower tax)", "la contratación lleva el factor R a 28% o más: si la actividad está sujeta al factor R, el Simples puede pasar del Anexo V al III (impuesto menor)"),
-  } as Record<string, string>)[a] ?? a);
 
   const inp = (k: string, ph = "", modo: "decimal" | "numeric" = "decimal") => <input id={`sim-${k}`} inputMode={modo} placeholder={ph} value={String(f[k])} onChange={set(k)} className="w-full px-3 py-2.5 rounded-xl text-sm" style={campo} />;
   const marcadas = (salvas ?? []).filter((s) => comparar.has(s.id));
