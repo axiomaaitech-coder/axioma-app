@@ -115,7 +115,7 @@ const en: DocumentoAxioma = {
       'Contract with renewal (rent, software, insurance)? Fill in the **renewal date** to add it to the Radar.',
       'Click **Save Fixed Cost**.',
     ] },
-    { nota: 'Every day Axioma creates in Payables the month\'s bill for each valid fixed cost, and warns 7 days before the due date. The P&L counts the cost only in the months between "Valid from" and "Until", without counting the generated bill twice.' },
+    { nota: 'Every day Axioma creates in Payables the bill for every month the fixed cost is valid — including past months when the cost is registered with a start date in the past (up to 12 months) — and warns 7 days before the due date. The P&L counts the cost only in the months between "Valid from" and "Until", without counting the generated bill twice.' },
     { nota: '**If the Cost Center list comes empty with the notice "Some data could not be loaded"**, Axioma has already retried on its own and the read failed: refresh the page before choosing the center. An empty list with the notice does not mean the Company has no centers.' },
     { h1: 'Personnel cost (HR)' },
     { lista: [
