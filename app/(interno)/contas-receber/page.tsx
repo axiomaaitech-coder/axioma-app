@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { soVigentes } from "../../../lib/custoFixoVigente";
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
@@ -1509,6 +1510,14 @@ export default function ContasReceber() {
                           <option value="">-- {L('Selecione', 'Select', 'Seleccione')} --</option>
                           {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
+                        {/* Vender a prazo para quem já está devendo: avisa antes de lançar (não impede — a decisão é do dono) */}
+                        {(() => {
+                          if (!nc.cliente_id) return null
+                          const dev = contas.filter((c) => c.cliente_id === nc.cliente_id && c.id !== editando?.id && c.status !== 'recebido').map((c) => calcularLinha(c)).filter((x) => x.dias > 0 && x.saldo > 0)
+                          if (!dev.length) return null
+                          const tot = dev.reduce((s, x) => s + x.saldo, 0), maior = Math.max(...dev.map((x) => x.dias))
+                          return <p className="text-xs mt-1.5 font-semibold" style={{ color: temaClaro ? '#9a3412' : '#fbbf24' }}>⚠ {L(`Este cliente tem ${fBRL(tot)} vencidos em ${dev.length} conta(s), a mais antiga há ${maior} dias. Vender a prazo de novo aumenta o risco.`, `This customer has ${fBRL(tot)} overdue in ${dev.length} bill(s), the oldest ${maior} days ago. Selling on credit again raises the risk.`, `Este cliente tiene ${fBRL(tot)} vencidos en ${dev.length} cuenta(s), la más antigua hace ${maior} días. Vender a plazo de nuevo aumenta el riesgo.`)} <Link href="/contas-vencidas" className="underline">{L('Ver em Contas Vencidas ›', 'See in Overdue Bills ›', 'Ver en Cuentas Vencidas ›')}</Link></p>
+                        })()}
                       </div>
                       <div>
                         <label className={labelInput} style={{ color: TEAL }}>{L('Nº Documento', 'Doc No.', 'Nº Documento')}</label>

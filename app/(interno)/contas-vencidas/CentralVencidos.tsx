@@ -29,7 +29,7 @@ const nivelTendencia = (t: string) => (t === 'piora' ? 'critico' : t === 'melhor
 const BOTAO_ACAO = 'linear-gradient(135deg, #0a4f3b, #0f7d5c)'
 const BOTAO_SECUNDARIO = '#101b3d'
 
-export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fmt, dataTxt, tesouraria, titulos, temaClaro }: { dominio: 'receber' | 'pagar'; itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; tesouraria: BaseTesouraria; titulos: Titulo[]; temaClaro: boolean }) {
+export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fmt, dataTxt, tesouraria, titulos, temaClaro, regime }: { regime?: string | null; dominio: 'receber' | 'pagar'; itens: ItemVencido[]; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; tesouraria: BaseTesouraria; titulos: Titulo[]; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const pagar = dominio === 'pagar'
   const corSaldo = pagar ? P.VERMELHO : P.VERDE
@@ -156,7 +156,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                 {visiveis.map((i) => (
                   <FragmentoLinha key={i.titulo.id} i={i} aberto={aberto === i.titulo.id} onAbrir={() => setAberto(aberto === i.titulo.id ? null : i.titulo.id)}
                     marcado={selecionados.has(i.titulo.id)} onMarcar={() => marcar(i.titulo.id)} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} risco={colRisco(i)} corRisco={pagar ? P.TEXTO : corTextoSituacao(nivelRisco(i.risco.score), temaClaro)} contato={colContato(i)} corSaldo={corSaldo} dias={dias(i.encargos.dias)} onDossie={() => setDossie(i)}
-                    detalhe={pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />} />
+                    detalhe={pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe regime={regime} i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />} />
                 ))}
               </tbody>
             </table>
@@ -178,7 +178,7 @@ export default function CentralVencidos({ dominio, itens, empresaId, lang, P, fm
                   </button>
                   <button type="button" onClick={() => setDossie(i)} className="px-2 py-1 rounded-lg text-xs font-bold text-white shrink-0" style={{ background: BOTAO_SECUNDARIO }}>{L('Dossiê', 'Dossier', 'Expediente')}</button>
                 </div>
-                {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />}</div>}
+                {aberto === i.titulo.id && <div className="mt-2">{pagar ? <DetalhePagar i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} aoMudar={recarregar} avisar={avisar} /> : <Detalhe regime={regime} i={i} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} aoMudar={recarregar} avisar={avisar} historico={titulos} itens={itens} temaClaro={temaClaro} />}</div>}
               </div>
             ))}
           </div>}
@@ -237,7 +237,7 @@ function ExplicacaoAcao({ i, lang, P, fmt }: { i: ItemVencido; lang: Lang; P: Pa
   )
 }
 
-function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, historico, itens, temaClaro }: { i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void; historico: Titulo[]; itens: ItemVencido[]; temaClaro: boolean }) {
+function Detalhe({ regime, i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, historico, itens, temaClaro }: { regime?: string | null; i: ItemVencido; empresaId: string; lang: Lang; P: Paleta; fmt: (v: number) => string; dataTxt: (d: string) => string; aoMudar: () => void; avisar: (m: string) => void; historico: Titulo[]; itens: ItemVencido[]; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const aninhada = { background: P.ANINHADA, border: `1px solid ${P.BORDA}` }
   const campo = { background: P.CAMPO, color: P.TEXTO, border: `1px solid ${P.BORDA}` }
@@ -290,6 +290,19 @@ function Detalhe({ i, empresaId, lang, P, fmt, dataTxt, aoMudar, avisar, histori
         <Titulo P={P} texto={L('Valores', 'Amounts', 'Valores')} href="/contas-receber?filtro=vencido" ir={L('Contas a Receber', 'Receivables', 'Cuentas por Cobrar')} />
         {[[L('Valor original', 'Original amount', 'Valor original'), i.titulo.valor], [L('Saldo em aberto', 'Open balance', 'Saldo pendiente'), i.saldo], [L('Multa', 'Fine', 'Multa'), enc.multa], [L('Juros', 'Interest', 'Intereses'), enc.juros], [L('Correção (IPCA)', 'Inflation update (IPCA)', 'Actualización (IPCA)'), enc.atualizacao], [L('Total atualizado', 'Updated total', 'Total actualizado'), enc.total]]
           .map(([t, v]) => <p key={String(t)} className="flex justify-between"><span style={{ color: P.CINZA }}>{t}</span><b>{fmt(Number(v))}</b></p>)}
+        {i.prescricao && (() => {
+          const pz = i.prescricao, cr = pz.situacao === 'ok' ? P.CINZA : P.VERMELHO
+          return <p className="pt-1" style={{ color: cr }}><b>{L('Prazo para cobrar', 'Deadline to collect', 'Plazo para cobrar')}:</b> {pz.situacao === 'prescrito'
+            ? L('passou de 5 anos do vencimento — provável prescrição (CC art. 206).', 'more than 5 years past due — likely time-barred (Civil Code art. 206).', 'más de 5 años del vencimiento — probable prescripción (CC art. 206).')
+            : pz.situacao === 'titulo_prescrito'
+              ? L(`como título (boleto/duplicata) já passou de 3 anos; como dívida de contrato vai até ${dataTxt(pz.limiteContrato)}. Um acordo assinado pelo cliente reinicia o prazo (CC art. 202, VI).`, `as a credit instrument (slip/trade bill) it is past 3 years; as a contract debt it runs until ${dataTxt(pz.limiteContrato)}. A deal signed by the customer restarts the term (Civil Code art. 202, VI).`, `como título (boleto/duplicata) ya pasó de 3 años; como deuda de contrato va hasta ${dataTxt(pz.limiteContrato)}. Un acuerdo firmado por el cliente reinicia el plazo (CC art. 202, VI).`)
+              : L(`até ${dataTxt(pz.limiteTitulo)} como título (3 anos) e ${dataTxt(pz.limiteContrato)} como contrato (5 anos) — CC art. 206.`, `until ${dataTxt(pz.limiteTitulo)} as a credit instrument (3 years) and ${dataTxt(pz.limiteContrato)} as a contract (5 years) — Civil Code art. 206.`, `hasta ${dataTxt(pz.limiteTitulo)} como título (3 años) y ${dataTxt(pz.limiteContrato)} como contrato (5 años) — CC art. 206.`)}</p>
+        })()}
+        {i.perda && /real/i.test(regime ?? '') && <p style={{ color: i.perda.situacao === 'ainda_nao' ? P.CINZA : P.VERDE }}><b>{L('Perda dedutível no IR (Lucro Real)', 'Tax-deductible loss (Actual Profit)', 'Pérdida deducible en el IR (Lucro Real)')}:</b> {i.perda.situacao === 'ainda_nao'
+          ? L(`a partir de ${dataTxt(i.perda.aPartirDe)}${i.perda.regra === 'acima100mil' ? ', e só com ação judicial' : i.perda.regra === 'ate100mil' ? ', mantendo a cobrança administrativa' : ''} (Lei 9.430, art. 9º).`, `from ${dataTxt(i.perda.aPartirDe)}${i.perda.regra === 'acima100mil' ? ', and only with a lawsuit' : i.perda.regra === 'ate100mil' ? ', keeping administrative collection' : ''} (Law 9.430, art. 9).`, `desde ${dataTxt(i.perda.aPartirDe)}${i.perda.regra === 'acima100mil' ? ', y solo con acción judicial' : i.perda.regra === 'ate100mil' ? ', manteniendo la cobranza administrativa' : ''} (Ley 9.430, art. 9º).`)
+          : i.perda.situacao === 'exige_acao_judicial'
+            ? L('acima de R$ 100 mil: só pode ser lançada com ação judicial iniciada e mantida (Lei 9.430, art. 9º, § 7º).', 'over R$ 100k: can only be booked with a lawsuit filed and maintained (Law 9.430, art. 9, § 7).', 'más de R$ 100 mil: solo con acción judicial iniciada y mantenida (Ley 9.430, art. 9º, § 7º).')
+            : L('já pode ser lançada como perda pela contabilidade (Lei 9.430, art. 9º, § 7º) — reduz o IRPJ e a CSLL.', 'can already be booked as a loss by the accountant (Law 9.430, art. 9, § 7) — reduces IRPJ and CSLL.', 'ya puede registrarse como pérdida por la contabilidad (Ley 9.430, art. 9º, § 7º) — reduce el IRPJ y la CSLL.')}</p>}
         {i.disputa.aberta && <p style={{ color: P.CINZA }}>{L(`Contestado: ${fmt(i.disputa.contestado)}`, `Disputed: ${fmt(i.disputa.contestado)}`, `Disputado: ${fmt(i.disputa.contestado)}`)}</p>}
         <p className="text-xs pt-1" style={{ color: P.CINZA }}>{baseLegal} {L('Juros: os do contrato; sem contrato, Selic − IPCA (Lei 14.905/2024). Cálculo para conferência — o Axioma não cobra nada sozinho.', 'Interest: the contract rate; without it, Selic − IPCA (Law 14.905/2024). For checking only — Axioma never charges anything on its own.', 'Intereses: los del contrato; sin contrato, Selic − IPCA (Ley 14.905/2024). Cálculo para verificación — Axioma no cobra nada solo.')}</p>
       </div>

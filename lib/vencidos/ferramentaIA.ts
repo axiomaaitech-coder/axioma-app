@@ -42,6 +42,8 @@ export async function consultarVencidosIA(sb: SupabaseClient, empresaId: string,
     motivos_prioridade: i.prioridade.fatores.map((f) => f.texto), proxima_acao: nomeAcao('pt', i.acao.acao),
     causa_provavel: nomeCausa('pt', i.causaSugerida.causa), causa_e_fato: i.causaSugerida.tipo === 'fato',
     promessa: i.promessa, divergencia_contestado: i.disputa.aberta ? i.disputa.contestado : 0, ultimo_contato: i.ultimoContato?.data ?? null,
+    ...(i.prescricao ? { prazo_cobrar_como_titulo_ate: i.prescricao.limiteTitulo, prazo_cobrar_como_contrato_ate: i.prescricao.limiteContrato, situacao_prescricao: i.prescricao.situacao } : {}),
+    ...(i.perda && /real/i.test(a.regime ?? '') ? { perda_dedutivel_ir: i.perda.situacao, perda_dedutivel_a_partir_de: i.perda.aPartirDe } : {}),
   })
   const faixas = (g: typeof a.agingReceber) => ({ a_vencer: g.aVencer.saldo, faixas: g.faixas.filter((f) => f.qtd).map((f) => ({ dias: f.rotulo, saldo: f.saldo, qtd: f.qtd, juros_multa: f.encargos })), maior_devedor_pct: g.maiorPct })
   const base = { hoje: a.hoje, metodologia: a.versao, observacao: 'Vencido a receber e promessa NÃO são caixa disponível. Cálculos do motor do Axioma; juros pela Lei 14.905/2024 e CDC (conferência, nada é cobrado sozinho).' }
@@ -64,5 +66,7 @@ export async function consultarVencidosIA(sb: SupabaseClient, empresaId: string,
     fornecedores_prioritarios: a.pagar.slice(0, Math.min(5, limite)).map(item),
     clientes_piorando: piorando, previsao_recuperacao: { ...a.previsao.horizontes.reduce((o, h) => ({ ...o, [`d${h.horizonteDias}`]: h.valor }), {}), composicao: a.previsao.composicao, confianca: a.previsao.confianca },
     impacto_caixa: a.impacto, alertas: a.alertas.map((x) => x.texto), migracao_30_dias: a.migracao30,
+    indicadores_cobranca_90_dias: { dso_dias: a.indicadores.dso, dso_ideal_dias: a.indicadores.dsoIdeal, dias_acrescentados_pelo_atraso: a.indicadores.atrasoMedio, cei_pct: a.indicadores.cei, faturado_a_prazo: a.indicadores.faturado, aberto_hoje: a.indicadores.abertoHoje, definicao: 'DSO = saldo a receber ÷ faturado em 90 dias × 90; DSO ideal = só o que não venceu; atraso = DSO − ideal; CEI = % do que dava para cobrar que entrou (referência 80%+)' },
+    prescricao: 'CC art. 206: título de crédito 3 anos, contrato 5 anos, do vencimento; acordo assinado pelo devedor reinicia (art. 202, VI)',
   }
 }

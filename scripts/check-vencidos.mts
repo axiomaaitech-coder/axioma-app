@@ -281,4 +281,36 @@ const pdfL = REL.linhasPdf([{ nome: 'Resumo', linhas: [{ Item: 'A receber', Valo
 assert.deepEqual(pdfL[0], { 'Seção': 'Resumo', a: 'A receber', b: 'R$ 10', c: '2 contas' })
 assert.deepEqual(pdfL[1], { 'Seção': 'Contas', a: 'Padaria · 30/10', b: 'R$ 5', c: '3 d · R$ 6 · 400 · Pedir' })
 
+// ── prescrição (CC art. 206: 3 anos título, 5 anos contrato), perda dedutível (Lei 9.430 art. 9 § 7) e indicadores ──
+{
+  const pz = M.prescricao({ vencimento: '2024-01-10' }, hoje) // título acaba 10/01/2027 = 69 dias
+  assert.equal(pz.situacao, 'proximo'); assert.equal(pz.diasTitulo, 69); assert.equal(pz.limiteContrato, '2029-01-10')
+  assert.equal(M.prescricao({ vencimento: '2025-06-01' }, hoje).situacao, 'ok')
+  assert.equal(M.prescricao({ vencimento: '2023-05-01' }, hoje).situacao, 'titulo_prescrito', 'passou 3 anos, dentro de 5')
+  assert.equal(M.prescricao({ vencimento: '2021-10-01' }, hoje).situacao, 'prescrito', 'passou 5 anos')
+  assert.equal(M.prescricao({ vencimento: '2024-02-29' }, hoje).limiteTitulo, '2027-02-28', '29/02 vira 28/02 em ano comum')
+  // alerta de prescrição entra na central de alertas
+  const al = M.alertasVencidos({ hoje, migracao: { indiceDeterioracaoPct: 0 } as never, impacto: { riscoRuptura: 'baixo' } as never,
+    itens: [{ titulo: t('pz', '2024-01-10', 900), dna: { tendencia: 'estavel' } as never, promessa: null }] })
+  assert.ok(al.some((x) => x.tipo === 'prescricao' && x.severidade === 'alto' && /69 dias/.test(x.texto)))
+
+  assert.deepEqual(M.perdaDedutivel(10000, '2026-04-01', hoje), { regra: 'ate15mil', aPartirDe: '2026-10-01', situacao: 'dedutivel' })
+  assert.equal(M.perdaDedutivel(10000, '2026-06-01', hoje).situacao, 'ainda_nao')
+  assert.equal(M.perdaDedutivel(15000, '2026-04-01', hoje).regra, 'ate15mil', 'R$ 15 mil exatos ainda é a 1ª faixa')
+  assert.deepEqual(M.perdaDedutivel(50000, '2025-10-01', hoje), { regra: 'ate100mil', aPartirDe: '2026-10-01', situacao: 'dedutivel' })
+  assert.equal(M.perdaDedutivel(150000, '2025-10-01', hoje).situacao, 'exige_acao_judicial')
+
+  // janela 02/11 − 90 = 04/08. Faturado 6.000 (A 1.000, B 2.000, C 3.000 pago); aberto hoje 4.000 (A, B, D); a vencer 2.000 (B); aberto no início 1.000 (D)
+  const ind = M.indicadoresCobranca([
+    t('A', '2026-10-01', 1000, 0, { emissao: '2026-09-01' }), t('B', '2026-11-20', 2000, 0, { emissao: '2026-10-15' }),
+    t('C', '2026-10-10', 3000, 3000, { emissao: '2026-09-10', quitacao: '2026-10-12' }), t('D', '2026-08-01', 1000, 0, { emissao: '2026-07-01' }),
+    t('E', '2026-07-01', 500, 500, { emissao: '2026-06-01', quitacao: '2026-07-05' }),
+  ], hoje)
+  assert.equal(ind.faturado, 6000); assert.equal(ind.abertoHoje, 4000); assert.equal(ind.aVencerHoje, 2000); assert.equal(ind.abertoInicio, 1000)
+  assert.equal(ind.dso, 60); assert.equal(ind.dsoIdeal, 30); assert.equal(ind.atrasoMedio, 30)
+  assert.equal(ind.cei, 60, '(1.000 + 6.000 − 4.000) ÷ (1.000 + 6.000 − 2.000)')
+  assert.equal(M.indicadoresCobranca([], hoje).dso, null, 'sem faturamento não inventa número')
+  console.log('check-vencidos prescrição, perda dedutível e indicadores: ok')
+}
+
 console.log('check-vencidos: tudo certo ✔')

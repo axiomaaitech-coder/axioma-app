@@ -63,6 +63,8 @@ export type ItemVencido = {
   prioridade: ReturnType<typeof M.prioridadeCobranca>; acao: ReturnType<typeof M.proximaAcao>
   promessa: M.SituacaoPromessa | null; promessaFalta: number; emNegociacao: boolean
   ultimoContato: { data: string; canal: string | null } | null; causaSugerida: ReturnType<typeof M.sugerirCausa>
+  // só a receber: prazo para cobrar (CC art. 206) e perda dedutível no IR (Lei 9.430, art. 9º — vale no Lucro Real)
+  prescricao: ReturnType<typeof M.prescricao> | null; perda: ReturnType<typeof M.perdaDedutivel> | null
 }
 export type AnaliseVencidos = {
   hoje: string; limites: number[]; receber: ItemVencido[]; pagar: ItemVencido[]
@@ -73,6 +75,7 @@ export type AnaliseVencidos = {
   evolucao: { data: string; saldo: number }[]; versao: string
   titulosReceber: M.Titulo[]; titulosPagar: M.Titulo[]; legais: M.ParametrosLegais
   fonteTaxaLegal: string | null; falhou: boolean; avisos: string[]
+  indicadores: ReturnType<typeof M.indicadoresCobranca>; regime: string | null
 }
 
 // Caixa da Tesouraria (origem única do caixa). No navegador usa as funções da Tesouraria (carregadas só aqui,
@@ -90,10 +93,12 @@ const tesourariaNavegador: LerTesouraria = async (empresaId, hoje) => {
 
 export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: SupabaseClient; hoje?: string; tesouraria?: LerTesouraria } = {}): Promise<AnaliseVencidos> {
   const sb = opcoes.sb ?? createClient()
-  const hoje = opcoes.hoje ?? hojeISO(), desde = somarDiasISO(hoje, -730) // 24 meses de histórico para o DNA
-  const [cr, cp, casos, prom, cfg, legal, hist, negoc, contatos] = await Promise.all([
-    lerTodas(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').order('id')),
-    lerTodas(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).gte('data_vencimento', desde).order('data_vencimento').order('id')),
+  // 24 meses de histórico para o DNA + todo título ainda em aberto, por mais antigo que seja (antes a dívida vencida há
+  // mais de 2 anos sumia da tela sem aviso — e é justamente a que está perto de prescrever)
+  const hoje = opcoes.hoje ?? hojeISO(), desde = somarDiasISO(hoje, -730)
+  const [cr, cp, casos, prom, cfg, legal, hist, negoc, contatos, emp] = await Promise.all([
+    lerTodas(() => sb.from('contas_receber').select('id, descricao, observacoes, responsavel, status, valor, valor_recebido, valor_desconto, data_vencimento, data_emissao, data_recebimento, taxa_juros, taxa_multa, cliente_id, clientes(nome, nome_fantasia, razao_social, documento)').eq('empresa_id', empresaId).or(`data_vencimento.gte.${desde},status.is.null,status.not.in.(pago,recebido,cancelado,cancelada)`).order('data_vencimento').order('id')),
+    lerTodas(() => sb.from('contas_pagar').select('id, descricao, observacoes, status, valor_total, valor_pago, data_vencimento, data_emissao, data_pagamento, taxa_multa_mensal, fornecedor_id, fornecedores(nome, nome_fantasia, razao_social, documento, nivel_dependencia)').eq('empresa_id', empresaId).or(`data_vencimento.gte.${desde},status.is.null,status.not.in.(pago,recebido,cancelado,cancelada)`).order('data_vencimento').order('id')),
     lerTodas(() => sb.from('vencido_caso').select('*').eq('empresa_id', empresaId).order('id')),
     lerTodas(() => sb.from('cobranca_compromissos').select('id, conta_id, tipo, valor_compromissado, data_compromissada, status, recebido_na_promessa, renegociada_de').eq('empresa_id', empresaId).is('excluido_em', null).order('id')),
     comRetentativa(() => sb.from('vencido_config').select('faixas, parametros').eq('empresa_id', empresaId).maybeSingle()),
@@ -104,6 +109,7 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
     lerTodas(() => sb.from('vencido_evento').select('caso_id, tipo, id, dados').eq('empresa_id', empresaId).in('tipo', ['negociacao_proposta', 'negociacao_aprovada', 'negociacao_recusada']).order('id')),
     // último contato de cobrança de cada conta (o mais recente primeiro; lixeira fora)
     lerTodas(() => sb.from('cobranca_interacoes').select('id, conta_id, data, canal').eq('empresa_id', empresaId).is('excluido_em', null).order('data', { ascending: false }).order('id')),
+    comRetentativa(() => sb.from('empresas').select('regime_tributario').eq('id', empresaId).maybeSingle()),
   ])
   const avisos: string[] = []
   for (const [nome, r] of [['contas a receber', cr], ['contas a pagar', cp]] as const) if (r.error) reportarFalhaLeitura(`vencidos:${nome}`, new Error(r.error.message))
@@ -168,6 +174,7 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
         dna, risco, prioridade, promessa, promessaFalta: sp && ['pendente', 'confirmada', 'parcialmente_cumprida'].includes(sp.situacao) ? sp.falta : 0,
         emNegociacao: !!banco && casosEmNegociacao.has(banco.id), ultimoContato: ultimoContatoDe.get(t.id) ?? null, causaSugerida: M.sugerirCausa(textoDe.get(t.id) ?? '', caso),
         acao: M.proximaAcao({ titulo: t, hoje, risco: risco.score, dna, caso, promessa, caixaDisponivel: posicao.totalDisponivel }),
+        prescricao: t.dominio === 'receber' ? M.prescricao(t, hoje) : null, perda: t.dominio === 'receber' ? M.perdaDedutivel(saldo, t.vencimento, hoje) : null,
       }
     }).sort((a, b) => (b.prioridade.score ?? 0) - (a.prioridade.score ?? 0))
   }
@@ -198,6 +205,7 @@ export async function carregarAnaliseVencidos(empresaId: string, opcoes: { sb?: 
     migracao30, previsao, tesouraria, impacto, alertas, versao: M.VERSAO_METODOLOGIA, titulosReceber: receberT, titulosPagar: pagarT, legais: legaisBase,
     evolucao: (hist.data ?? []).map((x) => ({ data: x.data_base as string, saldo: Number(x.saldo_base) })).reverse(),
     fonteTaxaLegal: legal.fonte, falhou: !!(cr.error || cp.error), avisos,
+    indicadores: M.indicadoresCobranca(receberT, hoje), regime: (emp.data as { regime_tributario?: string | null } | null)?.regime_tributario ?? null,
   }
 }
 

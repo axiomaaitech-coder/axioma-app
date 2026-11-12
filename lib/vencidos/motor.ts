@@ -524,7 +524,7 @@ export function disputaParada(d: { status?: string | null; prazo?: string | null
 // Níveis (etapa 12): normal (só acompanhar) · atencao · alto (risco alto) · critico (agir hoje)
 export type NivelAlerta = 'normal' | 'atencao' | 'alto' | 'critico'
 export const NIVEIS_ALERTA: NivelAlerta[] = ['critico', 'alto', 'atencao', 'normal']
-export type TipoAlerta = 'promessa_descumprida' | 'deterioracao' | 'migracao_faixa' | 'disputa_prazo' | 'fornecedor_essencial' | 'ruptura_caixa' | 'risco_alto' | 'sem_acompanhamento' | 'promessa_no_prazo'
+export type TipoAlerta = 'prescricao' | 'promessa_descumprida' | 'deterioracao' | 'migracao_faixa' | 'disputa_prazo' | 'fornecedor_essencial' | 'ruptura_caixa' | 'risco_alto' | 'sem_acompanhamento' | 'promessa_no_prazo'
 // `chave` identifica o alerta para marcar como tratado; `dados` monta o texto nos 3 idiomas na tela (o `texto` em pt vai para as IAs)
 export type AlertaVencido = { chave: string; tipo: TipoAlerta; severidade: NivelAlerta; tituloId?: string; dominio?: Dominio; texto: string; dados: { nome?: string; de?: number | null; para?: number | null; pct?: number; dias?: number; risco?: number } }
 export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa: SituacaoPromessa | null; caso?: Caso | null; disputaPrazo?: string | null; risco?: number | null; ultimoContato?: string | null }[]; hoje: string; migracao: ReturnType<typeof migracaoAging>; impacto: ReturnType<typeof impactoFinanceiro> }): AlertaVencido[] {
@@ -542,6 +542,8 @@ export function alertasVencidos(e: { itens: { titulo: Titulo; dna: DNA; promessa
     if (i.titulo.dominio === 'pagar' && (i.caso?.criticidade === 'critica' || i.caso?.riscoInterrupcao)) add({ ...base, tipo: 'fornecedor_essencial', severidade: 'critico', texto: `${nome}: fornecedor essencial com pagamento vencido`, dados: { nome } })
     if (i.titulo.dominio === 'receber' && i.risco != null && i.risco >= 700 && dias > 0) add({ ...base, tipo: 'risco_alto', severidade: 'alto', texto: `${nome}: nota de risco ${i.risco}/1000`, dados: { nome, risco: i.risco } })
     // vencida há mais de 30 dias sem contato registrado nos últimos 15 dias
+    // prazo para cobrar acabando (CC art. 206): avisa 180 dias antes dos 3 anos do título e depois até os 5 anos do contrato
+    if (i.titulo.dominio === 'receber') { const pz = prescricao(i.titulo, e.hoje); if (pz.situacao !== 'ok') add({ ...base, tipo: 'prescricao', severidade: pz.situacao === 'proximo' ? 'alto' : 'critico', texto: pz.situacao === 'proximo' ? `${nome}: o prazo de 3 anos para cobrar como título acaba em ${pz.diasTitulo} dias` : pz.situacao === 'titulo_prescrito' ? `${nome}: passou dos 3 anos como título; como dívida de contrato o prazo acaba em ${pz.diasContrato} dias` : `${nome}: passou de 5 anos do vencimento — provável prescrição`, dados: { nome, dias: pz.situacao === 'proximo' ? pz.diasTitulo : pz.diasContrato, de: pz.situacao === 'proximo' ? 3 : pz.situacao === 'titulo_prescrito' ? 5 : 0 } }) }
     if (i.titulo.dominio === 'receber' && dias > 30 && i.promessa == null && (!i.ultimoContato || diasEntre(i.ultimoContato.slice(0, 10), e.hoje) - 1 > 15)) add({ ...base, tipo: 'sem_acompanhamento', severidade: 'atencao', texto: `${nome}: ${dias} dias de atraso sem contato nos últimos 15 dias`, dados: { nome, dias } })
   }
   const pct = e.migracao.indiceDeterioracaoPct
@@ -573,4 +575,62 @@ export function filaDoDia(itens: { titulo: Titulo; saldo: number; promessa: Situ
     if (regra && on.has(regra)) fila.push({ chave: `${regra}:${t.id}`, regra, tituloId: t.id, dominio: t.dominio, nome: t.contraparteNome ?? '', saldo: i.saldo, dias })
   }
   return fila.sort((a, b) => REGRAS_PILOTO.indexOf(a.regra) - REGRAS_PILOTO.indexOf(b.regra) || b.saldo - a.saldo)
+}
+
+// ─── PRAZO PARA COBRAR (prescrição) — Código Civil, art. 206 (conferido no planalto.gov.br em 12/11/2026) ───
+// § 3º VIII: título de crédito (duplicata, boleto, nota promissória) = 3 anos do vencimento; § 5º I: dívida líquida em
+// instrumento público ou particular (contrato, nota assinada) = 5 anos. O Axioma não sabe qual documento existe: avisa
+// pelos dois. O reconhecimento da dívida pelo devedor (acordo, confissão) interrompe a prescrição (art. 202, VI).
+const DIA_MS = 86400000
+const difDias = (de: string, ate: string) => Math.round((Date.parse(ate + 'T12:00:00Z') - Date.parse(de + 'T12:00:00Z')) / DIA_MS)
+const somaAnos = (iso: string, n: number) => { const [a, m, d] = iso.split('-').map(Number); const dt = new Date(Date.UTC(a + n, m - 1, d, 12)); if (dt.getUTCMonth() !== m - 1) dt.setUTCDate(0); return dt.toISOString().slice(0, 10) }
+export const AVISO_PRESCRICAO_DIAS = 180
+export function prescricao(t: Pick<Titulo, 'vencimento'>, hoje: string) {
+  const limiteTitulo = somaAnos(t.vencimento, 3), limiteContrato = somaAnos(t.vencimento, 5)
+  const diasTitulo = difDias(hoje, limiteTitulo), diasContrato = difDias(hoje, limiteContrato)
+  const situacao = diasContrato <= 0 ? 'prescrito' as const : diasTitulo <= 0 ? 'titulo_prescrito' as const : diasTitulo <= AVISO_PRESCRICAO_DIAS ? 'proximo' as const : 'ok' as const
+  return { situacao, limiteTitulo, limiteContrato, diasTitulo, diasContrato }
+}
+
+// ─── PERDA DEDUTÍVEL NO IR (Lucro Real) — Lei 9.430/1996, art. 9º, § 7º (inadimplência após 07/10/2014, sem garantia) ───
+// Até R$ 15 mil: vencido há mais de 6 meses, sem ação judicial. De R$ 15 mil a R$ 100 mil: mais de 1 ano, mantendo a cobrança
+// administrativa. Acima de R$ 100 mil: mais de 1 ano e com ação judicial iniciada e mantida. Só calcula; quem lança é a contabilidade.
+export function perdaDedutivel(saldo: number, vencimento: string, hoje: string): { situacao: 'ainda_nao' | 'dedutivel' | 'exige_acao_judicial'; aPartirDe: string; regra: 'ate15mil' | 'ate100mil' | 'acima100mil' } {
+  const regra = saldo <= 15000 ? 'ate15mil' as const : saldo <= 100000 ? 'ate100mil' as const : 'acima100mil' as const
+  const aPartirDe = regra === 'ate15mil' ? somarDiasISO(vencimento, 183) : somaAnos(vencimento, 1)
+  const passou = hoje > aPartirDe
+  return { regra, aPartirDe, situacao: !passou ? 'ainda_nao' : regra === 'acima100mil' ? 'exige_acao_judicial' : 'dedutivel' }
+}
+
+// ─── INDICADORES DE COBRANÇA (padrão de CFO): DSO, DSO ideal, atraso médio (ADD) e CEI — janela de N dias ───
+// DSO = saldo a receber hoje ÷ faturado na janela × dias. DSO ideal (BPDSO) = só o que ainda não venceu, mesma conta.
+// Atraso médio (ADD) = DSO − DSO ideal (dias que o atraso acrescenta). CEI = quanto do que dava para cobrar foi cobrado:
+// (aberto no início + faturado − aberto hoje) ÷ (aberto no início + faturado − a vencer hoje) × 100.
+// "Faturado" = títulos com emissão (ou, sem emissão, vencimento) dentro da janela. Recebimento parcial sem data é
+// tratado como recebido depois do início (aproximação declarada nas premissas).
+export function indicadoresCobranca(titulos: Titulo[], hoje: string, dias = 90) {
+  const inicio = somarDiasISO(hoje, -dias)
+  const rec = titulos.filter((t) => t.dominio === 'receber' && !['cancelado', 'cancelada'].includes(String(t.status ?? '').toLowerCase()))
+  const emitido = (t: Titulo) => (t.emissao || t.vencimento)
+  const liquido = (t: Titulo) => Math.max(0, centavos(t.valor) - centavos(t.desconto ?? 0))
+  let faturado = 0, abertoHoje = 0, aVencerHoje = 0, abertoInicio = 0, semDataParcial = 0
+  for (const t of rec) {
+    const e = emitido(t)
+    if (e > inicio && e <= hoje) faturado += liquido(t)
+    const saldo = emAberto(t, hoje) ? centavos(saldoDoTitulo(t, hoje)) : 0
+    if (e <= hoje) { abertoHoje += saldo; if (t.vencimento >= hoje) aVencerHoje += saldo }
+    if (e <= inicio) {
+      const quitadoAntes = t.quitacao && t.quitacao <= inicio ? centavos(t.quitado) : 0
+      if (!t.quitacao && t.quitado > 0) semDataParcial++
+      abertoInicio += Math.max(0, liquido(t) - quitadoAntes)
+    }
+  }
+  const dso = faturado > 0 ? Math.round((abertoHoje / faturado) * dias) : null
+  const dsoIdeal = faturado > 0 ? Math.round((aVencerHoje / faturado) * dias) : null
+  const denom = abertoInicio + faturado - aVencerHoje
+  const cei = denom > 0 ? Math.max(0, Math.min(100, Math.round(((abertoInicio + faturado - abertoHoje) / denom) * 100))) : null
+  const premissas: string[] = []
+  if (rec.some((t) => !t.emissao)) premissas.push('sem_emissao')
+  if (semDataParcial) premissas.push('parcial_sem_data')
+  return { janelaDias: dias, inicio, faturado: reais(faturado), abertoHoje: reais(abertoHoje), aVencerHoje: reais(aVencerHoje), abertoInicio: reais(abertoInicio), dso, dsoIdeal, atrasoMedio: dso != null && dsoIdeal != null ? Math.max(0, dso - dsoIdeal) : null, cei, premissas }
 }

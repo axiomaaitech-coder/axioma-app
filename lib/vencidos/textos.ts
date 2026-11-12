@@ -79,6 +79,9 @@ export const nomeNivel = (lang: Lang, n: NivelAlerta) => em(lang, NIVEIS[n])
 export function textoAlerta(lang: Lang, a: AlertaVencido): string {
   const d = a.dados, n = d.nome ?? ''
   const T: Record<AlertaVencido['tipo'], T3> = {
+    prescricao: d.de === 3 ? [`${n}: o prazo de 3 anos para cobrar como título acaba em ${d.dias} dias`, `${n}: the 3-year deadline to collect as a credit instrument ends in ${d.dias} days`, `${n}: el plazo de 3 años para cobrar como título termina en ${d.dias} días`]
+      : d.de === 5 ? [`${n}: passou dos 3 anos como título; como dívida de contrato o prazo acaba em ${d.dias} dias`, `${n}: past 3 years as a credit instrument; as a contract debt the deadline ends in ${d.dias} days`, `${n}: pasó de 3 años como título; como deuda de contrato el plazo termina en ${d.dias} días`]
+      : [`${n}: passou de 5 anos do vencimento — provável prescrição`, `${n}: more than 5 years past due — likely time-barred`, `${n}: más de 5 años del vencimiento — probable prescripción`],
     promessa_descumprida: [`${n}: promessa de pagamento descumprida`, `${n}: payment promise broken`, `${n}: promesa de pago incumplida`],
     promessa_no_prazo: [`${n}: promessa de pagamento no prazo — acompanhar até a data`, `${n}: payment promise on time — follow until the date`, `${n}: promesa de pago en plazo — seguir hasta la fecha`],
     deterioracao: [`${n}: prazo de pagamento piorou (${d.de} → ${d.para} dias)`, `${n}: payment time got worse (${d.de} → ${d.para} days)`, `${n}: el plazo de pago empeoró (${d.de} → ${d.para} días)`],

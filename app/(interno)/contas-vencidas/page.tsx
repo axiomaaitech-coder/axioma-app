@@ -222,6 +222,29 @@ export default function ContasVencidasPage() {
               </div>
             </div>
 
+            {/* Indicadores de cobrança de padrão CFO (DSO, DSO ideal, atraso médio, CEI) — janela de 90 dias, só a receber */}
+            {(() => {
+              const ind = a.indicadores, dias = (v: number | null) => (v == null ? '—' : L(`${v} dias`, `${v} days`, `${v} días`))
+              const premissa = [ind.premissas.includes('sem_emissao') ? L('contas sem data de emissão contam pelo vencimento', 'bills without issue date count by due date', 'cuentas sin fecha de emisión cuentan por el vencimiento') : '', ind.premissas.includes('parcial_sem_data') ? L('recebimento parcial sem data conta como depois do início', 'partial receipt without date counts as after the start', 'cobro parcial sin fecha cuenta como posterior al inicio') : ''].filter(Boolean).join('; ')
+              return (
+                <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
+                  <p className="text-sm font-bold" style={{ color: P.TEXTO }}>{L('Indicadores de cobrança (últimos 90 dias)', 'Collection indicators (last 90 days)', 'Indicadores de cobranza (últimos 90 días)')}</p>
+                  <p className="text-xs mt-0.5 mb-3" style={{ color: P.CINZA }}>{L(`Faturado a prazo na janela: ${fmt(ind.faturado)} · em aberto hoje: ${fmt(ind.abertoHoje)}`, `Billed on credit in the window: ${fmt(ind.faturado)} · open today: ${fmt(ind.abertoHoje)}`, `Facturado a plazo en la ventana: ${fmt(ind.faturado)} · abierto hoy: ${fmt(ind.abertoHoje)}`)}{premissa && ` · ${premissa}`}</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Prazo médio para receber (DSO)', 'Days sales outstanding (DSO)', 'Plazo medio de cobro (DSO)')} valor={dias(ind.dso)} cor={P.TEXTO}
+                      origem={L('Saldo a receber hoje ÷ faturado a prazo nos últimos 90 dias × 90. Quantos dias de vendas estão "na rua".', 'Receivable balance today ÷ credit billed in the last 90 days × 90. How many days of sales are outstanding.', 'Saldo por cobrar hoy ÷ facturado a plazo en los últimos 90 días × 90. Cuántos días de ventas están pendientes.')} />
+                    <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Prazo ideal (só o que não venceu)', 'Best possible DSO', 'Plazo ideal (solo lo no vencido)')} valor={dias(ind.dsoIdeal)} cor={P.VERDE}
+                      origem={L('A mesma conta usando só o que ainda está no prazo: é o DSO que a Empresa teria se ninguém atrasasse.', 'The same math using only what is still on time: the DSO the company would have if nobody paid late.', 'La misma cuenta usando solo lo que aún está en plazo: el DSO que tendría la empresa si nadie se atrasara.')} />
+                    <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Dias que o atraso acrescenta', 'Days added by late payment', 'Días que agrega el atraso')} valor={dias(ind.atrasoMedio)} cor={ind.atrasoMedio != null && ind.atrasoMedio > 15 ? P.VERMELHO : P.TEXTO}
+                      origem={L('Prazo médio − prazo ideal (ADD). Quanto mais alto, mais dinheiro parado por atraso de cliente.', 'DSO − best possible DSO (ADD). The higher, the more cash stuck in late payments.', 'DSO − plazo ideal (ADD). Cuanto más alto, más dinero detenido por atraso de clientes.')} />
+                    <Indicador P={P} aninhada={aninhada} deOnde={L('De onde vem', 'Where it comes from', 'De dónde viene')} titulo={L('Eficiência da cobrança (CEI)', 'Collection effectiveness (CEI)', 'Eficiencia de cobranza (CEI)')} valor={pct(ind.cei)} cor={ind.cei == null ? P.CINZA : ind.cei >= 80 ? P.VERDE : P.VERMELHO}
+                      sub={L('referência de mercado: 80% ou mais', 'market reference: 80% or more', 'referencia de mercado: 80% o más')}
+                      origem={L('Do que dava para cobrar nos 90 dias (aberto no início + faturado − o que ainda nem venceu), quanto entrou. 100% = tudo que venceu foi recebido.', 'Of what could be collected in the 90 days (open at start + billed − what is not due yet), how much came in. 100% = everything due was received.', 'De lo que se podía cobrar en los 90 días (abierto al inicio + facturado − lo que aún no venció), cuánto entró. 100% = todo lo vencido se cobró.')} />
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Atraso por faixa — colunas no padrão dos ERPs/relatórios de CFO (mesmo gráfico de Contas a Receber) */}
             {ag && (
               <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa min-w-0" style={painel}>
@@ -356,8 +379,8 @@ ${textoShare}`} />
             )}
             <Simulador a={a} prometido={a.previsao.composicao.prometido} emNegociacao={a.previsao.composicao.emNegociacao} lang={lang} P={P} fmt={fmt} temaClaro={temaClaro} />
             <CentralDisputas itens={[...a.receber, ...a.pagar]} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} />
-            {empresaId && <CentralVencidos dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
-            {empresaId && <CentralVencidos dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosPagar} temaClaro={temaClaro} />}
+            {empresaId && <CentralVencidos regime={a.regime} dominio="receber" itens={r.receber} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosReceber} temaClaro={temaClaro} />}
+            {empresaId && <CentralVencidos regime={a.regime} dominio="pagar" itens={r.pagar} empresaId={empresaId} lang={lang} P={P} fmt={fmt} dataTxt={dataTxt} tesouraria={a.tesouraria} titulos={a.titulosPagar} temaClaro={temaClaro} />}
           </div>
         )}
       </ModuloLayout>

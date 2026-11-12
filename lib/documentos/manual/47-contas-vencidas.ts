@@ -148,6 +148,19 @@ const pt: DocumentoAxioma = {
       ['Sem previsão confiável', 'Saldo de clientes sem histórico suficiente: o Axioma não inventa previsão para eles.'],
     ] } },
 
+    { h1: 'Indicadores de cobrança (últimos 90 dias)' },
+    { lista: [
+      '**Prazo médio para receber (DSO)**: saldo a receber de hoje ÷ o que foi faturado a prazo nos últimos 90 dias × 90 — quantos dias de vendas estão na rua.',
+      '**Prazo ideal**: a mesma conta só com o que ainda está no prazo — o DSO que a Empresa teria se ninguém atrasasse. **Dias que o atraso acrescenta** = prazo médio − prazo ideal.',
+      '**Eficiência da cobrança (CEI)**: do que dava para cobrar nos 90 dias, quanto entrou. 100% = tudo que venceu foi recebido; a referência de mercado é 80% ou mais.',
+      'Toque em cada cartão para ver **De onde vem**. Contas sem data de emissão contam pelo vencimento (o aviso aparece embaixo do título).',
+    ] },
+    { h1: 'Prazo para cobrar e perda dedutível' },
+    { lista: [
+      'No detalhe de cada conta a receber aparece o **Prazo para cobrar** (Código Civil, art. 206): **3 anos** do vencimento como título (boleto, duplicata) e **5 anos** como dívida de contrato. Um acordo assinado pelo cliente reinicia o prazo (art. 202, VI).',
+      'A **Central de alertas** avisa **180 dias antes** de acabarem os 3 anos e, depois, até os 5 anos. Contas vencidas há mais de 2 anos continuam na tela enquanto estiverem em aberto.',
+      'Empresa no **Lucro Real**: o detalhe mostra quando a conta pode virar **perda dedutível no IR** (Lei 9.430/1996, art. 9º, § 7º): até R$ 15 mil depois de 6 meses; de R$ 15 mil a R$ 100 mil depois de 1 ano mantendo a cobrança; acima de R$ 100 mil só com ação judicial. Quem lança é a contabilidade.',
+    ] },
     { h1: 'Atraso por faixa' },
     { p: 'Gráfico de colunas com o saldo em cada faixa: **A vencer** (cinza), até 30 dias (verde-menta), 31 a 90 dias (azul-marinho) e acima de 90 dias (vermelho, atraso grave) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 e acima de 360 dias. Passe o mouse (ou toque) numa coluna para ver o valor, a quantidade de contas e o peso no total. No alto, **Até 30 dias (com a vencer)** compara com a referência de mercado de 75% a 80%. No celular o gráfico aparece deitado, com o nome de cada faixa na lateral. Os botões **A receber** e **A pagar** trocam o lado. Embaixo: juros e multa estimados e quanto o maior devedor representa do vencido.' },
 
@@ -361,6 +374,19 @@ const en: DocumentoAxioma = {
       ['No reliable forecast', 'Balance of customers without enough history: Axioma does not make up a forecast for them.'],
     ] } },
 
+    { h1: 'Collection indicators (last 90 days)' },
+    { lista: [
+      '**Days sales outstanding (DSO)**: receivable balance today ÷ what was billed on credit in the last 90 days × 90 — how many days of sales are outstanding.',
+      '**Best possible DSO**: the same math with only what is still on time — the DSO the company would have if nobody paid late. **Days added by late payment** = DSO − best possible.',
+      '**Collection effectiveness (CEI)**: of what could be collected in the 90 days, how much came in. 100% = everything due was received; the market reference is 80% or more.',
+      'Tap each card to see **Where it comes from**. Bills without an issue date count by due date (the note appears under the title).',
+    ] },
+    { h1: 'Deadline to collect and deductible loss' },
+    { lista: [
+      'Each receivable detail shows the **Deadline to collect** (Civil Code, art. 206): **3 years** from the due date as a credit instrument (slip, trade bill) and **5 years** as a contract debt. A deal signed by the customer restarts the term (art. 202, VI).',
+      'The **Alert center** warns **180 days before** the 3 years end and, after that, until 5 years. Bills overdue for more than 2 years stay on screen while still open.',
+      'Companies on **Actual Profit**: the detail shows when the bill can become a **tax-deductible loss** (Law 9.430/1996, art. 9, § 7): up to R$ 15k after 6 months; R$ 15k to R$ 100k after 1 year keeping collection; over R$ 100k only with a lawsuit. The accountant books it.',
+    ] },
     { h1: 'Overdue by range' },
     { p: 'Column chart with the balance in each range: **Not due** (gray), up to 30 days (mint green), 31 to 90 days (navy) and over 90 days (red, serious delay) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 and over 360 days. Hover (or tap) a column to see the amount, the number of bills and the share of the total. At the top, **Up to 30 days (incl. not due)** is compared with the market reference of 75% to 80%. On a phone the chart is shown sideways, with each range name on the side. The **Receivable** and **Payable** buttons switch sides. Below: estimated interest and fines and how much the largest debtor represents of the overdue amount.' },
 
@@ -574,6 +600,19 @@ const es: DocumentoAxioma = {
       ['Sin previsión confiable', 'Saldo de clientes sin historial suficiente: Axioma no inventa una previsión para ellos.'],
     ] } },
 
+    { h1: 'Indicadores de cobranza (últimos 90 días)' },
+    { lista: [
+      '**Plazo medio de cobro (DSO)**: saldo por cobrar de hoy ÷ lo facturado a plazo en los últimos 90 días × 90 — cuántos días de ventas están pendientes.',
+      '**Plazo ideal**: la misma cuenta solo con lo que aún está en plazo — el DSO que tendría la empresa si nadie se atrasara. **Días que agrega el atraso** = plazo medio − plazo ideal.',
+      '**Eficiencia de cobranza (CEI)**: de lo que se podía cobrar en los 90 días, cuánto entró. 100% = todo lo vencido se cobró; la referencia de mercado es 80% o más.',
+      'Toque cada tarjeta para ver **De dónde viene**. Las cuentas sin fecha de emisión cuentan por el vencimiento (el aviso aparece bajo el título).',
+    ] },
+    { h1: 'Plazo para cobrar y pérdida deducible' },
+    { lista: [
+      'En el detalle de cada cuenta por cobrar aparece el **Plazo para cobrar** (Código Civil, art. 206): **3 años** desde el vencimiento como título (boleto, duplicata) y **5 años** como deuda de contrato. Un acuerdo firmado por el cliente reinicia el plazo (art. 202, VI).',
+      'La **Central de alertas** avisa **180 días antes** de que terminen los 3 años y, después, hasta los 5 años. Las cuentas vencidas hace más de 2 años siguen en pantalla mientras estén abiertas.',
+      'Empresa en **Lucro Real**: el detalle muestra cuándo la cuenta puede volverse **pérdida deducible en el IR** (Ley 9.430/1996, art. 9º, § 7º): hasta R$ 15 mil después de 6 meses; de R$ 15 mil a R$ 100 mil después de 1 año manteniendo la cobranza; más de R$ 100 mil solo con acción judicial. La registra la contabilidad.',
+    ] },
     { h1: 'Atraso por rango' },
     { p: 'Gráfico de columnas con el saldo en cada rango: **Por vencer** (gris), hasta 30 días (verde menta), 31 a 90 días (azul marino) y más de 90 días (rojo, atraso grave) — 1–7, 8–15, 16–30, 31–45, 46–60, 61–90, 91–120, 121–180, 181–360 y más de 360 días. Pase el mouse (o toque) sobre una columna para ver el valor, la cantidad de cuentas y el peso en el total. Arriba, **Hasta 30 días (con por vencer)** se compara con la referencia de mercado de 75% a 80%. En el celular el gráfico aparece acostado, con el nombre de cada rango al costado. Los botones **Por cobrar** y **Por pagar** cambian el lado. Abajo: intereses y multas estimados y cuánto representa el mayor deudor de lo vencido.' },
 

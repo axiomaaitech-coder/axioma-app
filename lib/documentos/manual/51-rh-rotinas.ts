@@ -6,7 +6,7 @@ const pt: DocumentoAxioma = {
   arquivo: '51 - RH Rotinas.docx',
   titulo: 'Manual 51 — RH · Rotinas do dia a dia',
   subtitulo: 'Exames, documentos, contratos a vencer, eSocial, obrigações da Empresa e simulação de contratação — cada alerta do Painel leva a uma delas',
-  info: ['Menu: Gestão → RH → linha de botões abaixo das abas  •  Manual de uso do Axioma AI.Tech  •  Versão 1.0 (novembro de 2026)'],
+  info: ['Menu: Gestão → RH → linha de botões abaixo das abas  •  Manual de uso do Axioma AI.Tech  •  Versão 1.1 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Cada alerta do Painel do RH tem uma tela própria para ser resolvido. Em todas, **o nome da pessoa abre a ficha dela já na parte certa** (contrato, documentos, eSocial ou desligamento). As listas de pessoas ficam em **ordem alfabética**.' },
@@ -82,7 +82,7 @@ const en: DocumentoAxioma = {
   arquivo: '51 - HR Routines.docx',
   titulo: 'Manual 51 — HR · Day-to-day routines',
   subtitulo: 'Exams, documents, expiring contracts, eSocial and company obligations — each Panel alert leads to one of them',
-  info: ['Menu: Management → HR → row of buttons below the tabs  •  Axioma AI.Tech user manual  •  Version 1.0 (November 2026)'],
+  info: ['Menu: Management → HR → row of buttons below the tabs  •  Axioma AI.Tech user manual  •  Version 1.1 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Each HR Panel alert has its own screen to be solved. On all of them, **the person\'s name opens their record at the right part** (contract, documents, eSocial or termination). Lists of people are in **alphabetical order**.' },
@@ -158,7 +158,7 @@ const es: DocumentoAxioma = {
   arquivo: '51 - RRHH Rutinas.docx',
   titulo: 'Manual 51 — RR. HH. · Rutinas del día a día',
   subtitulo: 'Exámenes, documentos, contratos por vencer, eSocial y obligaciones de la empresa — cada alerta del Panel lleva a una de ellas',
-  info: ['Menú: Gestión → RR. HH. → fila de botones debajo de las pestañas  •  Manual de uso de Axioma AI.Tech  •  Versión 1.0 (noviembre de 2026)'],
+  info: ['Menú: Gestión → RR. HH. → fila de botones debajo de las pestañas  •  Manual de uso de Axioma AI.Tech  •  Versión 1.1 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Cada alerta del Panel de RR. HH. tiene su propia pantalla para resolverse. En todas, **el nombre de la persona abre su ficha en la parte correcta** (contrato, documentos, eSocial o desvinculación). Las listas de personas están en **orden alfabético**.' },

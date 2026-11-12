@@ -71,6 +71,7 @@ const pt: DocumentoAxioma = {
     { p: '**Do card à solução:** os cards **Vencido** e **Receita em Risco** abrem a lista das contas atrasadas. Cada uma tem o botão **Registrar recebimento (dar baixa)**, que abre a janela de recebimento já com o valor; use só quando o cliente realmente pagou. O botão **Ver todas na lista e resolver** filtra a Central de Recebimentos em **Vencido** e leva você até ela.' },
 
     { h1: 'Contas vencidas' },
+    { p: 'Ao lançar uma nova conta, se o **Cliente** escolhido já tiver contas vencidas, aparece embaixo do campo um aviso com o total vencido, quantas contas e há quantos dias está a mais antiga, com o atalho **Ver em Contas Vencidas ›**. O aviso não impede o lançamento: a decisão de vender a prazo é do dono.' },
     { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a receber vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
   ],
 }
@@ -145,6 +146,7 @@ const en: DocumentoAxioma = {
     { p: '**From card to solution:** the **Overdue** and **Revenue at Risk** cards open the list of late bills. Each one has **Record payment received**, which opens the receipt window with the amount filled in; use it only when the client actually paid. **See all in the list and resolve** filters the Receivables Center to **Overdue** and takes you there.' },
 
     { h1: 'Overdue bills' },
+    { p: 'When entering a new bill, if the chosen **Customer** already has overdue bills, a warning appears under the field with the overdue total, how many bills and how many days the oldest is late, with the **See in Overdue Bills ›** shortcut. The warning does not block the entry: selling on credit is the owner\u2019s decision.' },
     { p: 'When there are late bills, a card at the top shows the total overdue receivable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
   ],
 }
@@ -219,6 +221,7 @@ const es: DocumentoAxioma = {
     { p: '**Del indicador a la solución:** los indicadores **Vencido** e **Ingreso en Riesgo** abren la lista de cuentas atrasadas. Cada una tiene **Registrar cobro (dar de baja)**, que abre la ventana de cobro con el valor ya completado; úselo solo cuando el cliente realmente pagó. **Ver todas en la lista y resolver** filtra el Centro de Cobros en **Vencido** y lo lleva hasta allí.' },
 
     { h1: 'Cuentas vencidas' },
+    { p: 'Al registrar una nueva cuenta, si el **Cliente** elegido ya tiene cuentas vencidas, aparece bajo el campo un aviso con el total vencido, cuántas cuentas y hace cuántos días está la más antigua, con el atajo **Ver en Cuentas Vencidas ›**. El aviso no impide el registro: la decisión de vender a plazo es del dueño.' },
     { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por cobrar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
   ],
 }
