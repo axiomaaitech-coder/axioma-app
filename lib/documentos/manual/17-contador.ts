@@ -21,7 +21,7 @@ const pt: DocumentoAxioma = {
       ['**Mostrar só abertas / Mostrar todas**', 'Filtra a lista.', 'A lista muda na hora.'],
       ['**Compartilhar**', 'Abre a Central de Compartilhamento.', 'WhatsApp, e-mail, copiar ou PDF.'],
       ['**Exportar PDF** e **Exportar Excel**', 'A lista de descobertas que está na tela (com o filtro escolhido) e os totais dos cartões. Aparecem quando a lista tem algo.', 'O arquivo é baixado; no Excel, o impacto em R$ vem como número.'],
-      ['Atalhos **Explique minha empresa**, **Fechamento**, **Lançamento Manual**, **Se eu fizer nada**', 'Abrem as telas internas.', 'Cada uma tem **Voltar ao Contador**.'],
+      ['Atalhos **Explique minha empresa**, **Fechamento** (checklist do mês), **Lançamento Manual**, **Se eu fizer nada**', 'Abrem as telas internas.', 'Cada uma tem **Voltar ao Contador**.'],
     ] } },
     { h2: 'Cada descoberta' },
     { p: 'Mostra Tipo, Prioridade, **Confiança**, **Impacto**, **Por quê**, **O que fazer**, **Encontrada em** e a **Evidência (dados e cálculo usados)** — nada é afirmado sem o número por trás.' },
@@ -35,8 +35,13 @@ const pt: DocumentoAxioma = {
     { h1: 'Explique Minha Empresa' },
     { p: 'Como a empresa realmente funciona, direto da contabilidade: **Como sua empresa ganha dinheiro** (receitas), **Onde sua empresa perde dinheiro** (despesas), **Como o caixa se comporta** (caixa disponível e Liquidity Score), **Concentração** de fornecedores e os riscos e oportunidades abertos. Sem lançamentos, pede para cadastrar o plano de contas e lançar movimentos.' },
 
-    { h1: 'Fechamento (Continuous Close)' },
-    { p: 'Quão pronto está o fechamento do mês: **Close Readiness**, **Data Trust Score**, **Eventos não contabilizados**, **Contas a pagar pendentes** e **Contas a receber pendentes** — cada item com "clique pra resolver" levando ao lugar certo.' },
+    { h1: 'Fechamento do mês' },
+    { lista: [
+      'Escolha o **Mês** (abre no mês anterior, que é o que se fecha). O **Checklist do fechamento** mostra quantos itens estão resolvidos, a barra de progresso e, quando tudo estiver verde, **Mês pronto para fechar**.',
+      'Itens: **Receitas com categoria** e **Custos variáveis com categoria** (lançamentos do mês sem categoria); **Contas a pagar** e **Contas a receber do mês resolvidas** (vencidas no mês e ainda em aberto); **Folha do mês lançada** (há contrato no RH e nenhuma "Folha de pagamento" em Custos Fixos); **Obrigações fiscais do mês em dia**; **Conferência do mês batendo** (DRE × Contabilidade × Fluxo de Caixa).',
+      'Cada item pendente mostra quantos, quanto em R$ e um botão que leva direto à tela que resolve (já filtrada quando dá). "Não se aplica" não conta no progresso; leitura que falhar aparece como aviso, nunca como resolvido.',
+      'Embaixo ficam a **Prontidão pela Contabilidade**, os **Eventos não contabilizados** e a **Confiança dos dados** do mesmo mês.',
+    ] },
 
     { h1: 'Lançamento Manual (Proprietário ou Administrador)' },
     { p: 'Ajustes, provisões e correções em **partida dobrada**. Nunca edita um lançamento existente: sempre **estorna e relança**.' },
@@ -88,8 +93,13 @@ const en: DocumentoAxioma = {
     { h1: 'Explain My Company' },
     { p: 'How the company really works, straight from the accounting: **How your company makes money** (revenue), **Where your company loses money** (expenses), **How cash behaves** (available cash and Liquidity Score), supplier **Concentration** and open risks and opportunities. Without entries, it asks you to set up the chart of accounts and post movements.' },
 
-    { h1: 'Close (Continuous Close)' },
-    { p: 'How ready the month’s close is: **Close Readiness**, **Data Trust Score**, **Unposted events**, **Pending payables** and **Pending receivables** — each item with "click to resolve" leading to the right place.' },
+    { h1: 'Month-end close' },
+    { lista: [
+      'Pick the **Month** (opens on the previous month, the one being closed). The **Close checklist** shows how many items are done, the progress bar and, when everything is green, **Month ready to close**.',
+      'Items: **Revenue categorized** and **Variable costs categorized** (entries of the month without category); **Month payables** and **receivables settled** (overdue in the month and still open); **Month payroll entered** (HR contracts and no "Folha de pagamento" in Fixed Costs); **Month tax obligations done**; **Month reconciliation matching** (income statement × Accounting × Cash Flow).',
+      'Each pending item shows how many, how much in R$ and a button that goes straight to the screen that fixes it (pre-filtered when possible). "Does not apply" does not count toward progress; a failed read shows as a warning, never as done.',
+      'Below are **Readiness by Accounting**, **Events not booked** and **Data trust** for the same month.',
+    ] },
 
     { h1: 'Manual Entry (Owner or Administrator)' },
     { p: 'Adjustments, provisions and corrections in **double entry**. It never edits an existing entry: it always **reverses and re-posts**.' },
@@ -141,8 +151,13 @@ const es: DocumentoAxioma = {
     { h1: 'Explique Mi Empresa' },
     { p: 'Cómo funciona realmente la empresa, directo de la contabilidad: **Cómo su empresa gana dinero** (ingresos), **Dónde su empresa pierde dinero** (gastos), **Cómo se comporta la caja** (caja disponible y Liquidity Score), **Concentración** de proveedores y los riesgos y oportunidades abiertos. Sin asientos, pide registrar el plan de cuentas y movimientos.' },
 
-    { h1: 'Cierre (Continuous Close)' },
-    { p: 'Qué tan listo está el cierre del mes: **Close Readiness**, **Data Trust Score**, **Eventos no contabilizados**, **Cuentas por pagar pendientes** y **Cuentas por cobrar pendientes** — cada ítem con "clic para resolver" que lleva al lugar correcto.' },
+    { h1: 'Cierre del mes' },
+    { lista: [
+      'Elija el **Mes** (abre en el mes anterior, el que se cierra). La **Lista del cierre** muestra cuántos ítems están resueltos, la barra de progreso y, cuando todo esté en verde, **Mes listo para cerrar**.',
+      'Ítems: **Ingresos con categoría** y **Costos variables con categoría** (registros del mes sin categoría); **Cuentas por pagar** y **por cobrar del mes resueltas** (vencidas en el mes y aún abiertas); **Nómina del mes registrada** (contratos en RR. HH. y ninguna "Folha de pagamento" en Costos Fijos); **Obligaciones fiscales del mes al día**; **Conciliación del mes cuadrando** (estado de resultados × Contabilidad × Flujo de Caja).',
+      'Cada ítem pendiente muestra cuántos, cuánto en R$ y un botón que lleva directo a la pantalla que lo resuelve (ya filtrada cuando se puede). "No aplica" no cuenta en el progreso; una lectura que falle aparece como aviso, nunca como resuelta.',
+      'Abajo quedan la **Preparación por Contabilidad**, los **Eventos no contabilizados** y la **Confianza de los datos** del mismo mes.',
+    ] },
 
     { h1: 'Asiento Manual (Propietario o Administrador)' },
     { p: 'Ajustes, provisiones y correcciones en **partida doble**. Nunca edita un asiento existente: siempre **revierte y vuelve a registrar**.' },

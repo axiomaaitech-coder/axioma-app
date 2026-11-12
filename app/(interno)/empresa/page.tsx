@@ -773,7 +773,7 @@ export default function EmpresaPage() {
 
   useEffect(() => { carregarTudo(); listarBancos().then(setBancos); }, []);
   // Atalho vindo de outra tela (ex.: card da Equipe → /empresa?aba=transferir)
-  useEffect(() => { if (new URLSearchParams(window.location.search).get("aba") === "transferir") setAba("transferir"); }, []);
+  useEffect(() => { const a = new URLSearchParams(window.location.search).get("aba"); if (a === "transferir" || a === "compliance") setAba(a); }, []);
 
   // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
   // módulos: um único carregar() que já busca o usuário por dentro) — antes
