@@ -1,5 +1,5 @@
 // Fonte única: gera os PDFs (scripts/gerar-pdf.cjs) e a página no site, nos 3 idiomas.
-// Rotinas do RH (auditoria 09/11/2026): Exames, Documentos, Contratos a vencer, Central do eSocial e Obrigações da empresa.
+// Rotinas do RH (auditoria 09/11/2026; Admissões e Desligamentos 11/11/2026): Exames, Documentos, Contratos a vencer, Central do eSocial e Obrigações da empresa.
 import type { DocumentoAxioma, DocTrilingue } from "../tipos"
 
 const pt: DocumentoAxioma = {
@@ -55,6 +55,14 @@ const pt: DocumentoAxioma = {
       '**Saída de caixa mês a mês (1º ano)**: salário no 5º dia útil e FGTS/INSS no dia 20 do mês seguinte; 13º em 30/11 e 20/12 (barras laranja). Toque num mês para ver o que sai.',
       'Avisos em laranja quando o lucro médio fica negativo, quando a contratação come mais da metade do lucro, quando o caixa não cobre os primeiros meses e quando a **folha atual não está lançada em Custos Fixos** — aí o lucro da DRE está maior que o real (com o atalho **Lançar a folha em Custos Fixos ›**).',
       'Também pela Inteligência Axioma: "posso contratar alguém de R$ 2.500?", "quanto custa contratar 2 vendedores?".',
+    ] },
+    { h1: 'Admissões e Desligamentos' },
+    { lista: [
+      '**Admissões** lista todos os contratos da Empresa; **Desligamentos**, todos os que já têm data de saída. Os dois em **ordem alfabética**, 50 por página (Anterior/Próxima), prontos para empresa grande.',
+      '**Buscar**: nome, nome social, matrícula ou CPF (com ou sem pontos, sem precisar de acento). O CPF só aparece e só entra na busca para quem tem a liberação de dados pessoais.',
+      'Filtros: **período** (admitidos ou desligados entre duas datas), **situação no eSocial** (não preparado, preparado para o contador, enviado, aceito; nas admissões também **admissão cancelada**) e, nos desligamentos, o **motivo** (Tabela 19). Com filtro ligado aparece **Limpar filtro**.',
+      'Toque no nome: em Admissões abre a ficha no contrato; em Desligamentos, na rescisão. Motivo e situação da rescisão só aparecem com liberação de dados pessoais e salário.',
+      'Prazos: admissão no eSocial (S-2200) até o dia anterior ao início; desligamento (S-2299) e pagamento da rescisão em até 10 dias (CLT art. 477 § 6º).',
     ] },
     { h1: 'Férias' },
     { lista: [
@@ -123,6 +131,14 @@ const en: DocumentoAxioma = {
       'Orange warnings when average profit turns negative, when the hire takes more than half of the profit, when cash does not cover the first months and when **current payroll is not entered in Fixed Costs** — then the income statement profit is higher than the real one (with the **Enter payroll in Fixed Costs ›** shortcut).',
       'Also through Axioma Intelligence: "can I hire someone at R$ 2,500?", "how much does hiring 2 salespeople cost?".',
     ] },
+    { h1: 'Hires and Terminations' },
+    { lista: [
+      '**Hires** lists every contract of the company; **Terminations**, every one that has an end date. Both in **alphabetical order**, 50 per page (Previous/Next), ready for large companies.',
+      '**Search**: name, social name, employee ID or CPF (with or without dots, accents not needed). The CPF only shows and is only searchable for users with personal data access.',
+      'Filters: **period** (hired or terminated between two dates), **eSocial status** (not prepared, ready for the accountant, sent, accepted; in hires also **hire cancelled**) and, in terminations, the **reason** (Table 19). With a filter on, **Clear filter** appears.',
+      'Tap the name: in Hires it opens the record at the contract; in Terminations, at the severance. Reason and severance status only show with personal data and salary access.',
+      'Deadlines: hire in eSocial (S-2200) by the day before the start; termination (S-2299) and severance payment within 10 days (CLT art. 477 § 6).',
+    ] },
     { h1: 'Vacations' },
     { lista: [
       'Every 12 months of work (counted from hire) earns vacation, which must be granted within the following 12 months. After that deadline, the days are **paid double** (CLT art. 137).',
@@ -189,6 +205,14 @@ const es: DocumentoAxioma = {
       '**Salida de caja mes a mes (1er año)**: salario el 5º día hábil y FGTS/INSS el día 20 del mes siguiente; 13º el 30/11 y 20/12 (barras naranjas). Toque un mes para ver qué sale.',
       'Avisos naranjas cuando la utilidad media queda negativa, cuando la contratación consume más de la mitad de la utilidad, cuando la caja no cubre los primeros meses y cuando la **nómina actual no está registrada en Costos Fijos** — entonces la utilidad del estado de resultados es mayor que la real (con el atajo **Registrar la nómina en Costos Fijos ›**).',
       'También por la Inteligencia Axioma: "¿puedo contratar a alguien de R$ 2.500?", "¿cuánto cuesta contratar 2 vendedores?".',
+    ] },
+    { h1: 'Admisiones y Desvinculaciones' },
+    { lista: [
+      '**Admisiones** lista todos los contratos de la empresa; **Desvinculaciones**, todos los que ya tienen fecha de salida. Ambos en **orden alfabético**, 50 por página (Anterior/Siguiente), listos para empresas grandes.',
+      '**Buscar**: nombre, nombre social, matrícula o CPF (con o sin puntos, sin necesidad de acentos). El CPF solo aparece y solo entra en la búsqueda para quien tiene habilitación de datos personales.',
+      'Filtros: **período** (admitidos o desvinculados entre dos fechas), **situación en el eSocial** (no preparado, preparado para el contador, enviado, aceptado; en admisiones también **admisión cancelada**) y, en desvinculaciones, el **motivo** (Tabla 19). Con filtro activo aparece **Limpiar filtro**.',
+      'Toque el nombre: en Admisiones abre la ficha en el contrato; en Desvinculaciones, en la rescisión. Motivo y situación de la rescisión solo aparecen con habilitación de datos personales y salario.',
+      'Plazos: admisión en el eSocial (S-2200) hasta el día anterior al inicio; desvinculación (S-2299) y pago de la rescisión en hasta 10 días (CLT art. 477 § 6).',
     ] },
     { h1: 'Vacaciones' },
     { lista: [
