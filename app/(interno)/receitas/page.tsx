@@ -17,7 +17,7 @@ import ReactECharts from "echarts-for-react";
 import {
   fBRL, fBRL2, CORES, corTema, mesesPorLang, serieMensal, crescimentoMoM, ticketMedio,
   concentracao, percentualRecorrente, mrrArr, porCategoria, preverProximosMeses,
-  gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento, irParaDestino, resolverPeriodo, type Periodo, type PeriodoPreset } from "../../../lib/cfoCore";
+  gerarInsights, optBarrasV, optRosca, comCoresDaSequencia, optLinhaPrevisao, type Lancamento, irParaDestino, resolverPeriodo, type Periodo, type PeriodoPreset } from "../../../lib/cfoCore";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { cfoT, textoInsight } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -313,7 +313,7 @@ export default function Receitas() {
 
   // ═══════════ GRÁFICOS (options do alicerce) ═══════════
   const optEvol = optBarrasV(serie12, meses, ct(temaClaro ? CORES.verde : CORES.roxo), temaClaro ? CORES.verde : CORES.roxoC, undefined, temaClaro);
-  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.ouro), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
+  const optCat = optRosca(temaClaro ? comCoresDaSequencia(composicao) : composicao, ct(temaClaro ? CORES.verde : CORES.ouro), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
   const histInicio = Math.max(0, mesAtual - 2);
   const optPrev = optLinhaPrevisao(
     [...serie12.slice(histInicio, mesAtual + 1), null, null, null],

@@ -335,6 +335,13 @@ export function porCategoria(
     .filter((x) => x.value > 0);
 }
 
+// Claro: sequência OFICIAL de cores de gráfico (tema-tokens.md §1.4: chart-1..5), dada em ordem às fatias que
+// aparecem — antes cada categoria tinha cor fixa e várias caíam no mesmo verde (rosca de uma cor só).
+export const SEQ_GRAFICO_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54"];
+export function comCoresDaSequencia<T extends { color: string }>(dados: T[]): T[] {
+  return dados.map((d, i) => ({ ...d, color: SEQ_GRAFICO_CLARO[i % SEQ_GRAFICO_CLARO.length] }));
+}
+
 // ---------- PREVISÃO IA (média móvel + tendência linear) ----------
 // Núcleo reutilizável: projeta os próximos N valores a partir de qualquer série
 // histórica já ordenada (mais antigo → mais recente), sem depender de calendário.

@@ -14,7 +14,7 @@ import { tratarFalhaExportacao, registrarLeitura } from "../../../lib/erroUiHelp
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
-  fBRL, fBRL2, CORES, corTema, porCategoria, optRosca, optBarrasV,
+  fBRL, fBRL2, CORES, corTema, porCategoria, optRosca, comCoresDaSequencia, optBarrasV,
   radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa, irParaDestino } from "../../../lib/cfoCore";
 import { cfoT } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -279,7 +279,7 @@ export default function CustosFixos() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS ═══════════
-  const optCat = optRosca(composicao, ct(CORES.verde), cx.totalMensal.toUpperCase(), temaClaro);
+  const optCat = optRosca(temaClaro ? comCoresDaSequencia(composicao) : composicao, ct(CORES.verde), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
   const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(temaClaro ? CORES.verde : CORES.laranja), temaClaro ? CORES.verde : CORES.laranjaC, undefined, temaClaro);
 

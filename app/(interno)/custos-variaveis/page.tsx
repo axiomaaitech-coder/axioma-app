@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fBRL2, fPct, CORES, corTema, porCategoria, optRosca, optBarrasV, optLinhaMulti, optLinhaPrevisao, serieRolling,
+  fBRL, fBRL2, fPct, CORES, corTema, porCategoria, optRosca, comCoresDaSequencia, optBarrasV, optLinhaMulti, optLinhaPrevisao, serieRolling,
   margemContribuicao, pontoEquilibrio, margemSeguranca, coeficienteVariacao, pesoSobreReceita,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos, compararPeriodosPorCategoria,
   detectarAnomaliasHistoricas, preverTendencia, FONTE_EXEC,
@@ -372,7 +372,7 @@ export default function CustosVariaveis() {
   // ═══════════════════════ GRÁFICOS ═══════════════════════
   const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, temaClaro ? (CAT_COR_CLARO[v] ?? ct(v)) : v]));
   const composicao = porCategoria(custosNoPeriodo, categorias, catCorAtual);
-  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.laranja), cx.custoVariavelMes.toUpperCase(), temaClaro);
+  const optCat = optRosca(temaClaro ? comCoresDaSequencia(composicao) : composicao, ct(temaClaro ? CORES.verde : CORES.laranja), cx.custoVariavelMes.toUpperCase(), temaClaro);
 
   const topCustos = [...custosNoPeriodo].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).slice(0, 8) as (Lancamento & { descricao: string })[];
   const optTop = optBarrasV(
