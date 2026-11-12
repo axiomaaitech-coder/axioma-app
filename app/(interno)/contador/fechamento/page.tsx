@@ -15,7 +15,7 @@ import { carregarChecklistFechamento, progressoFechamento, type ItemFechamento }
 import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import { fBRL2 } from '../../../../lib/cfoCore'
 import { hojeISO } from '../../../../lib/datas'
-import { lerFiltroDestino } from '../../../../lib/filtroDestino'
+import { lerFiltroDestino, rotaDoFechamento, marcarVolta } from '../../../../lib/filtroDestino'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -67,6 +67,8 @@ export default function ContadorFechamentoPage() {
   }, [mes])
 
   const prog = itens ? progressoFechamento(itens) : null
+  // Vai para a tela de destino e grava a volta: lá aparece "← Voltar ao Fechamento do mês" (no mesmo mês).
+  const ir = (rota: string) => { marcarVolta(rota, `/contador/fechamento?mes=${mes}`, { pt: 'Fechamento do mês', en: 'Month-end close', es: 'Cierre del mes' }); router.push(rota) }
   const icone = (s: ItemFechamento['status']) => s === 'ok' ? <CheckCircle2 size={18} style={{ color: VERDE, flexShrink: 0 }} />
     : s === 'pendente' ? <AlertCircle size={18} style={{ color: ALERTA, flexShrink: 0 }} />
     : s === 'sem_dado' ? <HelpCircle size={18} style={{ color: ALERTA, flexShrink: 0 }} /> : <MinusCircle size={18} style={{ color: CINZA, flexShrink: 0 }} />
@@ -124,7 +126,7 @@ export default function ContadorFechamentoPage() {
                       <p className="text-xs" style={{ color: i.status === 'pendente' || i.status === 'sem_dado' ? ALERTA : CINZA }}>{i.detalhe[lang]}{i.status === 'pendente' && i.valor ? ` · R$ ${fBRL2(i.valor)}` : ''}</p>
                     </div>
                     {/* Todo item leva à tela de origem já filtrada no mês (e no que falta, quando pendente). */}
-                    <button type="button" onClick={() => router.push(i.rota)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white"
+                    <button type="button" onClick={() => ir(i.rota)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white"
                       style={{ background: i.status === 'ok' || i.status === 'nao_se_aplica' ? 'linear-gradient(135deg, #0a1628, #101b3d)' : 'linear-gradient(135deg, #0b5f46, #0f7a5a)' }}>{i.acao[lang]}</button>
                   </li>
                 ))}
@@ -135,23 +137,26 @@ export default function ContadorFechamentoPage() {
 
           {fechamento && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className={`rounded-2xl p-5 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
+              <button type="button" onClick={() => ir(rotaDoFechamento('/contabilidade/balancete', mes))} className={`rounded-2xl p-5 text-center w-full cursor-pointer${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Prontidão pela Contabilidade', 'Readiness by Accounting', 'Preparación por Contabilidad')}</p>
                 <p className="text-4xl font-black" style={{ color: AZULC }}><AnimatedNumber value={`${fechamento.readiness_pct.toFixed(0)}%`} /></p>
                 <p className="text-xs mt-2" style={{ color: CINZA }}>{fechamento.previsao_prazo != null
                   ? L(`previsão: ${fechamento.previsao_prazo} dia(s) para fechar`, `forecast: ${fechamento.previsao_prazo} day(s) to close`, `previsión: ${fechamento.previsao_prazo} día(s) para cerrar`)
                   : L('ainda sem histórico suficiente para prever o prazo', 'not enough history yet to forecast the deadline', 'aún sin historial suficiente para prever el plazo')}</p>
-              </div>
-              <div className={`rounded-2xl p-5 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
+                <p className="text-xs font-bold mt-3" style={{ color: AZULC }}>{L('Ver o balancete do mês ›', 'See the month trial balance ›', 'Ver el balance del mes ›')}</p>
+              </button>
+              <button type="button" onClick={() => ir('/rastreabilidade')} className={`rounded-2xl p-5 text-center w-full cursor-pointer${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Eventos não contabilizados', 'Events not booked', 'Eventos no contabilizados')}</p>
                 <p className="text-4xl font-black" style={{ color: (fechamento.pendencias?.eventos_nao_contabilizados || 0) > 0 ? ALERTA : VERDE }}><AnimatedNumber value={String(fechamento.pendencias?.eventos_nao_contabilizados ?? 0)} /></p>
                 <p className="text-xs mt-2" style={{ color: CINZA }}>{L(`de ${fechamento.pendencias?.eventos_total_periodo ?? 0} no mês`, `out of ${fechamento.pendencias?.eventos_total_periodo ?? 0} this month`, `de ${fechamento.pendencias?.eventos_total_periodo ?? 0} en el mes`)}</p>
-              </div>
-              <div className={`rounded-2xl p-5 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
+                <p className="text-xs font-bold mt-3" style={{ color: AZULC }}>{L('Abrir Rastreabilidade ›', 'Open Traceability ›', 'Abrir Trazabilidad ›')}</p>
+              </button>
+              <button type="button" onClick={() => ir(rotaDoFechamento('/conferencia', mes))} className={`rounded-2xl p-5 text-center w-full cursor-pointer${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Confiança dos dados', 'Data trust', 'Confianza de los datos')}</p>
                 {dataTrust ? <p className="text-4xl font-black" style={{ color: AZULC }}><AnimatedNumber value={String(dataTrust.score)} /><span className="text-base font-semibold" style={{ color: CINZA }}>/1000</span></p>
                   : <p className="text-sm" style={{ color: CINZA }}>{L('Ainda não calculado', 'Not calculated yet', 'Aún no calculado')}</p>}
-              </div>
+                <p className="text-xs font-bold mt-3" style={{ color: AZULC }}>{L('Conferir na Conferência ›', 'Check in Reconciliation ›', 'Revisar en Conciliación ›')}</p>
+              </button>
             </div>
           )}
         </>)}

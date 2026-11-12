@@ -496,7 +496,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [{
-      type: "bar", barWidth: "58%",
+      type: "bar", barMaxWidth: 48, barCategoryGap: "14%", // mesmo padrão do Dashboard (lib/dashGraficos.ts): com poucas barras ficava cada uma enorme
       itemStyle: { borderRadius: [8, 8, 2, 2],
         color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },

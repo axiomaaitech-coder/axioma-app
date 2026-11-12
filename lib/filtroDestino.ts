@@ -36,3 +36,18 @@ export function limparFiltroDaUrl(manter: string[] = []) {
   const q = p.toString()
   window.history.replaceState(null, '', window.location.pathname + (q ? `?${q}` : ''))
 }
+
+// Seta de voltar (2026-11-12): quem leva o usuário a outra tela grava de onde ele veio; o ModuloLayout da tela de
+// destino mostra "← Voltar ao …" no topo, mesmo depois de limpar o filtro. Vale só para aquela tela e por 2 horas.
+type Volta = { destino: string; volta: string; rotulo: { pt: string; en: string; es: string }; em: number }
+const CHAVE_VOLTA = 'axioma:voltar'
+export function marcarVolta(destino: string, volta: string, rotulo: Volta['rotulo']) {
+  try { sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ destino: destino.split('?')[0], volta, rotulo, em: Date.now() })) } catch { /* sem armazenamento: só não mostra a seta */ } // varredura:ok
+}
+export function lerVolta(pathname: string): Volta | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CHAVE_VOLTA) || 'null') as Volta | null // varredura:ok
+    return v && v.destino === pathname && Date.now() - v.em < 2 * 3600000 ? v : null
+  } catch { return null } // varredura:ok
+}
+export function esquecerVolta() { try { sessionStorage.removeItem(CHAVE_VOLTA) } catch { /* nada a limpar */ } } // varredura:ok

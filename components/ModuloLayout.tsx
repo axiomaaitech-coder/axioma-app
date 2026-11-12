@@ -1,6 +1,9 @@
 ﻿"use client";
-import { Download, Plus, Sheet } from "lucide-react";
-import { ReactNode } from "react";
+import { Download, Plus, Sheet, ArrowLeft } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { lerVolta, esquecerVolta } from "../lib/filtroDestino";
 import { motion } from "framer-motion";
 import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
 import { useLanguage } from "../lib/LanguageContext";
@@ -46,6 +49,11 @@ export default function ModuloLayout({
   const { idioma } = useLanguage();
   const L = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
   const fundoCabecalho = headerFundo ?? "linear-gradient(180deg, #0a1628 0%, #0f2346 100%)";
+  // Seta de voltar: aparece quando o usuário chegou aqui por um atalho de outra tela (ex.: Fechamento do mês).
+  const pathname = usePathname();
+  const [volta, setVolta] = useState<ReturnType<typeof lerVolta>>(null);
+  useEffect(() => { setVolta(lerVolta(pathname)); }, [pathname]);
+  const rotuloVolta = volta ? (idioma === "en" ? volta.rotulo.en : idioma === "es" ? volta.rotulo.es : volta.rotulo.pt) : "";
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ background: "var(--axi-bg)" }}>
 
@@ -58,6 +66,13 @@ export default function ModuloLayout({
         style={{ background: fundoCabecalho, border: BORDA_3D, boxShadow: SOMBRA_3D }}
       >
         <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
+        {volta && (
+          <Link href={volta.volta} onClick={() => esquecerVolta()} aria-label={L(`Voltar ao ${rotuloVolta}`, `Back to ${rotuloVolta}`, `Volver al ${rotuloVolta}`)}
+            className="relative z-10 inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-lg text-xs font-bold text-white axi-card-premium3d"
+            style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", border: "1px solid rgba(46,204,155,0.45)" }}>
+            <ArrowLeft size={14} />{L(`Voltar ao ${rotuloVolta}`, `Back to ${rotuloVolta}`, `Volver al ${rotuloVolta}`)}
+          </Link>
+        )}
         <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: "#fff" }}>{titulo}</h2>
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{subtitulo}</p>
         <div className="flex gap-2 mt-4 flex-wrap">

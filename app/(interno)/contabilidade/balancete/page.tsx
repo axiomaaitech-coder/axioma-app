@@ -14,6 +14,7 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil, type TipoContaContabil } from '../../../../lib/contabilidadeHelpers'
 import { listarLancamentos, listarPartidas, saldoNatural } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
+import { lerFiltroDestino, periodoDoMes, limparFiltroDaUrl } from '../../../../lib/filtroDestino'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { AnimatedNumber } from '../../../../components/AnimatedNumber'
@@ -57,6 +58,8 @@ export default function BalancetePage() {
 
   const [preset, setPreset] = useState<PeriodoPreset>('mes_atual')
   const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo('mes_atual'))
+  // Vindo do Fechamento do mês (?mes=AAAA-MM): abre o balancete daquele mês.
+  useEffect(() => { const f = lerFiltroDestino(); if (!f.mes) return; setPreset('personalizado'); setPersonalizado(periodoDoMes(f.mes)); limparFiltroDaUrl() }, [])
   const periodo = resolverPeriodo(preset, personalizado)
 
   const [totaisPorConta, setTotaisPorConta] = useState<Record<string, { debito: number; credito: number }>>({})

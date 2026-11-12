@@ -47,7 +47,7 @@ const pt: DocumentoAxioma = {
     { p: '**Assinatura:** o que o antigo Proprietário já pagou continua valendo até o fim do período (a empresa não trava). A renovação no cartão dele é cancelada sozinha, e a tela de aceite mostra até quando está pago. Antes dessa data, o novo Proprietário cadastra o próprio pagamento em **Planos** — a assinatura dele passa a cobrir a empresa recebida.' },
     { nota: 'As regras da lei foram conferidas em 09/10/2026 (Código Civil, Lei 6.404/76 e normas do DREI) e podem mudar. Confirme com a Junta Comercial do seu estado antes de assinar.' },
     { nota: 'Só o **Proprietário** altera os dados cadastrais da empresa; os demais veem em modo leitura (se tentarem salvar, o Axioma avisa e não grava). Apagar sócio, documento ou obrigação pede motivo e e-mail e senha de um supervisor. Se alguma leitura falhar, a tela avisa — nunca mostra listas vazias por engano.' },
-    { p: 'Vindo do **Fechamento do mês** (item Obrigações fiscais do mês em dia), a aba **Compliance** mostra só as obrigações que vencem naquele mês; a faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro** e **Voltar ao Fechamento** (volta no mesmo mês).' },
+    { p: 'Vindo do **Fechamento do mês** (item Obrigações fiscais do mês em dia), a aba **Compliance** mostra só as obrigações que vencem naquele mês; a faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro**; a seta **← Voltar ao Fechamento do mês** no topo da tela volta no mesmo mês.' },
   ],
 }
 
@@ -97,7 +97,7 @@ const en: DocumentoAxioma = {
     { p: '**Subscription:** what the former Owner already paid remains valid until the end of the period (the company does not lock). Renewal on their card is canceled automatically, and the acceptance screen shows until when it is paid. Before that date, the new Owner sets up their own payment in **Plans** — their subscription then covers the received company.' },
     { nota: 'The legal rules were checked on 10/09/2026 (Civil Code, Law 6.404/76 and DREI rules) and may change. Confirm with your state’s Commercial Registry before signing.' },
     { nota: 'Only the **Owner** changes the company’s registration data; others see it read-only (if they try to save, Axioma warns and does not save). Deleting a partner, document or obligation asks for a reason and a supervisor’s email and password. If any loading fails, the screen warns you — it never shows empty lists by mistake.' },
-    { p: 'Coming from **Month-end close** (item Month tax obligations done), the **Compliance** tab shows only the obligations due in that month; the **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter** and **Back to Month-end close** (returns to the same month).' },
+    { p: 'Coming from **Month-end close** (item Month tax obligations done), the **Compliance** tab shows only the obligations due in that month; the **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter**; the **← Back to Month-end close** arrow at the top returns to the same month.' },
   ],
 }
 
@@ -147,7 +147,7 @@ const es: DocumentoAxioma = {
     { p: '**Suscripción:** lo que el antiguo Propietario ya pagó sigue valiendo hasta el fin del período (la empresa no se bloquea). La renovación en su tarjeta se cancela sola, y la pantalla de aceptación muestra hasta cuándo está pagado. Antes de esa fecha, el nuevo Propietario registra su propio pago en **Planes** — su suscripción pasa a cubrir la empresa recibida.' },
     { nota: 'Las reglas legales se verificaron el 09/10/2026 (Código Civil, Ley 6.404/76 y normas del DREI) y pueden cambiar. Confirme con la Junta Comercial de su estado antes de firmar.' },
     { nota: 'Solo el **Propietario** cambia los datos de registro de la empresa; los demás ven en modo lectura (si intentan guardar, Axioma avisa y no graba). Borrar socio, documento u obligación pide motivo y correo y contraseña de un supervisor. Si alguna lectura falla, la pantalla avisa — nunca muestra listas vacías por error.' },
-    { p: 'Viniendo del **Cierre del mes** (ítem Obligaciones fiscales del mes al día), la pestaña **Compliance** muestra solo las obligaciones que vencen en ese mes; la franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro** y **Volver al Cierre** (vuelve al mismo mes).' },
+    { p: 'Viniendo del **Cierre del mes** (ítem Obligaciones fiscales del mes al día), la pestaña **Compliance** muestra solo las obligaciones que vencen en ese mes; la franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro**; la flecha **← Volver al Cierre del mes** arriba vuelve al mismo mes.' },
   ],
 }
 

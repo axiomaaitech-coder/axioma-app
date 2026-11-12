@@ -61,7 +61,7 @@ const pt: DocumentoAxioma = {
       'Só aparece com a liberação de salário do RH. **Ver no RH ›** abre o Painel do RH; **Abrir Custos Fixos ›** leva ao lançamento.',
       'Na conversa com a Inteligência Axioma: "quanto custa a minha folha?", "custo de pessoal por centro de custo", "a folha está lançada?".',
     ] },
-    { p: 'Vindo do **Fechamento do mês** (item Folha do mês lançada), a lista mostra só a **Folha de pagamento** vigente no mês; se ainda não há folha, o formulário já abre com a categoria Folha de pagamento e o início no mês: informe o valor e salve. A faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro** e **Voltar ao Fechamento** (volta no mesmo mês).' },
+    { p: 'Vindo do **Fechamento do mês** (item Folha do mês lançada), a lista mostra só a **Folha de pagamento** vigente no mês; se ainda não há folha, o formulário já abre com a categoria Folha de pagamento e o início no mês: informe o valor e salve. A faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro**; a seta **← Voltar ao Fechamento do mês** no topo da tela volta no mesmo mês.' },
   ],
 }
 
@@ -125,7 +125,7 @@ const en: DocumentoAxioma = {
       'Only shown with HR salary access. **See in HR ›** opens the HR Panel; **Open Fixed Costs ›** takes you to the entry.',
       'In the Axioma Intelligence chat: "how much does my payroll cost?", "personnel cost by cost center", "is payroll entered?".',
     ] },
-    { p: 'Coming from **Month-end close** (item Month payroll entered), the list shows only the **Folha de pagamento** (payroll) active in that month; if there is no payroll yet, the form opens with that category and the start in the month: enter the amount and save. The **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter** and **Back to Month-end close** (returns to the same month).' },
+    { p: 'Coming from **Month-end close** (item Month payroll entered), the list shows only the **Folha de pagamento** (payroll) active in that month; if there is no payroll yet, the form opens with that category and the start in the month: enter the amount and save. The **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter**; the **← Back to Month-end close** arrow at the top returns to the same month.' },
   ],
 }
 
@@ -189,7 +189,7 @@ const es: DocumentoAxioma = {
       'Solo aparece con habilitación de salario en RR. HH. **Ver en RR. HH. ›** abre el Panel de RR. HH.; **Abrir Costos Fijos ›** lleva al registro.',
       'En la conversación con la Inteligencia Axioma: "¿cuánto cuesta mi nómina?", "costo de personal por centro de costo", "¿la nómina está registrada?".',
     ] },
-    { p: 'Viniendo del **Cierre del mes** (ítem Nómina del mes registrada), la lista muestra solo la **Folha de pagamento** (nómina) vigente en el mes; si aún no hay nómina, el formulario ya abre con esa categoría y el inicio en el mes: informe el valor y guarde. La franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro** y **Volver al Cierre** (vuelve al mismo mes).' },
+    { p: 'Viniendo del **Cierre del mes** (ítem Nómina del mes registrada), la lista muestra solo la **Folha de pagamento** (nómina) vigente en el mes; si aún no hay nómina, el formulario ya abre con esa categoría y el inicio en el mes: informe el valor y guarde. La franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro**; la flecha **← Volver al Cierre del mes** arriba vuelve al mismo mes.' },
   ],
 }
 
