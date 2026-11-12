@@ -93,7 +93,7 @@ const en: DocumentoAxioma = {
     { lista: [
       'Ask Axioma Intelligence "what is my R factor?" or "annex III or V?". It calculates: **payroll paid in the 12 months before** the assessment month ÷ **gross revenue of the same 12 months** (LC 123/2006, art. 18).',
       '**28% or more** points to **Annex III**; **below 28%**, to **Annex V** (more expensive). If below, it says how much payroll would be missing to reach 28%.',
-      'Payroll comes from **Fixed Costs → category "Folha de pagamento"** (salaries, owner's pay, employer INSS and FGTS entered there). The HR estimate is not used: without entered payroll, the answer warns it cannot be calculated.',
+      'Payroll comes from **Fixed Costs → category "Folha de pagamento"** (salaries, owner pay (pró-labore), employer INSS and FGTS entered there). The HR estimate is not used: without entered payroll, the answer warns it cannot be calculated.',
       'It only applies to services subject to the R factor (depends on the CNAE) and only in the Simples. Companies under 13 months follow a proportional rule: the answer warns the number may differ. Axioma shows the math and never changes the annex on its own.',
     ] },
     { h1: 'The tabs' },
