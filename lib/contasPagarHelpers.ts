@@ -418,14 +418,28 @@ export async function gerarContasCustoFixoDoMes(userId: string, empresaId: strin
     if (!(Number(cf.valor_mensal) > 0)) continue;
     const diaVenc = Math.min(28, Math.max(1, Number(cf.dia_vencimento) || 1));
     const mesRef = diaVenc >= dia ? hoje.slice(0, 7) : mesQueVem;
-    // Vigência (mesma regra da DRE): custo encerrado antes do mês ou que só começa depois dele não gera conta.
-    // Antes gerava conta para custo já encerrado, todo mês, para sempre.
-    if (cf.data_fim && String(cf.data_fim) < `${mesRef}-01`) continue;
-    if (cf.data_inicio && String(cf.data_inicio).slice(0, 7) > mesRef) continue;
-    const r = await gerarContaDeCustoFixo(userId, empresaId, cf, mesRef);
-    if (r.erro) falhas++; else if (!r.jaExiste) geradas++;
+    // Todo mês vigente precisa da sua conta (12/11/2026): a DRE conta o custo fixo em cada mês de vigência, mas antes
+    // só nascia a PRÓXIMA conta — custo cadastrado com início no passado (ou mês cujo vencimento já tinha passado)
+    // ficava sem conta a pagar e sem lançamento contábil, e a Conferência acusava DRE × Contabilidade. Agora gera
+    // do início da vigência (no máximo 12 meses atrás) até a próxima conta; a que já existe não é repetida.
+    for (const m of mesesDeVigencia(cf.data_inicio, cf.data_fim, mesRef, hoje)) {
+      const r = await gerarContaDeCustoFixo(userId, empresaId, cf, m);
+      if (r.erro) falhas++; else if (!r.jaExiste) geradas++;
+    }
   }
   return { geradas, falhas };
+}
+
+/** Meses (AAAA-MM) que precisam de conta: do início da vigência (no máximo 12 meses antes de hoje) até `ate`, dentro da vigência. */
+export function mesesDeVigencia(inicio: string | null | undefined, fim: string | null | undefined, ate: string, hoje: string): string[] {
+  const soma = (m: string, n: number) => { const [a, b] = m.split("-").map(Number); const t = a * 12 + (b - 1) + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`; };
+  const limite = soma(hoje.slice(0, 7), -12);
+  let m = inicio ? String(inicio).slice(0, 7) : ate; // sem data de início: só a próxima conta (comportamento antigo)
+  if (m < limite) m = limite;
+  const ultimo = fim && String(fim).slice(0, 7) < ate ? String(fim).slice(0, 7) : ate;
+  const out: string[] = [];
+  for (; m <= ultimo && out.length < 14; m = soma(m, 1)) out.push(m);
+  return out;
 }
 
 // ============================================================================

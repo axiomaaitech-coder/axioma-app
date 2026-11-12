@@ -52,7 +52,7 @@ const pt: DocumentoAxioma = {
       'Contrato com renovação (aluguel, software, seguro)? Preencha a **data de renovação** para entrar no Radar.',
       'Clique em **Salvar Custo Fixo**.',
     ] },
-    { nota: 'Todo dia o Axioma cria sozinho, em Contas a Pagar, a conta do mês de cada custo fixo vigente, e avisa 7 dias antes do vencimento. A DRE soma o custo só nos meses entre "Vale desde" e "Até", sem contar duas vezes a conta gerada.' },
+    { nota: 'Todo dia o Axioma cria sozinho, em Contas a Pagar, a conta de cada mês em que o custo fixo vale — inclusive os meses que já passaram quando o custo é cadastrado com início no passado (até 12 meses) — e avisa 7 dias antes do vencimento. A DRE soma o custo só nos meses entre "Vale desde" e "Até", sem contar duas vezes a conta gerada.' },
     { nota: '**Se a lista de Centros de Custo vier vazia com o aviso "Alguns dados não puderam ser carregados"**, o Axioma já tentou de novo sozinho e a leitura falhou: atualize a página antes de escolher o centro. Lista vazia com o aviso não quer dizer que a Empresa não tem centros.' },
     { h1: 'Custo de pessoal (RH)' },
     { lista: [
@@ -178,7 +178,7 @@ const es: DocumentoAxioma = {
       '¿Contrato con renovación (alquiler, software, seguro)? Complete la **fecha de renovación** para entrar en el Radar.',
       'Haga clic en **Guardar Costo Fijo**.',
     ] },
-    { nota: 'Todos los días Axioma crea en Cuentas por Pagar la cuenta del mes de cada costo fijo vigente y avisa 7 días antes del vencimiento. El Estado de Resultados suma el costo solo en los meses entre "Vigente desde" y "Hasta", sin contar dos veces la cuenta generada.' },
+    { nota: 'Todos los días Axioma crea en Cuentas por Pagar la cuenta de cada mes en que el costo fijo vale — incluso los meses pasados cuando el costo se registra con inicio en el pasado (hasta 12 meses) — y avisa 7 días antes del vencimiento. El Estado de Resultados suma el costo solo en los meses entre "Vigente desde" y "Hasta", sin contar dos veces la cuenta generada.' },
     { nota: '**Si la lista de Centros de Costo viene vacía con el aviso "Algunos datos no se pudieron cargar"**, Axioma ya intentó de nuevo solo y la lectura falló: actualice la página antes de elegir el centro. Una lista vacía con el aviso no significa que la Empresa no tenga centros.' },
     { h1: 'Costo de personal (RR. HH.)' },
     { lista: [
