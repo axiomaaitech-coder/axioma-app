@@ -293,7 +293,7 @@ export default function TesourariaSimuladorPage() {
               ) : (
                 <div className="mt-4 space-y-3">
                   {grupos.map((g) => (
-                    <div key={g.versoes[0].id} className="rounded-xl p-2.5 axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
+                    <div key={g.versoes[0].id} className="rounded-xl p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
                       <p className="text-xs font-bold mb-1.5" style={{ color: TEXTO }}>{g.nome} <span className="font-normal" style={{ color: CINZA }}>· {g.versoes.length} {g.versoes.length === 1 ? L('versão', 'version', 'versión') : L('versões', 'versions', 'versiones')}</span></p>
                       <ul className="space-y-1">
                         {g.versoes.map((v) => (

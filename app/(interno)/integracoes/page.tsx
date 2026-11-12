@@ -95,7 +95,7 @@ export default function IntegracoesPage() {
             </div>
             <ul className="space-y-2">
               {[...itens].sort((a, b) => ORDEM[a.status] - ORDEM[b.status]).map((i) => (
-                <li key={i.id} className="rounded-xl p-3 flex flex-wrap items-center gap-3 axi-card-faixa" style={{ background: ANINHADO, border: `1px solid ${i.status === 'falha' || i.status === 'atencao' ? cor(i.status) + '55' : BORDA}` }}>
+                <li key={i.id} className="rounded-xl p-3 flex flex-wrap items-center gap-3 axi-card-premium3d axi-card-faixa" style={{ background: ANINHADO, border: `1px solid ${i.status === 'falha' || i.status === 'atencao' ? cor(i.status) + '55' : BORDA}` }}>
                   {icone(i.status)}
                   <div className="flex-1 min-w-[14rem]">
                     <p className="text-sm font-bold" style={{ color: TEXTO }}>{i.titulo[lang]} <span className="text-xs font-semibold" style={{ color: cor(i.status) }}>· {rotulo(i.status)}</span></p>
