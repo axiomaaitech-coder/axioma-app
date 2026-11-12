@@ -151,7 +151,7 @@ export default function Endividamento() {
     const [{ data: dv, error: eDv }, { data: rec, error: eRec }, { data: cf, error: eCf }, { data: cv, error: eCv }, { data: fc, error: eFc }, { data: emp, error: eLerEmp }] = await Promise.all([
       empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
-      empId ? supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId) : Promise.resolve({ data: [], error: null }),
+      empId ? lerTodas(() => supabase.from("custos_fixos").select("valor_mensal, data_inicio, data_fim").eq("empresa_id", empId).order("id")) : Promise.resolve({ data: [], error: null }),
       empId ? lerTodas(() => supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
       empId ? lerTodas(() => supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim).order("id")) : Promise.resolve({ data: [], error: null }),
@@ -216,12 +216,21 @@ export default function Endividamento() {
   };
 
   const salvar = async (forcar = false) => {
-    if (!novo.descricao || !novo.valor_total) return;
+    // Nada de clicar e "não acontecer nada": cada campo que impede salvar diz o motivo (antes voltava calado).
+    const vTotal = parseFloat(novo.valor_total || "0"), vPago = parseFloat(novo.valor_pago || "0")
+    const vParc = parseInt(novo.parcelas || "1"), vTaxa = parseFloat(novo.taxa_juros || "0")
+    const motivo = !novo.descricao.trim() ? L("Informe a descrição da dívida.", "Enter the debt description.", "Informe la descripción de la deuda.")
+      : !(vTotal > 0) ? L("Informe o valor total (maior que zero).", "Enter the total amount (greater than zero).", "Informe el valor total (mayor que cero).")
+      : vPago < 0 || vPago > vTotal ? L("O \"Já pago\" não pode ser negativo nem maior que o valor total.", "\"Already paid\" cannot be negative or greater than the total.", "El \"Ya pagado\" no puede ser negativo ni mayor que el total.")
+      : !(vParc >= 1) ? L("Parcelas restantes: no mínimo 1.", "Remaining installments: at least 1.", "Cuotas restantes: mínimo 1.")
+      : vTaxa < 0 ? L("A taxa de juros não pode ser negativa.", "The interest rate cannot be negative.", "La tasa de interés no puede ser negativa.")
+      : !novo.vencimento ? L("Informe quando vence a próxima parcela.", "Enter when the next installment is due.", "Informe cuándo vence la próxima cuota.") : null
+    if (motivo) { showToast(motivo, "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
+    if (!user) { setSalvando(false); showToast(L("Sua sessão expirou. Entre de novo para salvar.", "Your session expired. Sign in again to save.", "Su sesión expiró. Ingrese de nuevo para guardar."), "erro"); return; }
     const empresaAtiva = await obterEmpresaAtiva();
-    if (!empresaAtiva) { setSalvando(false); return; }
+    if (!empresaAtiva) { setSalvando(false); showToast(L("Nenhuma Empresa ativa encontrada. Recarregue a página.", "No active company found. Reload the page.", "No se encontró una empresa activa. Recargue la página."), "erro"); return; }
     const pagoAntes = editando ? Number(editando.valor_pago) || 0 : 0;
     const pagoAgora = editando ? parseFloat(novo.valor_pago || "0") : 0;
     // Pagamento novo: confere se esse dinheiro já não saiu por outro caminho (Fluxo, conta paga).
@@ -265,15 +274,25 @@ export default function Endividamento() {
     if (!(await confirmar({ oQue: nomeItem(dividas.find((d) => d.id === id), { pt: "esta dívida", en: "this debt", es: "esta deuda" }), efeito: EFEITO.financeiro, tabela: "dividas", registroId: id }))) return;
     // Apagar = a dívida não existiu: desfaz o empréstimo e os pagamentos lançados por ela.
     const empresaId = await obterEmpresaAtiva();
+    let desfeitos: Awaited<ReturnType<typeof lancamentosAtivos>>["ativos"] = [];
     if (empresaId) {
       const { ativos, erro } = await lancamentosAtivos(empresaId, "dividas", id);
+      desfeitos = ativos;
       let falhou = !!erro;
       for (const r of ativos) if ((await estornarRastro(empresaId, "dividas", id, r)).erro) falhou = true;
       if (falhou) { showToast(L("Não foi possível desfazer esta dívida na Contabilidade/Fluxo. Tente novamente.", "Could not undo this debt in Accounting/Cash Flow. Try again.", "No se pudo deshacer esta deuda en Contabilidad/Flujo. Intente de nuevo."), "erro"); return; }
     }
     const { data, error } = await supabase.from("dividas").delete().eq("id", id).select("id");
     if (error || !data || data.length === 0) {
-      showToast(txt.erroExcluirDivida, "erro");
+      // A dívida ficou, mas os lançamentos dela já tinham sido desfeitos: relança cada um com a data original,
+      // senão Contabilidade/Fluxo ficariam sem o empréstimo e os pagamentos de uma dívida que continua existindo.
+      let relancou = true;
+      if (empresaId) for (const r of desfeitos) {
+        const pl = r.payload as { descricao?: string; natureza?: string; categoria?: string | null; evento_payload?: { data?: string } };
+        const res = await registrarLancamentoManual(empresaId, "dividas", { id, descricao: pl.descricao ?? "Dívida", valor: Number(r.valor), data: pl.evento_payload?.data ?? hojeISO(), natureza: pl.natureza as "emprestimo" | "pag_emprestimo", categoria: pl.categoria ?? undefined, modulo: "dividas" });
+        if (res.erro) relancou = false;
+      }
+      showToast(relancou ? txt.erroExcluirDivida : L("A dívida não foi apagada e a Contabilidade/Fluxo não voltou ao normal agora — o Guardião refaz. Avise o suporte se continuar.", "The debt was not deleted and Accounting/Cash Flow was not restored now — the Guardian will redo it. Contact support if it persists.", "La deuda no se borró y Contabilidad/Flujo no se restauró ahora — el Guardián lo rehace. Avise a soporte si continúa."), "erro");
       reportarFalhaEscrita("dividas", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
@@ -425,7 +444,7 @@ export default function Endividamento() {
   const escadaLabels = escada.map(b => new Date(b.mes + "-01T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "2-digit" }));
   const escadaValores = escada.map(b => b.valor);
   const escadaCores = escada.map(b => b.muro ? ct(CORES.vermelho) : null);
-  const optEscada = optBarrasV(escadaValores, escadaLabels, ct(temaClaro ? CORES.verde : CORES.rosa), temaClaro ? CORES.verde : CORES.rosaC, escadaCores, temaClaro);
+  const optEscada = optBarrasV(escadaValores, escadaLabels, ct(CORES.verde), CORES.verdeC, escadaCores, temaClaro);
 
   const maxMesesQuit = Math.max(projMinimo.length, projAvalanche.length);
   const labelsQuit = Array.from({ length: maxMesesQuit }, (_, i) => `M${i}`);
@@ -433,10 +452,10 @@ export default function Endividamento() {
   const serieAva = Array.from({ length: maxMesesQuit }, (_, i) => projAvalanche[i]?.saldoDevedor ?? 0);
   const optQuitacao = optLinhaMulti(
     [
-      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: ct(temaClaro ? CORES.verde : CORES.rosa), area: true },
+      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: ct(CORES.verde), area: true },
       { nome: cx.cenarioAvalancheLabel, dados: serieAva, cor: ct(CORES.verde) },
     ],
-    labelsQuit, ct(temaClaro ? CORES.verde : CORES.rosa), temaClaro
+    labelsQuit, ct(CORES.verde), temaClaro
   );
 
   const kpisCFO = [
@@ -482,7 +501,7 @@ export default function Endividamento() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} lang={lang} temaClaro={temaClaro} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.verde)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #0a4f3b, #0f7d5c)", border: temaClaro ? "none" : "1px solid rgba(46,204,155,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
@@ -493,7 +512,7 @@ export default function Endividamento() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: ct("#f87171"), ir: "#lista-dividas" },
+            { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: ct(temaClaro ? "#101b3d" : "#e2e8f0"), ir: "#lista-dividas" },
             { label: t.endividamento.totalPago, value: fBRL(totalPago), cor: ct("#34d399"), ir: "#lista-dividas" },
             { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#2ecc9b"), ir: "#escada-vencimentos" },
           ].map((card, i) => (
@@ -509,7 +528,7 @@ export default function Endividamento() {
         {carregando ? (
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
         ) : !temDados ? (
-          <CanvasBox cor={ct(temaClaro ? CORES.verde : CORES.rosa)} {...cartaoTema}>
+          <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
             <p className="text-sm text-center py-8" style={{ color: TEXTO_SEC }}>{cx.semDividaTitulo}</p>
           </CanvasBox>
         ) : (
@@ -517,7 +536,7 @@ export default function Endividamento() {
             {/* SEMÁFORO DE SOLVÊNCIA */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${corSolvencia === "verde" ? "rgba(16,185,129,0.3)" : corSolvencia === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
+                <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.indicadoresSolvenciaTitulo}</p>
                 <span className="inline-block rounded-full flex-shrink-0" style={{ width: 14, height: 14, background: corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho), boxShadow: `0 0 10px ${corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho)}` }} />
               </div>
@@ -560,27 +579,27 @@ export default function Endividamento() {
             {/* ESCADA DE VENCIMENTOS */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)")}` }}>
               <div className="flex items-center gap-2 mb-2">
-                {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />}
+                {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />}
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.escadaVencimentosTitulo}</p>
               </div>
               <p className="text-sm leading-relaxed mb-3" style={{ color: proximoMuro ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaMuro}</p>
-              <SubChart titulo={cx.escadaVencimentosTitulo} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} option={optEscada} altura={240} />
+              <SubChart titulo={cx.escadaVencimentosTitulo} cor={ct(CORES.verde)} option={optEscada} altura={240} />
             </div>
 
             {/* MÉTODO AVALANCHE */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
+                <Zap size={16} style={{ color: ct(CORES.verde) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.avalancheTitulo}</p>
               </div>
               <div className="space-y-2">
                 {avalanche.map((a, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: a.cara ? "rgba(239,68,68,0.08)" : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)"), border: `1px solid ${a.cara ? "rgba(239,68,68,0.25)" : (temaClaro ? NESTED_BORDA : "rgba(255,255,255,0.06)")}` }}>
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(temaClaro ? CORES.verde : CORES.rosa) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
+                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(CORES.verde) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
                       <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
                       {a.cara && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,68,68,0.15)", color: ct(CORES.vermelho) }}>{cx.dividaCaraTag}</span>}
-                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(46,204,155,0.15)", color: ct(temaClaro ? CORES.verde : CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
+                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(46,204,155,0.15)", color: ct(CORES.verde) }}>{cx.quitarPrimeiroLabel}</span>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-black" style={{ color: a.cara ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(a.taxaJurosAM)}/m</p>
@@ -603,13 +622,13 @@ export default function Endividamento() {
                 </div>
 
                 <div className="mb-5">
-                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} option={optQuitacao} altura={280} />
+                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={ct(CORES.verde)} option={optQuitacao} altura={280} />
                 </div>
 
                 {/* Simulador de Refinanciamento */}
-                <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.rosa) + "20"}` }}>
+                <div className="rounded-xl p-3 md:p-4 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.verde) + "20"}` }}>
                   <div className="flex items-center gap-2 mb-3">
-                    <Sliders size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
+                    <Sliders size={15} style={{ color: ct(CORES.verde) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.simuladorTitulo}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -633,7 +652,7 @@ export default function Endividamento() {
                       {[
                         { l: cx.economiaJurosLabel, v: fBRL(resultadoSim.economiaJurosMensal), c: resultadoSim.economiaJurosMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                         { l: cx.liberacaoCaixaLabel, v: fBRL(resultadoSim.liberacaoCaixaMensal), c: resultadoSim.liberacaoCaixaMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
-                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(temaClaro ? CORES.verde : CORES.rosa) },
+                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(CORES.verde) },
                         { l: "Economia Total", v: fBRL(resultadoSim.economiaJurosTotal), c: resultadoSim.economiaJurosTotal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                       ].map((c, i) => (
                         <div key={i} className="rounded-xl px-3 py-2 axi-card-premium3d axi-card-faixa" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
@@ -669,7 +688,7 @@ export default function Endividamento() {
 
             {/* Regra de ouro + Runway */}
             <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(46,204,155,0.2)")}` }}>
-              <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(temaClaro ? CORES.verde : CORES.rosa), flexShrink: 0 }} />
+              <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(CORES.verde), flexShrink: 0 }} />
               <div>
                 <p className="text-sm" style={{ color: runwayMeses === null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{cx.regraOuroNegociar}</p>
@@ -694,7 +713,7 @@ export default function Endividamento() {
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : dividasFiltradas.length === 0 ? (
-          <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
+          <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
             <div className="text-center py-8"><p style={{ color: TEXTO_SEC }}>{t.endividamento.semDividas}</p></div>
           </CanvasBox>
         ) : (
@@ -704,11 +723,11 @@ export default function Endividamento() {
               const restante = d.valor_total - d.valor_pago;
               return (
                 <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
+                  <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="font-bold mb-1" style={{ color: "var(--axi-text-primary)" }}>{d.descricao}</h3>
-                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>{d.tipo}</span>
+                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: temaClaro ? "rgba(16,27,61,0.08)" : "rgba(46,204,155,0.12)", color: ct(temaClaro ? "#101b3d" : "#7fe3c3") }}>{d.tipo}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
@@ -721,7 +740,7 @@ export default function Endividamento() {
                     </div>
                     <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4">
                       {[
-                        { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: ct("#f87171") },
+                        { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: ct(temaClaro ? "#101b3d" : "#e2e8f0") },
                         { label: t.endividamento.jaPago, value: fBRL(d.valor_pago), cor: ct("#34d399") },
                         { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#2ecc9b") },
                       ].map((item) => (
@@ -764,10 +783,10 @@ export default function Endividamento() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
+              <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f87171") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? "#0f7a5a" : "#7fe3c3") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? "Editar Dívida" : t.endividamento.novaDivida}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
@@ -821,7 +840,7 @@ export default function Endividamento() {
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={() => void salvar()} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #7f1d1d, #ff5a6b)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #0b5f46, #0f7a5a)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? L("Salvar Alterações", "Save Changes", "Guardar Cambios") : t.endividamento.salvarDivida}
                   </motion.button>
                 </div>
