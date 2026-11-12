@@ -441,6 +441,7 @@ export default function TesourariaSimuladorPage() {
                       const antes = c.foto?.saldos?.[90], agora = c.sim.pontos.find((x) => x.horizonteDias === 90)?.saldoProjetadoSimulado
                       if (antes == null || agora == null) return <td key={c.id} className="text-right py-2 px-3" style={{ color: CINZA }}>—</td>
                       const d = agora - antes
+                      if (Math.abs(d) < 0.005) return <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>{L('sem mudança', 'no change', 'sin cambio')}</td>
                       return <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: d >= 0 ? VERDE : AMARELO }}>{d >= 0 ? '+' : '−'} R$ {fBRL2(Math.abs(d))}</td>
                     })}
                   </tr>

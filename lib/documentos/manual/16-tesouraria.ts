@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '16 - Tesouraria.docx',
   titulo: 'Manual 16 — Tesouraria',
   subtitulo: 'Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só',
-  info: ['Menu: Financeiro → Tesouraria  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (novembro de 2026)'],
+  info: ['Menu: Financeiro → Tesouraria  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'A Tesouraria é o **centro de comando do caixa**: mostra quanto há em cada conta (banco, caixa, aplicação), quanto está realmente livre, a projeção para 30, 60 e 90 dias e os riscos de ruptura. Tem ainda o **Simulador de Estresse** e o **Gêmeo Financeiro** para testar decisões antes de tomá-las.' },
@@ -56,7 +56,7 @@ const pt: DocumentoAxioma = {
       ['**Voltar ao Command Center**', 'Volta para a Tesouraria.'],
     ] } },
     { h2: 'Comparação de Cenários' },
-    { p: 'Mostra lado a lado o caixa **Sem mudanças** e as versões marcadas, todas recalculadas com o fluxo real de hoje: Caixa disponível, Saldo em 7/30/60/90 dias, se **Rompe a reserva mínima** e o Liquidity Score. As duas últimas linhas mostram o saldo de **90 dias, quando foi salvo** e quanto ele **Mudou desde então** — assim se vê se a realidade melhorou ou piorou desde a decisão.' },
+    { p: 'Mostra lado a lado o caixa **Sem mudanças** e as versões marcadas, todas recalculadas com o fluxo real de hoje: Caixa disponível, Saldo em 7/30/60/90 dias, se **Rompe a reserva mínima** e o Liquidity Score. As duas últimas linhas mostram o saldo de **90 dias, quando foi salvo** e quanto ele **Mudou desde então** (ou **sem mudança**) — assim se vê se a realidade melhorou ou piorou desde a decisão.' },
 
     { h1: 'Gêmeo Financeiro' },
     { p: 'Mostra a empresa **hoje** e em 30/60/90 dias, **com ou sem uma mudança grande**. Em **Aplicar uma mudança grande** escolha: Nenhuma (como está), **Nova Filial** (investimento inicial + custo mensal), **Novo Empréstimo** (valor + parcela) ou **Receita +30%**. A tabela **Antes × Depois** compara Caixa disponível, Capital de Giro, Dívida pendente, Liquidity Score e Saldo projetado em 90 dias.' },
@@ -73,7 +73,7 @@ const en: DocumentoAxioma = {
   arquivo: '16 - Treasury.docx',
   titulo: 'Manual 16 — Treasury',
   subtitulo: 'How cash stands, what will happen and the risk — all in one view',
-  info: ['Menu: Financial → Treasury  •  Axioma AI.Tech user manual  •  Version 2.1 (November 2026)'],
+  info: ['Menu: Financial → Treasury  •  Axioma AI.Tech user manual  •  Version 2.2 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Treasury is the **cash command center**: it shows how much is in each account (bank, cash, investment), how much is truly free, the 30/60/90-day projection and shortfall risks. It also has the **Stress Simulator** and the **Financial Twin** to test decisions before making them.' },
@@ -124,7 +124,7 @@ const en: DocumentoAxioma = {
       ['**Back to Command Center**', 'Returns to Treasury.'],
     ] } },
     { h2: 'Scenario Comparison' },
-    { p: 'Shows cash with **No changes** side by side with the ticked versions, all recalculated with today’s real flow: Available cash, Balance in 7/30/60/90 days, whether it **Breaks minimum reserve** and the Liquidity Score. The last two rows show the **90 days, when saved** balance and how much it **Changed since then** — so you see whether reality improved or worsened since the decision.' },
+    { p: 'Shows cash with **No changes** side by side with the ticked versions, all recalculated with today’s real flow: Available cash, Balance in 7/30/60/90 days, whether it **Breaks minimum reserve** and the Liquidity Score. The last two rows show the **90 days, when saved** balance and how much it **Changed since then** (or **no change**) — so you see whether reality improved or worsened since the decision.' },
 
     { h1: 'Financial Twin' },
     { p: 'Shows the company **today** and in 30/60/90 days, **with or without a big change**. In **Apply a big change** choose: None (as is), **New Branch** (initial investment + monthly cost), **New Loan** (amount + installment) or **Revenue +30%**. The **Before × After** table compares Available cash, Working Capital, Pending debt, Liquidity Score and 90-day projected balance.' },
@@ -141,7 +141,7 @@ const es: DocumentoAxioma = {
   arquivo: '16 - Tesorería.docx',
   titulo: 'Manual 16 — Tesorería',
   subtitulo: 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una sola vista',
-  info: ['Menú: Financiero → Tesorería  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (noviembre de 2026)'],
+  info: ['Menú: Financiero → Tesorería  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'La Tesorería es el **centro de comando de la caja**: muestra cuánto hay en cada cuenta (banco, caja, inversión), cuánto está realmente libre, la proyección a 30, 60 y 90 días y los riesgos de ruptura. Además tiene el **Simulador de Estrés** y el **Gemelo Financiero** para probar decisiones antes de tomarlas.' },
@@ -192,7 +192,7 @@ const es: DocumentoAxioma = {
       ['**Volver al Command Center**', 'Vuelve a Tesorería.'],
     ] } },
     { h2: 'Comparación de Escenarios' },
-    { p: 'Muestra lado a lado la caja **Sin cambios** y las versiones marcadas, todas recalculadas con el flujo real de hoy: Caja disponible, Saldo a 7/30/60/90 días, si **Rompe la reserva mínima** y el Liquidity Score. Las dos últimas filas muestran el saldo de **90 días, cuando se guardó** y cuánto **Cambió desde entonces** — así se ve si la realidad mejoró o empeoró desde la decisión.' },
+    { p: 'Muestra lado a lado la caja **Sin cambios** y las versiones marcadas, todas recalculadas con el flujo real de hoy: Caja disponible, Saldo a 7/30/60/90 días, si **Rompe la reserva mínima** y el Liquidity Score. Las dos últimas filas muestran el saldo de **90 días, cuando se guardó** y cuánto **Cambió desde entonces** (o **sin cambio**) — así se ve si la realidad mejoró o empeoró desde la decisión.' },
 
     { h1: 'Gemelo Financiero' },
     { p: 'Muestra la empresa **hoy** y a 30/60/90 días, **con o sin un cambio grande**. En **Aplicar un cambio grande** elija: Ninguno (como está), **Nueva Sucursal** (inversión inicial + costo mensual), **Nuevo Préstamo** (valor + cuota) o **Ingresos +30%**. La tabla **Antes × Después** compara Caja disponible, Capital de Trabajo, Deuda pendiente, Liquidity Score y Saldo proyectado a 90 días.' },
