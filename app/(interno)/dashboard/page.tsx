@@ -123,7 +123,7 @@ const T = {
 };
 
 // Cores exatas da referência (roxa/azul/cyan/rosa/verde)
-const COR = { roxo: "#2ecc9b", indigo: "#2ecc9b", azul: "#2ecc9b", cyan: "#2ecc9b", teal: "#2ecc9b", rosa: "#2ecc9b", verde: "#34d399", laranja: "#2ecc9b", vermelho: "#ef4444", amarelo: "#2ecc9b" };
+const COR = { roxo: "#2ecc9b", indigo: "#2ecc9b", azul: "#2ecc9b", cyan: "#2ecc9b", teal: "#2ecc9b", rosa: "#2ecc9b", verde: "#34d399", laranja: "#2ecc9b", vermelho: "#94a3b8", amarelo: "#2ecc9b" };
 
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function fBRL2(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0); }

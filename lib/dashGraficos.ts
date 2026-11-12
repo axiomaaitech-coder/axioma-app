@@ -47,7 +47,8 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
       splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
       axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [{
-      type: "bar", barWidth: "60%",
+      // largura fixa e igual (padrão Power BI): com poucas categorias "60%" virava barra gigante
+      type: "bar", barMaxWidth: 34, barCategoryGap: "38%",
       itemStyle: {
         borderRadius: [8, 8, 2, 2],
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },

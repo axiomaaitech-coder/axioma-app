@@ -66,8 +66,8 @@ const T = {
 const C = {
   ouro: "#2ecc9b", ouroC: "#7fe3c3", roxo: "#2ecc9b", roxoC: "#7fe3c3",
   cyan: "#2ecc9b", cyanC: "#7fe3c3", verde: "#34d399", verdeC: "#6ee7b7",
-  vermelho: "#ef4444", vermelhoC: "#fca5a5", laranja: "#2ecc9b", laranjaC: "#7fe3c3",
-  rosa: "#f87171", rosaC: "#fca5a5", azul: "#2ecc9b", indigo: "#2ecc9b", teal: "#2ecc9b",
+  vermelho: "#6b7280", vermelhoC: "#94a3b8", /* sem vermelho/rosa no Dashboard (Elias 12/11): cinza executivo = chart-4 */ laranja: "#2ecc9b", laranjaC: "#7fe3c3",
+  rosa: "#6b7280", rosaC: "#94a3b8", azul: "#2ecc9b", indigo: "#2ecc9b", teal: "#2ecc9b",
 };
 
 
