@@ -33,19 +33,22 @@ export const EIXO = (claro: boolean) => ({
   bordaPonto: claro ? "#f6f7c4" : "#0a0820",
 });
 
-export function barrasV(dados: number[], meses: string[], corEscuro: string, corCEscuro: string, claro = false) {
+// unidade "qtd": contagem (clientes, pessoas) — sem "R$" no rótulo, no eixo e na dica
+export function barrasV(dados: number[], meses: string[], corEscuro: string, corCEscuro: string, claro = false, unidade: "brl" | "qtd" = "brl") {
+  const fv = (v: number) => (unidade === "qtd" ? v.toLocaleString("pt-BR") : fK(v)), fvDica = (v: number) => (unidade === "qtd" ? v.toLocaleString("pt-BR") : fBRL(v))
   const cor = claro ? "#101b3d" : corEscuro, corC = claro ? "#122b54" : corCEscuro, e = EIXO(claro);
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
     tooltip: { ...(claro ? tipClaro : tip), trigger: "item", borderColor: cor,
-      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
+      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fvDica(p.value)}</b>` },
     xAxis: { type: "category", data: meses,
       axisLine: { lineStyle: { color: e.linha } }, axisTick: { show: false },
       axisLabel: { color: e.rotulo, fontSize: 12, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
-      axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
+      minInterval: unidade === "qtd" ? 1 : undefined,
+      axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fv(v) } },
     series: [{
       // largura fixa e igual (padrão Power BI): com poucas categorias "60%" virava barra gigante
       type: "bar", barMaxWidth: 48, barCategoryGap: "14%", // barra ≈ 85% da coluna (Power BI); 48px cabe em 12 meses, então todo gráfico fica com a mesma largura
@@ -54,7 +57,7 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
         shadowColor: cor + "60", shadowBlur: claro ? 4 : 12,
       },
-      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => (Number(p.value) ? fK(p.value) : "") }, // mês zerado sem rótulo (padrão Power BI)
+      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => (Number(p.value) ? fv(p.value) : "") }, // mês zerado sem rótulo (padrão Power BI)
       emphasis: { itemStyle: { shadowBlur: 24 } },
       data: dados,
     }],
@@ -100,7 +103,7 @@ export function barrasProgressoMetas(nomes: string[], pcts: number[], rotuloMeta
       type: "bar", barMaxWidth: 28, barCategoryGap: "30%",
       itemStyle: { borderRadius: [2, 8, 8, 2], color: (p: any) => (p.value >= 100 ? corOk : cor) },
       label: { show: true, position: "right", color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => `${Math.round(p.value)}%` },
-      markLine: { silent: true, symbol: "none", lineStyle: { color: claro ? "#6b7280" : "#94a3b8", type: "dashed", width: 1.5 }, label: { formatter: rotuloMeta, color: e.rotuloFraco, fontSize: 11 }, data: [{ xAxis: 100 }] },
+      markLine: { silent: true, symbol: "none", lineStyle: { color: claro ? "#6b7280" : "#94a3b8", type: "dashed", width: 1.5 }, label: { formatter: rotuloMeta, position: "start", color: e.rotuloFraco, fontSize: 11 }, data: [{ xAxis: 100 }] },
       data: pcts.map((v) => Math.max(0, v)),
     }],
   };

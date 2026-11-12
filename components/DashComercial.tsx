@@ -273,7 +273,7 @@ export default function DashComercial() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {demo ? (
               <>
-                <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" option={barrasV(D.novosClientes, tt.meses, C.azul, C.azulC, claro)} altura={260} />
+                <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" option={barrasV(D.novosClientes, tt.meses, C.azul, C.azulC, claro, "qtd")} altura={260} />
                 <ChartDash {...chartBase} titulo={tt.inad} cor={C.rosa} path="/inadimplencia" option={barrasV(D.inadimplencia, tt.meses, C.rosa, C.rosaC, claro)} altura={260} />
                 <ChartDash {...chartBase} titulo={tt.receber} cor={C.verde} path="/contas-receber" option={rosca(D.receber.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.verde, tt.total, claro)} altura={220} />
                 <ChartDash {...chartBase} titulo={tt.invest} cor={C.ouro} path="/investimentos" option={rosca(D.invest.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total, claro)} altura={220} />
@@ -281,7 +281,7 @@ export default function DashComercial() {
             ) : (
               <>
                 <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" altura={260}
-                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, mesesRolling(tt.meses), C.azul, C.azulC, claro) : undefined}
+                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, mesesRolling(tt.meses), C.azul, C.azulC, claro, "qtd") : undefined}
                   vazio={tt.semCliente} />
                 <ChartDash {...chartBase} titulo={tt.inad} cor={C.rosa} path="/inadimplencia" altura={260}
                   option={real.inadSerie.some(v => v > 0) ? barrasV(real.inadSerie, mesesRolling(tt.meses), C.rosa, C.rosaC, claro) : undefined}
