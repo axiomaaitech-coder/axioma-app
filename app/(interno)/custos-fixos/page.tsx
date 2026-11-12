@@ -26,6 +26,8 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO } from "../../../lib/datas";
+import { lerFiltroDestino, periodoDoMes, nomeDoMes, limparFiltroDaUrl, type FiltroDestino } from "../../../lib/filtroDestino";
+import FaixaFiltroDestino from "../../../components/FaixaFiltroDestino";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(16,32,58,0.9), rgba(10,22,40,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(16,32,58,0.94), rgba(10,22,40,0.97))";
@@ -108,6 +110,20 @@ export default function CustosFixos() {
   }
 
   useEffect(() => { carregarCustos(); }, []);
+  // Vindo do Fechamento do mês (?categoria=folha&mes=AAAA-MM[&novo=folha]): mostra só a folha vigente no mês;
+  // sem folha lançada, já abre o formulário com a categoria "Folha de pagamento" e o início no mês.
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null);
+  const [soFolha, setSoFolha] = useState(false);
+  useEffect(() => {
+    const f = lerFiltroDestino();
+    if (new URLSearchParams(window.location.search).get("categoria") !== "folha") return;
+    setSoFolha(true); setFiltroDestino(f); limparFiltroDaUrl();
+    if (f.novo === "folha") {
+      setEditando(null);
+      setNovo({ descricao: L("Folha de pagamento", "Payroll", "Nómina"), valor: "", vencimento: "5", categoria: "Folha de pagamento", renovacao: "", centro_custo_id: "", inicio: f.mes ? `${f.mes}-01` : "", fim: "" });
+      setModalAberto(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const carregarCustos = async () => {
     setCarregando(true);
@@ -188,7 +204,9 @@ export default function CustosFixos() {
     setCustos(custos.filter(c => c.id !== id));
   };
 
-  const custosFiltrados = custos.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
+  const vigenteNoMes = (c: CustoFixo, mes: string) => { const p = periodoDoMes(mes); return (!c.data_inicio || c.data_inicio <= p.fim) && (!c.data_fim || c.data_fim >= p.inicio); };
+  const custosFiltrados = custos.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase())
+    && (!soFolha || (c.categoria === "Folha de pagamento" && (!filtroDestino?.mes || vigenteNoMes(c, filtroDestino.mes)))));
   // Total só dos custos VIGENTES hoje (mesma regra de vigência da DRE): encerrado ou que ainda vai começar não soma.
   const hoje = hojeISO();
   const vigenteHoje = (c: CustoFixo) => (!c.data_inicio || c.data_inicio <= hoje) && (!c.data_fim || c.data_fim >= hoje);
@@ -401,7 +419,7 @@ export default function CustosFixos() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(temaClaro ? CORES.verde : CORES.vermelho)} option={optCat} altura={260} />
+                  <SubChart titulo={cx.composicao} cor={ct(CORES.verde)} option={optCat} altura={260} />
                   <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.verde : CORES.laranja)} option={optTop} altura={260} />
                 </div>
               </div>
@@ -429,6 +447,12 @@ export default function CustosFixos() {
           </>
         )}
 
+        {soFolha && (
+          <FaixaFiltroDestino lang={lang} temaClaro={temaClaro} mes={filtroDestino?.mes ?? null} de={filtroDestino?.de ?? null}
+            onLimpar={() => { setSoFolha(false); setFiltroDestino(null); }}
+            texto={`${L("Folha de pagamento", "Payroll", "Nómina")}${filtroDestino?.mes ? ` ${L("vigente em", "active in", "vigente en")} ${nomeDoMes(filtroDestino.mes, lang)}` : ""} — ${custosFiltrados.length} ${L("custo(s)", "cost(s)", "costo(s)")}`} />
+        )}
+
         {/* Busca */}
         <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
           <div className="flex items-center gap-2 py-1">
@@ -439,7 +463,7 @@ export default function CustosFixos() {
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
+        <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
           <div id="lista-custos-fixos" className="overflow-x-auto scroll-mt-28">
             {carregando ? (
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -462,7 +486,7 @@ export default function CustosFixos() {
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}{!vigenteHoje(c) && <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(107,114,128,0.15)", color: TEXTO_SEC }}>{c.data_fim && c.data_fim < hoje ? L(`encerrado em ${c.data_fim.split("-").reverse().join("/")}`, `ended ${c.data_fim}`, `terminó ${c.data_fim.split("-").reverse().join("/")}`) : L(`começa em ${String(c.data_inicio).split("-").reverse().join("/")}`, `starts ${c.data_inicio}`, `empieza ${String(c.data_inicio).split("-").reverse().join("/")}`)}</span>}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#2ecc9b")}18`, color: catCorAtual[c.categoria] || ct("#2ecc9b") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>Dia {c.dia_vencimento}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f87171") }}>{fBRL(c.valor_mensal)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? "#101b3d" : "#e6edf5") }}>{fBRL(c.valor_mensal)}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#2ecc9b") }}>{fBRL(c.valor_mensal * 12)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
@@ -485,7 +509,7 @@ export default function CustosFixos() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-8 px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }} className="w-full max-w-md">
-              <CanvasBox cor={ct("#f87171")} {...cartaoTema}>
+              <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? "#0f7a5a" : "#7fe3c3") }}>AXIOMA AI.TECH</p>
@@ -564,7 +588,7 @@ export default function CustosFixos() {
         textoDetalhado={textoDetalhado}
         assunto={`${t.custosFixos.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#ef4444"
+        cor="#0f7a5a"
       />
 
       {janelaConfirmacao}

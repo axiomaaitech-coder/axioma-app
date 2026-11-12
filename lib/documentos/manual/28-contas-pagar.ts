@@ -82,6 +82,7 @@ const pt: DocumentoAxioma = {
 
     { h1: 'Contas vencidas' },
     { p: 'Quando há contas atrasadas, aparece no topo um cartão com o total a pagar vencido e o botão **Abrir Contas Vencidas**, que leva à central (menu Comercial → Contas Vencidas). Sem nada vencido, o cartão não aparece.' },
+    { p: 'Vindo do **Fechamento do mês** (item Contas a pagar do mês resolvidas), a lista abre só com as contas vencidas em aberto daquele mês, as mesmas que o Fechamento conta; a faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro** e **Voltar ao Fechamento** (volta no mesmo mês).' },
   ],
 }
 
@@ -166,6 +167,7 @@ const en: DocumentoAxioma = {
 
     { h1: 'Overdue bills' },
     { p: 'When there are late bills, a card at the top shows the total overdue payable and the **Open Overdue Bills** button, which leads to the overdue center (Commercial menu → Overdue Bills). With nothing overdue, the card does not show.' },
+    { p: 'Coming from **Month-end close** (item Month payables settled), the list opens with only the open overdue bills of that month, the same ones the close counts; the **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter** and **Back to Month-end close** (returns to the same month).' },
   ],
 }
 
@@ -250,6 +252,7 @@ const es: DocumentoAxioma = {
 
     { h1: 'Cuentas vencidas' },
     { p: 'Cuando hay cuentas atrasadas, arriba aparece una tarjeta con el total por pagar vencido y el botón **Abrir Cuentas Vencidas**, que lleva a la central (menú Comercial → Cuentas Vencidas). Sin nada vencido, la tarjeta no aparece.' },
+    { p: 'Viniendo del **Cierre del mes** (ítem Cuentas por pagar del mes resueltas), la lista abre solo con las cuentas vencidas abiertas de ese mes, las mismas que cuenta el Cierre; la franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro** y **Volver al Cierre** (vuelve al mismo mes).' },
   ],
 }
 

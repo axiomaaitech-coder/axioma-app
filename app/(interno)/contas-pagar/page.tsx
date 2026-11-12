@@ -64,6 +64,8 @@ import { avaliarDuplicidade, type Avaliacao, type Suspeita } from "@/lib/motorDu
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, agora } from "../../../lib/datas";
+import { lerFiltroDestino, periodoDoMes, nomeDoMes, type FiltroDestino } from "../../../lib/filtroDestino";
+import FaixaFiltroDestino from "../../../components/FaixaFiltroDestino";
 import PagarGuiaDAS from "../../../components/mei/PagarGuiaDAS";
 import type { MetodoPagamento } from "../../../lib/meiObrigacoesMotor";
 import BotaoVoz from "../../../components/BotaoVoz";
@@ -325,11 +327,16 @@ export default function ContasPagarPage() {
   const [horizonteSelecionado, setHorizonteSelecionado] = useState<HorizonteForecastDias>(30);
   const [proximasAPagar, setProximasAPagar] = useState<Set<string>>(new Set());
 
-  // Vindo de Contas Vencidas (?filtro=vencido): abre a lista já filtrada, uma vez, depois de carregar
+  // Vindo de Contas Vencidas (?filtro=vencido) ou do Fechamento do mês (&mes=AAAA-MM): abre a lista já filtrada,
+  // uma vez, depois de carregar — com o mês, só as vencidas daquele mês (as mesmas que o Fechamento conta).
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null);
   useEffect(() => {
     if (loading || new URLSearchParams(window.location.search).get("filtro") !== "vencido") return;
+    const f = lerFiltroDestino();
     window.history.replaceState(null, "", window.location.pathname);
-    setAba("central"); setFiltroStatus("vencido"); setFiltroVencDe(""); setFiltroVencAte("");
+    const p = f.mes ? periodoDoMes(f.mes) : null;
+    setAba("central"); setFiltroStatus("vencido"); setFiltroVencDe(p?.inicio ?? ""); setFiltroVencAte(p?.fim ?? "");
+    if (f.mes) setFiltroDestino(f);
     setTimeout(() => document.getElementById("lista-contas-pagar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }, [loading]);
 
@@ -2049,6 +2056,14 @@ export default function ContasPagarPage() {
             ))}
           </div>
 
+
+          {filtroDestino?.mes && (
+            <div className="mb-3">
+              <FaixaFiltroDestino lang={(idioma === "en" || idioma === "es" ? idioma : "pt") as "pt" | "en" | "es"} temaClaro={temaClaro} mes={filtroDestino.mes} de={filtroDestino.de}
+                onLimpar={() => { setFiltroDestino(null); setFiltroStatus("todos"); setFiltroVencDe(""); setFiltroVencAte(""); }}
+                texto={`${L("vencidas em aberto de", "open overdue from", "vencidas abiertas de")} ${nomeDoMes(filtroDestino.mes, (idioma === "en" || idioma === "es" ? idioma : "pt") as "pt" | "en" | "es")} — ${contasFiltradas.length} ${L("conta(s)", "bill(s)", "cuenta(s)")}`} />
+            </div>
+          )}
 
           {/* Filtros */}
           <div id="lista-contas-pagar" className="flex flex-wrap gap-2 mb-4 scroll-mt-28">

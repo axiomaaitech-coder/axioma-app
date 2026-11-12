@@ -39,7 +39,7 @@ const pt: DocumentoAxioma = {
     { lista: [
       'Escolha o **Mês** (abre no mês anterior, que é o que se fecha). O **Checklist do fechamento** mostra quantos itens estão resolvidos, a barra de progresso e, quando tudo estiver verde, **Mês pronto para fechar**.',
       'Itens: **Receitas com categoria** e **Custos variáveis com categoria** (lançamentos do mês sem categoria); **Contas a pagar** e **Contas a receber do mês resolvidas** (vencidas no mês e ainda em aberto); **Folha do mês lançada** (há contrato no RH e nenhuma "Folha de pagamento" em Custos Fixos); **Obrigações fiscais do mês em dia**; **Conferência do mês batendo** (DRE × Contabilidade × Fluxo de Caixa).',
-      'Cada item pendente mostra quantos, quanto em R$ e um botão que leva direto à tela que resolve (já filtrada quando dá). "Não se aplica" não conta no progresso; leitura que falhar aparece como aviso, nunca como resolvido.',
+      'Cada item mostra quantos, quanto em R$ e um botão que leva à tela de origem já filtrada: receitas e custos variáveis do mês **sem categoria**, contas a pagar e a receber **vencidas do mês**, **Folha de pagamento** em Custos Fixos (sem folha, o formulário já abre preenchido), obrigações que vencem no mês e a linha do mês destacada na Conferência. Item resolvido abre o mês inteiro para conferir. Na tela de destino, **Voltar ao Fechamento** volta no mesmo mês. "Não se aplica" não conta no progresso; leitura que falhar aparece como aviso, nunca como resolvido.',
       'Embaixo ficam a **Prontidão pela Contabilidade**, os **Eventos não contabilizados** e a **Confiança dos dados** do mesmo mês.',
     ] },
 
@@ -97,7 +97,7 @@ const en: DocumentoAxioma = {
     { lista: [
       'Pick the **Month** (opens on the previous month, the one being closed). The **Close checklist** shows how many items are done, the progress bar and, when everything is green, **Month ready to close**.',
       'Items: **Revenue categorized** and **Variable costs categorized** (entries of the month without category); **Month payables** and **receivables settled** (overdue in the month and still open); **Month payroll entered** (HR contracts and no "Folha de pagamento" in Fixed Costs); **Month tax obligations done**; **Month reconciliation matching** (income statement × Accounting × Cash Flow).',
-      'Each pending item shows how many, how much in R$ and a button that goes straight to the screen that fixes it (pre-filtered when possible). "Does not apply" does not count toward progress; a failed read shows as a warning, never as done.',
+      'Each item shows how many, how much in R$ and a button to the source screen already filtered: revenue and variable costs of the month **without category**, payables and receivables **overdue in the month**, **Folha de pagamento** (payroll) in Fixed Costs (with no payroll, the form opens prefilled), obligations due in the month and the month row highlighted in Reconciliation. A done item opens the whole month to review. On the target screen, **Back to Month-end close** returns to the same month. "Does not apply" does not count toward progress; a failed read shows as a warning, never as done.',
       'Below are **Readiness by Accounting**, **Events not booked** and **Data trust** for the same month.',
     ] },
 
@@ -155,7 +155,7 @@ const es: DocumentoAxioma = {
     { lista: [
       'Elija el **Mes** (abre en el mes anterior, el que se cierra). La **Lista del cierre** muestra cuántos ítems están resueltos, la barra de progreso y, cuando todo esté en verde, **Mes listo para cerrar**.',
       'Ítems: **Ingresos con categoría** y **Costos variables con categoría** (registros del mes sin categoría); **Cuentas por pagar** y **por cobrar del mes resueltas** (vencidas en el mes y aún abiertas); **Nómina del mes registrada** (contratos en RR. HH. y ninguna "Folha de pagamento" en Costos Fijos); **Obligaciones fiscales del mes al día**; **Conciliación del mes cuadrando** (estado de resultados × Contabilidad × Flujo de Caja).',
-      'Cada ítem pendiente muestra cuántos, cuánto en R$ y un botón que lleva directo a la pantalla que lo resuelve (ya filtrada cuando se puede). "No aplica" no cuenta en el progreso; una lectura que falle aparece como aviso, nunca como resuelta.',
+      'Cada ítem muestra cuántos, cuánto en R$ y un botón que lleva a la pantalla de origen ya filtrada: ingresos y costos variables del mes **sin categoría**, cuentas por pagar y por cobrar **vencidas del mes**, **Folha de pagamento** (nómina) en Costos Fijos (sin nómina, el formulario ya abre completado), obligaciones que vencen en el mes y la fila del mes destacada en Conciliación. Un ítem resuelto abre el mes entero para revisar. En la pantalla de destino, **Volver al Cierre** vuelve al mismo mes. "No aplica" no cuenta en el progreso; una lectura que falle aparece como aviso, nunca como resuelta.',
       'Abajo quedan la **Preparación por Contabilidad**, los **Eventos no contabilizados** y la **Confianza de los datos** del mismo mes.',
     ] },
 

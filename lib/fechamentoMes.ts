@@ -9,6 +9,7 @@ import { lerTodas } from './lerTodas'
 import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
 import { carregarConferencia } from './conferenciaHelpers'
 import { ultimoDiaDoMes } from './datas'
+import { rotaDoFechamento } from './filtroDestino'
 
 type T3 = { pt: string; en: string; es: string }
 export type StatusItem = 'ok' | 'pendente' | 'sem_dado' | 'nao_se_aplica'
@@ -46,16 +47,17 @@ export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId:
     ['receitas_categoria', rec, t('Receitas com categoria', 'Revenue categorized', 'Ingresos con categoría'), '/receitas'],
     ['custos_categoria', cv, t('Custos variáveis com categoria', 'Variable costs categorized', 'Costos variables con categoría'), '/custos-variaveis'],
   ] as const) {
-    const acao = t('Abrir e categorizar ›', 'Open and categorize ›', 'Abrir y categorizar ›')
-    if (r.error) { itens.push(semDado(id, titulo, rota, acao)); continue }
+    if (r.error) { itens.push(semDado(id, titulo, rotaDoFechamento(rota, mes), t('Abrir ›', 'Open ›', 'Abrir ›'))); continue }
     const sem = (r.data as { valor: number; categoria: string | null }[]).filter((x) => !String(x.categoria ?? '').trim())
-    itens.push({ id, titulo, rota, acao, qtd: sem.length, valor: soma(sem.map((x) => ({ v: Number(x.valor) || 0 }))), status: sem.length ? 'pendente' : 'ok',
+    // Pendente: abre só os lançamentos do mês SEM categoria; resolvido: abre o mês inteiro para conferir.
+    const acao = sem.length ? t('Abrir e categorizar ›', 'Open and categorize ›', 'Abrir y categorizar ›') : t('Conferir o mês ›', 'Review the month ›', 'Revisar el mes ›')
+    itens.push({ id, titulo, acao, rota: rotaDoFechamento(rota, mes, sem.length ? { categoria: 'sem' } : {}), qtd: sem.length, valor: soma(sem.map((x) => ({ v: Number(x.valor) || 0 }))), status: sem.length ? 'pendente' : 'ok',
       detalhe: sem.length ? t(`${sem.length} lançamento(s) sem categoria no mês.`, `${sem.length} entry(ies) without category this month.`, `${sem.length} registro(s) sin categoría en el mes.`) : t('Tudo categorizado.', 'All categorized.', 'Todo categorizado.') })
   }
 
   // 3–4. Contas que venceram no mês e continuam em aberto
   {
-    const titulo = t('Contas a pagar do mês resolvidas', 'Month payables settled', 'Cuentas por pagar del mes resueltas'), rota = '/contas-pagar?filtro=vencido', acao = t('Pagar ou renegociar ›', 'Pay or renegotiate ›', 'Pagar o renegociar ›')
+    const titulo = t('Contas a pagar do mês resolvidas', 'Month payables settled', 'Cuentas por pagar del mes resueltas'), rota = rotaDoFechamento('/contas-pagar?filtro=vencido', mes), acao = t('Pagar ou renegociar ›', 'Pay or renegotiate ›', 'Pagar o renegociar ›')
     if (cp.error) itens.push(semDado('pagar_vencidas', titulo, rota, acao))
     else {
       const ab = (cp.data as { valor_total: number; valor_pago: number; status: string }[]).filter((c) => !['pago', 'cancelado'].includes(String(c.status)) && Number(c.valor_total) - Number(c.valor_pago || 0) > 0.004)
@@ -65,7 +67,7 @@ export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId:
     }
   }
   {
-    const titulo = t('Contas a receber do mês resolvidas', 'Month receivables settled', 'Cuentas por cobrar del mes resueltas'), rota = '/contas-receber?filtro=vencido', acao = t('Cobrar ›', 'Collect ›', 'Cobrar ›')
+    const titulo = t('Contas a receber do mês resolvidas', 'Month receivables settled', 'Cuentas por cobrar del mes resueltas'), rota = rotaDoFechamento('/contas-receber?filtro=vencido', mes), acao = t('Cobrar ›', 'Collect ›', 'Cobrar ›')
     if (cr.error) itens.push(semDado('receber_vencidas', titulo, rota, acao))
     else {
       const ab = (cr.data as { valor: number; valor_recebido: number; valor_desconto: number; status: string }[]).filter((c) => !['recebido', 'cancelado'].includes(String(c.status)) && Number(c.valor) - Number(c.valor_desconto || 0) - Number(c.valor_recebido || 0) > 0.004)
@@ -77,21 +79,24 @@ export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId:
 
   // 5. Folha: quem tem funcionário no RH precisa da folha em Custos Fixos, senão a DRE do mês não vê o custo de pessoal
   {
-    const titulo = t('Folha do mês lançada', 'Month payroll entered', 'Nómina del mes registrada'), rota = '/custos-fixos', acao = t('Lançar a folha ›', 'Enter payroll ›', 'Registrar la nómina ›')
+    const titulo = t('Folha do mês lançada', 'Month payroll entered', 'Nómina del mes registrada'), acao = t('Lançar a folha ›', 'Enter payroll ›', 'Registrar la nómina ›')
+    const rota = rotaDoFechamento('/custos-fixos', mes, { categoria: 'folha' })
     if (cf.error || rh.error) itens.push(semDado('folha', titulo, rota, acao))
     else {
       const ativos = (rh.data as { data_desligamento: string | null }[]).filter((k) => !k.data_desligamento || k.data_desligamento >= inicio).length
       const folha = custosFixosNoMes(cf.data as unknown as CustoFixo[], mes).total_ativo
       itens.push(ativos === 0
-        ? { id: 'folha', titulo, rota, acao, status: 'nao_se_aplica', detalhe: t('Sem funcionários no RH neste mês (ou sem liberação para ver o RH).', 'No employees in HR this month (or no HR access).', 'Sin empleados en RR. HH. este mes (o sin acceso a RR. HH.).') }
-        : { id: 'folha', titulo, rota, acao, qtd: ativos, valor: folha, status: folha > 0 ? 'ok' : 'pendente',
+        ? { id: 'folha', titulo, rota: '/rh/colaboradores', acao: t('Abrir o RH ›', 'Open HR ›', 'Abrir RR. HH. ›'), status: 'nao_se_aplica', detalhe: t('Sem funcionários no RH neste mês (ou sem liberação para ver o RH).', 'No employees in HR this month (or no HR access).', 'Sin empleados en RR. HH. este mes (o sin acceso a RR. HH.).') }
+        : { id: 'folha', titulo, acao: folha > 0 ? t('Conferir a folha ›', 'Review payroll ›', 'Revisar la nómina ›') : acao,
+            // Sem folha: já abre o formulário de novo custo fixo com a categoria "Folha de pagamento".
+            rota: folha > 0 ? rota : rotaDoFechamento('/custos-fixos', mes, { categoria: 'folha', novo: 'folha' }), qtd: ativos, valor: folha, status: folha > 0 ? 'ok' : 'pendente',
             detalhe: folha > 0 ? t(`Folha em Custos Fixos para ${ativos} contrato(s).`, `Payroll in Fixed Costs for ${ativos} contract(s).`, `Nómina en Costos Fijos para ${ativos} contrato(s).`) : t(`${ativos} contrato(s) no RH e nenhuma "Folha de pagamento" em Custos Fixos: a DRE não vê o custo de pessoal.`, `${ativos} contract(s) in HR and no "Folha de pagamento" in Fixed Costs: the income statement misses personnel cost.`, `${ativos} contrato(s) en RR. HH. y ninguna "Folha de pagamento" en Costos Fijos: el estado de resultados no ve el costo de personal.`) })
     }
   }
 
   // 6. Obrigações fiscais que vencem no mês
   {
-    const titulo = t('Obrigações fiscais do mês em dia', 'Month tax obligations done', 'Obligaciones fiscales del mes al día'), rota = '/empresa?aba=compliance', acao = t('Ver obrigações ›', 'See obligations ›', 'Ver obligaciones ›')
+    const titulo = t('Obrigações fiscais do mês em dia', 'Month tax obligations done', 'Obligaciones fiscales del mes al día'), rota = rotaDoFechamento('/empresa?aba=compliance', mes), acao = t('Ver obrigações ›', 'See obligations ›', 'Ver obligaciones ›')
     if (ob.error) itens.push(semDado('obrigacoes', titulo, rota, acao))
     else {
       const todas = ob.data as { status: string; valor_estimado: number | null }[]
@@ -105,7 +110,7 @@ export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId:
 
   // 7. Conferência: DRE × Contabilidade e Contas pagas/recebidas × Fluxo de Caixa batendo no mês
   {
-    const titulo = t('Conferência do mês batendo', 'Month reconciliation matching', 'Conciliación del mes cuadrando'), rota = '/conferencia', acao = t('Abrir Conferência ›', 'Open Reconciliation ›', 'Abrir Conciliación ›')
+    const titulo = t('Conferência do mês batendo', 'Month reconciliation matching', 'Conciliación del mes cuadrando'), rota = rotaDoFechamento('/conferencia', mes), acao = t('Abrir Conferência ›', 'Open Reconciliation ›', 'Abrir Conciliación ›')
     if (!conf || conf.falhou) itens.push(semDado('conferencia', titulo, rota, acao))
     else {
       const linha = conf.meses.find((m) => m.mes === mes)

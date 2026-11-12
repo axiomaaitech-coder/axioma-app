@@ -56,6 +56,8 @@ import { registrarRecebimento, registrarEstornoRecebimento, criarContaReceber, e
 import AvisoAxioma from '../../../components/AvisoAxioma'
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, isoDia } from '../../../lib/datas'
+import { lerFiltroDestino, periodoDoMes, nomeDoMes, type FiltroDestino } from '../../../lib/filtroDestino'
+import FaixaFiltroDestino from '../../../components/FaixaFiltroDestino'
 import BotaoVoz from '../../../components/BotaoVoz'
 import { juntarTexto } from '../../../lib/voz/gravador'
 
@@ -446,10 +448,14 @@ export default function ContasReceber() {
     setDrillKpi(null); setFiltroStatus(status); setBusca('')
     setTimeout(() => document.getElementById('central-recebimentos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
   }
-  // Vindo de Contas Vencidas (?filtro=vencido): abre a lista já filtrada, uma vez, depois de carregar
+  // Vindo de Contas Vencidas (?filtro=vencido) ou do Fechamento do mês (&mes=AAAA-MM): abre a lista já filtrada,
+  // uma vez, depois de carregar — com o mês, o período da grade vira aquele mês (as mesmas contas que o Fechamento conta).
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null)
   useEffect(() => {
     if (loading || new URLSearchParams(window.location.search).get('filtro') !== 'vencido') return
+    const f = lerFiltroDestino()
     window.history.replaceState(null, '', window.location.pathname)
+    if (f.mes) { setPreset('personalizado'); setPersonalizado(periodoDoMes(f.mes)); setFiltroDestino(f) }
     irParaLista('vencido')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading])
@@ -1363,6 +1369,14 @@ export default function ContasReceber() {
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: ESMERALDA }}>
             {L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros')}
           </p>
+
+          {filtroDestino?.mes && (
+            <div className="mb-3">
+              <FaixaFiltroDestino lang={lang} temaClaro={temaClaro} mes={filtroDestino.mes} de={filtroDestino.de}
+                onLimpar={() => { setFiltroDestino(null); setFiltroStatus('todos'); setPreset('ultimos_12_meses') }}
+                texto={`${L('vencidas sem receber de', 'overdue not received from', 'vencidas sin cobrar de')} ${nomeDoMes(filtroDestino.mes, lang)} — ${contasFiltradas.length} ${L('conta(s)', 'bill(s)', 'cuenta(s)')}`} />
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl axi-card-premium3d axi-card-faixa" style={{ background: PAINEL_BG, border: `1px solid ${ESMERALDA}25` }}>

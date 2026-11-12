@@ -12,6 +12,8 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { carregarConferencia, reprocessarCaso, type LinhaConferencia, type CasoReprocessar, type Par } from '../../../lib/conferenciaHelpers'
 import { createClient } from '../../../lib/supabase/client'
 import { hojeISO } from '../../../lib/datas'
+import { lerFiltroDestino, nomeDoMes, limparFiltroDaUrl, type FiltroDestino } from '../../../lib/filtroDestino'
+import FaixaFiltroDestino from '../../../components/FaixaFiltroDestino'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 const PALETA = {
@@ -58,6 +60,10 @@ export default function ConferenciaPage() {
     setMeses(r.meses); setCasos(r.casos); setFalhou(r.falhou); setCarregando(false)
   }, [anoHoje, lang])
   useEffect(() => { void carregar(ano) }, [ano, carregar])
+  // Vindo do Fechamento do mês (?mes=AAAA-MM): abre no ano do mês, com a linha do mês destacada.
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null)
+  useEffect(() => { const f = lerFiltroDestino(); if (!f.mes) return; setAno(Number(f.mes.slice(0, 4))); setFiltroDestino(f); limparFiltroDaUrl() }, [])
+  useEffect(() => { if (filtroDestino?.mes && !carregando) setTimeout(() => document.getElementById(`conf-${filtroDestino.mes}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120) }, [filtroDestino, carregando])
 
   // A6: corrige UM caso (o clique é a aprovação). Depois relê a conferência inteira.
   async function corrigir(c: CasoReprocessar, pularFluxo: boolean) {
@@ -98,6 +104,10 @@ export default function ConferenciaPage() {
         headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
         botaoExtra={<ThemeToggle />}>
         <div className="space-y-4">
+          {filtroDestino?.mes && (
+            <FaixaFiltroDestino lang={lang} temaClaro={temaClaro} mes={filtroDestino.mes} de={filtroDestino.de} onLimpar={() => setFiltroDestino(null)}
+              texto={`${nomeDoMes(filtroDestino.mes, lang)} ${L('destacado na tabela', 'highlighted in the table', 'destacado en la tabla')} — ${(() => { const m = meses.find((x) => x.mes === filtroDestino.mes); const n = m ? [m.receitaDreXContabil, m.custoDreXContabil, m.pagoXFluxo, m.recebidoXFluxo].filter((p) => !p.ok).length : 0; return n ? L(`${n} diferença(s) no mês`, `${n} difference(s) in the month`, `${n} diferencia(s) en el mes`) : L('tudo batendo no mês', 'all matching in the month', 'todo cuadra en el mes') })()}`} />
+          )}
           <div className="rounded-2xl p-4 axi-card-premium3d axi-card-faixa" style={painel}>
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <p className="text-xs" style={{ color: P.CINZA }}>{L('Só compara números do mesmo critério: competência com competência, caixa com caixa. ✅ = bate · ❌ = diferença em R$.', 'Only compares numbers on the same basis: accrual with accrual, cash with cash. ✅ = matches · ❌ = difference in R$.', 'Solo compara números del mismo criterio: devengo con devengo, caja con caja. ✅ = cuadra · ❌ = diferencia en R$.')}</p>
@@ -122,7 +132,7 @@ export default function ConferenciaPage() {
                   </thead>
                   <tbody>
                     {meses.map((m) => (
-                      <tr key={m.mes} style={{ borderTop: `1px solid ${P.BORDA}` }}>
+                      <tr key={m.mes} id={`conf-${m.mes}`} className="scroll-mt-28" style={{ borderTop: `1px solid ${P.BORDA}`, ...(filtroDestino?.mes === m.mes ? { background: temaClaro ? 'rgba(15,122,90,0.12)' : 'rgba(46,204,155,0.12)', outline: `2px solid ${temaClaro ? '#0f7a5a' : '#2ecc9b'}` } : {}) }}>
                         <td className="px-2 py-1.5 font-semibold">{new Date(`${m.mes}-01T00:00:00`).toLocaleDateString(local, { month: 'short', year: 'numeric' })}</td>
                         <Celula p={m.receitaDreXContabil} /><Celula p={m.custoDreXContabil} /><Celula p={m.pagoXFluxo} /><Celula p={m.recebidoXFluxo} />
                       </tr>

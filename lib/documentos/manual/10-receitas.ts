@@ -69,6 +69,7 @@ const pt: DocumentoAxioma = {
     { nota: 'Criar, editar e excluir ficam na auditoria da empresa. Se a auditoria ou a Contabilidade falhar, a tela avisa — a receita continua salva e o Guardião termina o caminho sozinho.' },
     { h1: 'Dicas' },
     { lista: ['Use categorias consistentes: elas alimentam a DRE e a Composição por Categoria.', 'Marque **Recebido** só quando o dinheiro entrar, para o caixa ficar fiel.', 'Notas fiscais de venda podem entrar por **Importar Documentos**, sem digitar.'] },
+    { p: 'Filtro de categoria: escolha **Sem categoria** para ver só as receitas que ainda não têm categoria. Vindo do **Fechamento do mês** (item Receitas com categoria), a tela já abre no mês e nesse filtro; a faixa **Filtro** no topo diz o que está filtrado e quantos itens há, com **Limpar filtro** e **Voltar ao Fechamento** (volta no mesmo mês). Ao editar uma receita sem categoria, escolha a categoria antes de salvar.' },
   ],
 }
 
@@ -140,6 +141,7 @@ const en: DocumentoAxioma = {
     { nota: 'Creating, editing and deleting are logged in the company audit. If the audit or Accounting fails, the screen warns you — the revenue stays saved and the Guardian finishes the path on its own.' },
     { h1: 'Tips' },
     { lista: ['Use consistent categories: they feed the P&L and the Composition by Category.', 'Mark **Received** only when the money comes in, so cash stays accurate.', 'Sales invoices can come in through **Import Documents**, without typing.'] },
+    { p: 'Category filter: choose **No category** to see only revenue that has no category yet. Coming from **Month-end close** (item Revenue categorized), the screen opens on that month with this filter; the **Filter** bar at the top says what is filtered and how many items there are, with **Clear filter** and **Back to Month-end close** (returns to the same month). When editing revenue without a category, choose the category before saving.' },
   ],
 }
 
@@ -211,6 +213,7 @@ const es: DocumentoAxioma = {
     { nota: 'Crear, editar y eliminar quedan en la auditoría de la empresa. Si la auditoría o la Contabilidad falla, la pantalla avisa — el ingreso sigue guardado y el Guardián termina el camino solo.' },
     { h1: 'Consejos' },
     { lista: ['Use categorías consistentes: alimentan el Estado de Resultados y la Composición por Categoría.', 'Marque **Cobrado** solo cuando entre el dinero, para que la caja sea fiel.', 'Las facturas de venta pueden entrar por **Importar Documentos**, sin escribir.'] },
+    { p: 'Filtro de categoría: elija **Sin categoría** para ver solo los ingresos que aún no tienen categoría. Viniendo del **Cierre del mes** (ítem Ingresos con categoría), la pantalla ya abre en el mes y con este filtro; la franja **Filtro** arriba dice qué está filtrado y cuántos ítems hay, con **Quitar filtro** y **Volver al Cierre** (vuelve al mismo mes). Al editar un ingreso sin categoría, elija la categoría antes de guardar.' },
   ],
 }
 

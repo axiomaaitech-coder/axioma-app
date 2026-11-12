@@ -15,6 +15,7 @@ import { carregarChecklistFechamento, progressoFechamento, type ItemFechamento }
 import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import { fBRL2 } from '../../../../lib/cfoCore'
 import { hojeISO } from '../../../../lib/datas'
+import { lerFiltroDestino } from '../../../../lib/filtroDestino'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -41,6 +42,8 @@ export default function ContadorFechamentoPage() {
   const nomeMes = (m: string) => `${NOME_MES[lang][Number(m.slice(5, 7)) - 1]}/${m.slice(0, 4)}`
 
   const [mes, setMes] = useState(somaMes(mesAtual, -1)) // fecha-se o mês que acabou
+  // Voltando de uma tela de destino (?mes=AAAA-MM): reabre no mesmo mês.
+  useEffect(() => { const m = lerFiltroDestino().mes; if (m && meses.includes(m)) setMes(m) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [itens, setItens] = useState<ItemFechamento[] | null>(null)
@@ -120,9 +123,9 @@ export default function ContadorFechamentoPage() {
                       <p className="text-sm font-bold" style={{ color: TEXTO }}>{i.titulo[lang]}</p>
                       <p className="text-xs" style={{ color: i.status === 'pendente' || i.status === 'sem_dado' ? ALERTA : CINZA }}>{i.detalhe[lang]}{i.status === 'pendente' && i.valor ? ` · R$ ${fBRL2(i.valor)}` : ''}</p>
                     </div>
-                    {i.status !== 'ok' && i.status !== 'nao_se_aplica' && (
-                      <button type="button" onClick={() => router.push(i.rota)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg, #0b5f46, #0f7a5a)' }}>{i.acao[lang]}</button>
-                    )}
+                    {/* Todo item leva à tela de origem já filtrada no mês (e no que falta, quando pendente). */}
+                    <button type="button" onClick={() => router.push(i.rota)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white"
+                      style={{ background: i.status === 'ok' || i.status === 'nao_se_aplica' ? 'linear-gradient(135deg, #0a1628, #101b3d)' : 'linear-gradient(135deg, #0b5f46, #0f7a5a)' }}>{i.acao[lang]}</button>
                   </li>
                 ))}
               </ul>

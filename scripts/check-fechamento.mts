@@ -28,3 +28,16 @@ assert.equal(ajustarDiaISO('2026-11-31'), '2026-11-30')
 assert.equal(ajustarDiaISO('2026-02-31'), '2026-02-28')
 assert.equal(ajustarDiaISO('2026-12-31'), '2026-12-31')
 console.log('check-fechamento datas: ok')
+
+// Rotas do Fechamento → tela de destino filtrada (lida de volta pela mesma função que as telas usam).
+{
+  const { rotaDoFechamento, lerFiltroDestino, periodoDoMes } = await import('../lib/filtroDestino')
+  const r = rotaDoFechamento('/receitas', '2026-10', { categoria: 'sem' })
+  assert.equal(r, '/receitas?mes=2026-10&de=fechamento&categoria=sem')
+  const f = lerFiltroDestino(r.slice(r.indexOf('?')))
+  assert.deepEqual(f, { mes: '2026-10', semCategoria: true, de: 'fechamento', novo: null })
+  assert.equal(rotaDoFechamento('/contas-pagar?filtro=vencido', '2026-11'), '/contas-pagar?filtro=vencido&mes=2026-11&de=fechamento')
+  assert.equal(lerFiltroDestino('?mes=2026-13').mes, null) // mês inválido não filtra nada
+  assert.deepEqual(periodoDoMes('2026-11'), { inicio: '2026-11-01', fim: '2026-11-30' })
+  console.log('check-fechamento rotas: ok')
+}

@@ -31,6 +31,8 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import AvisoAxioma from "../../../components/AvisoAxioma";
 import { useConfirmarExclusao, nomeItem, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, isoDia } from "../../../lib/datas";
+import { lerFiltroDestino, periodoDoMes, nomeDoMes, limparFiltroDaUrl, type FiltroDestino } from "../../../lib/filtroDestino";
+import FaixaFiltroDestino from "../../../components/FaixaFiltroDestino";
 import AvisoDuplicidade from "../../../components/AvisoDuplicidade";
 import { registrarLancamentoManual, desfazerLancamentoManual, verificarDuplicidade, type VeredictoDuplicidade } from "../../../lib/rastreio/lancamentoManual";
 
@@ -130,6 +132,18 @@ export default function CustosVariaveis() {
   const periodoAnt = periodoAnterior(periodo);
 
   useEffect(() => { carregarTudo(); }, [presetPeriodo, personalizado.inicio, personalizado.fim]);
+  // Filtro de categoria da lista + vindo do Fechamento do mês (?mes=AAAA-MM&categoria=sem).
+  const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null);
+  useEffect(() => {
+    const f = lerFiltroDestino();
+    if (!f.mes && !f.semCategoria) return;
+    if (f.mes) { setPresetPeriodo("personalizado"); setPersonalizado(periodoDoMes(f.mes)); }
+    if (f.semCategoria) setFiltroCategoria("__sem");
+    setFiltroDestino(f); limparFiltroDaUrl();
+  }, []);
+  useEffect(() => { if (filtroDestino && !carregando) setTimeout(() => document.getElementById("lista-custos-variaveis")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120); }, [filtroDestino, carregando]);
+  const limparFiltroDestino = () => { setFiltroDestino(null); setFiltroCategoria("todas"); setPresetPeriodo("mes_atual"); };
 
   const carregarTudo = async () => {
     setCarregando(true);
@@ -172,7 +186,7 @@ export default function CustosVariaveis() {
 
   const abrirEdicao = (c: CustoVariavel) => {
     setEditando(c);
-    setNovo({ descricao: c.descricao, valor: String(c.valor), data: c.data, categoria: c.categoria, centro_custo_id: c.centro_custo_id || "" });
+    setNovo({ descricao: c.descricao, valor: String(c.valor), data: c.data, categoria: c.categoria || "", centro_custo_id: c.centro_custo_id || "" });
     setModalAberto(true);
   };
 
@@ -180,6 +194,8 @@ export default function CustosVariaveis() {
   const [avisoDup, setAvisoDup] = useState<VeredictoDuplicidade | null>(null);
   const salvar = async (forcar = false) => {
     if (!novo.descricao || !(parseFloat(novo.valor) > 0)) { showToast(L("Preencha a descrição e um valor maior que zero.", "Fill in the description and an amount above zero.", "Complete la descripción y un valor mayor que cero."), "erro"); return; }
+    // Custo antigo sem categoria: precisa escolher (antes salvava de novo sem categoria, calado).
+    if (!String(novo.categoria || "").trim()) { showToast(L("Escolha a categoria.", "Choose the category.", "Elija la categoría."), "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
@@ -252,7 +268,8 @@ export default function CustosVariaveis() {
   // Cartões e lista: só o período escolhido. A carga traz 24 meses só para gráficos e comparativos —
   // antes o "Total do Mês" somava esses 24 meses inteiros.
   const custosPeriodo = custos.filter(c => c.data >= periodo.inicio && c.data <= periodo.fim);
-  const custosFiltrados = custosPeriodo.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
+  const custosFiltrados = custosPeriodo.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase())
+    && (filtroCategoria === "todas" || (filtroCategoria === "__sem" ? !String(c.categoria ?? "").trim() : c.categoria === filtroCategoria)));
   const totalMes = custosPeriodo.reduce((acc, c) => acc + c.valor, 0);
   const maiorCusto = custosPeriodo.length > 0 ? Math.max(...custosPeriodo.map(c => c.valor)) : 0;
   const temDados = custos.length > 0;
@@ -594,14 +611,28 @@ export default function CustosVariaveis() {
           </>
         )}
 
-        {/* Busca */}
-        <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
-          <div className="flex items-center gap-2 py-1">
-            <Search size={16} style={{ color: TEXTO_SEC }} />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosVariaveis.buscar}
-              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)" }} />
-          </div>
-        </CanvasBox>
+        {filtroDestino && (
+          <FaixaFiltroDestino lang={lang} temaClaro={temaClaro} mes={filtroDestino.mes} de={filtroDestino.de} onLimpar={limparFiltroDestino}
+            texto={`${filtroDestino.mes ? nomeDoMes(filtroDestino.mes, lang) : ""}${filtroCategoria === "__sem" ? ` · ${L("sem categoria", "no category", "sin categoría")}` : ""} — ${custosFiltrados.length} ${L("lançamento(s)", "entry(ies)", "registro(s)")}`} />
+        )}
+
+        {/* Busca + filtro de categoria */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <CanvasBox cor={ct("#2ecc9b")} {...cartaoTema}>
+            <div className="flex items-center gap-2 py-1">
+              <Search size={16} style={{ color: TEXTO_SEC }} />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosVariaveis.buscar}
+                className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)", minWidth: "160px" }} />
+            </div>
+          </CanvasBox>
+          <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} aria-label={t.geral.categoria}
+            className="px-4 py-3 rounded-2xl focus:outline-none text-sm"
+            style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.25)", color: "var(--axi-text-primary)" }}>
+            <option value="todas">{t.geral.todas}</option>
+            <option value="__sem">{L("Sem categoria", "No category", "Sin categoría")}</option>
+            {categorias.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
 
         {/* Tabela */}
         <CanvasBox cor={ct(temaClaro ? CORES.verde : "#2ecc9b")} {...cartaoTema}>
@@ -682,6 +713,7 @@ export default function CustosVariaveis() {
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: campoFundo3, border: "1px solid rgba(163,177,194,0.2)", color: "var(--axi-text-primary)" }}>
+                      {!novo.categoria && <option value="">{L("Escolha a categoria", "Choose the category", "Elija la categoría")}</option>}
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>

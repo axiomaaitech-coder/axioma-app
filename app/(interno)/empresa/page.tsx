@@ -33,6 +33,8 @@ import AvisoAxioma from "../../../components/AvisoAxioma";
 import TransferirEmpresa from "../../../components/TransferirEmpresa";
 import { useConfirmarExclusao, EFEITO } from "../../../components/ConfirmarExclusao";
 import { hojeISO, definirFusoEmpresa, fusoDaEmpresa } from "../../../lib/datas";
+import { lerFiltroDestino, periodoDoMes, nomeDoMes, type FiltroDestino } from "../../../lib/filtroDestino";
+import FaixaFiltroDestino from "../../../components/FaixaFiltroDestino";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -773,7 +775,12 @@ export default function EmpresaPage() {
 
   useEffect(() => { carregarTudo(); listarBancos().then(setBancos); }, []);
   // Atalho vindo de outra tela (ex.: card da Equipe → /empresa?aba=transferir)
-  useEffect(() => { const a = new URLSearchParams(window.location.search).get("aba"); if (a === "transferir" || a === "compliance") setAba(a); }, []);
+  // Vindo do Fechamento do mês (?aba=compliance&mes=AAAA-MM): só as obrigações que vencem naquele mês.
+  const [filtroDestino, setFiltroDestino] = useState<FiltroDestino | null>(null);
+  useEffect(() => { const a = new URLSearchParams(window.location.search).get("aba"); if (a === "transferir" || a === "compliance") setAba(a); const f = lerFiltroDestino(); if (a === "compliance" && f.mes) setFiltroDestino(f); }, []);
+  const obrigacoesVisiveis = filtroDestino?.mes
+    ? (() => { const p = periodoDoMes(filtroDestino.mes!); return obrigacoes.filter((o: any) => o.data_vencimento >= p.inicio && o.data_vencimento <= p.fim); })()
+    : obrigacoes;
 
   // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
   // módulos: um único carregar() que já busca o usuário por dentro) — antes
@@ -1702,11 +1709,15 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              {obrigacoes.length === 0 ? (
+              {filtroDestino?.mes && (
+                <FaixaFiltroDestino lang={lang} temaClaro={temaClaro} mes={filtroDestino.mes} de={filtroDestino.de} onLimpar={() => setFiltroDestino(null)}
+                  texto={`${lang === "en" ? "obligations due in" : lang === "es" ? "obligaciones que vencen en" : "obrigações que vencem em"} ${nomeDoMes(filtroDestino.mes, lang)} — ${obrigacoesVisiveis.length}`} />
+              )}
+              {obrigacoesVisiveis.length === 0 ? (
                 <CanvasBox cor={AMARELO} {...cartaoTema}><p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semObrigacoes}</p></CanvasBox>
               ) : (
                 <div className="space-y-2">
-                  {obrigacoes.map((o: any) => {
+                  {obrigacoesVisiveis.map((o: any) => {
                     const hoje = hojeISO();
                     const vencida = o.status === "pendente" && o.data_vencimento < hoje;
                     const corStatus = o.status === "paga" ? VERDE : vencida ? VERMELHO : o.status === "dispensada" ? CINZA : AMARELO;
