@@ -2,7 +2,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { centavos, reais } from './financeiro/contrato'
 import { lerCustoPessoal, regimeDaEmpresa } from './rhCustoPessoal'
-import { carregarBaseDRE } from './dreCompetencia'
+import { carregarBaseDRE, custoFixoNoPeriodo } from './dreCompetencia'
 import { calcularDre, inicio12, ultimoDia, type EmpresaDre, type DividaDre } from './ia/ferramentaDre'
 import { COLUNAS_EMPRESA_FISCAL } from './iaTributariaHelpers'
 import { saldoCaixaRealizado } from './caixaSaldo'
@@ -22,17 +22,23 @@ export async function carregarBaseSimulacao(supabase: SupabaseClient, empresaId:
     podeSalario ? lerCustoPessoal(supabase, empresaId, hoje).catch(() => null) : Promise.resolve(null),
   ])
   const limitacoes: string[] = []
-  let receitaMediaMensal: number | null = null, lucroMedioMensal: number | null = null
+  let receitaMediaMensal: number | null = null, lucroMedioMensal: number | null = null, margemContribuicaoPct: number | null = null, receita12: number | null = null, folha12Lancada: number | null = null
   if (baseDre.falhou || emp.error || divs.error) limitacoes.push('DRE não foi lida agora: impacto no lucro e no faturamento ficou de fora')
   else {
     const d = calcularDre(baseDre, emp.data as EmpresaDre | null, (divs.data ?? []) as DividaDre[], inicio, fim)
     if (d.semMovimento) limitacoes.push('sem movimento na DRE dos últimos 12 meses: impacto no lucro não calculado')
-    else { receitaMediaMensal = reais(Math.round(centavos(d.receitaBruta) / 12)); lucroMedioMensal = reais(Math.round(centavos(d.lucroLiquido) / 12)) }
+    else {
+      receitaMediaMensal = reais(Math.round(centavos(d.receitaBruta) / 12)); lucroMedioMensal = reais(Math.round(centavos(d.lucroLiquido) / 12))
+      margemContribuicaoPct = d.margemPct ?? null
+      // Fator R (LC 123, art. 18): receita bruta menos devoluções e folha lançada em Custos Fixos nos mesmos 12 meses
+      receita12 = reais(centavos(d.receitaBruta) - centavos(d.devolucoes))
+      folha12Lancada = custoFixoNoPeriodo(baseDre.custosFixos.filter((c) => c.categoria === 'Folha de pagamento'), inicio, fim)
+    }
   }
   if (caixa.erro) limitacoes.push('caixa de hoje não foi lido agora')
   if (!pessoal) limitacoes.push(podeSalario ? 'custo de pessoal atual não foi lido agora' : 'sem liberação de salário: o custo de pessoal atual não entra na comparação')
   return {
-    base: { receitaMediaMensal, lucroMedioMensal, custoPessoalAtual: pessoal ? pessoal.r.custo_total_mensal : null, caixa: caixa.erro ? null : caixa.saldo,
+    base: { receitaMediaMensal, lucroMedioMensal, margemContribuicaoPct, receita12, folha12Lancada, custoPessoalAtual: pessoal ? pessoal.r.custo_total_mensal : null, caixa: caixa.erro ? null : caixa.saldo,
       folhaForaDaDre: !!pessoal?.ponte && (pessoal.ponte.situacao === 'folha_nao_lancada' || pessoal.ponte.situacao === 'lancado_a_menos') } as BaseSimulacao,
     pessoal, regime: pessoal?.regime ?? regimeDaEmpresa((emp.data as { regime_tributario?: string } | null)?.regime_tributario), periodo_dre: { de: inicio, ate: fim }, limitacoes,
   }
