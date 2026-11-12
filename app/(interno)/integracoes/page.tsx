@@ -88,7 +88,7 @@ export default function IntegracoesPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Situação geral', 'Overall status', 'Situación general')}</p>
                 <p className="text-2xl font-black mt-1" style={{ color: problemas ? ALERTA : VERDE }}>
-                  {problemas ? L(`${problemas} integração(ões) pedem atenção`, `${problemas} integration(s) need attention`, `${problemas} integración(es) requieren atención`) : L('Tudo funcionando', 'Everything working', 'Todo funcionando')}
+                  {problemas === 1 ? L('1 integração pede atenção', '1 integration needs attention', '1 integración requiere atención') : problemas ? L(`${problemas} integrações pedem atenção`, `${problemas} integrations need attention`, `${problemas} integraciones requieren atención`) : L('Tudo funcionando', 'Everything working', 'Todo funcionando')}
                 </p>
               </div>
               {conferidoEm && <p className="text-xs" style={{ color: CINZA }}>{L('Conferido em', 'Checked at', 'Verificado el')} {dataHora(conferidoEm.toISOString())}</p>}
