@@ -48,7 +48,7 @@ export function barrasV(dados: number[], meses: string[], corEscuro: string, cor
       axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => fK(v) } },
     series: [{
       // largura fixa e igual (padrão Power BI): com poucas categorias "60%" virava barra gigante
-      type: "bar", barMaxWidth: 44, barCategoryGap: "20%", // 20% = padrão do Power BI; 44px cabe em 12 meses, então todo gráfico fica com a mesma largura
+      type: "bar", barMaxWidth: 48, barCategoryGap: "14%", // barra ≈ 85% da coluna (Power BI); 48px cabe em 12 meses, então todo gráfico fica com a mesma largura
       itemStyle: {
         borderRadius: [8, 8, 2, 2],
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
@@ -81,5 +81,27 @@ export function rosca(dadosEscuro: { name: string; value: number; color: string 
       { type: "text", left: "34%", top: "45%", style: { text: fK(total), textAlign: "center", fill: e.valor, fontSize: 18, fontWeight: 900 }, z: 10 },
       { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: e.rotuloFraco, fontSize: 12, fontWeight: 700 }, z: 10 },
     ],
+  };
+}
+
+// Metas vs. Realizado (Dashboard): % atingido de cada meta, linha de 100% = a meta. Funciona para meta em R$, % ou
+// número de clientes. O realizado é o valor_atual que a tela Metas calcula e grava (fonte única, não recalcula aqui).
+export function barrasProgressoMetas(nomes: string[], pcts: number[], rotuloMeta: string, claro = false) {
+  const e = EIXO(claro), cor = claro ? "#101b3d" : "#2ecc9b", corOk = claro ? "#0f7a5a" : "#34d399"
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 8, right: 56, top: 18, bottom: 8, containLabel: true },
+    tooltip: { ...(claro ? tipClaro : tip), trigger: "item", borderColor: cor, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${Math.round(p.value)}%</b> ${rotuloMeta}` },
+    xAxis: { type: "value", max: (v: { max: number }) => Math.max(110, Math.ceil(v.max / 10) * 10), axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: e.grade, type: "dashed" } }, axisLabel: { color: e.rotuloFraco, fontSize: 12, formatter: (v: number) => `${v}%` } },
+    yAxis: { type: "category", data: nomes, inverse: true, axisLine: { lineStyle: { color: e.linha } }, axisTick: { show: false },
+      axisLabel: { color: e.rotulo, fontSize: 12, fontWeight: 700, width: 150, overflow: "truncate" } },
+    series: [{
+      type: "bar", barMaxWidth: 28, barCategoryGap: "30%",
+      itemStyle: { borderRadius: [2, 8, 8, 2], color: (p: any) => (p.value >= 100 ? corOk : cor) },
+      label: { show: true, position: "right", color: e.valor, fontSize: 12, fontWeight: 800, formatter: (p: any) => `${Math.round(p.value)}%` },
+      markLine: { silent: true, symbol: "none", lineStyle: { color: claro ? "#6b7280" : "#94a3b8", type: "dashed", width: 1.5 }, label: { formatter: rotuloMeta, color: e.rotuloFraco, fontSize: 11 }, data: [{ xAxis: 100 }] },
+      data: pcts.map((v) => Math.max(0, v)),
+    }],
   };
 }

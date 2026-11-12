@@ -3,9 +3,9 @@ import { lerTodas } from "../lib/lerTodas";
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "../lib/supabaseBrowser";
 import { useLanguage } from "../lib/LanguageContext";
-import { serieRolling, serieCores } from "../lib/cfoCore";
+import { serieRolling, serieCores, progressoPercentual } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
-import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK } from "../lib/dashGraficos";
+import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK, barrasProgressoMetas } from "../lib/dashGraficos";
 import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 import { isoDia } from "../lib/datas";
 
@@ -88,6 +88,7 @@ const D = {
 type RealCom = {
   clientesAtivos: number;
   metasCount: number;
+  metasProgresso: { nome: string; pct: number }[];
   receberTotal: number;
   receberAVencer: number;
   receberVence30: number;
@@ -100,7 +101,7 @@ type RealCom = {
 };
 
 const REAL_VAZIO: RealCom = {
-  clientesAtivos: 0, metasCount: 0, receberTotal: 0, receberAVencer: 0, receberVence30: 0, receberAtraso: 0,
+  clientesAtivos: 0, metasCount: 0, metasProgresso: [], receberTotal: 0, receberAVencer: 0, receberVence30: 0, receberAtraso: 0,
   inadTotal: 0, inadSerie: Array(12).fill(0), investTotal: 0, investCategorias: [], novosClientesSerie: Array(12).fill(0),
 };
 
@@ -161,12 +162,14 @@ export default function DashComercial() {
         { count: clientesAtivos },
         { data: clientesRows },
         { count: metasCount },
+        { data: metasRows },
         { data: contasReceber },
         { data: investimentos },
       ] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId).eq("status", "ativo"),
         supabase.from("clientes").select("created_at").eq("empresa_id", empresaId).gte("created_at", doze),
         supabase.from("metas").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId),
+        supabase.from("metas").select("titulo, valor_meta, valor_inicial, valor_atual, status").eq("empresa_id", empresaId).neq("status", "arquivada").order("prazo", { ascending: true }).limit(8),
         lerTodas(() => supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).order("id")),
         supabase.from("investimentos").select("valor, categoria").eq("empresa_id", empresaId),
       ]);
@@ -192,6 +195,8 @@ export default function DashComercial() {
 
       setReal({
         clientesAtivos: clientesAtivos || 0, metasCount: metasCount || 0,
+        // % atingido de cada meta ativa, pelo valor_atual que a tela Metas calcula e grava (mesma conta, fonte única)
+        metasProgresso: (metasRows || []).map((m: any) => ({ nome: String(m.titulo || "—"), pct: Math.round(progressoPercentual(Number(m.valor_inicial || 0), Number(m.valor_atual || 0), Number(m.valor_meta || 0)) * 10) / 10 })),
         receberTotal, receberAVencer, receberVence30, receberAtraso,
         inadTotal, inadSerie, investTotal, investCategorias, novosClientesSerie,
       });
@@ -259,8 +264,9 @@ export default function DashComercial() {
             {demo ? (
               <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" option={linhaMetas(tt, claro)} altura={280} />
             ) : (
-              <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" altura={280}
-                vazio={real.metasCount > 0 ? `${real.metasCount} ${tt.metasCadastradasMsg}` : tt.semMeta} />
+              <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" altura={Math.max(200, 70 + real.metasProgresso.length * 42)}
+                option={real.metasProgresso.length ? barrasProgressoMetas(real.metasProgresso.map((m) => m.nome), real.metasProgresso.map((m) => m.pct), tt.meta, claro) : undefined}
+                vazio={tt.semMeta} />
             )}
           </div>
 
