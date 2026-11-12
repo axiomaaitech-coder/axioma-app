@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { AlertTriangle, ChevronDown, X } from 'lucide-react'
 import { obterEmpresaAtiva } from '../lib/empresaHelpers'
-import { hojeISO } from '../lib/datas'
+import { hojeISO, ultimoDiaDoMes } from '../lib/datas'
 import { useLanguage } from '../lib/LanguageContext'
 import { carregarConferencia, type LinhaConferencia } from '../lib/conferenciaHelpers'
 
@@ -45,7 +45,7 @@ export default function AvisoConferencia() {
       }
       const [a, m] = hoje.split('-').map(Number)
       const anterior = m === 1 ? `${a - 1}-12-01` : `${a}-${String(m - 1).padStart(2, '0')}-01`
-      const r = await carregarConferencia(empresaId, anterior, `${hoje.slice(0, 7)}-31`, (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as 'pt' | 'en' | 'es')
+      const r = await carregarConferencia(empresaId, anterior, ultimoDiaDoMes(hoje), (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as 'pt' | 'en' | 'es')
       if (r.falhou) return // leitura incompleta: não acusa diferença que pode não existir (já foi ao Sentry)
       const f = falhasDaConferencia(r.meses)
       setFalhas(f)

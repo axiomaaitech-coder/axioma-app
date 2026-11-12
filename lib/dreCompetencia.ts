@@ -20,7 +20,7 @@
 import { createBrowserClient } from "./supabaseBrowser";
 import * as Sentry from "@sentry/nextjs";
 import { lerTodas } from "./lerTodas";
-import { hojeISO } from "./datas";
+import { hojeISO, ajustarDiaISO } from "./datas";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -133,8 +133,9 @@ export type BaseDRE = {
 };
 
 // `cliente`: no navegador o padrão; no servidor (ferramenta DRE da IA) o cliente do usuário — mesma RLS, mesmo cálculo
-export async function carregarBaseDRE(empresaId: string, inicio: string, fim: string, cliente: typeof supabase = supabase): Promise<BaseDRE> {
+export async function carregarBaseDRE(empresaId: string, inicio: string, fimPedido: string, cliente: typeof supabase = supabase): Promise<BaseDRE> {
   const supabase = cliente
+  const fim = ajustarDiaISO(fimPedido) // "-31" em mês de 30 dias derrubava a leitura inteira (400)
   const premissas: string[] = [];
   const [rec, cr, vd, cv, cp, cf, juros, estoque] = await Promise.all([
     lerTodas(() => supabase.from("receitas").select("id, valor, data, categoria, descricao, origem_tabela").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim).order("id")),

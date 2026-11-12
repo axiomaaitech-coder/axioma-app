@@ -15,7 +15,7 @@ import { carregarBaseDRE, custoFixoDoMes, mesesEntre, somaNoPeriodo } from "./dr
 import { registrarMovimentacao } from "./rastreio/motor";
 import { registrarLancamentoManual } from "./rastreio/lancamentoManual";
 import { criarContaReceber } from "./recebimentoHelpers";
-import { hojeISO } from "./datas";
+import { hojeISO, ajustarDiaISO } from "./datas";
 import { saiDoCaixaAgora } from "./regrasPagamento";
 import { registrarLeitura, avisarFalhaLeitura } from "./erroUiHelpers";
 
@@ -77,7 +77,8 @@ export function rastreadoPorConta(rastros: { origem_id: string; tipo: string; va
 }
 
 // ---------------------------------------------------------------- leitura
-export async function carregarConferencia(empresaId: string, inicio: string, fim: string, lang: "pt" | "en" | "es" = "pt"): Promise<{ meses: LinhaConferencia[]; casos: CasoReprocessar[]; falhou: boolean }> {
+export async function carregarConferencia(empresaId: string, inicio: string, fimPedido: string, lang: "pt" | "en" | "es" = "pt"): Promise<{ meses: LinhaConferencia[]; casos: CasoReprocessar[]; falhou: boolean }> {
+  const fim = ajustarDiaISO(fimPedido); // "-31" em mês de 30 dias derrubava a leitura inteira (400)
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   const [base, partidas, cp, cr, fc, rastros, receitasPend, receitasManuais] = await Promise.all([
     carregarBaseDRE(empresaId, inicio, fim),

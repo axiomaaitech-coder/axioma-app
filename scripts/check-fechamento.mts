@@ -19,3 +19,12 @@ console.log('check-fechamento: ok')
   assert.deepEqual(mesesDeVigencia('2025-12-15', null, '2026-01', '2026-01-05'), ['2025-12', '2026-01'], 'virada de ano')
   console.log('check-fechamento custo fixo por mês: ok')
 }
+
+// Data impossível ("-31" em mês de 30 dias) derrubava a leitura inteira no banco (erro 400).
+const { ultimoDiaDoMes, ajustarDiaISO } = await import('../lib/datas')
+assert.equal(ultimoDiaDoMes('2026-11'), '2026-11-30')
+assert.equal(ultimoDiaDoMes('2028-02-10'), '2028-02-29')
+assert.equal(ajustarDiaISO('2026-11-31'), '2026-11-30')
+assert.equal(ajustarDiaISO('2026-02-31'), '2026-02-28')
+assert.equal(ajustarDiaISO('2026-12-31'), '2026-12-31')
+console.log('check-fechamento datas: ok')

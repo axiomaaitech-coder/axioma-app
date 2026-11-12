@@ -124,6 +124,19 @@ export function somarDiasISO(iso: string, n: number): string {
   return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10)
 }
 
+// Último dia do mês "AAAA-MM" → "AAAA-MM-30/31/28/29".
+export function ultimoDiaDoMes(mes: string): string {
+  const [a, m] = mes.slice(0, 7).split('-').map(Number)
+  return `${mes.slice(0, 7)}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, '0')}`
+}
+
+// "2026-11-31" (dia que não existe) vira "2026-11-30": o banco recusa a data inválida e a
+// consulta inteira falhava calada. Data válida passa intacta.
+export function ajustarDiaISO(iso: string): string {
+  const fim = ultimoDiaDoMes(iso)
+  return iso.slice(0, 10) > fim ? fim : iso.slice(0, 10)
+}
+
 // "AAAA-MM-DD" + n meses, preso ao último dia do mês: 31/01 + 1 = 28/02 (ou 29), nunca 03/03.
 export function somarMesesISO(iso: string, n: number): string {
   const [a, m, d] = iso.slice(0, 10).split('-').map(Number)

@@ -8,13 +8,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { lerTodas } from './lerTodas'
 import { custosFixosNoMes, type CustoFixo } from './financeiro/calculos'
 import { carregarConferencia } from './conferenciaHelpers'
+import { ultimoDiaDoMes } from './datas'
 
 type T3 = { pt: string; en: string; es: string }
 export type StatusItem = 'ok' | 'pendente' | 'sem_dado' | 'nao_se_aplica'
 export type ItemFechamento = { id: string; status: StatusItem; titulo: T3; detalhe: T3; qtd?: number; valor?: number; rota: string; acao: T3 }
 
 const t = (pt: string, en: string, es: string): T3 => ({ pt, en, es })
-const ultimoDia = (mes: string) => { const [a, m] = mes.split('-').map(Number); return `${mes}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}` }
 const soma = (l: { v: number }[]) => Math.round(l.reduce((s, x) => s + x.v, 0) * 100) / 100
 
 /** Progresso: itens resolvidos ÷ itens que se aplicam (sem_dado conta como não resolvido). */
@@ -25,7 +25,7 @@ export function progressoFechamento(itens: ItemFechamento[]) {
 }
 
 export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId: string, mes: string, hoje: string): Promise<ItemFechamento[]> {
-  const inicio = `${mes}-01`, fim = ultimoDia(mes), limiteVencido = fim < hoje ? fim : hoje
+  const inicio = `${mes}-01`, fim = ultimoDiaDoMes(mes), limiteVencido = fim < hoje ? fim : hoje
   const ler = (tab: string, cols: string, f: (q: any) => any) => lerTodas(() => f(sb.from(tab).select(cols).eq('empresa_id', empresaId)).order('id'))
   const [rec, cv, cp, cr, cf, rh, ob, conf] = await Promise.all([
     ler('receitas', 'id, valor, categoria', (q) => q.gte('data', inicio).lte('data', fim)),
