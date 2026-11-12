@@ -68,7 +68,7 @@ const pt: DocumentoAxioma = {
     { tabela: { colunas: ['Gráfico', 'O que mostra', 'Quando aparece vazio'], larguras: [2000, 4326, 2700], linhas: [
       ['Endividamento', 'Rosca com quanto da dívida já foi **Pago** e quanto é **Saldo Devedor**.', '"Nenhuma dívida cadastrada ainda"'],
       ['Custos Fixos', 'Barras com o valor mensal de cada **categoria** de custo fixo (aluguel, pessoal, sistemas...).', '"Nenhum custo fixo cadastrado ainda"'],
-      ['Custos Variáveis', 'Barras com os custos variáveis de cada um dos **últimos 12 meses**.', '"Nenhum custo variável registrado ainda"'],
+      ['Custos Variáveis', 'Barras com os custos variáveis de cada um dos **últimos 12 meses** (o eixo mostra mês/ano, do mais antigo ao atual).', '"Nenhum custo variável registrado ainda"'],
       ['Fluxo de Caixa', 'Rosca com **Entradas** (receita do mês) e **Saídas** (custos do mês).', '"Nenhuma receita registrada ainda"'],
       ['Receita', 'Rosca com a receita dos últimos 12 meses dividida por **categoria**.', '"Nenhuma receita registrada ainda"'],
     ] } },
@@ -83,7 +83,7 @@ const pt: DocumentoAxioma = {
     ] } },
     { h2: 'Painel Análise Comercial & Crescimento' },
     { tabela: { colunas: ['Gráfico', 'O que mostra', 'Quando aparece vazio'], larguras: [2000, 4326, 2700], linhas: [
-      ['Metas vs. Realizado', 'Quantas metas existem e um convite para abrir o módulo Metas, onde está o progresso de cada uma.', '"Nenhuma meta cadastrada ainda"'],
+      ['Metas vs. Realizado', 'Uma barra por meta ativa com o **% já atingido** (o mesmo realizado que a tela Metas calcula); a linha tracejada é a meta (100%). Meta batida fica em verde. Serve para meta em R$, % ou número de clientes.', '"Nenhuma meta cadastrada ainda"'],
       ['Novos Clientes', 'Barras com quantos clientes foram cadastrados em cada um dos últimos 12 meses.', '"Nenhum cliente novo no período"'],
       ['Inadimplência', 'Barras com o valor vencido e não pago, pelo mês de vencimento.', '"Nenhuma conta em atraso — tudo em dia! 🎉"'],
       ['Contas a Receber', 'Rosca dividida em **A vencer** (mais de 30 dias), **Vence 30d** (nos próximos 30 dias) e **Em atraso**.', '"Nenhuma conta a receber registrada ainda"'],
@@ -215,7 +215,7 @@ const en: DocumentoAxioma = {
     ] } },
     { h2: 'Commercial & Growth Analysis panel' },
     { tabela: { colunas: ['Chart', 'What it shows', 'When it appears empty'], larguras: [2000, 4326, 2700], linhas: [
-      ['Goals vs. Actual', 'How many goals exist and an invitation to open the Goals module, where each one\'s progress is shown.', '"No goal registered yet"'],
+      ['Goals vs. Actual', 'One bar per active goal with the **% achieved** (the same actual the Goals screen calculates); the dashed line is the goal (100%). A goal reached turns green. Works for goals in R$, % or number of clients.', '"No goal registered yet"'],
       ['New Clients', 'Bars with how many clients were registered in each of the last 12 months.', '"No new client in the period"'],
       ['Delinquency', 'Bars with the overdue unpaid amount, by due month.', '"No overdue accounts — all clear! 🎉"'],
       ['Receivables', 'Donut split into **Not yet due** (more than 30 days), **Due in 30d** (within 30 days) and **Overdue**.', '"No receivables registered yet"'],
@@ -347,7 +347,7 @@ const es: DocumentoAxioma = {
     ] } },
     { h2: 'Panel Análisis Comercial y Crecimiento' },
     { tabela: { colunas: ['Gráfico', 'Qué muestra', 'Cuándo aparece vacío'], larguras: [2000, 4326, 2700], linhas: [
-      ['Metas vs. Realizado', 'Cuántas metas existen y una invitación a abrir el módulo Metas, donde está el progreso de cada una.', '"Aún no hay metas registradas"'],
+      ['Metas vs. Realizado', 'Una barra por meta activa con el **% alcanzado** (el mismo realizado que calcula la pantalla Metas); la línea discontinua es la meta (100%). La meta cumplida queda en verde. Sirve para metas en R$, % o número de clientes.', '"Aún no hay metas registradas"'],
       ['Nuevos Clientes', 'Barras con cuántos clientes se registraron en cada uno de los últimos 12 meses.', '"Sin clientes nuevos en el período"'],
       ['Morosidad', 'Barras con el valor vencido y no pagado, por mes de vencimiento.', '"Sin cuentas atrasadas — ¡todo al día! 🎉"'],
       ['Cuentas por Cobrar', 'Dona dividida en **Por vencer** (más de 30 días), **Vence 30d** (en los próximos 30 días) y **Atrasado**.', '"Aún no hay cuentas por cobrar registradas"'],
