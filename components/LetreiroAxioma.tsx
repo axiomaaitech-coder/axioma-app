@@ -17,7 +17,8 @@ export function LetreiroAxioma({ id, itens, cor, solido, corDestaque }: {
   corDestaque?: string;
 }) {
   const todos = ["🚀 AXIOMA AI.TECH", ...itens];
-  const classe = `marquee-${id}`;
+  // id vira nome de classe CSS: espaço/acento/pontuação quebravam a animação (ex.: "Documentos da admissão" no RH)
+  const classe = `marquee-${id.normalize("NFD").replace(/[^A-Za-z0-9_-]/g, "-")}`;
   // Letreiro único (Elias 2026-10-03): azul-marinho, letra branca, destaque verde-menta
   void cor; void solido; void corDestaque;
   const acento = "#2ecc9b";
