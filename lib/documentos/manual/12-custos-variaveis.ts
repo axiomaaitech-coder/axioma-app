@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '12 - Custos Variáveis.docx',
   titulo: 'Manual 12 — Custos Variáveis',
   subtitulo: 'Os gastos que sobem e descem com as vendas — margem de contribuição, ponto de equilíbrio e alerta de aumento silencioso',
-  info: ['Menu: Financeiro → Custos Variáveis  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Custos Variáveis  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Custos variáveis acompanham as vendas: mercadoria, matéria-prima, comissões, fretes, embalagens, marketing. A tela mostra **quanto sobra de cada venda** (margem de contribuição), **quanto precisa vender para empatar** e avisa quando um custo está subindo sem ninguém perceber. Todo custo lançado aqui vai sozinho para a **Contabilidade** e para o **Fluxo de Caixa** (como pago).' },
@@ -75,7 +75,7 @@ const en: DocumentoAxioma = {
   arquivo: '12 - Variable Costs.docx',
   titulo: 'Manual 12 — Variable Costs',
   subtitulo: 'Expenses that rise and fall with sales — contribution margin, break-even and silent price-increase alerts',
-  info: ['Menu: Financial → Variable Costs  •  Axioma AI.Tech user manual  •  Version 2.2 (October 2026)'],
+  info: ['Menu: Financial → Variable Costs  •  Axioma AI.Tech user manual  •  Version 2.3 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Variable costs follow sales: merchandise, raw materials, commissions, freight, packaging, marketing. The screen shows **how much is left from each sale** (contribution margin), **how much you must sell to break even** and warns when a cost is rising unnoticed. Every cost entered here goes automatically to **Accounting** and **Cash Flow** (as paid).' },
@@ -145,7 +145,7 @@ const es: DocumentoAxioma = {
   arquivo: '12 - Costos Variables.docx',
   titulo: 'Manual 12 — Costos Variables',
   subtitulo: 'Los gastos que suben y bajan con las ventas — margen de contribución, punto de equilibrio y alerta de aumento silencioso',
-  info: ['Menú: Financiero → Costos Variables  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (octubre de 2026)'],
+  info: ['Menú: Financiero → Costos Variables  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Los costos variables acompañan las ventas: mercadería, materia prima, comisiones, fletes, embalajes, marketing. La pantalla muestra **cuánto queda de cada venta** (margen de contribución), **cuánto hay que vender para empatar** y avisa cuando un costo sube sin que nadie lo note. Todo costo registrado aquí va solo a **Contabilidad** y al **Flujo de Caja** (como pagado).' },

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '11 - Custos Fixos.docx',
   titulo: 'Manual 11 — Custos Fixos',
   subtitulo: 'Os gastos que existem todo mês, vendendo ou não — com vigência, radar de renovações e economia',
-  info: ['Menu: Financeiro → Custos Fixos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.2 (novembro de 2026)'],
+  info: ['Menu: Financeiro → Custos Fixos  •  Manual de uso do Axioma AI.Tech  •  Versão 2.3 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Custos fixos são os gastos de todo mês: aluguel, salários, contador, internet, sistemas, seguros. Aqui você cadastra cada um **uma vez**, com o período em que vale, e o Axioma usa isso na **DRE** (mês a mês), na **previsão do Fluxo de Caixa** e para **gerar a conta do mês em Contas a Pagar** sozinho.' },
@@ -69,7 +69,7 @@ const en: DocumentoAxioma = {
   arquivo: '11 - Fixed Costs.docx',
   titulo: 'Manual 11 — Fixed Costs',
   subtitulo: 'Expenses that exist every month, selling or not — with validity dates, renewal radar and savings',
-  info: ['Menu: Financial → Fixed Costs  •  Axioma AI.Tech user manual  •  Version 2.2 (November 2026)'],
+  info: ['Menu: Financial → Fixed Costs  •  Axioma AI.Tech user manual  •  Version 2.3 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Fixed costs are the monthly expenses: rent, payroll, accountant, internet, software, insurance. Here you register each one **once**, with the period it is valid, and Axioma uses it in the **P&L** (month by month), the **Cash Flow forecast** and to **create the month\'s bill in Payables** automatically.' },
@@ -133,7 +133,7 @@ const es: DocumentoAxioma = {
   arquivo: '11 - Costos Fijos.docx',
   titulo: 'Manual 11 — Costos Fijos',
   subtitulo: 'Los gastos de todos los meses, venda o no — con vigencia, radar de renovaciones y ahorro',
-  info: ['Menú: Financiero → Costos Fijos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.2 (noviembre de 2026)'],
+  info: ['Menú: Financiero → Costos Fijos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.3 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Los costos fijos son los gastos de todos los meses: alquiler, sueldos, contador, internet, sistemas, seguros. Aquí registra cada uno **una sola vez**, con el período en que vale, y Axioma lo usa en el **Estado de Resultados** (mes a mes), en la **previsión del Flujo de Caja** y para **generar la cuenta del mes en Cuentas por Pagar** solo.' },

@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '10 - Receitas.docx',
   titulo: 'Manual 10 — Receitas',
   subtitulo: 'Todas as entradas de dinheiro da empresa, com a visão de um diretor financeiro',
-  info: ['Menu: Financeiro → Receitas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.0 (outubro de 2026)'],
+  info: ['Menu: Financeiro → Receitas  •  Manual de uso do Axioma AI.Tech  •  Versão 2.1 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Receitas guarda **todas as entradas de dinheiro**: vendas, serviços, contratos recorrentes e receitas eventuais. É a base da DRE, do Fluxo de Caixa, das Metas e da IA Financeira. Toda receita **recebida** vai sozinha para a **Contabilidade** e para o **Fluxo de Caixa** — você lança uma vez só.' },
@@ -77,7 +77,7 @@ const en: DocumentoAxioma = {
   arquivo: '10 - Revenue.docx',
   titulo: 'Manual 10 — Revenue',
   subtitulo: 'All money coming into the company, seen the way a CFO sees it',
-  info: ['Menu: Financial → Revenue  •  Axioma AI.Tech user manual  •  Version 2.0 (October 2026)'],
+  info: ['Menu: Financial → Revenue  •  Axioma AI.Tech user manual  •  Version 2.1 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Revenue keeps **all money coming in**: sales, services, recurring contracts and one-off income. It feeds the P&L, Cash Flow, Goals and the Financial AI. Every **received** revenue goes automatically to **Accounting** and **Cash Flow** — you enter it once.' },
@@ -149,7 +149,7 @@ const es: DocumentoAxioma = {
   arquivo: '10 - Ingresos.docx',
   titulo: 'Manual 10 — Ingresos',
   subtitulo: 'Todo el dinero que entra en la empresa, con la mirada de un director financiero',
-  info: ['Menú: Financiero → Ingresos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.0 (octubre de 2026)'],
+  info: ['Menú: Financiero → Ingresos  •  Manual de uso de Axioma AI.Tech  •  Versión 2.1 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Ingresos guarda **todo el dinero que entra**: ventas, servicios, contratos recurrentes e ingresos eventuales. Alimenta el Estado de Resultados, el Flujo de Caja, las Metas y la IA Financiera. Todo ingreso **cobrado** va solo a **Contabilidad** y al **Flujo de Caja** — se registra una sola vez.' },
