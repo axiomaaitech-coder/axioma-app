@@ -56,3 +56,7 @@ select (select count(*) from pg_tables where tablename = 'rh_ferias') as tabela,
        (select count(*) from pg_policies where tablename = 'rh_ferias') as politicas,
        (select count(*) from pg_trigger where tgname in ('rh_ferias_empresa','rh_ferias_confere')) as gatilhos,
        (select count(*) from pg_constraint where conname = 'rh_ferias_depois_aquisitivo') as regra_aquisitivo;
+
+-- ═════ BLOCO 4 (2026-11-12, auditoria) — caminho fixo nas validações de CPF/CNPJ (alerta de segurança do Supabase) ═════
+alter function public.rh_cpf_valido(text) set search_path = public;
+alter function public.rh_cnpj_valido(text) set search_path = public;
