@@ -5,7 +5,7 @@ const pt: DocumentoAxioma = {
   arquivo: '41 - Configurações - Uso da IA.docx',
   titulo: 'Manual 41 — Uso da IA',
   subtitulo: 'Quanto a inteligência foi usada, por qual caminho e quanto custou',
-  info: ['Menu: Config → Uso da IA  •  Manual de uso do Axioma AI.Tech  •  Versão 3.0 (outubro de 2026)'],
+  info: ['Menu: Config → Uso da IA  •  Manual de uso do Axioma AI.Tech  •  Versão 3.1 (novembro de 2026)'],
   blocos: [
     { h1: 'Para que serve' },
     { p: 'Dá transparência total sobre a inteligência artificial do Axioma: quantas perguntas foram feitas, qual motor respondeu, quantas respostas foram conferidas e o custo estimado. **Nenhum conteúdo das conversas aparece aqui**: só números.' },
@@ -42,6 +42,9 @@ const pt: DocumentoAxioma = {
       ['Telas que mais usaram', 'Ranking das telas com mais perguntas.'],
     ] } },
     { p: '**Exportar PDF** e **Exportar Excel** (no topo, quando o período tem perguntas) baixam esses indicadores do período escolhido, sem nenhum conteúdo das conversas.' },
+    { h1: 'Saúde das Integrações' },
+    { p: 'Em **Config → Integrações** fica o painel que confere cada ligação do Axioma de uma vez: **Inteligência Axioma** (quem respondeu a última pergunta — OpenAI/Anthropic é normal; a reserva gratuita Gemini aparece como **Atenção**), **Banco (Open Finance)** (conexão com erro ou sem sincronizar há mais de 3 dias), **Importação de documentos** (falhas e linhas que não entraram nos últimos 30 dias), **Motor de rastreabilidade** (lançamento que não chegou à Contabilidade, ao Fluxo ou à DRE) e **Assinatura** (situação e vencimento).' },
+    { p: 'Cada linha mostra **Funcionando**, **Atenção**, **Com falha**, **Sem leitura** ou **Não usado**, a última vez que rodou e um botão que leva à tela que resolve. Os problemas aparecem primeiro. **Conferir de novo** (no topo) refaz a leitura. A tela só lê, nunca altera dados; leitura que falha aparece como **Sem leitura**, nunca como funcionando.' },
     { nota: 'Escolha o período no topo da tela (últimos 7, 30 ou 90 dias). Todos os registros do período são contados, sem limite de linhas; se a leitura falhar, a tela avisa. Os registros seguem a política de retenção e auditoria do Axioma, descrita na Política de Privacidade.' },
   ],
 }
@@ -50,7 +53,7 @@ const en: DocumentoAxioma = {
   arquivo: '41 - Settings - AI Usage.docx',
   titulo: 'Manual 41 — AI Usage',
   subtitulo: 'How much the intelligence was used, by which path and how much it cost',
-  info: ['Menu: Settings → AI usage  •  Axioma AI.Tech user manual  •  Version 3.0 (October 2026)'],
+  info: ['Menu: Settings → AI usage  •  Axioma AI.Tech user manual  •  Version 3.1 (November 2026)'],
   blocos: [
     { h1: 'What it is for' },
     { p: 'Gives full transparency about Axioma’s artificial intelligence: how many questions were asked, which engine answered, how many answers were checked and the estimated cost. **No conversation content appears here**: only numbers.' },
@@ -87,6 +90,9 @@ const en: DocumentoAxioma = {
       ['Screens that used it most', 'Ranking of the screens with the most questions.'],
     ] } },
     { p: '**Export PDF** and **Export Excel** (at the top, when the period has questions) download these indicators for the chosen period, with no conversation content.' },
+    { h1: 'Integrations Health' },
+    { p: '**Settings → Integrations** checks every Axioma connection at once: **Axioma Intelligence** (who answered the last question — OpenAI/Anthropic is normal; the free Gemini reserve shows as **Attention**), **Bank (Open Finance)** (connection error or not synced for over 3 days), **Document import** (failures and rows that did not go in over the last 30 days), **Traceability engine** (entries that did not reach Accounting, Cash Flow or the income statement) and **Subscription** (status and end date).' },
+    { p: 'Each row shows **Working**, **Attention**, **Failing**, **No reading** or **Not used**, when it last ran and a button to the screen that fixes it. Problems come first. **Check again** (at the top) reads everything again. The screen only reads and never changes data; a failed read shows as **No reading**, never as working.' },
     { nota: 'Choose the period at the top of the screen (last 7, 30 or 90 days). Every record in the period is counted, with no row limit; if loading fails, the screen warns you. Records follow Axioma’s retention and audit policy, described in the Privacy Policy.' },
   ],
 }
@@ -95,7 +101,7 @@ const es: DocumentoAxioma = {
   arquivo: '41 - Configuración - Uso de la IA.docx',
   titulo: 'Manual 41 — Uso de la IA',
   subtitulo: 'Cuánto se usó la inteligencia, por qué camino y cuánto costó',
-  info: ['Menú: Config → Uso de la IA  •  Manual de uso de Axioma AI.Tech  •  Versión 3.0 (octubre de 2026)'],
+  info: ['Menú: Config → Uso de la IA  •  Manual de uso de Axioma AI.Tech  •  Versión 3.1 (noviembre de 2026)'],
   blocos: [
     { h1: 'Para qué sirve' },
     { p: 'Da transparencia total sobre la inteligencia artificial de Axioma: cuántas preguntas se hicieron, qué motor respondió, cuántas respuestas se verificaron y el costo estimado. **Ningún contenido de las conversaciones aparece aquí**: solo números.' },
@@ -132,6 +138,9 @@ const es: DocumentoAxioma = {
       ['Pantallas que más usaron', 'Ranking de las pantallas con más preguntas.'],
     ] } },
     { p: '**Exportar PDF** y **Exportar Excel** (arriba, cuando el período tiene preguntas) descargan estos indicadores del período elegido, sin ningún contenido de las conversaciones.' },
+    { h1: 'Salud de las Integraciones' },
+    { p: 'En **Config → Integraciones** está el panel que verifica cada conexión del Axioma de una vez: **Inteligencia Axioma** (quién respondió la última pregunta — OpenAI/Anthropic es lo normal; la reserva gratuita Gemini aparece como **Atención**), **Banco (Open Finance)** (conexión con error o sin sincronizar hace más de 3 días), **Importación de documentos** (fallas y filas que no entraron en los últimos 30 días), **Motor de trazabilidad** (registro que no llegó a Contabilidad, Flujo o Estado de resultados) y **Suscripción** (situación y vencimiento).' },
+    { p: 'Cada fila muestra **Funcionando**, **Atención**, **Con falla**, **Sin lectura** o **No usado**, la última vez que corrió y un botón que lleva a la pantalla que lo resuelve. Los problemas aparecen primero. **Verificar de nuevo** (arriba) rehace la lectura. La pantalla solo lee, nunca modifica datos; una lectura que falle aparece como **Sin lectura**, nunca como funcionando.' },
     { nota: 'Elija el período arriba en la pantalla (últimos 7, 30 o 90 días). Todos los registros del período se cuentan, sin límite de filas; si la lectura falla, la pantalla avisa. Los registros siguen la política de retención y auditoría de Axioma, descrita en la Política de Privacidad.' },
   ],
 }
