@@ -2,7 +2,7 @@
 import { lerValorBR } from "../../../../lib/valorBR";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react'
+import { Save, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X, Layers } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
@@ -12,7 +12,8 @@ import { fBRL2 } from '../../../../lib/cfoCore'
 import {
   obterConfigTesouraria, obterPosicaoCaixa, obterFluxoProjetado,
   calcularSimulacaoEstresse, STRESS_VARIAVEIS_NEUTRAS,
-  listarCenarios, salvarCenario, atualizarCenario, excluirCenario,
+  listarCenarios, salvarCenario, excluirCenario, agruparVersoes, proximaVersao, variaveisDoCenario, fotoDaSimulacao,
+  HORIZONTES_TESOURARIA,
   type PosicaoCaixa, type FluxoProjetadoResultado, type StressVariaveis, type CenarioTesouraria,
 } from '../../../../lib/tesourariaHelpers'
 import AvisoAxioma from '../../../../components/AvisoAxioma'
@@ -30,7 +31,7 @@ const PALETA = {
     PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', FORM_BORDA: 'rgba(46,204,155,0.16)',
   },
   xms: {
-    AZULC: '#2ecc9b', ROXO: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    AZULC: '#0f7a5a', ROXO: '#2ecc9b', VERDE: '#0f7a5a', AMARELO: '#9a3412', VERMELHO: '#b91c1c', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
     PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', BTN_BG: 'rgba(16,27,61,0.08)', NESTED_BG: 'rgba(255,255,255,0.5)', BORDA: 'rgba(16,27,61,0.12)', BORDA_SUAVE: 'rgba(16,27,61,0.08)', FORM_BORDA: 'rgba(46,204,155,0.35)',
   },
 } as const
@@ -62,7 +63,7 @@ export default function TesourariaSimuladorPage() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [excluindoId, setExcluindoId] = useState<string | null>(null)
-  const [confirmandoExclusao, setConfirmandoExclusao] = useState<string | null>(null)
+  const [comparar, setComparar] = useState<string[]>([])
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
 
   function mostrarToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
@@ -115,7 +116,7 @@ export default function TesourariaSimuladorPage() {
   }
 
   function carregarCenarioNosControles(c: CenarioTesouraria) {
-    setVars({ ...STRESS_VARIAVEIS_NEUTRAS, ...c.variaveis })
+    setVars(variaveisDoCenario(c))
     setNomeCenario(c.nome)
     setEditandoId(c.id)
   }
@@ -124,13 +125,14 @@ export default function TesourariaSimuladorPage() {
     if (!empresaId) return
     const nome = nomeCenario.trim()
     if (!nome) { mostrarToast(L('Dê um nome ao cenário antes de salvar.', 'Give the scenario a name before saving.', 'Dele un nombre al escenario antes de guardar.')); return }
+    if (!simulacao) return
+    const versao = proximaVersao(grupos, nome)
     setSalvando(true)
-    const r = editandoId
-      ? await atualizarCenario(editandoId, empresaId, nome, vars)
-      : await salvarCenario(empresaId, nome, vars)
+    // Nunca sobrescreve: cada gravação é uma versão nova com a foto dos números de hoje.
+    const r = await salvarCenario(empresaId, nome, vars, fotoDaSimulacao(simulacao, new Date().toISOString()))
     setSalvando(false)
     if (!r.ok) { mostrarToast(L('Não foi possível salvar — tente novamente.', 'Could not save — try again.', 'No se pudo guardar — intente de nuevo.')); return }
-    mostrarToast(L('Cenário salvo.', 'Scenario saved.', 'Escenario guardado.'), 'ok')
+    mostrarToast(L(`Cenário salvo (versão ${versao}).`, `Scenario saved (version ${versao}).`, `Escenario guardado (versión ${versao}).`), 'ok')
     setNomeCenario('')
     setEditandoId(null)
     await carregarCenarios(empresaId)
@@ -143,12 +145,32 @@ export default function TesourariaSimuladorPage() {
     setExcluindoId(id)
     const r = await excluirCenario(id, empresaId)
     setExcluindoId(null)
-    setConfirmandoExclusao(null)
     if (!r.ok) { mostrarToast(L('Não foi possível excluir — tente novamente.', 'Could not delete — try again.', 'No se pudo eliminar — intente de nuevo.')); return }
     mostrarToast(L('Cenário excluído.', 'Scenario deleted.', 'Escenario eliminado.'), 'ok')
     if (editandoId === id) { setEditandoId(null); setNomeCenario('') }
+    setComparar((prev) => prev.filter((x) => x !== id))
     await carregarCenarios(empresaId)
   }
+
+  const grupos = agruparVersoes(cenarios)
+  const versaoNova = nomeCenario.trim() ? proximaVersao(grupos, nomeCenario) : 1
+  const versaoPorId = new Map(grupos.flatMap((g) => g.versoes.map((v) => [v.id, v] as const)))
+  const dataCurta = (iso: string) => new Date(iso).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
+  function alternarComparar(id: string) {
+    setComparar((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      if (prev.length >= 3) { mostrarToast(L('Compare até 3 versões por vez.', 'Compare up to 3 versions at a time.', 'Compare hasta 3 versiones a la vez.')); return prev }
+      return [...prev, id]
+    })
+  }
+  // Comparação: "sem mudanças" + versões marcadas, todas recalculadas com o fluxo real de hoje.
+  const colunas = fluxo && posicao ? [
+    { id: 'base', titulo: L('Sem mudanças', 'No changes', 'Sin cambios'), sub: L('fluxo real de hoje', 'today’s real flow', 'flujo real de hoy'), sim: calcularSimulacaoEstresse(fluxo, posicao, reservaMinima, STRESS_VARIAVEIS_NEUTRAS), foto: undefined as CenarioTesouraria['variaveis']['foto'] },
+    ...comparar.map((id) => versaoPorId.get(id)).filter((v): v is NonNullable<typeof v> => !!v).map((v) => ({
+      id: v.id, titulo: `${v.nome} · v${v.versao}`, sub: L(`salvo em ${dataCurta(v.criado_em)}`, `saved on ${dataCurta(v.criado_em)}`, `guardado el ${dataCurta(v.criado_em)}`),
+      sim: calcularSimulacaoEstresse(fluxo, posicao, reservaMinima, variaveisDoCenario(v)), foto: v.variaveis.foto,
+    })),
+  ] : []
 
   const CONTROLES: { chave: keyof StressVariaveis; label: string; min: number; max: number; step: number; sufixo: string; tipo: 'slider' | 'valor' }[] = [
     { chave: 'receitaPct', label: L('Receita', 'Revenue', 'Ingresos'), min: -50, max: 50, step: 1, sufixo: '%', tipo: 'slider' },
@@ -166,7 +188,7 @@ export default function TesourariaSimuladorPage() {
         <>
           <button onClick={() => router.push('/tesouraria')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(163,177,194,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            style={{ background: 'linear-gradient(135deg, #0a1628, #101b3d)', color: '#fff', border: '1px solid rgba(46,204,155,0.35)' }}>
             {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
           </button>
           <ThemeToggle />
@@ -178,6 +200,7 @@ export default function TesourariaSimuladorPage() {
       ) : !empresaId || !posicao || !fluxo || !simulacao ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma empresa ativa.', 'No active company.', 'Ninguna empresa activa.')}</p>
       ) : (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* CONTROLES */}
@@ -230,62 +253,74 @@ export default function TesourariaSimuladorPage() {
                     onChange={(e) => setVar('novaContratacaoCustoMensal', lerValorBR(e.target.value) || 0)}
                     className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 </div>
+
+                <div>
+                  <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>{L('Investimento', 'Investment', 'Inversión')}</p>
+                  <label className="text-xs" style={{ color: CINZA }}>{L('Valor (sai hoje — ex.: máquina, reforma, nova filial)', 'Amount (out today — e.g. machine, renovation, new branch)', 'Valor (sale hoy — ej.: máquina, reforma, nueva sucursal)')}</label>
+                  <input type="text" inputMode="decimal" value={vars.investimentoInicial || ''} placeholder="0"
+                    onChange={(e) => setVar('investimentoInicial', lerValorBR(e.target.value) || 0)}
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                </div>
               </div>
             </div>
 
-            {/* SALVAR / EDITAR CENÁRIO */}
-            {podeSalvar && (
-              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${ROXO}30` }}>
-                <h3 className="text-sm font-bold mb-3" style={{ color: TITULO }}>
-                  {editandoId ? L('Editar Cenário', 'Edit Scenario', 'Editar Escenario') : L('Salvar Cenário', 'Save Scenario', 'Guardar Escenario')}
-                </h3>
-                <div className="flex gap-2">
-                  <input type="text" value={nomeCenario} onChange={(e) => setNomeCenario(e.target.value)}
+            {/* CENÁRIOS VERSIONADOS — cada gravação é uma versão nova, nunca sobrescreve */}
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
+              <h3 className="text-sm font-bold mb-1" style={{ color: TITULO }}>{L('Cenários Salvos', 'Saved Scenarios', 'Escenarios Guardados')}</h3>
+              <p className="text-xs mb-3" style={{ color: CINZA }}>{L('Cada vez que você salva, vira uma versão nova com a foto dos números do dia — nada é sobrescrito. Use o mesmo nome para criar a próxima versão.', 'Every save becomes a new version with a snapshot of that day’s numbers — nothing is overwritten. Use the same name to create the next version.', 'Cada vez que guarda, se crea una versión nueva con la foto de los números del día — nada se sobrescribe. Use el mismo nombre para crear la próxima versión.')}</p>
+              {podeSalvar ? (
+                <div className="flex flex-wrap gap-2">
+                  <input type="text" value={nomeCenario} onChange={(e) => setNomeCenario(e.target.value)} aria-label={L('Nome do cenário', 'Scenario name', 'Nombre del escenario')}
                     placeholder={L('Nome do cenário', 'Scenario name', 'Nombre del escenario')}
-                    className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="flex-1 min-w-[10rem] px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${FORM_BORDA}`, color: TEXTO }} />
                   <button onClick={handleSalvar} disabled={salvando}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60 axi-card-premium3d axi-card-faixa"
-                    style={{ background: temaClaro ? 'rgba(46,204,155,0.2)' : 'rgba(46,204,155,0.2)', color: ROXO, border: `1px solid ${ROXO}50` }}>
-                    <Save size={14} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white"
+                    style={{ background: 'linear-gradient(135deg, #0b5f46, #0f7a5a)' }}>
+                    <Save size={14} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : versaoNova > 1 ? L(`Salvar versão ${versaoNova}`, `Save version ${versaoNova}`, `Guardar versión ${versaoNova}`) : L('Salvar cenário', 'Save scenario', 'Guardar escenario')}
                   </button>
                   {editandoId && (
-                    <button onClick={resetar} className="px-3 py-2.5 rounded-xl" style={{ background: BTN_BG, color: CINZA }}>
+                    <button onClick={resetar} className="px-3 py-2.5 rounded-xl" style={{ background: BTN_BG, color: CINZA }} title={L('Fechar versão aberta', 'Close open version', 'Cerrar versión abierta')} aria-label={L('Fechar versão aberta', 'Close open version', 'Cerrar versión abierta')}>
                       <X size={14} />
                     </button>
                   )}
                 </div>
+              ) : (
+                <p className="text-xs" style={{ color: CINZA }}>{L('Só o dono e administradores salvam cenários; você pode abrir e comparar os salvos.', 'Only the owner and admins save scenarios; you can open and compare saved ones.', 'Solo el dueño y administradores guardan escenarios; usted puede abrir y comparar los guardados.')}</p>
+              )}
 
-                {cenarios.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {cenarios.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5 axi-card-premium3d axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
-                        <span className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{c.nome}</span>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => carregarCenarioNosControles(c)} className="p-1.5 rounded-lg" style={{ color: AZULC }} title={L('Editar', 'Edit', 'Editar')}>
-                            <Pencil size={13} />
-                          </button>
-                          {confirmandoExclusao === c.id ? (
-                            <>
-                              <button onClick={() => handleExcluir(c.id)} disabled={excluindoId === c.id}
-                                className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
-                                {L('Confirmar', 'Confirm', 'Confirmar')}
+              {grupos.length === 0 ? (
+                <p className="text-xs mt-3" style={{ color: CINZA }}>{L('Nenhum cenário salvo ainda.', 'No saved scenarios yet.', 'Aún no hay escenarios guardados.')}</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {grupos.map((g) => (
+                    <div key={g.versoes[0].id} className="rounded-xl p-2.5 axi-card-faixa" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
+                      <p className="text-xs font-bold mb-1.5" style={{ color: TEXTO }}>{g.nome} <span className="font-normal" style={{ color: CINZA }}>· {g.versoes.length} {g.versoes.length === 1 ? L('versão', 'version', 'versión') : L('versões', 'versions', 'versiones')}</span></p>
+                      <ul className="space-y-1">
+                        {g.versoes.map((v) => (
+                          <li key={v.id} className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-bold" style={{ color: editandoId === v.id ? AZULC : TEXTO }}>v{v.versao}</span>
+                            <span style={{ color: CINZA }}>{dataCurta(v.criado_em)}{v.variaveis.foto?.saldos?.[90] != null ? ` · ${L('90 dias', '90 days', '90 días')}: R$ ${fBRL2(v.variaveis.foto.saldos[90]!)}` : ''}</span>
+                            <span className="ml-auto flex items-center gap-1">
+                              <label className="flex items-center gap-1 cursor-pointer px-1" style={{ color: CINZA }}>
+                                <input type="checkbox" checked={comparar.includes(v.id)} onChange={() => alternarComparar(v.id)} style={{ accentColor: AZULC }} />{L('Comparar', 'Compare', 'Comparar')}
+                              </label>
+                              <button onClick={() => carregarCenarioNosControles(v)} className="p-1.5 rounded-lg" style={{ color: AZULC }} title={L('Abrir nos controles', 'Open in controls', 'Abrir en los controles')} aria-label={L('Abrir nos controles', 'Open in controls', 'Abrir en los controles')}>
+                                <Pencil size={13} />
                               </button>
-                              <button onClick={() => setConfirmandoExclusao(null)} className="text-xs font-bold px-2 py-1 rounded-lg" style={{ color: CINZA }}>
-                                {L('Cancelar', 'Cancel', 'Cancelar')}
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => setConfirmandoExclusao(c.id)} className="p-1.5 rounded-lg" style={{ color: VERMELHO }} title={L('Excluir', 'Delete', 'Eliminar')}>
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                              {podeSalvar && (
+                                <button onClick={() => handleExcluir(v.id)} disabled={excluindoId === v.id} className="p-1.5 rounded-lg" style={{ color: VERMELHO }} title={L('Excluir esta versão', 'Delete this version', 'Eliminar esta versión')} aria-label={L('Excluir esta versão', 'Delete this version', 'Eliminar esta versión')}>
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RESULTADO */}
@@ -353,6 +388,68 @@ export default function TesourariaSimuladorPage() {
             )}
           </div>
         </div>
+
+        {/* COMPARAÇÃO DE VERSÕES — todas recalculadas com o fluxo real de hoje, ao lado da foto do dia em que foram salvas */}
+        <div className={`rounded-2xl p-4 md:p-5 mt-6${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
+          <h3 className="text-sm font-bold mb-1 flex items-center gap-2" style={{ color: TITULO }}><Layers size={16} style={{ color: AZULC }} />{L('Comparação de Cenários', 'Scenario Comparison', 'Comparación de Escenarios')}</h3>
+          {colunas.length < 2 ? (
+            <p className="text-xs" style={{ color: CINZA }}>{L('Marque "Comparar" em até 3 versões salvas (acima) para vê-las lado a lado com o caixa sem mudanças.', 'Tick "Compare" on up to 3 saved versions (above) to see them side by side with cash without changes.', 'Marque "Comparar" en hasta 3 versiones guardadas (arriba) para verlas lado a lado con la caja sin cambios.')}</p>
+          ) : (<>
+            <p className="text-xs mb-3" style={{ color: CINZA }}>{L('Cada versão é recalculada com o fluxo real de hoje. As duas últimas linhas mostram o que se projetava para 90 dias no dia em que foi salva e quanto isso mudou.', 'Each version is recalculated with today’s real flow. The last two rows show what was projected for 90 days on the day it was saved and how much that changed.', 'Cada versión se recalcula con el flujo real de hoy. Las dos últimas filas muestran lo que se proyectaba a 90 días el día en que se guardó y cuánto cambió.')}</p>
+            <div className="overflow-x-auto rounded-2xl" style={{ border: `1px solid ${BORDA}` }}>
+              <table className="w-full text-xs" style={{ minWidth: 180 + 150 * colunas.length }}>
+                <thead>
+                  <tr style={{ color: CINZA, background: NESTED_BG }}>
+                    <th className="text-left py-2 px-3 font-semibold">{L('Indicador', 'Indicator', 'Indicador')}</th>
+                    {colunas.map((c) => (
+                      <th key={c.id} className="text-right py-2 px-3 font-semibold">
+                        <span className="block" style={{ color: TEXTO }}>{c.titulo}</span>
+                        <span className="block font-normal">{c.sub}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{L('Caixa disponível', 'Available cash', 'Caja disponible')}</td>
+                    {colunas.map((c) => <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(c.sim.caixaDisponivelSimulado)}</td>)}
+                  </tr>
+                  {HORIZONTES_TESOURARIA.map((h) => (
+                    <tr key={h} style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                      <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{L(`Saldo em ${h} dias`, `Balance in ${h} days`, `Saldo en ${h} días`)}</td>
+                      {colunas.map((c) => {
+                        const p = c.sim.pontos.find((x) => x.horizonteDias === h)
+                        return <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: p?.abaixoDaReserva ? VERMELHO : TEXTO }}>{p ? `R$ ${fBRL2(p.saldoProjetadoSimulado)}` : '—'}</td>
+                      })}
+                    </tr>
+                  ))}
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{L('Rompe a reserva mínima', 'Breaks minimum reserve', 'Rompe la reserva mínima')}</td>
+                    {colunas.map((c) => <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: c.sim.rupturaHorizonte != null ? VERMELHO : VERDE }}>{c.sim.rupturaHorizonte != null ? L(`em ${c.sim.rupturaHorizonte} dias`, `in ${c.sim.rupturaHorizonte} days`, `en ${c.sim.rupturaHorizonte} días`) : L('não', 'no', 'no')}</td>)}
+                  </tr>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>Liquidity Score</td>
+                    {colunas.map((c) => <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: AZULC }}>{c.sim.liquidityScoreSimulado.total}</td>)}
+                  </tr>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{L('90 dias, quando foi salvo', '90 days, when saved', '90 días, cuando se guardó')}</td>
+                    {colunas.map((c) => <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>{c.foto?.saldos?.[90] != null ? `R$ ${fBRL2(c.foto.saldos[90]!)}` : '—'}</td>)}
+                  </tr>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{L('Mudou desde então', 'Changed since then', 'Cambió desde entonces')}</td>
+                    {colunas.map((c) => {
+                      const antes = c.foto?.saldos?.[90], agora = c.sim.pontos.find((x) => x.horizonteDias === 90)?.saldoProjetadoSimulado
+                      if (antes == null || agora == null) return <td key={c.id} className="text-right py-2 px-3" style={{ color: CINZA }}>—</td>
+                      const d = agora - antes
+                      return <td key={c.id} className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: d >= 0 ? VERDE : AMARELO }}>{d >= 0 ? '+' : '−'} R$ {fBRL2(Math.abs(d))}</td>
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>)}
+        </div>
+        </>
       )}
 
       {janelaConfirmacao}

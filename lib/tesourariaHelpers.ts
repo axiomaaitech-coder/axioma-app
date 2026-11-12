@@ -653,44 +653,82 @@ export function calcularSimulacaoEstresse(
 }
 
 // ============================================================================
-// CENÁRIOS SALVOS (tesouraria_cenario) — o dono grava as variáveis do
-// simulador pra reabrir depois. Tabela e RLS FOR ALL já existem da Rodada 1
-// (ver CFO-TESOURARIA-RODADA1-SQL.txt, Parte 4) — nenhuma coluna nova aqui.
+// CENÁRIOS VERSIONADOS (tesouraria_cenario) — 2026-11-12, item 4 da pesquisa
+// "CFO no mundo" (estilo Runway). Salvar NUNCA sobrescreve: cada gravação é
+// uma versão nova (mesmo nome = mesma família), com a FOTO do resultado no dia
+// (caixa, saldos 7/30/60/90, ruptura, score) guardada dentro de `variaveis`
+// (jsonb — sem coluna nova). Na comparação, cada versão é recalculada com o
+// fluxo real de hoje e posta ao lado do que se projetava quando foi salva.
+// Tabela e RLS FOR ALL já existem da Rodada 1.
 // ============================================================================
+
+export type FotoCenario = {
+  em: string;
+  caixaDisponivel: number;
+  saldos: Partial<Record<HorizonteTesouraria, number>>;
+  ruptura: HorizonteTesouraria | null;
+  score: number;
+};
 
 export type CenarioTesouraria = {
   id: string;
   nome: string;
   tipo: "base" | "otimista" | "estressado" | "custom";
-  variaveis: StressVariaveis;
+  variaveis: StressVariaveis & { foto?: FotoCenario };
   criado_em: string;
 };
 
+export type GrupoCenario = { nome: string; versoes: (CenarioTesouraria & { versao: number })[] };
+
+const chaveNome = (n: string) => n.trim().toLocaleLowerCase("pt-BR");
+
+/** Só as variáveis do simulador (tira a foto e chaves desconhecidas). */
+export function variaveisDoCenario(c: Pick<CenarioTesouraria, "variaveis">): StressVariaveis {
+  const v = (c.variaveis || {}) as Partial<StressVariaveis>;
+  const out = { ...STRESS_VARIAVEIS_NEUTRAS };
+  (Object.keys(out) as (keyof StressVariaveis)[]).forEach((k) => { out[k] = Number(v[k]) || 0; });
+  return out;
+}
+
+export function fotoDaSimulacao(s: SimulacaoEstresseResultado, em: string): FotoCenario {
+  const saldos: FotoCenario["saldos"] = {};
+  s.pontos.forEach((p) => { saldos[p.horizonteDias] = Math.round(p.saldoProjetadoSimulado * 100) / 100; });
+  return { em, caixaDisponivel: Math.round(s.caixaDisponivelSimulado * 100) / 100, saldos, ruptura: s.rupturaHorizonte, score: s.liquidityScoreSimulado.total };
+}
+
+/** Agrupa por nome (sem diferença de maiúscula/espaço); versão 1 = a mais antiga; grupos e versões do mais novo ao mais antigo. */
+export function agruparVersoes(lista: CenarioTesouraria[]): GrupoCenario[] {
+  const mapa = new Map<string, CenarioTesouraria[]>();
+  for (const c of lista) { const k = chaveNome(c.nome); mapa.set(k, [...(mapa.get(k) || []), c]); }
+  const grupos = [...mapa.values()].map((vs) => {
+    const asc = [...vs].sort((a, b) => a.criado_em.localeCompare(b.criado_em) || a.id.localeCompare(b.id));
+    const versoes = asc.map((c, i) => ({ ...c, versao: i + 1 })).reverse();
+    return { nome: versoes[0].nome, versoes };
+  });
+  return grupos.sort((a, b) => b.versoes[0].criado_em.localeCompare(a.versoes[0].criado_em));
+}
+
+/** Próximo número de versão para um nome (1 se é novo). */
+export function proximaVersao(grupos: GrupoCenario[], nome: string): number {
+  const g = grupos.find((x) => chaveNome(x.nome) === chaveNome(nome));
+  return g ? g.versoes[0].versao + 1 : 1;
+}
+
 export async function listarCenarios(empresaId: string): Promise<CenarioTesouraria[]> {
   const data = await registrarLeitura(() => supabase.from("tesouraria_cenario")
-    .select("id, nome, tipo, variaveis, criado_em").eq("empresa_id", empresaId).order("criado_em", { ascending: false }), "tesourariaHelpers:657");
+    .select("id, nome, tipo, variaveis, criado_em").eq("empresa_id", empresaId).order("criado_em", { ascending: false }), "tesourariaHelpers:listarCenarios");
   return (data as CenarioTesouraria[]) || [];
 }
 
-export async function salvarCenario(empresaId: string, nome: string, variaveis: StressVariaveis): Promise<{ ok: boolean; erro?: string }> {
+/** Grava SEMPRE uma versão nova (nunca sobrescreve a anterior). */
+export async function salvarCenario(empresaId: string, nome: string, variaveis: StressVariaveis, foto: FotoCenario): Promise<{ ok: boolean; erro?: string }> {
   const { data: authData } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("tesouraria_cenario")
-    .insert({ empresa_id: empresaId, nome, tipo: "custom", variaveis, criado_por: authData?.user?.id || null })
+    .insert({ empresa_id: empresaId, nome: nome.trim(), tipo: "custom", variaveis: { ...variaveisDoCenario({ variaveis }), foto }, criado_por: authData?.user?.id || null })
     .select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("tesouraria_cenario", "insert", motivo);
-    return { ok: false, erro: motivo };
-  }
-  return { ok: true };
-}
-
-export async function atualizarCenario(id: string, empresaId: string, nome: string, variaveis: StressVariaveis): Promise<{ ok: boolean; erro?: string }> {
-  const { data, error } = await supabase.from("tesouraria_cenario")
-    .update({ nome, variaveis }).eq("id", id).eq("empresa_id", empresaId).select("id");
-  if (error || !data || data.length === 0) {
-    const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita("tesouraria_cenario", "update", motivo);
     return { ok: false, erro: motivo };
   }
   return { ok: true };
