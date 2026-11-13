@@ -13,7 +13,7 @@ import { rotaDoFechamento } from './filtroDestino'
 
 type T3 = { pt: string; en: string; es: string }
 export type StatusItem = 'ok' | 'pendente' | 'sem_dado' | 'nao_se_aplica'
-export type ItemFechamento = { id: string; status: StatusItem; titulo: T3; detalhe: T3; qtd?: number; valor?: number; rota: string; acao: T3 }
+export type ItemFechamento = { id: string; status: StatusItem; titulo: T3; detalhe: T3; qtd?: number; valor?: number; rota: string; acao: T3; batem?: number; total?: number }
 
 const t = (pt: string, en: string, es: string): T3 => ({ pt, en, es })
 const soma = (l: { v: number }[]) => Math.round(l.reduce((s, x) => s + x.v, 0) * 100) / 100
@@ -116,7 +116,8 @@ export async function carregarChecklistFechamento(sb: SupabaseClient, empresaId:
       const linha = conf.meses.find((m) => m.mes === mes)
       const pares = linha ? [linha.receitaDreXContabil, linha.custoDreXContabil, linha.pagoXFluxo, linha.recebidoXFluxo] : []
       const difs = pares.filter((p) => !p.ok).length + conf.casos.length
-      itens.push({ id: 'conferencia', titulo, rota, acao, qtd: difs, status: difs ? 'pendente' : 'ok',
+      // batem/total: base da "Confiança dos dados" do mês (quantas das 4 conferências batem).
+      itens.push({ id: 'conferencia', titulo, rota, acao, qtd: difs, batem: pares.filter((p) => p.ok).length, total: pares.length, status: difs ? 'pendente' : 'ok',
         detalhe: difs ? t(`${difs} diferença(s) entre DRE, Contabilidade e Fluxo de Caixa.`, `${difs} difference(s) between income statement, Accounting and Cash Flow.`, `${difs} diferencia(s) entre estado de resultados, Contabilidad y Flujo de Caja.`) : t('DRE, Contabilidade e Fluxo de Caixa batem.', 'Income statement, Accounting and Cash Flow match.', 'Estado de resultados, Contabilidad y Flujo de Caja cuadran.') })
     }
   }

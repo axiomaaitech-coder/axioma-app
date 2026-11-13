@@ -10,7 +10,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
-import { obterFechamento, obterDataTrust, type FechamentoInfo, type DataTrust } from '../../../../lib/contadorHelpers'
+import { obterFechamento, type FechamentoInfo } from '../../../../lib/contadorHelpers'
 import { carregarChecklistFechamento, progressoFechamento, type ItemFechamento } from '../../../../lib/fechamentoMes'
 import { createBrowserClient } from '../../../../lib/supabaseBrowser'
 import { fBRL2 } from '../../../../lib/cfoCore'
@@ -48,7 +48,6 @@ export default function ContadorFechamentoPage() {
   const [loading, setLoading] = useState(true)
   const [itens, setItens] = useState<ItemFechamento[] | null>(null)
   const [fechamento, setFechamento] = useState<FechamentoInfo | null>(null)
-  const [dataTrust, setDataTrust] = useState<DataTrust | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -56,11 +55,11 @@ export default function ContadorFechamentoPage() {
       const empId = await obterEmpresaAtiva()
       setEmpresaId(empId)
       if (empId) {
-        const [lista, f, dt] = await Promise.all([
+        const [lista, f] = await Promise.all([
           carregarChecklistFechamento(supabase, empId, mes, hojeISO()).catch(() => null),
-          obterFechamento(empId, `${mes}-01`), obterDataTrust(empId, `${mes}-01`),
+          obterFechamento(empId, `${mes}-01`),
         ])
-        setItens(lista); setFechamento(f); setDataTrust(dt)
+        setItens(lista); setFechamento(f)
       }
       setLoading(false)
     })()
@@ -153,8 +152,12 @@ export default function ContadorFechamentoPage() {
               </button>
               <button type="button" onClick={() => ir(rotaDoFechamento('/conferencia', mes))} className={`rounded-2xl p-5 text-center w-full cursor-pointer${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                 <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Confiança dos dados', 'Data trust', 'Confianza de los datos')}</p>
-                {dataTrust ? <p className="text-4xl font-black" style={{ color: AZULC }}><AnimatedNumber value={String(dataTrust.score)} /><span className="text-base font-semibold" style={{ color: CINZA }}>/1000</span></p>
-                  : <p className="text-sm" style={{ color: CINZA }}>{L('Ainda não calculado', 'Not calculated yet', 'Aún no calculado')}</p>}
+                {/* Confiança dos dados = quantas das 4 conferências do mês batem (DRE × Contabilidade, Pago/Recebido × Fluxo). */}
+                {(() => { const c = itens?.find((x) => x.id === 'conferencia'); if (!c || c.total == null || c.status === 'sem_dado') return <p className="text-sm" style={{ color: ALERTA }}>{L('Sem leitura agora', 'No reading now', 'Sin lectura ahora')}</p>
+                  if (c.total === 0) return <p className="text-sm" style={{ color: CINZA }}>{L('Sem movimento no mês para conferir', 'No activity this month to check', 'Sin movimiento en el mes para conciliar')}</p>
+                  const pct = Math.round((c.batem! / c.total) * 100)
+                  return (<><p className="text-4xl font-black" style={{ color: pct === 100 ? VERDE : ALERTA }}><AnimatedNumber value={`${pct}%`} /></p>
+                    <p className="text-xs mt-2" style={{ color: CINZA }}>{L(`${c.batem} de ${c.total} conferências batem`, `${c.batem} of ${c.total} checks match`, `${c.batem} de ${c.total} conciliaciones cuadran`)}</p></>) })()}
                 <p className="text-xs font-bold mt-3" style={{ color: AZULC }}>{L('Conferir na Conferência ›', 'Check in Reconciliation ›', 'Revisar en Conciliación ›')}</p>
               </button>
             </div>
